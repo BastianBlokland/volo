@@ -4,20 +4,44 @@
 
 spec(utf8) {
 
-  static String testStr =
+  static String g_testStr =
       string_static("STARGΛ̊TE,Hello world,Καλημέρα κόσμε,コンニチハ,⡌⠁⠧⠑ ⠼⠁⠒,ᚻᛖ ᚳᚹᚫᚦ ᚦᚫᛏ,ሰማይ አይታረስ "
                     "ንጉሥ አይከሰስ።,แผ่นดินฮั่นเสื่อมโทรมแสนสังเวช,Зарегистрируйтесь,გთხოვთ ახლავე გაიაროთ⎪⎢⎜ "
                     "⎳aⁱ-bⁱ⎟⎥⎪▁▂▃▄▅▆▇█∀∂∈ℝ∧∪≡∞");
 
+  static const String g_validUtf8Strs[] = {
+      string_static("Hello World"),
+      string_static("\xc3\xb1"),
+      string_static("\xe2\x82\xa1"),
+      string_static("\xf0\x90\x8c\xbc"),
+  };
+
+  static const String g_invalidUtf8Strs[] = {
+      string_static("\xc3\x28"),
+      string_static("\xa0\xa1"),
+      string_static("\xe2\x28\xa1"),
+      string_static("\xe2\x82\x28"),
+      string_static("\xf0\x28\x8c\xbc"),
+      string_static("\xf0\x90\x28\xbc"),
+      string_static("\xf0\x28\x8c\x28"),
+  };
+
   it("can validate utf8 strings") {
     check(utf8_validate(string_empty));
-    check(utf8_validate(testStr));
+    check(utf8_validate(g_testStr));
+
+    for (u32 i = 0; i != array_elems(g_validUtf8Strs); ++i) {
+      check(utf8_validate(g_validUtf8Strs[i]));
+    }
+    for (u32 i = 0; i != array_elems(g_invalidUtf8Strs); ++i) {
+      check(!utf8_validate(g_invalidUtf8Strs[i]));
+    }
   }
 
   it("can count codepoints in a utf8 string") {
     check_eq_int(utf8_cp_count(string_empty), 0);
     check_eq_int(utf8_cp_count(string_lit("Hello")), 5);
-    check_eq_int(utf8_cp_count(testStr), 184);
+    check_eq_int(utf8_cp_count(g_testStr), 184);
 
     check_eq_int(string_lit("Привет, мир").size, 20);
     check_eq_int(utf8_cp_count(string_lit("Привет, мир")), 11);
@@ -62,7 +86,7 @@ spec(utf8) {
     dynstring_destroy(&string);
   }
 
-  it("can decode codecpoints from utf8") {
+  it("can decode codepoints from utf8") {
     struct {
       String  utf8;
       Unicode expected;

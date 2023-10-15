@@ -8,6 +8,7 @@
 #include "script_binder.h"
 #include "script_diag.h"
 #include "script_read.h"
+#include "script_sym.h"
 
 /**
  * Language Server Protocol implementation for the Volo script language.
@@ -47,17 +48,24 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  LspStatus      status;
-  LspFlags       flags;
-  DynString*     readBuffer;
-  usize          readCursor;
-  DynString*     writeBuffer;
-  ScriptBinder*  scriptBinder;
-  ScriptDoc*     script;      // Cleared between messages.
-  ScriptDiagBag* scriptDiags; // Cleared between messages.
-  JsonDoc*       json;        // Cleared between messages.
-  File*          in;
-  File*          out;
+  String         identifier;
+  String         text;
+  ScriptDoc*     scriptDoc;
+  ScriptDiagBag* scriptDiags;
+  ScriptSymBag*  scriptSyms;
+} LspDocument;
+
+typedef struct {
+  LspStatus     status;
+  LspFlags      flags;
+  DynString*    readBuffer;
+  usize         readCursor;
+  DynString*    writeBuffer;
+  ScriptBinder* scriptBinder;
+  JsonDoc*      jDoc;     // Cleared between messages.
+  DynArray*     openDocs; // LspDocument[]*
+  File*         in;
+  File*         out;
 } LspContext;
 
 typedef struct {
@@ -71,13 +79,6 @@ typedef enum {
   LspMessageType_Log     = 4,
 } LspMessageType;
 
-typedef enum {
-  LspDiagnosticSeverity_Error       = 1,
-  LspDiagnosticSeverity_Warning     = 2,
-  LspDiagnosticSeverity_Information = 3,
-  LspDiagnosticSeverity_Hint        = 4,
-} LspDiagnosticSeverity;
-
 typedef struct {
   u16 line, character;
 } LspPosition;
@@ -86,11 +87,35 @@ typedef struct {
   LspPosition start, end;
 } LspRange;
 
+typedef enum {
+  LspDiagSeverity_Error       = 1,
+  LspDiagSeverity_Warning     = 2,
+  LspDiagSeverity_Information = 3,
+  LspDiagSeverity_Hint        = 4,
+} LspDiagSeverity;
+
 typedef struct {
-  LspRange              range;
-  LspDiagnosticSeverity severity;
-  String                message;
-} LspDiagnostic;
+  LspRange        range;
+  LspDiagSeverity severity;
+  String          message;
+} LspDiag;
+
+typedef enum {
+  LspCompletionItemKind_Function    = 3,
+  LspCompletionItemKind_Constructor = 4,
+  LspCompletionItemKind_Variable    = 6,
+  LspCompletionItemKind_Property    = 10,
+  LspCompletionItemKind_Keyword     = 14,
+  LspCompletionItemKind_Constant    = 21,
+} LspCompletionItemKind;
+
+typedef struct {
+  String                label;
+  String                labelDetail;
+  String                labelDescription;
+  LspCompletionItemKind kind : 8;
+  u8                    commitChar;
+} LspCompletionItem;
 
 typedef struct {
   String  method;
@@ -112,6 +137,54 @@ static const JRpcError g_jrpcErrorMethodNotFound = {
     .code = -32601,
     .msg  = string_static("Method not found"),
 };
+
+static const JRpcError g_jrpcErrorInvalidParams = {
+    .code = -32602,
+    .msg  = string_static("Invalid parameters"),
+};
+
+static void lsp_doc_destroy(LspDocument* doc) {
+  string_free(g_alloc_heap, doc->identifier);
+  string_maybe_free(g_alloc_heap, doc->text);
+  script_destroy(doc->scriptDoc);
+  script_diag_bag_destroy(doc->scriptDiags);
+  script_sym_bag_destroy(doc->scriptSyms);
+}
+
+static void lsp_doc_update_text(LspDocument* doc, const String text) {
+  string_maybe_free(g_alloc_heap, doc->text);
+  doc->text = string_maybe_dup(g_alloc_heap, text);
+}
+
+static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
+  dynarray_for_t(ctx->openDocs, LspDocument, doc) {
+    if (string_eq(doc->identifier, identifier)) {
+      return doc;
+    }
+  }
+  return null;
+}
+
+static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const String text) {
+  LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
+
+  *res = (LspDocument){
+      .identifier  = string_dup(g_alloc_heap, identifier),
+      .text        = string_maybe_dup(g_alloc_heap, text),
+      .scriptDoc   = script_create(g_alloc_heap),
+      .scriptDiags = script_diag_bag_create(g_alloc_heap, ScriptDiagFilter_All),
+      .scriptSyms  = script_sym_bag_create(g_alloc_heap),
+  };
+
+  return res;
+}
+
+static void lsp_doc_close(LspContext* ctx, LspDocument* doc) {
+  lsp_doc_destroy(doc);
+
+  const usize index = doc - dynarray_begin_t(ctx->openDocs, LspDocument);
+  dynarray_remove_unordered(ctx->openDocs, index, 1);
+}
 
 static void lsp_read_trim(LspContext* ctx) {
   dynstring_erase_chars(ctx->readBuffer, 0, ctx->readCursor);
@@ -185,57 +258,102 @@ static LspHeader lsp_read_header(LspContext* ctx) {
 }
 
 static String lsp_maybe_str(LspContext* ctx, const JsonVal val) {
-  if (sentinel_check(val) || json_type(ctx->json, val) != JsonType_String) {
+  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_String) {
     return string_empty;
   }
-  return json_string(ctx->json, val);
+  return json_string(ctx->jDoc, val);
 }
 
 static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String fieldName) {
-  if (sentinel_check(val) || json_type(ctx->json, val) != JsonType_Object) {
+  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Object) {
     return sentinel_u32;
   }
-  return json_field(ctx->json, val, fieldName);
+  return json_field(ctx->jDoc, val, fieldName);
 }
 
 static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 index) {
-  if (sentinel_check(val) || json_type(ctx->json, val) != JsonType_Array) {
+  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Array) {
     return sentinel_u32;
   }
-  return json_elem(ctx->json, val, index);
+  return json_elem(ctx->jDoc, val, index);
 }
 
 static JsonVal lsp_position_to_json(LspContext* ctx, const LspPosition* pos) {
-  const JsonVal obj = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, obj, "line", json_add_number(ctx->json, pos->line));
-  json_add_field_lit(ctx->json, obj, "character", json_add_number(ctx->json, pos->character));
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "line", json_add_number(ctx->jDoc, pos->line));
+  json_add_field_lit(ctx->jDoc, obj, "character", json_add_number(ctx->jDoc, pos->character));
   return obj;
 }
 
+static bool lsp_position_from_json(LspContext* ctx, const JsonVal val, LspPosition* out) {
+  const JsonVal line = lsp_maybe_field(ctx, val, string_lit("line"));
+  if (sentinel_check(line) || json_type(ctx->jDoc, line) != JsonType_Number) {
+    return false;
+  }
+  const JsonVal character = lsp_maybe_field(ctx, val, string_lit("character"));
+  if (sentinel_check(character) || json_type(ctx->jDoc, character) != JsonType_Number) {
+    return false;
+  }
+  out->line      = (u16)json_number(ctx->jDoc, line);
+  out->character = (u16)json_number(ctx->jDoc, character);
+  return true;
+}
+
 static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
-  const JsonVal obj = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, obj, "start", lsp_position_to_json(ctx, &range->start));
-  json_add_field_lit(ctx->json, obj, "end", lsp_position_to_json(ctx, &range->end));
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
+  json_add_field_lit(ctx->jDoc, obj, "end", lsp_position_to_json(ctx, &range->end));
+  return obj;
+}
+
+static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
+  JsonVal labelDetailsObj = sentinel_u32;
+  if (!string_is_empty(item->labelDetail) || !string_is_empty(item->labelDescription)) {
+    labelDetailsObj = json_add_object(ctx->jDoc);
+
+    if (!string_is_empty(item->labelDetail)) {
+      const JsonVal detailVal = json_add_string(ctx->jDoc, item->labelDetail);
+      json_add_field_lit(ctx->jDoc, labelDetailsObj, "detail", detailVal);
+    }
+    if (!string_is_empty(item->labelDescription)) {
+      const JsonVal descVal = json_add_string(ctx->jDoc, item->labelDescription);
+      json_add_field_lit(ctx->jDoc, labelDetailsObj, "description", descVal);
+    }
+  }
+
+  const JsonVal commitCharsArr = json_add_array(ctx->jDoc);
+  if (item->commitChar) {
+    const JsonVal commitCharVal = json_add_string(ctx->jDoc, mem_create(&item->commitChar, 1));
+    json_add_elem(ctx->jDoc, commitCharsArr, commitCharVal);
+  }
+
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, item->label));
+  if (!sentinel_check(labelDetailsObj)) {
+    json_add_field_lit(ctx->jDoc, obj, "labelDetails", labelDetailsObj);
+  }
+  json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
+  json_add_field_lit(ctx->jDoc, obj, "commitCharacters", commitCharsArr);
   return obj;
 }
 
 static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
-  diag_assert(json_type(ctx->json, obj) == JsonType_Object);
+  diag_assert(json_type(ctx->jDoc, obj) == JsonType_Object);
   JsonVal idCopy;
-  switch (json_type(ctx->json, id)) {
+  switch (json_type(ctx->jDoc, id)) {
   case JsonType_Number:
-    idCopy = json_add_number(ctx->json, json_number(ctx->json, id));
+    idCopy = json_add_number(ctx->jDoc, json_number(ctx->jDoc, id));
     break;
   case JsonType_String:
-    idCopy = json_add_string(ctx->json, json_string(ctx->json, id));
+    idCopy = json_add_string(ctx->jDoc, json_string(ctx->jDoc, id));
     break;
   default:
-    idCopy = json_add_null(ctx->json);
+    idCopy = json_add_null(ctx->jDoc);
   }
-  json_add_field_lit(ctx->json, obj, "id", idCopy);
+  json_add_field_lit(ctx->jDoc, obj, "id", idCopy);
 }
 
-static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
+static void lsp_update_trace_config(LspContext* ctx, const JsonVal traceValue) {
   if (string_eq(lsp_maybe_str(ctx, traceValue), string_lit("off"))) {
     ctx->flags &= ~LspFlags_Trace;
   } else {
@@ -245,7 +363,7 @@ static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
 
 static void lsp_send_json(LspContext* ctx, const JsonVal val) {
   const JsonWriteOpts writeOpts = json_write_opts(.flags = JsonWriteFlags_None);
-  json_write(ctx->writeBuffer, ctx->json, val, &writeOpts);
+  json_write(ctx->writeBuffer, ctx->jDoc, val, &writeOpts);
 
   const usize  contentSize = ctx->writeBuffer->size;
   const String headerText  = fmt_write_scratch("Content-Length: {}\r\n\r\n", fmt_int(contentSize));
@@ -256,18 +374,18 @@ static void lsp_send_json(LspContext* ctx, const JsonVal val) {
 }
 
 static void lsp_send_notification(LspContext* ctx, const JRpcNotification* notif) {
-  const JsonVal resp = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, resp, "jsonrpc", json_add_string_lit(ctx->json, "2.0"));
-  json_add_field_lit(ctx->json, resp, "method", json_add_string(ctx->json, notif->method));
+  const JsonVal resp = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, resp, "jsonrpc", json_add_string_lit(ctx->jDoc, "2.0"));
+  json_add_field_lit(ctx->jDoc, resp, "method", json_add_string(ctx->jDoc, notif->method));
   if (!sentinel_check(notif->params)) {
-    json_add_field_lit(ctx->json, resp, "params", notif->params);
+    json_add_field_lit(ctx->jDoc, resp, "params", notif->params);
   }
   lsp_send_json(ctx, resp);
 }
 
 static void lsp_send_trace(LspContext* ctx, const String message) {
-  const JsonVal params = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, params, "message", json_add_string(ctx->json, message));
+  const JsonVal params = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, params, "message", json_add_string(ctx->jDoc, message));
 
   const JRpcNotification notif = {
       .method = string_lit("$/logTrace"),
@@ -277,9 +395,9 @@ static void lsp_send_trace(LspContext* ctx, const String message) {
 }
 
 static void lsp_send_log(LspContext* ctx, const LspMessageType type, const String message) {
-  const JsonVal params = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, params, "type", json_add_number(ctx->json, type));
-  json_add_field_lit(ctx->json, params, "message", json_add_string(ctx->json, message));
+  const JsonVal params = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, params, "type", json_add_number(ctx->jDoc, type));
+  json_add_field_lit(ctx->jDoc, params, "message", json_add_string(ctx->jDoc, message));
 
   const JRpcNotification notif = {
       .method = string_lit("window/logMessage"),
@@ -288,20 +406,28 @@ static void lsp_send_log(LspContext* ctx, const LspMessageType type, const Strin
   lsp_send_notification(ctx, &notif);
 }
 
+static void lsp_send_info(LspContext* ctx, const String message) {
+  lsp_send_log(ctx, LspMessageType_Info, message);
+}
+
+static void lsp_send_error(LspContext* ctx, const String message) {
+  lsp_send_log(ctx, LspMessageType_Error, message);
+}
+
 static void lsp_send_diagnostics(
-    LspContext* ctx, const String docUri, const LspDiagnostic values[], const usize count) {
-  const JsonVal diagArray = json_add_array(ctx->json);
+    LspContext* ctx, const String docUri, const LspDiag values[], const usize count) {
+  const JsonVal diagArray = json_add_array(ctx->jDoc);
   for (u32 i = 0; i != count; ++i) {
-    const JsonVal diag = json_add_object(ctx->json);
-    json_add_field_lit(ctx->json, diag, "range", lsp_range_to_json(ctx, &values[i].range));
-    json_add_field_lit(ctx->json, diag, "severity", json_add_number(ctx->json, values[i].severity));
-    json_add_field_lit(ctx->json, diag, "message", json_add_string(ctx->json, values[i].message));
-    json_add_elem(ctx->json, diagArray, diag);
+    const JsonVal diag = json_add_object(ctx->jDoc);
+    json_add_field_lit(ctx->jDoc, diag, "range", lsp_range_to_json(ctx, &values[i].range));
+    json_add_field_lit(ctx->jDoc, diag, "severity", json_add_number(ctx->jDoc, values[i].severity));
+    json_add_field_lit(ctx->jDoc, diag, "message", json_add_string(ctx->jDoc, values[i].message));
+    json_add_elem(ctx->jDoc, diagArray, diag);
   }
 
-  const JsonVal params = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, params, "uri", json_add_string(ctx->json, docUri));
-  json_add_field_lit(ctx->json, params, "diagnostics", diagArray);
+  const JsonVal params = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, params, "uri", json_add_string(ctx->jDoc, docUri));
+  json_add_field_lit(ctx->jDoc, params, "diagnostics", diagArray);
 
   const JRpcNotification notif = {
       .method = string_lit("textDocument/publishDiagnostics"),
@@ -311,21 +437,21 @@ static void lsp_send_diagnostics(
 }
 
 static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, const JsonVal val) {
-  const JsonVal resp = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, resp, "jsonrpc", json_add_string_lit(ctx->json, "2.0"));
-  json_add_field_lit(ctx->json, resp, "result", val);
+  const JsonVal resp = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, resp, "jsonrpc", json_add_string_lit(ctx->jDoc, "2.0"));
+  json_add_field_lit(ctx->jDoc, resp, "result", val);
   lsp_copy_id(ctx, resp, req->id);
   lsp_send_json(ctx, resp);
 }
 
 static void lsp_send_response_error(LspContext* ctx, const JRpcRequest* req, const JRpcError* err) {
-  const JsonVal errObj = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, errObj, "code", json_add_number(ctx->json, err->code));
-  json_add_field_lit(ctx->json, errObj, "message", json_add_string(ctx->json, err->msg));
+  const JsonVal errObj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, errObj, "code", json_add_number(ctx->jDoc, err->code));
+  json_add_field_lit(ctx->jDoc, errObj, "message", json_add_string(ctx->jDoc, err->msg));
 
-  const JsonVal resp = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, resp, "jsonrpc", json_add_string_lit(ctx->json, "2.0"));
-  json_add_field_lit(ctx->json, resp, "error", errObj);
+  const JsonVal resp = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, resp, "jsonrpc", json_add_string_lit(ctx->jDoc, "2.0"));
+  json_add_field_lit(ctx->jDoc, resp, "error", errObj);
   lsp_copy_id(ctx, resp, req->id);
   lsp_send_json(ctx, resp);
 }
@@ -334,7 +460,7 @@ static void lsp_handle_notif_initialized(LspContext* ctx, const JRpcNotification
   (void)notif;
   ctx->flags |= LspFlags_Initialized;
 
-  lsp_send_log(ctx, LspMessageType_Info, string_lit("Server successfully initialized"));
+  lsp_send_info(ctx, string_lit("Server successfully initialized"));
 }
 
 static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif) {
@@ -347,29 +473,34 @@ static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* 
   if (UNLIKELY(sentinel_check(traceVal))) {
     goto Error;
   }
-  lsp_update_trace(ctx, traceVal);
+  lsp_update_trace_config(ctx, traceVal);
   return;
 
 Error:
   ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
-static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
-  script_read(ctx->script, ctx->scriptBinder, text, ctx->scriptDiags);
+static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
+  script_clear(doc->scriptDoc);
+  script_diag_clear(doc->scriptDiags);
+  script_sym_clear(doc->scriptSyms);
 
-  LspDiagnostic lspDiags[script_diag_max];
-  for (u32 i = 0; i != ctx->scriptDiags->count; ++i) {
-    const ScriptDiag*      diag       = &ctx->scriptDiags->values[i];
-    const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
-    const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
+  script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
 
-    LspDiagnosticSeverity severity;
+  LspDiag   lspDiags[script_diag_max];
+  const u32 lspDiagCount = script_diag_count(doc->scriptDiags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != lspDiagCount; ++i) {
+    const ScriptDiag*      diag       = script_diag_data(doc->scriptDiags) + i;
+    const ScriptPosLineCol rangeStart = script_pos_to_line_col(doc->text, diag->range.start);
+    const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(doc->text, diag->range.end);
+
+    LspDiagSeverity severity;
     switch (diag->type) {
     case ScriptDiagType_Error:
-      severity = LspDiagnosticSeverity_Error;
+      severity = LspDiagSeverity_Error;
       break;
     case ScriptDiagType_Warning:
-      severity = LspDiagnosticSeverity_Warning;
+      severity = LspDiagSeverity_Warning;
       break;
     }
 
@@ -379,16 +510,16 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
      * VCCode) only support utf16 offsets. This means the column offsets are incorrect if the line
      * contains unicode characters outside of the utf16 range.
      */
-    lspDiags[i] = (LspDiagnostic){
+    lspDiags[i] = (LspDiag){
         .range.start.line      = rangeStart.line,
         .range.start.character = rangeStart.column,
         .range.end.line        = rangeEnd.line,
         .range.end.character   = rangeEnd.column,
         .severity              = severity,
-        .message               = script_diag_msg_scratch(text, diag),
+        .message               = script_diag_msg_scratch(doc->text, diag),
     };
   }
-  lsp_send_diagnostics(ctx, uri, lspDiags, ctx->scriptDiags->count);
+  lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
@@ -399,8 +530,16 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   }
   const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
 
-  lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
-  lsp_handle_refresh_diagnostics(ctx, uri, text);
+  lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
+
+  if (UNLIKELY(lsp_doc_find(ctx, uri))) {
+    lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
+    return;
+  }
+  LspDocument* doc = lsp_doc_open(ctx, uri, text);
+  lsp_analyze_doc(ctx, doc);
+
+  lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
   return;
 
 Error:
@@ -417,8 +556,15 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
   const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
 
-  lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
-  lsp_handle_refresh_diagnostics(ctx, uri, text);
+  lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(uri)));
+
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (LIKELY(doc)) {
+    lsp_doc_update_text(doc, text);
+    lsp_analyze_doc(ctx, doc);
+  } else {
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
+  }
   return;
 
 Error:
@@ -431,8 +577,16 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   if (UNLIKELY(string_is_empty(uri))) {
     goto Error;
   }
-  lsp_send_trace(ctx, fmt_write_scratch("Clearing diagnostics for: {}", fmt_text(uri)));
-  lsp_send_diagnostics(ctx, uri, null, 0);
+  lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(uri)));
+
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (LIKELY(doc)) {
+    lsp_doc_close(ctx, doc);
+    lsp_send_diagnostics(ctx, uri, null, 0);
+  } else {
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
+  }
+  lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
   return;
 
 Error:
@@ -442,7 +596,7 @@ Error:
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   static const struct {
     String method;
-    void (*handler)(LspContext*, const JRpcNotification*);
+    void   (*handler)(LspContext*, const JRpcNotification*);
   } g_handlers[] = {
       {string_static("initialized"), lsp_handle_notif_initialized},
       {string_static("exit"), lsp_handle_notif_exit},
@@ -467,28 +621,36 @@ static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
 static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal traceVal = lsp_maybe_field(ctx, req->params, string_lit("trace"));
   if (!sentinel_check(traceVal)) {
-    lsp_update_trace(ctx, traceVal);
+    lsp_update_trace_config(ctx, traceVal);
   }
 
-  const JsonVal docSyncOptions = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, docSyncOptions, "openClose", json_add_bool(ctx->json, true));
-  json_add_field_lit(ctx->json, docSyncOptions, "change", json_add_number(ctx->json, 1));
+  const JsonVal docSyncOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, docSyncOpts, "openClose", json_add_bool(ctx->jDoc, true));
+  json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 1));
 
-  const JsonVal capabilities = json_add_object(ctx->json);
+  const JsonVal completionTriggerCharArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, completionTriggerCharArr, json_add_string_lit(ctx->jDoc, "$"));
+
+  const JsonVal completionOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, completionOpts, "resolveProvider", json_add_bool(ctx->jDoc, false));
+  json_add_field_lit(ctx->jDoc, completionOpts, "triggerCharacters", completionTriggerCharArr);
+
+  const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
-  const JsonVal positionEncoding = json_add_string_lit(ctx->json, "utf-16");
-  json_add_field_lit(ctx->json, capabilities, "positionEncoding", positionEncoding);
-  json_add_field_lit(ctx->json, capabilities, "textDocumentSync", docSyncOptions);
+  const JsonVal positionEncoding = json_add_string_lit(ctx->jDoc, "utf-16");
+  json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
+  json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
 
-  const JsonVal info          = json_add_object(ctx->json);
-  const JsonVal serverName    = json_add_string_lit(ctx->json, "Volo Language Server");
-  const JsonVal serverVersion = json_add_string_lit(ctx->json, "0.1");
-  json_add_field_lit(ctx->json, info, "name", serverName);
-  json_add_field_lit(ctx->json, info, "version", serverVersion);
+  const JsonVal info          = json_add_object(ctx->jDoc);
+  const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
+  const JsonVal serverVersion = json_add_string_lit(ctx->jDoc, "0.1");
+  json_add_field_lit(ctx->jDoc, info, "name", serverName);
+  json_add_field_lit(ctx->jDoc, info, "version", serverVersion);
 
-  const JsonVal result = json_add_object(ctx->json);
-  json_add_field_lit(ctx->json, result, "capabilities", capabilities);
-  json_add_field_lit(ctx->json, result, "serverInfo", info);
+  const JsonVal result = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, result, "capabilities", capabilities);
+  json_add_field_lit(ctx->jDoc, result, "serverInfo", info);
 
   lsp_send_response_success(ctx, req, result);
   return;
@@ -496,16 +658,90 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 
 static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   ctx->flags |= LspFlags_Shutdown;
-  lsp_send_response_success(ctx, req, json_add_null(ctx->json));
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+}
+
+static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSym* sym) {
+  switch (sym->type) {
+  case ScriptSymType_Keyword:
+    return LspCompletionItemKind_Keyword;
+  case ScriptSymType_BuiltinConstant:
+    return LspCompletionItemKind_Constant;
+  case ScriptSymType_BuiltinFunction:
+    // NOTE: This is taking some creative liberties with the 'Constructor' meaning.
+    return LspCompletionItemKind_Constructor;
+  case ScriptSymType_ExternFunction:
+    return LspCompletionItemKind_Function;
+  case ScriptSymType_Variable:
+    return LspCompletionItemKind_Variable;
+  case ScriptSymType_MemoryKey:
+    return LspCompletionItemKind_Property;
+  case ScriptSymType_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal lspPosVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  LspPosition   lspPos;
+  if (UNLIKELY(!lsp_position_from_json(ctx, lspPosVal, &lspPos))) {
+    goto InvalidParams;
+  }
+
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const ScriptPosLineCol posLineCol = {.line = lspPos.line, .column = lspPos.character};
+  const ScriptPos        pos        = script_pos_from_line_col(doc->text, posLineCol);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  lsp_send_trace(
+      ctx,
+      fmt_write_scratch(
+          "Complete: {} [{}:{}]",
+          fmt_text(uri),
+          fmt_int(posLineCol.line + 1),
+          fmt_int(posLineCol.column + 1)));
+
+  const JsonVal itemsArr = json_add_array(ctx->jDoc);
+
+  ScriptSymId itr = script_sym_first(doc->scriptSyms, pos);
+  for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
+    const ScriptSym*        sym            = script_sym_data(doc->scriptSyms, itr);
+    const LspCompletionItem completionItem = {
+        .label            = sym->label,
+        .labelDetail      = script_sym_is_func(sym) ? string_lit("()") : string_empty,
+        .labelDescription = script_sym_type_str(sym->type),
+        .kind             = lsp_completion_kind_for_sym(sym),
+        .commitChar       = script_sym_is_func(sym) ? '(' : ' ',
+    };
+    json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
+  }
+  lsp_send_response_success(ctx, req, itemsArr);
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
-    void (*handler)(LspContext*, const JRpcRequest*);
+    void   (*handler)(LspContext*, const JRpcRequest*);
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
+      {string_static("textDocument/completion"), lsp_handle_req_completion},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
@@ -539,37 +775,37 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
 }
 
 static ScriptBinder* lsp_script_binder_create() {
-  ScriptBinder* binder = script_binder_create(g_alloc_persist);
+  ScriptBinder* binder = script_binder_create(g_alloc_heap);
 
   // TODO: Instead of manually listing the supported bindings here we should read them from a file.
-  script_binder_declare(binder, string_hash_lit("self"), null);
-  script_binder_declare(binder, string_hash_lit("exists"), null);
-  script_binder_declare(binder, string_hash_lit("position"), null);
-  script_binder_declare(binder, string_hash_lit("rotation"), null);
-  script_binder_declare(binder, string_hash_lit("scale"), null);
-  script_binder_declare(binder, string_hash_lit("name"), null);
-  script_binder_declare(binder, string_hash_lit("faction"), null);
-  script_binder_declare(binder, string_hash_lit("health"), null);
-  script_binder_declare(binder, string_hash_lit("time"), null);
-  script_binder_declare(binder, string_hash_lit("nav_query"), null);
-  script_binder_declare(binder, string_hash_lit("nav_target"), null);
-  script_binder_declare(binder, string_hash_lit("line_of_sight"), null);
-  script_binder_declare(binder, string_hash_lit("capable"), null);
-  script_binder_declare(binder, string_hash_lit("active"), null);
-  script_binder_declare(binder, string_hash_lit("target_primary"), null);
-  script_binder_declare(binder, string_hash_lit("target_range_min"), null);
-  script_binder_declare(binder, string_hash_lit("target_range_max"), null);
-  script_binder_declare(binder, string_hash_lit("spawn"), null);
-  script_binder_declare(binder, string_hash_lit("destroy"), null);
-  script_binder_declare(binder, string_hash_lit("destroy_after"), null);
-  script_binder_declare(binder, string_hash_lit("teleport"), null);
-  script_binder_declare(binder, string_hash_lit("nav_travel"), null);
-  script_binder_declare(binder, string_hash_lit("nav_stop"), null);
-  script_binder_declare(binder, string_hash_lit("attach"), null);
-  script_binder_declare(binder, string_hash_lit("detach"), null);
-  script_binder_declare(binder, string_hash_lit("damage"), null);
-  script_binder_declare(binder, string_hash_lit("attack"), null);
-  script_binder_declare(binder, string_hash_lit("debug_log"), null);
+  script_binder_declare(binder, string_lit("self"), null);
+  script_binder_declare(binder, string_lit("exists"), null);
+  script_binder_declare(binder, string_lit("position"), null);
+  script_binder_declare(binder, string_lit("rotation"), null);
+  script_binder_declare(binder, string_lit("scale"), null);
+  script_binder_declare(binder, string_lit("name"), null);
+  script_binder_declare(binder, string_lit("faction"), null);
+  script_binder_declare(binder, string_lit("health"), null);
+  script_binder_declare(binder, string_lit("time"), null);
+  script_binder_declare(binder, string_lit("nav_query"), null);
+  script_binder_declare(binder, string_lit("nav_target"), null);
+  script_binder_declare(binder, string_lit("line_of_sight"), null);
+  script_binder_declare(binder, string_lit("capable"), null);
+  script_binder_declare(binder, string_lit("active"), null);
+  script_binder_declare(binder, string_lit("target_primary"), null);
+  script_binder_declare(binder, string_lit("target_range_min"), null);
+  script_binder_declare(binder, string_lit("target_range_max"), null);
+  script_binder_declare(binder, string_lit("spawn"), null);
+  script_binder_declare(binder, string_lit("destroy"), null);
+  script_binder_declare(binder, string_lit("destroy_after"), null);
+  script_binder_declare(binder, string_lit("teleport"), null);
+  script_binder_declare(binder, string_lit("nav_travel"), null);
+  script_binder_declare(binder, string_lit("nav_stop"), null);
+  script_binder_declare(binder, string_lit("attach"), null);
+  script_binder_declare(binder, string_lit("detach"), null);
+  script_binder_declare(binder, string_lit("damage"), null);
+  script_binder_declare(binder, string_lit("attack"), null);
+  script_binder_declare(binder, string_lit("debug_log"), null);
 
   script_binder_finalize(binder);
   return binder;
@@ -579,18 +815,16 @@ static i32 lsp_run_stdio() {
   DynString     readBuffer   = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
   DynString     writeBuffer  = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
   ScriptBinder* scriptBinder = lsp_script_binder_create();
-  ScriptDoc*    script       = script_create(g_alloc_heap);
-  ScriptDiagBag scriptDiags  = {0};
-  JsonDoc*      json         = json_create(g_alloc_heap, 1024);
+  JsonDoc*      jDoc         = json_create(g_alloc_heap, 1024);
+  DynArray      openDocs     = dynarray_create_t(g_alloc_heap, LspDocument, 16);
 
   LspContext ctx = {
       .status       = LspStatus_Running,
       .readBuffer   = &readBuffer,
       .writeBuffer  = &writeBuffer,
       .scriptBinder = scriptBinder,
-      .script       = script,
-      .scriptDiags  = &scriptDiags,
-      .json         = json,
+      .jDoc         = jDoc,
+      .openDocs     = &openDocs,
       .in           = g_file_stdin,
       .out          = g_file_stdout,
   };
@@ -600,8 +834,10 @@ static i32 lsp_run_stdio() {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    json_read(json, content, &jsonResult);
+    json_read(jDoc, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
+      const String jsonErr = json_error_str(jsonResult.error);
+      file_write_sync(g_file_stderr, fmt_write_scratch("lsp: Json-Error: {}\n", fmt_text(jsonErr)));
       ctx.status = LspStatus_ErrorInvalidJson;
       break;
     }
@@ -609,17 +845,16 @@ static i32 lsp_run_stdio() {
     lsp_handle_jrpc(&ctx, jsonResult.val);
 
     lsp_read_trim(&ctx);
-
-    script_clear(script);
-    script_diag_clear(&scriptDiags);
-    json_clear(json);
+    json_clear(jDoc);
   }
 
   script_binder_destroy(scriptBinder);
-  script_destroy(script);
-  json_destroy(json);
+  json_destroy(jDoc);
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&writeBuffer);
+
+  dynarray_for_t(&openDocs, LspDocument, doc) { lsp_doc_destroy(doc); };
+  dynarray_destroy(&openDocs);
 
   if (ctx.status != LspStatus_Exit) {
     const String errorMsg = g_lspStatusMessage[ctx.status];

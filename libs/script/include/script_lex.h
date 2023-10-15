@@ -68,6 +68,11 @@ typedef enum {
   ScriptLexFlags_IncludeComments = 1 << 1,
 } ScriptLexFlags;
 
+typedef struct {
+  String          id;
+  ScriptTokenType token;
+} ScriptLexKeyword;
+
 /**
  * Read a single script token.
  * Returns the remaining input.
@@ -81,6 +86,12 @@ String script_lex(String, StringTable*, ScriptToken*, ScriptLexFlags);
  * Consume any whitespace until the next token.
  */
 String script_lex_trim(String);
+
+/**
+ * Retrieve global keyword list.
+ */
+u32                     script_lex_keyword_count();
+const ScriptLexKeyword* script_lex_keyword_data();
 
 /**
  * Test if two tokens are equal.

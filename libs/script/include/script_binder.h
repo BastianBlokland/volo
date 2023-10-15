@@ -8,6 +8,8 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
 
+#define script_binder_slot_sentinel sentinel_u32
+
 typedef u32 ScriptBinderSlot;
 typedef u64 ScriptBinderSignature;
 
@@ -34,7 +36,7 @@ void script_binder_destroy(ScriptBinder*);
  * NOTE: Passing a null function is supported if the binder is only used for lookups.
  * Pre-condition: Binder has not been finalized.
  */
-void script_binder_declare(ScriptBinder*, StringHash name, ScriptBinderFunc);
+void script_binder_declare(ScriptBinder*, String nameStr, ScriptBinderFunc);
 
 /**
  * Finalize the binder for lookups and execution.
@@ -42,6 +44,12 @@ void script_binder_declare(ScriptBinder*, StringHash name, ScriptBinderFunc);
  * Pre-condition: Binder has not been finalized.
  */
 void script_binder_finalize(ScriptBinder*);
+
+/**
+ * Return the binding count.
+ * Pre-condition: Binder has been finalized.
+ */
+u32 script_binder_count(const ScriptBinder*);
 
 /**
  * Compute a signature for the binder.
@@ -52,10 +60,23 @@ ScriptBinderSignature script_binder_sig(const ScriptBinder*);
 
 /**
  * Lookup a function by name.
- * NOTE: Returns sentinel_u32 if no function was found with the given name.
+ * NOTE: Returns 'script_binder_slot_sentinel' if no function was found with the given name.
  * Pre-condition: Binder has been finalized.
  */
 ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
+
+/**
+ * Lookup a the  name for a slot.
+ * Pre-condition: Binder has been finalized.
+ */
+String script_binder_name_str(const ScriptBinder*, ScriptBinderSlot);
+
+/**
+ * Iterate over the bound slots.
+ * Pre-condition: Binder has been finalized.
+ */
+ScriptBinderSlot script_binder_first(const ScriptBinder*);
+ScriptBinderSlot script_binder_next(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Execute a bound function.

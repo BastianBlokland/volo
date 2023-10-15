@@ -9,6 +9,7 @@
 #include "script_diag.h"
 #include "script_lex.h"
 #include "script_read.h"
+#include "script_sym.h"
 
 #include "doc_internal.h"
 
@@ -17,10 +18,12 @@
 #define script_args_max 10
 #define script_builtin_consts_max 32
 #define script_builtin_funcs_max 32
+#define script_tracked_mem_keys_max 32
 
 typedef struct {
   StringHash idHash;
   ScriptVal  val;
+  String     id;
 } ScriptBuiltinConst;
 
 static ScriptBuiltinConst g_scriptBuiltinConsts[script_builtin_consts_max];
@@ -29,6 +32,7 @@ static u32                g_scriptBuiltinConstCount;
 static void script_builtin_const_add(const String id, const ScriptVal val) {
   diag_assert(g_scriptBuiltinConstCount != script_builtin_consts_max);
   g_scriptBuiltinConsts[g_scriptBuiltinConstCount++] = (ScriptBuiltinConst){
+      .id     = id,
       .idHash = string_hash(id),
       .val    = val,
   };
@@ -47,6 +51,7 @@ typedef struct {
   StringHash      idHash;
   u32             argCount;
   ScriptIntrinsic intr;
+  String          id;
 } ScriptBuiltinFunc;
 
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
@@ -58,6 +63,7 @@ static void script_builtin_func_add(const String id, const ScriptIntrinsic intr)
       .idHash   = string_hash(id),
       .argCount = script_intrinsic_arg_count(intr),
       .intr     = intr,
+      .id       = id,
   };
 }
 
@@ -243,7 +249,8 @@ typedef struct {
   StringHash     id;
   ScriptVarId    varSlot;
   bool           used;
-  ScriptPosRange declRange; // NOTE: Not yet trimmed.
+  ScriptPosRange declRange;       // NOTE: Not yet trimmed.
+  ScriptPos      validUsageStart; // NOTE: Not yet trimmed.
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
@@ -278,12 +285,14 @@ typedef struct {
   ScriptDoc*          doc;
   const ScriptBinder* binder;
   ScriptDiagBag*      diags;
+  ScriptSymBag*       syms;
   String              input, inputTotal;
   ScriptScope*        scopeRoot;
   ScriptReadFlags     flags : 8;
   ScriptSection       section : 8;
   u16                 recursionDepth;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
+  StringHash          trackedMemKeys[script_tracked_mem_keys_max];
 } ScriptReadContext;
 
 static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection flags) {
@@ -304,6 +313,10 @@ static ScriptPos read_pos_current(ScriptReadContext* ctx) {
 
 static ScriptPosRange read_range_current(ScriptReadContext* ctx, const ScriptPos start) {
   return script_pos_range(start, read_pos_current(ctx));
+}
+
+static ScriptPosRange read_range_full(ScriptReadContext* ctx) {
+  return script_pos_range_full(ctx->inputTotal);
 }
 
 static ScriptPosRange read_range_trim(ScriptReadContext* ctx, const ScriptPosRange range) {
@@ -328,17 +341,41 @@ static void read_emit_err(ScriptReadContext* ctx, const ScriptError err, const S
 }
 
 static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != script_var_count; ++i) {
-    if (scope->vars[i].id && !scope->vars[i].used) {
+    if (!scope->vars[i].id) {
+      break;
+    }
+    if (!scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
           .type  = ScriptDiagType_Warning,
           .error = ScriptError_VarUnused,
           .range = read_range_trim(ctx, scope->vars[i].declRange),
       };
       script_diag_push(ctx->diags, &unusedDiag);
+    }
+  }
+}
+
+static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != script_var_count; ++i) {
+    if (!scope->vars[i].id) {
+      break;
+    }
+    // TODO: Using the global string-table for this is kinda questionable.
+    const String idStr = stringtable_lookup(g_stringtable, scope->vars[i].id);
+    if (!string_is_empty(idStr)) {
+      const ScriptSym sym = {
+          .type       = ScriptSymType_Variable,
+          .label      = idStr,
+          .validRange = read_range_current(ctx, scope->vars[i].validUsageStart),
+      };
+      script_sym_push(ctx->syms, &sym);
     }
   }
 }
@@ -384,6 +421,7 @@ static void read_scope_pop(ScriptReadContext* ctx) {
     ;
   newTail->next = null;
 
+  read_sym_push_vars(ctx, scope);
   read_emit_unused_vars(ctx, scope);
 
   // Free all the variables that the scope declared.
@@ -395,7 +433,7 @@ static void read_scope_pop(ScriptReadContext* ctx) {
 }
 
 static bool read_var_declare(
-    ScriptReadContext* ctx, const StringHash id, const ScriptPosRange range, ScriptVarId* out) {
+    ScriptReadContext* ctx, const StringHash id, const ScriptPosRange declRange, ScriptVarId* out) {
   ScriptScope* scope = read_scope_tail(ctx);
   diag_assert(scope);
 
@@ -406,7 +444,12 @@ static bool read_var_declare(
     if (!read_var_alloc(ctx, out)) {
       return false;
     }
-    scope->vars[i] = (ScriptVarMeta){.id = id, .varSlot = *out, .declRange = range};
+    scope->vars[i] = (ScriptVarMeta){
+        .id              = id,
+        .varSlot         = *out,
+        .declRange       = declRange,
+        .validUsageStart = read_pos_current(ctx), // TODO: Should this be an input parameter?
+    };
     return true;
   }
   return false;
@@ -424,6 +467,19 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
     }
   }
   return null;
+}
+
+static bool read_track_mem_key(ScriptReadContext* ctx, const StringHash key) {
+  for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
+    if (ctx->trackedMemKeys[i] == key) {
+      return true;
+    }
+    if (!ctx->trackedMemKeys[i]) {
+      ctx->trackedMemKeys[i] = key;
+      return true;
+    }
+  }
+  return false;
 }
 
 static ScriptToken read_peek(ScriptReadContext* ctx) {
@@ -474,7 +530,7 @@ static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const ScriptPosRange sepRange) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   ScriptToken nextToken;
@@ -527,7 +583,7 @@ static void read_emit_no_effect(
     const ScriptExpr     exprs[],
     const ScriptPosRange exprRanges[],
     const u32            exprCount) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
@@ -549,7 +605,7 @@ static void read_emit_unreachable(
     const ScriptExpr     exprs[],
     const ScriptPosRange exprRanges[],
     const u32            exprCount) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
@@ -900,7 +956,10 @@ read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosR
 
 static void read_emit_static_condition(
     ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
-  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+    return;
+  }
+  if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticConditionDiag = {
         .type  = ScriptDiagType_Warning,
         .error = ScriptError_ConditionExprStatic,
@@ -1020,7 +1079,10 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
 static void read_emit_static_for_comp(
     ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
-  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+    return;
+  }
+  if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticForCompDiag = {
         .type  = ScriptDiagType_Warning,
         .error = ScriptError_ForLoopCompStatic,
@@ -1268,6 +1330,9 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Memory access.
    */
   case ScriptTokenType_Key: {
+    // TODO: Should failing to track be an error? Currently these are only used to report symbols.
+    read_track_mem_key(ctx, token.val_key);
+
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
     switch (nextToken.type) {
@@ -1379,6 +1444,78 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
   return res;
 }
 
+static void read_sym_push_keywords(ScriptReadContext* ctx) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
+    const ScriptSym sym = {
+        .type       = ScriptSymType_Keyword,
+        .label      = script_lex_keyword_data()[i].id,
+        .validRange = read_range_full(ctx),
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+}
+
+static void read_sym_push_builtin(ScriptReadContext* ctx) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
+    const ScriptSym sym = {
+        .type       = ScriptSymType_BuiltinConstant,
+        .label      = g_scriptBuiltinConsts[i].id,
+        .validRange = read_range_full(ctx),
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+  for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
+    const ScriptSym sym = {
+        .type       = ScriptSymType_BuiltinFunction,
+        .label      = g_scriptBuiltinFuncs[i].id,
+        .validRange = read_range_full(ctx),
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+}
+
+static void read_sym_push_extern(ScriptReadContext* ctx) {
+  if (!ctx->syms || !ctx->binder) {
+    return;
+  }
+  ScriptBinderSlot itr = script_binder_first(ctx->binder);
+  for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
+    const ScriptSym sym = {
+        .type       = ScriptSymType_ExternFunction,
+        .label      = script_binder_name_str(ctx->binder, itr),
+        .validRange = read_range_full(ctx),
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+}
+
+static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
+    if (!ctx->trackedMemKeys[i]) {
+      break;
+    }
+    // TODO: Using the global string-table for this is kinda questionable.
+    const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
+    if (!string_is_empty(keyStr)) {
+      const ScriptSym sym = {
+          .type       = ScriptSymType_MemoryKey,
+          .label      = fmt_write_scratch("${}", fmt_text(keyStr)),
+          .validRange = read_range_full(ctx),
+      };
+      script_sym_push(ctx->syms, &sym);
+    }
+  }
+}
+
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
   const ScriptBinderSignature signature = script_binder_sig(binder);
   if (doc->binderSignature && doc->binderSignature != signature) {
@@ -1401,8 +1538,12 @@ static void script_read_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
-ScriptExpr
-script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, ScriptDiagBag* diags) {
+ScriptExpr script_read(
+    ScriptDoc*          doc,
+    const ScriptBinder* binder,
+    const String        src,
+    ScriptDiagBag*      diags,
+    ScriptSymBag*       syms) {
   script_read_init();
 
   if (binder) {
@@ -1414,23 +1555,30 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
       .doc        = doc,
       .binder     = binder,
       .diags      = diags,
-      .input      = str,
-      .inputTotal = str,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
       .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
+
+  read_sym_push_keywords(&ctx);
+  read_sym_push_builtin(&ctx);
+  read_sym_push_extern(&ctx);
 
   const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit);
   if (!sentinel_check(expr)) {
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
 
+  read_sym_push_mem_keys(&ctx);
+  read_sym_push_vars(&ctx, &scopeRoot);
   read_emit_unused_vars(&ctx, &scopeRoot);
 
   const bool fail = sentinel_check(expr) || (ctx.flags & ScriptReadFlags_ProgramInvalid) != 0;
 #ifndef VOLO_FAST
   if (diags) {
-    const bool hasErrDiag = script_diag_count_of_type(diags, ScriptDiagType_Error);
+    const bool hasErrDiag = script_diag_count(diags, ScriptDiagFilter_Error);
     diag_assert_msg(!fail || hasErrDiag, "No error diagnostic was produced for a failed read");
     diag_assert_msg(fail || !hasErrDiag, "Error diagnostic was produced for a successful read");
   }

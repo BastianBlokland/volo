@@ -30,23 +30,23 @@ spec(binder) {
   setup() { binder = script_binder_create(g_alloc_heap); }
 
   it("sorts bindings on the string-hash") {
-    script_binder_declare(binder, 10, null);
-    script_binder_declare(binder, 5, null);
-    script_binder_declare(binder, 42, null);
-    script_binder_declare(binder, 1, null);
-    script_binder_declare(binder, 7, null);
+    script_binder_declare(binder, string_lit("a"), null);
+    script_binder_declare(binder, string_lit("b"), null);
+    script_binder_declare(binder, string_lit("c"), null);
+    script_binder_declare(binder, string_lit("d"), null);
+    script_binder_declare(binder, string_lit("e"), null);
     script_binder_finalize(binder);
 
-    check_eq_int(script_binder_lookup(binder, 1), 0);
-    check_eq_int(script_binder_lookup(binder, 5), 1);
-    check_eq_int(script_binder_lookup(binder, 7), 2);
-    check_eq_int(script_binder_lookup(binder, 10), 3);
-    check_eq_int(script_binder_lookup(binder, 42), 4);
+    check_eq_int(script_binder_lookup(binder, string_hash_lit("b")), 0);
+    check_eq_int(script_binder_lookup(binder, string_hash_lit("c")), 1);
+    check_eq_int(script_binder_lookup(binder, string_hash_lit("d")), 2);
+    check_eq_int(script_binder_lookup(binder, string_hash_lit("e")), 3);
+    check_eq_int(script_binder_lookup(binder, string_hash_lit("a")), 4);
   }
 
   it("can execute bound functions") {
-    script_binder_declare(binder, string_hash_lit("a"), test_bind_a);
-    script_binder_declare(binder, string_hash_lit("b"), test_bind_b);
+    script_binder_declare(binder, string_lit("a"), test_bind_a);
+    script_binder_declare(binder, string_lit("b"), test_bind_b);
     script_binder_finalize(binder);
 
     ScriptBindTestCtx ctx  = {0};

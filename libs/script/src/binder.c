@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_search.h"
 #include "core_sort.h"
+#include "core_stringtable.h"
 #include "script_binder.h"
 #include "script_val.h"
 
@@ -42,11 +43,11 @@ ScriptBinder* script_binder_create(Allocator* alloc) {
 void script_binder_destroy(ScriptBinder* binder) { alloc_free_t(binder->alloc, binder); }
 
 void script_binder_declare(
-    ScriptBinder* binder, const StringHash name, const ScriptBinderFunc func) {
+    ScriptBinder* binder, const String nameStr, const ScriptBinderFunc func) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
-  binder->names[binder->count] = name;
+  binder->names[binder->count] = stringtable_add(g_stringtable, nameStr);
   binder->funcs[binder->count] = func;
   ++binder->count;
 }
@@ -70,6 +71,11 @@ void script_binder_finalize(ScriptBinder* binder) {
   binder->flags |= ScriptBinderFlags_Finalized;
 }
 
+u32 script_binder_count(const ScriptBinder* binder) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  return binder->count;
+}
+
 ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
@@ -87,7 +93,28 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   const StringHash* itr = search_binary_t(
       binder->names, binder->names + binder->count, StringHash, compare_stringhash, &name);
 
-  return itr ? (u32)(itr - binder->names) : sentinel_u32;
+  return itr ? (u32)(itr - binder->names) : script_binder_slot_sentinel;
+}
+
+String script_binder_name_str(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(slot < binder->count, "Invalid slot");
+
+  // TODO: Using the global string-table for this is kinda questionable.
+  return stringtable_lookup(g_stringtable, binder->names[slot]);
+}
+
+ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  return binder->count ? 0 : script_binder_slot_sentinel;
+}
+
+ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBinderSlot itr) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  if (itr >= (binder->count - 1)) {
+    return script_binder_slot_sentinel;
+  }
+  return itr + 1;
 }
 
 ScriptVal script_binder_exec(

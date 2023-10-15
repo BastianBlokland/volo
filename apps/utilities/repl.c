@@ -15,18 +15,20 @@
 #include "script_lex.h"
 #include "script_mem.h"
 #include "script_read.h"
+#include "script_sym.h"
 
 /**
  * ReadEvalPrintLoop - Utility to play around with script execution.
  */
 
 typedef enum {
-  ReplFlags_None         = 0,
-  ReplFlags_NoEval       = 1 << 0,
-  ReplFlags_Watch        = 1 << 1,
-  ReplFlags_OutputTokens = 1 << 2,
-  ReplFlags_OutputAst    = 1 << 3,
-  ReplFlags_OutputStats  = 1 << 4,
+  ReplFlags_None          = 0,
+  ReplFlags_NoEval        = 1 << 0,
+  ReplFlags_Watch         = 1 << 1,
+  ReplFlags_OutputTokens  = 1 << 2,
+  ReplFlags_OutputAst     = 1 << 3,
+  ReplFlags_OutputStats   = 1 << 4,
+  ReplFlags_OutputSymbols = 1 << 5,
 } ReplFlags;
 
 typedef struct {
@@ -72,6 +74,18 @@ static void repl_output_diag(const String sourceText, const ScriptDiag* diag, co
   dynstring_destroy(&buffer);
 }
 
+static void repl_output_sym(const String sourceText, const ScriptSym* sym) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  dynstring_append(&buffer, string_lit("Sym: "));
+  script_sym_write(&buffer, sourceText, sym);
+  dynstring_append_char(&buffer, '\n');
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+}
+
 static void repl_output_runtime_error(const ScriptEvalResult* res, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
@@ -97,6 +111,8 @@ static void repl_output_runtime_error(const ScriptEvalResult* res, const String 
 static void repl_output_tokens(String text) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, 8 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
+
+  dynstring_append(&buffer, string_lit("Tokens: "));
 
   const ScriptLexFlags flags = ScriptLexFlags_IncludeComments | ScriptLexFlags_IncludeNewlines;
 
@@ -227,7 +243,7 @@ static const ScriptBinder* repl_bind_init() {
   static ScriptBinder* g_binder;
   if (!g_binder) {
     g_binder = script_binder_create(g_alloc_persist);
-    script_binder_declare(g_binder, string_hash_lit("print"), &repl_bind_print);
+    script_binder_declare(g_binder, string_lit("print"), &repl_bind_print);
 
     script_binder_finalize(g_binder);
   }
@@ -239,13 +255,23 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     repl_output_tokens(input);
   }
 
-  ScriptDoc*    script      = script_create(g_alloc_heap);
-  ScriptDiagBag scriptDiags = {0};
+  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  const ScriptExpr expr = script_read(script, repl_bind_init(), input, &scriptDiags);
+  ScriptDoc*     script = script_create(g_alloc_heap);
+  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
+  ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_alloc_heap) : 0;
 
-  for (u32 i = 0; i != scriptDiags.count; ++i) {
-    repl_output_diag(input, &scriptDiags.values[i], id);
+  const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags, syms);
+
+  const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != diagCount; ++i) {
+    repl_output_diag(input, script_diag_data(diags) + i, id);
+  }
+  if (flags & ReplFlags_OutputSymbols) {
+    ScriptSymId itr = script_sym_first(syms, script_pos_sentinel);
+    for (; !sentinel_check(itr); itr = script_sym_next(syms, script_pos_sentinel, itr)) {
+      repl_output_sym(input, script_sym_data(syms, itr));
+    }
   }
 
   if (!sentinel_check(expr)) {
@@ -266,6 +292,10 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   }
 
   script_destroy(script);
+  script_diag_bag_destroy(diags);
+  if (syms) {
+    script_sym_bag_destroy(syms);
+  }
 }
 
 typedef struct {
@@ -490,7 +520,9 @@ Ret:
   return res;
 }
 
-static CliId g_optFile, g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optHelp;
+static CliId g_optFile;
+static CliId g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
+static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   static const String g_desc = string_static("Execute a script from a file or stdin "
@@ -516,6 +548,9 @@ void app_cli_configure(CliApp* app) {
   g_optStats = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
   cli_register_desc(app, g_optStats, string_lit("Ouput script statistics."));
 
+  g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
+  cli_register_desc(app, g_optSyms, string_lit("Ouput script symbols."));
+
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optFile);
@@ -524,6 +559,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optTokens);
   cli_register_exclusions(app, g_optHelp, g_optAst);
   cli_register_exclusions(app, g_optHelp, g_optStats);
+  cli_register_exclusions(app, g_optHelp, g_optSyms);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -547,6 +583,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   if (cli_parse_provided(invoc, g_optStats)) {
     flags |= ReplFlags_OutputStats;
+  }
+  if (cli_parse_provided(invoc, g_optSyms)) {
+    flags |= ReplFlags_OutputSymbols;
   }
 
   if (!tty_isatty(g_file_stdout)) {

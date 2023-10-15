@@ -20,34 +20,34 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
-    script_binder_declare(binder, string_hash_lit("self"), null);
-    script_binder_declare(binder, string_hash_lit("exists"), null);
-    script_binder_declare(binder, string_hash_lit("position"), null);
-    script_binder_declare(binder, string_hash_lit("rotation"), null);
-    script_binder_declare(binder, string_hash_lit("scale"), null);
-    script_binder_declare(binder, string_hash_lit("name"), null);
-    script_binder_declare(binder, string_hash_lit("faction"), null);
-    script_binder_declare(binder, string_hash_lit("health"), null);
-    script_binder_declare(binder, string_hash_lit("time"), null);
-    script_binder_declare(binder, string_hash_lit("nav_query"), null);
-    script_binder_declare(binder, string_hash_lit("nav_target"), null);
-    script_binder_declare(binder, string_hash_lit("line_of_sight"), null);
-    script_binder_declare(binder, string_hash_lit("capable"), null);
-    script_binder_declare(binder, string_hash_lit("active"), null);
-    script_binder_declare(binder, string_hash_lit("target_primary"), null);
-    script_binder_declare(binder, string_hash_lit("target_range_min"), null);
-    script_binder_declare(binder, string_hash_lit("target_range_max"), null);
-    script_binder_declare(binder, string_hash_lit("spawn"), null);
-    script_binder_declare(binder, string_hash_lit("destroy"), null);
-    script_binder_declare(binder, string_hash_lit("destroy_after"), null);
-    script_binder_declare(binder, string_hash_lit("teleport"), null);
-    script_binder_declare(binder, string_hash_lit("nav_travel"), null);
-    script_binder_declare(binder, string_hash_lit("nav_stop"), null);
-    script_binder_declare(binder, string_hash_lit("attach"), null);
-    script_binder_declare(binder, string_hash_lit("detach"), null);
-    script_binder_declare(binder, string_hash_lit("damage"), null);
-    script_binder_declare(binder, string_hash_lit("attack"), null);
-    script_binder_declare(binder, string_hash_lit("debug_log"), null);
+    script_binder_declare(binder, string_lit("self"), null);
+    script_binder_declare(binder, string_lit("exists"), null);
+    script_binder_declare(binder, string_lit("position"), null);
+    script_binder_declare(binder, string_lit("rotation"), null);
+    script_binder_declare(binder, string_lit("scale"), null);
+    script_binder_declare(binder, string_lit("name"), null);
+    script_binder_declare(binder, string_lit("faction"), null);
+    script_binder_declare(binder, string_lit("health"), null);
+    script_binder_declare(binder, string_lit("time"), null);
+    script_binder_declare(binder, string_lit("nav_query"), null);
+    script_binder_declare(binder, string_lit("nav_target"), null);
+    script_binder_declare(binder, string_lit("line_of_sight"), null);
+    script_binder_declare(binder, string_lit("capable"), null);
+    script_binder_declare(binder, string_lit("active"), null);
+    script_binder_declare(binder, string_lit("target_primary"), null);
+    script_binder_declare(binder, string_lit("target_range_min"), null);
+    script_binder_declare(binder, string_lit("target_range_max"), null);
+    script_binder_declare(binder, string_lit("spawn"), null);
+    script_binder_declare(binder, string_lit("destroy"), null);
+    script_binder_declare(binder, string_lit("destroy_after"), null);
+    script_binder_declare(binder, string_lit("teleport"), null);
+    script_binder_declare(binder, string_lit("nav_travel"), null);
+    script_binder_declare(binder, string_lit("nav_stop"), null);
+    script_binder_declare(binder, string_lit("attach"), null);
+    script_binder_declare(binder, string_lit("detach"), null);
+    script_binder_declare(binder, string_lit("damage"), null);
+    script_binder_declare(binder, string_lit("attack"), null);
+    script_binder_declare(binder, string_lit("debug_log"), null);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -92,17 +92,22 @@ void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  ScriptDoc*    doc   = script_create(g_alloc_heap);
-  ScriptDiagBag diags = {0};
+  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, &diags);
+  ScriptDoc*     doc      = script_create(g_alloc_heap);
+  ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
+  ScriptSymBag*  symsNull = null;
 
-  for (u32 i = 0; i != diags.count; ++i) {
-    if (diags.values[i].type == ScriptDiagType_Error) {
-      const String msg = script_diag_pretty_scratch(src->data, &diags.values[i]);
-      log_e("Script error", log_param("error", fmt_text(msg)));
-    }
+  const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, diags, symsNull);
+
+  const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != diagCount; ++i) {
+    const ScriptDiag* diag = script_diag_data(diags) + i;
+    const String      msg  = script_diag_pretty_scratch(src->data, diag);
+    log_e("Script error", log_param("error", fmt_text(msg)));
   }
+
+  script_diag_bag_destroy(diags);
 
   if (UNLIKELY(sentinel_check(expr))) {
     goto Error;

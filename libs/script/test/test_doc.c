@@ -133,9 +133,10 @@ spec(doc) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptBinder*    binder = null;
-      ScriptDiagBag*   diags  = null;
-      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      ScriptBinder*    binder    = null;
+      ScriptDiagBag*   diagsNull = null;
+      ScriptSymBag*    symsNull  = null;
+      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
       check_require(!sentinel_check(expr));
 
       check(script_expr_readonly(doc, expr) == g_testData[i].readonly);
@@ -178,9 +179,10 @@ spec(doc) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptBinder*    binder = null;
-      ScriptDiagBag*   diags  = null;
-      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      ScriptBinder*    binder    = null;
+      ScriptDiagBag*   diagsNull = null;
+      ScriptSymBag*    symsNull  = null;
+      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
       check_require(!sentinel_check(expr));
 
       check(script_expr_static(doc, expr) == g_testData[i].isStatic);
@@ -209,9 +211,10 @@ spec(doc) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptBinder*    binder = null;
-      ScriptDiagBag*   diags  = null;
-      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      ScriptBinder*    binder    = null;
+      ScriptDiagBag*   diagsNull = null;
+      ScriptSymBag*    symsNull  = null;
+      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
       check_require(!sentinel_check(expr));
 
       check(script_expr_always_truthy(doc, expr) == g_testData[i].isTruthy);
@@ -238,9 +241,10 @@ spec(doc) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptBinder*    binder = null;
-      ScriptDiagBag*   diags  = null;
-      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      ScriptBinder*    binder    = null;
+      ScriptDiagBag*   diagsNull = null;
+      ScriptSymBag*    symsNull  = null;
+      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
       check_require(!sentinel_check(expr));
 
       check_eq_int(script_expr_always_uncaught_signal(doc, expr), g_testData[i].sig);
