@@ -12,6 +12,8 @@ typedef u16 ScriptSymId;
 typedef enum {
   ScriptSymType_BuiltinConstant,
   ScriptSymType_BuiltinFunction,
+
+  ScriptSymType_Count,
 } ScriptSymType;
 
 typedef struct {
@@ -27,6 +29,7 @@ void          script_sym_bag_destroy(ScriptSymBag*);
 ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSym*);
 void        script_sym_clear(ScriptSymBag*);
 
+String           script_sym_type_str(ScriptSymType);
 const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
 
 ScriptSymId script_sym_first(const ScriptSymBag*);

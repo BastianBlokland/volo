@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "script_sym.h"
@@ -46,6 +47,17 @@ ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSym* sym) {
 void script_sym_clear(ScriptSymBag* bag) {
   dynarray_for_t(&bag->symbols, ScriptSym, sym) { string_free(bag->alloc, sym->label); }
   dynarray_clear(&bag->symbols);
+}
+
+String script_sym_type_str(const ScriptSymType type) {
+  static const String g_names[] = {
+      string_static("BuiltinConstant"),
+      string_static("BuiltinFunction"),
+  };
+  ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
+
+  diag_assert(type < ScriptSymType_Count);
+  return g_names[type];
 }
 
 const ScriptSym* script_sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
