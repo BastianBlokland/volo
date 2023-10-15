@@ -46,3 +46,33 @@ ScriptPosLineCol script_pos_to_line_col(const String sourceText, const ScriptPos
   }
   return (ScriptPosLineCol){.line = line, .column = column};
 }
+
+ScriptPos script_pos_from_line_col(const String sourceText, const ScriptPosLineCol lc) {
+  u32 currentPos = 0;
+
+  // Advance 'lc.line' lines.
+  for (u16 line = 0; line != lc.line; ++line) {
+    // Advance until the end of the line.
+    for (;;) {
+      if (UNLIKELY(currentPos == sourceText.size)) {
+        return script_pos_sentinel;
+      }
+      const u8 ch = *string_at(sourceText, currentPos);
+      ++currentPos;
+      if (ch == '\n') {
+        break;
+      }
+    }
+  }
+
+  // Advance 'lc.column' columns.
+  for (u16 col = 0; col != lc.column; ++col) {
+    if (UNLIKELY(currentPos >= sourceText.size)) {
+      return script_pos_sentinel;
+    }
+    const u8 ch = *string_at(sourceText, currentPos);
+    currentPos += (u32)math_max(utf8_cp_bytes_from_first(ch), 1);
+  }
+
+  return currentPos;
+}
