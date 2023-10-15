@@ -113,7 +113,8 @@ typedef struct {
   String                label;
   String                labelDetail;
   String                labelDescription;
-  LspCompletionItemKind kind;
+  LspCompletionItemKind kind : 8;
+  u8                    commitChar;
 } LspCompletionItem;
 
 typedef struct {
@@ -320,12 +321,19 @@ static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionI
     }
   }
 
+  const JsonVal commitCharsArr = json_add_array(ctx->jDoc);
+  if (item->commitChar) {
+    const JsonVal commitCharVal = json_add_string(ctx->jDoc, mem_create(&item->commitChar, 1));
+    json_add_elem(ctx->jDoc, commitCharsArr, commitCharVal);
+  }
+
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, item->label));
   if (!sentinel_check(labelDetailsObj)) {
     json_add_field_lit(ctx->jDoc, obj, "labelDetails", labelDetailsObj);
   }
   json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
+  json_add_field_lit(ctx->jDoc, obj, "commitCharacters", commitCharsArr);
   return obj;
 }
 
@@ -708,12 +716,13 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
   ScriptSymId itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
-    const ScriptSym*  sym            = script_sym_data(doc->scriptSyms, itr);
-    LspCompletionItem completionItem = {
+    const ScriptSym*        sym            = script_sym_data(doc->scriptSyms, itr);
+    const LspCompletionItem completionItem = {
         .label            = sym->label,
         .labelDetail      = script_sym_is_func(sym) ? string_lit("()") : string_empty,
         .labelDescription = script_sym_type_str(sym->type),
         .kind             = lsp_completion_kind_for_sym(sym),
+        .commitChar       = script_sym_is_func(sym) ? '(' : ' ',
     };
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
   }
