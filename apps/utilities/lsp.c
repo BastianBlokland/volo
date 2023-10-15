@@ -111,6 +111,7 @@ typedef enum {
 
 typedef struct {
   String                label;
+  String                labelDetail;
   String                labelDescription;
   LspCompletionItemKind kind;
 } LspCompletionItem;
@@ -306,11 +307,17 @@ static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
 
 static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
   JsonVal labelDetailsObj = sentinel_u32;
-  if (!string_is_empty(item->labelDescription)) {
+  if (!string_is_empty(item->labelDetail) || !string_is_empty(item->labelDescription)) {
     labelDetailsObj = json_add_object(ctx->jDoc);
 
-    const JsonVal descVal = json_add_string(ctx->jDoc, item->labelDescription);
-    json_add_field_lit(ctx->jDoc, labelDetailsObj, "description", descVal);
+    if (!string_is_empty(item->labelDetail)) {
+      const JsonVal detailVal = json_add_string(ctx->jDoc, item->labelDetail);
+      json_add_field_lit(ctx->jDoc, labelDetailsObj, "detail", detailVal);
+    }
+    if (!string_is_empty(item->labelDescription)) {
+      const JsonVal descVal = json_add_string(ctx->jDoc, item->labelDescription);
+      json_add_field_lit(ctx->jDoc, labelDetailsObj, "description", descVal);
+    }
   }
 
   const JsonVal obj = json_add_object(ctx->jDoc);
@@ -704,6 +711,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     const ScriptSym*  sym            = script_sym_data(doc->scriptSyms, itr);
     LspCompletionItem completionItem = {
         .label            = sym->label,
+        .labelDetail      = script_sym_is_func(sym) ? string_lit("()") : string_empty,
         .labelDescription = script_sym_type_str(sym->type),
         .kind             = lsp_completion_kind_for_sym(sym),
     };

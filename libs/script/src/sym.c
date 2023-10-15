@@ -57,6 +57,10 @@ void script_sym_clear(ScriptSymBag* bag) {
   dynarray_clear(&bag->symbols);
 }
 
+bool script_sym_is_func(const ScriptSym* sym) {
+  return sym->type == ScriptSymType_BuiltinFunction || sym->type == ScriptSymType_ExternFunction;
+}
+
 String script_sym_type_str(const ScriptSymType type) {
   static const String g_names[] = {
       string_static("Keyword"),
