@@ -9,7 +9,7 @@
 #define script_token_err(_ERR_)                                                                    \
   (ScriptToken) { .type = ScriptTokenType_Error, .val_error = (_ERR_) }
 
-INLINE_HINT static String string_consume_unchecked(const String str, const usize amount) {
+INLINE_HINT static String script_consume_chars(const String str, const usize amount) {
   return (String){
       .ptr  = bits_ptr_offset(str.ptr, amount),
       .size = str.size - amount,
@@ -120,7 +120,7 @@ static u32 script_scan_block_comment_end(const String str) {
 
 static String script_consume_word_or_char(const String str) {
   diag_assert(!string_is_empty(str));
-  return string_consume_unchecked(str, math_max(script_scan_word_end(str), 1));
+  return script_consume_chars(str, math_max(script_scan_word_end(str), 1));
 }
 
 static u8 script_peek(const String str, const u32 ahead) {
@@ -190,7 +190,7 @@ NumberEnd:
 
 static String script_lex_key(String str, StringTable* stringtable, ScriptToken* out) {
   diag_assert(*string_begin(str) == '$');
-  str = string_consume_unchecked(str, 1); // Skip the leading '$'.
+  str = script_consume_chars(str, 1); // Skip the leading '$'.
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
@@ -205,12 +205,12 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   out->type    = ScriptTokenType_Key;
   out->val_key = keyHash;
-  return string_consume_unchecked(str, end);
+  return script_consume_chars(str, end);
 }
 
 static String script_lex_string(String str, StringTable* stringtable, ScriptToken* out) {
   diag_assert(*string_begin(str) == '"');
-  str = string_consume_unchecked(str, 1); // Skip the leading '"'.
+  str = script_consume_chars(str, 1); // Skip the leading '"'.
 
   const u32 end = script_scan_string_end(str);
   if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
@@ -225,7 +225,7 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
 
   out->type       = ScriptTokenType_String;
   out->val_string = valHash;
-  return string_consume_unchecked(str, end + 1); // + 1 for the closing '"'.
+  return script_consume_chars(str, end + 1); // + 1 for the closing '"'.
 }
 
 static String script_lex_identifier(String str, StringTable* stringtable, ScriptToken* out) {
@@ -239,7 +239,7 @@ static String script_lex_identifier(String str, StringTable* stringtable, Script
 
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
     if (string_eq(id, keyword->id)) {
-      return out->type = keyword->token, string_consume_unchecked(str, end);
+      return out->type = keyword->token, script_consume_chars(str, end);
     }
   }
 
@@ -247,7 +247,7 @@ static String script_lex_identifier(String str, StringTable* stringtable, Script
 
   out->type           = ScriptTokenType_Identifier;
   out->val_identifier = idHash;
-  return string_consume_unchecked(str, end);
+  return script_consume_chars(str, end);
 }
 
 String script_lex(String str, StringTable* stringtable, ScriptToken* out, const ScriptLexFlags fl) {
@@ -255,96 +255,96 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
     const u8 c = string_begin(str)[0];
     switch (c) {
     case '(':
-      return out->type = ScriptTokenType_ParenOpen, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_ParenOpen, script_consume_chars(str, 1);
     case ')':
-      return out->type = ScriptTokenType_ParenClose, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_ParenClose, script_consume_chars(str, 1);
     case '{':
-      return out->type = ScriptTokenType_CurlyOpen, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_CurlyOpen, script_consume_chars(str, 1);
     case '}':
-      return out->type = ScriptTokenType_CurlyClose, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_CurlyClose, script_consume_chars(str, 1);
     case ',':
-      return out->type = ScriptTokenType_Comma, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Comma, script_consume_chars(str, 1);
     case '=':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_EqEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_EqEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Eq, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Eq, script_consume_chars(str, 1);
     case '!':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_BangEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_BangEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Bang, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Bang, script_consume_chars(str, 1);
     case '<':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_LeEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_LeEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Le, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Le, script_consume_chars(str, 1);
     case '>':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_GtEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_GtEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Gt, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Gt, script_consume_chars(str, 1);
     case ':':
-      return out->type = ScriptTokenType_Colon, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Colon, script_consume_chars(str, 1);
     case ';':
-      return out->type = ScriptTokenType_Semicolon, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Semicolon, script_consume_chars(str, 1);
     case '+':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_PlusEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_PlusEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Plus, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Plus, script_consume_chars(str, 1);
     case '-':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_MinusEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_MinusEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Minus, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Minus, script_consume_chars(str, 1);
     case '*':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_StarEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_StarEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Star, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Star, script_consume_chars(str, 1);
     case '/':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_SlashEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_SlashEq, script_consume_chars(str, 2);
       }
       if (script_peek(str, 1) == '/') {
-        str = string_consume_unchecked(str, script_scan_line_end(str)); // Consume comment.
+        str = script_consume_chars(str, script_scan_line_end(str)); // Consume comment.
         if (fl & ScriptLexFlags_IncludeComments) {
           return out->type = ScriptTokenType_Comment, str;
         }
         continue;
       }
       if (script_peek(str, 1) == '*') {
-        str = string_consume_unchecked(str, script_scan_block_comment_end(str)); // Consume comment.
+        str = script_consume_chars(str, script_scan_block_comment_end(str)); // Consume comment.
         if (fl & ScriptLexFlags_IncludeComments) {
           return out->type = ScriptTokenType_Comment, str;
         }
         continue;
       }
-      return out->type = ScriptTokenType_Slash, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Slash, script_consume_chars(str, 1);
     case '%':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_PercentEq, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_PercentEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Percent, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_Percent, script_consume_chars(str, 1);
     case '&':
       if (script_peek(str, 1) == '&') {
-        return out->type = ScriptTokenType_AmpAmp, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_AmpAmp, script_consume_chars(str, 2);
       }
-      return *out = script_token_err(ScriptError_InvalidChar), string_consume_unchecked(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), script_consume_chars(str, 1);
     case '|':
       if (script_peek(str, 1) == '|') {
-        return out->type = ScriptTokenType_PipePipe, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_PipePipe, script_consume_chars(str, 2);
       }
-      return *out = script_token_err(ScriptError_InvalidChar), string_consume_unchecked(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), script_consume_chars(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
         if (script_peek(str, 2) == '=') {
-          return out->type = ScriptTokenType_QMarkQMarkEq, string_consume_unchecked(str, 3);
+          return out->type = ScriptTokenType_QMarkQMarkEq, script_consume_chars(str, 3);
         }
-        return out->type = ScriptTokenType_QMarkQMark, string_consume_unchecked(str, 2);
+        return out->type = ScriptTokenType_QMarkQMark, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_QMark, string_consume_unchecked(str, 1);
+      return out->type = ScriptTokenType_QMark, script_consume_chars(str, 1);
     case '.':
     case '0':
     case '1':
@@ -363,13 +363,13 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       return script_lex_string(str, stringtable, out);
     case '\n':
       if (fl & ScriptLexFlags_IncludeNewlines) {
-        return out->type = ScriptTokenType_Newline, string_consume_unchecked(str, 1);
+        return out->type = ScriptTokenType_Newline, script_consume_chars(str, 1);
       }
       // Fallthrough.
     case ' ':
     case '\r':
     case '\t':
-      str = string_consume_unchecked(str, 1); // Skip whitespace.
+      str = script_consume_chars(str, 1); // Skip whitespace.
       continue;
     default:
       if (script_is_word_start(c)) {
@@ -388,11 +388,11 @@ String script_lex_trim(String str) {
     switch (c) {
     case '/': {
       if (script_peek(str, 1) == '/') {
-        str = string_consume_unchecked(str, script_scan_line_end(str)); // Skip comment.
+        str = script_consume_chars(str, script_scan_line_end(str)); // Skip comment.
         continue;
       }
       if (script_peek(str, 1) == '*') {
-        str = string_consume_unchecked(str, script_scan_block_comment_end(str)); // Skip comment.
+        str = script_consume_chars(str, script_scan_block_comment_end(str)); // Skip comment.
         continue;
       }
       return str;
@@ -401,7 +401,7 @@ String script_lex_trim(String str) {
     case '\n':
     case '\r':
     case '\t':
-      str = string_consume_unchecked(str, 1); // Skip whitespace.
+      str = script_consume_chars(str, 1); // Skip whitespace.
       continue;
     default:
       return str;
