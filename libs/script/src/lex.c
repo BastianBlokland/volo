@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_thread.h"
 #include "core_utf8.h"
 #include "script_lex.h"
 
@@ -16,7 +17,7 @@ INLINE_HINT static String script_consume_chars(const String str, const usize amo
   };
 }
 
-static const ScriptLexKeyword g_lexKeywords[] = {
+static ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("if"), .token = ScriptTokenType_If},
     {.id = string_static("else"), .token = ScriptTokenType_Else},
     {.id = string_static("var"), .token = ScriptTokenType_Var},
@@ -26,6 +27,20 @@ static const ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("for"), .token = ScriptTokenType_For},
     {.id = string_static("return"), .token = ScriptTokenType_Return},
 };
+
+static void script_lex_keywords_init() {
+  static bool           g_init;
+  static ThreadSpinLock g_initLock;
+  if (g_init) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_init) {
+    array_for_t(g_lexKeywords, ScriptLexKeyword, kw) { kw->idHash = string_hash(kw->id); }
+    g_init = true;
+  }
+  thread_spinlock_unlock(&g_initLock);
+}
 
 static bool script_is_word_start(const u8 c) {
   // Either ascii letter or start of non-ascii utf8 character.
@@ -236,15 +251,17 @@ static String script_lex_identifier(String str, ScriptToken* out) {
   if (UNLIKELY(!utf8_validate(id))) {
     return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
+  const StringHash idHash = string_hash(id);
 
+  script_lex_keywords_init();
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
-    if (string_eq(id, keyword->id)) {
+    if (idHash == keyword->idHash) {
       return out->type = keyword->token, script_consume_chars(str, end);
     }
   }
 
   out->type           = ScriptTokenType_Identifier;
-  out->val_identifier = string_hash(id);
+  out->val_identifier = idHash;
   return script_consume_chars(str, end);
 }
 
@@ -408,8 +425,12 @@ String script_lex_trim(String str) {
   return string_empty;
 }
 
-u32                     script_lex_keyword_count() { return (u32)array_elems(g_lexKeywords); }
-const ScriptLexKeyword* script_lex_keyword_data() { return g_lexKeywords; }
+u32 script_lex_keyword_count() { return (u32)array_elems(g_lexKeywords); }
+
+const ScriptLexKeyword* script_lex_keyword_data() {
+  script_lex_keywords_init();
+  return g_lexKeywords;
+}
 
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   if (a->type != b->type) {
