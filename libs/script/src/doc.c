@@ -14,7 +14,7 @@ static ScriptExpr script_doc_expr_add(ScriptDoc* doc, const ScriptExprData data)
 
 static ScriptExprData* script_doc_expr_data(const ScriptDoc* doc, const ScriptExpr expr) {
   diag_assert_msg(expr < doc->exprData.size, "Out of bounds ScriptExpr");
-  return dynarray_at_t(&doc->exprData, expr, ScriptExprData);
+  return dynarray_begin_t(&doc->exprData, ScriptExprData) + expr;
 }
 
 static ScriptValId script_doc_val_add(ScriptDoc* doc, const ScriptVal val) {
