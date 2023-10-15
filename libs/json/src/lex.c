@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_ascii.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_utf8.h"
@@ -11,6 +12,13 @@
 #define json_token_err(_ERR_)                                                                      \
   (JsonToken) { .type = JsonTokenType_Error, .val_error = (_ERR_) }
 
+INLINE_HINT static String json_consume_chars(const String str, const usize amount) {
+  return (String){
+      .ptr  = bits_ptr_offset(str.ptr, amount),
+      .size = str.size - amount,
+  };
+}
+
 static String json_lex_number(String str, JsonToken* out) {
   out->type = JsonTokenType_Number;
   return format_read_f64(str, &out->val_number);
@@ -20,7 +28,7 @@ static String json_lex_string(String str, JsonToken* out) {
 
   // Caller is responsible for checking that the first character is valid.
   diag_assert(*string_begin(str) == '"');
-  str = string_consume(str, 1);
+  str = json_consume_chars(str, 1);
 
   DynString result = dynstring_create_over(alloc_alloc(g_alloc_scratch, json_string_max_size, 1));
 
@@ -38,7 +46,7 @@ static String json_lex_string(String str, JsonToken* out) {
     }
 
     const u8 ch = *string_begin(str);
-    str         = string_consume(str, 1);
+    str         = json_consume_chars(str, 1);
 
     if (escaped) {
       switch (ch) {
@@ -105,28 +113,28 @@ Ret:
 static String json_lex_true(String str, JsonToken* out) {
   if (LIKELY(string_starts_with(str, string_lit("true")))) {
     out->type = JsonTokenType_True;
-    return string_consume(str, 4);
+    return json_consume_chars(str, 4);
   }
   *out = json_token_err(JsonError_InvalidCharInTrue);
-  return string_consume(str, 1);
+  return json_consume_chars(str, 1);
 }
 
 static String json_lex_false(String str, JsonToken* out) {
   if (LIKELY(string_starts_with(str, string_lit("false")))) {
     out->type = JsonTokenType_False;
-    return string_consume(str, 5);
+    return json_consume_chars(str, 5);
   }
   *out = json_token_err(JsonError_InvalidCharInFalse);
-  return string_consume(str, 1);
+  return json_consume_chars(str, 1);
 }
 
 static String json_lex_null(String str, JsonToken* out) {
   if (LIKELY(string_starts_with(str, string_lit("null")))) {
     out->type = JsonTokenType_Null;
-    return string_consume(str, 4);
+    return json_consume_chars(str, 4);
   }
   *out = json_token_err(JsonError_InvalidCharInNull);
-  return string_consume(str, 1);
+  return json_consume_chars(str, 1);
 }
 
 String json_lex(String str, JsonToken* out) {
@@ -134,22 +142,22 @@ String json_lex(String str, JsonToken* out) {
     switch (*string_begin(str)) {
     case '[':
       out->type = JsonTokenType_BracketOpen;
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     case ']':
       out->type = JsonTokenType_BracketClose;
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     case '{':
       out->type = JsonTokenType_CurlyOpen;
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     case '}':
       out->type = JsonTokenType_CurlyClose;
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     case ',':
       out->type = JsonTokenType_Comma;
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     case ':':
       out->type = JsonTokenType_Colon;
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     case '"':
       return json_lex_string(str, out);
     case 't':
@@ -175,11 +183,11 @@ String json_lex(String str, JsonToken* out) {
     case '\n':
     case '\r':
     case '\t':
-      str = string_consume(str, 1);
+      str = json_consume_chars(str, 1);
       continue;
     default:
       *out = json_token_err(JsonError_InvalidChar);
-      return string_consume(str, 1);
+      return json_consume_chars(str, 1);
     }
   }
 
