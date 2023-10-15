@@ -102,6 +102,7 @@ typedef struct {
 
 typedef enum {
   LspCompletionItemKind_Function = 3,
+  LspCompletionItemKind_Variable = 6,
   LspCompletionItemKind_Keyword  = 14,
   LspCompletionItemKind_Constant = 21,
 } LspCompletionItemKind;
@@ -673,6 +674,9 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     case ScriptSymType_BuiltinFunction:
     case ScriptSymType_ExternFunction:
       completionItem.kind = LspCompletionItemKind_Function;
+      break;
+    case ScriptSymType_Variable:
+      completionItem.kind = LspCompletionItemKind_Variable;
       break;
     case ScriptSymType_Count:
       break;

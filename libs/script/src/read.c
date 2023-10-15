@@ -248,7 +248,8 @@ typedef struct {
   StringHash     id;
   ScriptVarId    varSlot;
   bool           used;
-  ScriptPosRange declRange; // NOTE: Not yet trimmed.
+  ScriptPosRange declRange;       // NOTE: Not yet trimmed.
+  ScriptPos      validUsageStart; // NOTE: Not yet trimmed.
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
@@ -356,6 +357,27 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
   }
 }
 
+static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != script_var_count; ++i) {
+    if (!scope->vars[i].id) {
+      break;
+    }
+    // TODO: Using the global string-table for this is kinda questionable.
+    const String idStr = stringtable_lookup(g_stringtable, scope->vars[i].id);
+    if (!string_is_empty(idStr)) {
+      const ScriptSym sym = {
+          .type       = ScriptSymType_Variable,
+          .label      = idStr,
+          .validRange = read_range_current(ctx, scope->vars[i].validUsageStart),
+      };
+      script_sym_push(ctx->syms, &sym);
+    }
+  }
+}
+
 static bool read_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
   const usize index = bitset_next(mem_var(ctx->varAvailability), 0);
   if (UNLIKELY(sentinel_check(index))) {
@@ -397,6 +419,7 @@ static void read_scope_pop(ScriptReadContext* ctx) {
     ;
   newTail->next = null;
 
+  read_sym_push_vars(ctx, scope);
   read_emit_unused_vars(ctx, scope);
 
   // Free all the variables that the scope declared.
@@ -408,7 +431,7 @@ static void read_scope_pop(ScriptReadContext* ctx) {
 }
 
 static bool read_var_declare(
-    ScriptReadContext* ctx, const StringHash id, const ScriptPosRange range, ScriptVarId* out) {
+    ScriptReadContext* ctx, const StringHash id, const ScriptPosRange declRange, ScriptVarId* out) {
   ScriptScope* scope = read_scope_tail(ctx);
   diag_assert(scope);
 
@@ -419,7 +442,12 @@ static bool read_var_declare(
     if (!read_var_alloc(ctx, out)) {
       return false;
     }
-    scope->vars[i] = (ScriptVarMeta){.id = id, .varSlot = *out, .declRange = range};
+    scope->vars[i] = (ScriptVarMeta){
+        .id              = id,
+        .varSlot         = *out,
+        .declRange       = declRange,
+        .validUsageStart = read_pos_current(ctx), // TODO: Should this be an input parameter?
+    };
     return true;
   }
   return false;
@@ -1498,6 +1526,7 @@ ScriptExpr script_read(
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
 
+  read_sym_push_vars(&ctx, &scopeRoot);
   read_emit_unused_vars(&ctx, &scopeRoot);
 
   const bool fail = sentinel_check(expr) || (ctx.flags & ScriptReadFlags_ProgramInvalid) != 0;
