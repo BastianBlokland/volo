@@ -10,7 +10,7 @@ INLINE_HINT static bool script_sym_valid(const ScriptSym* sym, const ScriptPos p
   if (sentinel_check(pos)) {
     return true; // 'script_pos_sentinel' indicates that symbols from all ranges should be returned.
   }
-  return pos >= sym->validRange.start && pos < sym->validRange.end;
+  return pos >= sym->validRange.start && pos <= sym->validRange.end;
 }
 
 struct sScriptSymBag {
