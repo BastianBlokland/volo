@@ -22,6 +22,7 @@
 typedef struct {
   StringHash idHash;
   ScriptVal  val;
+  String     id;
 } ScriptBuiltinConst;
 
 static ScriptBuiltinConst g_scriptBuiltinConsts[script_builtin_consts_max];
@@ -30,6 +31,7 @@ static u32                g_scriptBuiltinConstCount;
 static void script_builtin_const_add(const String id, const ScriptVal val) {
   diag_assert(g_scriptBuiltinConstCount != script_builtin_consts_max);
   g_scriptBuiltinConsts[g_scriptBuiltinConstCount++] = (ScriptBuiltinConst){
+      .id     = id,
       .idHash = string_hash(id),
       .val    = val,
   };
@@ -279,6 +281,7 @@ typedef struct {
   ScriptDoc*          doc;
   const ScriptBinder* binder;
   ScriptDiagBag*      diags;
+  ScriptSymBag*       syms;
   String              input, inputTotal;
   ScriptScope*        scopeRoot;
   ScriptReadFlags     flags : 8;
@@ -1380,6 +1383,19 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
   return res;
 }
 
+static void read_sym_push_builtin_consts(ScriptReadContext* ctx) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
+    const ScriptSym sym = {
+        .type  = ScriptSymType_BuiltinConstant,
+        .label = g_scriptBuiltinConsts[i].id,
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+}
+
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
   const ScriptBinderSignature signature = script_binder_sig(binder);
   if (doc->binderSignature && doc->binderSignature != signature) {
@@ -1414,18 +1430,19 @@ ScriptExpr script_read(
     script_link_binder(doc, binder);
   }
 
-  (void)syms;
-
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
             .doc        = doc,
             .binder     = binder,
             .diags      = diags,
+            .syms       = syms,
             .input      = src,
             .inputTotal = src,
             .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
+
+  read_sym_push_builtin_consts(&ctx);
 
   const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit);
   if (!sentinel_check(expr)) {
