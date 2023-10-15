@@ -3,13 +3,23 @@
 #include "core_format.h"
 #include "script_diag.h"
 
-bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
-  if (UNLIKELY(bag->count == script_diag_max)) {
-    return false;
-  }
-  bag->values[bag->count++] = *diag;
-  return true;
+struct sScriptDiagBag {
+  Allocator* alloc;
+  u32        count;
+  ScriptDiag values[script_diag_max];
+};
+
+ScriptDiagBag* script_diag_bag_create(Allocator* alloc) {
+  ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
+  *bag               = (ScriptDiagBag){.alloc = alloc};
+  return bag;
 }
+
+void script_diag_bag_destroy(ScriptDiagBag* bag) { alloc_free_t(bag->alloc, bag); }
+
+const ScriptDiag* script_diag_data(const ScriptDiagBag* bag) { return bag->values; }
+
+u32 script_diag_count(const ScriptDiagBag* bag) { return bag->count; }
 
 u32 script_diag_count_of_type(const ScriptDiagBag* bag, const ScriptDiagType type) {
   u32 count = 0;
@@ -28,6 +38,14 @@ const ScriptDiag* script_diag_first_of_type(const ScriptDiagBag* bag, const Scri
     }
   }
   return null;
+}
+
+bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
+  if (UNLIKELY(bag->count == script_diag_max)) {
+    return false;
+  }
+  bag->values[bag->count++] = *diag;
+  return true;
 }
 
 void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }

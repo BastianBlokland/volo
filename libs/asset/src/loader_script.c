@@ -92,17 +92,22 @@ void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  ScriptDoc*    doc   = script_create(g_alloc_heap);
-  ScriptDiagBag diags = {0};
+  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, &diags);
+  ScriptDoc*     doc   = script_create(g_alloc_heap);
+  ScriptDiagBag* diags = script_diag_bag_create(tempAlloc);
 
-  for (u32 i = 0; i != diags.count; ++i) {
-    if (diags.values[i].type == ScriptDiagType_Error) {
-      const String msg = script_diag_pretty_scratch(src->data, &diags.values[i]);
+  const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, diags);
+
+  for (u32 i = 0; i != script_diag_count(diags); ++i) {
+    const ScriptDiag* diag = script_diag_data(diags) + i;
+    if (diag->type == ScriptDiagType_Error) {
+      const String msg = script_diag_pretty_scratch(src->data, diag);
       log_e("Script error", log_param("error", fmt_text(msg)));
     }
   }
+
+  script_diag_bag_destroy(diags);
 
   if (UNLIKELY(sentinel_check(expr))) {
     goto Error;

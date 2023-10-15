@@ -239,13 +239,15 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     repl_output_tokens(input);
   }
 
-  ScriptDoc*    script      = script_create(g_alloc_heap);
-  ScriptDiagBag scriptDiags = {0};
+  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  const ScriptExpr expr = script_read(script, repl_bind_init(), input, &scriptDiags);
+  ScriptDoc*     script = script_create(g_alloc_heap);
+  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc);
 
-  for (u32 i = 0; i != scriptDiags.count; ++i) {
-    repl_output_diag(input, &scriptDiags.values[i], id);
+  const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags);
+
+  for (u32 i = 0; i != script_diag_count(diags); ++i) {
+    repl_output_diag(input, script_diag_data(diags) + i, id);
   }
 
   if (!sentinel_check(expr)) {
@@ -266,6 +268,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   }
 
   script_destroy(script);
+  script_diag_bag_destroy(diags);
 }
 
 typedef struct {

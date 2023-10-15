@@ -9,11 +9,13 @@
 #include "utils_internal.h"
 
 spec(read) {
-  ScriptDoc*    doc    = null;
-  ScriptBinder* binder = null;
+  ScriptDoc*     doc    = null;
+  ScriptDiagBag* diags  = null;
+  ScriptBinder*  binder = null;
 
   setup() {
-    doc = script_create(g_alloc_heap);
+    doc   = script_create(g_alloc_heap);
+    diags = script_diag_bag_create(g_alloc_heap);
 
     binder = script_binder_create(g_alloc_heap);
     script_binder_declare(binder, string_hash_lit("bind_test_1"), null);
@@ -922,8 +924,8 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptDiagBag*   diags = null;
-      const ScriptExpr expr  = script_read(doc, binder, g_testData[i].input, diags);
+      ScriptDiagBag*   diagsNull = null;
+      const ScriptExpr expr      = script_read(doc, binder, g_testData[i].input, diagsNull);
 
       check_require_msg(!sentinel_check(expr), "Read failed [{}]", fmt_text(g_testData[i].input));
       check_expr_str(doc, expr, g_testData[i].expect);
@@ -1062,13 +1064,13 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptDiagBag diags = {0};
-      script_read(doc, binder, g_testData[i].input, &diags);
+      script_diag_clear(diags);
+      script_read(doc, binder, g_testData[i].input, diags);
 
-      const u32 errorCount = script_diag_count_of_type(&diags, ScriptDiagType_Error);
+      const u32 errorCount = script_diag_count_of_type(diags, ScriptDiagType_Error);
       check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
 
-      const ScriptDiag* diag = script_diag_first_of_type(&diags, ScriptDiagType_Error);
+      const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
       check_msg(
           diag->error == g_testData[i].expected,
           "{} == {} [{}]",
@@ -1079,8 +1081,8 @@ spec(read) {
   }
 
   it("can read all input") {
-    ScriptDiagBag*   diags = null;
-    const ScriptExpr expr  = script_read(doc, binder, string_lit("1  "), diags);
+    ScriptDiagBag*   diagsNull = null;
+    const ScriptExpr expr      = script_read(doc, binder, string_lit("1  "), diagsNull);
 
     check_require(!sentinel_check(expr));
   }
@@ -1089,11 +1091,11 @@ spec(read) {
     DynString str = dynstring_create(g_alloc_scratch, 256);
     dynstring_append_chars(&str, '(', 100);
 
-    ScriptDiagBag diags = {0};
-    script_read(doc, binder, dynstring_view(&str), &diags);
+    script_diag_clear(diags);
+    script_read(doc, binder, dynstring_view(&str), diags);
 
-    check_require(diags.count == 1);
-    const ScriptDiag* diag = &diags.values[0];
+    check_require(script_diag_count(diags) == 1);
+    const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
     check_eq_int(diag->error, ScriptError_RecursionLimitExceeded);
 
     dynstring_destroy(&str);
@@ -1105,11 +1107,11 @@ spec(read) {
       dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
     }
 
-    ScriptDiagBag diags = {0};
-    script_read(doc, binder, dynstring_view(&str), &diags);
+    script_diag_clear(diags);
+    script_read(doc, binder, dynstring_view(&str), diags);
 
-    check_require(script_diag_count_of_type(&diags, ScriptDiagType_Error) == 1);
-    const ScriptDiag* diag = &diags.values[0];
+    check_require(script_diag_count_of_type(diags, ScriptDiagType_Error) == 1);
+    const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
     check_eq_int(diag->error, ScriptError_VarLimitExceeded);
 
     dynstring_destroy(&str);
@@ -1128,13 +1130,13 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      const String  input = g_testData[i].input;
-      ScriptDiagBag diags = {0};
-      script_read(doc, binder, input, &diags);
+      const String input = g_testData[i].input;
+      script_diag_clear(diags);
+      script_read(doc, binder, input, diags);
 
-      check_require(diags.count == 1);
+      check_require(script_diag_count(diags) == 1);
 
-      const ScriptDiag*      diag       = &diags.values[0];
+      const ScriptDiag*      diag       = script_diag_data(diags);
       const ScriptPosLineCol rangeStart = script_pos_to_line_col(input, diag->range.start);
       const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(input, diag->range.end);
       check_eq_int(rangeStart.line, g_testData[i].startLine);
@@ -1146,6 +1148,7 @@ spec(read) {
 
   teardown() {
     script_destroy(doc);
+    script_diag_bag_destroy(diags);
     script_binder_destroy(binder);
   }
 }

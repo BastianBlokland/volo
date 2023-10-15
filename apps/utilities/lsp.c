@@ -47,9 +47,9 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  String        identifier;
-  ScriptDoc*    scriptDoc;
-  ScriptDiagBag scriptDiags;
+  String         identifier;
+  ScriptDoc*     scriptDoc;
+  ScriptDiagBag* scriptDiags;
 } LspDocument;
 
 typedef struct {
@@ -149,8 +149,8 @@ static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
 static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier) {
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
   *res             = (LspDocument){
-      .identifier = string_dup(g_alloc_heap, identifier),
-      .scriptDoc  = script_create(g_alloc_heap),
+                  .identifier = string_dup(g_alloc_heap, identifier),
+                  .scriptDoc  = script_create(g_alloc_heap),
   };
   return res;
 }
@@ -434,13 +434,13 @@ Error:
 
 static void lsp_handle_doc_update(LspContext* ctx, LspDocument* doc, const String text) {
   script_clear(doc->scriptDoc);
-  script_diag_clear(&doc->scriptDiags);
+  script_diag_clear(doc->scriptDiags);
 
-  script_read(doc->scriptDoc, ctx->scriptBinder, text, &doc->scriptDiags);
+  script_read(doc->scriptDoc, ctx->scriptBinder, text, doc->scriptDiags);
 
   LspDiag lspDiags[script_diag_max];
-  for (u32 i = 0; i != doc->scriptDiags.count; ++i) {
-    const ScriptDiag*      diag       = &doc->scriptDiags.values[i];
+  for (u32 i = 0; i != script_diag_count(doc->scriptDiags); ++i) {
+    const ScriptDiag*      diag       = script_diag_data(doc->scriptDiags) + i;
     const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
     const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
 
@@ -469,7 +469,7 @@ static void lsp_handle_doc_update(LspContext* ctx, LspDocument* doc, const Strin
         .message               = script_diag_msg_scratch(text, diag),
     };
   }
-  lsp_send_diagnostics(ctx, doc->identifier, lspDiags, doc->scriptDiags.count);
+  lsp_send_diagnostics(ctx, doc->identifier, lspDiags, script_diag_count(doc->scriptDiags));
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
