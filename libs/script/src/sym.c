@@ -75,3 +75,16 @@ ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptSymId itr) {
   }
   return itr + 1;
 }
+
+void script_sym_write(DynString* out, const ScriptSym* sym) {
+  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(sym->type)), fmt_text(sym->label));
+}
+
+String script_sym_scratch(const ScriptSym* sym) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  script_sym_write(&buffer, sym);
+
+  return dynstring_view(&buffer);
+}
