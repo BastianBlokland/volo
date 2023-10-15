@@ -118,6 +118,11 @@ static const JRpcError g_jrpcErrorMethodNotFound = {
     .msg  = string_static("Method not found"),
 };
 
+static const JRpcError g_jrpcErrorInvalidParams = {
+    .code = -32602,
+    .msg  = string_static("Invalid parameters"),
+};
+
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_alloc_heap, doc->identifier);
   script_destroy(doc->scriptDoc);
@@ -571,6 +576,10 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
+static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
@@ -578,6 +587,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
+      {string_static("textDocument/completion"), lsp_handle_req_completion},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
