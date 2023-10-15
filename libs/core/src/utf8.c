@@ -9,7 +9,7 @@
 #define utf8_cp_triple_char ((Unicode)0xFFFF)
 #define utf8_cp_quad_char utf8_cp_max
 
-INLINE_HINT static String string_consume_unchecked(const String str, const usize amount) {
+INLINE_HINT static String utf8_consume_bytes(const String str, const usize amount) {
   return (String){
       .ptr  = bits_ptr_offset(str.ptr, amount),
       .size = str.size - amount,
@@ -114,7 +114,7 @@ String utf8_cp_read(String utf8, Unicode* out) {
   const usize charCount = utf8_cp_bytes_from_first(chars[0]);
   if (UNLIKELY(!charCount)) {
     *out = 0;
-    return string_consume_unchecked(utf8, 1);
+    return utf8_consume_bytes(utf8, 1);
   }
 
   // Validate that the remaining characters are all valid utf8 continuation characters.
@@ -125,7 +125,7 @@ String utf8_cp_read(String utf8, Unicode* out) {
   for (u8 i = 1; i != charCount; ++i) {
     if (UNLIKELY(!utf8_contchar(chars[i]))) {
       *out = 0;
-      return string_consume_unchecked(utf8, charCount);
+      return utf8_consume_bytes(utf8, charCount);
     }
   }
 
@@ -145,5 +145,5 @@ String utf8_cp_read(String utf8, Unicode* out) {
            (chars[2] & 0b00111111) << 6 | (chars[3] & 0b00111111);
     break;
   }
-  return string_consume_unchecked(utf8, charCount);
+  return utf8_consume_bytes(utf8, charCount);
 }
