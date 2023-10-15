@@ -367,16 +367,14 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     if (!scope->vars[i].id) {
       break;
     }
-    // TODO: Using the global string-table for this is kinda questionable.
-    const String idStr = stringtable_lookup(g_stringtable, scope->vars[i].id);
-    if (!string_is_empty(idStr)) {
-      const ScriptSym sym = {
-          .type       = ScriptSymType_Variable,
-          .label      = idStr,
-          .validRange = read_range_current(ctx, scope->vars[i].validUsageStart),
-      };
-      script_sym_push(ctx->syms, &sym);
-    }
+    const ScriptPosRange declRangeTrimmed = read_range_trim(ctx, scope->vars[i].declRange);
+
+    const ScriptSym sym = {
+        .type       = ScriptSymType_Variable,
+        .label      = script_pos_range_text(ctx->inputTotal, declRangeTrimmed),
+        .validRange = read_range_current(ctx, scope->vars[i].validUsageStart),
+    };
+    script_sym_push(ctx->syms, &sym);
   }
 }
 
@@ -614,9 +612,9 @@ static void read_emit_unreachable(
       const ScriptPos  unreachableStart = exprRanges[i + 1].start;
       const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
       const ScriptDiag unreachableDiag  = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExprUnreachable,
-          .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
+           .type  = ScriptDiagType_Warning,
+           .error = ScriptError_ExprUnreachable,
+           .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1552,13 +1550,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

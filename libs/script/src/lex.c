@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_thread.h"
 #include "core_utf8.h"
 #include "script_lex.h"
 
@@ -16,7 +17,7 @@ INLINE_HINT static String script_consume_chars(const String str, const usize amo
   };
 }
 
-static const ScriptLexKeyword g_lexKeywords[] = {
+static ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("if"), .token = ScriptTokenType_If},
     {.id = string_static("else"), .token = ScriptTokenType_Else},
     {.id = string_static("var"), .token = ScriptTokenType_Var},
@@ -26,6 +27,20 @@ static const ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("for"), .token = ScriptTokenType_For},
     {.id = string_static("return"), .token = ScriptTokenType_Return},
 };
+
+static void script_lex_keywords_init() {
+  static bool           g_init;
+  static ThreadSpinLock g_initLock;
+  if (g_init) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_init) {
+    array_for_t(g_lexKeywords, ScriptLexKeyword, kw) { kw->idHash = string_hash(kw->id); }
+    g_init = true;
+  }
+  thread_spinlock_unlock(&g_initLock);
+}
 
 static bool script_is_word_start(const u8 c) {
   // Either ascii letter or start of non-ascii utf8 character.
@@ -140,7 +155,7 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
     case '.':
       if (UNLIKELY(passedDecPoint)) {
         lastChar = ch;
-        str      = mem_consume(str, 1);
+        str      = script_consume_chars(str, 1);
         goto NumberEnd;
       }
       passedDecPoint = true;
@@ -170,7 +185,7 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
       break;
     }
     lastChar = ch;
-    str      = mem_consume(str, 1);
+    str      = script_consume_chars(str, 1);
   }
 
 NumberEnd:
@@ -228,7 +243,7 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
   return script_consume_chars(str, end + 1); // + 1 for the closing '"'.
 }
 
-static String script_lex_identifier(String str, StringTable* stringtable, ScriptToken* out) {
+static String script_lex_identifier(const String str, ScriptToken* out) {
   const u32 end = script_scan_word_end(str);
   diag_assert(end);
 
@@ -236,14 +251,14 @@ static String script_lex_identifier(String str, StringTable* stringtable, Script
   if (UNLIKELY(!utf8_validate(id))) {
     return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
+  const StringHash idHash = string_hash(id);
 
+  script_lex_keywords_init();
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
-    if (string_eq(id, keyword->id)) {
+    if (idHash == keyword->idHash) {
       return out->type = keyword->token, script_consume_chars(str, end);
     }
   }
-
-  const StringHash idHash = stringtable ? stringtable_add(stringtable, id) : string_hash(id);
 
   out->type           = ScriptTokenType_Identifier;
   out->val_identifier = idHash;
@@ -373,7 +388,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       continue;
     default:
       if (script_is_word_start(c)) {
-        return script_lex_identifier(str, stringtable, out);
+        return script_lex_identifier(str, out);
       }
       return *out = script_token_err(ScriptError_InvalidChar), script_consume_word_or_char(str);
     }
@@ -410,8 +425,12 @@ String script_lex_trim(String str) {
   return string_empty;
 }
 
-u32                     script_lex_keyword_count() { return (u32)array_elems(g_lexKeywords); }
-const ScriptLexKeyword* script_lex_keyword_data() { return g_lexKeywords; }
+u32 script_lex_keyword_count() { return (u32)array_elems(g_lexKeywords); }
+
+const ScriptLexKeyword* script_lex_keyword_data() {
+  script_lex_keywords_init();
+  return g_lexKeywords;
+}
 
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   if (a->type != b->type) {

@@ -70,6 +70,7 @@ typedef enum {
 
 typedef struct {
   String          id;
+  StringHash      idHash;
   ScriptTokenType token;
 } ScriptLexKeyword;
 

@@ -384,14 +384,16 @@ static void lsp_send_notification(LspContext* ctx, const JRpcNotification* notif
 }
 
 static void lsp_send_trace(LspContext* ctx, const String message) {
-  const JsonVal params = json_add_object(ctx->jDoc);
-  json_add_field_lit(ctx->jDoc, params, "message", json_add_string(ctx->jDoc, message));
+  if (ctx->flags & LspFlags_Trace) {
+    const JsonVal params = json_add_object(ctx->jDoc);
+    json_add_field_lit(ctx->jDoc, params, "message", json_add_string(ctx->jDoc, message));
 
-  const JRpcNotification notif = {
-      .method = string_lit("$/logTrace"),
-      .params = params,
-  };
-  lsp_send_notification(ctx, &notif);
+    const JRpcNotification notif = {
+        .method = string_lit("$/logTrace"),
+        .params = params,
+    };
+    lsp_send_notification(ctx, &notif);
+  }
 }
 
 static void lsp_send_log(LspContext* ctx, const LspMessageType type, const String message) {
@@ -485,7 +487,16 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_diag_clear(doc->scriptDiags);
   script_sym_clear(doc->scriptSyms);
 
+  const TimeSteady readStartTime = time_steady_clock();
+
   script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
+
+  if (ctx->flags & LspFlags_Trace) {
+    const TimeDuration dur   = time_steady_duration(readStartTime, time_steady_clock());
+    const String       docId = doc->identifier;
+    lsp_send_trace(
+        ctx, fmt_write_scratch("Document parsed: {} ({})", fmt_text(docId), fmt_duration(dur)));
+  }
 
   LspDiag   lspDiags[script_diag_max];
   const u32 lspDiagCount = script_diag_count(doc->scriptDiags, ScriptDiagFilter_All);
@@ -530,7 +541,9 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   }
   const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
 
-  lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
+  }
 
   if (UNLIKELY(lsp_doc_find(ctx, uri))) {
     lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
@@ -539,7 +552,9 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   LspDocument* doc = lsp_doc_open(ctx, uri, text);
   lsp_analyze_doc(ctx, doc);
 
-  lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
+  }
   return;
 
 Error:
@@ -556,7 +571,9 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
   const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
 
-  lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(uri)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(uri)));
+  }
 
   LspDocument* doc = lsp_doc_find(ctx, uri);
   if (LIKELY(doc)) {
@@ -577,7 +594,9 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   if (UNLIKELY(string_is_empty(uri))) {
     goto Error;
   }
-  lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(uri)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(uri)));
+  }
 
   LspDocument* doc = lsp_doc_find(ctx, uri);
   if (LIKELY(doc)) {
@@ -586,7 +605,9 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
   }
-  lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
+  }
   return;
 
 Error:
@@ -596,7 +617,7 @@ Error:
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   static const struct {
     String method;
-    void   (*handler)(LspContext*, const JRpcNotification*);
+    void (*handler)(LspContext*, const JRpcNotification*);
   } g_handlers[] = {
       {string_static("initialized"), lsp_handle_notif_initialized},
       {string_static("exit"), lsp_handle_notif_exit},
@@ -705,13 +726,15 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
 
-  lsp_send_trace(
-      ctx,
-      fmt_write_scratch(
-          "Complete: {} [{}:{}]",
-          fmt_text(uri),
-          fmt_int(posLineCol.line + 1),
-          fmt_int(posLineCol.column + 1)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(
+        ctx,
+        fmt_write_scratch(
+            "Complete: {} [{}:{}]",
+            fmt_text(uri),
+            fmt_int(posLineCol.line + 1),
+            fmt_int(posLineCol.column + 1)));
+  }
 
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
 
@@ -737,7 +760,7 @@ InvalidParams:
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
-    void   (*handler)(LspContext*, const JRpcRequest*);
+    void (*handler)(LspContext*, const JRpcRequest*);
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
