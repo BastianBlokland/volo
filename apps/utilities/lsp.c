@@ -141,14 +141,11 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier) {
   return res;
 }
 
-static void lsp_doc_close(LspContext* ctx, const String identifier) {
-  LspDocument* doc = lsp_doc_find(ctx, identifier);
-  if (doc) {
-    lsp_doc_destroy(doc);
+static void lsp_doc_close(LspContext* ctx, LspDocument* doc) {
+  lsp_doc_destroy(doc);
 
-    const usize index = doc - dynarray_begin_t(ctx->openDocs, LspDocument);
-    dynarray_remove_unordered(ctx->openDocs, index, 1);
-  }
+  const usize index = doc - dynarray_begin_t(ctx->openDocs, LspDocument);
+  dynarray_remove_unordered(ctx->openDocs, index, 1);
 }
 
 static void lsp_read_trim(LspContext* ctx) {
@@ -326,6 +323,14 @@ static void lsp_send_log(LspContext* ctx, const LspMessageType type, const Strin
   lsp_send_notification(ctx, &notif);
 }
 
+static void lsp_send_info(LspContext* ctx, const String message) {
+  return lsp_send_log(ctx, LspMessageType_Info, message);
+}
+
+static void lsp_send_error(LspContext* ctx, const String message) {
+  return lsp_send_log(ctx, LspMessageType_Error, message);
+}
+
 static void lsp_send_diagnostics(
     LspContext* ctx, const String docUri, const LspDiag values[], const usize count) {
   const JsonVal diagArray = json_add_array(ctx->jDoc);
@@ -372,7 +377,7 @@ static void lsp_handle_notif_initialized(LspContext* ctx, const JRpcNotification
   (void)notif;
   ctx->flags |= LspFlags_Initialized;
 
-  lsp_send_log(ctx, LspMessageType_Info, string_lit("Server successfully initialized"));
+  lsp_send_info(ctx, string_lit("Server successfully initialized"));
 }
 
 static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif) {
@@ -443,7 +448,8 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
 
   if (lsp_doc_find(ctx, uri)) {
-    goto Error;
+    lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
+    return;
   }
   LspDocument* doc = lsp_doc_open(ctx, uri);
   lsp_handle_doc_update(ctx, doc, text);
@@ -469,9 +475,10 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
 
   LspDocument* doc = lsp_doc_find(ctx, uri);
   if (doc) {
-    goto Error;
+    lsp_handle_doc_update(ctx, doc, text);
+  } else {
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
   }
-  lsp_handle_doc_update(ctx, doc, text);
   return;
 
 Error:
@@ -486,9 +493,13 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   }
   lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(uri)));
 
-  lsp_doc_close(ctx, uri);
-  lsp_send_diagnostics(ctx, uri, null, 0);
-
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (doc) {
+    lsp_doc_close(ctx, doc);
+    lsp_send_diagnostics(ctx, uri, null, 0);
+  } else {
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
+  }
   lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
   return;
 
