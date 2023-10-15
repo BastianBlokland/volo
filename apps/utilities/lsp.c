@@ -527,15 +527,19 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
     lsp_update_trace_config(ctx, traceVal);
   }
 
-  const JsonVal docSyncOptions = json_add_object(ctx->jDoc);
-  json_add_field_lit(ctx->jDoc, docSyncOptions, "openClose", json_add_bool(ctx->jDoc, true));
-  json_add_field_lit(ctx->jDoc, docSyncOptions, "change", json_add_number(ctx->jDoc, 1));
+  const JsonVal docSyncOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, docSyncOpts, "openClose", json_add_bool(ctx->jDoc, true));
+  json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 1));
+
+  const JsonVal completionOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, completionOpts, "resolveProvider", json_add_bool(ctx->jDoc, false));
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
   const JsonVal positionEncoding = json_add_string_lit(ctx->jDoc, "utf-16");
   json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
-  json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOptions);
+  json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
