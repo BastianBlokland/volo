@@ -258,7 +258,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
   ScriptDoc*     script = script_create(g_alloc_heap);
-  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc);
+  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_alloc_heap) : 0;
 
   const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags, syms);

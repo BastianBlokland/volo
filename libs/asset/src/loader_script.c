@@ -95,17 +95,15 @@ void asset_load_script(
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
   ScriptDoc*     doc      = script_create(g_alloc_heap);
-  ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc);
+  ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptSymBag*  symsNull = null;
 
   const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, diags, symsNull);
 
   for (u32 i = 0; i != script_diag_count(diags); ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
-    if (diag->type == ScriptDiagType_Error) {
-      const String msg = script_diag_pretty_scratch(src->data, diag);
-      log_e("Script error", log_param("error", fmt_text(msg)));
-    }
+    const String      msg  = script_diag_pretty_scratch(src->data, diag);
+    log_e("Script error", log_param("error", fmt_text(msg)));
   }
 
   script_diag_bag_destroy(diags);

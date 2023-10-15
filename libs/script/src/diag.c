@@ -4,18 +4,26 @@
 #include "script_diag.h"
 
 struct sScriptDiagBag {
-  Allocator* alloc;
-  u32        count;
-  ScriptDiag values[script_diag_max];
+  Allocator*       alloc;
+  u32              count;
+  ScriptDiagFilter filter;
+  ScriptDiag       values[script_diag_max];
 };
 
-ScriptDiagBag* script_diag_bag_create(Allocator* alloc) {
+ScriptDiagBag* script_diag_bag_create(Allocator* alloc, const ScriptDiagFilter filter) {
   ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
-  *bag               = (ScriptDiagBag){.alloc = alloc};
+  *bag               = (ScriptDiagBag){
+      .alloc  = alloc,
+      .filter = filter,
+  };
   return bag;
 }
 
 void script_diag_bag_destroy(ScriptDiagBag* bag) { alloc_free_t(bag->alloc, bag); }
+
+bool script_diag_active(const ScriptDiagBag* bag, const ScriptDiagType type) {
+  return (bag->filter & (1 << type)) != 0;
+}
 
 const ScriptDiag* script_diag_data(const ScriptDiagBag* bag) { return bag->values; }
 
@@ -41,6 +49,9 @@ const ScriptDiag* script_diag_first_of_type(const ScriptDiagBag* bag, const Scri
 }
 
 bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
+  if (!script_diag_active(bag, diag->type)) {
+    return false;
+  }
   if (UNLIKELY(bag->count == script_diag_max)) {
     return false;
   }

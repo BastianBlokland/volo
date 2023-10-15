@@ -17,7 +17,7 @@ spec(read) {
 
   setup() {
     doc   = script_create(g_alloc_heap);
-    diags = script_diag_bag_create(g_alloc_heap);
+    diags = script_diag_bag_create(g_alloc_heap, ScriptDiagFilter_All);
 
     binder = script_binder_create(g_alloc_heap);
     script_binder_declare(binder, string_lit("bind_test_1"), null);

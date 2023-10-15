@@ -172,7 +172,7 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
       .identifier  = string_dup(g_alloc_heap, identifier),
       .text        = string_maybe_dup(g_alloc_heap, text),
       .scriptDoc   = script_create(g_alloc_heap),
-      .scriptDiags = script_diag_bag_create(g_alloc_heap),
+      .scriptDiags = script_diag_bag_create(g_alloc_heap, ScriptDiagFilter_All),
       .scriptSyms  = script_sym_bag_create(g_alloc_heap),
   };
 

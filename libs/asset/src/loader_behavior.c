@@ -207,7 +207,7 @@ static AssetAiNodeSequence build_node_sequence(BuildContext* ctx, const AssetAiN
 static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetAiNodeDef* def) {
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc);
+  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptBinder*  binderNull = null;
   ScriptSymBag*  symsNull   = null;
 
@@ -216,10 +216,8 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
 
   for (u32 i = 0; i != script_diag_count(diags); ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
-    if (diag->type == ScriptDiagType_Error) {
-      const String err = script_diag_pretty_scratch(src, diag);
-      log_e("Condition script error", log_param("error", fmt_text(err)));
-    }
+    const String      err  = script_diag_pretty_scratch(src, diag);
+    log_e("Condition script error", log_param("error", fmt_text(err)));
   }
 
   script_diag_bag_destroy(diags);
@@ -238,7 +236,7 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
 static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNodeDef* def) {
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc);
+  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptBinder*  binderNull = null;
   ScriptSymBag*  symsNull   = null;
 
@@ -247,10 +245,8 @@ static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNod
 
   for (u32 i = 0; i != script_diag_count(diags); ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
-    if (diag->type == ScriptDiagType_Error) {
-      const String err = script_diag_pretty_scratch(def->data_condition.script, diag);
-      log_e("Execute script error", log_param("error", fmt_text(err)));
-    }
+    const String      err  = script_diag_pretty_scratch(def->data_condition.script, diag);
+    log_e("Execute script error", log_param("error", fmt_text(err)));
   }
 
   script_diag_bag_destroy(diags);
