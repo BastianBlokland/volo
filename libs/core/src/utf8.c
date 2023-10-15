@@ -18,7 +18,11 @@ INLINE_HINT static String utf8_consume_bytes(const String str, const usize amoun
 
 INLINE_HINT static bool utf8_cp_valid(const Unicode cp) { return cp <= utf8_cp_max; }
 
-INLINE_HINT bool utf8_contchar(const u8 c) { return (c & 0b11000000) == 0b10000000; }
+INLINE_HINT static bool utf8_contchar_internal(const u8 c) {
+  return (c & 0b11000000) == 0b10000000;
+}
+
+bool utf8_contchar(const u8 c) { return utf8_contchar_internal(c); }
 
 bool utf8_validate(const String str) {
   const u8* chars    = string_begin(str);
@@ -30,17 +34,17 @@ bool utf8_validate(const String str) {
     }
     switch (charCount) {
     case 4:
-      if (UNLIKELY(!utf8_contchar(chars[3]))) {
+      if (UNLIKELY(!utf8_contchar_internal(chars[3]))) {
         return false; // Invalid continuation character.
       }
       // Fallthrough.
     case 3:
-      if (UNLIKELY(!utf8_contchar(chars[2]))) {
+      if (UNLIKELY(!utf8_contchar_internal(chars[2]))) {
         return false; // Invalid continuation character.
       }
       // Fallthrough.
     case 2:
-      if (UNLIKELY(!utf8_contchar(chars[1]))) {
+      if (UNLIKELY(!utf8_contchar_internal(chars[1]))) {
         return false; // Invalid continuation character.
       }
       // Fallthrough.
@@ -59,7 +63,7 @@ bool utf8_validate(const String str) {
 usize utf8_cp_count(String str) {
   usize result = 0;
   mem_for_u8(str, itr) {
-    if (!utf8_contchar(*itr)) {
+    if (!utf8_contchar_internal(*itr)) {
       ++result;
     }
   }
@@ -148,7 +152,7 @@ String utf8_cp_read(String utf8, Unicode* out) {
     return string_empty;
   }
   for (u8 i = 1; i != charCount; ++i) {
-    if (UNLIKELY(!utf8_contchar(chars[i]))) {
+    if (UNLIKELY(!utf8_contchar_internal(chars[i]))) {
       *out = 0;
       return utf8_consume_bytes(utf8, charCount);
     }
