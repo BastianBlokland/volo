@@ -26,3 +26,8 @@ void             script_symbol_bag_destroy(ScriptSymbolBag*);
 
 ScriptSymbolId script_symbol_push(ScriptSymbolBag*, const ScriptSymbol*);
 void           script_symbol_clear(ScriptSymbolBag*);
+
+const ScriptSymbol* script_symbol_data(const ScriptSymbolBag*, ScriptSymbolId);
+
+ScriptSymbolId script_symbol_first(const ScriptSymbolBag*);
+ScriptSymbolId script_symbol_next(const ScriptSymbolBag*, ScriptSymbolId);

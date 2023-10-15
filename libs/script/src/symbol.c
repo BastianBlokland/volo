@@ -47,3 +47,19 @@ void script_symbol_clear(ScriptSymbolBag* bag) {
   dynarray_for_t(&bag->symbols, ScriptSymbol, sym) { string_free(bag->alloc, sym->label); }
   dynarray_clear(&bag->symbols);
 }
+
+const ScriptSymbol* script_symbol_data(const ScriptSymbolBag* bag, const ScriptSymbolId id) {
+  diag_assert_msg(id < bag->symbols.size, "Invalid symbol-id");
+  return dynarray_at_t(&bag->symbols, id, ScriptSymbol);
+}
+
+ScriptSymbolId script_symbol_first(const ScriptSymbolBag* bag) {
+  return bag->symbols.size ? 0 : script_symbol_sentinel;
+}
+
+ScriptSymbolId script_symbol_next(const ScriptSymbolBag* bag, const ScriptSymbolId itr) {
+  if (itr >= (bag->symbols.size - 1)) {
+    return script_symbol_sentinel;
+  }
+  return itr + 1;
+}
