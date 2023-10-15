@@ -228,7 +228,7 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
   return script_consume_chars(str, end + 1); // + 1 for the closing '"'.
 }
 
-static String script_lex_identifier(String str, StringTable* stringtable, ScriptToken* out) {
+static String script_lex_identifier(String str, ScriptToken* out) {
   const u32 end = script_scan_word_end(str);
   diag_assert(end);
 
@@ -371,7 +371,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       continue;
     default:
       if (script_is_word_start(c)) {
-        return script_lex_identifier(str, stringtable, out);
+        return script_lex_identifier(str, out);
       }
       return *out = script_token_err(ScriptError_InvalidChar), script_consume_word_or_char(str);
     }
