@@ -9,9 +9,11 @@
 #include "utils_internal.h"
 
 spec(read) {
-  ScriptDoc*     doc    = null;
-  ScriptDiagBag* diags  = null;
-  ScriptBinder*  binder = null;
+  ScriptDoc*     doc       = null;
+  ScriptDiagBag* diags     = null;
+  ScriptBinder*  binder    = null;
+  ScriptDiagBag* diagsNull = null;
+  ScriptSymBag*  symsNull  = null;
 
   setup() {
     doc   = script_create(g_alloc_heap);
@@ -924,8 +926,7 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptDiagBag*   diagsNull = null;
-      const ScriptExpr expr      = script_read(doc, binder, g_testData[i].input, diagsNull);
+      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
 
       check_require_msg(!sentinel_check(expr), "Read failed [{}]", fmt_text(g_testData[i].input));
       check_expr_str(doc, expr, g_testData[i].expect);
@@ -1065,7 +1066,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       script_diag_clear(diags);
-      script_read(doc, binder, g_testData[i].input, diags);
+      script_read(doc, binder, g_testData[i].input, diags, symsNull);
 
       const u32 errorCount = script_diag_count_of_type(diags, ScriptDiagType_Error);
       check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
@@ -1081,8 +1082,7 @@ spec(read) {
   }
 
   it("can read all input") {
-    ScriptDiagBag*   diagsNull = null;
-    const ScriptExpr expr      = script_read(doc, binder, string_lit("1  "), diagsNull);
+    const ScriptExpr expr = script_read(doc, binder, string_lit("1  "), diagsNull, symsNull);
 
     check_require(!sentinel_check(expr));
   }
@@ -1092,7 +1092,7 @@ spec(read) {
     dynstring_append_chars(&str, '(', 100);
 
     script_diag_clear(diags);
-    script_read(doc, binder, dynstring_view(&str), diags);
+    script_read(doc, binder, dynstring_view(&str), diags, symsNull);
 
     check_require(script_diag_count(diags) == 1);
     const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
@@ -1108,7 +1108,7 @@ spec(read) {
     }
 
     script_diag_clear(diags);
-    script_read(doc, binder, dynstring_view(&str), diags);
+    script_read(doc, binder, dynstring_view(&str), diags, symsNull);
 
     check_require(script_diag_count_of_type(diags, ScriptDiagType_Error) == 1);
     const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
@@ -1132,7 +1132,7 @@ spec(read) {
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       const String input = g_testData[i].input;
       script_diag_clear(diags);
-      script_read(doc, binder, input, diags);
+      script_read(doc, binder, input, diags, symsNull);
 
       check_require(script_diag_count(diags) == 1);
 

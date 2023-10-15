@@ -243,8 +243,9 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
 
   ScriptDoc*     script = script_create(g_alloc_heap);
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc);
+  ScriptSymBag*  syms   = null;
 
-  const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags);
+  const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags, syms);
 
   for (u32 i = 0; i != script_diag_count(diags); ++i) {
     repl_output_diag(input, script_diag_data(diags) + i, id);

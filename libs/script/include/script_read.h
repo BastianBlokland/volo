@@ -1,11 +1,14 @@
 #pragma once
 #include "script_doc.h"
 
-// Forward declare from 'core_binder.h'.
+// Forward declare from 'script_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
-// Forward declare from 'core_diag.h'.
+// Forward declare from 'script_diag.h'.
 typedef struct sScriptDiagBag ScriptDiagBag;
+
+// Forward declare from 'script_sym.h'.
+typedef struct sScriptSymBag ScriptSymBag;
 
 /**
  * Read a script expression.
@@ -13,4 +16,4 @@ typedef struct sScriptDiagBag ScriptDiagBag;
  *
  * To receive diagnostics you can optionally provide a diagnostic-bag.
  */
-ScriptExpr script_read(ScriptDoc*, const ScriptBinder*, String sourceText, ScriptDiagBag*);
+ScriptExpr script_read(ScriptDoc*, const ScriptBinder*, String src, ScriptDiagBag*, ScriptSymBag*);

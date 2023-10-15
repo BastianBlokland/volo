@@ -33,9 +33,12 @@ static ScriptVal test_return_first(void* ctx, const ScriptArgs args) {
 }
 
 spec(eval) {
-  ScriptDoc*    doc    = null;
-  ScriptMem*    mem    = null;
-  ScriptBinder* binder = null;
+  ScriptDoc*     doc         = null;
+  ScriptMem*     mem         = null;
+  ScriptBinder*  binder      = null;
+  void*          bindCtxNull = null;
+  ScriptDiagBag* diagsNull   = null;
+  ScriptSymBag*  symsNull    = null;
 
   setup() {
     doc = script_create(g_alloc_heap);
@@ -265,12 +268,10 @@ spec(eval) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      void*            bindCtx = null;
-      ScriptDiagBag*   diags   = null;
-      const ScriptExpr expr    = script_read(doc, binder, testData[i].input, diags);
+      const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
+      const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
       check(evalRes.error == ScriptError_None);
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
@@ -282,13 +283,11 @@ spec(eval) {
   }
 
   it("can store memory values") {
-    void*            bindCtx = null;
-    ScriptDiagBag*   diags   = null;
-    const ScriptExpr expr =
-        script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diags);
+    const ScriptExpr expr = script_read(
+        doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
     check(evalRes.error == ScriptError_None);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
@@ -298,12 +297,12 @@ spec(eval) {
   it("can modify the context") {
     ScriptEvalTestCtx ctx = {0};
 
-    ScriptDiagBag*   diags = null;
-    const ScriptExpr expr  = script_read(
+    const ScriptExpr expr = script_read(
         doc,
         binder,
         string_lit("test_increase_counter(); test_increase_counter(); test_increase_counter()"),
-        diags);
+        diagsNull,
+        symsNull);
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
@@ -314,12 +313,12 @@ spec(eval) {
   it("stops execution after a runtime-error") {
     ScriptEvalTestCtx ctx = {0};
 
-    ScriptDiagBag*   diags = null;
-    const ScriptExpr expr  = script_read(
+    const ScriptExpr expr = script_read(
         doc,
         binder,
         string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
-        diags);
+        diagsNull,
+        symsNull);
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
@@ -329,23 +328,20 @@ spec(eval) {
   }
 
   it("limits while loop iterations") {
-    void*            bindCtx = null;
-    ScriptDiagBag*   diags   = null;
-    const ScriptExpr expr    = script_read(doc, binder, string_lit("while(true) {}"), diags);
+    const ScriptExpr expr =
+        script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
     check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 
   it("limits for loop iterations") {
-    void*            bindCtx = null;
-    ScriptDiagBag*   diags   = null;
-    const ScriptExpr expr    = script_read(doc, binder, string_lit("for(;;) {}"), diags);
+    const ScriptExpr expr = script_read(doc, binder, string_lit("for(;;) {}"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
     check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }

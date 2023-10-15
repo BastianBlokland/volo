@@ -446,7 +446,7 @@ static void lsp_handle_doc_update(LspContext* ctx, LspDocument* doc, const Strin
   script_diag_clear(doc->scriptDiags);
   script_sym_clear(doc->scriptSyms);
 
-  script_read(doc->scriptDoc, ctx->scriptBinder, text, doc->scriptDiags);
+  script_read(doc->scriptDoc, ctx->scriptBinder, text, doc->scriptDiags, doc->scriptSyms);
 
   LspDiag lspDiags[script_diag_max];
   for (u32 i = 0; i != script_diag_count(doc->scriptDiags); ++i) {

@@ -9,6 +9,7 @@
 #include "script_diag.h"
 #include "script_lex.h"
 #include "script_read.h"
+#include "script_sym.h"
 
 #include "doc_internal.h"
 
@@ -558,9 +559,9 @@ static void read_emit_unreachable(
       const ScriptPos  unreachableStart = exprRanges[i + 1].start;
       const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
       const ScriptDiag unreachableDiag  = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExprUnreachable,
-          .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
+           .type  = ScriptDiagType_Warning,
+           .error = ScriptError_ExprUnreachable,
+           .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1401,22 +1402,28 @@ static void script_read_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
-ScriptExpr
-script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, ScriptDiagBag* diags) {
+ScriptExpr script_read(
+    ScriptDoc*          doc,
+    const ScriptBinder* binder,
+    const String        src,
+    ScriptDiagBag*      diags,
+    ScriptSymBag*       syms) {
   script_read_init();
 
   if (binder) {
     script_link_binder(doc, binder);
   }
 
+  (void)syms;
+
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
