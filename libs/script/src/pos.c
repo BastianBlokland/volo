@@ -9,6 +9,10 @@ ScriptPosRange script_pos_range(const ScriptPos start, const ScriptPos end) {
   return (ScriptPosRange){.start = start, .end = end};
 }
 
+ScriptPosRange script_pos_range_full(String sourceText) {
+  return script_pos_range(0, (u32)sourceText.size);
+}
+
 String script_pos_range_text(const String sourceText, const ScriptPosRange range) {
   diag_assert(range.end >= range.start);
   return string_slice(sourceText, range.start, range.end - range.start);
