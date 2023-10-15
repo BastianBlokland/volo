@@ -53,6 +53,7 @@ String script_sym_type_str(const ScriptSymType type) {
   static const String g_names[] = {
       string_static("BuiltinConstant"),
       string_static("BuiltinFunction"),
+      string_static("ExternFunction"),
   };
   ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
 

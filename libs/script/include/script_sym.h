@@ -13,6 +13,7 @@ typedef u16 ScriptSymId;
 typedef enum {
   ScriptSymType_BuiltinConstant,
   ScriptSymType_BuiltinFunction,
+  ScriptSymType_ExternFunction,
 
   ScriptSymType_Count,
 } ScriptSymType;

@@ -1405,6 +1405,20 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
   }
 }
 
+static void read_sym_push_extern(ScriptReadContext* ctx) {
+  if (!ctx->syms || !ctx->binder) {
+    return;
+  }
+  ScriptBinderSlot itr = script_binder_first(ctx->binder);
+  for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
+    const ScriptSym sym = {
+        .type  = ScriptSymType_ExternFunction,
+        .label = script_binder_name_str(ctx->binder, itr),
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+}
+
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
   const ScriptBinderSignature signature = script_binder_sig(binder);
   if (doc->binderSignature && doc->binderSignature != signature) {
@@ -1452,6 +1466,7 @@ ScriptExpr script_read(
   read_var_free_all(&ctx);
 
   read_sym_push_builtin(&ctx);
+  read_sym_push_extern(&ctx);
 
   const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit);
   if (!sentinel_check(expr)) {
