@@ -220,23 +220,25 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
   return string_consume(str, end + 1); // + 1 for the closing '"'.
 }
 
-static String script_lex_identifier(String str, ScriptToken* out) {
+static String script_lex_identifier(String str, StringTable* stringtable, ScriptToken* out) {
   const u32 end = script_scan_word_end(str);
   diag_assert(end);
 
-  const String identifier = string_slice(str, 0, end);
-  if (UNLIKELY(!utf8_validate(identifier))) {
+  const String id = string_slice(str, 0, end);
+  if (UNLIKELY(!utf8_validate(id))) {
     return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
 
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
-    if (string_eq(identifier, keyword->id)) {
+    if (string_eq(id, keyword->id)) {
       return out->type = keyword->token, string_consume(str, end);
     }
   }
 
+  const StringHash idHash = stringtable ? stringtable_add(stringtable, id) : string_hash(id);
+
   out->type           = ScriptTokenType_Identifier;
-  out->val_identifier = string_hash(identifier);
+  out->val_identifier = idHash;
   return string_consume(str, end);
 }
 
@@ -363,7 +365,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       continue;
     default:
       if (script_is_word_start(c)) {
-        return script_lex_identifier(str, out);
+        return script_lex_identifier(str, stringtable, out);
       }
       return *out = script_token_err(ScriptError_InvalidChar), script_consume_word_or_char(str);
     }
