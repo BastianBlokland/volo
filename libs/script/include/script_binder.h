@@ -44,6 +44,12 @@ void script_binder_declare(ScriptBinder*, StringHash name, ScriptBinderFunc);
 void script_binder_finalize(ScriptBinder*);
 
 /**
+ * Return the binding count.
+ * Pre-condition: Binder has been finalized.
+ */
+u32 script_binder_count(const ScriptBinder*);
+
+/**
  * Compute a signature for the binder.
  * Binders with the same signature are compatible.
  * Pre-condition: Binder has been finalized.

@@ -70,6 +70,11 @@ void script_binder_finalize(ScriptBinder* binder) {
   binder->flags |= ScriptBinderFlags_Finalized;
 }
 
+u32 script_binder_count(const ScriptBinder* binder) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  return binder->count;
+}
+
 ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
