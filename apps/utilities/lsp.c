@@ -643,13 +643,19 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
+  const ScriptPosLineCol posLineCol = {.line = lspPos.line, .column = lspPos.character};
+  const ScriptPos        pos        = script_pos_from_line_col(doc->text, posLineCol);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
   lsp_send_trace(
       ctx,
       fmt_write_scratch(
           "Complete: {} [{}:{}]",
           fmt_text(uri),
-          fmt_int(lspPos.line + 1),
-          fmt_int(lspPos.character + 1)));
+          fmt_int(posLineCol.line + 1),
+          fmt_int(posLineCol.column + 1)));
 
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
 
