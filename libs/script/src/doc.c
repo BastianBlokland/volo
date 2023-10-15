@@ -32,7 +32,7 @@ static ScriptValId script_doc_val_add(ScriptDoc* doc, const ScriptVal val) {
 
 static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id) {
   diag_assert_msg(id < doc->values.size, "Out of bounds ScriptValId");
-  return *dynarray_at_t(&doc->values, id, ScriptVal);
+  return dynarray_begin_t(&doc->values, ScriptVal)[id];
 }
 
 static ScriptExprSet
