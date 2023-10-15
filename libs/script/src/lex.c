@@ -243,10 +243,8 @@ static String script_lex_identifier(String str, StringTable* stringtable, Script
     }
   }
 
-  const StringHash idHash = stringtable ? stringtable_add(stringtable, id) : string_hash(id);
-
   out->type           = ScriptTokenType_Identifier;
-  out->val_identifier = idHash;
+  out->val_identifier = string_hash(id);
   return script_consume_chars(str, end);
 }
 
