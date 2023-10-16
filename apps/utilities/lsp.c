@@ -7,6 +7,7 @@
 #include "json.h"
 #include "script_binder.h"
 #include "script_diag.h"
+#include "script_format.h"
 #include "script_read.h"
 #include "script_sym.h"
 
@@ -108,6 +109,11 @@ typedef struct {
   LspCompletionItemKind kind : 8;
   u8                    commitChar;
 } LspCompletionItem;
+
+typedef struct {
+  ScriptRangeLineCol range;
+  String             newText;
+} LspTextEdit;
 
 typedef struct {
   String  method;
@@ -329,6 +335,13 @@ static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionI
   return obj;
 }
 
+static JsonVal lsp_text_edit_to_json(LspContext* ctx, const LspTextEdit* edit) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &edit->range));
+  json_add_field_lit(ctx->jDoc, obj, "newText", json_add_string(ctx->jDoc, edit->newText));
+  return obj;
+}
+
 static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
   diag_assert(json_type(ctx->jDoc, obj) == JsonType_Object);
   JsonVal idCopy;
@@ -505,12 +518,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
       break;
     }
 
-    /**
-     * TODO: The columns offsets we compute are in unicode codepoints (utf32). However we report to
-     * the LSP client that we are using utf16 offsets. Reason is that some clients (for example
-     * VCCode) only support utf16 offsets. This means the column offsets are incorrect if the line
-     * contains unicode characters outside of the utf16 range.
-     */
+    // TODO: Report text ranges in utf16 instead of utf32.
     lspDiags[i] = (LspDiag){
         .range    = script_range_to_line_col(doc->text, diag->range),
         .severity = severity,
@@ -746,6 +754,45 @@ InvalidParams:
   lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
+static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal optionsVal = lsp_maybe_field(ctx, req->params, string_lit("options"));
+  if (sentinel_check(optionsVal)) {
+    goto InvalidParams;
+  }
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const usize expectedResultSize = (usize)(doc->text.size * 1.5f); // Guesstimate the output size.
+  DynString   resultBuffer       = dynstring_create(g_alloc_heap, expectedResultSize);
+
+  // TODO: Respect the given formatting options.
+  script_format(&resultBuffer, doc->text);
+
+  // TODO: Report text ranges in utf16 instead of utf32.
+  // TODO: Compute minimal edits instead of replacing the whole text.
+  const ScriptRange        editRange   = script_range_full(doc->text);
+  const ScriptRangeLineCol editRangeLc = script_range_to_line_col(doc->text, editRange);
+  const LspTextEdit        edit = {.range = editRangeLc, .newText = dynstring_view(&resultBuffer)};
+
+  const JsonVal editsArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
+
+  lsp_send_response_success(ctx, req, editsArr);
+
+  dynarray_destroy(&resultBuffer);
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
@@ -754,6 +801,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
+      {string_static("textDocument/formatting"), lsp_handle_req_formatting},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
