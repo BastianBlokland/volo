@@ -75,13 +75,43 @@ static void format_read_all_lines(FormatContext* ctx) {
   }
 }
 
+static bool format_read_use_separator(const FormatToken* a, const FormatToken* b) {
+  switch (b->type) {
+  case ScriptTokenType_ParenOpen:
+    if (a->type == ScriptTokenType_Identifier) {
+      return false;
+    }
+    return true;
+  case ScriptTokenType_ParenClose:
+  case ScriptTokenType_Semicolon:
+  case ScriptTokenType_Comma:
+    return false;
+  default:
+    switch (a->type) {
+    case ScriptTokenType_ParenOpen:
+    case ScriptTokenType_Bang:
+      return false;
+    default:
+      return true;
+    }
+    return true;
+  }
+}
+
 static void format_render_line(FormatContext* ctx, const FormatLine* line) {
-  dynstring_append_chars(ctx->out, ' ', line->indent * script_format_indent_size);
+  if (line->tokenStart != line->tokenEnd) {
+    dynstring_append_chars(ctx->out, ' ', line->indent * script_format_indent_size);
+  }
   for (usize tokenIdx = line->tokenStart; tokenIdx != line->tokenEnd; ++tokenIdx) {
     const FormatToken* token = dynarray_at_t(ctx->tokens, tokenIdx, FormatToken);
     dynstring_append(ctx->out, token->text);
-    if (tokenIdx < (line->tokenEnd - 1)) {
-      dynstring_append_char(ctx->out, ' ');
+
+    const bool lastToken = tokenIdx == (line->tokenEnd - 1);
+    if (!lastToken) {
+      const FormatToken* tokenNext = dynarray_at_t(ctx->tokens, tokenIdx + 1, FormatToken);
+      if (format_read_use_separator(token, tokenNext)) {
+        dynstring_append_char(ctx->out, ' ');
+      }
     }
   }
   dynstring_append_char(ctx->out, '\n');
