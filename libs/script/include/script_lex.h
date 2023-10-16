@@ -81,7 +81,7 @@ typedef struct {
  *
  * NOTE: StringTable can optionally provided to store the text representations of keys.
  */
-String script_lex(String, StringTable*, ScriptToken*, ScriptLexFlags);
+String script_lex(String, StringTable*, ScriptToken* out, ScriptLexFlags);
 
 /**
  * Consume any whitespace until the next token.
