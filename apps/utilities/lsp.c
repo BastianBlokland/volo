@@ -79,14 +79,6 @@ typedef enum {
   LspMessageType_Log     = 4,
 } LspMessageType;
 
-typedef struct {
-  u16 line, character;
-} LspPosition;
-
-typedef struct {
-  LspPosition start, end;
-} LspRange;
-
 typedef enum {
   LspDiagSeverity_Error       = 1,
   LspDiagSeverity_Warning     = 2,
@@ -95,9 +87,9 @@ typedef enum {
 } LspDiagSeverity;
 
 typedef struct {
-  LspRange        range;
-  LspDiagSeverity severity;
-  String          message;
+  ScriptRangeLineCol range;
+  LspDiagSeverity    severity;
+  String             message;
 } LspDiag;
 
 typedef enum {
@@ -278,14 +270,14 @@ static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 inde
   return json_elem(ctx->jDoc, val, index);
 }
 
-static JsonVal lsp_position_to_json(LspContext* ctx, const LspPosition* pos) {
+static JsonVal lsp_position_to_json(LspContext* ctx, const ScriptPosLineCol* pos) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "line", json_add_number(ctx->jDoc, pos->line));
-  json_add_field_lit(ctx->jDoc, obj, "character", json_add_number(ctx->jDoc, pos->character));
+  json_add_field_lit(ctx->jDoc, obj, "character", json_add_number(ctx->jDoc, pos->column));
   return obj;
 }
 
-static bool lsp_position_from_json(LspContext* ctx, const JsonVal val, LspPosition* out) {
+static bool lsp_position_from_json(LspContext* ctx, const JsonVal val, ScriptPosLineCol* out) {
   const JsonVal line = lsp_maybe_field(ctx, val, string_lit("line"));
   if (sentinel_check(line) || json_type(ctx->jDoc, line) != JsonType_Number) {
     return false;
@@ -294,12 +286,12 @@ static bool lsp_position_from_json(LspContext* ctx, const JsonVal val, LspPositi
   if (sentinel_check(character) || json_type(ctx->jDoc, character) != JsonType_Number) {
     return false;
   }
-  out->line      = (u16)json_number(ctx->jDoc, line);
-  out->character = (u16)json_number(ctx->jDoc, character);
+  out->line   = (u16)json_number(ctx->jDoc, line);
+  out->column = (u16)json_number(ctx->jDoc, character);
   return true;
 }
 
-static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
+static JsonVal lsp_range_to_json(LspContext* ctx, const ScriptRangeLineCol* range) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
   json_add_field_lit(ctx->jDoc, obj, "end", lsp_position_to_json(ctx, &range->end));
@@ -501,9 +493,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   LspDiag   lspDiags[script_diag_max];
   const u32 lspDiagCount = script_diag_count(doc->scriptDiags, ScriptDiagFilter_All);
   for (u32 i = 0; i != lspDiagCount; ++i) {
-    const ScriptDiag*      diag       = script_diag_data(doc->scriptDiags) + i;
-    const ScriptPosLineCol rangeStart = script_pos_to_line_col(doc->text, diag->range.start);
-    const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(doc->text, diag->range.end);
+    const ScriptDiag* diag = script_diag_data(doc->scriptDiags) + i;
 
     LspDiagSeverity severity;
     switch (diag->type) {
@@ -522,12 +512,9 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
      * contains unicode characters outside of the utf16 range.
      */
     lspDiags[i] = (LspDiag){
-        .range.start.line      = rangeStart.line,
-        .range.start.character = rangeStart.column,
-        .range.end.line        = rangeEnd.line,
-        .range.end.character   = rangeEnd.column,
-        .severity              = severity,
-        .message               = script_diag_msg_scratch(doc->text, diag),
+        .range    = script_range_to_line_col(doc->text, diag->range),
+        .severity = severity,
+        .message  = script_diag_msg_scratch(doc->text, diag),
     };
   }
   lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);
@@ -712,9 +699,9 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(string_is_empty(uri))) {
     goto InvalidParams;
   }
-  const JsonVal lspPosVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
-  LspPosition   lspPos;
-  if (UNLIKELY(!lsp_position_from_json(ctx, lspPosVal, &lspPos))) {
+  const JsonVal    posLineColVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLineCol;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLineColVal, &posLineCol))) {
     goto InvalidParams;
   }
 
@@ -723,8 +710,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPosLineCol posLineCol = {.line = lspPos.line, .column = lspPos.character};
-  const ScriptPos        pos        = script_pos_from_line_col(doc->text, posLineCol);
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLineCol);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
