@@ -656,12 +656,15 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, completionOpts, "resolveProvider", json_add_bool(ctx->jDoc, false));
   json_add_field_lit(ctx->jDoc, completionOpts, "triggerCharacters", completionTriggerCharArr);
 
+  const JsonVal formattingOpts = json_add_object(ctx->jDoc);
+
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
   const JsonVal positionEncoding = json_add_string_lit(ctx->jDoc, "utf-16");
   json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
   json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
