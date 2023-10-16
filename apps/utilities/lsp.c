@@ -772,8 +772,17 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
   const usize expectedResultSize = (usize)(doc->text.size * 1.5f); // Guesstimate the output size.
   DynString   resultBuffer       = dynstring_create(g_alloc_heap, expectedResultSize);
 
+  const TimeSteady formatStartTime = time_steady_clock();
+
   // TODO: Respect the given formatting options.
   script_format(&resultBuffer, doc->text);
+
+  if (ctx->flags & LspFlags_Trace) {
+    const TimeDuration dur   = time_steady_duration(formatStartTime, time_steady_clock());
+    const String       docId = doc->identifier;
+    lsp_send_trace(
+        ctx, fmt_write_scratch("Document formatted: {} ({})", fmt_text(docId), fmt_duration(dur)));
+  }
 
   // TODO: Report text ranges in utf16 instead of utf32.
   // TODO: Compute minimal edits instead of replacing the whole text.
