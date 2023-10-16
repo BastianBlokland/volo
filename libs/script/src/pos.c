@@ -4,24 +4,6 @@
 #include "script_lex.h"
 #include "script_pos.h"
 
-ScriptPosRange script_pos_range(const ScriptPos start, const ScriptPos end) {
-  diag_assert(end >= start);
-  return (ScriptPosRange){.start = start, .end = end};
-}
-
-ScriptPosRange script_pos_range_full(String src) { return script_pos_range(0, (u32)src.size); }
-
-String script_pos_range_text(const String src, const ScriptPosRange range) {
-  diag_assert(range.end >= range.start);
-  return string_slice(src, range.start, range.end - range.start);
-}
-
-ScriptPos script_pos_trim(const String src, const ScriptPos pos) {
-  const String toEnd        = string_consume(src, pos);
-  const String toEndTrimmed = script_lex_trim(toEnd);
-  return (ScriptPos)(src.size - toEndTrimmed.size);
-}
-
 ScriptPosLineCol script_pos_to_line_col(const String src, const ScriptPos pos) {
   diag_assert(pos <= src.size);
   u32 currentPos = 0;
@@ -75,15 +57,33 @@ ScriptPos script_pos_from_line_col(const String src, const ScriptPosLineCol lc) 
   return currentPos;
 }
 
-ScriptPosRangeLineCol script_pos_range_to_line_col(const String src, const ScriptPosRange range) {
-  return (ScriptPosRangeLineCol){
+ScriptRange script_range(const ScriptPos start, const ScriptPos end) {
+  diag_assert(end >= start);
+  return (ScriptRange){.start = start, .end = end};
+}
+
+ScriptRange script_range_full(String src) { return script_range(0, (u32)src.size); }
+
+String script_range_text(const String src, const ScriptRange range) {
+  diag_assert(range.end >= range.start);
+  return string_slice(src, range.start, range.end - range.start);
+}
+
+ScriptPos script_pos_trim(const String src, const ScriptPos pos) {
+  const String toEnd        = string_consume(src, pos);
+  const String toEndTrimmed = script_lex_trim(toEnd);
+  return (ScriptPos)(src.size - toEndTrimmed.size);
+}
+
+ScriptRangeLineCol script_range_to_line_col(const String src, const ScriptRange range) {
+  return (ScriptRangeLineCol){
       .start = script_pos_to_line_col(src, range.start),
       .end   = script_pos_to_line_col(src, range.end),
   };
 }
 
-ScriptPosRange script_pos_range_from_line_col(const String src, const ScriptPosRangeLineCol range) {
-  return (ScriptPosRange){
+ScriptRange script_range_from_line_col(const String src, const ScriptRangeLineCol range) {
+  return (ScriptRange){
       .start = script_pos_from_line_col(src, range.start),
       .end   = script_pos_from_line_col(src, range.end),
   };

@@ -246,11 +246,11 @@ static bool token_intr_rhs_scope(const ScriptIntrinsic intr) {
 }
 
 typedef struct {
-  StringHash     id;
-  ScriptVarId    varSlot;
-  bool           used;
-  ScriptPosRange declRange;       // NOTE: Not yet trimmed.
-  ScriptPos      validUsageStart; // NOTE: Not yet trimmed.
+  StringHash  id;
+  ScriptVarId varSlot;
+  bool        used;
+  ScriptRange declRange;       // NOTE: Not yet trimmed.
+  ScriptPos   validUsageStart; // NOTE: Not yet trimmed.
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
@@ -311,20 +311,20 @@ static ScriptPos read_pos_current(ScriptReadContext* ctx) {
   return (ScriptPos)(ctx->inputTotal.size - ctx->input.size);
 }
 
-static ScriptPosRange read_range_current(ScriptReadContext* ctx, const ScriptPos start) {
-  return script_pos_range(start, read_pos_current(ctx));
+static ScriptRange read_range_current(ScriptReadContext* ctx, const ScriptPos start) {
+  return script_range(start, read_pos_current(ctx));
 }
 
-static ScriptPosRange read_range_full(ScriptReadContext* ctx) {
-  return script_pos_range_full(ctx->inputTotal);
+static ScriptRange read_range_full(ScriptReadContext* ctx) {
+  return script_range_full(ctx->inputTotal);
 }
 
-static ScriptPosRange read_range_trim(ScriptReadContext* ctx, const ScriptPosRange range) {
-  return script_pos_range(script_pos_trim(ctx->inputTotal, range.start), range.end);
+static ScriptRange read_range_trim(ScriptReadContext* ctx, const ScriptRange range) {
+  return script_range(script_pos_trim(ctx->inputTotal, range.start), range.end);
 }
 
 static void
-read_emit_err_range(ScriptReadContext* ctx, const ScriptError err, const ScriptPosRange range) {
+read_emit_err_range(ScriptReadContext* ctx, const ScriptError err, const ScriptRange range) {
   diag_assert(err != ScriptError_None);
   if (ctx->diags) {
     const ScriptDiag diag = {
@@ -367,11 +367,11 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     if (!scope->vars[i].id) {
       break;
     }
-    const ScriptPosRange declRangeTrimmed = read_range_trim(ctx, scope->vars[i].declRange);
+    const ScriptRange declRangeTrimmed = read_range_trim(ctx, scope->vars[i].declRange);
 
     const ScriptSym sym = {
         .type       = ScriptSymType_Variable,
-        .label      = script_pos_range_text(ctx->inputTotal, declRangeTrimmed),
+        .label      = script_range_text(ctx->inputTotal, declRangeTrimmed),
         .validRange = read_range_current(ctx, scope->vars[i].validUsageStart),
     };
     script_sym_push(ctx->syms, &sym);
@@ -431,7 +431,7 @@ static void read_scope_pop(ScriptReadContext* ctx) {
 }
 
 static bool read_var_declare(
-    ScriptReadContext* ctx, const StringHash id, const ScriptPosRange declRange, ScriptVarId* out) {
+    ScriptReadContext* ctx, const StringHash id, const ScriptRange declRange, ScriptVarId* out) {
   ScriptScope* scope = read_scope_tail(ctx);
   diag_assert(scope);
 
@@ -527,7 +527,7 @@ static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
-static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const ScriptPosRange sepRange) {
+static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const ScriptRange sepRange) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -577,10 +577,10 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
 }
 
 static void read_emit_no_effect(
-    ScriptReadContext*   ctx,
-    const ScriptExpr     exprs[],
-    const ScriptPosRange exprRanges[],
-    const u32            exprCount) {
+    ScriptReadContext* ctx,
+    const ScriptExpr   exprs[],
+    const ScriptRange  exprRanges[],
+    const u32          exprCount) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -599,10 +599,10 @@ static void read_emit_no_effect(
 }
 
 static void read_emit_unreachable(
-    ScriptReadContext*   ctx,
-    const ScriptExpr     exprs[],
-    const ScriptPosRange exprRanges[],
-    const u32            exprCount) {
+    ScriptReadContext* ctx,
+    const ScriptExpr   exprs[],
+    const ScriptRange  exprRanges[],
+    const u32          exprCount) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -612,9 +612,9 @@ static void read_emit_unreachable(
       const ScriptPos  unreachableStart = exprRanges[i + 1].start;
       const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
       const ScriptDiag unreachableDiag  = {
-           .type  = ScriptDiagType_Warning,
-           .error = ScriptError_ExprUnreachable,
-           .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExprUnreachable,
+          .range = read_range_trim(ctx, script_range(unreachableStart, unreachableEnd)),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -641,9 +641,9 @@ static bool read_is_block_separator(const ScriptTokenType tokenType) {
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
   const ScriptPos blockStart = read_pos_current(ctx);
 
-  ScriptExpr     exprs[script_block_size_max];
-  ScriptPosRange exprRanges[script_block_size_max];
-  u32            exprCount = 0;
+  ScriptExpr  exprs[script_block_size_max];
+  ScriptRange exprRanges[script_block_size_max];
+  u32         exprCount = 0;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
@@ -658,9 +658,9 @@ BlockNext:
   if (UNLIKELY(sentinel_check(exprNew))) {
     return read_fail_structural(ctx);
   }
-  const ScriptPosRange exprRange = read_range_current(ctx, exprStart);
-  exprs[exprCount]               = exprNew;
-  exprRanges[exprCount]          = exprRange;
+  const ScriptRange exprRange = read_range_current(ctx, exprStart);
+  exprs[exprCount]            = exprNew;
+  exprRanges[exprCount]       = exprRange;
   ++exprCount;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -670,7 +670,7 @@ BlockNext:
   const ScriptPos sepStart = read_pos_current(ctx);
   ScriptToken     sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
-  const ScriptPosRange sepRange = read_range_current(ctx, sepStart);
+  const ScriptRange sepRange = read_range_current(ctx, sepStart);
 
   if (!read_is_block_separator(sepToken.type)) {
     read_emit_err_range(ctx, ScriptError_MissingSemicolon, exprRange);
@@ -761,7 +761,7 @@ static bool read_is_args_end(const ScriptTokenType type) {
 static i32 read_args(
     ScriptReadContext* ctx,
     ScriptExpr         outExprs[script_args_max],
-    ScriptPosRange     outRanges[script_args_max]) {
+    ScriptRange        outRanges[script_args_max]) {
   i32  count = 0;
   bool valid = true;
 
@@ -812,7 +812,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
     read_emit_err(ctx, ScriptError_VarIdConflicts, startPos), read_fail_semantic(ctx);
   }
 
-  const ScriptPosRange idRange = read_range_current(ctx, startPos);
+  const ScriptRange idRange = read_range_current(ctx, startPos);
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
@@ -925,10 +925,10 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
 static ScriptExpr
-read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosRange idRange) {
-  ScriptExpr     args[script_args_max];
-  ScriptPosRange argRanges[script_args_max];
-  const i32      argCount = read_args(ctx, args, argRanges);
+read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptRange idRange) {
+  ScriptExpr  args[script_args_max];
+  ScriptRange argRanges[script_args_max];
+  const i32   argCount = read_args(ctx, args, argRanges);
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
@@ -953,7 +953,7 @@ read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosR
 }
 
 static void read_emit_static_condition(
-    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
+    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptRange exprRange) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -976,9 +976,9 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr     conditions[script_args_max];
-  ScriptPosRange conditionRanges[script_args_max];
-  const i32      conditionCount = read_args(ctx, conditions, conditionRanges);
+  ScriptExpr  conditions[script_args_max];
+  ScriptRange conditionRanges[script_args_max];
+  const i32   conditionCount = read_args(ctx, conditions, conditionRanges);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -1038,9 +1038,9 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr     conditions[script_args_max];
-  ScriptPosRange conditionRanges[script_args_max];
-  const i32      conditionCount = read_args(ctx, conditions, conditionRanges);
+  ScriptExpr  conditions[script_args_max];
+  ScriptRange conditionRanges[script_args_max];
+  const i32   conditionCount = read_args(ctx, conditions, conditionRanges);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -1076,7 +1076,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 }
 
 static void read_emit_static_for_comp(
-    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
+    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptRange exprRange) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -1282,9 +1282,9 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Identifiers.
    */
   case ScriptTokenType_Identifier: {
-    const ScriptPosRange idRange = read_range_current(ctx, start);
-    ScriptToken          nextToken;
-    const String         remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
+    const ScriptRange idRange = read_range_current(ctx, start);
+    ScriptToken       nextToken;
+    const String      remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
     switch (nextToken.type) {
     case ScriptTokenType_ParenOpen:
       ctx->input = remInput; // Consume the 'nextToken'.
@@ -1375,7 +1375,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
   if (UNLIKELY(sentinel_check(res))) {
     return read_fail_structural(ctx);
   }
-  ScriptPosRange resRange = read_range_current(ctx, resStart);
+  ScriptRange resRange = read_range_current(ctx, resStart);
 
   /**
    * Test if the next token is an operator with higher precedence.
@@ -1550,13 +1550,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
