@@ -2,13 +2,16 @@
 #include "script_format.h"
 #include "script_lex.h"
 
+#define script_format_indent_size 2
+
 typedef struct {
   ScriptTokenType type;
   String          text;
 } FormatToken;
 
 typedef struct {
-  u32 tokenStart, tokenEnd;
+  usize tokenStart, tokenEnd;
+  u32   indent;
 } FormatLine;
 
 typedef struct {
@@ -16,6 +19,7 @@ typedef struct {
   DynString* out;
   DynArray*  tokens; // FormatToken[]
   DynArray*  lines;  // FormatLine[]
+  u32        currentIndent;
 } FormatContext;
 
 static bool format_read_token(FormatContext* ctx, FormatToken* out) {
@@ -36,15 +40,30 @@ static bool format_read_token(FormatContext* ctx, FormatToken* out) {
 }
 
 static bool format_read_line(FormatContext* ctx, FormatLine* out) {
-  const u32   tokenStart = (u32)ctx->tokens->size;
+  out->indent     = ctx->currentIndent;
+  out->tokenStart = ctx->tokens->size;
+
   FormatToken token;
   while (format_read_token(ctx, &token)) {
-    if (token.type == ScriptTokenType_Newline) {
-      *out = (FormatLine){.tokenStart = tokenStart, .tokenEnd = (u32)ctx->tokens->size};
+    switch (token.type) {
+    case ScriptTokenType_Newline:
+      out->tokenEnd = ctx->tokens->size;
       return true;
-    } else {
-      *dynarray_push_t(ctx->tokens, FormatToken) = token; // Output the token.
+    case ScriptTokenType_CurlyOpen:
+      ++ctx->currentIndent;
+      break;
+    case ScriptTokenType_CurlyClose:
+      if (out->tokenStart == ctx->tokens->size) {
+        --out->indent; // Line starts with closing-curly; reduce indent.
+      }
+      if (ctx->currentIndent) {
+        --ctx->currentIndent;
+      }
+      break;
+    default:
+      break;
     }
+    *dynarray_push_t(ctx->tokens, FormatToken) = token; // Output the token.
   }
   return false; // No tokens left.
 }
@@ -57,7 +76,8 @@ static void format_read_all_lines(FormatContext* ctx) {
 }
 
 static void format_render_line(FormatContext* ctx, const FormatLine* line) {
-  for (u32 tokenIdx = line->tokenStart; tokenIdx != line->tokenEnd; ++tokenIdx) {
+  dynstring_append_chars(ctx->out, ' ', line->indent * script_format_indent_size);
+  for (usize tokenIdx = line->tokenStart; tokenIdx != line->tokenEnd; ++tokenIdx) {
     const FormatToken* token = dynarray_at_t(ctx->tokens, tokenIdx, FormatToken);
     dynstring_append(ctx->out, token->text);
     if (tokenIdx < (line->tokenEnd - 1)) {
