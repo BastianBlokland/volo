@@ -71,7 +71,7 @@ String script_range_text(const String src, const ScriptRange range) {
 
 ScriptPos script_pos_trim(const String src, const ScriptPos pos) {
   const String toEnd        = string_consume(src, pos);
-  const String toEndTrimmed = script_lex_trim(toEnd);
+  const String toEndTrimmed = script_lex_trim(toEnd, ScriptLexFlags_None);
   return (ScriptPos)(src.size - toEndTrimmed.size);
 }
 

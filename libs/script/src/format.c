@@ -33,7 +33,7 @@ static bool format_read_token(FormatContext* ctx, FormatToken* out) {
   }
   const usize  offsetEnd     = ctx->inputTotal.size - ctx->input.size;
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
-  const String text          = script_lex_trim(textUntrimmed);
+  const String text          = script_lex_trim(textUntrimmed, lexFlags);
 
   *out = (FormatToken){.type = token.type, .text = text};
   return true;
@@ -95,11 +95,11 @@ void script_format(DynString* out, const String input) {
   DynArray      tokens = dynarray_create_t(g_alloc_heap, FormatToken, 4096);
   DynArray      lines  = dynarray_create_t(g_alloc_heap, FormatLine, 512);
   FormatContext ctx    = {
-      .input      = input,
-      .inputTotal = input,
-      .out        = out,
-      .tokens     = &tokens,
-      .lines      = &lines,
+         .input      = input,
+         .inputTotal = input,
+         .out        = out,
+         .tokens     = &tokens,
+         .lines      = &lines,
   };
 
   format_read_all_lines(&ctx);

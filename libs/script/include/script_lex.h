@@ -86,7 +86,7 @@ String script_lex(String, StringTable*, ScriptToken* out, ScriptLexFlags);
 /**
  * Consume any whitespace until the next token.
  */
-String script_lex_trim(String);
+String script_lex_trim(String, ScriptLexFlags);
 
 /**
  * Retrieve global keyword list.
