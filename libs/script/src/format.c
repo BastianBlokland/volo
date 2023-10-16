@@ -18,7 +18,7 @@ typedef struct {
   DynArray*  lines;  // FormatLine[]
 } FormatContext;
 
-static bool format_consume_token(FormatContext* ctx, FormatToken* out) {
+static bool format_read_token(FormatContext* ctx, FormatToken* out) {
   const ScriptLexFlags lexFlags = ScriptLexFlags_IncludeNewlines | ScriptLexFlags_IncludeComments;
 
   const usize offsetStart = ctx->inputTotal.size - ctx->input.size;
@@ -35,10 +35,10 @@ static bool format_consume_token(FormatContext* ctx, FormatToken* out) {
   return true;
 }
 
-static bool format_consume_line(FormatContext* ctx, FormatLine* out) {
+static bool format_read_line(FormatContext* ctx, FormatLine* out) {
   const u32   tokenStart = (u32)ctx->tokens->size;
   FormatToken token;
-  while (format_consume_token(ctx, &token)) {
+  while (format_read_token(ctx, &token)) {
     if (token.type == ScriptTokenType_Newline) {
       *out = (FormatLine){.tokenStart = tokenStart, .tokenEnd = (u32)ctx->tokens->size};
       return true;
@@ -49,9 +49,9 @@ static bool format_consume_line(FormatContext* ctx, FormatLine* out) {
   return false; // No tokens left.
 }
 
-static void format_consume_all_lines(FormatContext* ctx) {
+static void format_read_all_lines(FormatContext* ctx) {
   FormatLine line;
-  while (format_consume_line(ctx, &line)) {
+  while (format_read_line(ctx, &line)) {
     *dynarray_push_t(ctx->lines, FormatLine) = line;
   }
 }
@@ -82,7 +82,7 @@ void script_format(DynString* out, const String input) {
       .lines      = &lines,
   };
 
-  format_consume_all_lines(&ctx);
+  format_read_all_lines(&ctx);
   format_render_all_lines(&ctx);
 
   dynarray_destroy(&tokens);
