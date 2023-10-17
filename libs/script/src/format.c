@@ -33,6 +33,22 @@ typedef struct {
   u32        currentIndent;
 } FormatContext;
 
+static bool format_separate_by_space(const FormatAtom* a, const FormatAtom* b) {
+  if (b->type == FormatAtomType_Separator) {
+    return false;
+  }
+  if (b->type == FormatAtomType_SetEnd) {
+    return false;
+  }
+  if (a->type == FormatAtomType_SetStart) {
+    return false;
+  }
+  if (a->type == FormatAtomType_Identifier && b->type == FormatAtomType_SetStart) {
+    return false;
+  }
+  return true;
+}
+
 static bool format_is_unary(const ScriptTokenType tokenType) {
   switch (tokenType) {
   case ScriptTokenType_Bang:
@@ -135,27 +151,6 @@ static void format_read_all_lines(FormatContext* ctx) {
   }
 }
 
-static bool format_read_use_separator(const FormatAtom* a, const FormatAtom* b) {
-  switch (b->type) {
-  case FormatAtomType_SetStart:
-    if (a->type == FormatAtomType_Identifier) {
-      return false;
-    }
-    return true;
-  case FormatAtomType_SetEnd:
-  case FormatAtomType_Separator:
-    return false;
-  default:
-    switch (a->type) {
-    case FormatAtomType_SetStart:
-      return false;
-    default:
-      return true;
-    }
-  }
-  return true;
-}
-
 static void format_render_line(FormatContext* ctx, const FormatLine* line) {
   if (line->atomStart != line->atomEnd) {
     dynstring_append_chars(ctx->out, ' ', line->indent * script_format_indent_size);
@@ -167,7 +162,7 @@ static void format_render_line(FormatContext* ctx, const FormatLine* line) {
     const bool lastAtom = atomIdx == (line->atomEnd - 1);
     if (!lastAtom) {
       const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
-      if (format_read_use_separator(atom, atomNext)) {
+      if (format_separate_by_space(atom, atomNext)) {
         dynstring_append_char(ctx->out, ' ');
       }
     }
