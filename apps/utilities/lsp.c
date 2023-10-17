@@ -248,9 +248,7 @@ static LspHeader lsp_read_header(LspContext* ctx) {
     if (string_eq(key, string_lit("Content-Length"))) {
       input = format_read_u64(input, &result.contentLength, 10);
     }
-    // Consume the rest of the line.
-    const usize lineEndPos = string_find_first_char(input, '\n');
-    input                  = string_consume(input, sentinel_check(lineEndPos) ? 0 : lineEndPos + 1);
+    input = format_read_line(input, null); // Consume the rest of the line.
   }
   return result;
 }
