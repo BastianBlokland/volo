@@ -182,7 +182,11 @@ void script_format(DynString* out, const String input) {
   };
 
   format_read_all_chunks(&ctx);
-  format_render_all_chunks(&ctx);
+  if (chunks.size) {
+    format_render_all_chunks(&ctx);
+  } else {
+    dynstring_append_char(out, '\n');
+  }
 
   dynarray_destroy(&atoms);
   dynarray_destroy(&chunks);
