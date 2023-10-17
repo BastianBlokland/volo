@@ -7,22 +7,22 @@
 typedef struct {
   ScriptTokenType type;
   String          text;
-} FormatToken;
+} FormatAtom;
 
 typedef struct {
-  usize tokenStart, tokenEnd;
+  usize atomStart, atomEnd;
   u32   indent;
 } FormatLine;
 
 typedef struct {
   String     input, inputTotal;
   DynString* out;
-  DynArray*  tokens; // FormatToken[]
-  DynArray*  lines;  // FormatLine[]
+  DynArray*  atoms; // FormatAtom[]
+  DynArray*  lines; // FormatLine[]
   u32        currentIndent;
 } FormatContext;
 
-static bool format_read_token(FormatContext* ctx, FormatToken* out) {
+static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   const ScriptLexFlags lexFlags = ScriptLexFlags_IncludeNewlines | ScriptLexFlags_IncludeComments;
 
   const usize offsetStart = ctx->inputTotal.size - ctx->input.size;
@@ -35,25 +35,25 @@ static bool format_read_token(FormatContext* ctx, FormatToken* out) {
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
   const String text          = script_lex_trim(textUntrimmed, lexFlags);
 
-  *out = (FormatToken){.type = token.type, .text = text};
+  *out = (FormatAtom){.type = token.type, .text = text};
   return true;
 }
 
 static bool format_read_line(FormatContext* ctx, FormatLine* out) {
-  out->indent     = ctx->currentIndent;
-  out->tokenStart = ctx->tokens->size;
+  out->indent    = ctx->currentIndent;
+  out->atomStart = ctx->atoms->size;
 
-  FormatToken token;
-  while (format_read_token(ctx, &token)) {
-    switch (token.type) {
+  FormatAtom atom;
+  while (format_read_atom(ctx, &atom)) {
+    switch (atom.type) {
     case ScriptTokenType_Newline:
-      out->tokenEnd = ctx->tokens->size;
+      out->atomEnd = ctx->atoms->size;
       return true;
     case ScriptTokenType_CurlyOpen:
       ++ctx->currentIndent;
       break;
     case ScriptTokenType_CurlyClose:
-      if (out->tokenStart == ctx->tokens->size) {
+      if (out->atomStart == ctx->atoms->size) {
         --out->indent; // Line starts with closing-curly; reduce indent.
       }
       if (ctx->currentIndent) {
@@ -63,9 +63,9 @@ static bool format_read_line(FormatContext* ctx, FormatLine* out) {
     default:
       break;
     }
-    *dynarray_push_t(ctx->tokens, FormatToken) = token; // Output the token.
+    *dynarray_push_t(ctx->atoms, FormatAtom) = atom; // Output the atom.
   }
-  return false; // No tokens left.
+  return false; // No atoms left.
 }
 
 static void format_read_all_lines(FormatContext* ctx) {
@@ -75,7 +75,7 @@ static void format_read_all_lines(FormatContext* ctx) {
   }
 }
 
-static bool format_read_use_separator(const FormatToken* a, const FormatToken* b) {
+static bool format_read_use_separator(const FormatAtom* a, const FormatAtom* b) {
   switch (b->type) {
   case ScriptTokenType_ParenOpen:
     if (a->type == ScriptTokenType_Identifier) {
@@ -99,17 +99,17 @@ static bool format_read_use_separator(const FormatToken* a, const FormatToken* b
 }
 
 static void format_render_line(FormatContext* ctx, const FormatLine* line) {
-  if (line->tokenStart != line->tokenEnd) {
+  if (line->atomStart != line->atomEnd) {
     dynstring_append_chars(ctx->out, ' ', line->indent * script_format_indent_size);
   }
-  for (usize tokenIdx = line->tokenStart; tokenIdx != line->tokenEnd; ++tokenIdx) {
-    const FormatToken* token = dynarray_at_t(ctx->tokens, tokenIdx, FormatToken);
-    dynstring_append(ctx->out, token->text);
+  for (usize atomIdx = line->atomStart; atomIdx != line->atomEnd; ++atomIdx) {
+    const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
+    dynstring_append(ctx->out, atom->text);
 
-    const bool lastToken = tokenIdx == (line->tokenEnd - 1);
-    if (!lastToken) {
-      const FormatToken* tokenNext = dynarray_at_t(ctx->tokens, tokenIdx + 1, FormatToken);
-      if (format_read_use_separator(token, tokenNext)) {
+    const bool lastAtom = atomIdx == (line->atomEnd - 1);
+    if (!lastAtom) {
+      const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
+      if (format_read_use_separator(atom, atomNext)) {
         dynstring_append_char(ctx->out, ' ');
       }
     }
@@ -122,19 +122,19 @@ static void format_render_all_lines(FormatContext* ctx) {
 }
 
 void script_format(DynString* out, const String input) {
-  DynArray      tokens = dynarray_create_t(g_alloc_heap, FormatToken, 4096);
-  DynArray      lines  = dynarray_create_t(g_alloc_heap, FormatLine, 512);
-  FormatContext ctx    = {
-         .input      = input,
-         .inputTotal = input,
-         .out        = out,
-         .tokens     = &tokens,
-         .lines      = &lines,
+  DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
+  DynArray      lines = dynarray_create_t(g_alloc_heap, FormatLine, 512);
+  FormatContext ctx   = {
+      .input      = input,
+      .inputTotal = input,
+      .out        = out,
+      .atoms      = &atoms,
+      .lines      = &lines,
   };
 
   format_read_all_lines(&ctx);
   format_render_all_lines(&ctx);
 
-  dynarray_destroy(&tokens);
+  dynarray_destroy(&atoms);
   dynarray_destroy(&lines);
 }
