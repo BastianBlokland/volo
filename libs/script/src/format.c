@@ -33,15 +33,25 @@ typedef struct {
   u32        currentIndent;
 } FormatContext;
 
+static bool format_is_unary(const ScriptTokenType tokenType) {
+  switch (tokenType) {
+  case ScriptTokenType_Bang:
+  case ScriptTokenType_Minus:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
-  const ScriptLexFlags lexFlags = ScriptLexFlags_IncludeNewlines | ScriptLexFlags_IncludeComments;
+  const ScriptLexFlags flags = ScriptLexFlags_IncludeNewlines | ScriptLexFlags_IncludeComments;
 
   const usize    offsetStart = ctx->inputTotal.size - ctx->input.size;
   FormatAtomType type        = FormatAtomType_Generic;
 
-  ScriptToken token;
-  ctx->input = script_lex(ctx->input, null, &token, lexFlags);
-  switch (token.type) {
+  ScriptToken tok;
+  ctx->input = script_lex(ctx->input, null, &tok, flags);
+  switch (tok.type) {
   case ScriptTokenType_End:
     return false;
   case ScriptTokenType_Newline:
@@ -66,19 +76,24 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   case ScriptTokenType_Comma:
     type = FormatAtomType_Separator;
     break;
-  case ScriptTokenType_Bang:
-  case ScriptTokenType_Minus:
-    if (ctx->input.size == script_lex_trim(ctx->input, lexFlags).size) {
-      ctx->input = script_lex(ctx->input, null, &token, lexFlags);
-    }
-    break;
   default:
     break;
   }
 
+  /**
+   * Merge unary operators into the next token if they are not separated in the input.
+   *
+   * Reason is that unary and binary operators have different separation rules (binary are separated
+   * by spaces while unary are not), but for tokens that can both be used as unary or binary
+   * operators (like the minus sign) we cannot tell which to use without implementing a full parser.
+   */
+  while (format_is_unary(tok.type) && ctx->input.size == script_lex_trim(ctx->input, flags).size) {
+    ctx->input = script_lex(ctx->input, null, &tok, flags);
+  }
+
   const usize  offsetEnd     = ctx->inputTotal.size - ctx->input.size;
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
-  const String text          = script_lex_trim(textUntrimmed, lexFlags);
+  const String text          = script_lex_trim(textUntrimmed, flags);
 
   *out = (FormatAtom){.type = type, .text = text};
   return true;
