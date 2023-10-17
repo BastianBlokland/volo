@@ -784,15 +784,16 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
         ctx, fmt_write_scratch("Document formatted: {} ({})", fmt_text(docId), fmt_duration(dur)));
   }
 
-  // TODO: Report text ranges in utf16 instead of utf32.
-  // TODO: Compute minimal edits instead of replacing the whole text.
-  const ScriptRange        editRange   = script_range_full(doc->text);
-  const ScriptRangeLineCol editRangeLc = script_range_to_line_col(doc->text, editRange);
-  const LspTextEdit        edit = {.range = editRangeLc, .newText = dynstring_view(&resultBuffer)};
+  const String formattedDocText = dynstring_view(&resultBuffer);
 
   const JsonVal editsArr = json_add_array(ctx->jDoc);
-  json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
-
+  if (!string_eq(doc->text, formattedDocText)) {
+    // TODO: Report text ranges in utf16 instead of utf32.
+    const ScriptRange        editRange   = script_range_full(doc->text);
+    const ScriptRangeLineCol editRangeLc = script_range_to_line_col(doc->text, editRange);
+    const LspTextEdit        edit        = {.range = editRangeLc, .newText = formattedDocText};
+    json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
+  }
   lsp_send_response_success(ctx, req, editsArr);
 
   dynarray_destroy(&resultBuffer);
