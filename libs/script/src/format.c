@@ -157,6 +157,9 @@ static void format_read_all_chunks(FormatContext* ctx) {
     }
     lastChunkEmpty = chunkEmpty;
   }
+  if (lastChunkEmpty) {
+    dynarray_remove(ctx->chunks, ctx->chunks->size - 1, 1);
+  }
 }
 
 static void format_render_chunk(FormatContext* ctx, const FormatChunk* chunk) {

@@ -100,6 +100,12 @@ spec(format) {
         {string_static("\n"), string_static("\n")},
         {string_static("\n\n"), string_static("\n")},
         {string_static("\n\n\n"), string_static("\n")},
+        {string_static("\n\nvar i = 0\n"), string_static("\nvar i = 0\n")},
+        {string_static("\n\n\nvar i = 0\n"), string_static("\nvar i = 0\n")},
+        {string_static("\n\n\nvar i = 0\n\n"), string_static("\nvar i = 0\n")},
+        {string_static("\n\n\nvar i = 0\n\n\n"), string_static("\nvar i = 0\n")},
+        {string_static("42\n\n\nvar i = 0\n"), string_static("42\n\nvar i = 0\n")},
+        {string_static("\n\n42\n\n\nvar i = 0\n"), string_static("\n42\n\nvar i = 0\n")},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
