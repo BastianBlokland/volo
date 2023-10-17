@@ -6,14 +6,13 @@
 
 typedef enum {
   FormatAtomType_Generic,
-  FormatAtomType_Newline,       // '\n'
-  FormatAtomType_BlockStart,    // '{'
-  FormatAtomType_BlockEnd,      // '}'
-  FormatAtomType_SetStart,      // '('
-  FormatAtomType_SetEnd,        // ')'
-  FormatAtomType_Identifier,    // 'hello'
-  FormatAtomType_Separator,     // ';', ','
-  FormatAtomType_UnaryOperator, // '!'
+  FormatAtomType_Newline,    // '\n'
+  FormatAtomType_BlockStart, // '{'
+  FormatAtomType_BlockEnd,   // '}'
+  FormatAtomType_SetStart,   // '('
+  FormatAtomType_SetEnd,     // ')'
+  FormatAtomType_Identifier, // 'hello'
+  FormatAtomType_Separator,  // ';', ','
 } FormatAtomType;
 
 typedef struct {
@@ -68,7 +67,10 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
     type = FormatAtomType_Separator;
     break;
   case ScriptTokenType_Bang:
-    type = FormatAtomType_UnaryOperator;
+  case ScriptTokenType_Minus:
+    if (ctx->input.size == script_lex_trim(ctx->input, lexFlags).size) {
+      ctx->input = script_lex(ctx->input, null, &token, lexFlags);
+    }
     break;
   default:
     break;
@@ -131,7 +133,6 @@ static bool format_read_use_separator(const FormatAtom* a, const FormatAtom* b) 
   default:
     switch (a->type) {
     case FormatAtomType_SetStart:
-    case FormatAtomType_UnaryOperator:
       return false;
     default:
       return true;
