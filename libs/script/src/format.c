@@ -49,6 +49,28 @@ static bool format_separate_by_space(const FormatAtom* a, const FormatAtom* b) {
   return true;
 }
 
+static FormatAtomType format_atom_type(const ScriptTokenType tokenType) {
+  switch (tokenType) {
+  case ScriptTokenType_Newline:
+    return FormatAtomType_Newline;
+  case ScriptTokenType_CurlyOpen:
+    return FormatAtomType_BlockStart;
+  case ScriptTokenType_CurlyClose:
+    return FormatAtomType_BlockEnd;
+  case ScriptTokenType_ParenOpen:
+    return FormatAtomType_SetStart;
+  case ScriptTokenType_ParenClose:
+    return FormatAtomType_SetEnd;
+  case ScriptTokenType_Identifier:
+    return FormatAtomType_Identifier;
+  case ScriptTokenType_Semicolon:
+  case ScriptTokenType_Comma:
+    return FormatAtomType_Separator;
+  default:
+    return FormatAtomType_Generic;
+  }
+}
+
 static bool format_is_unary(const ScriptTokenType tokenType) {
   switch (tokenType) {
   case ScriptTokenType_Bang:
@@ -62,38 +84,12 @@ static bool format_is_unary(const ScriptTokenType tokenType) {
 static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   const ScriptLexFlags flags = ScriptLexFlags_IncludeNewlines | ScriptLexFlags_IncludeComments;
 
-  const usize    offsetStart = ctx->inputTotal.size - ctx->input.size;
-  FormatAtomType type        = FormatAtomType_Generic;
+  const usize offsetStart = ctx->inputTotal.size - ctx->input.size;
 
   ScriptToken tok;
   ctx->input = script_lex(ctx->input, null, &tok, flags);
-  switch (tok.type) {
-  case ScriptTokenType_End:
+  if (UNLIKELY(tok.type == ScriptTokenType_End)) {
     return false;
-  case ScriptTokenType_Newline:
-    type = FormatAtomType_Newline;
-    break;
-  case ScriptTokenType_CurlyOpen:
-    type = FormatAtomType_BlockStart;
-    break;
-  case ScriptTokenType_CurlyClose:
-    type = FormatAtomType_BlockEnd;
-    break;
-  case ScriptTokenType_ParenOpen:
-    type = FormatAtomType_SetStart;
-    break;
-  case ScriptTokenType_ParenClose:
-    type = FormatAtomType_SetEnd;
-    break;
-  case ScriptTokenType_Identifier:
-    type = FormatAtomType_Identifier;
-    break;
-  case ScriptTokenType_Semicolon:
-  case ScriptTokenType_Comma:
-    type = FormatAtomType_Separator;
-    break;
-  default:
-    break;
   }
 
   /**
@@ -111,7 +107,7 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
   const String text          = script_lex_trim(textUntrimmed, flags);
 
-  *out = (FormatAtom){.type = type, .text = text};
+  *out = (FormatAtom){.type = format_atom_type(tok.type), .text = text};
   return true;
 }
 
