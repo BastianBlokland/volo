@@ -115,5 +115,24 @@ spec(format) {
     }
   }
 
+  it("removes trailing whitespace") {
+    static const struct {
+      String input, expect;
+    } g_testData[] = {
+        {string_static(""), string_static("\n")},
+        {string_static("\n  "), string_static("\n")},
+        {string_static("\n  \n   "), string_static("\n")},
+        {string_static("{  \n  }"), string_static("{\n}\n")},
+        {string_static("{  \n\n  }"), string_static("{\n\n}\n")},
+        {string_static("{  \n1\n\n1337\n  }"), string_static("{\n  1\n\n  1337\n}\n")},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      dynstring_clear(&bufferStr);
+      script_format(&bufferStr, g_testData[i].input);
+      check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
+    }
+  }
+
   teardown() { dynstring_destroy(&bufferStr); }
 }
