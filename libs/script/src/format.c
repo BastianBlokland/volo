@@ -6,9 +6,14 @@
 
 typedef enum {
   FormatAtomType_Generic,
-  FormatAtomType_Newline,    // '\n'
-  FormatAtomType_BlockStart, // '{'
-  FormatAtomType_BlockEnd,   // '}'
+  FormatAtomType_Newline,       // '\n'
+  FormatAtomType_BlockStart,    // '{'
+  FormatAtomType_BlockEnd,      // '}'
+  FormatAtomType_SetStart,      // '('
+  FormatAtomType_SetEnd,        // ')'
+  FormatAtomType_Identifier,    // 'hello'
+  FormatAtomType_Separator,     // ';', ','
+  FormatAtomType_UnaryOperator, // '!'
 } FormatAtomType;
 
 typedef struct {
@@ -48,6 +53,22 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
     break;
   case ScriptTokenType_CurlyClose:
     type = FormatAtomType_BlockEnd;
+    break;
+  case ScriptTokenType_ParenOpen:
+    type = FormatAtomType_SetStart;
+    break;
+  case ScriptTokenType_ParenClose:
+    type = FormatAtomType_SetEnd;
+    break;
+  case ScriptTokenType_Identifier:
+    type = FormatAtomType_Identifier;
+    break;
+  case ScriptTokenType_Semicolon:
+  case ScriptTokenType_Comma:
+    type = FormatAtomType_Separator;
+    break;
+  case ScriptTokenType_Bang:
+    type = FormatAtomType_UnaryOperator;
     break;
   default:
     break;
@@ -98,28 +119,24 @@ static void format_read_all_lines(FormatContext* ctx) {
 }
 
 static bool format_read_use_separator(const FormatAtom* a, const FormatAtom* b) {
-  // switch (b->type) {
-  // case ScriptTokenType_ParenOpen:
-  //   if (a->type == ScriptTokenType_Identifier) {
-  //     return false;
-  //   }
-  //   return true;
-  // case ScriptTokenType_ParenClose:
-  // case ScriptTokenType_Semicolon:
-  // case ScriptTokenType_Comma:
-  //   return false;
-  // default:
-  //   switch (a->type) {
-  //   case ScriptTokenType_ParenOpen:
-  //   case ScriptTokenType_Bang:
-  //     return false;
-  //   default:
-  //     return true;
-  //   }
-  //   return true;
-  // }
-  (void)a;
-  (void)b;
+  switch (b->type) {
+  case FormatAtomType_SetStart:
+    if (a->type == FormatAtomType_Identifier) {
+      return false;
+    }
+    return true;
+  case FormatAtomType_SetEnd:
+  case FormatAtomType_Separator:
+    return false;
+  default:
+    switch (a->type) {
+    case FormatAtomType_SetStart:
+    case FormatAtomType_UnaryOperator:
+      return false;
+    default:
+      return true;
+    }
+  }
   return true;
 }
 
