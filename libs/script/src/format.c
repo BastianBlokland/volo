@@ -23,13 +23,13 @@ typedef struct {
 typedef struct {
   usize atomStart, atomEnd;
   u32   indent;
-} FormatLine;
+} FormatChunk;
 
 typedef struct {
   String     input, inputTotal;
   DynString* out;
-  DynArray*  atoms; // FormatAtom[]
-  DynArray*  lines; // FormatLine[]
+  DynArray*  atoms;  // FormatAtom[]
+  DynArray*  chunks; // FormatChunk[]
   u32        currentIndent;
 } FormatContext;
 
@@ -111,7 +111,7 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   return true;
 }
 
-static bool format_read_line(FormatContext* ctx, FormatLine* out) {
+static bool format_read_chunk(FormatContext* ctx, FormatChunk* out) {
   out->indent    = ctx->currentIndent;
   out->atomStart = ctx->atoms->size;
 
@@ -126,7 +126,7 @@ static bool format_read_line(FormatContext* ctx, FormatLine* out) {
       break;
     case FormatAtomType_BlockEnd:
       if (out->atomStart == ctx->atoms->size) {
-        --out->indent; // Line starts with closing-curly; reduce indent.
+        --out->indent; // Chunk starts with closing-curly; reduce indent.
       }
       if (ctx->currentIndent) {
         --ctx->currentIndent;
@@ -140,22 +140,22 @@ static bool format_read_line(FormatContext* ctx, FormatLine* out) {
   return false; // No atoms left.
 }
 
-static void format_read_all_lines(FormatContext* ctx) {
-  FormatLine line;
-  while (format_read_line(ctx, &line)) {
-    *dynarray_push_t(ctx->lines, FormatLine) = line;
+static void format_read_all_chunks(FormatContext* ctx) {
+  FormatChunk chunk;
+  while (format_read_chunk(ctx, &chunk)) {
+    *dynarray_push_t(ctx->chunks, FormatChunk) = chunk;
   }
 }
 
-static void format_render_line(FormatContext* ctx, const FormatLine* line) {
-  if (line->atomStart != line->atomEnd) {
-    dynstring_append_chars(ctx->out, ' ', line->indent * script_format_indent_size);
+static void format_render_chunk(FormatContext* ctx, const FormatChunk* chunk) {
+  if (chunk->atomStart != chunk->atomEnd) {
+    dynstring_append_chars(ctx->out, ' ', chunk->indent * script_format_indent_size);
   }
-  for (usize atomIdx = line->atomStart; atomIdx != line->atomEnd; ++atomIdx) {
+  for (usize atomIdx = chunk->atomStart; atomIdx != chunk->atomEnd; ++atomIdx) {
     const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
     dynstring_append(ctx->out, atom->text);
 
-    const bool lastAtom = atomIdx == (line->atomEnd - 1);
+    const bool lastAtom = atomIdx == (chunk->atomEnd - 1);
     if (!lastAtom) {
       const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
       if (format_separate_by_space(atom, atomNext)) {
@@ -166,24 +166,24 @@ static void format_render_line(FormatContext* ctx, const FormatLine* line) {
   dynstring_append_char(ctx->out, '\n');
 }
 
-static void format_render_all_lines(FormatContext* ctx) {
-  dynarray_for_t(ctx->lines, FormatLine, line) { format_render_line(ctx, line); }
+static void format_render_all_chunks(FormatContext* ctx) {
+  dynarray_for_t(ctx->chunks, FormatChunk, chunk) { format_render_chunk(ctx, chunk); }
 }
 
 void script_format(DynString* out, const String input) {
-  DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
-  DynArray      lines = dynarray_create_t(g_alloc_heap, FormatLine, 512);
-  FormatContext ctx   = {
-      .input      = input,
-      .inputTotal = input,
-      .out        = out,
-      .atoms      = &atoms,
-      .lines      = &lines,
+  DynArray      atoms  = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
+  DynArray      chunks = dynarray_create_t(g_alloc_heap, FormatChunk, 512);
+  FormatContext ctx    = {
+         .input      = input,
+         .inputTotal = input,
+         .out        = out,
+         .atoms      = &atoms,
+         .chunks     = &chunks,
   };
 
-  format_read_all_lines(&ctx);
-  format_render_all_lines(&ctx);
+  format_read_all_chunks(&ctx);
+  format_render_all_chunks(&ctx);
 
   dynarray_destroy(&atoms);
-  dynarray_destroy(&lines);
+  dynarray_destroy(&chunks);
 }
