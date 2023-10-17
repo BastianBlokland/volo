@@ -137,7 +137,13 @@ static bool format_read_chunk(FormatContext* ctx, FormatChunk* out) {
     }
     *dynarray_push_t(ctx->atoms, FormatAtom) = atom; // Output the atom.
   }
-  return false; // No atoms left.
+
+  // No atoms left.
+  if (out->atomStart != ctx->atoms->size) {
+    out->atomEnd = ctx->atoms->size;
+    return true;
+  }
+  return false;
 }
 
 static void format_read_all_chunks(FormatContext* ctx) {
