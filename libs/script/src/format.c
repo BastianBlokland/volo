@@ -4,9 +4,16 @@
 
 #define script_format_indent_size 2
 
+typedef enum {
+  FormatAtomType_Generic,
+  FormatAtomType_Newline,    // '\n'
+  FormatAtomType_BlockStart, // '{'
+  FormatAtomType_BlockEnd,   // '}'
+} FormatAtomType;
+
 typedef struct {
-  ScriptTokenType type;
-  String          text;
+  FormatAtomType type;
+  String         text;
 } FormatAtom;
 
 typedef struct {
@@ -25,17 +32,32 @@ typedef struct {
 static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   const ScriptLexFlags lexFlags = ScriptLexFlags_IncludeNewlines | ScriptLexFlags_IncludeComments;
 
-  const usize offsetStart = ctx->inputTotal.size - ctx->input.size;
+  const usize    offsetStart = ctx->inputTotal.size - ctx->input.size;
+  FormatAtomType type        = FormatAtomType_Generic;
+
   ScriptToken token;
   ctx->input = script_lex(ctx->input, null, &token, lexFlags);
-  if (UNLIKELY(token.type == ScriptTokenType_End)) {
+  switch (token.type) {
+  case ScriptTokenType_End:
     return false;
+  case ScriptTokenType_Newline:
+    type = FormatAtomType_Newline;
+    break;
+  case ScriptTokenType_CurlyOpen:
+    type = FormatAtomType_BlockStart;
+    break;
+  case ScriptTokenType_CurlyClose:
+    type = FormatAtomType_BlockEnd;
+    break;
+  default:
+    break;
   }
+
   const usize  offsetEnd     = ctx->inputTotal.size - ctx->input.size;
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
   const String text          = script_lex_trim(textUntrimmed, lexFlags);
 
-  *out = (FormatAtom){.type = token.type, .text = text};
+  *out = (FormatAtom){.type = type, .text = text};
   return true;
 }
 
@@ -46,13 +68,13 @@ static bool format_read_line(FormatContext* ctx, FormatLine* out) {
   FormatAtom atom;
   while (format_read_atom(ctx, &atom)) {
     switch (atom.type) {
-    case ScriptTokenType_Newline:
+    case FormatAtomType_Newline:
       out->atomEnd = ctx->atoms->size;
       return true;
-    case ScriptTokenType_CurlyOpen:
+    case FormatAtomType_BlockStart:
       ++ctx->currentIndent;
       break;
-    case ScriptTokenType_CurlyClose:
+    case FormatAtomType_BlockEnd:
       if (out->atomStart == ctx->atoms->size) {
         --out->indent; // Line starts with closing-curly; reduce indent.
       }
@@ -76,26 +98,29 @@ static void format_read_all_lines(FormatContext* ctx) {
 }
 
 static bool format_read_use_separator(const FormatAtom* a, const FormatAtom* b) {
-  switch (b->type) {
-  case ScriptTokenType_ParenOpen:
-    if (a->type == ScriptTokenType_Identifier) {
-      return false;
-    }
-    return true;
-  case ScriptTokenType_ParenClose:
-  case ScriptTokenType_Semicolon:
-  case ScriptTokenType_Comma:
-    return false;
-  default:
-    switch (a->type) {
-    case ScriptTokenType_ParenOpen:
-    case ScriptTokenType_Bang:
-      return false;
-    default:
-      return true;
-    }
-    return true;
-  }
+  // switch (b->type) {
+  // case ScriptTokenType_ParenOpen:
+  //   if (a->type == ScriptTokenType_Identifier) {
+  //     return false;
+  //   }
+  //   return true;
+  // case ScriptTokenType_ParenClose:
+  // case ScriptTokenType_Semicolon:
+  // case ScriptTokenType_Comma:
+  //   return false;
+  // default:
+  //   switch (a->type) {
+  //   case ScriptTokenType_ParenOpen:
+  //   case ScriptTokenType_Bang:
+  //     return false;
+  //   default:
+  //     return true;
+  //   }
+  //   return true;
+  // }
+  (void)a;
+  (void)b;
+  return true;
 }
 
 static void format_render_line(FormatContext* ctx, const FormatLine* line) {
