@@ -1,15 +1,26 @@
 #include "check_spec.h"
+#include "core_array.h"
 #include "script_format.h"
 
-static void format_check(CheckTestContext* _testCtx, const String input, const String expected) {
-  Mem       buffer    = mem_stack(1024);
-  DynString bufferStr = dynstring_create_over(buffer);
-
-  script_format(&bufferStr, input);
-
-  check_eq_string(dynstring_view(&bufferStr), expected);
-}
-
 spec(format) {
-  it("can format an empty document") { format_check(_testCtx, string_empty, string_empty); }
+  Mem       buffer = mem_stack(4096);
+  DynString bufferStr;
+
+  setup() { bufferStr = dynstring_create_over(buffer); }
+
+  it("normalizes whitespace in lines") {
+    static const struct {
+      String input, expect;
+    } g_testData[] = {
+        {string_static("\n"), string_static("\n")},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      script_format(&bufferStr, g_testData[i].input);
+
+      check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
+    }
+  }
+
+  teardown() { dynstring_destroy(&bufferStr); }
 }
