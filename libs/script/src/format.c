@@ -71,6 +71,10 @@ static FormatAtomType format_atom_type(const ScriptTokenType tokenType) {
   }
 }
 
+static bool format_chunk_is_empty(const FormatChunk* chunk) {
+  return chunk->atomStart == chunk->atomEnd;
+}
+
 static bool format_is_unary(const ScriptTokenType tokenType) {
   switch (tokenType) {
   case ScriptTokenType_Bang:
@@ -138,23 +142,25 @@ static bool format_read_chunk(FormatContext* ctx, FormatChunk* out) {
     *dynarray_push_t(ctx->atoms, FormatAtom) = atom; // Output the atom.
   }
 
-  // No atoms left.
-  if (out->atomStart != ctx->atoms->size) {
-    out->atomEnd = ctx->atoms->size;
-    return true;
-  }
-  return false;
+  out->atomEnd = ctx->atoms->size;
+  return !format_chunk_is_empty(out);
 }
 
 static void format_read_all_chunks(FormatContext* ctx) {
+  bool        lastChunkEmpty = false;
   FormatChunk chunk;
   while (format_read_chunk(ctx, &chunk)) {
-    *dynarray_push_t(ctx->chunks, FormatChunk) = chunk;
+    const bool chunkEmpty = format_chunk_is_empty(&chunk);
+    // Skip consecutive empty chunks.
+    if (!chunkEmpty || !lastChunkEmpty) {
+      *dynarray_push_t(ctx->chunks, FormatChunk) = chunk;
+    }
+    lastChunkEmpty = chunkEmpty;
   }
 }
 
 static void format_render_chunk(FormatContext* ctx, const FormatChunk* chunk) {
-  if (chunk->atomStart != chunk->atomEnd) {
+  if (!format_chunk_is_empty(chunk)) {
     dynstring_append_chars(ctx->out, ' ', chunk->indent * script_format_indent_size);
   }
   for (usize atomIdx = chunk->atomStart; atomIdx != chunk->atomEnd; ++atomIdx) {
