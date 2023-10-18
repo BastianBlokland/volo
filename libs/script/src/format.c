@@ -170,7 +170,7 @@ static bool format_span_read_line(FormatContext* ctx, FormatSpan* out) {
       out->atomCount = (u32)ctx->atoms->size - out->atomIndex;
       return true;
     }
-    if (atom.type == FormatAtomType_BlockEnd) {
+    if (atom.type == FormatAtomType_BlockEnd || atom.type == FormatAtomType_SetEnd) {
       if (ctx->currentIndent) {
         --ctx->currentIndent;
       }
@@ -179,7 +179,7 @@ static bool format_span_read_line(FormatContext* ctx, FormatSpan* out) {
     if (firstAtom) {
       atom.padding = ctx->currentIndent * script_format_indent_size;
     }
-    if (atom.type == FormatAtomType_BlockStart) {
+    if (atom.type == FormatAtomType_BlockStart || atom.type == FormatAtomType_SetStart) {
       ++ctx->currentIndent;
     }
     *dynarray_push_t(ctx->atoms, FormatAtom) = atom; // Output the atom.

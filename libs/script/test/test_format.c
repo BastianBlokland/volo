@@ -152,6 +152,24 @@ spec(format) {
     }
   }
 
+  it("indents sets") {
+    static const struct {
+      String input, expect;
+    } g_testData[] = {
+        {string_static("()\n"), string_static("()\n")},
+        {string_static("(\n42\n)\n"), string_static("(\n  42\n)\n")},
+        {string_static("(\n1\n2\n3\n4\n)\n"), string_static("(\n  1\n  2\n  3\n  4\n)\n")},
+        {string_static("(\n42\n()\n)\n"), string_static("(\n  42\n  ()\n)\n")},
+        {string_static("(\n42\n(\n42\n)\n)\n"), string_static("(\n  42\n  (\n    42\n  )\n)\n")},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      dynstring_clear(&bufferStr);
+      script_format(&bufferStr, g_testData[i].input);
+      check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
+    }
+  }
+
   it("aligns assignments") {
     static const struct {
       String input, expect;
