@@ -192,6 +192,22 @@ spec(format) {
                           "var x  = 0\n"
                           "var yy = 0\n"),
         },
+        {
+            string_static("var hello = test()\n"
+                          "var helloWorld = testMore()\n"),
+
+            string_static("var hello      = test()\n"
+                          "var helloWorld = testMore()\n"),
+        },
+        {
+            string_static("var hello      = 0\n"
+                          "var helloWorld = 0\n"
+                          "for(var i = 0; i != 10; i += 1)\n"),
+
+            string_static("var hello      = 0\n"
+                          "var helloWorld = 0\n"
+                          "for (var i = 0; i != 10; i += 1)\n"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

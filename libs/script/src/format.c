@@ -90,15 +90,6 @@ static FormatSpan format_span_slice(const FormatSpan span, const usize offset, c
   return (FormatSpan){.atomIndex = span.atomIndex + offset, .atomCount = size};
 }
 
-static usize format_span_find(FormatContext* ctx, const FormatSpan span, const FormatAtomType t) {
-  for (usize i = 0; i != span.atomCount; ++i) {
-    if (format_span_at(ctx, span, i)->type == t) {
-      return i;
-    }
-  }
-  return sentinel_usize;
-}
-
 static usize format_span_measure(FormatContext* ctx, const FormatSpan span) {
   usize result = 0;
   for (usize i = 0; i != span.atomCount; ++i) {
@@ -231,17 +222,23 @@ static void format_align_apply(
   }
 }
 
-static bool format_align_boundary(FormatContext* ctx, const FormatSpan span) {
-  for (usize i = 0; i != span.atomCount; ++i) {
-    switch (format_span_at(ctx, span, i)->type) {
+static usize format_align_target(FormatContext* ctx, const FormatSpan s, const FormatAtomType t) {
+  for (usize i = 0; i != s.atomCount; ++i) {
+    const FormatAtom* atom = format_span_at(ctx, s, i);
+    if (atom->type == t) {
+      return i;
+    }
+    switch (atom->type) {
     case FormatAtomType_BlockStart:
     case FormatAtomType_BlockEnd:
-      return true;
+    case FormatAtomType_SetStart:
+    case FormatAtomType_SetEnd:
+      return sentinel_usize; // Alignment boundary encountered.
     default:
       break;
     }
   }
-  return false;
+  return sentinel_usize; // Target not found/
 }
 
 static void format_align_all(FormatContext* ctx, const FormatAtomType type) {
@@ -249,13 +246,8 @@ static void format_align_all(FormatContext* ctx, const FormatAtomType type) {
   u32              entryCount    = 0;
   usize            alignDistance = 0;
   for (usize i = 0; i != ctx->lines->size; ++i) {
-    const FormatSpan* line = dynarray_at_t(ctx->lines, i, FormatSpan);
-    if (format_align_boundary(ctx, *line)) {
-      format_align_apply(ctx, alignDistance, entries, entryCount);
-      entryCount = alignDistance = 0;
-      continue;
-    }
-    const usize targetIndex = format_span_find(ctx, *line, type);
+    const FormatSpan* line        = dynarray_at_t(ctx->lines, i, FormatSpan);
+    const usize       targetIndex = format_align_target(ctx, *line, type);
     if (sentinel_check(targetIndex)) {
       format_align_apply(ctx, alignDistance, entries, entryCount);
       entryCount = alignDistance = 0;
