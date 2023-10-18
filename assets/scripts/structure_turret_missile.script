@@ -6,8 +6,9 @@ if (!exists($user_attack_target)) {
 }
 
 if ($user_attack_target && {
-  var dist = distance(position($user_attack_target), position(me))
-  dist < target_range_min(me) || dist > target_range_max(me) }) {
+    var dist = distance(position($user_attack_target), position(me))
+    dist < target_range_min(me) || dist > target_range_max(me)
+  }) {
   $user_attack_target = null
 }
 
