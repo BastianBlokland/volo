@@ -1,9 +1,12 @@
 #include "core_alloc.h"
+#include "core_diag.h"
+#include "core_math.h"
 #include "core_utf8.h"
 #include "script_format.h"
 #include "script_lex.h"
 
 #define script_format_indent_size 2
+#define script_format_align_entries_max 64
 
 typedef enum {
   FormatAtomType_Generic,
@@ -14,6 +17,7 @@ typedef enum {
   FormatAtomType_SetEnd,     // ')'
   FormatAtomType_Identifier, // 'hello'
   FormatAtomType_Separator,  // ';', ','
+  FormatAtomType_Assignment, // '='
 } FormatAtomType;
 
 typedef struct {
@@ -23,7 +27,7 @@ typedef struct {
 } FormatAtom;
 
 typedef struct {
-  usize atomStart, atomEnd;
+  usize atomIndex, atomCount;
 } FormatSpan;
 
 typedef struct {
@@ -67,23 +71,42 @@ static FormatAtomType format_atom_type(const ScriptTokenType tokenType) {
   case ScriptTokenType_Semicolon:
   case ScriptTokenType_Comma:
     return FormatAtomType_Separator;
+  case ScriptTokenType_Eq:
+    return FormatAtomType_Assignment;
   default:
     return FormatAtomType_Generic;
   }
 }
 
-static bool format_span_is_empty(const FormatSpan* span) {
-  return span->atomStart == span->atomEnd;
+static bool format_span_is_empty(const FormatSpan span) { return span.atomCount == 0; }
+
+static FormatAtom* format_span_at(FormatContext* ctx, const FormatSpan span, const usize i) {
+  diag_assert(i < span.atomCount);
+  return dynarray_at_t(ctx->atoms, span.atomIndex + i, FormatAtom);
 }
 
-static usize format_span_measure(FormatContext* ctx, const FormatSpan* span) {
+static FormatSpan format_span_slice(const FormatSpan span, const usize offset, const usize size) {
+  diag_assert(span.atomCount >= offset + size);
+  return (FormatSpan){.atomIndex = span.atomIndex + offset, .atomCount = size};
+}
+
+static usize format_span_find(FormatContext* ctx, const FormatSpan span, const FormatAtomType t) {
+  for (usize i = 0; i != span.atomCount; ++i) {
+    if (format_span_at(ctx, span, i)->type == t) {
+      return i;
+    }
+  }
+  return sentinel_usize;
+}
+
+static usize format_span_measure(FormatContext* ctx, const FormatSpan span) {
   usize result = 0;
-  for (usize atomIdx = span->atomStart; atomIdx != span->atomEnd; ++atomIdx) {
-    const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
+  for (usize i = 0; i != span.atomCount; ++i) {
+    const FormatAtom* atom = format_span_at(ctx, span, i);
     result += atom->padding;
     result += utf8_cp_count(atom->text);
-    if (atomIdx != (span->atomEnd - 1)) {
-      const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
+    if (i != (span.atomCount - 1)) {
+      const FormatAtom* atomNext = format_span_at(ctx, span, i + 1);
       if (format_separate_by_space(atom, atomNext)) {
         result += 1;
       }
@@ -92,13 +115,13 @@ static usize format_span_measure(FormatContext* ctx, const FormatSpan* span) {
   return result;
 }
 
-static void format_span_render(FormatContext* ctx, const FormatSpan* span) {
-  for (usize atomIdx = span->atomStart; atomIdx != span->atomEnd; ++atomIdx) {
-    const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
+static void format_span_render(FormatContext* ctx, const FormatSpan span) {
+  for (usize i = 0; i != span.atomCount; ++i) {
+    const FormatAtom* atom = format_span_at(ctx, span, i);
     dynstring_append_chars(ctx->out, ' ', atom->padding);
     dynstring_append(ctx->out, atom->text);
-    if (atomIdx != (span->atomEnd - 1)) {
-      const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
+    if (i != (span.atomCount - 1)) {
+      const FormatAtom* atomNext = format_span_at(ctx, span, i + 1);
       if (format_separate_by_space(atom, atomNext)) {
         dynstring_append_char(ctx->out, ' ');
       }
@@ -146,13 +169,13 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   return true;
 }
 
-static bool format_read_line(FormatContext* ctx, FormatSpan* out) {
-  out->atomStart = ctx->atoms->size;
+static bool format_span_read_line(FormatContext* ctx, FormatSpan* out) {
+  out->atomIndex = ctx->atoms->size;
 
   FormatAtom atom;
   while (format_read_atom(ctx, &atom)) {
     if (atom.type == FormatAtomType_Newline) {
-      out->atomEnd = ctx->atoms->size;
+      out->atomCount = ctx->atoms->size - out->atomIndex;
       return true;
     }
     if (atom.type == FormatAtomType_BlockEnd) {
@@ -160,7 +183,7 @@ static bool format_read_line(FormatContext* ctx, FormatSpan* out) {
         --ctx->currentIndent;
       }
     }
-    const bool firstAtom = out->atomStart == ctx->atoms->size;
+    const bool firstAtom = out->atomIndex == ctx->atoms->size;
     if (firstAtom) {
       atom.padding = ctx->currentIndent * script_format_indent_size;
     }
@@ -170,15 +193,15 @@ static bool format_read_line(FormatContext* ctx, FormatSpan* out) {
     *dynarray_push_t(ctx->atoms, FormatAtom) = atom; // Output the atom.
   }
 
-  out->atomEnd = ctx->atoms->size;
-  return !format_span_is_empty(out);
+  out->atomCount = ctx->atoms->size - out->atomIndex;
+  return !format_span_is_empty(*out);
 }
 
-static void format_read_all_lines(FormatContext* ctx) {
+static void format_span_read_all_lines(FormatContext* ctx) {
   bool       lastLineEmpty = false;
   FormatSpan line;
-  while (format_read_line(ctx, &line)) {
-    const bool lineEmpty = format_span_is_empty(&line);
+  while (format_span_read_line(ctx, &line)) {
+    const bool lineEmpty = format_span_is_empty(line);
     // Skip consecutive empty lines.
     if (!lineEmpty || !lastLineEmpty) {
       *dynarray_push_t(ctx->lines, FormatSpan) = line;
@@ -188,6 +211,68 @@ static void format_read_all_lines(FormatContext* ctx) {
   if (lastLineEmpty) {
     dynarray_remove(ctx->lines, ctx->lines->size - 1, 1);
   }
+}
+
+typedef struct {
+  usize distance;
+  usize atomIndex;
+} FormatAlignEntry;
+
+static void format_align_apply(
+    FormatContext*         ctx,
+    const usize            distance,
+    const FormatAlignEntry entries[PARAM_ARRAY_SIZE(script_format_align_entries_max)],
+    const u32              entryCount) {
+  for (u32 i = 0; i != entryCount; ++i) {
+    FormatAtom* atom = dynarray_at_t(ctx->atoms, entries[i].atomIndex, FormatAtom);
+    if (distance > entries[i].distance) {
+      atom->padding = (u32)(distance - entries[i].distance);
+    }
+  }
+}
+
+static bool format_align_boundary(FormatContext* ctx, const FormatSpan span) {
+  for (usize i = 0; i != span.atomCount; ++i) {
+    switch (format_span_at(ctx, span, i)->type) {
+    case FormatAtomType_BlockStart:
+    case FormatAtomType_BlockEnd:
+      return true;
+    default:
+      break;
+    }
+  }
+  return false;
+}
+
+static void format_align_all(FormatContext* ctx, const FormatAtomType type) {
+  FormatAlignEntry entries[script_format_align_entries_max];
+  u32              entryCount    = 0;
+  usize            alignDistance = 0;
+  for (usize i = 0; i != ctx->lines->size; ++i) {
+    const FormatSpan* line = dynarray_at_t(ctx->lines, i, FormatSpan);
+    if (format_align_boundary(ctx, *line)) {
+      format_align_apply(ctx, alignDistance, entries, entryCount);
+      entryCount = alignDistance = 0;
+      continue;
+    }
+    const usize targetIndex = format_span_find(ctx, *line, type);
+    if (sentinel_check(targetIndex)) {
+      format_align_apply(ctx, alignDistance, entries, entryCount);
+      entryCount = alignDistance = 0;
+      continue;
+    }
+    if (UNLIKELY(entryCount == script_format_align_entries_max)) {
+      format_align_apply(ctx, alignDistance, entries, entryCount);
+      entryCount = alignDistance = 0;
+    }
+    const usize distance  = format_span_measure(ctx, format_span_slice(*line, 0, targetIndex));
+    entries[entryCount++] = (FormatAlignEntry){
+        .distance  = distance,
+        .atomIndex = line->atomIndex + targetIndex,
+    };
+    alignDistance = math_max(alignDistance, distance);
+  }
+  format_align_apply(ctx, alignDistance, entries, entryCount);
 }
 
 void script_format(DynString* out, const String input) {
@@ -201,10 +286,12 @@ void script_format(DynString* out, const String input) {
       .lines      = &lines,
   };
 
-  format_read_all_lines(&ctx);
+  format_span_read_all_lines(&ctx);
   if (lines.size) {
+    format_align_all(&ctx, FormatAtomType_Assignment);
+
     dynarray_for_t(&lines, FormatSpan, line) {
-      format_span_render(&ctx, line);
+      format_span_render(&ctx, *line);
       dynstring_append_char(ctx.out, '\n');
     }
   } else {
