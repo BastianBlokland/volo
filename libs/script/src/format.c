@@ -17,12 +17,12 @@ typedef enum {
 
 typedef struct {
   FormatAtomType type;
+  u32            padding;
   String         text;
 } FormatAtom;
 
 typedef struct {
   usize atomStart, atomEnd;
-  u32   indent;
 } FormatChunk;
 
 typedef struct {
@@ -116,28 +116,25 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
 }
 
 static bool format_read_chunk(FormatContext* ctx, FormatChunk* out) {
-  out->indent    = ctx->currentIndent;
   out->atomStart = ctx->atoms->size;
 
   FormatAtom atom;
   while (format_read_atom(ctx, &atom)) {
-    switch (atom.type) {
-    case FormatAtomType_Newline:
+    if (atom.type == FormatAtomType_Newline) {
       out->atomEnd = ctx->atoms->size;
       return true;
-    case FormatAtomType_BlockStart:
-      ++ctx->currentIndent;
-      break;
-    case FormatAtomType_BlockEnd:
-      if (out->atomStart == ctx->atoms->size) {
-        --out->indent; // Chunk starts with closing-curly; reduce indent.
-      }
+    }
+    if (atom.type == FormatAtomType_BlockEnd) {
       if (ctx->currentIndent) {
         --ctx->currentIndent;
       }
-      break;
-    default:
-      break;
+    }
+    const bool firstAtom = out->atomStart == ctx->atoms->size;
+    if (firstAtom) {
+      atom.padding = ctx->currentIndent * script_format_indent_size;
+    }
+    if (atom.type == FormatAtomType_BlockStart) {
+      ++ctx->currentIndent;
     }
     *dynarray_push_t(ctx->atoms, FormatAtom) = atom; // Output the atom.
   }
@@ -163,11 +160,9 @@ static void format_read_all_chunks(FormatContext* ctx) {
 }
 
 static void format_render_chunk(FormatContext* ctx, const FormatChunk* chunk) {
-  if (!format_chunk_is_empty(chunk)) {
-    dynstring_append_chars(ctx->out, ' ', chunk->indent * script_format_indent_size);
-  }
   for (usize atomIdx = chunk->atomStart; atomIdx != chunk->atomEnd; ++atomIdx) {
     const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
+    dynstring_append_chars(ctx->out, ' ', atom->padding);
     dynstring_append(ctx->out, atom->text);
 
     const bool lastAtom = atomIdx == (chunk->atomEnd - 1);
@@ -189,11 +184,11 @@ void script_format(DynString* out, const String input) {
   DynArray      atoms  = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
   DynArray      chunks = dynarray_create_t(g_alloc_heap, FormatChunk, 512);
   FormatContext ctx    = {
-         .input      = input,
-         .inputTotal = input,
-         .out        = out,
-         .atoms      = &atoms,
-         .chunks     = &chunks,
+      .input      = input,
+      .inputTotal = input,
+      .out        = out,
+      .atoms      = &atoms,
+      .chunks     = &chunks,
   };
 
   format_read_all_chunks(&ctx);
