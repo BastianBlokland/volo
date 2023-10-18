@@ -152,5 +152,54 @@ spec(format) {
     }
   }
 
+  it("aligns assignments") {
+    static const struct {
+      String input, expect;
+    } g_testData[] = {
+        {
+            string_static("var x = 0\n"
+                          "var helloWorld = 0\n"),
+
+            string_static("var x          = 0\n"
+                          "var helloWorld = 0\n"),
+        },
+        {
+            string_static("var helloWorld = 0\n"
+                          "var x = 0\n"),
+
+            string_static("var helloWorld = 0\n"
+                          "var x          = 0\n"),
+        },
+        {
+            string_static("var hello = 0\n"
+                          "var helloWorld = 0\n"
+                          "var x = 0\n"),
+
+            string_static("var hello      = 0\n"
+                          "var helloWorld = 0\n"
+                          "var x          = 0\n"),
+        },
+        {
+            string_static("var hello = 0\n"
+                          "var helloWorld = 0\n"
+                          "\n"
+                          "var x = 0\n"
+                          "var yy = 0\n"),
+
+            string_static("var hello      = 0\n"
+                          "var helloWorld = 0\n"
+                          "\n"
+                          "var x  = 0\n"
+                          "var yy = 0\n"),
+        },
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      dynstring_clear(&bufferStr);
+      script_format(&bufferStr, g_testData[i].input);
+      check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
+    }
+  }
+
   teardown() { dynstring_destroy(&bufferStr); }
 }
