@@ -239,6 +239,13 @@ spec(format) {
                           "var hello      = 0\n"
                           "var helloWorld = 0\n"),
         },
+        {
+            string_static("var xxxxxxxx = 0\n"
+                          "var Καλημέρα = 0\n"),
+
+            string_static("var xxxxxxxx = 0\n"
+                          "var Καλημέρα = 0\n"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
