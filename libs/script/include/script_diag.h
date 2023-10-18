@@ -23,7 +23,7 @@ typedef enum {
 typedef struct {
   ScriptDiagType type;
   ScriptError    error;
-  ScriptPosRange range;
+  ScriptRange    range;
 } ScriptDiag;
 
 typedef struct sScriptDiagBag ScriptDiagBag;

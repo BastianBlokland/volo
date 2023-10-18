@@ -397,23 +397,29 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
   return out->type = ScriptTokenType_End, string_empty;
 }
 
-String script_lex_trim(String str) {
+String script_lex_trim(String str, const ScriptLexFlags fl) {
   while (!string_is_empty(str)) {
     const u8 c = string_begin(str)[0];
     switch (c) {
     case '/': {
-      if (script_peek(str, 1) == '/') {
-        str = script_consume_chars(str, script_scan_line_end(str)); // Skip comment.
-        continue;
-      }
-      if (script_peek(str, 1) == '*') {
-        str = script_consume_chars(str, script_scan_block_comment_end(str)); // Skip comment.
-        continue;
+      if (!(fl & ScriptLexFlags_IncludeComments)) {
+        if (script_peek(str, 1) == '/') {
+          str = script_consume_chars(str, script_scan_line_end(str)); // Skip comment.
+          continue;
+        }
+        if (script_peek(str, 1) == '*') {
+          str = script_consume_chars(str, script_scan_block_comment_end(str)); // Skip comment.
+          continue;
+        }
       }
       return str;
     }
-    case ' ':
     case '\n':
+      if (fl & ScriptLexFlags_IncludeNewlines) {
+        return str;
+      }
+      // Fallthrough.
+    case ' ':
     case '\r':
     case '\t':
       str = script_consume_chars(str, 1); // Skip whitespace.

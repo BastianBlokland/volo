@@ -238,7 +238,58 @@ spec(lex) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      const String rem = script_lex_trim(testData[i].input);
+      const String rem = script_lex_trim(testData[i].input, ScriptLexFlags_None);
+      check_eq_string(rem, testData[i].expected);
+    }
+  }
+
+  it("can trim until the next token including newlines") {
+    const struct {
+      String input, expected;
+    } testData[] = {
+        {string_static(""), string_static("")},
+        {string_static("   "), string_static("")},
+        {string_static("+"), string_static("+")},
+        {string_static(" +"), string_static("+")},
+        {string_static("    +"), string_static("+")},
+        {string_static("\n"), string_static("\n")},
+        {string_static(" \n"), string_static("\n")},
+        {string_static("  \t \t \r\n"), string_static("\n")},
+        {string_static("/ Hello World"), string_static("/ Hello World")},
+        {string_static("// Hello World"), string_static("")},
+        {string_static("/* Hello World"), string_static("")},
+        {string_static("/* Hello World */"), string_static("")},
+        {string_static("/* Hello World */ \n"), string_static("\n")},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const String rem = script_lex_trim(testData[i].input, ScriptLexFlags_IncludeNewlines);
+      check_eq_string(rem, testData[i].expected);
+    }
+  }
+
+  it("can trim until the next token including comments") {
+    const struct {
+      String input, expected;
+    } testData[] = {
+        {string_static(""), string_static("")},
+        {string_static("   "), string_static("")},
+        {string_static("+"), string_static("+")},
+        {string_static(" +"), string_static("+")},
+        {string_static("    +"), string_static("+")},
+        {string_static("  \t \t \r\n  \n +"), string_static("+")},
+        {string_static("  \t \t \r\n  \n // Hello World"), string_static("// Hello World")},
+        {string_static("/ Hello World"), string_static("/ Hello World")},
+        {string_static("// Hello World"), string_static("// Hello World")},
+        {string_static("  \t \t \r\n  \n// Hello World"), string_static("// Hello World")},
+        {string_static("/* Hello World"), string_static("/* Hello World")},
+        {string_static("  \t \t \r\n  \n/* Hello World"), string_static("/* Hello World")},
+        {string_static("/* Hello World */"), string_static("/* Hello World */")},
+        {string_static("  \t \t \r\n  \n/* Hello World */"), string_static("/* Hello World */")},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const String rem = script_lex_trim(testData[i].input, ScriptLexFlags_IncludeComments);
       check_eq_string(rem, testData[i].expected);
     }
   }

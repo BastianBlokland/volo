@@ -7,7 +7,7 @@ $move_target ??= {
   origin + random_circle_xz() * radius
 }
 
-if(nav_target(me) == $move_target && !active(me, "Traveling")) {
+if (nav_target(me) == $move_target && !active(me, "Traveling")) {
   $move_target = null
 } else {
   nav_travel(me, $move_target)

@@ -63,11 +63,11 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
 void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }
 
 String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) {
-  const String rangeText = script_pos_range_text(sourceText, diag->range);
+  const String rangeText = script_range_text(sourceText, diag->range);
 
   FormatArg formatArgs[2] = {0};
   if (rangeText.size < 32) {
-    formatArgs[0] = fmt_text(rangeText, .flags = FormatTextFlags_EscapeNonPrintAscii);
+    formatArgs[0] = fmt_text(rangeText);
   }
   return format_write_formatted_scratch(script_error_str(diag->error), formatArgs);
 }

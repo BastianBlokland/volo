@@ -10,6 +10,7 @@ add_library(lib_script STATIC
   src/diag.c
   src/doc.c
   src/enum.c
+  src/format.c
   src/error.c
   src/eval.c
   src/intrinsic.c
@@ -27,6 +28,7 @@ add_executable(test_lib_script
   test/config.c
   test/test_binder.c
   test/test_doc.c
+  test/test_format.c
   test/test_eval.c
   test/test_lex.c
   test/test_mem.c
