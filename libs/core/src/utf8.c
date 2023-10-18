@@ -60,7 +60,7 @@ bool utf8_validate(const String str) {
   return true;
 }
 
-usize utf8_cp_count(String str) {
+usize utf8_cp_count(const String str) {
   usize result = 0;
   mem_for_u8(str, itr) {
     if (!utf8_contchar_internal(*itr)) {
