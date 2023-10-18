@@ -96,7 +96,7 @@ static u32 format_span_measure(FormatContext* ctx, const FormatSpan span) {
   for (u32 i = 0; i != span.atomCount; ++i) {
     const FormatAtom* atom = format_span_at(ctx, span, i);
     result += atom->padding;
-    result += utf8_cp_count(atom->text);
+    result += (u32)utf8_cp_count(atom->text);
     if (i != (span.atomCount - 1)) {
       const FormatAtom* atomNext = format_span_at(ctx, span, i + 1);
       if (format_separate_by_space(atom, atomNext)) {
