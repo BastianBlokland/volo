@@ -1,16 +1,16 @@
 
 var me = self()
 
-if($user_stop) {
+if ($user_stop) {
   nav_stop(me)
-  $user_stop = null
-  $user_move_target = null
+  $user_stop          = null
+  $user_move_target   = null
   $user_attack_target = null
   return
 }
 
-if($user_move_target) {
-  if(nav_target(me) == $user_move_target && !active(me, "Traveling")) {
+if ($user_move_target) {
+  if (nav_target(me) == $user_move_target && !active(me, "Traveling")) {
     $user_move_target = null
   } else {
     nav_travel(me, $user_move_target)
@@ -19,15 +19,15 @@ if($user_move_target) {
   return
 }
 
-if(!exists($user_attack_target)) {
+if (!exists($user_attack_target)) {
   $user_attack_target = null
 }
 
 var target = $user_attack_target ?? target_primary(me)
-if(health(target) > 0) {
+if (health(target) > 0) {
   var losRadius = 0.5
-  var los = line_of_sight(me, target, losRadius)
-  if(los != null && los <= target_range_max(me)) {
+  var los       = line_of_sight(me, target, losRadius)
+  if (los != null && los <= target_range_max(me)) {
     nav_stop(me)
     attack(me, target)
   } else {

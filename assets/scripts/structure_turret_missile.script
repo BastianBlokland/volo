@@ -1,17 +1,17 @@
 
 var me = self()
 
-if(!exists($user_attack_target)) {
+if (!exists($user_attack_target)) {
   $user_attack_target = null
 }
 
-if($user_attack_target && {
-    var dist = distance(position($user_attack_target), position(me))
-    dist < target_range_min(me) || dist > target_range_max(me) }) {
+if ($user_attack_target && {
+  var dist = distance(position($user_attack_target), position(me))
+  dist < target_range_min(me) || dist > target_range_max(me) }) {
   $user_attack_target = null
 }
 
 var target = $user_attack_target ?? target_primary(me)
-if(health(target) > 0) {
+if (health(target) > 0) {
   attack(me, target)
 }
