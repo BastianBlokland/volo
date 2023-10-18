@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_utf8.h"
 #include "script_format.h"
 #include "script_lex.h"
 
@@ -75,7 +76,37 @@ static bool format_span_is_empty(const FormatSpan* span) {
   return span->atomStart == span->atomEnd;
 }
 
-static bool format_is_unary(const ScriptTokenType tokenType) {
+static usize format_span_measure(FormatContext* ctx, const FormatSpan* span) {
+  usize result = 0;
+  for (usize atomIdx = span->atomStart; atomIdx != span->atomEnd; ++atomIdx) {
+    const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
+    result += atom->padding;
+    result += utf8_cp_count(atom->text);
+    if (atomIdx != (span->atomEnd - 1)) {
+      const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
+      if (format_separate_by_space(atom, atomNext)) {
+        result += 1;
+      }
+    }
+  }
+  return result;
+}
+
+static void format_span_render(FormatContext* ctx, const FormatSpan* span) {
+  for (usize atomIdx = span->atomStart; atomIdx != span->atomEnd; ++atomIdx) {
+    const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
+    dynstring_append_chars(ctx->out, ' ', atom->padding);
+    dynstring_append(ctx->out, atom->text);
+    if (atomIdx != (span->atomEnd - 1)) {
+      const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
+      if (format_separate_by_space(atom, atomNext)) {
+        dynstring_append_char(ctx->out, ' ');
+      }
+    }
+  }
+}
+
+static bool token_is_unary(const ScriptTokenType tokenType) {
   switch (tokenType) {
   case ScriptTokenType_Bang:
   case ScriptTokenType_Minus:
@@ -103,7 +134,7 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
    * by spaces while unary are not), but for tokens that can both be used as unary or binary
    * operators (like the minus sign) we cannot tell which to use without implementing a full parser.
    */
-  while (format_is_unary(tok.type) && ctx->input.size == script_lex_trim(ctx->input, flags).size) {
+  while (token_is_unary(tok.type) && ctx->input.size == script_lex_trim(ctx->input, flags).size) {
     ctx->input = script_lex(ctx->input, null, &tok, flags);
   }
 
@@ -159,23 +190,6 @@ static void format_read_all_lines(FormatContext* ctx) {
   }
 }
 
-static void format_render_line(FormatContext* ctx, const FormatSpan* line) {
-  for (usize atomIdx = line->atomStart; atomIdx != line->atomEnd; ++atomIdx) {
-    const FormatAtom* atom = dynarray_at_t(ctx->atoms, atomIdx, FormatAtom);
-    dynstring_append_chars(ctx->out, ' ', atom->padding);
-    dynstring_append(ctx->out, atom->text);
-
-    const bool lastAtom = atomIdx == (line->atomEnd - 1);
-    if (!lastAtom) {
-      const FormatAtom* atomNext = dynarray_at_t(ctx->atoms, atomIdx + 1, FormatAtom);
-      if (format_separate_by_space(atom, atomNext)) {
-        dynstring_append_char(ctx->out, ' ');
-      }
-    }
-  }
-  dynstring_append_char(ctx->out, '\n');
-}
-
 void script_format(DynString* out, const String input) {
   DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
   DynArray      lines = dynarray_create_t(g_alloc_heap, FormatSpan, 512);
@@ -189,7 +203,10 @@ void script_format(DynString* out, const String input) {
 
   format_read_all_lines(&ctx);
   if (lines.size) {
-    dynarray_for_t(&lines, FormatSpan, line) { format_render_line(&ctx, line); }
+    dynarray_for_t(&lines, FormatSpan, line) {
+      format_span_render(&ctx, line);
+      dynstring_append_char(ctx.out, '\n');
+    }
   } else {
     dynstring_append_char(out, '\n');
   }
