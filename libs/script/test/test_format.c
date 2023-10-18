@@ -208,6 +208,19 @@ spec(format) {
                           "var helloWorld = 0\n"
                           "for (var i = 0; i != 10; i += 1)\n"),
         },
+        {
+            string_static("var hello = 0\n"
+                          "var helloWorld = 0\n"
+                          "var helloWorldHelloWorldHelloWorldHelloWorld = 0\n"
+                          "var hello = 0\n"
+                          "var helloWorld = 0\n"),
+
+            string_static("var hello      = 0\n"
+                          "var helloWorld = 0\n"
+                          "var helloWorldHelloWorldHelloWorldHelloWorld = 0\n"
+                          "var hello      = 0\n"
+                          "var helloWorld = 0\n"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

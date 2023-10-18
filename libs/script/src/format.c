@@ -7,6 +7,7 @@
 
 #define script_format_indent_size 2
 #define script_format_align_entries_max 64
+#define script_format_align_diff_max 25
 
 typedef enum {
   FormatAtomType_Generic,
@@ -257,7 +258,11 @@ static void format_align_all(FormatContext* ctx, const FormatAtomType type) {
       format_align_apply(ctx, alignDistance, entries, entryCount);
       entryCount = alignDistance = 0;
     }
-    const usize distance  = format_span_measure(ctx, format_span_slice(*line, 0, targetIndex));
+    const usize distance = format_span_measure(ctx, format_span_slice(*line, 0, targetIndex));
+    if (UNLIKELY(math_abs((i64)distance - (i64)alignDistance) > script_format_align_diff_max)) {
+      format_align_apply(ctx, alignDistance, entries, entryCount);
+      entryCount = alignDistance = 0;
+    }
     entries[entryCount++] = (FormatAlignEntry){
         .distance  = distance,
         .atomIndex = line->atomIndex + targetIndex,
