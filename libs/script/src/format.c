@@ -11,14 +11,15 @@
 
 typedef enum {
   FormatAtomType_Generic,
-  FormatAtomType_Newline,    // '\n'
-  FormatAtomType_BlockStart, // '{'
-  FormatAtomType_BlockEnd,   // '}'
-  FormatAtomType_SetStart,   // '('
-  FormatAtomType_SetEnd,     // ')'
-  FormatAtomType_Identifier, // 'hello'
-  FormatAtomType_Separator,  // ';', ','
-  FormatAtomType_Assignment, // '='
+  FormatAtomType_Newline,     // '\n'
+  FormatAtomType_BlockStart,  // '{'
+  FormatAtomType_BlockEnd,    // '}'
+  FormatAtomType_SetStart,    // '('
+  FormatAtomType_SetEnd,      // ')'
+  FormatAtomType_Identifier,  // 'hello'
+  FormatAtomType_Separator,   // ';', ','
+  FormatAtomType_Assignment,  // '='
+  FormatAtomType_CommentLine, // '// Hello'
 } FormatAtomType;
 
 typedef struct {
@@ -74,6 +75,8 @@ static FormatAtomType format_atom_type(const ScriptTokenType tokenType) {
     return FormatAtomType_Separator;
   case ScriptTokenType_Eq:
     return FormatAtomType_Assignment;
+  case ScriptTokenType_CommentLine:
+    return FormatAtomType_CommentLine;
   default:
     return FormatAtomType_Generic;
   }
@@ -286,6 +289,7 @@ void script_format(DynString* out, const String input) {
   format_span_read_all_lines(&ctx);
   if (lines.size) {
     format_align_all(&ctx, FormatAtomType_Assignment);
+    format_align_all(&ctx, FormatAtomType_CommentLine);
 
     dynarray_for_t(&lines, FormatSpan, line) {
       format_span_render(&ctx, *line);
