@@ -5,7 +5,6 @@
 #include "script_format.h"
 #include "script_lex.h"
 
-#define script_format_indent_size 2
 #define script_format_align_entries_max 64
 #define script_format_align_diff_max 25
 
@@ -33,11 +32,12 @@ typedef struct {
 } FormatSpan;
 
 typedef struct {
-  String     input, inputTotal;
-  DynString* out;
-  DynArray*  atoms; // FormatAtom[]
-  DynArray*  lines; // FormatSpan[]
-  u32        currentIndent;
+  const ScriptFormatSettings* settings;
+  String                      input, inputTotal;
+  DynString*                  out;
+  DynArray*                   atoms; // FormatAtom[]
+  DynArray*                   lines; // FormatSpan[]
+  u32                         currentIndent;
 } FormatContext;
 
 static bool format_separate_by_space(const FormatAtom* a, const FormatAtom* b) {
@@ -180,7 +180,7 @@ static bool format_span_read_line(FormatContext* ctx, FormatSpan* out) {
     }
     const bool firstAtom = out->atomIndex == ctx->atoms->size;
     if (firstAtom) {
-      atom.padding = ctx->currentIndent * script_format_indent_size;
+      atom.padding = ctx->currentIndent * ctx->settings->indentSize;
     }
     if (atom.type == FormatAtomType_BlockStart || atom.type == FormatAtomType_SetStart) {
       ++ctx->currentIndent;
@@ -276,10 +276,11 @@ static void format_align_all(FormatContext* ctx, const FormatAtomType type) {
   format_align_apply(ctx, alignDistance, entries, entryCount);
 }
 
-void script_format(DynString* out, const String input) {
+void script_format(DynString* out, const String input, const ScriptFormatSettings* settings) {
   DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
   DynArray      lines = dynarray_create_t(g_alloc_heap, FormatSpan, 512);
   FormatContext ctx   = {
+      .settings   = settings,
       .input      = input,
       .inputTotal = input,
       .out        = out,
