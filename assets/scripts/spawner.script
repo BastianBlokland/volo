@@ -1,3 +1,6 @@
+/**
+ * Every x seconds spawn a wave of enemies around this entity.
+ */
 
 var intervalMin   = 20
 var intervalMax   = 60

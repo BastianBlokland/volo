@@ -1,3 +1,6 @@
+/**
+ * Spawn a unit that attacks an endlessly respawning explosive barrel.
+ */
 
 var origin = position(self())
 
