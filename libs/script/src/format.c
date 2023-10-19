@@ -227,7 +227,8 @@ static void format_align_apply(
 }
 
 static u32 format_align_target(FormatContext* ctx, const FormatSpan span, const FormatAtomType t) {
-  for (u32 i = 0; i != span.atomCount; ++i) {
+  // NOTE: Skip the first atom as it doesn't need / support aligning.
+  for (u32 i = 1; i < span.atomCount; ++i) {
     const FormatAtom* atom = format_span_at(ctx, span, i);
     if (atom->type == t) {
       return i;

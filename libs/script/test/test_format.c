@@ -266,6 +266,24 @@ spec(format) {
             string_static("var x = 42 // Hello\n"
                           "var y      // World\n"),
         },
+        {
+            string_static("// Hello\n"
+                          "var x = 42 // Hello\n"
+                          "var y// World\n"),
+
+            string_static("// Hello\n"
+                          "var x = 42 // Hello\n"
+                          "var y      // World\n"),
+        },
+        {
+            string_static("var x = 42 // Hello\n"
+                          "var y// World\n"
+                          "// Hello\n"),
+
+            string_static("var x = 42 // Hello\n"
+                          "var y      // World\n"
+                          "// Hello\n"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
