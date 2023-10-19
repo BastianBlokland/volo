@@ -325,14 +325,14 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       if (script_peek(str, 1) == '/') {
         str = script_consume_chars(str, script_scan_line_end(str)); // Consume comment.
         if (fl & ScriptLexFlags_IncludeComments) {
-          return out->type = ScriptTokenType_Comment, str;
+          return out->type = ScriptTokenType_CommentLine, str;
         }
         continue;
       }
       if (script_peek(str, 1) == '*') {
         str = script_consume_chars(str, script_scan_block_comment_end(str)); // Consume comment.
         if (fl & ScriptLexFlags_IncludeComments) {
-          return out->type = ScriptTokenType_Comment, str;
+          return out->type = ScriptTokenType_CommentBlock, str;
         }
         continue;
       }
@@ -544,8 +544,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("break");
   case ScriptTokenType_Return:
     return string_lit("return");
-  case ScriptTokenType_Comment:
-    return string_lit("comment");
+  case ScriptTokenType_CommentLine:
+    return string_lit("comment-line");
+  case ScriptTokenType_CommentBlock:
+    return string_lit("comment-block");
   case ScriptTokenType_Newline:
     return string_lit("newline");
   case ScriptTokenType_Error:

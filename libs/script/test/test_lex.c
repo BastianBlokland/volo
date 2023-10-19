@@ -181,16 +181,16 @@ spec(lex) {
     check_eq_int(token.type, ScriptTokenType_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_Comment);
+    check_eq_int(token.type, ScriptTokenType_CommentLine);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_Comment);
+    check_eq_int(token.type, ScriptTokenType_CommentBlock);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
     check_eq_int(token.type, ScriptTokenType_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_Comment);
+    check_eq_int(token.type, ScriptTokenType_CommentBlock);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
     check_eq_int(token.type, ScriptTokenType_End);

@@ -3,8 +3,9 @@
 #include "script_format.h"
 
 spec(format) {
-  Mem       buffer = mem_stack(4096);
-  DynString bufferStr;
+  Mem                  buffer = mem_stack(4096);
+  DynString            bufferStr;
+  ScriptFormatSettings settings = {.indentSize = 2};
 
   setup() { bufferStr = dynstring_create_over(buffer); }
 
@@ -70,7 +71,7 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }
@@ -87,7 +88,7 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }
@@ -110,7 +111,7 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }
@@ -129,7 +130,7 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }
@@ -147,7 +148,7 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }
@@ -165,7 +166,7 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }
@@ -250,7 +251,45 @@ spec(format) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&bufferStr);
-      script_format(&bufferStr, g_testData[i].input);
+      script_format(&bufferStr, g_testData[i].input, &settings);
+      check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
+    }
+  }
+
+  it("aligns line-comments") {
+    static const struct {
+      String input, expect;
+    } g_testData[] = {
+        {
+            string_static("var x = 42 // Hello\n"
+                          "var y// World\n"),
+
+            string_static("var x = 42 // Hello\n"
+                          "var y      // World\n"),
+        },
+        {
+            string_static("// Hello\n"
+                          "var x = 42 // Hello\n"
+                          "var y// World\n"),
+
+            string_static("// Hello\n"
+                          "var x = 42 // Hello\n"
+                          "var y      // World\n"),
+        },
+        {
+            string_static("var x = 42 // Hello\n"
+                          "var y// World\n"
+                          "// Hello\n"),
+
+            string_static("var x = 42 // Hello\n"
+                          "var y      // World\n"
+                          "// Hello\n"),
+        },
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      dynstring_clear(&bufferStr);
+      script_format(&bufferStr, g_testData[i].input, &settings);
       check_eq_string(dynstring_view(&bufferStr), g_testData[i].expect);
     }
   }

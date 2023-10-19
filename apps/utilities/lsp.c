@@ -260,6 +260,13 @@ static String lsp_maybe_str(LspContext* ctx, const JsonVal val) {
   return json_string(ctx->jDoc, val);
 }
 
+static f64 lsp_maybe_number(LspContext* ctx, const JsonVal val) {
+  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Number) {
+    return -1.0; // TODO: Should this return NaN instead?
+  }
+  return json_number(ctx->jDoc, val);
+}
+
 static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String fieldName) {
   if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Object) {
     return sentinel_u32;
@@ -758,13 +765,17 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(string_is_empty(uri))) {
     goto InvalidParams;
   }
-  const JsonVal optionsVal = lsp_maybe_field(ctx, req->params, string_lit("options"));
-  if (sentinel_check(optionsVal)) {
-    goto InvalidParams;
-  }
   LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+  const JsonVal optsVal = lsp_maybe_field(ctx, req->params, string_lit("options"));
+  if (sentinel_check(optsVal)) {
+    goto InvalidParams;
+  }
+  const f64 tabSize = lsp_maybe_number(ctx, lsp_maybe_field(ctx, optsVal, string_lit("tabSize")));
+  if (UNLIKELY(tabSize < 1.0 || tabSize > 8.0)) {
+    goto InvalidParams;
   }
 
   const usize expectedResultSize = (usize)(doc->text.size * 1.5f); // Guesstimate the output size.
@@ -772,8 +783,8 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
 
   const TimeSteady formatStartTime = time_steady_clock();
 
-  // TODO: Respect the given formatting options.
-  script_format(&resultBuffer, doc->text);
+  const ScriptFormatSettings settings = {.indentSize = (u32)tabSize};
+  script_format(&resultBuffer, doc->text, &settings);
 
   if (ctx->flags & LspFlags_Trace) {
     const TimeDuration dur   = time_steady_duration(formatStartTime, time_steady_clock());

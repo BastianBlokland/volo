@@ -21,6 +21,11 @@ indent_size = 2
 indent_style = space
 
 # Script files.
+[*.script]
+indent_size = 2
+indent_style = space
+
+# CI script files.
 [*.{sh,ps1}]
 indent_size = 2
 indent_style = space

@@ -5,20 +5,22 @@
 #include "script_format.h"
 #include "script_lex.h"
 
-#define script_format_indent_size 2
 #define script_format_align_entries_max 64
 #define script_format_align_diff_max 25
 
 typedef enum {
   FormatAtomType_Generic,
-  FormatAtomType_Newline,    // '\n'
-  FormatAtomType_BlockStart, // '{'
-  FormatAtomType_BlockEnd,   // '}'
-  FormatAtomType_SetStart,   // '('
-  FormatAtomType_SetEnd,     // ')'
-  FormatAtomType_Identifier, // 'hello'
-  FormatAtomType_Separator,  // ';', ','
-  FormatAtomType_Assignment, // '='
+  FormatAtomType_Newline,               // '\n'
+  FormatAtomType_BlockStart,            // '{'
+  FormatAtomType_BlockEnd,              // '}'
+  FormatAtomType_SetStart,              // '('
+  FormatAtomType_SetEnd,                // ')'
+  FormatAtomType_Identifier,            // 'hello'
+  FormatAtomType_Separator,             // ';', ','
+  FormatAtomType_Assignment,            // '='
+  FormatAtomType_CommentLine,           // '// Hello'
+  FormatAtomType_CommentBlock,          // '/* Hello */'
+  FormatAtomType_CommentBlockMultiLine, // '/* Hello \n World */'
 } FormatAtomType;
 
 typedef struct {
@@ -32,11 +34,12 @@ typedef struct {
 } FormatSpan;
 
 typedef struct {
-  String     input, inputTotal;
-  DynString* out;
-  DynArray*  atoms; // FormatAtom[]
-  DynArray*  lines; // FormatSpan[]
-  u32        currentIndent;
+  const ScriptFormatSettings* settings;
+  String                      input, inputTotal;
+  DynString*                  out;
+  DynArray*                   atoms; // FormatAtom[]
+  DynArray*                   lines; // FormatSpan[]
+  u32                         currentIndent;
 } FormatContext;
 
 static bool format_separate_by_space(const FormatAtom* a, const FormatAtom* b) {
@@ -74,6 +77,10 @@ static FormatAtomType format_atom_type(const ScriptTokenType tokenType) {
     return FormatAtomType_Separator;
   case ScriptTokenType_Eq:
     return FormatAtomType_Assignment;
+  case ScriptTokenType_CommentLine:
+    return FormatAtomType_CommentLine;
+  case ScriptTokenType_CommentBlock:
+    return FormatAtomType_CommentBlock;
   default:
     return FormatAtomType_Generic;
   }
@@ -83,7 +90,7 @@ static bool format_span_is_empty(const FormatSpan span) { return span.atomCount 
 
 static FormatAtom* format_span_at(FormatContext* ctx, const FormatSpan span, const u32 i) {
   diag_assert(i < span.atomCount);
-  return dynarray_at_t(ctx->atoms, span.atomIndex + i, FormatAtom);
+  return dynarray_begin_t(ctx->atoms, FormatAtom) + span.atomIndex + i;
 }
 
 static FormatSpan format_span_slice(const FormatSpan span, const u32 offset, const u32 size) {
@@ -157,7 +164,12 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
   const String text          = script_lex_trim(textUntrimmed, flags);
 
-  *out = (FormatAtom){.type = format_atom_type(tok.type), .text = text};
+  FormatAtomType type = format_atom_type(tok.type);
+  if (type == FormatAtomType_CommentBlock && mem_contains(text, '\n')) {
+    type = FormatAtomType_CommentBlockMultiLine;
+  }
+
+  *out = (FormatAtom){.type = type, .text = text};
   return true;
 }
 
@@ -177,7 +189,7 @@ static bool format_span_read_line(FormatContext* ctx, FormatSpan* out) {
     }
     const bool firstAtom = out->atomIndex == ctx->atoms->size;
     if (firstAtom) {
-      atom.padding = ctx->currentIndent * script_format_indent_size;
+      atom.padding = ctx->currentIndent * ctx->settings->indentSize;
     }
     if (atom.type == FormatAtomType_BlockStart || atom.type == FormatAtomType_SetStart) {
       ++ctx->currentIndent;
@@ -226,7 +238,8 @@ static void format_align_apply(
 static u32 format_align_target(FormatContext* ctx, const FormatSpan span, const FormatAtomType t) {
   for (u32 i = 0; i != span.atomCount; ++i) {
     const FormatAtom* atom = format_span_at(ctx, span, i);
-    if (atom->type == t) {
+    // NOTE: Skip the first atom as it doesn't need / support aligning.
+    if (i != 0 && atom->type == t) {
       return i;
     }
     switch (atom->type) {
@@ -234,6 +247,7 @@ static u32 format_align_target(FormatContext* ctx, const FormatSpan span, const 
     case FormatAtomType_BlockEnd:
     case FormatAtomType_SetStart:
     case FormatAtomType_SetEnd:
+    case FormatAtomType_CommentBlockMultiLine:
       return sentinel_u32; // Alignment boundary encountered.
     default:
       break;
@@ -272,20 +286,22 @@ static void format_align_all(FormatContext* ctx, const FormatAtomType type) {
   format_align_apply(ctx, alignDistance, entries, entryCount);
 }
 
-void script_format(DynString* out, const String input) {
+void script_format(DynString* out, const String input, const ScriptFormatSettings* settings) {
   DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
   DynArray      lines = dynarray_create_t(g_alloc_heap, FormatSpan, 512);
   FormatContext ctx   = {
-      .input      = input,
-      .inputTotal = input,
-      .out        = out,
-      .atoms      = &atoms,
-      .lines      = &lines,
+        .settings   = settings,
+        .input      = input,
+        .inputTotal = input,
+        .out        = out,
+        .atoms      = &atoms,
+        .lines      = &lines,
   };
 
   format_span_read_all_lines(&ctx);
   if (lines.size) {
     format_align_all(&ctx, FormatAtomType_Assignment);
+    format_align_all(&ctx, FormatAtomType_CommentLine);
 
     dynarray_for_t(&lines, FormatSpan, line) {
       format_span_render(&ctx, *line);
