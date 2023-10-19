@@ -90,7 +90,7 @@ static bool format_span_is_empty(const FormatSpan span) { return span.atomCount 
 
 static FormatAtom* format_span_at(FormatContext* ctx, const FormatSpan span, const u32 i) {
   diag_assert(i < span.atomCount);
-  return dynarray_at_t(ctx->atoms, span.atomIndex + i, FormatAtom);
+  return dynarray_begin_t(ctx->atoms, FormatAtom) + span.atomIndex + i;
 }
 
 static FormatSpan format_span_slice(const FormatSpan span, const u32 offset, const u32 size) {
