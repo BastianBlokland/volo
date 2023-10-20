@@ -54,7 +54,7 @@ typedef enum eScriptError {
 typedef enum eScriptErrorRuntime {
   ScriptErrorRuntime_None,
   ScriptErrorRuntime_AssertionFailed,
-  ScriptErrorRuntime_LoopInterationLimitExceeded,
+  ScriptErrorRuntime_ExecutionLimitExceeded,
 
   ScriptErrorRuntime_Count,
 } ScriptErrorRuntime;

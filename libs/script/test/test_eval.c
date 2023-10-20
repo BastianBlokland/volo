@@ -327,22 +327,13 @@ spec(eval) {
     check_eq_val(evalRes.val, script_null());
   }
 
-  it("limits while loop iterations") {
+  it("limits the executed expressions count") {
     const ScriptExpr expr =
         script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptErrorRuntime_LoopInterationLimitExceeded);
-    check_eq_val(evalRes.val, script_null());
-  }
-
-  it("limits for loop iterations") {
-    const ScriptExpr expr = script_read(doc, binder, string_lit("for(;;) {}"), diagsNull, symsNull);
-    check_require(!sentinel_check(expr));
-
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptErrorRuntime_LoopInterationLimitExceeded);
+    check(evalRes.error == ScriptErrorRuntime_ExecutionLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 

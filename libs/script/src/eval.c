@@ -7,7 +7,7 @@
 
 #include "doc_internal.h"
 
-#define script_loop_itr_max 1000
+#define script_exprs_executed_max 10000
 
 typedef enum {
   ScriptEvalSignal_None     = 0,
@@ -24,6 +24,7 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal : 8;
   ScriptErrorRuntime  error : 8;
+  u32                 exprsExecuted;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
@@ -113,16 +114,10 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   }
   case ScriptIntrinsic_Loop: {
     EVAL_ARG_WITH_INTERRUPT(0); // Setup.
-    ScriptVal ret  = script_null();
-    u32       itrs = 0;
+    ScriptVal ret = script_null();
     for (;;) {
       EVAL_ARG_WITH_INTERRUPT(1); // Condition.
       if (script_falsy(arg1) || UNLIKELY(ctx->signal)) {
-        break;
-      }
-      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
-        ctx->error = ScriptErrorRuntime_LoopInterationLimitExceeded;
-        ctx->signal |= ScriptEvalSignal_Error;
         break;
       }
       ret = eval(ctx, args[3]); // Body.
@@ -271,6 +266,11 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 }
 
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
+  if (UNLIKELY(ctx->exprsExecuted++ == script_exprs_executed_max)) {
+    ctx->error = ScriptErrorRuntime_ExecutionLimitExceeded;
+    ctx->signal |= ScriptEvalSignal_Error;
+    return script_null();
+  }
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);

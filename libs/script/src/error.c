@@ -54,7 +54,7 @@ ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of err s
 static const String g_errorRuntimeStrs[] = {
     string_static("Success"),
     string_static("Assertion failed"),
-    string_static("Loop iteration limit exceeded"),
+    string_static("Execution limit exceeded"),
 };
 ASSERT(array_elems(g_errorRuntimeStrs) == ScriptErrorRuntime_Count, "Incorrect number of err strs");
 
