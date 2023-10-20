@@ -10,12 +10,11 @@
 #define script_loop_itr_max 1000
 
 typedef enum {
-  ScriptEvalSignal_None              = 0,
-  ScriptEvalSignal_Continue          = 1 << 0,
-  ScriptEvalSignal_Break             = 1 << 1,
-  ScriptEvalSignal_Return            = 1 << 2,
-  ScriptEvalSignal_AssertionFailed   = 1 << 3,
-  ScriptEvalSignal_LoopLimitExceeded = 1 << 4,
+  ScriptEvalSignal_None     = 0,
+  ScriptEvalSignal_Continue = 1 << 0,
+  ScriptEvalSignal_Break    = 1 << 1,
+  ScriptEvalSignal_Return   = 1 << 2,
+  ScriptEvalSignal_Error    = 1 << 3,
 } ScriptEvalSignal;
 
 typedef struct {
@@ -23,7 +22,8 @@ typedef struct {
   ScriptMem*          m;
   const ScriptBinder* binder;
   void*               bindCtx;
-  ScriptEvalSignal    signal;
+  ScriptEvalSignal    signal : 8;
+  ScriptErrorRuntime  error : 8;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
@@ -90,7 +90,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
-      ctx->signal |= ScriptEvalSignal_AssertionFailed;
+      ctx->error = ScriptErrorRuntime_AssertionFailed;
+      ctx->signal |= ScriptEvalSignal_Error;
     }
     return script_null();
   }
@@ -120,7 +121,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
         break;
       }
       if (UNLIKELY(itrs++ == script_loop_itr_max)) {
-        ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
+        ctx->error = ScriptErrorRuntime_LoopInterationLimitExceeded;
+        ctx->signal |= ScriptEvalSignal_Error;
         break;
       }
       ret = eval(ctx, args[3]); // Body.
@@ -294,11 +296,9 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
 }
 
 static ScriptErrorRuntime script_error_runtime_type(const ScriptEvalContext* ctx) {
-  if (UNLIKELY(ctx->signal & ScriptEvalSignal_AssertionFailed)) {
-    return ScriptErrorRuntime_AssertionFailed;
-  }
-  if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
-    return ScriptErrorRuntime_LoopInterationLimitExceeded;
+  if (UNLIKELY(ctx->signal & ScriptEvalSignal_Error)) {
+    diag_assert_msg(ctx->error, "Invalid error signal");
+    return ctx->error;
   }
   if (ctx->signal == ScriptEvalSignal_Return) {
     return ScriptErrorRuntime_None;
