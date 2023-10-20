@@ -743,7 +743,8 @@ typedef enum {
 } SceneScriptResFlags;
 
 ecs_comp_define(SceneScriptComp) {
-  SceneScriptFlags flags;
+  SceneScriptFlags flags : 8;
+  SceneScriptStats stats;
   EcsEntityId      scriptAsset;
   DynArray         actions; // ScriptAction[].
 };
@@ -817,8 +818,10 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptExpr expr = ctx->scriptAsset->expr;
   ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
+  // Eval.
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
 
+  // Handle errors.
   if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
     const String err = script_error_runtime_str(evalRes.error);
     log_w(
@@ -827,6 +830,9 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("entity", fmt_int(ctx->entity, .base = 16)),
         log_param("script", fmt_text(ctx->scriptId)));
   }
+
+  // Update stats.
+  ctx->scriptInstance->stats.exprsExecuted = evalRes.exprsExecuted;
 }
 
 ecs_system_define(SceneScriptUpdateSys) {
@@ -1113,6 +1119,8 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
 }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
+
+const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
 
 SceneScriptComp*
 scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {

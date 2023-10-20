@@ -7,6 +7,10 @@ typedef enum {
   SceneScriptFlags_PauseEvaluation = 1 << 0,
 } SceneScriptFlags;
 
+typedef struct {
+  u32 exprsExecuted;
+} SceneScriptStats;
+
 ecs_comp_extern(SceneScriptComp);
 
 /**
@@ -18,9 +22,10 @@ void             scene_script_flags_unset(SceneScriptComp*, SceneScriptFlags);
 void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 
 /**
- * Retrieve the asset for the given script.
+ * Retrieve statistics for the given script.
  */
-EcsEntityId scene_script_asset(const SceneScriptComp*);
+EcsEntityId             scene_script_asset(const SceneScriptComp*);
+const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
 
 /**
  * Add a new script to the entity.

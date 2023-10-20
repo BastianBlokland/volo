@@ -324,8 +324,9 @@ ScriptEvalResult script_eval(
   };
 
   ScriptEvalResult res;
-  res.val   = eval(&ctx, expr);
-  res.error = script_error_runtime_type(&ctx);
+  res.val           = eval(&ctx, expr);
+  res.error         = script_error_runtime_type(&ctx);
+  res.exprsExecuted = ctx.exprsExecuted;
   return res;
 }
 
@@ -338,7 +339,8 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
   };
 
   ScriptEvalResult res;
-  res.val   = eval(&ctx, expr);
-  res.error = script_error_runtime_type(&ctx);
+  res.val           = eval(&ctx, expr);
+  res.error         = script_error_runtime_type(&ctx);
+  res.exprsExecuted = ctx.exprsExecuted;
   return res;
 }

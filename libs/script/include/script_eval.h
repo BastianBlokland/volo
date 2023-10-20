@@ -11,6 +11,7 @@ typedef struct sScriptBinder ScriptBinder;
 typedef struct {
   ScriptErrorRuntime error;
   ScriptVal          val;
+  u32                exprsExecuted;
 } ScriptEvalResult;
 
 /**

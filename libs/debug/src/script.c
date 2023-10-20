@@ -13,6 +13,7 @@
 #include "ui.h"
 
 typedef enum {
+  DebugScriptTab_Stats,
   DebugScriptTab_Memory,
   DebugScriptTab_Settings,
 
@@ -20,6 +21,7 @@ typedef enum {
 } DebugScriptTab;
 
 static const String g_scriptTabNames[] = {
+    string_static("\uE4FC Stats"),
     string_static("\uE322 Memory"),
     string_static("\uE8B8 Settings"),
 };
@@ -43,6 +45,27 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
 ecs_view_define(SubjectView) {
   ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneScriptComp);
+}
+
+static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
+  diag_assert(subject);
+
+  const SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
+  if (!scriptInstance) {
+    ui_label(canvas, string_lit("No statistics available."), .align = UiAlign_MiddleCenter);
+    return;
+  }
+
+  const SceneScriptStats* stats = scene_script_stats(scriptInstance);
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Expressions:"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->exprsExecuted)));
 }
 
 static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
@@ -265,6 +288,9 @@ script_panel_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIter
 
   if (subject) {
     switch (panelComp->panel.activeTab) {
+    case DebugScriptTab_Stats:
+      stats_panel_tab_draw(canvas, subject);
+      break;
     case DebugScriptTab_Memory:
       memory_panel_tab_draw(canvas, panelComp, subject);
       break;
