@@ -449,9 +449,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_number(args, 2, 0.0);
@@ -743,7 +743,8 @@ typedef enum {
 } SceneScriptResFlags;
 
 ecs_comp_define(SceneScriptComp) {
-  SceneScriptFlags flags;
+  SceneScriptFlags flags : 8;
+  SceneScriptStats stats;
   EcsEntityId      scriptAsset;
   DynArray         actions; // ScriptAction[].
 };
@@ -817,16 +818,24 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptExpr expr = ctx->scriptAsset->expr;
   ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
+  const TimeSteady startTime = time_steady_clock();
+
+  // Eval.
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
 
-  if (UNLIKELY(evalRes.error != ScriptError_None)) {
-    const String err = script_error_str(evalRes.error);
+  // Handle errors.
+  if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
+    const String err = script_error_runtime_str(evalRes.error);
     log_w(
         "Script execution failed",
         log_param("error", fmt_text(err)),
         log_param("entity", fmt_int(ctx->entity, .base = 16)),
         log_param("script", fmt_text(ctx->scriptId)));
   }
+
+  // Update stats.
+  ctx->scriptInstance->stats.executedExprs = evalRes.executedExprs;
+  ctx->scriptInstance->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
 }
 
 ecs_system_define(SceneScriptUpdateSys) {
@@ -1113,6 +1122,8 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
 }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
+
+const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
 
 SceneScriptComp*
 scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {

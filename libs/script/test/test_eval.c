@@ -272,7 +272,7 @@ spec(eval) {
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
       const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-      check(evalRes.error == ScriptError_None);
+      check(evalRes.error == ScriptErrorRuntime_None);
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
           "{} == {} ({})",
@@ -288,7 +288,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptError_None);
+    check(evalRes.error == ScriptErrorRuntime_None);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
     check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
@@ -306,7 +306,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
-    check(evalRes.error == ScriptError_None);
+    check(evalRes.error == ScriptErrorRuntime_None);
     check_eq_int(ctx.counter, 3);
   }
 
@@ -322,27 +322,18 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
-    check(evalRes.error == ScriptError_AssertionFailed);
+    check(evalRes.error == ScriptErrorRuntime_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
   }
 
-  it("limits while loop iterations") {
+  it("limits the executed expressions count") {
     const ScriptExpr expr =
         script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
-    check_eq_val(evalRes.val, script_null());
-  }
-
-  it("limits for loop iterations") {
-    const ScriptExpr expr = script_read(doc, binder, string_lit("for(;;) {}"), diagsNull, symsNull);
-    check_require(!sentinel_check(expr));
-
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
+    check(evalRes.error == ScriptErrorRuntime_ExecutionLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 

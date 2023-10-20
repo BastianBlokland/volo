@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -13,6 +14,7 @@
 #include "ui.h"
 
 typedef enum {
+  DebugScriptTab_Stats,
   DebugScriptTab_Memory,
   DebugScriptTab_Settings,
 
@@ -20,6 +22,7 @@ typedef enum {
 } DebugScriptTab;
 
 static const String g_scriptTabNames[] = {
+    string_static("\uE4FC Stats"),
     string_static("\uE322 Memory"),
     string_static("\uE8B8 Settings"),
 };
@@ -43,6 +46,41 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
 ecs_view_define(SubjectView) {
   ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneScriptComp);
+}
+
+ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+
+static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world, EcsIterator* subject) {
+  diag_assert(subject);
+
+  const SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
+  if (!scriptInstance) {
+    ui_label(canvas, string_lit("No statistics available."), .align = UiAlign_MiddleCenter);
+    return;
+  }
+
+  const EcsEntityId       scriptAsset = scene_script_asset(scriptInstance);
+  const SceneScriptStats* stats       = scene_script_stats(scriptInstance);
+  const String scriptName = asset_id(ecs_utils_read_t(world, AssetView, scriptAsset, AssetComp));
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Script:"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptName)), .selectable = true);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Expressions:"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Duration:"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
 }
 
 static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
@@ -251,8 +289,8 @@ static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) 
   }
 }
 
-static void
-script_panel_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIterator* subject) {
+static void script_panel_draw(
+    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsWorld* world, EcsIterator* subject) {
 
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
@@ -265,6 +303,9 @@ script_panel_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIter
 
   if (subject) {
     switch (panelComp->panel.activeTab) {
+    case DebugScriptTab_Stats:
+      stats_panel_tab_draw(canvas, world, subject);
+      break;
     case DebugScriptTab_Memory:
       memory_panel_tab_draw(canvas, panelComp, subject);
       break;
@@ -303,7 +344,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, subject);
+    script_panel_draw(canvas, panelComp, world, subject);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -320,12 +361,14 @@ ecs_module_init(debug_script_module) {
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(SubjectView);
+  ecs_register_view(AssetView);
 
   ecs_register_system(
       DebugScriptUpdatePanelSys,
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(SubjectView));
+      ecs_view_id(SubjectView),
+      ecs_view_id(AssetView));
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {

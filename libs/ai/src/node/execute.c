@@ -15,8 +15,8 @@ AiResult ai_node_execute_eval(const AiEvalContext* ctx, const AssetAiNodeId node
   void*                  bindCtx = null;
   const ScriptEvalResult evalRes = script_eval(ctx->scriptDoc, ctx->memory, expr, binder, bindCtx);
 
-  if (UNLIKELY(evalRes.error != ScriptError_None)) {
-    const String err = script_error_str(evalRes.error);
+  if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
+    const String err = script_error_runtime_str(evalRes.error);
     log_w("Runtime error during AI execution node", log_param("error", fmt_text(err)));
   }
 
