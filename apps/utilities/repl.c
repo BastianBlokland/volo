@@ -284,7 +284,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     }
     if (!(flags & ReplFlags_NoEval)) {
       const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
-      if (evalRes.error == ScriptError_None) {
+      if (evalRes.error == ScriptErrorRuntime_None) {
         repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
       } else {
         repl_output_runtime_error(&evalRes, id);
