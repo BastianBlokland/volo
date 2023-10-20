@@ -293,18 +293,18 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
   UNREACHABLE
 }
 
-static ScriptError script_error_type(const ScriptEvalContext* ctx) {
+static ScriptErrorRuntime script_error_runtime_type(const ScriptEvalContext* ctx) {
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_AssertionFailed)) {
-    return ScriptError_AssertionFailed;
+    return ScriptErrorRuntime_AssertionFailed;
   }
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
-    return ScriptError_LoopInterationLimitExceeded;
+    return ScriptErrorRuntime_LoopInterationLimitExceeded;
   }
   if (ctx->signal == ScriptEvalSignal_Return) {
-    return ScriptError_None;
+    return ScriptErrorRuntime_None;
   }
   diag_assert_msg(!ctx->signal, "Unhandled signal");
-  return ScriptError_None;
+  return ScriptErrorRuntime_None;
 }
 
 ScriptEvalResult script_eval(
@@ -325,7 +325,7 @@ ScriptEvalResult script_eval(
 
   ScriptEvalResult res;
   res.val   = eval(&ctx, expr);
-  res.error = script_error_type(&ctx);
+  res.error = script_error_runtime_type(&ctx);
   return res;
 }
 
@@ -339,6 +339,6 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
 
   ScriptEvalResult res;
   res.val   = eval(&ctx, expr);
-  res.error = script_error_type(&ctx);
+  res.error = script_error_runtime_type(&ctx);
   return res;
 }

@@ -9,8 +9,8 @@ typedef struct sScriptMem ScriptMem;
 typedef struct sScriptBinder ScriptBinder;
 
 typedef struct {
-  ScriptError error;
-  ScriptVal   val;
+  ScriptErrorRuntime error;
+  ScriptVal          val;
 } ScriptEvalResult;
 
 /**

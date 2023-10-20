@@ -99,7 +99,7 @@ static void repl_output_runtime_error(const ScriptEvalResult* res, const String 
     dynstring_append(&buffer, id);
     dynstring_append(&buffer, string_lit(": "));
   }
-  dynstring_append(&buffer, script_error_str(res->error));
+  dynstring_append(&buffer, script_error_runtime_str(res->error));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');

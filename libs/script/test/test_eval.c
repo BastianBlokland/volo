@@ -322,7 +322,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
-    check(evalRes.error == ScriptError_AssertionFailed);
+    check(evalRes.error == ScriptErrorRuntime_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
   }
@@ -333,7 +333,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
+    check(evalRes.error == ScriptErrorRuntime_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 
@@ -342,7 +342,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
+    check(evalRes.error == ScriptErrorRuntime_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 

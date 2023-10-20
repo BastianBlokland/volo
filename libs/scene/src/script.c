@@ -449,9 +449,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_number(args, 2, 0.0);
@@ -819,8 +819,8 @@ static void scene_script_eval(EvalContext* ctx) {
 
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
 
-  if (UNLIKELY(evalRes.error != ScriptError_None)) {
-    const String err = script_error_str(evalRes.error);
+  if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
+    const String err = script_error_runtime_str(evalRes.error);
     log_w(
         "Script execution failed",
         log_param("error", fmt_text(err)),

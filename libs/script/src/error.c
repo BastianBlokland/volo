@@ -48,13 +48,22 @@ static const String g_errorStrs[] = {
     string_static("Expression has no effect"),
     string_static("Unreachable expressions"),
     string_static("Condition expression is static"),
+};
+ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of err strs");
+
+static const String g_errorRuntimeStrs[] = {
+    string_static("Success"),
     string_static("Assertion failed"),
     string_static("Loop iteration limit exceeded"),
 };
-
-ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of ScriptError strings");
+ASSERT(array_elems(g_errorRuntimeStrs) == ScriptErrorRuntime_Count, "Incorrect number of err strs");
 
 String script_error_str(const ScriptError error) {
   diag_assert(error < ScriptError_Count);
   return g_errorStrs[error];
+}
+
+String script_error_runtime_str(const ScriptErrorRuntime error) {
+  diag_assert(error < ScriptErrorRuntime_Count);
+  return g_errorRuntimeStrs[error];
 }
