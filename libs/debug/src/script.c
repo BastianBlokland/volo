@@ -65,7 +65,12 @@ static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Expressions:"));
   ui_table_next_column(canvas, &table);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->exprsExecuted)));
+  ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Duration:"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
 }
 
 static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {

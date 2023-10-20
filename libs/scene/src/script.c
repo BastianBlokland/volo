@@ -818,6 +818,8 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptExpr expr = ctx->scriptAsset->expr;
   ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
+  const TimeSteady startTime = time_steady_clock();
+
   // Eval.
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
 
@@ -832,7 +834,8 @@ static void scene_script_eval(EvalContext* ctx) {
   }
 
   // Update stats.
-  ctx->scriptInstance->stats.exprsExecuted = evalRes.exprsExecuted;
+  ctx->scriptInstance->stats.executedExprs = evalRes.executedExprs;
+  ctx->scriptInstance->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
 }
 
 ecs_system_define(SceneScriptUpdateSys) {

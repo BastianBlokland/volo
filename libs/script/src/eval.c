@@ -7,7 +7,7 @@
 
 #include "doc_internal.h"
 
-#define script_exprs_executed_max 10000
+#define script_executed_exprs_max 10000
 
 typedef enum {
   ScriptEvalSignal_None     = 0,
@@ -24,7 +24,7 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal : 8;
   ScriptErrorRuntime  error : 8;
-  u32                 exprsExecuted;
+  u32                 executedExprs;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
@@ -266,7 +266,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 }
 
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
-  if (UNLIKELY(ctx->exprsExecuted++ == script_exprs_executed_max)) {
+  if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
     ctx->error = ScriptErrorRuntime_ExecutionLimitExceeded;
     ctx->signal |= ScriptEvalSignal_Error;
     return script_null();
@@ -326,7 +326,7 @@ ScriptEvalResult script_eval(
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
   res.error         = script_error_runtime_type(&ctx);
-  res.exprsExecuted = ctx.exprsExecuted;
+  res.executedExprs = ctx.executedExprs;
   return res;
 }
 
@@ -341,6 +341,6 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
   res.error         = script_error_runtime_type(&ctx);
-  res.exprsExecuted = ctx.exprsExecuted;
+  res.executedExprs = ctx.executedExprs;
   return res;
 }

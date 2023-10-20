@@ -2,13 +2,17 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 typedef enum {
   SceneScriptFlags_None            = 0,
   SceneScriptFlags_PauseEvaluation = 1 << 0,
 } SceneScriptFlags;
 
 typedef struct {
-  u32 exprsExecuted;
+  u32          executedExprs;
+  TimeDuration executedDur;
 } SceneScriptStats;
 
 ecs_comp_extern(SceneScriptComp);
