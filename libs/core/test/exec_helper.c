@@ -11,6 +11,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   (void)app;
   (void)invoc;
 
-  file_write_sync(g_file_stdout, string_lit("Hello World\n"));
-  return 0;
+  file_write_sync(g_file_stdout, string_lit("Volo core tests helper.\n"));
+  return 42;
 }

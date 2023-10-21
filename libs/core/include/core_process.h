@@ -16,6 +16,7 @@ typedef struct sProcess Process;
 typedef i64 ProcessId;
 
 typedef enum {
+  ProcessFlags_None       = 0,
   ProcessFlags_PipeStdIn  = 1 << 0, // Create a pipe for writing to std-in.
   ProcessFlags_PipeStdOut = 1 << 1, // Create a pipe for reading from std-out.
   ProcessFlags_PipeStdErr = 1 << 2, // Create a pipe for reading from std-err.
