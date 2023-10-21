@@ -249,7 +249,7 @@ void process_destroy(Process* process) {
 ProcessResult process_start_result(const Process* process) { return process->startResult; }
 
 ProcessId process_id(const Process* process) {
-  return process->startResult == ProcessResult_Success ? process->processInfo.dwProcessId : -1;
+  return process->startResult == ProcessResult_Success ? (i64)process->processInfo.dwProcessId : -1;
 }
 
 File* process_pipe_in(Process* process) {
