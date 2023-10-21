@@ -66,15 +66,28 @@ void process_destroy(Process* process) {
     process_signal(process, Signal_Kill);
     process_block(process); // Wait for process to stop, this prevents leaking zombie processes.
   }
-  // TODO: Close pipes.
+  if (process->flags & ProcessFlags_PipeStdIn && !process->inputPipeClosed) {
+    CloseHandle(process->pipes[ProcessPipe_StdIn].handle);
+  }
+  if (process->flags & ProcessFlags_PipeStdOut) {
+    CloseHandle(process->pipes[ProcessPipe_StdOut].handle);
+  }
+  if (process->flags & ProcessFlags_PipeStdErr) {
+    CloseHandle(process->pipes[ProcessPipe_StdErr].handle);
+  }
+  if (process->processInfo.hThread) {
+    CloseHandle(process->processInfo.hThread);
+  }
+  if (process->processInfo.hProcess) {
+    CloseHandle(process->processInfo.hProcess);
+  }
   alloc_free_t(process->alloc, process);
 }
 
 ProcessResult process_start_result(const Process* process) { return process->startResult; }
 
 ProcessId process_id(const Process* process) {
-  // TODO: Implement process id.
-  return -1;
+  return process->startResult == ProcessResult_Success ? process->processInfo.dwProcessId : -1;
 }
 
 File* process_pipe_in(Process* process) {
@@ -106,23 +119,48 @@ void process_pipe_close_in(Process* process) {
   diag_assert_msg(!process->inputPipeClosed, "Input pipe already closed");
   process->pipes[ProcessPipe_StdIn].access = FileAccess_None;
   process->inputPipeClosed                 = true;
-  // TODO: Close input pipe.
+  CloseHandle(process->pipes[ProcessPipe_StdIn].handle);
 }
 
 ProcessResult process_signal(Process* process, const Signal signal) {
-  (void)process;
-  (void)signal;
-  // TODO: Support signals.
-  return ProcessResult_Success;
+  const HANDLE handle = process->processInfo.hProcess;
+  if (UNLIKELY(!handle)) {
+    return ProcessExitCode_InvalidProcess;
+  }
+  switch (signal) {
+  case Signal_Interrupt:
+    /**
+     * NOTE: Send 'CTRL_BREAK' instead of 'CTRL_C' because we cannot send ctrl-c to other process
+     * groups (and we don't want to interrupt our entire own process-group).
+     */
+    if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, process->processInfo.dwProcessId)) {
+      return ProcessResult_UnknownError;
+    }
+    return ProcessResult_Success;
+  case Signal_Kill:
+    if (!TerminateProcess(handle, (UINT)ProcessExitCode_TerminatedBySignal)) {
+      switch (GetLastError()) {
+      case ERROR_ACCESS_DENIED:
+        return ProcessResult_NotRunning;
+      default:
+        return ProcessResult_UnknownError;
+      }
+    }
+    return ProcessResult_Success;
+  case Signal_Count:
+    break;
+  }
+  return ProcessResult_UnknownError;
 }
 
 ProcessExitCode process_block(Process* process) {
-  if (UNLIKELY(!process->processInfo.hProcess)) {
+  const HANDLE handle = process->processInfo.hProcess;
+  if (UNLIKELY(!handle)) {
     return ProcessExitCode_InvalidProcess;
   }
-  WaitForSingleObject(process->processInfo.hProcess, INFINITE);
+  WaitForSingleObject(handle, INFINITE);
   DWORD status;
-  if (!GetExitCodeProcess(process->processInfo.hProcess, &status)) {
+  if (!GetExitCodeProcess(handle, &status)) {
     return ProcessExitCode_UnknownError;
   }
   diag_assert(status != STILL_ACTIVE);
