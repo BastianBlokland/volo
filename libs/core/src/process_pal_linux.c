@@ -117,9 +117,9 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
 
   // Duplicate the child side of the pipes onto stdIn, stdOut and stdErr of this process.
   bool dupFail = false;
-  dupFail |= info->flags & ProcessFlags_PipeStdIn && dup2(PIPE_FD_READ(pipeFds, StdIn), 0) != 0;
-  dupFail |= info->flags & ProcessFlags_PipeStdOut && dup2(PIPE_FD_WRITE(pipeFds, StdOut), 1) != 0;
-  dupFail |= info->flags & ProcessFlags_PipeStdErr && dup2(PIPE_FD_WRITE(pipeFds, StdErr), 2) != 0;
+  dupFail |= info->flags & ProcessFlags_PipeStdIn && dup2(PIPE_FD_READ(pipeFds, StdIn), 0) == -1;
+  dupFail |= info->flags & ProcessFlags_PipeStdOut && dup2(PIPE_FD_WRITE(pipeFds, StdOut), 1) == -1;
+  dupFail |= info->flags & ProcessFlags_PipeStdErr && dup2(PIPE_FD_WRITE(pipeFds, StdErr), 2) == -1;
   if (UNLIKELY(dupFail)) {
     exit(ProcessExitCode_FailedToSetupPipes);
   }
