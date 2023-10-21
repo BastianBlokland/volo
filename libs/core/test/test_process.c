@@ -115,6 +115,23 @@ spec(process) {
     process_destroy(child);
   }
 
+  it("can write to std-in") {
+    const String       args[]   = {string_lit("--countInChars")};
+    const u32          argCount = array_elems(args);
+    const ProcessFlags flags    = ProcessFlags_PipeStdIn;
+    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+
+    check_eq_int(process_start_result(child), ProcessResult_Success);
+
+    const String str = string_lit("Hello World!");
+    file_write_sync(process_pipe_in(child), str);
+    process_pipe_close_in(child);
+
+    check_eq_int(process_block(child), str.size);
+
+    process_destroy(child);
+  }
+
   teardown() {
     string_free(g_alloc_heap, helperPath);
     dynstring_destroy(&buffer);
