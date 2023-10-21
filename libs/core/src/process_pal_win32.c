@@ -105,7 +105,7 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
   if (info->flags & ProcessFlags_PipeStdOut) {
     handlesToInherit[handlesToInheritCount++] = PIPE_HND_WRITE(pipeHandles, StdOut);
   }
-  if (info->flags & ProcessFlags_PipeStdOut) {
+  if (info->flags & ProcessFlags_PipeStdErr) {
     handlesToInherit[handlesToInheritCount++] = PIPE_HND_WRITE(pipeHandles, StdErr);
   }
   if (info->flags & ProcessFlags_PipeAny) {
