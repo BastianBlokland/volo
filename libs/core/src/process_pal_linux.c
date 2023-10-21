@@ -133,7 +133,9 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   const usize argSize   = process_start_arg_null_term_size(info);
   Mem         argBuffer = alloc_alloc(g_alloc_heap, argSize, 1);
   if (!mem_valid(argBuffer)) {
-    diag_print_err("[process error] Out of memory");
+    if (info->flags & ProcessPipe_StdErr) {
+      diag_print_err("[process error] Out of memory");
+    }
     exit(ProcessExitCode_OutOfMemory);
   }
 
@@ -150,17 +152,25 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   // An error occurred (this path is only reachable if exec failed).
   switch (errno) {
   case ENOENT:
-    diag_print_err("[process error] Executable not found: {}\n", fmt_text(info->file));
+    if (info->flags & ProcessPipe_StdErr) {
+      diag_print_err("[process error] Executable not found: {}\n", fmt_text(info->file));
+    }
     exit(ProcessExitCode_ExecutableNotFound);
   case EACCES:
   case EINVAL:
-    diag_print_err("[process error] Invalid executable: {}\n", fmt_text(info->file));
+    if (info->flags & ProcessPipe_StdErr) {
+      diag_print_err("[process error] Invalid executable: {}\n", fmt_text(info->file));
+    }
     exit(ProcessExitCode_InvalidExecutable);
   case ENOMEM:
-    diag_print_err("[process error] Out of memory\n");
+    if (info->flags & ProcessPipe_StdErr) {
+      diag_print_err("[process error] Out of memory\n");
+    }
     exit(ProcessExitCode_OutOfMemory);
   default:
-    diag_print_err("[process error] Unknown error while executing: {}\n", fmt_text(info->file));
+    if (info->flags & ProcessPipe_StdErr) {
+      diag_print_err("[process error] Unknown error while executing: {}\n", fmt_text(info->file));
+    }
     exit(ProcessExitCode_UnknownExecError);
   }
 }
