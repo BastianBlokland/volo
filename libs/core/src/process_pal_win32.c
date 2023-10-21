@@ -90,10 +90,11 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
   }
 
   size_t attrListSize;
-  InitializeProcThreadAttributeList(0, 1, 0, &attrListSize);
+  InitializeProcThreadAttributeList(null, 1, 0, &attrListSize);
   LPPROC_THREAD_ATTRIBUTE_LIST attrList = alloc_alloc(g_alloc_heap, attrListSize, sizeof(uptr)).ptr;
-  if (attrList) {
-    InitializeProcThreadAttributeList(attrList, 1, 0, &attrListSize);
+  if (UNLIKELY(!attrList || !InitializeProcThreadAttributeList(attrList, 1, 0, &attrListSize))) {
+    process_maybe_close_handles(pipeHandles, array_elems(pipeHandles));
+    return ProcessResult_UnknownError;
   }
 
   const HANDLE handlesToInherit[] = {
@@ -101,7 +102,7 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
       PIPE_HND_WRITE(pipeHandles, StdOut),
       PIPE_HND_WRITE(pipeHandles, StdErr),
   };
-  if (attrList && info->flags & ProcessFlags_PipeAny) {
+  if (info->flags & ProcessFlags_PipeAny) {
     UpdateProcThreadAttribute(
         attrList,
         0,
