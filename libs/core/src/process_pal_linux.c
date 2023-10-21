@@ -80,7 +80,7 @@ typedef struct {
   u32           argCount;
 } ProcessStartInfo;
 
-static usize process_start_file_and_arg_size(const ProcessStartInfo* info) {
+static usize process_start_arg_null_term_size(const ProcessStartInfo* info) {
   usize result = info->file.size + 1; // +1 for null-terminator.
   for (u32 i = 0; i != info->argCount; ++i) {
     result += info->args[i].size + 1; // +1 for null-terminator.
@@ -88,7 +88,7 @@ static usize process_start_file_and_arg_size(const ProcessStartInfo* info) {
   return result;
 }
 
-static Mem process_null_terminate(const Mem buffer, const String str, char** out) {
+static Mem process_null_term(const Mem buffer, const String str, char** out) {
   diag_assert(buffer.size > str.size);
 
   mem_cpy(buffer, str);
@@ -126,25 +126,24 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   /**
    * Convert both file and the arguments to null-terminated strings for exec, and also
    * null-terminate the arguments array it self.
+   * NOTE: Note file is appended as the first argument.
    * NOTE: Note the memory does not need to be freed as exec will free the whole address space.
    */
-  const usize fileAndArgSize   = process_start_file_and_arg_size(info);
-  Mem         fileAndArgBuffer = alloc_alloc(g_alloc_heap, fileAndArgSize, 1);
-  if (!mem_valid(fileAndArgBuffer)) {
+  const usize argSize   = process_start_arg_null_term_size(info);
+  Mem         argBuffer = alloc_alloc(g_alloc_heap, argSize, 1);
+  if (!mem_valid(argBuffer)) {
     diag_crash_msg("[process error] Out of memory");
   }
 
-  char* file;
-  char* argv[process_args_max + 1];
-
-  fileAndArgBuffer = process_null_terminate(fileAndArgBuffer, info->file, &file);
+  char* argv[process_args_max + 2]; // +1 for file and +1 null terminator.
+  argBuffer = process_null_term(argBuffer, info->file, &argv[0]);
   for (u32 i = 0; i != info->argCount; ++i) {
-    fileAndArgBuffer = process_null_terminate(fileAndArgBuffer, info->args[i], &argv[i]);
+    argBuffer = process_null_term(argBuffer, info->args[i], &argv[i + 1]);
   }
-  argv[info->argCount] = null; // Null terminate the array.
+  argv[info->argCount + 1] = null; // Null terminate the array.
 
   // Execute the target file (will replace this process's image).
-  execvp(file, argv);
+  execvp(argv[0], argv);
 
   // An error occurred (this path is only reachable if exec failed).
   switch (errno) {
