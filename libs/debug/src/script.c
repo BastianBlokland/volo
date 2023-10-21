@@ -63,7 +63,11 @@ ecs_view_define(SubjectView) {
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
-static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world, EcsIterator* subject) {
+static void stats_panel_tab_draw(
+    UiCanvasComp*           canvas,
+    EcsWorld*               world,
+    const AssetManagerComp* assetManager,
+    EcsIterator*            subject) {
   diag_assert(subject);
 
   const SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
@@ -72,9 +76,10 @@ static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world, EcsItera
     return;
   }
 
-  const EcsEntityId       scriptAsset = scene_script_asset(scriptInstance);
-  const SceneScriptStats* stats       = scene_script_stats(scriptInstance);
-  const String scriptName = asset_id(ecs_utils_read_t(world, AssetView, scriptAsset, AssetComp));
+  const SceneScriptStats* stats             = scene_script_stats(scriptInstance);
+  const EcsEntityId       scriptAssetEntity = scene_script_asset(scriptInstance);
+  const AssetComp* scriptAsset = ecs_utils_read_t(world, AssetView, scriptAssetEntity, AssetComp);
+  const String     scriptName  = asset_id(scriptAsset);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -85,12 +90,16 @@ static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world, EcsItera
   ui_label(canvas, string_lit("Script:"));
   ui_table_next_column(canvas, &table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptName)), .selectable = true);
-  ui_table_next_column(canvas, &table);
-  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
-  if (ui_button(canvas, .label = string_lit("Edit Script"))) {
-    debug_launch_editor(
-        string_lit("/home/bastian/dev/projects/volo/assets/scripts/spawner.script"));
+
+  DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
+  if (asset_path(assetManager, scriptAsset, &scriptPathStr)) {
+    ui_table_next_column(canvas, &table);
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(canvas, .label = string_lit("Edit Script"))) {
+      debug_launch_editor(dynstring_view(&scriptPathStr));
+    }
   }
+  dynstring_destroy(&scriptPathStr);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Expressions:"));
@@ -310,7 +319,11 @@ static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) 
 }
 
 static void script_panel_draw(
-    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsWorld* world, EcsIterator* subject) {
+    UiCanvasComp*           canvas,
+    DebugScriptPanelComp*   panelComp,
+    EcsWorld*               world,
+    const AssetManagerComp* assetManager,
+    EcsIterator*            subject) {
 
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
@@ -324,7 +337,7 @@ static void script_panel_draw(
   if (subject) {
     switch (panelComp->panel.activeTab) {
     case DebugScriptTab_Stats:
-      stats_panel_tab_draw(canvas, world, subject);
+      stats_panel_tab_draw(canvas, world, assetManager, subject);
       break;
     case DebugScriptTab_Memory:
       memory_panel_tab_draw(canvas, panelComp, subject);
@@ -340,7 +353,10 @@ static void script_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSelectionComp); }
+ecs_view_define(PanelUpdateGlobalView) {
+  ecs_access_read(SceneSelectionComp);
+  ecs_access_read(AssetManagerComp);
+}
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugScriptPanelComp);
@@ -353,7 +369,8 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneSelectionComp* selection    = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const AssetManagerComp*   assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subject     = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
@@ -364,7 +381,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, world, subject);
+    script_panel_draw(canvas, panelComp, world, assetManager, subject);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
