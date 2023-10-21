@@ -113,3 +113,7 @@ target_link_libraries(test_lib_core PRIVATE lib_app_check lib_core)
 
 configure_test(test_lib_core SHORT_NAME core)
 configure_debuggable(test_lib_core)
+
+# Helper executable that is used as part of the process tests.
+add_executable(test_lib_core_helper test/exec_helper.c)
+target_link_libraries(test_lib_core_helper PRIVATE lib_app_cli)
