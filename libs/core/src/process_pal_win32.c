@@ -18,11 +18,12 @@ typedef enum {
 } ProcessPipe;
 
 struct sProcess {
-  Allocator*    alloc;
-  ProcessFlags  flags : 8;
-  ProcessResult startResult : 8;
-  bool          inputPipeClosed;
-  File          pipes[ProcessPipe_Count];
+  Allocator*          alloc;
+  ProcessFlags        flags : 8;
+  ProcessResult       startResult : 8;
+  bool                inputPipeClosed;
+  PROCESS_INFORMATION processInfo;
+  File                pipes[ProcessPipe_Count];
 };
 
 typedef struct {
@@ -116,7 +117,14 @@ ProcessResult process_signal(Process* process, const Signal signal) {
 }
 
 ProcessExitCode process_block(Process* process) {
-  (void)process;
-  // TODO: Support blocking.
-  return ProcessResult_Success;
+  if (UNLIKELY(!process->processInfo.hProcess)) {
+    return ProcessExitCode_InvalidProcess;
+  }
+  WaitForSingleObject(process->processInfo.hProcess, INFINITE);
+  DWORD status;
+  if (!GetExitCodeProcess(process->processInfo.hProcess, &status)) {
+    return ProcessExitCode_UnknownError;
+  }
+  diag_assert(status != STILL_ACTIVE);
+  return (ProcessExitCode)status;
 }
