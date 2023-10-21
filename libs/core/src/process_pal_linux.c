@@ -94,7 +94,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   if (info->flags & ProcessFlags_NewGroup) {
     const pid_t newSession = setsid(); // Create a new session (with a new progress group).
     if (UNLIKELY(newSession == -1)) {
-      diag_crash_msg("[process error] Failed to create a new process group\n");
+      diag_crash_msg("[process error] Failed to create a new process group");
     }
   }
 
@@ -103,7 +103,14 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   process_maybe_close_fd(pipeFds[(1 * 2) + 0]); // Read side of stdOut.
   process_maybe_close_fd(pipeFds[(2 * 2) + 0]); // Read side of stdErr.
 
-  // TODO: Duplicate the child side of the pipes onto stdIn, stdOut and stdErr of this process.
+  // Duplicate the child side of the pipes onto stdIn, stdOut and stdErr of this process.
+  bool dupFailed = false;
+  dupFailed |= info->flags & ProcessFlags_PipeStdIn && dup2(pipeFds[(0 * 2) + 0], 0) == -1;
+  dupFailed |= info->flags & ProcessFlags_PipeStdOut && dup2(pipeFds[(1 * 2) + 1], 1) == -1;
+  dupFailed |= info->flags & ProcessFlags_PipeStdErr && dup2(pipeFds[(2 * 2) + 1], 2) == -1;
+  if (UNLIKELY(dupFailed)) {
+    diag_crash_msg("[process error] Failed to setup input and output pipes");
+  }
 
   /**
    * Convert both file and the arguments to null-terminated strings for exec, and also
@@ -152,9 +159,9 @@ static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outHandl
   int pipeFds[2 * 3] = {-1, -1, -1, -1, -1, -1};
 
   bool pipeFailed = false;
-  pipeFailed |= info->flags & ProcessFlags_PipeStdIn && pipe(pipeFds + (0 * 2));
-  pipeFailed |= info->flags & ProcessFlags_PipeStdOut && pipe(pipeFds + (1 * 2));
-  pipeFailed |= info->flags & ProcessFlags_PipeStdErr && pipe(pipeFds + (2 * 2));
+  pipeFailed |= info->flags & ProcessFlags_PipeStdIn && pipe(pipeFds + (0 * 2)) == -1;
+  pipeFailed |= info->flags & ProcessFlags_PipeStdOut && pipe(pipeFds + (1 * 2)) == -1;
+  pipeFailed |= info->flags & ProcessFlags_PipeStdErr && pipe(pipeFds + (2 * 2)) == -1;
   if (UNLIKELY(pipeFailed)) {
     // Close the file-descriptors of the pipes we did manage to create.
     process_maybe_close_fds(pipeFds, array_elems(pipeFds));
