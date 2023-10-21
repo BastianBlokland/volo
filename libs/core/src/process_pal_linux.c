@@ -150,7 +150,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   }
 }
 
-static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outHandle) {
+static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outPid, File outPipes[3]) {
   if (UNLIKELY(info->argCount > process_args_max)) {
     return ProcessResult_TooManyArguments;
   }
@@ -191,7 +191,16 @@ static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outHandl
   process_maybe_close_fd(pipeFds[(1 * 2) + 1]); // Write side of stdOut.
   process_maybe_close_fd(pipeFds[(2 * 2) + 1]); // Write side of stdErr.
 
-  *outHandle = forkedPid;
+  *outPid = forkedPid;
+  if (info->flags & ProcessFlags_PipeStdIn) {
+    outPipes[0] = (File){.handle = pipeFds[(0 * 2) + 1], .access = FileAccess_Write};
+  }
+  if (info->flags & ProcessFlags_PipeStdOut) {
+    outPipes[1] = (File){.handle = pipeFds[(1 * 2) + 0], .access = FileAccess_Read};
+  }
+  if (info->flags & ProcessFlags_PipeStdErr) {
+    outPipes[2] = (File){.handle = pipeFds[(2 * 2) + 0], .access = FileAccess_Read};
+  }
   return ProcessResult_Success;
 }
 
@@ -210,12 +219,23 @@ Process* process_create(
       .args     = args,
       .argCount = argCount,
   };
-  process->startResult = process_start(&startInfo, &process->handle);
+  process->startResult = process_start(&startInfo, &process->handle, process->pipes);
 
   return process;
 }
 
-void process_destroy(Process* itr) { alloc_free_t(itr->alloc, itr); }
+void process_destroy(Process* process) {
+  if (process->flags & ProcessFlags_PipeStdIn) {
+    process_maybe_close_fd(process->pipes[0].handle);
+  }
+  if (process->flags & ProcessFlags_PipeStdOut) {
+    process_maybe_close_fd(process->pipes[1].handle);
+  }
+  if (process->flags & ProcessFlags_PipeStdErr) {
+    process_maybe_close_fd(process->pipes[2].handle);
+  }
+  alloc_free_t(process->alloc, process);
+}
 
 ProcessResult process_start_result(const Process* process) { return process->startResult; }
 
