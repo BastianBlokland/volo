@@ -8,6 +8,11 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'core_file.h'.
 typedef struct sFile File;
 
+/**
+ * Process handle.
+ */
+typedef struct sProcess Process;
+
 typedef i64 ProcessId;
 
 typedef enum {
@@ -39,9 +44,9 @@ typedef enum {
 } ProcessExitCode;
 
 /**
- * Process.
+ * Return a textual representation of the given ProcessResult.
  */
-typedef struct sProcess Process;
+String process_result_str(ProcessResult);
 
 /**
  * Create a new process.
