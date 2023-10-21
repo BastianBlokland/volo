@@ -20,11 +20,8 @@ spec(process) {
   }
 
   it("fails when file does not exist") {
-    const String       file = string_lit("executable_that_doest_not_exist_42");
-    const String       args[0];
-    const u32          argCount = array_elems(args);
-    const ProcessFlags flags    = ProcessFlags_None;
-    Process*           child    = process_create(g_alloc_heap, file, args, argCount, flags);
+    const String file  = string_lit("executable_that_doest_not_exist_42");
+    Process*     child = process_create(g_alloc_heap, file, null, 0, ProcessFlags_None);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), ProcessExitCode_ExecutableNotFound);
@@ -33,10 +30,7 @@ spec(process) {
   }
 
   it("can wait until execution is finished") {
-    const String       args[0];
-    const u32          argCount = array_elems(args);
-    const ProcessFlags flags    = ProcessFlags_None;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process* child = process_create(g_alloc_heap, helperPath, null, 0, ProcessFlags_None);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), 0);
