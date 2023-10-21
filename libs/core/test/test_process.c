@@ -52,16 +52,29 @@ spec(process) {
     process_destroy(child);
   }
 
-  it("can send an interrupt signal") {
-    const String       args[]   = {string_lit("--interrupt")};
+  it("can send a kill signal") {
+    const String       args[]   = {string_lit("--block")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_None;
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
-    thread_sleep(time_millisecond); // Wait for child to setup interrupt handler.
+    check_eq_int(process_signal(child, Signal_Kill), ProcessResult_Success);
+    check_eq_int(process_block(child), ProcessExitCode_TerminatedBySignal);
+
+    process_destroy(child);
+  }
+
+  it("can send an interrupt signal") {
+    const String       args[] = {string_lit("--wait"), string_lit("--exitcode"), string_lit("42")};
+    const u32          argCount = array_elems(args);
+    const ProcessFlags flags    = ProcessFlags_None;
+    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+
+    check_eq_int(process_start_result(child), ProcessResult_Success);
+    thread_sleep(time_milliseconds(10)); // Wait for child to setup interrupt handler.
     check_eq_int(process_signal(child, Signal_Interrupt), ProcessResult_Success);
-    check_eq_int(process_block(child), 0);
+    check_eq_int(process_block(child), 42);
 
     process_destroy(child);
   }
