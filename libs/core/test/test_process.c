@@ -3,6 +3,8 @@
 #include "core_array.h"
 #include "core_path.h"
 #include "core_process.h"
+#include "core_thread.h"
+#include "core_time.h"
 
 spec(process) {
   String helperPath;
@@ -46,6 +48,20 @@ spec(process) {
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), 42);
+
+    process_destroy(child);
+  }
+
+  it("can send an interrupt signal") {
+    const String       args[]   = {string_lit("--interrupt")};
+    const u32          argCount = array_elems(args);
+    const ProcessFlags flags    = ProcessFlags_None;
+    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+
+    check_eq_int(process_start_result(child), ProcessResult_Success);
+    thread_sleep(time_millisecond); // Wait for child to setup interrupt handler.
+    check_eq_int(process_signal(child, Signal_Interrupt), ProcessResult_Success);
+    check_eq_int(process_block(child), 0);
 
     process_destroy(child);
   }
