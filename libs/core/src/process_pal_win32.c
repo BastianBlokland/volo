@@ -97,18 +97,24 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
     return ProcessResult_UnknownError;
   }
 
-  const HANDLE handlesToInherit[] = {
-      PIPE_HND_READ(pipeHandles, StdIn),
-      PIPE_HND_WRITE(pipeHandles, StdOut),
-      PIPE_HND_WRITE(pipeHandles, StdErr),
-  };
+  HANDLE handlesToInherit[ProcessPipe_Count];
+  u32    handlesToInheritCount = 0;
+  if (info->flags & ProcessFlags_PipeStdIn) {
+    handlesToInherit[handlesToInheritCount++] = PIPE_HND_READ(pipeHandles, StdIn);
+  }
+  if (info->flags & ProcessFlags_PipeStdOut) {
+    handlesToInherit[handlesToInheritCount++] = PIPE_HND_WRITE(pipeHandles, StdOut);
+  }
+  if (info->flags & ProcessFlags_PipeStdOut) {
+    handlesToInherit[handlesToInheritCount++] = PIPE_HND_WRITE(pipeHandles, StdErr);
+  }
   if (info->flags & ProcessFlags_PipeAny) {
     UpdateProcThreadAttribute(
         attrList,
         0,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
         handlesToInherit,
-        sizeof(handlesToInherit),
+        sizeof(HANDLE) * handlesToInheritCount,
         null,
         null);
   }
