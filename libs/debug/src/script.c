@@ -46,7 +46,11 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
 }
 
 static void debug_launch_editor(const String path) {
-  const String editorFile   = string_lit("code");
+#if defined(VOLO_WIN32)
+  const String editorFile = string_lit("code-tunnel.exe");
+#else
+  const String editorFile = string_lit("code");
+#endif
   const String editorArgs[] = {string_lit("--reuse-window"), path};
   Process* proc = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
   const ProcessExitCode exitCode = process_block(proc);
