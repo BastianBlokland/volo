@@ -40,6 +40,8 @@ add_library(lib_core STATIC
   src/noise.c
   src/path_pal.c
   src/path.c
+  src/process_pal.c
+  src/process.c
   src/rng.c
   src/search.c
   src/shuffle.c
