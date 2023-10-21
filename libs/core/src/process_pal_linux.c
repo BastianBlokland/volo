@@ -128,8 +128,8 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   /**
    * Convert both file and the arguments to null-terminated strings for exec, and also
    * null-terminate the arguments array it self.
-   * NOTE: Note file is appended as the first argument.
-   * NOTE: Note the memory does not need to be freed as exec will free the whole address space.
+   * NOTE: File is appended as the first argument.
+   * NOTE: The memory does not need to be freed as exec will free the whole address space.
    */
   const usize argSize   = process_start_arg_null_term_size(info);
   Mem         argBuffer = alloc_alloc(g_alloc_heap, argSize, 1);

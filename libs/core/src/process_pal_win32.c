@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_process.h"
+#include "core_winutils.h"
 
 #include "file_internal.h"
 
@@ -44,6 +45,18 @@ typedef struct {
   const String* args;
   u32           argCount;
 } ProcessStartInfo;
+
+static void process_build_cmdline(DynString* out, const ProcessStartInfo* info) {
+  dynstring_append_char(out, '"');
+  dynstring_append(out, info->file);
+  dynstring_append_char(out, '"');
+
+  for (u32 i = 0; i != info->argCount; ++i) {
+    dynstring_append(out, string_lit(" \""));
+    dynstring_append(out, info->args[i]);
+    dynstring_append_char(out, '"');
+  }
+}
 
 #define PIPE_HND_READ(_HNDS_, _PIPE_) ((_HNDS_)[ProcessPipe_##_PIPE_ * 2 + 0])
 #define PIPE_HND_WRITE(_HNDS_, _PIPE_) ((_HNDS_)[ProcessPipe_##_PIPE_ * 2 + 1])
@@ -115,11 +128,13 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
     creationFlags |= CREATE_NEW_PROCESS_GROUP;
   }
 
-  wchar_t* cmdLineStr = null;
+  DynString cmdLineScratch = dynstring_create(g_alloc_scratch, usize_kibibyte * 32);
+  process_build_cmdline(&cmdLineScratch, info);
+  Mem cmdLineWideScratch = winutils_to_widestr_scratch(dynstring_view(&cmdLineScratch));
 
   const bool success = CreateProcess(
       null,
-      cmdLineStr,
+      (LPWSTR)cmdLineWideScratch.ptr,
       null,
       null,
       true,
