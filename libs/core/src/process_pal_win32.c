@@ -168,7 +168,6 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
     case ERROR_NOACCESS:
       return ProcessResult_NoPermission;
     case ERROR_INVALID_HANDLE:
-    case ERROR_FILE_NOT_FOUND:
       return ProcessResult_ExecutableNotFound;
     case ERROR_INVALID_STARTING_CODESEG:
     case ERROR_INVALID_STACKSEG:
