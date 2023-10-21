@@ -33,6 +33,8 @@ typedef enum {
   ProcessResult_InvalidProcess,
   ProcessResult_NoPermission,
   ProcessResult_NotRunning,
+  ProcessResult_ExecutableNotFound,
+  ProcessResult_InvalidExecutable,
   ProcessResult_UnknownError,
 
   ProcessResult_Count,

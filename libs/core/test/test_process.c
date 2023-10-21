@@ -23,7 +23,6 @@ spec(process) {
     const String file  = string_lit("executable_that_doest_not_exist_42");
     Process*     child = process_create(g_alloc_heap, file, null, 0, ProcessFlags_None);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), ProcessExitCode_ExecutableNotFound);
 
     process_destroy(child);

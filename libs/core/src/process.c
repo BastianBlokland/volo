@@ -10,6 +10,8 @@ static const String g_processResultStrs[] = {
     string_static("InvalidProcess"),
     string_static("NoPermission"),
     string_static("NotRunning"),
+    string_static("ExecutableNotFound"),
+    string_static("InvalidExecutable"),
     string_static("UnknownError"),
 };
 

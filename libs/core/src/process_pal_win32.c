@@ -167,15 +167,16 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
     switch (GetLastError()) {
     case ERROR_NOACCESS:
       return ProcessResult_NoPermission;
+    case ERROR_INVALID_HANDLE:
     case ERROR_FILE_NOT_FOUND:
-      return ProcessResult_NoPermission; // TODO: ProcessExitCode_ExecutableNotFound
+      return ProcessResult_ExecutableNotFound;
     case ERROR_INVALID_STARTING_CODESEG:
     case ERROR_INVALID_STACKSEG:
     case ERROR_INVALID_MODULETYPE:
     case ERROR_INVALID_EXE_SIGNATURE:
     case ERROR_EXE_MARKED_INVALID:
     case ERROR_BAD_EXE_FORMAT:
-      return ProcessResult_NoPermission; // TODO: ProcessExitCode_InvalidExecutable
+      return ProcessResult_InvalidExecutable;
     default:
       return ProcessResult_UnknownError;
     }
@@ -309,6 +310,12 @@ ProcessResult process_signal(Process* process, const Signal signal) {
 }
 
 ProcessExitCode process_block(Process* process) {
+  if (UNLIKELY(process->startResult == ProcessResult_ExecutableNotFound)) {
+    return ProcessExitCode_ExecutableNotFound;
+  }
+  if (UNLIKELY(process->startResult == ProcessResult_InvalidExecutable)) {
+    return ProcessExitCode_InvalidExecutable;
+  }
   const HANDLE handle = process->processInfo.hProcess;
   if (UNLIKELY(!handle)) {
     return ProcessExitCode_InvalidProcess;
