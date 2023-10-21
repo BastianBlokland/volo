@@ -5,12 +5,14 @@
  * Helper executable that is used in the process tests.
  */
 
-void app_cli_configure(CliApp* app) { (void)app; }
+static CliId g_optExitCode;
+
+void app_cli_configure(CliApp* app) {
+  g_optExitCode = cli_register_flag(app, 0, string_lit("exitcode"), CliOptionFlags_Value);
+}
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   (void)app;
-  (void)invoc;
 
-  file_write_sync(g_file_stdout, string_lit("Volo core tests helper.\n"));
-  return 42;
+  return (i32)cli_read_i64(invoc, g_optExitCode, 0);
 }

@@ -19,6 +19,17 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_None;
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
+    check_eq_int(process_block(child), 0);
+
+    process_destroy(child);
+  }
+
+  it("can pass arguments") {
+    const String       args[]   = {string_lit("--exitcode"), string_lit("42")};
+    const u32          argCount = array_elems(args);
+    const ProcessFlags flags    = ProcessFlags_None;
+    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+
     check_eq_int(process_block(child), 42);
 
     process_destroy(child);
