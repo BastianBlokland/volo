@@ -90,7 +90,7 @@ static Mem process_null_terminate(const Mem buffer, const String str, char** out
   return mem_consume(buffer, str.size + 1);
 }
 
-NORETURN static void process_child_exec(const ProcessStartInfo* info) {
+NORETURN static void process_child_exec(const ProcessStartInfo* info, const int pipeFds[]) {
   if (info->flags & ProcessFlags_NewGroup) {
     const pid_t newSession = setsid(); // Create a new session (with a new progress group).
     if (UNLIKELY(newSession == -1)) {
@@ -98,7 +98,11 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info) {
     }
   }
 
-  // TODO: Close the parent side of the pipes (if they are created).
+  // Close the parent side of the pipes.
+  process_maybe_close_fd(pipeFds[(0 * 2) + 1]); // Write side of stdIn.
+  process_maybe_close_fd(pipeFds[(1 * 2) + 0]); // Read side of stdOut.
+  process_maybe_close_fd(pipeFds[(2 * 2) + 0]); // Read side of stdErr.
+
   // TODO: Duplicate the child side of the pipes onto stdIn, stdOut and stdErr of this process.
 
   /**
@@ -160,7 +164,7 @@ static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outHandl
 
   const pid_t forkedPid = fork();
   if (forkedPid == 0) {
-    process_child_exec(info);
+    process_child_exec(info, pipeFds);
   }
 
   if (UNLIKELY(forkedPid < 0)) {
