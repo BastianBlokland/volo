@@ -78,9 +78,9 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
 
   // clang-format off
   bool pipeFail = false;
-  pipeFail |= info->flags & ProcessFlags_PipeStdIn  && !CreatePipe(PIPE_HND_READ(pipeHandles, StdIn), PIPE_HND_WRITE(pipeHandles, StdIn), &pipeAttr, pipeBufferSize);
-  pipeFail |= info->flags & ProcessFlags_PipeStdOut && !CreatePipe(PIPE_HND_READ(pipeHandles, StdOut), PIPE_HND_WRITE(pipeHandles, StdOut), &pipeAttr, pipeBufferSize);
-  pipeFail |= info->flags & ProcessFlags_PipeStdErr && !CreatePipe(PIPE_HND_READ(pipeHandles, StdErr), PIPE_HND_WRITE(pipeHandles, StdErr), &pipeAttr, pipeBufferSize);
+  pipeFail |= info->flags & ProcessFlags_PipeStdIn  && !CreatePipe(&PIPE_HND_READ(pipeHandles, StdIn), &PIPE_HND_WRITE(pipeHandles, StdIn), &pipeAttr, pipeBufferSize);
+  pipeFail |= info->flags & ProcessFlags_PipeStdOut && !CreatePipe(&PIPE_HND_READ(pipeHandles, StdOut), &PIPE_HND_WRITE(pipeHandles, StdOut), &pipeAttr, pipeBufferSize);
+  pipeFail |= info->flags & ProcessFlags_PipeStdErr && !CreatePipe(&PIPE_HND_READ(pipeHandles, StdErr), &PIPE_HND_WRITE(pipeHandles, StdErr), &pipeAttr, pipeBufferSize);
   // clang-format on
   if (UNLIKELY(pipeFail)) {
     // Close the handles of the pipes we did manage to create.
