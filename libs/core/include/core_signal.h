@@ -1,8 +1,9 @@
 #pragma once
 #include "core_types.h"
 
-typedef enum {
-  Signal_Interrupt = 0,
+typedef enum eSignal {
+  Signal_Interrupt,
+  Signal_Kill, // Not interceptable.
 
   Signal_Count,
 } Signal;

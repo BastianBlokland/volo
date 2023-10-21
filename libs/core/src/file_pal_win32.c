@@ -227,7 +227,7 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
     dynstring_append(dynstr, mem_slice(readBuffer, 0, bytesRead));
     return FileResult_Success;
   }
-  if (success) {
+  if (success || GetLastError() == ERROR_BROKEN_PIPE) {
     return FileResult_NoDataAvailable;
   }
   return fileresult_from_lasterror();
