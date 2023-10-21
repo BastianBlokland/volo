@@ -117,7 +117,7 @@ spec(process) {
     check_eq_int(process_start_result(child), ProcessResult_Success);
 
     const String str = string_lit("Hello World!");
-    file_write_sync(process_pipe_in(child), str);
+    check_eq_int(file_write_sync(process_pipe_in(child), str), FileResult_Success);
     process_pipe_close_in(child);
 
     check_eq_int(process_block(child), str.size);
