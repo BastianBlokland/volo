@@ -92,7 +92,23 @@ spec(process) {
     check_eq_int(process_start_result(child), ProcessResult_Success);
 
     check_eq_int(file_read_to_end_sync(process_pipe_out(child), &buffer), FileResult_Success);
-    check_eq_string(dynstring_view(&buffer), string_lit("Hello\n"));
+    check_eq_string(dynstring_view(&buffer), string_lit("Hello Out\n"));
+
+    check_eq_int(process_block(child), 0);
+
+    process_destroy(child);
+  }
+
+  it("can read std-err") {
+    const String       args[]   = {string_lit("--greetErr")};
+    const u32          argCount = array_elems(args);
+    const ProcessFlags flags    = ProcessFlags_PipeStdErr;
+    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+
+    check_eq_int(process_start_result(child), ProcessResult_Success);
+
+    check_eq_int(file_read_to_end_sync(process_pipe_err(child), &buffer), FileResult_Success);
+    check_eq_string(dynstring_view(&buffer), string_lit("Hello Err\n"));
 
     check_eq_int(process_block(child), 0);
 

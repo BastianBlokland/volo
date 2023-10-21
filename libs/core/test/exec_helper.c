@@ -8,13 +8,14 @@
  * Helper executable that is used in the process tests.
  */
 
-static CliId g_optExitCode, g_optBlock, g_optWait, g_optGreet;
+static CliId g_optExitCode, g_optBlock, g_optWait, g_optGreet, g_optGreetErr;
 
 void app_cli_configure(CliApp* app) {
   g_optExitCode = cli_register_flag(app, 0, string_lit("exitcode"), CliOptionFlags_Value);
   g_optBlock    = cli_register_flag(app, 0, string_lit("block"), CliOptionFlags_None);
   g_optWait     = cli_register_flag(app, 0, string_lit("wait"), CliOptionFlags_None);
   g_optGreet    = cli_register_flag(app, 0, string_lit("greet"), CliOptionFlags_None);
+  g_optGreetErr = cli_register_flag(app, 0, string_lit("greetErr"), CliOptionFlags_None);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -34,7 +35,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   if (cli_parse_provided(invoc, g_optGreet)) {
-    file_write_sync(g_file_stdout, string_lit("Hello\n"));
+    file_write_sync(g_file_stdout, string_lit("Hello Out\n"));
+  }
+  if (cli_parse_provided(invoc, g_optGreetErr)) {
+    file_write_sync(g_file_stderr, string_lit("Hello Err\n"));
   }
 
   return (i32)cli_read_i64(invoc, g_optExitCode, 0);
