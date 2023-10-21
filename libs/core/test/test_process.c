@@ -13,12 +13,26 @@ spec(process) {
     helperPath              = string_dup(g_alloc_heap, path_build_scratch(parentPath, helperName));
   }
 
+  it("fails when file does not exist") {
+    const String       file = string_lit("executable_that_doest_not_exist_42");
+    const String       args[0];
+    const u32          argCount = array_elems(args);
+    const ProcessFlags flags    = ProcessFlags_None;
+    Process*           child    = process_create(g_alloc_heap, file, args, argCount, flags);
+
+    check_eq_int(process_start_result(child), ProcessResult_Success);
+    check_eq_int(process_block(child), ProcessExitCode_ExecutableNotFound);
+
+    process_destroy(child);
+  }
+
   it("can wait until execution is finished") {
     const String       args[0];
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_None;
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
+    check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), 0);
 
     process_destroy(child);
@@ -30,6 +44,7 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_None;
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
+    check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), 42);
 
     process_destroy(child);
