@@ -22,6 +22,7 @@ typedef enum {
  * NOTE: Api is thread-safe.
  */
 struct sAssetRepo {
+  bool (*path)(AssetRepo*, String id, DynString* out);
   AssetSource* (*open)(AssetRepo*, String id);
   bool (*save)(AssetRepo*, String id, String data);
   void (*destroy)(AssetRepo*);
@@ -42,6 +43,7 @@ AssetRepo* asset_repo_create_fs(String rootPath);
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCount);
 void       asset_repo_destroy(AssetRepo*);
 
+bool         asset_repo_path(AssetRepo* repo, String id, DynString* out);
 AssetSource* asset_repo_source_open(AssetRepo*, String id);
 bool         asset_repo_save(AssetRepo*, String id, String data);
 void         asset_repo_source_close(AssetSource*);
