@@ -38,10 +38,16 @@ typedef enum {
 } ProcessResult;
 
 typedef enum {
-  ProcessExitCode_Success            = 0,
-  ProcessExitCode_InvalidProcess     = -1000,
-  ProcessExitCode_TerminatedBySignal = -1001,
-  ProcessExitCode_UnknownError       = -1002,
+  ProcessExitCode_Success                    = 0,
+  ProcessExitCode_FailedToCreateProcessGroup = 200,
+  ProcessExitCode_FailedToSetupPipes         = 201,
+  ProcessExitCode_OutOfMemory                = 202,
+  ProcessExitCode_ExecutableNotFound         = 203,
+  ProcessExitCode_InvalidExecutable          = 204,
+  ProcessExitCode_UnknownExecError           = 205,
+  ProcessExitCode_InvalidProcess             = -1000,
+  ProcessExitCode_TerminatedBySignal         = -1001,
+  ProcessExitCode_UnknownError               = -1002,
 } ProcessExitCode;
 
 /**

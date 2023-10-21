@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -105,7 +106,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   if (info->flags & ProcessFlags_NewGroup) {
     const pid_t newSession = setsid(); // Create a new session (with a new progress group).
     if (UNLIKELY(newSession == -1)) {
-      diag_crash_msg("[process error] Failed to create a new process group");
+      exit(ProcessExitCode_FailedToCreateProcessGroup);
     }
   }
 
@@ -120,7 +121,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   dupFail |= info->flags & ProcessFlags_PipeStdOut && dup2(PIPE_FD_WRITE(pipeFds, StdOut), 1) != 0;
   dupFail |= info->flags & ProcessFlags_PipeStdErr && dup2(PIPE_FD_WRITE(pipeFds, StdErr), 2) != 0;
   if (UNLIKELY(dupFail)) {
-    diag_crash_msg("[process error] Failed to setup input and output pipes");
+    exit(ProcessExitCode_FailedToSetupPipes);
   }
 
   /**
@@ -132,7 +133,8 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   const usize argSize   = process_start_arg_null_term_size(info);
   Mem         argBuffer = alloc_alloc(g_alloc_heap, argSize, 1);
   if (!mem_valid(argBuffer)) {
-    diag_crash_msg("[process error] Out of memory");
+    diag_print_err("[process error] Out of memory");
+    exit(ProcessExitCode_OutOfMemory);
   }
 
   char* argv[process_args_max + 2]; // +1 for file and +1 null terminator.
@@ -148,15 +150,18 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   // An error occurred (this path is only reachable if exec failed).
   switch (errno) {
   case ENOENT:
-    diag_crash_msg("[process error] Executable not found: {}", fmt_text(info->file));
+    diag_print_err("[process error] Executable not found: {}\n", fmt_text(info->file));
+    exit(ProcessExitCode_ExecutableNotFound);
   case EACCES:
-    diag_crash_msg("[process error] Access to executable denied: {}", fmt_text(info->file));
   case EINVAL:
-    diag_crash_msg("[process error] Invalid executable: {}", fmt_text(info->file));
+    diag_print_err("[process error] Invalid executable: {}\n", fmt_text(info->file));
+    exit(ProcessExitCode_InvalidExecutable);
   case ENOMEM:
-    diag_crash_msg("[process error] Out of memory");
+    diag_print_err("[process error] Out of memory\n");
+    exit(ProcessExitCode_OutOfMemory);
   default:
-    diag_crash_msg("[process error] Unknown error while executing: {}", fmt_text(info->file));
+    diag_print_err("[process error] Unknown error while executing: {}\n", fmt_text(info->file));
+    exit(ProcessExitCode_UnknownExecError);
   }
 }
 
