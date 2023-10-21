@@ -65,7 +65,7 @@ spec(process) {
   it("can send an interrupt signal") {
     const String       args[] = {string_lit("--wait"), string_lit("--exitcode"), string_lit("42")};
     const u32          argCount = array_elems(args);
-    const ProcessFlags flags    = ProcessFlags_None;
+    const ProcessFlags flags    = ProcessFlags_NewGroup;
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
