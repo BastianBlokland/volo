@@ -15,6 +15,7 @@ typedef enum {
   ProcessFlags_PipeStdOut = 1 << 1, // Create a pipe for reading from std out.
   ProcessFlags_PipeStdErr = 1 << 2, // Create a pipe for reading from std err.
   ProcessFlags_NewGroup   = 1 << 3, // Create a new process group for the child proccess.
+  ProcessFlags_Detached   = 1 << 4, // Leave the process running when closing the handle.
 } ProcessFlags;
 
 typedef enum {

@@ -239,6 +239,10 @@ Process* process_create(
 }
 
 void process_destroy(Process* process) {
+  if (!(process->flags & ProcessFlags_Detached)) {
+    process_signal(process, Signal_Kill);
+    process_block(process); // Wait for process to stop, this prevents leaking zombie processes.
+  }
   if (process->flags & ProcessFlags_PipeStdIn) {
     process_maybe_close_fd(process->pipes[ProcessPipe_StdIn].handle);
   }
