@@ -26,6 +26,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, math);
   register_spec(check, memory);
   register_spec(check, path);
+  register_spec(check, process);
   register_spec(check, rng);
   register_spec(check, search);
   register_spec(check, shuffle);

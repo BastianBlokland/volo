@@ -96,6 +96,7 @@ add_executable(test_lib_core
   test/test_math.c
   test/test_memory.c
   test/test_path.c
+  test/test_process.c
   test/test_rng.c
   test/test_search.c
   test/test_shuffle.c
