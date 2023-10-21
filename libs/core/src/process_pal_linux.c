@@ -108,6 +108,9 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info) {
    */
   const usize fileAndArgSize   = process_start_file_and_arg_size(info);
   Mem         fileAndArgBuffer = alloc_alloc(g_alloc_heap, fileAndArgSize, 1);
+  if (!mem_valid(fileAndArgBuffer)) {
+    diag_crash_msg("[process error] Out of memory");
+  }
 
   char* file;
   char* argv[process_args_max + 1];
