@@ -12,12 +12,20 @@
 
 #define process_args_max 128
 
+typedef enum {
+  ProcessPipe_StdIn,
+  ProcessPipe_StdOut,
+  ProcessPipe_StdErr,
+
+  ProcessPipe_Count
+} ProcessPipe;
+
 struct sProcess {
   Allocator*    alloc;
   ProcessFlags  flags : 8;
   ProcessResult startResult : 8;
   pid_t         handle;
-  File          pipes[3];
+  File          pipes[ProcessPipe_Count];
 };
 
 static ProcessResult process_result_from_errno(const int err) {
@@ -90,6 +98,9 @@ static Mem process_null_terminate(const Mem buffer, const String str, char** out
   return mem_consume(buffer, str.size + 1);
 }
 
+#define PIPE_FD_READ(_FDS_, _PIPE_) ((_FDS_)[ProcessPipe_##_PIPE_ * 2 + 0])
+#define PIPE_FD_WRITE(_FDS_, _PIPE_) ((_FDS_)[ProcessPipe_##_PIPE_ * 2 + 1])
+
 NORETURN static void process_child_exec(const ProcessStartInfo* info, const int pipeFds[]) {
   if (info->flags & ProcessFlags_NewGroup) {
     const pid_t newSession = setsid(); // Create a new session (with a new progress group).
@@ -99,16 +110,16 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   }
 
   // Close the parent side of the pipes.
-  process_maybe_close_fd(pipeFds[(0 * 2) + 1]); // Write side of stdIn.
-  process_maybe_close_fd(pipeFds[(1 * 2) + 0]); // Read side of stdOut.
-  process_maybe_close_fd(pipeFds[(2 * 2) + 0]); // Read side of stdErr.
+  process_maybe_close_fd(PIPE_FD_WRITE(pipeFds, StdIn));
+  process_maybe_close_fd(PIPE_FD_READ(pipeFds, StdOut));
+  process_maybe_close_fd(PIPE_FD_READ(pipeFds, StdErr));
 
   // Duplicate the child side of the pipes onto stdIn, stdOut and stdErr of this process.
-  bool dupFailed = false;
-  dupFailed |= info->flags & ProcessFlags_PipeStdIn && dup2(pipeFds[(0 * 2) + 0], 0) == -1;
-  dupFailed |= info->flags & ProcessFlags_PipeStdOut && dup2(pipeFds[(1 * 2) + 1], 1) == -1;
-  dupFailed |= info->flags & ProcessFlags_PipeStdErr && dup2(pipeFds[(2 * 2) + 1], 2) == -1;
-  if (UNLIKELY(dupFailed)) {
+  bool dupFail = false;
+  dupFail |= info->flags & ProcessFlags_PipeStdIn && dup2(PIPE_FD_READ(pipeFds, StdIn), 0) != 0;
+  dupFail |= info->flags & ProcessFlags_PipeStdOut && dup2(PIPE_FD_WRITE(pipeFds, StdOut), 1) != 0;
+  dupFail |= info->flags & ProcessFlags_PipeStdErr && dup2(PIPE_FD_WRITE(pipeFds, StdErr), 2) != 0;
+  if (UNLIKELY(dupFail)) {
     diag_crash_msg("[process error] Failed to setup input and output pipes");
   }
 
@@ -156,13 +167,13 @@ static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outPid, 
   }
 
   // 2 file-descriptors (both ends of the pipe) for stdIn, stdOut and stdErr.
-  int pipeFds[2 * 3] = {-1, -1, -1, -1, -1, -1};
+  int pipeFds[ProcessPipe_Count * 2] = {-1, -1, -1, -1, -1, -1};
 
-  bool pipeFailed = false;
-  pipeFailed |= info->flags & ProcessFlags_PipeStdIn && pipe(pipeFds + (0 * 2)) == -1;
-  pipeFailed |= info->flags & ProcessFlags_PipeStdOut && pipe(pipeFds + (1 * 2)) == -1;
-  pipeFailed |= info->flags & ProcessFlags_PipeStdErr && pipe(pipeFds + (2 * 2)) == -1;
-  if (UNLIKELY(pipeFailed)) {
+  bool pipeFail = false;
+  pipeFail |= info->flags & ProcessFlags_PipeStdIn && pipe(pipeFds + ProcessPipe_StdIn * 2) != 0;
+  pipeFail |= info->flags & ProcessFlags_PipeStdOut && pipe(pipeFds + ProcessPipe_StdOut * 2) != 0;
+  pipeFail |= info->flags & ProcessFlags_PipeStdErr && pipe(pipeFds + ProcessPipe_StdErr * 2) != 0;
+  if (UNLIKELY(pipeFail)) {
     // Close the file-descriptors of the pipes we did manage to create.
     process_maybe_close_fds(pipeFds, array_elems(pipeFds));
 
@@ -187,22 +198,25 @@ static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outPid, 
   }
 
   // Fork succeeded, close only the child side of the pipes.
-  process_maybe_close_fd(pipeFds[(0 * 2) + 0]); // Read side of stdIn.
-  process_maybe_close_fd(pipeFds[(1 * 2) + 1]); // Write side of stdOut.
-  process_maybe_close_fd(pipeFds[(2 * 2) + 1]); // Write side of stdErr.
+  process_maybe_close_fd(PIPE_FD_READ(pipeFds, StdIn));
+  process_maybe_close_fd(PIPE_FD_WRITE(pipeFds, StdOut));
+  process_maybe_close_fd(PIPE_FD_WRITE(pipeFds, StdErr));
 
   *outPid = forkedPid;
   if (info->flags & ProcessFlags_PipeStdIn) {
-    outPipes[0] = (File){.handle = pipeFds[(0 * 2) + 1], .access = FileAccess_Write};
+    outPipes[0] = (File){.handle = PIPE_FD_WRITE(pipeFds, StdIn), .access = FileAccess_Write};
   }
   if (info->flags & ProcessFlags_PipeStdOut) {
-    outPipes[1] = (File){.handle = pipeFds[(1 * 2) + 0], .access = FileAccess_Read};
+    outPipes[1] = (File){.handle = PIPE_FD_READ(pipeFds, StdOut), .access = FileAccess_Read};
   }
   if (info->flags & ProcessFlags_PipeStdErr) {
-    outPipes[2] = (File){.handle = pipeFds[(2 * 2) + 0], .access = FileAccess_Read};
+    outPipes[2] = (File){.handle = PIPE_FD_READ(pipeFds, StdErr), .access = FileAccess_Read};
   }
   return ProcessResult_Success;
 }
+
+#undef PIPE_FD_READ
+#undef PIPE_FD_WRITE
 
 Process* process_create(
     Allocator*         alloc,
@@ -226,13 +240,13 @@ Process* process_create(
 
 void process_destroy(Process* process) {
   if (process->flags & ProcessFlags_PipeStdIn) {
-    process_maybe_close_fd(process->pipes[0].handle);
+    process_maybe_close_fd(process->pipes[ProcessPipe_StdIn].handle);
   }
   if (process->flags & ProcessFlags_PipeStdOut) {
-    process_maybe_close_fd(process->pipes[1].handle);
+    process_maybe_close_fd(process->pipes[ProcessPipe_StdOut].handle);
   }
   if (process->flags & ProcessFlags_PipeStdErr) {
-    process_maybe_close_fd(process->pipes[2].handle);
+    process_maybe_close_fd(process->pipes[ProcessPipe_StdErr].handle);
   }
   alloc_free_t(process->alloc, process);
 }
@@ -245,21 +259,21 @@ ProcessId process_id(const Process* process) {
 
 File* process_pipe_in(Process* process) {
   if (process->startResult == ProcessResult_Success && process->flags & ProcessFlags_PipeStdIn) {
-    return &process->pipes[0];
+    return &process->pipes[ProcessPipe_StdIn];
   }
   return null;
 }
 
 File* process_pipe_out(Process* process) {
   if (process->startResult == ProcessResult_Success && process->flags & ProcessFlags_PipeStdOut) {
-    return &process->pipes[1];
+    return &process->pipes[ProcessPipe_StdOut];
   }
   return null;
 }
 
 File* process_pipe_err(Process* process) {
   if (process->startResult == ProcessResult_Success && process->flags & ProcessFlags_PipeStdErr) {
-    return &process->pipes[2];
+    return &process->pipes[ProcessPipe_StdErr];
   }
   return null;
 }
