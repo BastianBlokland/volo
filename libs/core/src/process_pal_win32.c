@@ -287,7 +287,7 @@ void process_pipe_close_in(Process* process) {
 ProcessResult process_signal(Process* process, const Signal signal) {
   const HANDLE handle = process->processInfo.hProcess;
   if (UNLIKELY(!handle)) {
-    return ProcessExitCode_InvalidProcess;
+    return ProcessResult_InvalidProcess;
   }
   switch (signal) {
   case Signal_Interrupt:
