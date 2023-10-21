@@ -19,8 +19,9 @@ typedef enum {
 
 typedef enum {
   ProcessResult_Success,
-  ProcessResult_ProcessLimitReached,
-  ProcessResult_ProcessTooManyArguments,
+  ProcessResult_LimitReached,
+  ProcessResult_TooManyArguments,
+  ProcessResult_FailedToCreatePipe,
   ProcessResult_InvalidProcess,
   ProcessResult_NoPermission,
   ProcessResult_NotRunning,

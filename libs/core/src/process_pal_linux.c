@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_process.h"
 
@@ -39,6 +40,29 @@ static int process_signal_code(const Signal signal) {
     break;
   }
   diag_crash_msg("Invalid signal");
+}
+
+static void process_maybe_close_fd(const int fd) {
+  if (fd == -1) {
+    return; // Sentinel we use to indicate an unused file-descriptor.
+  }
+TryClose:
+  if (UNLIKELY(close(fd) < 0)) {
+    switch (errno) {
+    case EBADF:
+      diag_crash_msg("Failed to close invalid file-descriptor: {}", fmt_int(fd));
+    case EINTR:
+      goto TryClose; // Interrupted; retry.
+    default:
+      diag_crash_msg("Unknown error while closing file-descriptor: {}", fmt_int(fd));
+    }
+  }
+}
+
+static void process_maybe_close_fds(const int fds[], const u32 count) {
+  for (u32 i = 0; i != count; ++i) {
+    process_maybe_close_fd(fds[i]);
+  }
 }
 
 typedef struct {
@@ -114,21 +138,45 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info) {
 
 static ProcessResult process_start(const ProcessStartInfo* info, pid_t* outHandle) {
   if (UNLIKELY(info->argCount > process_args_max)) {
-    return ProcessResult_ProcessTooManyArguments;
+    return ProcessResult_TooManyArguments;
   }
+
+  // 2 file-descriptors (both ends of the pipe) for stdIn, stdOut and stdErr.
+  int pipeFds[2 * 3] = {-1, -1, -1, -1, -1, -1};
+
+  bool pipeFailed = false;
+  pipeFailed |= info->flags & ProcessFlags_PipeStdIn && pipe(pipeFds + (0 * 2));
+  pipeFailed |= info->flags & ProcessFlags_PipeStdOut && pipe(pipeFds + (1 * 2));
+  pipeFailed |= info->flags & ProcessFlags_PipeStdErr && pipe(pipeFds + (2 * 2));
+  if (UNLIKELY(pipeFailed)) {
+    // Close the file-descriptors of the pipes we did manage to create.
+    process_maybe_close_fds(pipeFds, array_elems(pipeFds));
+
+    return ProcessResult_FailedToCreatePipe;
+  }
+
   const pid_t forkedPid = fork();
   if (forkedPid == 0) {
     process_child_exec(info);
   }
-  // TODO: Close the child side of the pipes (if they exist).
+
   if (UNLIKELY(forkedPid < 0)) {
+    // Failed to fork, close both sides of all the pipes.
+    process_maybe_close_fds(pipeFds, array_elems(pipeFds));
+
     switch (errno) {
     case EAGAIN:
-      return ProcessResult_ProcessLimitReached;
+      return ProcessResult_LimitReached;
     default:
       return ProcessResult_UnknownError;
     }
   }
+
+  // Fork succeeded, close only the child side of the pipes.
+  process_maybe_close_fd(pipeFds[(0 * 2) + 0]); // Read side of stdIn.
+  process_maybe_close_fd(pipeFds[(1 * 2) + 1]); // Write side of stdOut.
+  process_maybe_close_fd(pipeFds[(2 * 2) + 1]); // Write side of stdErr.
+
   *outHandle = forkedPid;
   return ProcessResult_Success;
 }
