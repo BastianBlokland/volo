@@ -79,11 +79,17 @@ ProcessId process_id(const Process*);
 
 /**
  * Retrieve a file handle to process pipes.
- * NOTE: Return null if the process was started without the corresponding pipe flag.
+ * NOTE: Returns null if the process failed to start.
+ * Pre-condition:  he process was started with the corresponding pipe flag.
  */
 File* process_pipe_in(Process*);
 File* process_pipe_out(Process*);
 File* process_pipe_err(Process*);
+
+/**
+ * Close the input pipe, no further data can be written.
+ */
+void process_pipe_close_in(Process*);
 
 /**
  * Send a signal to the given process.

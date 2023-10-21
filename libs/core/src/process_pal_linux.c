@@ -25,6 +25,7 @@ struct sProcess {
   Allocator*    alloc;
   ProcessFlags  flags : 8;
   ProcessResult startResult : 8;
+  bool          inputPipeClosed;
   pid_t         handle;
   File          pipes[ProcessPipe_Count];
 };
@@ -257,7 +258,7 @@ void process_destroy(Process* process) {
     process_signal(process, Signal_Kill);
     process_block(process); // Wait for process to stop, this prevents leaking zombie processes.
   }
-  if (process->flags & ProcessFlags_PipeStdIn) {
+  if (process->flags & ProcessFlags_PipeStdIn && !process->inputPipeClosed) {
     process_maybe_close_fd(process->pipes[ProcessPipe_StdIn].handle);
   }
   if (process->flags & ProcessFlags_PipeStdOut) {
@@ -276,24 +277,35 @@ ProcessId process_id(const Process* process) {
 }
 
 File* process_pipe_in(Process* process) {
-  if (process->startResult == ProcessResult_Success && process->flags & ProcessFlags_PipeStdIn) {
+  diag_assert_msg(process->flags & ProcessFlags_PipeStdIn, "Input not piped");
+  if (process->startResult == ProcessResult_Success) {
     return &process->pipes[ProcessPipe_StdIn];
   }
   return null;
 }
 
 File* process_pipe_out(Process* process) {
-  if (process->startResult == ProcessResult_Success && process->flags & ProcessFlags_PipeStdOut) {
+  diag_assert_msg(process->flags & ProcessFlags_PipeStdOut, "Output not piped");
+  if (process->startResult == ProcessResult_Success) {
     return &process->pipes[ProcessPipe_StdOut];
   }
   return null;
 }
 
 File* process_pipe_err(Process* process) {
-  if (process->startResult == ProcessResult_Success && process->flags & ProcessFlags_PipeStdErr) {
+  diag_assert_msg(process->flags & ProcessFlags_PipeStdErr, "Error not piped");
+  if (process->startResult == ProcessResult_Success) {
     return &process->pipes[ProcessPipe_StdErr];
   }
   return null;
+}
+
+void process_pipe_close_in(Process* process) {
+  diag_assert_msg(process->flags & ProcessFlags_PipeStdIn, "Input not piped");
+  diag_assert_msg(!process->inputPipeClosed, "Input pipe already closed");
+  process->pipes[ProcessPipe_StdIn].access = FileAccess_None;
+  process->inputPipeClosed                 = true;
+  process_maybe_close_fd(process->pipes[ProcessPipe_StdIn].handle);
 }
 
 ProcessResult process_signal(Process* process, const Signal signal) {
