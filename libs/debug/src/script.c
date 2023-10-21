@@ -3,10 +3,12 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_process.h"
 #include "core_stringtable.h"
 #include "debug_register.h"
 #include "debug_script.h"
 #include "ecs_utils.h"
+#include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_script.h"
 #include "scene_selection.h"
@@ -43,6 +45,17 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
 }
 
+static void debug_launch_editor(const String path) {
+  const String editorFile   = string_lit("code");
+  const String editorArgs[] = {string_lit("--reuse-window"), path};
+  Process* proc = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
+  const ProcessExitCode exitCode = process_block(proc);
+  if (exitCode != 0) {
+    log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
+  }
+  process_destroy(proc);
+}
+
 ecs_view_define(SubjectView) {
   ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneScriptComp);
@@ -65,12 +78,19 @@ static void stats_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world, EcsItera
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Script:"));
   ui_table_next_column(canvas, &table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptName)), .selectable = true);
+  ui_table_next_column(canvas, &table);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = string_lit("Edit Script"))) {
+    debug_launch_editor(
+        string_lit("/home/bastian/dev/projects/volo/assets/scripts/spawner.script"));
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Expressions:"));
