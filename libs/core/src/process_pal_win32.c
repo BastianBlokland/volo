@@ -26,6 +26,18 @@ struct sProcess {
   File                pipes[ProcessPipe_Count];
 };
 
+static void process_maybe_close_handle(HANDLE handle) {
+  if (handle) {
+    CloseHandle(handle);
+  }
+}
+
+static void process_maybe_close_handles(HANDLE handles[], const u32 count) {
+  for (u32 i = 0; i != count; ++i) {
+    process_maybe_close_handle(handles[i]);
+  }
+}
+
 typedef struct {
   ProcessFlags  flags;
   String        file;
@@ -33,13 +45,141 @@ typedef struct {
   u32           argCount;
 } ProcessStartInfo;
 
-static ProcessResult process_start(const ProcessStartInfo* info, File outPipes[3]) {
+#define PIPE_HND_READ(_HNDS_, _PIPE_) ((_HNDS_)[ProcessPipe_##_PIPE_ * 2 + 0])
+#define PIPE_HND_WRITE(_HNDS_, _PIPE_) ((_HNDS_)[ProcessPipe_##_PIPE_ * 2 + 1])
+
+static ProcessResult
+process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo, File outPipes[3]) {
   if (UNLIKELY(info->argCount > process_args_max)) {
     return ProcessResult_TooManyArguments;
   }
-  (void)outPipes;
+
+  // 2 handles (both ends of the pipe) for stdIn, stdOut and stdErr.
+  HANDLE pipeHandles[ProcessPipe_Count * 2] = {0};
+
+  const DWORD         pipeBufferSize = 0; // Use system default.
+  SECURITY_ATTRIBUTES pipeAttr       = {
+            .nLength        = sizeof(SECURITY_ATTRIBUTES),
+            .bInheritHandle = true,
+  };
+
+  // clang-format off
+  bool pipeFail = false;
+  pipeFail |= info->flags & ProcessFlags_PipeStdIn  && !CreatePipe(PIPE_HND_READ(pipeHandles, StdIn), PIPE_HND_WRITE(pipeHandles, StdIn), &pipeAttr, pipeBufferSize);
+  pipeFail |= info->flags & ProcessFlags_PipeStdOut && !CreatePipe(PIPE_HND_READ(pipeHandles, StdOut), PIPE_HND_WRITE(pipeHandles, StdOut), &pipeAttr, pipeBufferSize);
+  pipeFail |= info->flags & ProcessFlags_PipeStdErr && !CreatePipe(PIPE_HND_READ(pipeHandles, StdErr), PIPE_HND_WRITE(pipeHandles, StdErr), &pipeAttr, pipeBufferSize);
+  // clang-format on
+  if (UNLIKELY(pipeFail)) {
+    // Close the handles of the pipes we did manage to create.
+    process_maybe_close_handles(pipeHandles, array_elems(pipeHandles));
+
+    return ProcessResult_FailedToCreatePipe;
+  }
+
+  size_t attrListSize;
+  InitializeProcThreadAttributeList(0, 1, 0, &attrListSize);
+  LPPROC_THREAD_ATTRIBUTE_LIST attrList = alloc_alloc(g_alloc_heap, attrListSize, sizeof(uptr)).ptr;
+  if (attrList) {
+    InitializeProcThreadAttributeList(attrList, 1, 0, &attrListSize);
+  }
+
+  const HANDLE handlesToInherit[] = {
+      PIPE_HND_READ(pipeHandles, StdIn),
+      PIPE_HND_WRITE(pipeHandles, StdOut),
+      PIPE_HND_WRITE(pipeHandles, StdErr),
+  };
+  if (attrList && info->flags & ProcessFlags_PipeAny) {
+    UpdateProcThreadAttribute(
+        attrList,
+        0,
+        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+        handlesToInherit,
+        sizeof(handlesToInherit),
+        null,
+        null);
+  }
+
+  STARTUPINFOEX startupInfoEx = {
+      .StartupInfo.cb         = sizeof(startupInfoEx),
+      .StartupInfo.hStdInput  = PIPE_HND_READ(pipeHandles, StdIn),
+      .StartupInfo.hStdOutput = PIPE_HND_WRITE(pipeHandles, StdOut),
+      .StartupInfo.hStdError  = PIPE_HND_WRITE(pipeHandles, StdErr),
+      .lpAttributeList        = attrList,
+  };
+  if (info->flags & ProcessFlags_PipeAny) {
+    startupInfoEx.StartupInfo.dwFlags |= STARTF_USESTDHANDLES;
+  }
+
+  DWORD creationFlags = NORMAL_PRIORITY_CLASS | EXTENDED_STARTUPINFO_PRESENT;
+  if (info->flags & ProcessFlags_NewGroup) {
+    creationFlags |= CREATE_NEW_PROCESS_GROUP;
+  }
+
+  wchar_t* cmdLineStr = null;
+
+  const bool success = CreateProcess(
+      null,
+      cmdLineStr,
+      null,
+      null,
+      true,
+      creationFlags,
+      null,
+      null,
+      &startupInfoEx.StartupInfo,
+      outProcessInfo);
+
+  if (success) {
+    // Success; close only the child side of the pipes.
+    process_maybe_close_handle(PIPE_HND_READ(pipeHandles, StdIn));
+    process_maybe_close_handle(PIPE_HND_WRITE(pipeHandles, StdOut));
+    process_maybe_close_handle(PIPE_HND_WRITE(pipeHandles, StdErr));
+  } else {
+    // Failure; close both sides of all the pipes.
+    process_maybe_close_handles(pipeHandles, array_elems(pipeHandles));
+
+    // TODO: Do these need closing in case of failure?
+    CloseHandle(outProcessInfo->hThread);
+    CloseHandle(outProcessInfo->hProcess);
+  }
+
+  if (attrList) {
+    DeleteProcThreadAttributeList(attrList);
+    alloc_free(g_alloc_heap, mem_create(attrList, attrListSize));
+  }
+
+  if (!success) {
+    switch (GetLastError()) {
+    case ERROR_NOACCESS:
+      return ProcessResult_NoPermission;
+    case ERROR_FILE_NOT_FOUND:
+      return ProcessResult_NoPermission; // TODO: ProcessExitCode_ExecutableNotFound
+    case ERROR_INVALID_STARTING_CODESEG:
+    case ERROR_INVALID_STACKSEG:
+    case ERROR_INVALID_MODULETYPE:
+    case ERROR_INVALID_EXE_SIGNATURE:
+    case ERROR_EXE_MARKED_INVALID:
+    case ERROR_BAD_EXE_FORMAT:
+      return ProcessResult_NoPermission; // TODO: ProcessExitCode_InvalidExecutable
+    default:
+      return ProcessResult_UnknownError;
+    }
+  }
+
+  if (info->flags & ProcessFlags_PipeStdIn) {
+    outPipes[0] = (File){.handle = PIPE_HND_WRITE(pipeHandles, StdIn), .access = FileAccess_Write};
+  }
+  if (info->flags & ProcessFlags_PipeStdOut) {
+    outPipes[1] = (File){.handle = PIPE_HND_READ(pipeHandles, StdOut), .access = FileAccess_Read};
+  }
+  if (info->flags & ProcessFlags_PipeStdErr) {
+    outPipes[2] = (File){.handle = PIPE_HND_READ(pipeHandles, StdErr), .access = FileAccess_Read};
+  }
   return ProcessResult_Success;
 }
+
+#undef PIPE_HND_READ
+#undef PIPE_HND_WRITE
 
 Process* process_create(
     Allocator*         alloc,
@@ -56,7 +196,7 @@ Process* process_create(
       .args     = args,
       .argCount = argCount,
   };
-  process->startResult = process_start(&startInfo, process->pipes);
+  process->startResult = process_start(&startInfo, &process->processInfo, process->pipes);
 
   return process;
 }
