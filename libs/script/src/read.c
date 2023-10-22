@@ -690,8 +690,6 @@ BlockEnd:;
  * NOTE: Caller is expected to consume the opening curly-brace.
  */
 static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
-  const ScriptPos start = read_pos_next(ctx);
-
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
@@ -707,7 +705,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
   }
 
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyClose)) {
-    const ScriptRange range = read_range_current(ctx, start);
+    const ScriptRange range = script_expr_range(ctx->doc, expr);
     return read_emit_err(ctx, ScriptError_UnterminatedBlock, range), read_fail_structural(ctx);
   }
 
