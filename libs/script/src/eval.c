@@ -99,7 +99,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
       ctx->error      = ScriptErrorRuntime_AssertionFailed;
-      ctx->errorRange = script_expr_range(ctx->doc, args[0]);
+      ctx->errorRange = script_expr_range(ctx->doc, e);
       ctx->signal |= ScriptEvalSignal_Error;
     }
     return script_null();
