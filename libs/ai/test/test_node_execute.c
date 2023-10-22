@@ -5,6 +5,7 @@
 #include "core_alloc.h"
 #include "script_doc.h"
 #include "script_mem.h"
+#include "script_pos.h"
 
 spec(node_execute) {
   ScriptMem*    memory    = null;
@@ -27,7 +28,10 @@ spec(node_execute) {
             .data_execute =
                 {
                     .scriptExpr = script_add_mem_store(
-                        scriptDoc, key, script_add_value(scriptDoc, script_number(42))),
+                        scriptDoc,
+                        script_range_sentinel,
+                        key,
+                        script_add_value(scriptDoc, script_range_sentinel, script_number(42))),
                 },
         },
     };

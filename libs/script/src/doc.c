@@ -76,55 +76,57 @@ void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->values);
 }
 
-ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
+ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   const ScriptValId valId = script_doc_val_add(doc, val);
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type       = ScriptExprType_Value,
           .data_value = {.valId = valId},
       });
 }
 
-ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptVarId var) {
+ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const ScriptVarId var) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type          = ScriptExprType_VarLoad,
           .data_var_load = {.var = var},
       });
 }
 
-ScriptExpr script_add_var_store(ScriptDoc* doc, const ScriptVarId var, const ScriptExpr val) {
+ScriptExpr script_add_var_store(
+    ScriptDoc* doc, const ScriptRange range, const ScriptVarId var, const ScriptExpr val) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type           = ScriptExprType_VarStore,
           .data_var_store = {.var = var, .val = val},
       });
 }
 
-ScriptExpr script_add_mem_load(ScriptDoc* doc, const StringHash key) {
+ScriptExpr script_add_mem_load(ScriptDoc* doc, const ScriptRange range, const StringHash key) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type          = ScriptExprType_MemLoad,
           .data_mem_load = {.key = key},
       });
 }
 
-ScriptExpr script_add_mem_store(ScriptDoc* doc, const StringHash key, const ScriptExpr val) {
+ScriptExpr script_add_mem_store(
+    ScriptDoc* doc, const ScriptRange range, const StringHash key, const ScriptExpr val) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type           = ScriptExprType_MemStore,
           .data_mem_store = {.key = key, .val = val},

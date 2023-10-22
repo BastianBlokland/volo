@@ -67,11 +67,11 @@ void script_clear(ScriptDoc*);
 /**
  * Add new expressions.
  */
-ScriptExpr script_add_value(ScriptDoc*, ScriptVal val);
-ScriptExpr script_add_var_load(ScriptDoc*, ScriptVarId);
-ScriptExpr script_add_var_store(ScriptDoc*, ScriptVarId, ScriptExpr val);
-ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
-ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
+ScriptExpr script_add_value(ScriptDoc*, ScriptRange, ScriptVal val);
+ScriptExpr script_add_var_load(ScriptDoc*, ScriptRange, ScriptVarId);
+ScriptExpr script_add_var_store(ScriptDoc*, ScriptRange, ScriptVarId, ScriptExpr val);
+ScriptExpr script_add_mem_load(ScriptDoc*, ScriptRange, StringHash key);
+ScriptExpr script_add_mem_store(ScriptDoc*, ScriptRange, StringHash key, ScriptExpr val);
 ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptRange, ScriptIntrinsic, const ScriptExpr args[]);
 ScriptExpr script_add_block(ScriptDoc*, ScriptRange, const ScriptExpr exprs[], u32 exprCount);
 ScriptExpr script_add_extern(ScriptDoc*, ScriptRange, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);

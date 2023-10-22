@@ -5,6 +5,7 @@
 #include "core_alloc.h"
 #include "script_doc.h"
 #include "script_mem.h"
+#include "script_pos.h"
 
 spec(node_condition) {
   ScriptMem*    memory    = null;
@@ -20,9 +21,11 @@ spec(node_condition) {
   it("evaluates to success when the condition is truthy") {
     const AssetAiNode nodeDefs[] = {
         {
-            .type           = AssetAiNode_Condition,
-            .nextSibling    = sentinel_u16,
-            .data_condition = {.scriptExpr = script_add_value(scriptDoc, script_bool(true))},
+            .type        = AssetAiNode_Condition,
+            .nextSibling = sentinel_u16,
+            .data_condition =
+                {.scriptExpr =
+                     script_add_value(scriptDoc, script_range_sentinel, script_bool(true))},
         },
     };
     const AiEvalContext ctx = {
@@ -38,9 +41,11 @@ spec(node_condition) {
   it("evaluates to failure when the condition is falsy") {
     const AssetAiNode nodeDefs[] = {
         {
-            .type           = AssetAiNode_Condition,
-            .nextSibling    = sentinel_u16,
-            .data_condition = {.scriptExpr = script_add_value(scriptDoc, script_bool(false))},
+            .type        = AssetAiNode_Condition,
+            .nextSibling = sentinel_u16,
+            .data_condition =
+                {.scriptExpr =
+                     script_add_value(scriptDoc, script_range_sentinel, script_bool(false))},
         },
     };
     const AiEvalContext ctx = {

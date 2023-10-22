@@ -522,7 +522,7 @@ static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
 
 static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
   ctx->flags |= ScriptReadFlags_ProgramInvalid;
-  return script_add_value(ctx->doc, script_null());
+  return script_add_value(ctx->doc, script_range_sentinel, script_null());
 }
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
@@ -686,7 +686,7 @@ BlockNext:
 BlockEnd:
   switch (exprCount) {
   case 0:
-    return script_add_value(ctx->doc, script_null());
+    return script_add_value(ctx->doc, script_range_sentinel, script_null());
   case 1:
     return exprs[0];
   default:
@@ -824,29 +824,32 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
       return read_fail_structural(ctx);
     }
   } else {
-    valExpr = script_add_value(ctx->doc, script_null());
+    valExpr = script_add_value(ctx->doc, script_range_sentinel, script_null());
   }
+
+  const ScriptRange range = read_range_current(ctx, startPos);
 
   ScriptVarId varId;
   if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
-    return read_emit_err(ctx, ScriptError_VarLimitExceeded, startPos), read_fail_semantic(ctx);
+    return read_emit_err_range(ctx, ScriptError_VarLimitExceeded, range), read_fail_semantic(ctx);
   }
 
-  return script_add_var_store(ctx->doc, varId, valExpr);
+  return script_add_var_store(ctx->doc, range, varId, valExpr);
 }
 
 static ScriptExpr
 read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPos start) {
+  const ScriptRange         range   = read_range_current(ctx, start);
   const ScriptBuiltinConst* builtin = script_builtin_const_lookup(id);
   if (builtin) {
-    return script_add_value(ctx->doc, builtin->val);
+    return script_add_value(ctx->doc, range, builtin->val);
   }
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (var) {
     var->used = true;
-    return script_add_var_load(ctx->doc, var->varSlot);
+    return script_add_var_load(ctx->doc, range, var->varSlot);
   }
-  return read_emit_err(ctx, ScriptError_NoVarFoundForId, start), read_fail_semantic(ctx);
+  return read_emit_err_range(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx);
 }
 
 static ScriptExpr
@@ -863,7 +866,8 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
     return read_emit_err(ctx, ScriptError_NoVarFoundForId, start), read_fail_semantic(ctx);
   }
 
-  return script_add_var_store(ctx->doc, var->varSlot, expr);
+  const ScriptRange range = read_range_current(ctx, start);
+  return script_add_var_store(ctx->doc, range, var->varSlot, expr);
 }
 
 static ScriptExpr read_expr_var_modify(
@@ -889,13 +893,14 @@ static ScriptExpr read_expr_var_modify(
   var->used = true;
 
   const ScriptRange range      = read_range_current(ctx, start);
-  const ScriptExpr  loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
+  const ScriptExpr  loadExpr   = script_add_var_load(ctx->doc, range, var->varSlot);
   const ScriptExpr  intrArgs[] = {loadExpr, val};
   const ScriptExpr  intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
-  return script_add_var_store(ctx->doc, var->varSlot, intrExpr);
+  return script_add_var_store(ctx->doc, range, var->varSlot, intrExpr);
 }
 
-static ScriptExpr read_expr_mem_store(ScriptReadContext* ctx, const StringHash key) {
+static ScriptExpr
+read_expr_mem_store(ScriptReadContext* ctx, const StringHash key, const ScriptPos start) {
   const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
   const ScriptExpr    val         = read_expr(ctx, OpPrecedence_Assignment);
   ctx->section                    = prevSection;
@@ -903,7 +908,8 @@ static ScriptExpr read_expr_mem_store(ScriptReadContext* ctx, const StringHash k
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  return script_add_mem_store(ctx->doc, key, val);
+  const ScriptRange range = read_range_current(ctx, start);
+  return script_add_mem_store(ctx->doc, range, key, val);
 }
 
 static ScriptExpr read_expr_mem_modify(
@@ -921,10 +927,10 @@ static ScriptExpr read_expr_mem_modify(
     return read_fail_structural(ctx);
   }
   const ScriptRange range      = read_range_current(ctx, start);
-  const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, key);
+  const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, range, key);
   const ScriptExpr  intrArgs[] = {loadExpr, val};
   const ScriptExpr  intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
-  return script_add_mem_store(ctx->doc, key, intrExpr);
+  return script_add_mem_store(ctx->doc, range, key, intrExpr);
 }
 
 /**
@@ -1026,7 +1032,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
-    b2 = script_add_value(ctx->doc, script_null());
+    b2 = script_add_value(ctx->doc, script_range_sentinel, script_null());
   }
 
   diag_assert(&scope == read_scope_tail(ctx));
@@ -1078,8 +1084,8 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
   const ScriptRange range = read_range_current(ctx, start);
   // NOTE: Setup and Increment loop parts are not used in while loops.
-  const ScriptExpr setupExpr  = script_add_value(ctx->doc, script_null());
-  const ScriptExpr incrExpr   = script_add_value(ctx->doc, script_null());
+  const ScriptExpr setupExpr  = script_add_value(ctx->doc, script_range_sentinel, script_null());
+  const ScriptExpr incrExpr   = script_add_value(ctx->doc, script_range_sentinel, script_null());
   const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Loop, intrArgs);
 }
@@ -1115,7 +1121,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
   ScriptExpr      res;
   if (read_peek(ctx).type == g_endTokens[comp]) {
     const ScriptVal skipVal = comp == ReadForComp_Condition ? script_bool(true) : script_null();
-    res                     = script_add_value(ctx->doc, skipVal);
+    res                     = script_add_value(ctx->doc, script_range_sentinel, skipVal);
   } else if (UNLIKELY(read_peek(ctx).type == ScriptTokenType_ParenClose)) {
     return read_emit_err(ctx, ScriptError_ForLoopCompMissing, start), read_fail_structural(ctx);
   } else {
@@ -1220,7 +1226,7 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
 
   ScriptExpr retExpr;
   if (read_is_return_separator(nextToken.type)) {
-    retExpr = script_add_value(ctx->doc, script_null());
+    retExpr = script_add_value(ctx->doc, script_range_sentinel, script_null());
   } else {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
     retExpr                         = read_expr(ctx, OpPrecedence_Assignment);
@@ -1337,10 +1343,14 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Literals.
    */
-  case ScriptTokenType_Number:
-    return script_add_value(ctx->doc, script_number(token.val_number));
-  case ScriptTokenType_String:
-    return script_add_value(ctx->doc, script_string(token.val_string));
+  case ScriptTokenType_Number: {
+    const ScriptRange range = read_range_current(ctx, start);
+    return script_add_value(ctx->doc, range, script_number(token.val_number));
+  }
+  case ScriptTokenType_String: {
+    const ScriptRange range = read_range_current(ctx, start);
+    return script_add_value(ctx->doc, range, script_string(token.val_string));
+  }
   /**
    * Memory access.
    */
@@ -1353,7 +1363,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     switch (nextToken.type) {
     case ScriptTokenType_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_mem_store(ctx, token.val_key);
+      return read_expr_mem_store(ctx, token.val_key, start);
     case ScriptTokenType_PlusEq:
     case ScriptTokenType_MinusEq:
     case ScriptTokenType_StarEq:
@@ -1362,8 +1372,10 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_mem_modify(ctx, token.val_key, nextToken.type, start);
-    default:
-      return script_add_mem_load(ctx->doc, token.val_key);
+    default: {
+      const ScriptRange range = read_range_current(ctx, start);
+      return script_add_mem_load(ctx->doc, range, token.val_key);
+    }
     }
   }
   /**
