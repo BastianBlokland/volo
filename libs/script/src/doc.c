@@ -144,13 +144,14 @@ ScriptExpr script_add_intrinsic(
       });
 }
 
-ScriptExpr script_add_block(ScriptDoc* doc, const ScriptExpr exprs[], const u32 exprCount) {
+ScriptExpr script_add_block(
+    ScriptDoc* doc, const ScriptRange range, const ScriptExpr exprs[], const u32 exprCount) {
   diag_assert_msg(exprCount, "Zero sized blocks are not supported");
 
   const ScriptExprSet set = script_doc_expr_set_add(doc, exprs, exprCount);
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type       = ScriptExprType_Block,
           .data_block = {.exprSet = set, .exprCount = exprCount},

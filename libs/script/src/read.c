@@ -692,7 +692,8 @@ BlockEnd:
   default:
     read_emit_no_effect(ctx, exprs, exprRanges, exprCount);
     read_emit_unreachable(ctx, exprs, exprRanges, exprCount);
-    return script_add_block(ctx->doc, exprs, exprCount);
+    const ScriptRange blockRange = read_range_current(ctx, blockStart);
+    return script_add_block(ctx->doc, blockRange, exprs, exprCount);
   }
 }
 
