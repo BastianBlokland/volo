@@ -1,7 +1,56 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_format.h"
 #include "script_diag.h"
+
+static const String g_diagTypeStrs[] = {
+    string_static("Invalid character"),
+    string_static("Invalid Utf8 text"),
+    string_static("Invalid character in number"),
+    string_static("Number ends with a decimal point"),
+    string_static("Number ends with a separator"),
+    string_static("Key cannot be empty"),
+    string_static("String is not terminated"),
+    string_static("Recursion limit exceeded"),
+    string_static("Variable limit exceeded"),
+    string_static("Variable identifier invalid"),
+    string_static("Variable identifier '{}' conflicts"),
+    string_static("Missing expression"),
+    string_static("Invalid expression"),
+    string_static("No variable found for identifier '{}'"),
+    string_static("No function found for identifier '{}'"),
+    string_static("Incorrect argument count for builtin function"),
+    string_static("Unclosed parenthesized expression"),
+    string_static("Unterminated block"),
+    string_static("Unterminated argument list"),
+    string_static("Block size exceeds maximum"),
+    string_static("Missing semicolon"),
+    string_static("Unexpected semicolon"),
+    string_static("Unnecessary semicolon"),
+    string_static("Argument count exceeds maximum"),
+    string_static("Invalid condition count"),
+    string_static("Invalid if-expression"),
+    string_static("Invalid while-loop"),
+    string_static("Invalid for-loop"),
+    string_static("Too few for-loop components"),
+    string_static("For-loop component is static"),
+    string_static("Separator missing in for-loop"),
+    string_static("Block expected"),
+    string_static("Block or if-expression expected"),
+    string_static("Missing colon in select-expression"),
+    string_static("Unexpected token after expression"),
+    string_static("{} not valid outside a loop body"),
+    string_static("Variable declaration is not allowed in this section"),
+    string_static("Variable '{}' is not used"),
+    string_static("Loops are not allowed in this section"),
+    string_static("If-expressions are not allowed in this section"),
+    string_static("Return-expressions are not allowed in this section"),
+    string_static("Expression has no effect"),
+    string_static("Unreachable expressions"),
+    string_static("Condition expression is static"),
+};
+ASSERT(array_elems(g_diagTypeStrs) == ScriptDiagType_Count, "Incorrect number of type strs");
 
 struct sScriptDiagBag {
   Allocator*       alloc;
@@ -69,12 +118,10 @@ String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) 
   if (rangeText.size < 32) {
     formatArgs[0] = fmt_text(rangeText);
   }
-  return format_write_formatted_scratch(script_error_str(diag->error), formatArgs);
+  return format_write_formatted_scratch(g_diagTypeStrs[diag->type], formatArgs);
 }
 
 void script_diag_pretty_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
-  diag_assert(diag->error != ScriptError_None);
-
   const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(sourceText, diag->range);
   fmt_write(
       out,
@@ -87,8 +134,6 @@ void script_diag_pretty_write(DynString* out, const String sourceText, const Scr
 }
 
 String script_diag_pretty_scratch(const String sourceText, const ScriptDiag* diag) {
-  diag_assert(diag->error != ScriptError_None);
-
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 

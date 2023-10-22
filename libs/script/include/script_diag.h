@@ -9,6 +9,55 @@ typedef struct sAllocator Allocator;
 #define script_diag_max 16
 
 typedef enum {
+  ScriptDiag_InvalidChar,
+  ScriptDiag_InvalidUtf8,
+  ScriptDiag_InvalidCharInNumber,
+  ScriptDiag_NumberEndsWithDecPoint,
+  ScriptDiag_NumberEndsWithSeparator,
+  ScriptDiag_KeyEmpty,
+  ScriptDiag_UnterminatedString,
+  ScriptDiag_RecursionLimitExceeded,
+  ScriptDiag_VarLimitExceeded,
+  ScriptDiag_VarIdInvalid,
+  ScriptDiag_VarIdConflicts,
+  ScriptDiag_MissingPrimaryExpr,
+  ScriptDiag_InvalidPrimaryExpr,
+  ScriptDiag_NoVarFoundForId,
+  ScriptDiag_NoFuncFoundForId,
+  ScriptDiag_IncorrectArgCountForBuiltinFunc,
+  ScriptDiag_UnclosedParenthesizedExpr,
+  ScriptDiag_UnterminatedBlock,
+  ScriptDiag_UnterminatedArgumentList,
+  ScriptDiag_BlockTooBig,
+  ScriptDiag_MissingSemicolon,
+  ScriptDiag_UnexpectedSemicolon,
+  ScriptDiag_UnnecessarySemicolon,
+  ScriptDiag_ArgumentCountExceedsMaximum,
+  ScriptDiag_InvalidConditionCount,
+  ScriptDiag_InvalidIf,
+  ScriptDiag_InvalidWhileLoop,
+  ScriptDiag_InvalidForLoop,
+  ScriptDiag_ForLoopCompMissing,
+  ScriptDiag_ForLoopCompStatic,
+  ScriptDiag_ForLoopSeparatorMissing,
+  ScriptDiag_BlockExpected,
+  ScriptDiag_BlockOrIfExpected,
+  ScriptDiag_MissingColonInSelectExpr,
+  ScriptDiag_UnexpectedTokenAfterExpr,
+  ScriptDiag_OnlyValidInLoop,
+  ScriptDiag_VarDeclareNotAllowed,
+  ScriptDiag_VarUnused,
+  ScriptDiag_LoopNotAllowed,
+  ScriptDiag_IfNotAllowed,
+  ScriptDiag_ReturnNotAllowed,
+  ScriptDiag_ExprHasNoEffect,
+  ScriptDiag_ExprUnreachable,
+  ScriptDiag_ConditionExprStatic,
+
+  ScriptDiagType_Count,
+} ScriptDiagType;
+
+typedef enum {
   ScriptDiagSeverity_Error,
   ScriptDiagSeverity_Warning,
 } ScriptDiagSeverity;
@@ -21,8 +70,8 @@ typedef enum {
 } ScriptDiagFilter;
 
 typedef struct {
-  ScriptDiagSeverity severity;
-  ScriptError        error;
+  ScriptDiagSeverity severity : 8;
+  ScriptDiagType     type : 8;
   ScriptRange        range;
 } ScriptDiag;
 

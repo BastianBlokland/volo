@@ -14,7 +14,7 @@
 #define tok_key_lit(_VAL_)    (ScriptToken){.type = ScriptTokenType_Key, .val_key = string_hash_lit(_VAL_)}
 #define tok_string(_VAL_)     (ScriptToken){.type = ScriptTokenType_String, .val_string = string_hash(_VAL_)}
 #define tok_string_lit(_VAL_) (ScriptToken){.type = ScriptTokenType_String, .val_string = string_hash_lit(_VAL_)}
-#define tok_err(_ERR_)        (ScriptToken){.type = ScriptTokenType_Error, .val_error = ScriptError_##_ERR_}
+#define tok_err(_ERR_)        (ScriptToken){.type = ScriptTokenType_Error, .val_error = ScriptDiag_##_ERR_}
 #define tok_end(void)         (ScriptToken){.type = ScriptTokenType_End}
 
 #define check_eq_tok(_A_, _B_)                   check_eq_tok_impl(_testCtx, (_A_), (_B_), source_location())

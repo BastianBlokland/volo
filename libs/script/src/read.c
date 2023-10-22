@@ -323,13 +323,12 @@ static ScriptRange read_range_full(ScriptReadContext* ctx) {
   return script_range_full(ctx->inputTotal);
 }
 
-static void read_emit_err(ScriptReadContext* ctx, const ScriptError err, const ScriptRange range) {
-  diag_assert(err != ScriptError_None);
+static void read_emit_err(ScriptReadContext* ctx, const ScriptDiagType type, const ScriptRange r) {
   if (ctx->diags) {
     const ScriptDiag diag = {
         .severity = ScriptDiagSeverity_Error,
-        .error    = err,
-        .range    = range,
+        .type     = type,
+        .range    = r,
     };
     script_diag_push(ctx->diags, &diag);
   }
@@ -346,7 +345,7 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
     if (!scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
           .severity = ScriptDiagSeverity_Warning,
-          .error    = ScriptError_VarUnused,
+          .type     = ScriptDiag_VarUnused,
           .range    = scope->vars[i].declRange,
       };
       script_diag_push(ctx->diags, &unusedDiag);
@@ -529,7 +528,7 @@ static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const Script
   if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
     const ScriptDiag unnecessaryDiag = {
         .severity = ScriptDiagSeverity_Warning,
-        .error    = ScriptError_UnnecessarySemicolon,
+        .type     = ScriptDiag_UnnecessarySemicolon,
         .range    = sepRange,
     };
     script_diag_push(ctx->diags, &unnecessaryDiag);
@@ -580,7 +579,7 @@ read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 
     if (!hasSideEffect) {
       const ScriptDiag noEffectDiag = {
           .severity = ScriptDiagSeverity_Warning,
-          .error    = ScriptError_ExprHasNoEffect,
+          .type     = ScriptDiag_ExprHasNoEffect,
           .range    = script_expr_range(ctx->doc, exprs[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
@@ -600,7 +599,7 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
            .severity = ScriptDiagSeverity_Warning,
-           .error    = ScriptError_ExprUnreachable,
+           .type     = ScriptDiag_ExprUnreachable,
            .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
@@ -637,7 +636,7 @@ BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
     const ScriptPos   blockStart = script_expr_range(ctx->doc, exprs[0]).start;
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
-    return read_emit_err(ctx, ScriptError_BlockTooBig, blockRange), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_BlockTooBig, blockRange), read_fail_structural(ctx);
   }
   const ScriptExpr exprNew = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(sentinel_check(exprNew))) {
@@ -654,7 +653,7 @@ BlockNext:
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
 
   if (!read_is_block_separator(sepToken.type)) {
-    read_emit_err(ctx, ScriptError_MissingSemicolon, script_expr_range(ctx->doc, exprNew));
+    read_emit_err(ctx, ScriptDiag_MissingSemicolon, script_expr_range(ctx->doc, exprNew));
     return read_fail_structural(ctx);
   }
   if (sepToken.type == ScriptTokenType_Semicolon) {
@@ -706,7 +705,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
 
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyClose)) {
     const ScriptRange range = script_expr_range(ctx->doc, expr);
-    return read_emit_err(ctx, ScriptError_UnterminatedBlock, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
   }
 
   return expr;
@@ -735,7 +734,7 @@ static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start)
   const ScriptToken closeToken = read_consume(ctx);
   if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
     const ScriptRange range = read_range_to_current(ctx, start);
-    read_emit_err(ctx, ScriptError_UnclosedParenthesizedExpr, range);
+    read_emit_err(ctx, ScriptDiag_UnclosedParenthesizedExpr, range);
     return read_fail_structural(ctx);
   }
   return expr;
@@ -761,13 +760,13 @@ ArgNext:;
         .start = script_expr_range(ctx->doc, outExprs[0]).start,
         .end   = script_expr_range(ctx->doc, outExprs[count - 1]).end,
     };
-    return read_emit_err(ctx, ScriptError_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
+    return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
   }
   if (UNLIKELY(read_consume_if(ctx, ScriptTokenType_ParenClose))) {
     diag_assert(count != 0); // Only happens after reading at least 1 argument.
     // TODO: Ideality we would report the range of the last separator token.
     const ScriptRange lastArgRange = script_expr_range(ctx->doc, outExprs[count - 1]);
-    return read_emit_err(ctx, ScriptError_MissingPrimaryExpr, lastArgRange), -1;
+    return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, lastArgRange), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(sentinel_check(arg))) {
@@ -787,7 +786,7 @@ ArgEnd:
     } else {
       range = script_expr_range(ctx->doc, outExprs[count - 1]);
     }
-    return read_emit_err(ctx, ScriptError_UnterminatedArgumentList, range), -1;
+    return read_emit_err(ctx, ScriptDiag_UnterminatedArgumentList, range), -1;
   }
   return count;
 }
@@ -797,13 +796,13 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
   const ScriptToken token    = read_consume(ctx);
   const ScriptRange idRange  = read_range_to_current(ctx, startPos);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
-    return read_emit_err(ctx, ScriptError_VarIdInvalid, idRange), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_VarIdInvalid, idRange), read_fail_structural(ctx);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    read_emit_err(ctx, ScriptError_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
+    read_emit_err(ctx, ScriptDiag_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
   }
   if (read_var_lookup(ctx, token.val_identifier)) {
-    read_emit_err(ctx, ScriptError_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
+    read_emit_err(ctx, ScriptDiag_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
   }
 
   ScriptExpr valExpr;
@@ -822,7 +821,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
 
   ScriptVarId varId;
   if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
-    return read_emit_err(ctx, ScriptError_VarLimitExceeded, range), read_fail_semantic(ctx, range);
+    return read_emit_err(ctx, ScriptDiag_VarLimitExceeded, range), read_fail_semantic(ctx, range);
   }
 
   return script_add_var_store(ctx->doc, range, varId, valExpr);
@@ -840,7 +839,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
     var->used = true;
     return script_add_var_load(ctx->doc, range, var->varSlot);
   }
-  return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx, range);
+  return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
 }
 
 static ScriptExpr
@@ -855,7 +854,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
 
   const ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
-    return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx, range);
+    return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
   return script_add_var_store(ctx->doc, range, var->varSlot, expr);
@@ -879,7 +878,7 @@ static ScriptExpr read_expr_var_modify(
 
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
-    return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx, range);
+    return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
   var->used = true;
@@ -941,7 +940,7 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
   }
   if (script_builtin_func_exists(id)) {
-    read_emit_err(ctx, ScriptError_IncorrectArgCountForBuiltinFunc, callRange);
+    read_emit_err(ctx, ScriptDiag_IncorrectArgCountForBuiltinFunc, callRange);
     return read_fail_semantic(ctx, callRange);
   }
 
@@ -953,8 +952,7 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
     }
   }
 
-  return read_emit_err(ctx, ScriptError_NoFuncFoundForId, idRange),
-         read_fail_semantic(ctx, idRange);
+  return read_emit_err(ctx, ScriptDiag_NoFuncFoundForId, idRange), read_fail_semantic(ctx, idRange);
 }
 
 static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr expr) {
@@ -964,7 +962,7 @@ static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr 
   if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticConditionDiag = {
         .severity = ScriptDiagSeverity_Warning,
-        .error    = ScriptError_ConditionExprStatic,
+        .type     = ScriptDiag_ConditionExprStatic,
         .range    = script_expr_range(ctx->doc, expr),
     };
     script_diag_push(ctx->diags, &staticConditionDiag);
@@ -975,7 +973,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
     const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptError_InvalidIf, wholeRange), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_InvalidIf, wholeRange), read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};
@@ -988,7 +986,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   }
   if (UNLIKELY(conditionCount != 1)) {
     const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    read_emit_err(ctx, ScriptError_InvalidConditionCount, wholeRange);
+    read_emit_err(ctx, ScriptDiag_InvalidConditionCount, wholeRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   read_emit_static_condition(ctx, conditions[0]);
@@ -997,7 +995,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
 
   if (read_consume(ctx).type != ScriptTokenType_CurlyOpen) {
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
-    read_emit_err(ctx, ScriptError_BlockExpected, blockRange);
+    read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   const ScriptExpr b1 = read_expr_scope_block(ctx);
@@ -1022,7 +1020,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
       }
     } else {
       const ScriptRange elseRange = read_range_to_current(ctx, elseStart);
-      read_emit_err(ctx, ScriptError_BlockOrIfExpected, elseRange);
+      read_emit_err(ctx, ScriptDiag_BlockOrIfExpected, elseRange);
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
@@ -1042,7 +1040,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
     const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptError_InvalidWhileLoop, wholeRange), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_InvalidWhileLoop, wholeRange), read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};
@@ -1055,7 +1053,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   }
   if (UNLIKELY(conditionCount != 1)) {
     const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    read_emit_err(ctx, ScriptError_InvalidConditionCount, wholeRange);
+    read_emit_err(ctx, ScriptDiag_InvalidConditionCount, wholeRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   read_emit_static_condition(ctx, conditions[0]);
@@ -1064,7 +1062,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyOpen)) {
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
-    read_emit_err(ctx, ScriptError_BlockExpected, blockRange);
+    read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
@@ -1095,7 +1093,7 @@ static void read_emit_static_for_comp(
   if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticForCompDiag = {
         .severity = ScriptDiagSeverity_Warning,
-        .error    = ScriptError_ForLoopCompStatic,
+        .type     = ScriptDiag_ForLoopCompStatic,
         .range    = exprRange,
     };
     script_diag_push(ctx->diags, &staticForCompDiag);
@@ -1122,7 +1120,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
     res                       = script_add_value(ctx->doc, range, skipVal);
   } else if (UNLIKELY(read_peek(ctx).type == ScriptTokenType_ParenClose)) {
     const ScriptRange range = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptError_ForLoopCompMissing, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_ForLoopCompMissing, range), read_fail_structural(ctx);
   } else {
     res = read_expr(ctx, OpPrecedence_None);
     if (UNLIKELY(sentinel_check(res))) {
@@ -1131,9 +1129,9 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
     read_emit_static_for_comp(ctx, res, read_range_to_current(ctx, start));
   }
   if (UNLIKELY(read_consume(ctx).type != g_endTokens[comp])) {
-    const ScriptRange range = read_range_to_current(ctx, start);
-    const ScriptError err   = comp == ReadForComp_Increment ? ScriptError_InvalidForLoop
-                                                            : ScriptError_ForLoopSeparatorMissing;
+    const ScriptRange    range = read_range_to_current(ctx, start);
+    const ScriptDiagType err   = comp == ReadForComp_Increment ? ScriptDiag_InvalidForLoop
+                                                               : ScriptDiag_ForLoopSeparatorMissing;
     return read_emit_err(ctx, err, range), read_fail_structural(ctx);
   }
   return res;
@@ -1143,7 +1141,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
     const ScriptRange range = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptError_InvalidForLoop, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_InvalidForLoop, range), read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};
@@ -1166,7 +1164,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyOpen)) {
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
-    read_emit_err(ctx, ScriptError_BlockExpected, blockRange);
+    read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
@@ -1197,7 +1195,7 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
     const ScriptRange range = read_range_to_current(ctx, start);
-    read_emit_err(ctx, ScriptError_MissingColonInSelectExpr, range);
+    read_emit_err(ctx, ScriptDiag_MissingColonInSelectExpr, range);
     return read_fail_structural(ctx);
   }
 
@@ -1269,37 +1267,37 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_If:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowIf)) {
-      return read_emit_err(ctx, ScriptError_IfNotAllowed, range), read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptDiag_IfNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_if(ctx, start);
   case ScriptTokenType_While:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowLoop)) {
-      return read_emit_err(ctx, ScriptError_LoopNotAllowed, range), read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptDiag_LoopNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_while(ctx, start);
   case ScriptTokenType_For:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowLoop)) {
-      return read_emit_err(ctx, ScriptError_LoopNotAllowed, range), read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptDiag_LoopNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowVarDeclare)) {
-      return read_emit_err(ctx, ScriptError_VarDeclareNotAllowed, range), read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptDiag_VarDeclareNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_var_declare(ctx);
   case ScriptTokenType_Continue:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
-      return read_emit_err(ctx, ScriptError_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
+      return read_emit_err(ctx, ScriptDiag_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
     }
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Continue, null);
   case ScriptTokenType_Break:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
-      return read_emit_err(ctx, ScriptError_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
+      return read_emit_err(ctx, ScriptDiag_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
     }
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Break, null);
   case ScriptTokenType_Return:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowReturn)) {
-      return read_emit_err(ctx, ScriptError_ReturnNotAllowed, range), read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptDiag_ReturnNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_return(ctx, start);
   /**
@@ -1378,13 +1376,13 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Lex errors.
    */
   case ScriptTokenType_Semicolon:
-    return read_emit_err(ctx, ScriptError_UnexpectedSemicolon, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_UnexpectedSemicolon, range), read_fail_structural(ctx);
   case ScriptTokenType_Error:
     return read_emit_err(ctx, token.val_error, range), read_fail_structural(ctx);
   case ScriptTokenType_End:
-    return read_emit_err(ctx, ScriptError_MissingPrimaryExpr, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range), read_fail_structural(ctx);
   default:
-    return read_emit_err(ctx, ScriptError_InvalidPrimaryExpr, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_InvalidPrimaryExpr, range), read_fail_structural(ctx);
   }
 }
 
@@ -1392,7 +1390,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
     const ScriptRange range = read_range_to_current(ctx, read_pos_current(ctx));
-    read_emit_err(ctx, ScriptError_RecursionLimitExceeded, range);
+    read_emit_err(ctx, ScriptDiag_RecursionLimitExceeded, range);
     return read_fail_structural(ctx);
   }
 
