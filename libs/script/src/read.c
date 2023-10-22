@@ -569,11 +569,8 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
   UNREACHABLE
 }
 
-static void read_emit_no_effect(
-    ScriptReadContext* ctx,
-    const ScriptExpr   exprs[],
-    const ScriptRange  exprRanges[],
-    const u32          exprCount) {
+static void
+read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 exprCount) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -584,30 +581,27 @@ static void read_emit_no_effect(
       const ScriptDiag noEffectDiag = {
           .type  = ScriptDiagType_Warning,
           .error = ScriptError_ExprHasNoEffect,
-          .range = exprRanges[i],
+          .range = script_expr_range(ctx->doc, exprs[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
     }
   }
 }
 
-static void read_emit_unreachable(
-    ScriptReadContext* ctx,
-    const ScriptExpr   exprs[],
-    const ScriptRange  exprRanges[],
-    const u32          exprCount) {
+static void
+read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 exprCount) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
     const ScriptDocSignal uncaughtSignal = script_expr_always_uncaught_signal(ctx->doc, exprs[i]);
     if (uncaughtSignal) {
-      const ScriptPos  unreachableStart = exprRanges[i + 1].start;
-      const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
+      const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
+      const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .type  = ScriptDiagType_Warning,
-           .error = ScriptError_ExprUnreachable,
-           .range = script_range(unreachableStart, unreachableEnd),
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExprUnreachable,
+          .range = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -634,9 +628,8 @@ static bool read_is_block_separator(const ScriptTokenType tokenType) {
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
   const ScriptPos blockStart = read_pos_next(ctx);
 
-  ScriptExpr  exprs[script_block_size_max];
-  ScriptRange exprRanges[script_block_size_max];
-  u32         exprCount = 0;
+  ScriptExpr exprs[script_block_size_max];
+  u32        exprCount = 0;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
@@ -647,15 +640,11 @@ BlockNext:
     const ScriptRange blockRange = read_range_current(ctx, blockStart);
     return read_emit_err(ctx, ScriptError_BlockTooBig, blockRange), read_fail_structural(ctx);
   }
-  const ScriptPos  exprStart = read_pos_next(ctx);
-  const ScriptExpr exprNew   = read_expr(ctx, OpPrecedence_None);
+  const ScriptExpr exprNew = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(sentinel_check(exprNew))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange exprRange = read_range_current(ctx, exprStart);
-  exprs[exprCount]            = exprNew;
-  exprRanges[exprCount]       = exprRange;
-  ++exprCount;
+  exprs[exprCount++] = exprNew;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd;
@@ -664,13 +653,13 @@ BlockNext:
   const ScriptPos sepStart = read_pos_next(ctx);
   ScriptToken     sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
-  const ScriptRange sepRange = read_range_current(ctx, sepStart);
 
   if (!read_is_block_separator(sepToken.type)) {
-    read_emit_err(ctx, ScriptError_MissingSemicolon, exprRange);
+    read_emit_err(ctx, ScriptError_MissingSemicolon, script_expr_range(ctx->doc, exprNew));
     return read_fail_structural(ctx);
   }
   if (sepToken.type == ScriptTokenType_Semicolon) {
+    const ScriptRange sepRange = read_range_current(ctx, sepStart);
     read_emit_unnecessary_semicolon(ctx, sepRange);
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -684,8 +673,8 @@ BlockEnd:
   case 1:
     return exprs[0];
   default:
-    read_emit_no_effect(ctx, exprs, exprRanges, exprCount);
-    read_emit_unreachable(ctx, exprs, exprRanges, exprCount);
+    read_emit_no_effect(ctx, exprs, exprCount);
+    read_emit_unreachable(ctx, exprs, exprCount);
     const ScriptRange blockRange = read_range_current(ctx, blockStart);
     return script_add_block(ctx->doc, blockRange, exprs, exprCount);
   }
@@ -1582,13 +1571,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
