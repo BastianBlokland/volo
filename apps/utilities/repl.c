@@ -240,6 +240,23 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
+static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args) {
+  (void)ctx;
+
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  for (usize i = 0; i != args.count; ++i) {
+    format_write_mem(&buffer, mem_var(args.values[i]));
+    dynstring_append_char(&buffer, '\n');
+  }
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+
+  return script_arg_last_or_null(args);
+}
+
 static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args) {
   (void)ctx;
 
@@ -262,6 +279,7 @@ static const ScriptBinder* repl_bind_init() {
   if (!g_binder) {
     g_binder = script_binder_create(g_alloc_persist);
     script_binder_declare(g_binder, string_lit("print"), &repl_bind_print);
+    script_binder_declare(g_binder, string_lit("print_bytes"), &repl_bind_print_bytes);
     script_binder_declare(g_binder, string_lit("print_bits"), &repl_bind_print_bits);
 
     script_binder_finalize(g_binder);
