@@ -88,14 +88,7 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const Scrip
 }
 
 ScriptExpr script_add_value_anon(ScriptDoc* doc, const ScriptVal val) {
-  const ScriptValId valId = script_doc_val_add(doc, val);
-  return script_doc_expr_add(
-      doc,
-      script_range_sentinel,
-      (ScriptExprData){
-          .type       = ScriptExprType_Value,
-          .data_value = {.valId = valId},
-      });
+  return script_add_value(doc, script_range_sentinel, val);
 }
 
 ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const ScriptVarId var) {
@@ -155,6 +148,11 @@ ScriptExpr script_add_intrinsic(
           .type           = ScriptExprType_Intrinsic,
           .data_intrinsic = {.argSet = argSet, .intrinsic = i},
       });
+}
+
+ScriptExpr
+script_add_intrinsic_anon(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptExpr args[]) {
+  return script_add_intrinsic(doc, script_range_sentinel, i, args);
 }
 
 ScriptExpr script_add_block(

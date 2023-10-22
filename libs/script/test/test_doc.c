@@ -55,9 +55,8 @@ spec(doc) {
   it("can create basic intrinsic expressions") {
     check_expr_str_lit(
         doc,
-        script_add_intrinsic(
+        script_add_intrinsic_anon(
             doc,
-            script_range_sentinel,
             ScriptIntrinsic_Vector3Compose,
             (const ScriptExpr[]){
                 script_add_value_anon(doc, script_number(1)),
@@ -73,22 +72,19 @@ spec(doc) {
   it("can create nested intrinsic expressions") {
     check_expr_str_lit(
         doc,
-        script_add_intrinsic(
+        script_add_intrinsic_anon(
             doc,
-            script_range_sentinel,
             ScriptIntrinsic_Greater,
             (const ScriptExpr[]){
-                script_add_intrinsic(
+                script_add_intrinsic_anon(
                     doc,
-                    script_range_sentinel,
                     ScriptIntrinsic_Equal,
                     (const ScriptExpr[]){
                         script_add_value_anon(doc, script_null()),
                         script_add_value_anon(doc, script_vector3_lit(1, 2, 3)),
                     }),
-                script_add_intrinsic(
+                script_add_intrinsic_anon(
                     doc,
-                    script_range_sentinel,
                     ScriptIntrinsic_Negate,
                     (const ScriptExpr[]){
                         script_add_value_anon(doc, script_number(42)),
@@ -103,22 +99,19 @@ spec(doc) {
   }
 
   it("can visit expressions") {
-    const ScriptExpr expr = script_add_intrinsic(
+    const ScriptExpr expr = script_add_intrinsic_anon(
         doc,
-        script_range_sentinel,
         ScriptIntrinsic_Greater,
         (const ScriptExpr[]){
-            script_add_intrinsic(
+            script_add_intrinsic_anon(
                 doc,
-                script_range_sentinel,
                 ScriptIntrinsic_Equal,
                 (const ScriptExpr[]){
                     script_add_value_anon(doc, script_null()),
                     script_add_value_anon(doc, script_vector3_lit(1, 2, 3)),
                 }),
-            script_add_intrinsic(
+            script_add_intrinsic_anon(
                 doc,
-                script_range_sentinel,
                 ScriptIntrinsic_Negate,
                 (const ScriptExpr[]){
                     script_add_value_anon(doc, script_number(42)),
