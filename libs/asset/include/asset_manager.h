@@ -3,6 +3,9 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
 #define asset_query_max_results 512
 
 typedef struct {
@@ -34,6 +37,12 @@ ecs_comp_extern(AssetDirtyComp);
  * Retrieve the identifier for the given asset.
  */
 String asset_id(const AssetComp*);
+
+/**
+ * Retrieve the absolute path for the given asset.
+ * NOTE: Returns false if the manager cannot retrieve the path.
+ */
+bool asset_path(const AssetManagerComp*, const AssetComp*, DynString* out);
 
 /**
  * Create a asset-manager (on the global entity) that loads assets from the file-system.

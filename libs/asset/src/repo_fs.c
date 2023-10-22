@@ -24,6 +24,13 @@ static void asset_source_fs_close(AssetSource* src) {
   alloc_free_t(g_alloc_heap, srcFs);
 }
 
+static bool asset_source_path(AssetRepo* repo, const String id, DynString* out) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  path_build(out, repoFs->rootPath, id);
+  return true;
+}
+
 static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
@@ -207,6 +214,7 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
   *repo = (AssetRepoFs){
       .api =
           {
+              .path         = asset_source_path,
               .open         = asset_source_fs_open,
               .save         = asset_repo_fs_save,
               .destroy      = asset_repo_fs_destroy,

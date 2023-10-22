@@ -22,7 +22,16 @@ String asset_repo_query_result_str(const AssetRepoQueryResult result) {
 
 void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
 
-AssetSource* asset_repo_source_open(AssetRepo* repo, String id) { return repo->open(repo, id); }
+bool asset_repo_path(AssetRepo* repo, const String id, DynString* out) {
+  if (repo->path) {
+    return repo->path(repo, id, out);
+  }
+  return false;
+}
+
+AssetSource* asset_repo_source_open(AssetRepo* repo, const String id) {
+  return repo->open(repo, id);
+}
 
 bool asset_repo_save(AssetRepo* repo, const String id, const String data) {
   return repo->save && repo->save(repo, id, data);

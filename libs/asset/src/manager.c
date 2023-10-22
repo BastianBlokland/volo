@@ -392,6 +392,10 @@ ecs_module_init(asset_manager_module) {
 
 String asset_id(const AssetComp* comp) { return comp->id; }
 
+bool asset_path(const AssetManagerComp* manager, const AssetComp* asset, DynString* out) {
+  return asset_repo_path(manager->repo, asset->id, out);
+}
+
 AssetManagerComp*
 asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
   return asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
