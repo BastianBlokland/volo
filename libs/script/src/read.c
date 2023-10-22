@@ -1385,12 +1385,11 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     return read_fail_structural(ctx);
   }
 
-  ScriptPos  resStart = read_pos_next(ctx);
-  ScriptExpr res      = read_expr_primary(ctx);
+  const ScriptPos start = read_pos_next(ctx);
+  ScriptExpr      res   = read_expr_primary(ctx);
   if (UNLIKELY(sentinel_check(res))) {
     return read_fail_structural(ctx);
   }
-  ScriptRange resRange = read_range_current(ctx, resStart);
 
   /**
    * Test if the next token is an operator with higher precedence.
@@ -1416,12 +1415,10 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     case ScriptTokenType_QMark: {
       read_emit_static_condition(ctx, res);
 
-      resStart = read_pos_next(ctx);
-      res      = read_expr_select(ctx, res);
+      res = read_expr_select(ctx, res);
       if (UNLIKELY(sentinel_check(res))) {
         return read_fail_structural(ctx);
       }
-      resRange = read_range_current(ctx, resStart);
     } break;
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
@@ -1437,16 +1434,15 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     case ScriptTokenType_AmpAmp:
     case ScriptTokenType_PipePipe:
     case ScriptTokenType_QMarkQMark: {
-      resStart                   = read_pos_next(ctx);
       const ScriptIntrinsic intr = token_op_binary(nextToken.type);
       const ScriptExpr rhs = token_intr_rhs_scope(intr) ? read_expr_scope_single(ctx, opPrecedence)
                                                         : read_expr(ctx, opPrecedence);
       if (UNLIKELY(sentinel_check(rhs))) {
         return read_fail_structural(ctx);
       }
-      const ScriptExpr intrArgs[] = {res, rhs};
-      resRange                    = read_range_current(ctx, resStart);
-      res                         = script_add_intrinsic(ctx->doc, resRange, intr, intrArgs);
+      const ScriptRange range      = read_range_current(ctx, start);
+      const ScriptExpr  intrArgs[] = {res, rhs};
+      res                          = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
     } break;
     default:
       diag_assert_fail("Invalid operator token");
