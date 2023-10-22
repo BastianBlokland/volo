@@ -41,8 +41,8 @@ typedef struct {
 
 typedef struct {
   ScriptBinderSlot func;
+  u16              argCount;
   ScriptExprSet    argSet;
-  u32              argCount;
 } ScriptExprExtern;
 
 typedef union {

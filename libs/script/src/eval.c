@@ -269,7 +269,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   const ScriptExprExtern* data      = &expr_data(ctx, e)->extern_;
   const ScriptExpr*       argExprs  = expr_set_data(ctx, data->argSet);
   ScriptVal*              argValues = mem_stack(sizeof(ScriptVal) * data->argCount).ptr;
-  for (u32 i = 0; i != data->argCount; ++i) {
+  for (u16 i = 0; i != data->argCount; ++i) {
     argValues[i] = eval(ctx, argExprs[i]);
     if (UNLIKELY(ctx->signal)) {
       return script_null();

@@ -146,7 +146,7 @@ ScriptExpr script_add_extern(
     const ScriptRange      range,
     const ScriptBinderSlot func,
     const ScriptExpr       args[],
-    const u32              argCount) {
+    const u16              argCount) {
   const ScriptExprSet argSet = script_doc_expr_set_add(doc, args, argCount);
   return script_doc_expr_add(
       doc,
@@ -296,7 +296,7 @@ void script_expr_visit(
   }
   case ScriptExprType_Extern: {
     const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
-    for (u32 i = 0; i != data->extern_.argCount; ++i) {
+    for (u16 i = 0; i != data->extern_.argCount; ++i) {
       script_expr_visit(doc, args[i], ctx, visitor);
     }
     return;
@@ -365,7 +365,7 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
   }
   case ScriptExprType_Extern: {
     const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
-    for (u32 i = 0; i != data->extern_.argCount; ++i) {
+    for (u16 i = 0; i != data->extern_.argCount; ++i) {
       const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[i]);
       if (sig) {
         return sig;
@@ -436,7 +436,7 @@ void script_expr_str_write(
   case ScriptExprType_Extern: {
     fmt_write(str, "[extern: {}]", fmt_int(data->extern_.func));
     const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
-    for (u32 i = 0; i != data->extern_.argCount; ++i) {
+    for (u16 i = 0; i != data->extern_.argCount; ++i) {
       script_expr_str_write_child(doc, args[i], indent + 1, str);
     }
     return;

@@ -599,9 +599,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .type  = ScriptDiagType_Warning,
-           .error = ScriptError_ExprUnreachable,
-           .range = script_range(unreachableStart, unreachableEnd),
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExprUnreachable,
+          .range = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -948,7 +948,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-      return script_add_extern(ctx->doc, callRange, externFunc, args, (u32)argCount);
+      diag_assert((u32)argCount < u16_max);
+      return script_add_extern(ctx->doc, callRange, externFunc, args, (u16)argCount);
     }
   }
 
@@ -1571,13 +1572,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
