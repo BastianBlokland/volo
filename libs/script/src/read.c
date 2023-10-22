@@ -513,9 +513,9 @@ static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
   return script_expr_sentinel;
 }
 
-static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
+static ScriptExpr read_fail_semantic(ScriptReadContext* ctx, const ScriptRange range) {
   ctx->flags |= ScriptReadFlags_ProgramInvalid;
-  return script_add_anon_value(ctx->doc, script_null());
+  return script_add_value(ctx->doc, range, script_null());
 }
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
@@ -666,16 +666,16 @@ BlockNext:
     goto BlockNext;
   }
 
-BlockEnd:
+BlockEnd:;
+  const ScriptRange blockRange = read_range_current(ctx, blockStart);
   switch (exprCount) {
   case 0:
-    return script_add_anon_value(ctx->doc, script_null());
+    return script_add_value(ctx->doc, blockRange, script_null());
   case 1:
     return exprs[0];
   default:
     read_emit_no_effect(ctx, exprs, exprCount);
     read_emit_unreachable(ctx, exprs, exprCount);
-    const ScriptRange blockRange = read_range_current(ctx, blockStart);
     return script_add_block(ctx->doc, blockRange, exprs, exprCount);
   }
 }
@@ -796,10 +796,10 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
     return read_emit_err(ctx, ScriptError_VarIdInvalid, idRange), read_fail_structural(ctx);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    read_emit_err(ctx, ScriptError_VarIdConflicts, idRange), read_fail_semantic(ctx);
+    read_emit_err(ctx, ScriptError_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
   }
   if (read_var_lookup(ctx, token.val_identifier)) {
-    read_emit_err(ctx, ScriptError_VarIdConflicts, idRange), read_fail_semantic(ctx);
+    read_emit_err(ctx, ScriptError_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
   }
 
   ScriptExpr valExpr;
@@ -811,14 +811,14 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
       return read_fail_structural(ctx);
     }
   } else {
-    valExpr = script_add_anon_value(ctx->doc, script_null());
+    valExpr = script_add_value(ctx->doc, idRange, script_null());
   }
 
   const ScriptRange range = read_range_current(ctx, startPos);
 
   ScriptVarId varId;
   if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
-    return read_emit_err(ctx, ScriptError_VarLimitExceeded, range), read_fail_semantic(ctx);
+    return read_emit_err(ctx, ScriptError_VarLimitExceeded, range), read_fail_semantic(ctx, range);
   }
 
   return script_add_var_store(ctx->doc, range, varId, valExpr);
@@ -836,7 +836,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
     var->used = true;
     return script_add_var_load(ctx->doc, range, var->varSlot);
   }
-  return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx);
+  return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx, range);
 }
 
 static ScriptExpr
@@ -851,7 +851,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
 
   const ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
-    return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx);
+    return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
   return script_add_var_store(ctx->doc, range, var->varSlot, expr);
@@ -875,7 +875,7 @@ static ScriptExpr read_expr_var_modify(
 
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
-    return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx);
+    return read_emit_err(ctx, ScriptError_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
   var->used = true;
@@ -939,7 +939,7 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   }
   if (script_builtin_func_exists(id)) {
     read_emit_err(ctx, ScriptError_IncorrectArgCountForBuiltinFunc, callRange);
-    return read_fail_semantic(ctx);
+    return read_fail_semantic(ctx, callRange);
   }
 
   if (ctx->binder) {
@@ -949,7 +949,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
     }
   }
 
-  return read_emit_err(ctx, ScriptError_NoFuncFoundForId, idRange), read_fail_semantic(ctx);
+  return read_emit_err(ctx, ScriptError_NoFuncFoundForId, idRange),
+         read_fail_semantic(ctx, idRange);
 }
 
 static void read_emit_static_condition(
@@ -1023,7 +1024,8 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
-    b2 = script_add_anon_value(ctx->doc, script_null());
+    const ScriptRange blockRange = read_range_current(ctx, blockStart);
+    b2                           = script_add_value(ctx->doc, blockRange, script_null());
   }
 
   diag_assert(&scope == read_scope_tail(ctx));
@@ -1078,8 +1080,8 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
   const ScriptRange range = read_range_current(ctx, start);
   // NOTE: Setup and Increment loop parts are not used in while loops.
-  const ScriptExpr setupExpr  = script_add_anon_value(ctx->doc, script_null());
-  const ScriptExpr incrExpr   = script_add_anon_value(ctx->doc, script_null());
+  const ScriptExpr setupExpr  = script_add_value(ctx->doc, range, script_null());
+  const ScriptExpr incrExpr   = script_add_value(ctx->doc, range, script_null());
   const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Loop, intrArgs);
 }
@@ -1114,8 +1116,9 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
   const ScriptPos start = read_pos_next(ctx);
   ScriptExpr      res;
   if (read_peek(ctx).type == g_endTokens[comp]) {
-    const ScriptVal skipVal = comp == ReadForComp_Condition ? script_bool(true) : script_null();
-    res                     = script_add_anon_value(ctx->doc, skipVal);
+    const ScriptRange range   = read_range_current(ctx, start);
+    const ScriptVal   skipVal = comp == ReadForComp_Condition ? script_bool(true) : script_null();
+    res                       = script_add_value(ctx->doc, range, skipVal);
   } else if (UNLIKELY(read_peek(ctx).type == ScriptTokenType_ParenClose)) {
     const ScriptRange range = read_range_current(ctx, start);
     return read_emit_err(ctx, ScriptError_ForLoopCompMissing, range), read_fail_structural(ctx);
@@ -1225,7 +1228,8 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
 
   ScriptExpr retExpr;
   if (read_is_return_separator(nextToken.type)) {
-    retExpr = script_add_anon_value(ctx->doc, script_null());
+    const ScriptRange range = read_range_current(ctx, start);
+    retExpr                 = script_add_value(ctx->doc, range, script_null());
   } else {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
     retExpr                         = read_expr(ctx, OpPrecedence_Assignment);
@@ -1284,12 +1288,12 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_var_declare(ctx);
   case ScriptTokenType_Continue:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
-      return read_emit_err(ctx, ScriptError_OnlyValidInLoop, range), read_fail_semantic(ctx);
+      return read_emit_err(ctx, ScriptError_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
     }
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Continue, null);
   case ScriptTokenType_Break:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
-      return read_emit_err(ctx, ScriptError_OnlyValidInLoop, range), read_fail_semantic(ctx);
+      return read_emit_err(ctx, ScriptError_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
     }
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Break, null);
   case ScriptTokenType_Return:
