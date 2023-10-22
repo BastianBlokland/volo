@@ -8,8 +8,8 @@ typedef u32               ScriptExpr;
 /**
  * Script file.
  */
-
 ecs_comp_extern_public(AssetScriptComp) {
+  String           sourceText; // Used for reporting error positions.
   const ScriptDoc* doc;
   ScriptExpr       expr;
 };
