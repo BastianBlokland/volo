@@ -11,11 +11,11 @@ add_library(lib_script STATIC
   src/doc.c
   src/enum.c
   src/format.c
-  src/error.c
   src/eval.c
   src/intrinsic.c
   src/lex.c
   src/mem.c
+  src/panic.c
   src/pos.c
   src/read.c
   src/val.c

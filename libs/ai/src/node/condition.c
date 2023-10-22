@@ -12,9 +12,8 @@ AiResult ai_node_condition_eval(const AiEvalContext* ctx, const AssetAiNodeId no
   const ScriptExpr       expr    = def->data_condition.scriptExpr;
   const ScriptEvalResult evalRes = script_eval_readonly(ctx->scriptDoc, ctx->memory, expr);
 
-  if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
-    const String err = script_error_runtime_str(evalRes.error);
-    log_w("Runtime error during AI condition node", log_param("error", fmt_text(err)));
+  if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
+    log_w("Panic during AI execution node");
   }
 
   return script_truthy(evalRes.val) ? AiResult_Success : AiResult_Failure;

@@ -1,5 +1,4 @@
 #pragma once
-#include "script_error.h"
 #include "script_pos.h"
 
 // Forward declare from 'core_alloc.h'.

@@ -3,7 +3,6 @@
 #include "core_array.h"
 #include "script_binder.h"
 #include "script_diag.h"
-#include "script_error.h"
 #include "script_read.h"
 
 #include "utils_internal.h"
