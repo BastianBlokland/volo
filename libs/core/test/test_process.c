@@ -69,7 +69,7 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
-    thread_sleep(time_milliseconds(25)); // Wait for child to setup interrupt handler.
+    thread_sleep(time_milliseconds(50)); // Wait for child to setup interrupt handler.
     check_eq_int(process_signal(child, Signal_Interrupt), ProcessResult_Success);
     check_eq_int(process_block(child), 42);
 
