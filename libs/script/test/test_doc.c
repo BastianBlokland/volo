@@ -27,14 +27,10 @@ spec(doc) {
   setup() { doc = script_create(g_alloc_heap); }
 
   it("can create value expressions") {
+    check_expr_str_lit(doc, script_add_value_anon(doc, script_null()), "[value: null]");
+    check_expr_str_lit(doc, script_add_value_anon(doc, script_number(42)), "[value: 42]");
     check_expr_str_lit(
-        doc, script_add_value(doc, script_range_sentinel, script_null()), "[value: null]");
-    check_expr_str_lit(
-        doc, script_add_value(doc, script_range_sentinel, script_number(42)), "[value: 42]");
-    check_expr_str_lit(
-        doc,
-        script_add_value(doc, script_range_sentinel, script_vector3_lit(1, 2, 3)),
-        "[value: 1, 2, 3]");
+        doc, script_add_value_anon(doc, script_vector3_lit(1, 2, 3)), "[value: 1, 2, 3]");
   }
 
   it("can create load expressions") {
@@ -51,7 +47,7 @@ spec(doc) {
             doc,
             script_range_sentinel,
             string_hash_lit("Hello"),
-            script_add_value(doc, script_range_sentinel, script_number(42))),
+            script_add_value_anon(doc, script_number(42))),
         "[mem-store: $938478706]\n"
         "  [value: 42]");
   }
@@ -64,9 +60,9 @@ spec(doc) {
             script_range_sentinel,
             ScriptIntrinsic_Vector3Compose,
             (const ScriptExpr[]){
-                script_add_value(doc, script_range_sentinel, script_number(1)),
-                script_add_value(doc, script_range_sentinel, script_number(2)),
-                script_add_value(doc, script_range_sentinel, script_number(3)),
+                script_add_value_anon(doc, script_number(1)),
+                script_add_value_anon(doc, script_number(2)),
+                script_add_value_anon(doc, script_number(3)),
             }),
         "[intrinsic: vector3-compose]\n"
         "  [value: 1]\n"
@@ -87,15 +83,15 @@ spec(doc) {
                     script_range_sentinel,
                     ScriptIntrinsic_Equal,
                     (const ScriptExpr[]){
-                        script_add_value(doc, script_range_sentinel, script_null()),
-                        script_add_value(doc, script_range_sentinel, script_vector3_lit(1, 2, 3)),
+                        script_add_value_anon(doc, script_null()),
+                        script_add_value_anon(doc, script_vector3_lit(1, 2, 3)),
                     }),
                 script_add_intrinsic(
                     doc,
                     script_range_sentinel,
                     ScriptIntrinsic_Negate,
                     (const ScriptExpr[]){
-                        script_add_value(doc, script_range_sentinel, script_number(42)),
+                        script_add_value_anon(doc, script_number(42)),
                     }),
             }),
         "[intrinsic: greater]\n"
@@ -117,15 +113,15 @@ spec(doc) {
                 script_range_sentinel,
                 ScriptIntrinsic_Equal,
                 (const ScriptExpr[]){
-                    script_add_value(doc, script_range_sentinel, script_null()),
-                    script_add_value(doc, script_range_sentinel, script_vector3_lit(1, 2, 3)),
+                    script_add_value_anon(doc, script_null()),
+                    script_add_value_anon(doc, script_vector3_lit(1, 2, 3)),
                 }),
             script_add_intrinsic(
                 doc,
                 script_range_sentinel,
                 ScriptIntrinsic_Negate,
                 (const ScriptExpr[]){
-                    script_add_value(doc, script_range_sentinel, script_number(42)),
+                    script_add_value_anon(doc, script_number(42)),
                 }),
         });
     CountVisitorContext ctx = {0};

@@ -87,6 +87,17 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const Scrip
       });
 }
 
+ScriptExpr script_add_value_anon(ScriptDoc* doc, const ScriptVal val) {
+  const ScriptValId valId = script_doc_val_add(doc, val);
+  return script_doc_expr_add(
+      doc,
+      script_range_sentinel,
+      (ScriptExprData){
+          .type       = ScriptExprType_Value,
+          .data_value = {.valId = valId},
+      });
+}
+
 ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const ScriptVarId var) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(

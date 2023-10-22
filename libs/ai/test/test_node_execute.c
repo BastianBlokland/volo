@@ -31,7 +31,7 @@ spec(node_execute) {
                         scriptDoc,
                         script_range_sentinel,
                         key,
-                        script_add_value(scriptDoc, script_range_sentinel, script_number(42))),
+                        script_add_value_anon(scriptDoc, script_number(42))),
                 },
         },
     };

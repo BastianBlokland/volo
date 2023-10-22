@@ -113,7 +113,7 @@ spec(node_parallel) {
                         scriptDoc,
                         script_range_sentinel,
                         string_hash_lit("test1"),
-                        script_add_value(scriptDoc, script_range_sentinel, script_number(1))),
+                        script_add_value_anon(scriptDoc, script_number(1))),
                 },
         },
         {
@@ -125,7 +125,7 @@ spec(node_parallel) {
                         scriptDoc,
                         script_range_sentinel,
                         string_hash_lit("test2"),
-                        script_add_value(scriptDoc, script_range_sentinel, script_number(2))),
+                        script_add_value_anon(scriptDoc, script_number(2))),
                 },
         },
         {
@@ -137,7 +137,7 @@ spec(node_parallel) {
                         scriptDoc,
                         script_range_sentinel,
                         string_hash_lit("test3"),
-                        script_add_value(scriptDoc, script_range_sentinel, script_number(3))),
+                        script_add_value_anon(scriptDoc, script_number(3))),
                 },
         },
     };

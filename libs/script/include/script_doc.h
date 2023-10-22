@@ -68,6 +68,7 @@ void script_clear(ScriptDoc*);
  * Add new expressions.
  */
 ScriptExpr script_add_value(ScriptDoc*, ScriptRange, ScriptVal val);
+ScriptExpr script_add_value_anon(ScriptDoc*, ScriptVal val);
 ScriptExpr script_add_var_load(ScriptDoc*, ScriptRange, ScriptVarId);
 ScriptExpr script_add_var_store(ScriptDoc*, ScriptRange, ScriptVarId, ScriptExpr val);
 ScriptExpr script_add_mem_load(ScriptDoc*, ScriptRange, StringHash key);

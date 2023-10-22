@@ -522,7 +522,7 @@ static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
 
 static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
   ctx->flags |= ScriptReadFlags_ProgramInvalid;
-  return script_add_value(ctx->doc, script_range_sentinel, script_null());
+  return script_add_value_anon(ctx->doc, script_null());
 }
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
@@ -686,7 +686,7 @@ BlockNext:
 BlockEnd:
   switch (exprCount) {
   case 0:
-    return script_add_value(ctx->doc, script_range_sentinel, script_null());
+    return script_add_value_anon(ctx->doc, script_null());
   case 1:
     return exprs[0];
   default:
@@ -824,7 +824,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
       return read_fail_structural(ctx);
     }
   } else {
-    valExpr = script_add_value(ctx->doc, script_range_sentinel, script_null());
+    valExpr = script_add_value_anon(ctx->doc, script_null());
   }
 
   const ScriptRange range = read_range_current(ctx, startPos);
@@ -1032,7 +1032,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
-    b2 = script_add_value(ctx->doc, script_range_sentinel, script_null());
+    b2 = script_add_value_anon(ctx->doc, script_null());
   }
 
   diag_assert(&scope == read_scope_tail(ctx));
@@ -1084,8 +1084,8 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
   const ScriptRange range = read_range_current(ctx, start);
   // NOTE: Setup and Increment loop parts are not used in while loops.
-  const ScriptExpr setupExpr  = script_add_value(ctx->doc, script_range_sentinel, script_null());
-  const ScriptExpr incrExpr   = script_add_value(ctx->doc, script_range_sentinel, script_null());
+  const ScriptExpr setupExpr  = script_add_value_anon(ctx->doc, script_null());
+  const ScriptExpr incrExpr   = script_add_value_anon(ctx->doc, script_null());
   const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Loop, intrArgs);
 }
@@ -1121,7 +1121,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
   ScriptExpr      res;
   if (read_peek(ctx).type == g_endTokens[comp]) {
     const ScriptVal skipVal = comp == ReadForComp_Condition ? script_bool(true) : script_null();
-    res                     = script_add_value(ctx->doc, script_range_sentinel, skipVal);
+    res                     = script_add_value_anon(ctx->doc, skipVal);
   } else if (UNLIKELY(read_peek(ctx).type == ScriptTokenType_ParenClose)) {
     return read_emit_err(ctx, ScriptError_ForLoopCompMissing, start), read_fail_structural(ctx);
   } else {
@@ -1226,7 +1226,7 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
 
   ScriptExpr retExpr;
   if (read_is_return_separator(nextToken.type)) {
-    retExpr = script_add_value(ctx->doc, script_range_sentinel, script_null());
+    retExpr = script_add_value_anon(ctx->doc, script_null());
   } else {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
     retExpr                         = read_expr(ctx, OpPrecedence_Assignment);

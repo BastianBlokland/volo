@@ -88,7 +88,7 @@ spec(node_invert) {
                         scriptDoc,
                         script_range_sentinel,
                         string_hash_lit("test"),
-                        script_add_value(scriptDoc, script_range_sentinel, script_number(42.42))),
+                        script_add_value_anon(scriptDoc, script_number(42.42))),
                 },
         },
     };
