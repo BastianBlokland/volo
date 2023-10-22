@@ -37,7 +37,7 @@ typedef struct {
 
 ecs_comp_define(DebugScriptPanelComp) {
   UiPanel      panel;
-  bool         hideEmptyMemory;
+  bool         hideNullMemory;
   UiScrollview scrollview;
 };
 
@@ -193,7 +193,7 @@ static bool memory_draw_string(UiCanvasComp* canvas, ScriptVal* value) {
 static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
-    ui_label(canvas, string_lit("< none >"));
+    ui_label(canvas, string_lit("< null >"));
     return false;
   case ScriptType_Number:
     return memory_draw_f64(canvas, value);
@@ -221,9 +221,9 @@ static void memory_options_draw(UiCanvasComp* canvas, DebugScriptPanelComp* pane
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Hide empty:"));
+  ui_label(canvas, string_lit("Hide null:"));
   ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &panelComp->hideEmptyMemory);
+  ui_toggle(canvas, &panelComp->hideNullMemory);
 
   ui_layout_pop(canvas);
 }
@@ -257,12 +257,12 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideEmptyMemory && !script_val_has(script_mem_get(memory, itr.key))) {
+    if (panelComp->hideNullMemory && !script_val_has(script_mem_get(memory, itr.key))) {
       continue;
     }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
         .key  = itr.key,
-        .name = string_is_empty(name) ? string_lit("<unnamed>") : name,
+        .name = string_is_empty(name) ? string_lit("< unnamed >") : name,
     };
   }
 
@@ -418,7 +418,7 @@ EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugScriptPanelComp,
-      .panel           = ui_panel(.size = ui_vector(750, 500)),
-      .hideEmptyMemory = true);
+      .panel          = ui_panel(.size = ui_vector(750, 500)),
+      .hideNullMemory = true);
   return panelEntity;
 }
