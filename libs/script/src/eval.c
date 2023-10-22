@@ -282,7 +282,7 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e)
     ctx->signal |= ScriptEvalSignal_Error;
     return script_null();
   }
-  switch (script_expr_type(ctx->doc, e)) {
+  switch (expr_data(ctx, e)->type) {
   case ScriptExprType_Value:
     return eval_value(ctx, e);
   case ScriptExprType_VarLoad:
