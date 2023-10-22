@@ -45,22 +45,20 @@ typedef struct {
   u32              argCount;
 } ScriptExprExtern;
 
-typedef struct {
-  ScriptExprType type;
-  union {
-    ScriptExprValue     data_value;
-    ScriptExprVarLoad   data_var_load;
-    ScriptExprVarStore  data_var_store;
-    ScriptExprMemLoad   data_mem_load;
-    ScriptExprMemStore  data_mem_store;
-    ScriptExprIntrinsic data_intrinsic;
-    ScriptExprBlock     data_block;
-    ScriptExprExtern    data_extern;
-  };
+typedef union {
+  ScriptExprValue     value;
+  ScriptExprVarLoad   var_load;
+  ScriptExprVarStore  var_store;
+  ScriptExprMemLoad   mem_load;
+  ScriptExprMemStore  mem_store;
+  ScriptExprIntrinsic intrinsic;
+  ScriptExprBlock     block;
+  ScriptExprExtern    extern_;
 } ScriptExprData;
 
 struct sScriptDoc {
   DynArray              exprData;   // ScriptExprData[]
+  DynArray              exprTypes;  // u8[] (ScriptExprType[])
   DynArray              exprRanges; // ScriptRange[]
   DynArray              exprSets;   // ScriptExpr[]
   DynArray              values;     // ScriptVal[]

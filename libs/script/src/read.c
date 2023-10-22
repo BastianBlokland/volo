@@ -551,7 +551,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
     return;
   case ScriptExprType_Intrinsic: {
     const ScriptExprData* data = dynarray_at_t(&doc->exprData, expr, ScriptExprData);
-    switch (data->data_intrinsic.intrinsic) {
+    switch (data->intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
     case ScriptIntrinsic_Return:
@@ -599,9 +599,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExprUnreachable,
-          .range = script_range(unreachableStart, unreachableEnd),
+           .type  = ScriptDiagType_Warning,
+           .error = ScriptError_ExprUnreachable,
+           .range = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1571,13 +1571,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

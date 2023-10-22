@@ -7,16 +7,23 @@
 
 #include "doc_internal.h"
 
-static ScriptExpr script_doc_expr_add(ScriptDoc* doc, const ScriptRange r, const ScriptExprData d) {
+static ScriptExpr script_doc_expr_add(
+    ScriptDoc* doc, const ScriptRange range, const ScriptExprType type, const ScriptExprData data) {
   const ScriptExpr expr                            = (ScriptExpr)doc->exprData.size;
-  *dynarray_push_t(&doc->exprData, ScriptExprData) = d;
-  *dynarray_push_t(&doc->exprRanges, ScriptRange)  = r;
+  *dynarray_push_t(&doc->exprData, ScriptExprData) = data;
+  *dynarray_push_t(&doc->exprTypes, u8)            = (u8)type;
+  *dynarray_push_t(&doc->exprRanges, ScriptRange)  = range;
   return expr;
 }
 
 INLINE_HINT static ScriptExprData* script_doc_expr_data(const ScriptDoc* doc, const ScriptExpr e) {
   diag_assert_msg(e < doc->exprData.size, "Out of bounds ScriptExpr");
   return dynarray_begin_t(&doc->exprData, ScriptExprData) + e;
+}
+
+INLINE_HINT static ScriptExprType script_doc_expr_type(const ScriptDoc* doc, const ScriptExpr e) {
+  diag_assert_msg(e < doc->exprData.size, "Out of bounds ScriptExpr");
+  return (ScriptExprType)(dynarray_begin_t(&doc->exprTypes, u8)[e]);
 }
 
 static ScriptValId script_doc_val_add(ScriptDoc* doc, const ScriptVal val) {
@@ -53,6 +60,7 @@ ScriptDoc* script_create(Allocator* alloc) {
 
   *doc = (ScriptDoc){
       .exprData   = dynarray_create_t(alloc, ScriptExprData, 64),
+      .exprTypes  = dynarray_create_t(alloc, u8, 64),
       .exprRanges = dynarray_create_t(alloc, ScriptRange, 64),
       .exprSets   = dynarray_create_t(alloc, ScriptExpr, 32),
       .values     = dynarray_create_t(alloc, ScriptVal, 32),
@@ -63,6 +71,7 @@ ScriptDoc* script_create(Allocator* alloc) {
 
 void script_destroy(ScriptDoc* doc) {
   dynarray_destroy(&doc->exprData);
+  dynarray_destroy(&doc->exprTypes);
   dynarray_destroy(&doc->exprRanges);
   dynarray_destroy(&doc->exprSets);
   dynarray_destroy(&doc->values);
@@ -71,6 +80,7 @@ void script_destroy(ScriptDoc* doc) {
 
 void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->exprData);
+  dynarray_clear(&doc->exprTypes);
   dynarray_clear(&doc->exprRanges);
   dynarray_clear(&doc->exprSets);
   dynarray_clear(&doc->values);
@@ -79,58 +89,33 @@ void script_clear(ScriptDoc* doc) {
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   const ScriptValId valId = script_doc_val_add(doc, val);
   return script_doc_expr_add(
-      doc,
-      range,
-      (ScriptExprData){
-          .type       = ScriptExprType_Value,
-          .data_value = {.valId = valId},
-      });
+      doc, range, ScriptExprType_Value, (ScriptExprData){.value = {.valId = valId}});
 }
 
 ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const ScriptVarId var) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
-      doc,
-      range,
-      (ScriptExprData){
-          .type          = ScriptExprType_VarLoad,
-          .data_var_load = {.var = var},
-      });
+      doc, range, ScriptExprType_VarLoad, (ScriptExprData){.var_load = {.var = var}});
 }
 
 ScriptExpr script_add_var_store(
     ScriptDoc* doc, const ScriptRange range, const ScriptVarId var, const ScriptExpr val) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
-      doc,
-      range,
-      (ScriptExprData){
-          .type           = ScriptExprType_VarStore,
-          .data_var_store = {.var = var, .val = val},
-      });
+      doc, range, ScriptExprType_VarStore, (ScriptExprData){.var_store = {.var = var, .val = val}});
 }
 
 ScriptExpr script_add_mem_load(ScriptDoc* doc, const ScriptRange range, const StringHash key) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
-      doc,
-      range,
-      (ScriptExprData){
-          .type          = ScriptExprType_MemLoad,
-          .data_mem_load = {.key = key},
-      });
+      doc, range, ScriptExprType_MemLoad, (ScriptExprData){.mem_load = {.key = key}});
 }
 
 ScriptExpr script_add_mem_store(
     ScriptDoc* doc, const ScriptRange range, const StringHash key, const ScriptExpr val) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
-      doc,
-      range,
-      (ScriptExprData){
-          .type           = ScriptExprType_MemStore,
-          .data_mem_store = {.key = key, .val = val},
-      });
+      doc, range, ScriptExprType_MemStore, (ScriptExprData){.mem_store = {.key = key, .val = val}});
 }
 
 ScriptExpr script_add_intrinsic(
@@ -140,10 +125,8 @@ ScriptExpr script_add_intrinsic(
   return script_doc_expr_add(
       doc,
       range,
-      (ScriptExprData){
-          .type           = ScriptExprType_Intrinsic,
-          .data_intrinsic = {.argSet = argSet, .intrinsic = i},
-      });
+      ScriptExprType_Intrinsic,
+      (ScriptExprData){.intrinsic = {.argSet = argSet, .intrinsic = i}});
 }
 
 ScriptExpr script_add_block(
@@ -154,10 +137,8 @@ ScriptExpr script_add_block(
   return script_doc_expr_add(
       doc,
       range,
-      (ScriptExprData){
-          .type       = ScriptExprType_Block,
-          .data_block = {.exprSet = set, .exprCount = exprCount},
-      });
+      ScriptExprType_Block,
+      (ScriptExprData){.block = {.exprSet = set, .exprCount = exprCount}});
 }
 
 ScriptExpr script_add_extern(
@@ -170,10 +151,8 @@ ScriptExpr script_add_extern(
   return script_doc_expr_add(
       doc,
       range,
-      (ScriptExprData){
-          .type        = ScriptExprType_Extern,
-          .data_extern = {.func = func, .argSet = argSet, .argCount = argCount},
-      });
+      ScriptExprType_Extern,
+      (ScriptExprData){.extern_ = {.func = func, .argSet = argSet, .argCount = argCount}});
 }
 
 ScriptExpr script_add_anon_value(ScriptDoc* doc, const ScriptVal val) {
@@ -202,7 +181,7 @@ script_add_anon_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptE
 }
 
 ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
-  return script_doc_expr_data(doc, expr)->type;
+  return script_doc_expr_type(doc, expr);
 }
 
 ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
@@ -212,7 +191,7 @@ ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
 
 static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* isReadonly = ctx;
-  switch (script_doc_expr_data(doc, expr)->type) {
+  switch (script_doc_expr_type(doc, expr)) {
   case ScriptExprType_MemStore:
   case ScriptExprType_Extern:
     *isReadonly = false;
@@ -240,7 +219,7 @@ bool script_expr_readonly(const ScriptDoc* doc, const ScriptExpr expr) {
 static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool*                 isStatic = ctx;
   const ScriptExprData* data     = script_doc_expr_data(doc, expr);
-  switch (data->type) {
+  switch (script_doc_expr_type(doc, expr)) {
   case ScriptExprType_MemLoad:
   case ScriptExprType_MemStore:
   case ScriptExprType_VarLoad:
@@ -249,7 +228,7 @@ static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptE
     *isStatic = false;
     return;
   case ScriptExprType_Intrinsic: {
-    if (!script_intrinsic_deterministic(data->data_intrinsic.intrinsic)) {
+    if (!script_intrinsic_deterministic(data->intrinsic.intrinsic)) {
       *isStatic = false;
     }
     return;
@@ -289,35 +268,35 @@ void script_expr_visit(
    * Visit the expression's children.
    */
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
-  switch (data->type) {
+  switch (script_doc_expr_type(doc, expr)) {
   case ScriptExprType_Value:
   case ScriptExprType_VarLoad:
   case ScriptExprType_MemLoad:
     return; // No children.
   case ScriptExprType_VarStore:
-    script_expr_visit(doc, data->data_var_store.val, ctx, visitor);
+    script_expr_visit(doc, data->var_store.val, ctx, visitor);
     return;
   case ScriptExprType_MemStore:
-    script_expr_visit(doc, data->data_mem_store.val, ctx, visitor);
+    script_expr_visit(doc, data->mem_store.val, ctx, visitor);
     return;
   case ScriptExprType_Intrinsic: {
-    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->data_intrinsic.argSet);
-    const u32         argCount = script_intrinsic_arg_count(data->data_intrinsic.intrinsic);
+    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->intrinsic.argSet);
+    const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
     for (u32 i = 0; i != argCount; ++i) {
       script_expr_visit(doc, args[i], ctx, visitor);
     }
     return;
   }
   case ScriptExprType_Block: {
-    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
-    for (u32 i = 0; i != data->data_block.exprCount; ++i) {
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->block.exprSet);
+    for (u32 i = 0; i != data->block.exprCount; ++i) {
       script_expr_visit(doc, exprs[i], ctx, visitor);
     }
     return;
   }
   case ScriptExprType_Extern: {
-    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_extern.argSet);
-    for (u32 i = 0; i != data->data_extern.argCount; ++i) {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
+    for (u32 i = 0; i != data->extern_.argCount; ++i) {
       script_expr_visit(doc, args[i], ctx, visitor);
     }
     return;
@@ -331,19 +310,19 @@ void script_expr_visit(
 
 ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const ScriptExpr expr) {
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
-  switch (data->type) {
+  switch (script_doc_expr_type(doc, expr)) {
   case ScriptExprType_Value:
   case ScriptExprType_VarLoad:
   case ScriptExprType_MemLoad:
     return ScriptDocSignal_None; // No children.
   case ScriptExprType_VarStore:
-    return script_expr_always_uncaught_signal(doc, data->data_var_store.val);
+    return script_expr_always_uncaught_signal(doc, data->var_store.val);
   case ScriptExprType_MemStore:
-    return script_expr_always_uncaught_signal(doc, data->data_mem_store.val);
+    return script_expr_always_uncaught_signal(doc, data->mem_store.val);
   case ScriptExprType_Intrinsic: {
-    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_intrinsic.argSet);
-    const u32 argCount = script_intrinsic_arg_count_always_reached(data->data_intrinsic.intrinsic);
-    switch (data->data_intrinsic.intrinsic) {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->intrinsic.argSet);
+    const u32 argCount     = script_intrinsic_arg_count_always_reached(data->intrinsic.intrinsic);
+    switch (data->intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
       return ScriptDocSignal_Continue;
     case ScriptIntrinsic_Break:
@@ -375,8 +354,8 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
     return ScriptDocSignal_None;
   }
   case ScriptExprType_Block: {
-    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
-    for (u32 i = 0; i != data->data_block.exprCount; ++i) {
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->block.exprSet);
+    for (u32 i = 0; i != data->block.exprCount; ++i) {
       const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, exprs[i]);
       if (sig) {
         return sig;
@@ -385,8 +364,8 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
     return ScriptDocSignal_None;
   }
   case ScriptExprType_Extern: {
-    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_extern.argSet);
-    for (u32 i = 0; i != data->data_extern.argCount; ++i) {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
+    for (u32 i = 0; i != data->extern_.argCount; ++i) {
       const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[i]);
       if (sig) {
         return sig;
@@ -417,30 +396,30 @@ static void script_expr_str_write_child(
 void script_expr_str_write(
     const ScriptDoc* doc, const ScriptExpr expr, const u32 indent, DynString* str) {
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
-  switch (data->type) {
+  switch (script_doc_expr_type(doc, expr)) {
   case ScriptExprType_Value:
     fmt_write(str, "[value: ");
-    script_val_str_write(script_doc_val_data(doc, data->data_value.valId), str);
+    script_val_str_write(script_doc_val_data(doc, data->value.valId), str);
     fmt_write(str, "]");
     return;
   case ScriptExprType_VarLoad:
-    fmt_write(str, "[var-load: {}]", fmt_int(data->data_var_load.var));
+    fmt_write(str, "[var-load: {}]", fmt_int(data->var_load.var));
     return;
   case ScriptExprType_VarStore:
-    fmt_write(str, "[var-store: {}]", fmt_int(data->data_var_store.var));
-    script_expr_str_write_child(doc, data->data_var_store.val, indent + 1, str);
+    fmt_write(str, "[var-store: {}]", fmt_int(data->var_store.var));
+    script_expr_str_write_child(doc, data->var_store.val, indent + 1, str);
     return;
   case ScriptExprType_MemLoad:
-    fmt_write(str, "[mem-load: ${}]", fmt_int(data->data_mem_load.key));
+    fmt_write(str, "[mem-load: ${}]", fmt_int(data->mem_load.key));
     return;
   case ScriptExprType_MemStore:
-    fmt_write(str, "[mem-store: ${}]", fmt_int(data->data_mem_store.key));
-    script_expr_str_write_child(doc, data->data_mem_store.val, indent + 1, str);
+    fmt_write(str, "[mem-store: ${}]", fmt_int(data->mem_store.key));
+    script_expr_str_write_child(doc, data->mem_store.val, indent + 1, str);
     return;
   case ScriptExprType_Intrinsic: {
-    fmt_write(str, "[intrinsic: {}]", script_intrinsic_fmt(data->data_intrinsic.intrinsic));
-    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->data_block.exprSet);
-    const u32         argCount = script_intrinsic_arg_count(data->data_intrinsic.intrinsic);
+    fmt_write(str, "[intrinsic: {}]", script_intrinsic_fmt(data->intrinsic.intrinsic));
+    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->block.exprSet);
+    const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
     for (u32 i = 0; i != argCount; ++i) {
       script_expr_str_write_child(doc, args[i], indent + 1, str);
     }
@@ -448,16 +427,16 @@ void script_expr_str_write(
   }
   case ScriptExprType_Block: {
     fmt_write(str, "[block]");
-    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
-    for (u32 i = 0; i != data->data_block.exprCount; ++i) {
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->block.exprSet);
+    for (u32 i = 0; i != data->block.exprCount; ++i) {
       script_expr_str_write_child(doc, exprs[i], indent + 1, str);
     }
     return;
   }
   case ScriptExprType_Extern: {
-    fmt_write(str, "[extern: {}]", fmt_int(data->data_extern.func));
-    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_extern.argSet);
-    for (u32 i = 0; i != data->data_extern.argCount; ++i) {
+    fmt_write(str, "[extern: {}]", fmt_int(data->extern_.func));
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
+    for (u32 i = 0; i != data->extern_.argCount; ++i) {
       script_expr_str_write_child(doc, args[i], indent + 1, str);
     }
     return;
