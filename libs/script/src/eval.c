@@ -329,7 +329,7 @@ ScriptEvalResult script_eval(
       .bindCtx = bindCtx,
   };
 
-  diag_assert((ctx.signal & ScriptEvalSignal_Panic) != 0 == script_panic_valid(&ctx.panic));
+  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
 
@@ -348,7 +348,7 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
       .m   = (ScriptMem*)m, // NOTE: Safe as long as the readonly invariant is maintained.
   };
 
-  diag_assert((ctx.signal & ScriptEvalSignal_Panic) != 0 == script_panic_valid(&ctx.panic));
+  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
 
