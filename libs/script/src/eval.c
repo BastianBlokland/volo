@@ -24,6 +24,7 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal : 8;
   ScriptErrorRuntime  error : 8;
+  ScriptRange         errorRange;
   u32                 executedExprs;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
@@ -91,7 +92,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
-      ctx->error = ScriptErrorRuntime_AssertionFailed;
+      ctx->error      = ScriptErrorRuntime_AssertionFailed;
+      ctx->errorRange = script_expr_range(ctx->doc, args[0]);
       ctx->signal |= ScriptEvalSignal_Error;
     }
     return script_null();
@@ -267,7 +269,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
-    ctx->error = ScriptErrorRuntime_ExecutionLimitExceeded;
+    ctx->error      = ScriptErrorRuntime_ExecutionLimitExceeded;
+    ctx->errorRange = script_expr_range(ctx->doc, expr);
     ctx->signal |= ScriptEvalSignal_Error;
     return script_null();
   }
@@ -326,6 +329,7 @@ ScriptEvalResult script_eval(
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
   res.error         = script_error_runtime_type(&ctx);
+  res.errorRange    = ctx.errorRange;
   res.executedExprs = ctx.executedExprs;
   return res;
 }
@@ -341,6 +345,7 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
   res.error         = script_error_runtime_type(&ctx);
+  res.errorRange    = ctx.errorRange;
   res.executedExprs = ctx.executedExprs;
   return res;
 }
