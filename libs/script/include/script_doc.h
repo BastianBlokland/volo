@@ -62,6 +62,8 @@ void script_destroy(ScriptDoc*);
  */
 void script_clear(ScriptDoc*);
 
+// clang-format off
+
 /**
  * Add new expressions.
  */
@@ -72,7 +74,9 @@ ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
 ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
 ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount);
-ScriptExpr script_add_extern(ScriptDoc*, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
+ScriptExpr script_add_extern(ScriptDoc*, ScriptRange, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
+
+// clang-format on
 
 /**
  * Query expression data.

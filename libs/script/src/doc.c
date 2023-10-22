@@ -157,12 +157,15 @@ ScriptExpr script_add_block(ScriptDoc* doc, const ScriptExpr exprs[], const u32 
 }
 
 ScriptExpr script_add_extern(
-    ScriptDoc* doc, const ScriptBinderSlot func, const ScriptExpr args[], const u32 argCount) {
-
+    ScriptDoc*             doc,
+    const ScriptRange      range,
+    const ScriptBinderSlot func,
+    const ScriptExpr       args[],
+    const u32              argCount) {
   const ScriptExprSet argSet = script_doc_expr_set_add(doc, args, argCount);
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type        = ScriptExprType_Extern,
           .data_extern = {.func = func, .argSet = argSet, .argCount = argCount},

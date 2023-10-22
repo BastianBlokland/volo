@@ -932,20 +932,21 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
+  const ScriptRange callRange = read_range_current(ctx, idRange.start);
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id, (u32)argCount);
   if (builtin) {
     return script_add_intrinsic(ctx->doc, builtin->intr, args);
   }
   if (script_builtin_func_exists(id)) {
-    read_emit_err(ctx, ScriptError_IncorrectArgCountForBuiltinFunc, idRange.start);
+    read_emit_err_range(ctx, ScriptError_IncorrectArgCountForBuiltinFunc, callRange);
     return read_fail_semantic(ctx);
   }
 
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-      return script_add_extern(ctx->doc, externFunc, args, (u32)argCount);
+      return script_add_extern(ctx->doc, callRange, externFunc, args, (u32)argCount);
     }
   }
 
