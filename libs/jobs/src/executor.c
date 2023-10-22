@@ -39,7 +39,7 @@ static ThreadCondition g_wakeCondition;
  * is allowed to pop (and execute) items from it.
  *
  * NOTE: Work in the affinity-queue takes priority over work in the normal work-queue because other
- * threads cannot help out and thus all theads could be waiting for this work to finnish.
+ * threads cannot help out and thus all threads could be waiting for this work to finnish.
  */
 static JobWorkerId g_affinityWorker;
 static AffQueue    g_affinityQueue;
