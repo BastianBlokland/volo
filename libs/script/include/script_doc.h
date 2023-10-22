@@ -7,6 +7,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'script_pos.h'.
+typedef struct sScriptRange ScriptRange;
+
 // Forward declare from 'script_binder.h'.
 typedef u32 ScriptBinderSlot;
 
@@ -59,22 +62,33 @@ void script_destroy(ScriptDoc*);
  */
 void script_clear(ScriptDoc*);
 
+// clang-format off
+
 /**
  * Add new expressions.
  */
-ScriptExpr script_add_value(ScriptDoc*, ScriptVal val);
-ScriptExpr script_add_var_load(ScriptDoc*, ScriptVarId);
-ScriptExpr script_add_var_store(ScriptDoc*, ScriptVarId, ScriptExpr val);
-ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
-ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
-ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
-ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount);
-ScriptExpr script_add_extern(ScriptDoc*, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
+ScriptExpr script_add_value(ScriptDoc*, ScriptRange, ScriptVal val);
+ScriptExpr script_add_var_load(ScriptDoc*, ScriptRange, ScriptVarId);
+ScriptExpr script_add_var_store(ScriptDoc*, ScriptRange, ScriptVarId, ScriptExpr val);
+ScriptExpr script_add_mem_load(ScriptDoc*, ScriptRange, StringHash key);
+ScriptExpr script_add_mem_store(ScriptDoc*, ScriptRange, StringHash key, ScriptExpr val);
+ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptRange, ScriptIntrinsic, const ScriptExpr args[]);
+ScriptExpr script_add_block(ScriptDoc*, ScriptRange, const ScriptExpr exprs[], u32 exprCount);
+ScriptExpr script_add_extern(ScriptDoc*, ScriptRange, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
+
+ScriptExpr script_add_anon_value(ScriptDoc*, ScriptVal val);
+ScriptExpr script_add_anon_var_load(ScriptDoc*, ScriptVarId);
+ScriptExpr script_add_anon_var_store(ScriptDoc*, ScriptVarId, ScriptExpr val);
+ScriptExpr script_add_anon_mem_load(ScriptDoc*, StringHash key);
+ScriptExpr script_add_anon_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
+ScriptExpr script_add_anon_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
+// clang-format on
 
 /**
  * Query expression data.
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
+ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
 bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);

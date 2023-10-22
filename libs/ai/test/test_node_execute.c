@@ -26,8 +26,8 @@ spec(node_execute) {
             .nextSibling = sentinel_u16,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
-                        scriptDoc, key, script_add_value(scriptDoc, script_number(42))),
+                    .scriptExpr = script_add_anon_mem_store(
+                        scriptDoc, key, script_add_anon_value(scriptDoc, script_number(42))),
                 },
         },
     };

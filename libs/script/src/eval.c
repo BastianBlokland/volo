@@ -24,12 +24,13 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal : 8;
   ScriptErrorRuntime  error : 8;
+  ScriptRange         errorRange;
   u32                 executedExprs;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
-INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const ScriptExpr expr) {
-  return dynarray_begin_t(&ctx->doc->exprData, ScriptExprData) + expr;
+INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const ScriptExpr e) {
+  return dynarray_begin_t(&ctx->doc->exprData, ScriptExprData) + e;
 }
 
 INLINE_HINT static const ScriptExpr* expr_set_data(ScriptEvalContext* ctx, const ScriptExprSet s) {
@@ -38,36 +39,42 @@ INLINE_HINT static const ScriptExpr* expr_set_data(ScriptEvalContext* ctx, const
 
 static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
 
-INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
-  return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
+INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprValue* data = &expr_data(ctx, e)->data_value;
+  return dynarray_begin_t(&ctx->doc->values, ScriptVal)[data->valId];
 }
 
-INLINE_HINT static ScriptVal eval_var_load(ScriptEvalContext* ctx, const ScriptExprVarLoad* expr) {
-  return ctx->vars[expr->var];
+INLINE_HINT static ScriptVal eval_var_load(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprVarLoad* data = &expr_data(ctx, e)->data_var_load;
+  return ctx->vars[data->var];
 }
 
-INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const ScriptExprVarStore* exp) {
-  const ScriptVal val = eval(ctx, exp->val);
+INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprVarStore* data = &expr_data(ctx, e)->data_var_store;
+  const ScriptVal           val  = eval(ctx, data->val);
   if (LIKELY(!ctx->signal)) {
-    ctx->vars[exp->var] = val;
+    ctx->vars[data->var] = val;
   }
   return val;
 }
 
-INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptExprMemLoad* expr) {
-  return script_mem_get(ctx->m, expr->key);
+INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprMemLoad* data = &expr_data(ctx, e)->data_mem_load;
+  return script_mem_get(ctx->m, data->key);
 }
 
-INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const ScriptExprMemStore* exp) {
-  const ScriptVal val = eval(ctx, exp->val);
+INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprMemStore* data = &expr_data(ctx, e)->data_mem_store;
+  const ScriptVal           val  = eval(ctx, data->val);
   if (LIKELY(!ctx->signal)) {
-    script_mem_set(ctx->m, exp->key, val);
+    script_mem_set(ctx->m, data->key, val);
   }
   return val;
 }
 
-INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprIntrinsic* expr) {
-  const ScriptExpr* args = expr_set_data(ctx, expr->argSet);
+INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprIntrinsic* data = &expr_data(ctx, e)->data_intrinsic;
+  const ScriptExpr*          args = expr_set_data(ctx, data->argSet);
 
 #define EVAL_ARG_WITH_INTERRUPT(_NUM_)                                                             \
   const ScriptVal arg##_NUM_ = eval(ctx, args[_NUM_]);                                             \
@@ -75,7 +82,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return arg##_NUM_;                                                                             \
   }
 
-  switch (expr->intrinsic) {
+  switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
     ctx->signal |= ScriptEvalSignal_Continue;
     return script_null();
@@ -91,7 +98,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
-      ctx->error = ScriptErrorRuntime_AssertionFailed;
+      ctx->error      = ScriptErrorRuntime_AssertionFailed;
+      ctx->errorRange = script_expr_range(ctx->doc, e);
       ctx->signal |= ScriptEvalSignal_Error;
     }
     return script_null();
@@ -238,12 +246,13 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   UNREACHABLE
 }
 
-INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExprBlock* expr) {
-  const ScriptExpr* exprs = expr_set_data(ctx, expr->exprSet);
+INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprBlock* data  = &expr_data(ctx, e)->data_block;
+  const ScriptExpr*      exprs = expr_set_data(ctx, data->exprSet);
 
   // NOTE: Blocks need at least one expression.
   ScriptVal ret;
-  for (u32 i = 0; i != expr->exprCount; ++i) {
+  for (u32 i = 0; i != data->exprCount; ++i) {
     ret = eval(ctx, exprs[i]);
     if (UNLIKELY(ctx->signal)) {
       break;
@@ -252,42 +261,44 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
   return ret;
 }
 
-INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExprExtern* expr) {
-  const ScriptExpr* argExprs  = expr_set_data(ctx, expr->argSet);
-  ScriptVal*        argValues = mem_stack(sizeof(ScriptVal) * expr->argCount).ptr;
-  for (u32 i = 0; i != expr->argCount; ++i) {
+INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExpr e) {
+  const ScriptExprExtern* data      = &expr_data(ctx, e)->data_extern;
+  const ScriptExpr*       argExprs  = expr_set_data(ctx, data->argSet);
+  ScriptVal*              argValues = mem_stack(sizeof(ScriptVal) * data->argCount).ptr;
+  for (u32 i = 0; i != data->argCount; ++i) {
     argValues[i] = eval(ctx, argExprs[i]);
     if (UNLIKELY(ctx->signal)) {
       return script_null();
     }
   }
-  const ScriptArgs args = {.values = argValues, .count = expr->argCount};
-  return script_binder_exec(ctx->binder, expr->func, ctx->bindCtx, args);
+  const ScriptArgs args = {.values = argValues, .count = data->argCount};
+  return script_binder_exec(ctx->binder, data->func, ctx->bindCtx, args);
 }
 
-NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
+NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e) {
   if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
-    ctx->error = ScriptErrorRuntime_ExecutionLimitExceeded;
+    ctx->error      = ScriptErrorRuntime_ExecutionLimitExceeded;
+    ctx->errorRange = script_expr_range(ctx->doc, e);
     ctx->signal |= ScriptEvalSignal_Error;
     return script_null();
   }
-  switch (script_expr_type(ctx->doc, expr)) {
+  switch (script_expr_type(ctx->doc, e)) {
   case ScriptExprType_Value:
-    return eval_value(ctx, &expr_data(ctx, expr)->data_value);
+    return eval_value(ctx, e);
   case ScriptExprType_VarLoad:
-    return eval_var_load(ctx, &expr_data(ctx, expr)->data_var_load);
+    return eval_var_load(ctx, e);
   case ScriptExprType_VarStore:
-    return eval_var_store(ctx, &expr_data(ctx, expr)->data_var_store);
+    return eval_var_store(ctx, e);
   case ScriptExprType_MemLoad:
-    return eval_mem_load(ctx, &expr_data(ctx, expr)->data_mem_load);
+    return eval_mem_load(ctx, e);
   case ScriptExprType_MemStore:
-    return eval_mem_store(ctx, &expr_data(ctx, expr)->data_mem_store);
+    return eval_mem_store(ctx, e);
   case ScriptExprType_Intrinsic:
-    return eval_intr(ctx, &expr_data(ctx, expr)->data_intrinsic);
+    return eval_intr(ctx, e);
   case ScriptExprType_Block:
-    return eval_block(ctx, &expr_data(ctx, expr)->data_block);
+    return eval_block(ctx, e);
   case ScriptExprType_Extern:
-    return eval_extern(ctx, &expr_data(ctx, expr)->data_extern);
+    return eval_extern(ctx, e);
   case ScriptExprType_Count:
     break;
   }
@@ -326,6 +337,7 @@ ScriptEvalResult script_eval(
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
   res.error         = script_error_runtime_type(&ctx);
+  res.errorRange    = ctx.errorRange;
   res.executedExprs = ctx.executedExprs;
   return res;
 }
@@ -341,6 +353,7 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
   res.error         = script_error_runtime_type(&ctx);
+  res.errorRange    = ctx.errorRange;
   res.executedExprs = ctx.executedExprs;
   return res;
 }

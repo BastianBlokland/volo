@@ -44,7 +44,7 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void repl_output_diag(const String sourceText, const ScriptDiag* diag, const String id) {
+static void repl_output_diag(const String src, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -65,7 +65,7 @@ static void repl_output_diag(const String sourceText, const ScriptDiag* diag, co
     dynstring_append(&buffer, id);
     dynstring_append_char(&buffer, ':');
   }
-  script_diag_pretty_write(&buffer, sourceText, diag);
+  script_diag_pretty_write(&buffer, src, diag);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -74,19 +74,19 @@ static void repl_output_diag(const String sourceText, const ScriptDiag* diag, co
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_sym(const String sourceText, const ScriptSym* sym) {
+static void repl_output_sym(const String src, const ScriptSym* sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   dynstring_append(&buffer, string_lit("Sym: "));
-  script_sym_write(&buffer, sourceText, sym);
+  script_sym_write(&buffer, src, sym);
   dynstring_append_char(&buffer, '\n');
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_runtime_error(const ScriptEvalResult* res, const String id) {
+static void repl_output_run_error(const String src, const ScriptEvalResult* res, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -99,7 +99,15 @@ static void repl_output_runtime_error(const ScriptEvalResult* res, const String 
     dynstring_append(&buffer, id);
     dynstring_append(&buffer, string_lit(": "));
   }
-  dynstring_append(&buffer, script_error_runtime_str(res->error));
+  const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(src, res->errorRange);
+  fmt_write(
+      &buffer,
+      "{}:{}-{}:{}: {}",
+      fmt_int(rangeLineCol.start.line + 1),
+      fmt_int(rangeLineCol.start.column + 1),
+      fmt_int(rangeLineCol.end.line + 1),
+      fmt_int(rangeLineCol.end.column + 1),
+      fmt_text(script_error_runtime_str(res->error)));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -240,11 +248,47 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
+static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args) {
+  (void)ctx;
+
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  for (usize i = 0; i != args.count; ++i) {
+    format_write_mem(&buffer, mem_var(args.values[i]));
+    dynstring_append_char(&buffer, '\n');
+  }
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+
+  return script_arg_last_or_null(args);
+}
+
+static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args) {
+  (void)ctx;
+
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  for (usize i = 0; i != args.count; ++i) {
+    format_write_bitset(&buffer, bitset_from_var(args.values[i]));
+    dynstring_append_char(&buffer, '\n');
+  }
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+
+  return script_arg_last_or_null(args);
+}
+
 static const ScriptBinder* repl_bind_init() {
   static ScriptBinder* g_binder;
   if (!g_binder) {
     g_binder = script_binder_create(g_alloc_persist);
     script_binder_declare(g_binder, string_lit("print"), &repl_bind_print);
+    script_binder_declare(g_binder, string_lit("print_bytes"), &repl_bind_print_bytes);
+    script_binder_declare(g_binder, string_lit("print_bits"), &repl_bind_print_bits);
 
     script_binder_finalize(g_binder);
   }
@@ -287,7 +331,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
       if (evalRes.error == ScriptErrorRuntime_None) {
         repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
       } else {
-        repl_output_runtime_error(&evalRes, id);
+        repl_output_run_error(input, &evalRes, id);
       }
     }
   }

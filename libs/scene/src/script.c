@@ -809,6 +809,16 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
   }
 }
 
+static String scene_script_loc_scratch(const AssetScriptComp* asset, const ScriptRange range) {
+  const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(asset->sourceText, range);
+  return fmt_write_scratch(
+      "{}:{}-{}:{}",
+      fmt_int(rangeLineCol.start.line + 1),
+      fmt_int(rangeLineCol.start.column + 1),
+      fmt_int(rangeLineCol.end.line + 1),
+      fmt_int(rangeLineCol.end.column + 1));
+}
+
 static void scene_script_eval(EvalContext* ctx) {
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
     return;
@@ -826,11 +836,13 @@ static void scene_script_eval(EvalContext* ctx) {
   // Handle errors.
   if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
     const String err = script_error_runtime_str(evalRes.error);
+    const String loc = scene_script_loc_scratch(ctx->scriptAsset, evalRes.errorRange);
     log_w(
         "Script execution failed",
         log_param("error", fmt_text(err)),
-        log_param("entity", fmt_int(ctx->entity, .base = 16)),
-        log_param("script", fmt_text(ctx->scriptId)));
+        log_param("script", fmt_text(ctx->scriptId)),
+        log_param("loc", fmt_text(loc)),
+        log_param("entity", fmt_int(ctx->entity, .base = 16)));
   }
 
   // Update stats.

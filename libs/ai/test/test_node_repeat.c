@@ -83,10 +83,10 @@ spec(node_repeat) {
             .nextSibling = sentinel_u16,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test"),
-                        script_add_value(scriptDoc, script_number(42.42))),
+                        script_add_anon_value(scriptDoc, script_number(42.42))),
                 },
         },
     };

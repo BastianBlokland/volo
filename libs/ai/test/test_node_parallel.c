@@ -108,10 +108,10 @@ spec(node_parallel) {
             .nextSibling = 2,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test1"),
-                        script_add_value(scriptDoc, script_number(1))),
+                        script_add_anon_value(scriptDoc, script_number(1))),
                 },
         },
         {
@@ -119,10 +119,10 @@ spec(node_parallel) {
             .nextSibling = 3,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test2"),
-                        script_add_value(scriptDoc, script_number(2))),
+                        script_add_anon_value(scriptDoc, script_number(2))),
                 },
         },
         {
@@ -130,10 +130,10 @@ spec(node_parallel) {
             .nextSibling = sentinel_u16,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test3"),
-                        script_add_value(scriptDoc, script_number(3))),
+                        script_add_anon_value(scriptDoc, script_number(3))),
                 },
         },
     };

@@ -43,7 +43,7 @@ void dynarray_destroy(DynArray* array) {
 
 usize dynarray_size(const DynArray* array) { return array->size; }
 
-static void dynarray_resize_grow(DynArray* array, const usize size) {
+NO_INLINE_HINT static void dynarray_resize_grow(DynArray* array, const usize size) {
   diag_assert_msg(array->alloc, "DynArray without an allocator ran out of memory");
 
   const Mem newMem =
