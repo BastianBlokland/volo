@@ -87,10 +87,6 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const Scrip
       });
 }
 
-ScriptExpr script_add_value_anon(ScriptDoc* doc, const ScriptVal val) {
-  return script_add_value(doc, script_range_sentinel, val);
-}
-
 ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const ScriptVarId var) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
@@ -150,11 +146,6 @@ ScriptExpr script_add_intrinsic(
       });
 }
 
-ScriptExpr
-script_add_intrinsic_anon(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptExpr args[]) {
-  return script_add_intrinsic(doc, script_range_sentinel, i, args);
-}
-
 ScriptExpr script_add_block(
     ScriptDoc* doc, const ScriptRange range, const ScriptExpr exprs[], const u32 exprCount) {
   diag_assert_msg(exprCount, "Zero sized blocks are not supported");
@@ -183,6 +174,31 @@ ScriptExpr script_add_extern(
           .type        = ScriptExprType_Extern,
           .data_extern = {.func = func, .argSet = argSet, .argCount = argCount},
       });
+}
+
+ScriptExpr script_add_anon_value(ScriptDoc* doc, const ScriptVal val) {
+  return script_add_value(doc, script_range_sentinel, val);
+}
+
+ScriptExpr script_add_anon_var_load(ScriptDoc* doc, const ScriptVarId var) {
+  return script_add_var_load(doc, script_range_sentinel, var);
+}
+
+ScriptExpr script_add_anon_var_store(ScriptDoc* doc, const ScriptVarId var, const ScriptExpr val) {
+  return script_add_var_store(doc, script_range_sentinel, var, val);
+}
+
+ScriptExpr script_add_anon_mem_load(ScriptDoc* doc, const StringHash key) {
+  return script_add_mem_load(doc, script_range_sentinel, key);
+}
+
+ScriptExpr script_add_anon_mem_store(ScriptDoc* doc, const StringHash key, const ScriptExpr val) {
+  return script_add_mem_store(doc, script_range_sentinel, key, val);
+}
+
+ScriptExpr
+script_add_anon_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptExpr args[]) {
+  return script_add_intrinsic(doc, script_range_sentinel, i, args);
 }
 
 ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {

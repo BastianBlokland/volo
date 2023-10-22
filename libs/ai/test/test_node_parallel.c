@@ -6,7 +6,6 @@
 #include "core_array.h"
 #include "script_doc.h"
 #include "script_mem.h"
-#include "script_pos.h"
 
 spec(node_parallel) {
   ScriptMem*    memory    = null;
@@ -109,11 +108,10 @@ spec(node_parallel) {
             .nextSibling = 2,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
-                        script_range_sentinel,
                         string_hash_lit("test1"),
-                        script_add_value_anon(scriptDoc, script_number(1))),
+                        script_add_anon_value(scriptDoc, script_number(1))),
                 },
         },
         {
@@ -121,11 +119,10 @@ spec(node_parallel) {
             .nextSibling = 3,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
-                        script_range_sentinel,
                         string_hash_lit("test2"),
-                        script_add_value_anon(scriptDoc, script_number(2))),
+                        script_add_anon_value(scriptDoc, script_number(2))),
                 },
         },
         {
@@ -133,11 +130,10 @@ spec(node_parallel) {
             .nextSibling = sentinel_u16,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
-                        script_range_sentinel,
                         string_hash_lit("test3"),
-                        script_add_value_anon(scriptDoc, script_number(3))),
+                        script_add_anon_value(scriptDoc, script_number(3))),
                 },
         },
     };

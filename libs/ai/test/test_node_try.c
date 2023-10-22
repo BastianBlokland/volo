@@ -5,7 +5,6 @@
 #include "core_alloc.h"
 #include "script_doc.h"
 #include "script_mem.h"
-#include "script_pos.h"
 
 spec(node_try) {
   ScriptMem*    memory    = null;
@@ -84,11 +83,10 @@ spec(node_try) {
             .nextSibling = sentinel_u16,
             .data_execute =
                 {
-                    .scriptExpr = script_add_mem_store(
+                    .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
-                        script_range_sentinel,
                         string_hash_lit("test"),
-                        script_add_value_anon(scriptDoc, script_number(42.42))),
+                        script_add_anon_value(scriptDoc, script_number(42.42))),
                 },
         },
     };
