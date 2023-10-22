@@ -9,9 +9,9 @@ typedef struct sAllocator Allocator;
 #define script_diag_max 16
 
 typedef enum {
-  ScriptDiagType_Error,
-  ScriptDiagType_Warning,
-} ScriptDiagType;
+  ScriptDiagSeverity_Error,
+  ScriptDiagSeverity_Warning,
+} ScriptDiagSeverity;
 
 typedef enum {
   ScriptDiagFilter_None    = 0,
@@ -21,9 +21,9 @@ typedef enum {
 } ScriptDiagFilter;
 
 typedef struct {
-  ScriptDiagType type;
-  ScriptError    error;
-  ScriptRange    range;
+  ScriptDiagSeverity severity;
+  ScriptError        error;
+  ScriptRange        range;
 } ScriptDiag;
 
 typedef struct sScriptDiagBag ScriptDiagBag;
@@ -31,7 +31,7 @@ typedef struct sScriptDiagBag ScriptDiagBag;
 ScriptDiagBag* script_diag_bag_create(Allocator*, ScriptDiagFilter);
 void           script_diag_bag_destroy(ScriptDiagBag*);
 
-bool              script_diag_active(const ScriptDiagBag*, ScriptDiagType);
+bool              script_diag_active(const ScriptDiagBag*, ScriptDiagSeverity);
 const ScriptDiag* script_diag_data(const ScriptDiagBag*);
 u32               script_diag_count(const ScriptDiagBag*, ScriptDiagFilter);
 const ScriptDiag* script_diag_first(const ScriptDiagBag*, ScriptDiagFilter);

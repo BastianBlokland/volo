@@ -52,11 +52,11 @@ static void repl_output_diag(const String src, const ScriptDiag* diag, const Str
   const TtyStyle styleWarn    = ttystyle(.bgColor = TtyBgColor_Yellow, .flags = TtyStyleFlags_Bold);
   const TtyStyle styleDefault = ttystyle();
 
-  switch (diag->type) {
-  case ScriptDiagType_Error:
+  switch (diag->severity) {
+  case ScriptDiagSeverity_Error:
     tty_write_style_sequence(&buffer, styleErr);
     break;
-  case ScriptDiagType_Warning:
+  case ScriptDiagSeverity_Warning:
     tty_write_style_sequence(&buffer, styleWarn);
     break;
   }

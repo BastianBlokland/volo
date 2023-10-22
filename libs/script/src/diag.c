@@ -13,16 +13,16 @@ struct sScriptDiagBag {
 ScriptDiagBag* script_diag_bag_create(Allocator* alloc, const ScriptDiagFilter filter) {
   ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
   *bag               = (ScriptDiagBag){
-      .alloc  = alloc,
-      .filter = filter,
+                    .alloc  = alloc,
+                    .filter = filter,
   };
   return bag;
 }
 
 void script_diag_bag_destroy(ScriptDiagBag* bag) { alloc_free_t(bag->alloc, bag); }
 
-bool script_diag_active(const ScriptDiagBag* bag, const ScriptDiagType type) {
-  return (bag->filter & (1 << type)) != 0;
+bool script_diag_active(const ScriptDiagBag* bag, const ScriptDiagSeverity severity) {
+  return (bag->filter & (1 << severity)) != 0;
 }
 
 const ScriptDiag* script_diag_data(const ScriptDiagBag* bag) { return bag->values; }
@@ -33,7 +33,7 @@ u32 script_diag_count(const ScriptDiagBag* bag, const ScriptDiagFilter filter) {
   }
   u32 count = 0;
   for (u32 i = 0; i != bag->count; ++i) {
-    if (filter & (1 << bag->values[i].type)) {
+    if (filter & (1 << bag->values[i].severity)) {
       ++count;
     }
   }
@@ -42,7 +42,7 @@ u32 script_diag_count(const ScriptDiagBag* bag, const ScriptDiagFilter filter) {
 
 const ScriptDiag* script_diag_first(const ScriptDiagBag* bag, const ScriptDiagFilter filter) {
   for (u32 i = 0; i != bag->count; ++i) {
-    if (filter & (1 << bag->values[i].type)) {
+    if (filter & (1 << bag->values[i].severity)) {
       return &bag->values[i];
     }
   }
@@ -50,7 +50,7 @@ const ScriptDiag* script_diag_first(const ScriptDiagBag* bag, const ScriptDiagFi
 }
 
 bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
-  if (!script_diag_active(bag, diag->type)) {
+  if (!script_diag_active(bag, diag->severity)) {
     return false;
   }
   if (UNLIKELY(bag->count == script_diag_max)) {

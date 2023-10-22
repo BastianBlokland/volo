@@ -327,16 +327,16 @@ static void read_emit_err(ScriptReadContext* ctx, const ScriptError err, const S
   diag_assert(err != ScriptError_None);
   if (ctx->diags) {
     const ScriptDiag diag = {
-        .type  = ScriptDiagType_Error,
-        .error = err,
-        .range = range,
+        .severity = ScriptDiagSeverity_Error,
+        .error    = err,
+        .range    = range,
     };
     script_diag_push(ctx->diags, &diag);
   }
 }
 
 static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
-  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
   for (u32 i = 0; i != script_var_count; ++i) {
@@ -345,9 +345,9 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
     }
     if (!scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_VarUnused,
-          .range = scope->vars[i].declRange,
+          .severity = ScriptDiagSeverity_Warning,
+          .error    = ScriptError_VarUnused,
+          .range    = scope->vars[i].declRange,
       };
       script_diag_push(ctx->diags, &unusedDiag);
     }
@@ -521,16 +521,16 @@ static ScriptExpr read_fail_semantic(ScriptReadContext* ctx, const ScriptRange r
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const ScriptRange sepRange) {
-  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
   ScriptToken nextToken;
   script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
   if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
     const ScriptDiag unnecessaryDiag = {
-        .type  = ScriptDiagType_Warning,
-        .error = ScriptError_UnnecessarySemicolon,
-        .range = sepRange,
+        .severity = ScriptDiagSeverity_Warning,
+        .error    = ScriptError_UnnecessarySemicolon,
+        .range    = sepRange,
     };
     script_diag_push(ctx->diags, &unnecessaryDiag);
   }
@@ -571,7 +571,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
 
 static void
 read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 exprCount) {
-  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
@@ -579,9 +579,9 @@ read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 
     script_expr_visit(ctx->doc, exprs[i], &hasSideEffect, read_visitor_has_side_effect);
     if (!hasSideEffect) {
       const ScriptDiag noEffectDiag = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExprHasNoEffect,
-          .range = script_expr_range(ctx->doc, exprs[i]),
+          .severity = ScriptDiagSeverity_Warning,
+          .error    = ScriptError_ExprHasNoEffect,
+          .range    = script_expr_range(ctx->doc, exprs[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
     }
@@ -590,7 +590,7 @@ read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 
 
 static void
 read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 exprCount) {
-  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
@@ -599,9 +599,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExprUnreachable,
-          .range = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .error    = ScriptError_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -958,14 +958,14 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
 }
 
 static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr expr) {
-  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
   if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticConditionDiag = {
-        .type  = ScriptDiagType_Warning,
-        .error = ScriptError_ConditionExprStatic,
-        .range = script_expr_range(ctx->doc, expr),
+        .severity = ScriptDiagSeverity_Warning,
+        .error    = ScriptError_ConditionExprStatic,
+        .range    = script_expr_range(ctx->doc, expr),
     };
     script_diag_push(ctx->diags, &staticConditionDiag);
   }
@@ -1089,14 +1089,14 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
 static void read_emit_static_for_comp(
     ScriptReadContext* ctx, const ScriptExpr expr, const ScriptRange exprRange) {
-  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
   if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticForCompDiag = {
-        .type  = ScriptDiagType_Warning,
-        .error = ScriptError_ForLoopCompStatic,
-        .range = exprRange,
+        .severity = ScriptDiagSeverity_Warning,
+        .error    = ScriptError_ForLoopCompStatic,
+        .range    = exprRange,
     };
     script_diag_push(ctx->diags, &staticForCompDiag);
   }
@@ -1572,13 +1572,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
