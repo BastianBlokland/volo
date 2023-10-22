@@ -612,9 +612,9 @@ static void read_emit_unreachable(
       const ScriptPos  unreachableStart = exprRanges[i + 1].start;
       const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
       const ScriptDiag unreachableDiag  = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExprUnreachable,
-          .range = read_range_trim(ctx, script_range(unreachableStart, unreachableEnd)),
+           .type  = ScriptDiagType_Warning,
+           .error = ScriptError_ExprUnreachable,
+           .range = read_range_trim(ctx, script_range(unreachableStart, unreachableEnd)),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -925,7 +925,7 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
 static ScriptExpr
-read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptRange idRange) {
+read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange idRange) {
   ScriptExpr  args[script_args_max];
   ScriptRange argRanges[script_args_max];
   const i32   argCount = read_args(ctx, args, argRanges);
@@ -1288,7 +1288,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     switch (nextToken.type) {
     case ScriptTokenType_ParenOpen:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_function(ctx, token.val_identifier, idRange);
+      return read_expr_call(ctx, token.val_identifier, idRange);
     case ScriptTokenType_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_var_assign(ctx, token.val_identifier, start);
@@ -1550,13 +1550,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
