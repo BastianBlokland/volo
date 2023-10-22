@@ -38,7 +38,7 @@ typedef enum eScriptError {
   ScriptError_BlockOrIfExpected,
   ScriptError_MissingColonInSelectExpr,
   ScriptError_UnexpectedTokenAfterExpr,
-  ScriptError_NotValidOutsideLoop,
+  ScriptError_OnlyValidInLoop,
   ScriptError_VarDeclareNotAllowed,
   ScriptError_VarUnused,
   ScriptError_LoopNotAllowed,

@@ -1058,10 +1058,10 @@ spec(read) {
         {string_static("{var a}; a"), ScriptError_NoVarFoundForId},
         {string_static("a += 1"), ScriptError_NoVarFoundForId},
         {string_static("var a; a +="), ScriptError_MissingPrimaryExpr},
-        {string_static("continue"), ScriptError_NotValidOutsideLoop},
-        {string_static("break"), ScriptError_NotValidOutsideLoop},
-        {string_static("while(continue) {}"), ScriptError_NotValidOutsideLoop},
-        {string_static("while(break) {}"), ScriptError_NotValidOutsideLoop},
+        {string_static("continue"), ScriptError_OnlyValidInLoop},
+        {string_static("break"), ScriptError_OnlyValidInLoop},
+        {string_static("while(continue) {}"), ScriptError_OnlyValidInLoop},
+        {string_static("while(break) {}"), ScriptError_OnlyValidInLoop},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

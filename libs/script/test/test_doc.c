@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "script_doc.h"
+#include "script_pos.h"
 #include "script_read.h"
 
 #include "utils_internal.h"
@@ -50,6 +51,7 @@ spec(doc) {
         doc,
         script_add_intrinsic(
             doc,
+            script_range_sentinel,
             ScriptIntrinsic_Vector3Compose,
             (const ScriptExpr[]){
                 script_add_value(doc, script_number(1)),
@@ -67,10 +69,12 @@ spec(doc) {
         doc,
         script_add_intrinsic(
             doc,
+            script_range_sentinel,
             ScriptIntrinsic_Greater,
             (const ScriptExpr[]){
                 script_add_intrinsic(
                     doc,
+                    script_range_sentinel,
                     ScriptIntrinsic_Equal,
                     (const ScriptExpr[]){
                         script_add_value(doc, script_null()),
@@ -78,6 +82,7 @@ spec(doc) {
                     }),
                 script_add_intrinsic(
                     doc,
+                    script_range_sentinel,
                     ScriptIntrinsic_Negate,
                     (const ScriptExpr[]){
                         script_add_value(doc, script_number(42)),
@@ -94,10 +99,12 @@ spec(doc) {
   it("can visit expressions") {
     const ScriptExpr expr = script_add_intrinsic(
         doc,
+        script_range_sentinel,
         ScriptIntrinsic_Greater,
         (const ScriptExpr[]){
             script_add_intrinsic(
                 doc,
+                script_range_sentinel,
                 ScriptIntrinsic_Equal,
                 (const ScriptExpr[]){
                     script_add_value(doc, script_null()),
@@ -105,6 +112,7 @@ spec(doc) {
                 }),
             script_add_intrinsic(
                 doc,
+                script_range_sentinel,
                 ScriptIntrinsic_Negate,
                 (const ScriptExpr[]){
                     script_add_value(doc, script_number(42)),

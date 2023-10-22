@@ -72,7 +72,7 @@ ScriptExpr script_add_var_load(ScriptDoc*, ScriptVarId);
 ScriptExpr script_add_var_store(ScriptDoc*, ScriptVarId, ScriptExpr val);
 ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
-ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
+ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptRange, ScriptIntrinsic, const ScriptExpr args[]);
 ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount);
 ScriptExpr script_add_extern(ScriptDoc*, ScriptRange, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
 

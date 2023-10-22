@@ -131,12 +131,13 @@ ScriptExpr script_add_mem_store(ScriptDoc* doc, const StringHash key, const Scri
       });
 }
 
-ScriptExpr script_add_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptExpr args[]) {
+ScriptExpr script_add_intrinsic(
+    ScriptDoc* doc, const ScriptRange range, const ScriptIntrinsic i, const ScriptExpr args[]) {
   const u32           argCount = script_intrinsic_arg_count(i);
   const ScriptExprSet argSet   = script_doc_expr_set_add(doc, args, argCount);
   return script_doc_expr_add(
       doc,
-      script_range_sentinel,
+      range,
       (ScriptExprData){
           .type           = ScriptExprType_Intrinsic,
           .data_intrinsic = {.argSet = argSet, .intrinsic = i},
