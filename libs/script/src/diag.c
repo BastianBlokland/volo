@@ -75,15 +75,14 @@ String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) 
 void script_diag_pretty_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptError_None);
 
-  const ScriptPosLineCol rangeStart = script_pos_to_line_col(sourceText, diag->range.start);
-  const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(sourceText, diag->range.end);
+  const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(sourceText, diag->range);
   fmt_write(
       out,
       "{}:{}-{}:{}: {}",
-      fmt_int(rangeStart.line + 1),
-      fmt_int(rangeStart.column + 1),
-      fmt_int(rangeEnd.line + 1),
-      fmt_int(rangeEnd.column + 1),
+      fmt_int(rangeLineCol.start.line + 1),
+      fmt_int(rangeLineCol.start.column + 1),
+      fmt_int(rangeLineCol.end.line + 1),
+      fmt_int(rangeLineCol.end.column + 1),
       fmt_text(script_diag_msg_scratch(sourceText, diag)));
 }
 
