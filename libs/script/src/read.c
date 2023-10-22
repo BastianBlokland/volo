@@ -626,8 +626,6 @@ static bool read_is_block_separator(const ScriptTokenType tokenType) {
 }
 
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
-  const ScriptPos blockStart = read_pos_next(ctx);
-
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
 
@@ -637,6 +635,7 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
+    const ScriptPos   blockStart = script_expr_range(ctx->doc, exprs[0]).start;
     const ScriptRange blockRange = read_range_current(ctx, blockStart);
     return read_emit_err(ctx, ScriptError_BlockTooBig, blockRange), read_fail_structural(ctx);
   }
@@ -667,15 +666,22 @@ BlockNext:
   }
 
 BlockEnd:;
-  const ScriptRange blockRange = read_range_current(ctx, blockStart);
   switch (exprCount) {
-  case 0:
+  case 0: {
+    // NOTE: This range is questionable as this block doesn't have any tokens associated with it.
+    const ScriptRange blockRange = {.start = read_pos_current(ctx), .end = read_pos_current(ctx)};
     return script_add_value(ctx->doc, blockRange, script_null());
+  }
   case 1:
     return exprs[0];
   default:
     read_emit_no_effect(ctx, exprs, exprCount);
     read_emit_unreachable(ctx, exprs, exprCount);
+
+    const ScriptRange blockRange = {
+        .start = script_expr_range(ctx->doc, exprs[0]).start,
+        .end   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end,
+    };
     return script_add_block(ctx->doc, blockRange, exprs, exprCount);
   }
 }
