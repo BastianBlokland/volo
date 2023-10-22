@@ -3,12 +3,14 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "script_eval.h"
+#include "script_pos.h"
 
 #include "doc_internal.h"
 
-static ScriptExpr script_doc_expr_add(ScriptDoc* doc, const ScriptExprData data) {
+static ScriptExpr script_doc_expr_add(ScriptDoc* doc, const ScriptRange r, const ScriptExprData d) {
   const ScriptExpr expr                            = (ScriptExpr)doc->exprData.size;
-  *dynarray_push_t(&doc->exprData, ScriptExprData) = data;
+  *dynarray_push_t(&doc->exprData, ScriptExprData) = d;
+  *dynarray_push_t(&doc->exprRanges, ScriptRange)  = r;
   return expr;
 }
 
@@ -50,16 +52,18 @@ ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
 
   *doc = (ScriptDoc){
-      .exprData = dynarray_create_t(alloc, ScriptExprData, 64),
-      .exprSets = dynarray_create_t(alloc, ScriptExpr, 32),
-      .values   = dynarray_create_t(alloc, ScriptVal, 32),
-      .alloc    = alloc,
+      .exprData   = dynarray_create_t(alloc, ScriptExprData, 64),
+      .exprRanges = dynarray_create_t(alloc, ScriptRange, 64),
+      .exprSets   = dynarray_create_t(alloc, ScriptExpr, 32),
+      .values     = dynarray_create_t(alloc, ScriptVal, 32),
+      .alloc      = alloc,
   };
   return doc;
 }
 
 void script_destroy(ScriptDoc* doc) {
   dynarray_destroy(&doc->exprData);
+  dynarray_destroy(&doc->exprRanges);
   dynarray_destroy(&doc->exprSets);
   dynarray_destroy(&doc->values);
   alloc_free_t(doc->alloc, doc);
@@ -67,6 +71,7 @@ void script_destroy(ScriptDoc* doc) {
 
 void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->exprData);
+  dynarray_clear(&doc->exprRanges);
   dynarray_clear(&doc->exprSets);
   dynarray_clear(&doc->values);
 }
@@ -75,6 +80,7 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
   const ScriptValId valId = script_doc_val_add(doc, val);
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type       = ScriptExprType_Value,
           .data_value = {.valId = valId},
@@ -85,6 +91,7 @@ ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptVarId var) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type          = ScriptExprType_VarLoad,
           .data_var_load = {.var = var},
@@ -95,6 +102,7 @@ ScriptExpr script_add_var_store(ScriptDoc* doc, const ScriptVarId var, const Scr
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type           = ScriptExprType_VarStore,
           .data_var_store = {.var = var, .val = val},
@@ -105,6 +113,7 @@ ScriptExpr script_add_mem_load(ScriptDoc* doc, const StringHash key) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type          = ScriptExprType_MemLoad,
           .data_mem_load = {.key = key},
@@ -115,6 +124,7 @@ ScriptExpr script_add_mem_store(ScriptDoc* doc, const StringHash key, const Scri
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type           = ScriptExprType_MemStore,
           .data_mem_store = {.key = key, .val = val},
@@ -126,6 +136,7 @@ ScriptExpr script_add_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const S
   const ScriptExprSet argSet   = script_doc_expr_set_add(doc, args, argCount);
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type           = ScriptExprType_Intrinsic,
           .data_intrinsic = {.argSet = argSet, .intrinsic = i},
@@ -138,6 +149,7 @@ ScriptExpr script_add_block(ScriptDoc* doc, const ScriptExpr exprs[], const u32 
   const ScriptExprSet set = script_doc_expr_set_add(doc, exprs, exprCount);
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type       = ScriptExprType_Block,
           .data_block = {.exprSet = set, .exprCount = exprCount},
@@ -150,6 +162,7 @@ ScriptExpr script_add_extern(
   const ScriptExprSet argSet = script_doc_expr_set_add(doc, args, argCount);
   return script_doc_expr_add(
       doc,
+      script_range_sentinel,
       (ScriptExprData){
           .type        = ScriptExprType_Extern,
           .data_extern = {.func = func, .argSet = argSet, .argCount = argCount},
@@ -158,6 +171,11 @@ ScriptExpr script_add_extern(
 
 ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
   return script_doc_expr_data(doc, expr)->type;
+}
+
+ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
+  diag_assert_msg(expr < doc->exprRanges.size, "Out of bounds ScriptExpr");
+  return dynarray_begin_t(&doc->exprRanges, ScriptRange)[expr];
 }
 
 static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {

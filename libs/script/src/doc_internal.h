@@ -60,9 +60,10 @@ typedef struct {
 } ScriptExprData;
 
 struct sScriptDoc {
-  DynArray              exprData; // ScriptExprData[]
-  DynArray              exprSets; // ScriptExpr[]
-  DynArray              values;   // ScriptVal[]
+  DynArray              exprData;   // ScriptExprData[]
+  DynArray              exprRanges; // ScriptRange[]
+  DynArray              exprSets;   // ScriptExpr[]
+  DynArray              values;     // ScriptVal[]
   Allocator*            alloc;
   ScriptBinderSignature binderSignature;
 };

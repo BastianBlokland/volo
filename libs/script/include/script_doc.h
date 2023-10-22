@@ -7,6 +7,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'script_pos.h'.
+typedef struct sScriptRange ScriptRange;
+
 // Forward declare from 'script_binder.h'.
 typedef u32 ScriptBinderSlot;
 
@@ -75,6 +78,7 @@ ScriptExpr script_add_extern(ScriptDoc*, ScriptBinderSlot, const ScriptExpr args
  * Query expression data.
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
+ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
 bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
