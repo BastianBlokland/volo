@@ -744,10 +744,7 @@ static bool read_is_args_end(const ScriptTokenType type) {
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
-static i32 read_args(
-    ScriptReadContext* ctx,
-    ScriptExpr         outExprs[script_args_max],
-    ScriptRange        outRanges[script_args_max]) {
+static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max]) {
   i32  count = 0;
   bool valid = true;
 
@@ -758,7 +755,6 @@ static i32 read_args(
   }
 
 ArgNext:;
-  const ScriptPos argStart = read_pos_next(ctx);
   if (UNLIKELY(count == script_args_max)) {
     const ScriptRange wholeArgsRange = read_range_current(ctx, argsStart);
     return read_emit_err(ctx, ScriptError_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
@@ -769,9 +765,7 @@ ArgNext:;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   valid &= !sentinel_check(arg);
-  outExprs[count]  = arg;
-  outRanges[count] = read_range_current(ctx, argStart);
-  ++count;
+  outExprs[count++] = arg;
 
   if (read_consume_if(ctx, ScriptTokenType_Comma)) {
     goto ArgNext;
@@ -925,9 +919,8 @@ static ScriptExpr read_expr_mem_modify(
  */
 static ScriptExpr
 read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange idRange) {
-  ScriptExpr  args[script_args_max];
-  ScriptRange argRanges[script_args_max];
-  const i32   argCount = read_args(ctx, args, argRanges);
+  ScriptExpr args[script_args_max];
+  const i32  argCount = read_args(ctx, args);
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
@@ -953,8 +946,7 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
          read_fail_semantic(ctx, idRange);
 }
 
-static void read_emit_static_condition(
-    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptRange exprRange) {
+static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr expr) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
@@ -962,7 +954,7 @@ static void read_emit_static_condition(
     const ScriptDiag staticConditionDiag = {
         .type  = ScriptDiagType_Warning,
         .error = ScriptError_ConditionExprStatic,
-        .range = exprRange,
+        .range = script_expr_range(ctx->doc, expr),
     };
     script_diag_push(ctx->diags, &staticConditionDiag);
   }
@@ -978,9 +970,8 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr  conditions[script_args_max];
-  ScriptRange conditionRanges[script_args_max];
-  const i32   conditionCount = read_args(ctx, conditions, conditionRanges);
+  ScriptExpr conditions[script_args_max];
+  const i32  conditionCount = read_args(ctx, conditions);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -989,7 +980,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     read_emit_err(ctx, ScriptError_InvalidConditionCount, wholeRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
-  read_emit_static_condition(ctx, conditions[0], conditionRanges[0]);
+  read_emit_static_condition(ctx, conditions[0]);
 
   const ScriptPos blockStart = read_pos_next(ctx);
 
@@ -1046,9 +1037,8 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr  conditions[script_args_max];
-  ScriptRange conditionRanges[script_args_max];
-  const i32   conditionCount = read_args(ctx, conditions, conditionRanges);
+  ScriptExpr conditions[script_args_max];
+  const i32  conditionCount = read_args(ctx, conditions);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -1057,7 +1047,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     read_emit_err(ctx, ScriptError_InvalidConditionCount, wholeRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
-  read_emit_static_condition(ctx, conditions[0], conditionRanges[0]);
+  read_emit_static_condition(ctx, conditions[0]);
 
   const ScriptPos blockStart = read_pos_next(ctx);
 
@@ -1424,7 +1414,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
      */
     switch (nextToken.type) {
     case ScriptTokenType_QMark: {
-      read_emit_static_condition(ctx, res, resRange);
+      read_emit_static_condition(ctx, res);
 
       resStart = read_pos_next(ctx);
       res      = read_expr_select(ctx, res);
