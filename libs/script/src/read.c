@@ -749,10 +749,7 @@ static bool read_is_args_end(const ScriptTokenType type) {
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
 static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max]) {
-  i32  count = 0;
-  bool valid = true;
-
-  ScriptPos argsStart = read_pos_next(ctx);
+  i32 count = 0;
 
   if (read_is_args_end(read_peek(ctx).type)) {
     goto ArgEnd; // Empty argument list.
@@ -760,15 +757,22 @@ static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max
 
 ArgNext:;
   if (UNLIKELY(count == script_args_max)) {
-    const ScriptRange wholeArgsRange = read_range_current(ctx, argsStart);
+    const ScriptRange wholeArgsRange = {
+        .start = script_expr_range(ctx->doc, outExprs[0]).start,
+        .end   = script_expr_range(ctx->doc, outExprs[count - 1]).end,
+    };
     return read_emit_err(ctx, ScriptError_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
   }
   if (UNLIKELY(read_consume_if(ctx, ScriptTokenType_ParenClose))) {
-    const ScriptRange wholeArgsRange = read_range_current(ctx, argsStart);
-    return read_emit_err(ctx, ScriptError_MissingPrimaryExpr, wholeArgsRange), -1;
+    diag_assert(count != 0); // Only happens after reading at least 1 argument.
+    // TODO: Ideality we would report the range of the last separator token.
+    const ScriptRange lastArgRange = script_expr_range(ctx->doc, outExprs[count - 1]);
+    return read_emit_err(ctx, ScriptError_MissingPrimaryExpr, lastArgRange), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
-  valid &= !sentinel_check(arg);
+  if (UNLIKELY(sentinel_check(arg))) {
+    return -1;
+  }
   outExprs[count++] = arg;
 
   if (read_consume_if(ctx, ScriptTokenType_Comma)) {
@@ -776,12 +780,14 @@ ArgNext:;
   }
 
 ArgEnd:
-  if (!valid) {
-    return -1;
-  }
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_ParenClose)) {
-    const ScriptRange wholeArgsRange = read_range_current(ctx, argsStart);
-    return read_emit_err(ctx, ScriptError_UnterminatedArgumentList, wholeArgsRange), -1;
+    ScriptRange range;
+    if (count == 0) {
+      range = script_range(read_pos_current(ctx), read_pos_current(ctx));
+    } else {
+      range = script_expr_range(ctx->doc, outExprs[count - 1]);
+    }
+    return read_emit_err(ctx, ScriptError_UnterminatedArgumentList, range), -1;
   }
   return count;
 }
