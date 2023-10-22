@@ -80,16 +80,9 @@ typedef enum {
   LspMessageType_Log     = 4,
 } LspMessageType;
 
-typedef enum {
-  LspDiagSeverity_Error       = 1,
-  LspDiagSeverity_Warning     = 2,
-  LspDiagSeverity_Information = 3,
-  LspDiagSeverity_Hint        = 4,
-} LspDiagSeverity;
-
 typedef struct {
   ScriptRangeLineCol range;
-  LspDiagSeverity    severity;
+  ScriptDiagSeverity severity;
   String             message;
 } LspDiag;
 
@@ -430,9 +423,18 @@ static void lsp_send_diagnostics(
     LspContext* ctx, const String docUri, const LspDiag values[], const usize count) {
   const JsonVal diagArray = json_add_array(ctx->jDoc);
   for (u32 i = 0; i != count; ++i) {
+    JsonVal severityVal;
+    switch (values[i].severity) {
+    case ScriptDiagSeverity_Error:
+      severityVal = json_add_number(ctx->jDoc, 1);
+      break;
+    case ScriptDiagSeverity_Warning:
+      severityVal = json_add_number(ctx->jDoc, 2);
+      break;
+    }
     const JsonVal diag = json_add_object(ctx->jDoc);
     json_add_field_lit(ctx->jDoc, diag, "range", lsp_range_to_json(ctx, &values[i].range));
-    json_add_field_lit(ctx->jDoc, diag, "severity", json_add_number(ctx->jDoc, values[i].severity));
+    json_add_field_lit(ctx->jDoc, diag, "severity", severityVal);
     json_add_field_lit(ctx->jDoc, diag, "message", json_add_string(ctx->jDoc, values[i].message));
     json_add_elem(ctx->jDoc, diagArray, diag);
   }
@@ -513,20 +515,10 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   for (u32 i = 0; i != lspDiagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(doc->scriptDiags) + i;
 
-    LspDiagSeverity severity;
-    switch (diag->type) {
-    case ScriptDiagType_Error:
-      severity = LspDiagSeverity_Error;
-      break;
-    case ScriptDiagType_Warning:
-      severity = LspDiagSeverity_Warning;
-      break;
-    }
-
     // TODO: Report text ranges in utf16 instead of utf32.
     lspDiags[i] = (LspDiag){
         .range    = script_range_to_line_col(doc->text, diag->range),
-        .severity = severity,
+        .severity = diag->severity,
         .message  = script_diag_msg_scratch(doc->text, diag),
     };
   }

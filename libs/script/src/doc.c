@@ -254,7 +254,7 @@ bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
     return false;
   }
   const ScriptEvalResult evalRes = script_eval(doc, null, expr, null, null);
-  return evalRes.error == ScriptErrorRuntime_None && script_truthy(evalRes.val);
+  return !script_panic_valid(&evalRes.panic) && script_truthy(evalRes.val);
 }
 
 void script_expr_visit(
@@ -336,7 +336,7 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
       }
       if (script_expr_static(doc, args[0])) {
         const ScriptEvalResult res = script_eval(doc, null, args[0], null, null);
-        if (res.error == ScriptErrorRuntime_None) {
+        if (!script_panic_valid(&res.panic)) {
           const bool condition = script_truthy(res.val);
           return script_expr_always_uncaught_signal(doc, condition ? args[1] : args[2]);
         }

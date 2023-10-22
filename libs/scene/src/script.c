@@ -449,9 +449,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_number(args, 2, 0.0);
@@ -809,16 +809,6 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
   }
 }
 
-static String scene_script_loc_scratch(const AssetScriptComp* asset, const ScriptRange range) {
-  const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(asset->sourceText, range);
-  return fmt_write_scratch(
-      "{}:{}-{}:{}",
-      fmt_int(rangeLineCol.start.line + 1),
-      fmt_int(rangeLineCol.start.column + 1),
-      fmt_int(rangeLineCol.end.line + 1),
-      fmt_int(rangeLineCol.end.column + 1));
-}
-
 static void scene_script_eval(EvalContext* ctx) {
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
     return;
@@ -833,15 +823,13 @@ static void scene_script_eval(EvalContext* ctx) {
   // Eval.
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
 
-  // Handle errors.
-  if (UNLIKELY(evalRes.error != ScriptErrorRuntime_None)) {
-    const String err = script_error_runtime_str(evalRes.error);
-    const String loc = scene_script_loc_scratch(ctx->scriptAsset, evalRes.errorRange);
+  // Handle panics.
+  if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
+    const String msg = script_panic_pretty_scratch(ctx->scriptAsset->sourceText, &evalRes.panic);
     log_w(
         "Script execution failed",
-        log_param("error", fmt_text(err)),
+        log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
-        log_param("loc", fmt_text(loc)),
         log_param("entity", fmt_int(ctx->entity, .base = 16)));
   }
 

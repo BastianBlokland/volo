@@ -1,17 +1,67 @@
 #pragma once
-#include "core_dynstring.h"
-#include "script_error.h"
 #include "script_pos.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
 #define script_diag_max 16
 
 typedef enum {
-  ScriptDiagType_Error,
-  ScriptDiagType_Warning,
+  ScriptDiag_InvalidChar,
+  ScriptDiag_InvalidUtf8,
+  ScriptDiag_InvalidCharInNumber,
+  ScriptDiag_NumberEndsWithDecPoint,
+  ScriptDiag_NumberEndsWithSeparator,
+  ScriptDiag_KeyEmpty,
+  ScriptDiag_UnterminatedString,
+  ScriptDiag_RecursionLimitExceeded,
+  ScriptDiag_VarLimitExceeded,
+  ScriptDiag_VarIdInvalid,
+  ScriptDiag_VarIdConflicts,
+  ScriptDiag_MissingPrimaryExpr,
+  ScriptDiag_InvalidPrimaryExpr,
+  ScriptDiag_NoVarFoundForId,
+  ScriptDiag_NoFuncFoundForId,
+  ScriptDiag_IncorrectArgCountForBuiltinFunc,
+  ScriptDiag_UnclosedParenthesizedExpr,
+  ScriptDiag_UnterminatedBlock,
+  ScriptDiag_UnterminatedArgumentList,
+  ScriptDiag_BlockTooBig,
+  ScriptDiag_MissingSemicolon,
+  ScriptDiag_UnexpectedSemicolon,
+  ScriptDiag_UnnecessarySemicolon,
+  ScriptDiag_ArgumentCountExceedsMaximum,
+  ScriptDiag_InvalidConditionCount,
+  ScriptDiag_InvalidIf,
+  ScriptDiag_InvalidWhileLoop,
+  ScriptDiag_InvalidForLoop,
+  ScriptDiag_ForLoopCompMissing,
+  ScriptDiag_ForLoopCompStatic,
+  ScriptDiag_ForLoopSeparatorMissing,
+  ScriptDiag_BlockExpected,
+  ScriptDiag_BlockOrIfExpected,
+  ScriptDiag_MissingColonInSelectExpr,
+  ScriptDiag_UnexpectedTokenAfterExpr,
+  ScriptDiag_OnlyValidInLoop,
+  ScriptDiag_VarDeclareNotAllowed,
+  ScriptDiag_VarUnused,
+  ScriptDiag_LoopNotAllowed,
+  ScriptDiag_IfNotAllowed,
+  ScriptDiag_ReturnNotAllowed,
+  ScriptDiag_ExprHasNoEffect,
+  ScriptDiag_ExprUnreachable,
+  ScriptDiag_ConditionExprStatic,
+
+  ScriptDiagType_Count,
 } ScriptDiagType;
+
+typedef enum {
+  ScriptDiagSeverity_Error,
+  ScriptDiagSeverity_Warning,
+} ScriptDiagSeverity;
 
 typedef enum {
   ScriptDiagFilter_None    = 0,
@@ -21,9 +71,9 @@ typedef enum {
 } ScriptDiagFilter;
 
 typedef struct {
-  ScriptDiagType type;
-  ScriptError    error;
-  ScriptRange    range;
+  ScriptDiagSeverity severity : 8;
+  ScriptDiagType     type : 8;
+  ScriptRange        range;
 } ScriptDiag;
 
 typedef struct sScriptDiagBag ScriptDiagBag;
@@ -31,7 +81,7 @@ typedef struct sScriptDiagBag ScriptDiagBag;
 ScriptDiagBag* script_diag_bag_create(Allocator*, ScriptDiagFilter);
 void           script_diag_bag_destroy(ScriptDiagBag*);
 
-bool              script_diag_active(const ScriptDiagBag*, ScriptDiagType);
+bool              script_diag_active(const ScriptDiagBag*, ScriptDiagSeverity);
 const ScriptDiag* script_diag_data(const ScriptDiagBag*);
 u32               script_diag_count(const ScriptDiagBag*, ScriptDiagFilter);
 const ScriptDiag* script_diag_first(const ScriptDiagBag*, ScriptDiagFilter);

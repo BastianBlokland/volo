@@ -14,7 +14,7 @@ typedef enum {
   ScriptEvalSignal_Continue = 1 << 0,
   ScriptEvalSignal_Break    = 1 << 1,
   ScriptEvalSignal_Return   = 1 << 2,
-  ScriptEvalSignal_Error    = 1 << 3,
+  ScriptEvalSignal_Panic    = 1 << 3,
 } ScriptEvalSignal;
 
 typedef struct {
@@ -22,9 +22,8 @@ typedef struct {
   ScriptMem*          m;
   const ScriptBinder* binder;
   void*               bindCtx;
-  ScriptEvalSignal    signal : 8;
-  ScriptErrorRuntime  error : 8;
-  ScriptRange         errorRange;
+  ScriptEvalSignal    signal;
+  ScriptPanic         panic;
   u32                 executedExprs;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
@@ -102,9 +101,11 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
-      ctx->error      = ScriptErrorRuntime_AssertionFailed;
-      ctx->errorRange = script_expr_range(ctx->doc, e);
-      ctx->signal |= ScriptEvalSignal_Error;
+      ctx->panic = (ScriptPanic){
+          .type  = ScriptPanic_AssertionFailed,
+          .range = script_expr_range(ctx->doc, e),
+      };
+      ctx->signal |= ScriptEvalSignal_Panic;
     }
     return script_null();
   }
@@ -281,9 +282,11 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e) {
   if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
-    ctx->error      = ScriptErrorRuntime_ExecutionLimitExceeded;
-    ctx->errorRange = script_expr_range(ctx->doc, e);
-    ctx->signal |= ScriptEvalSignal_Error;
+    ctx->panic = (ScriptPanic){
+        .type  = ScriptPanic_ExecutionLimitExceeded,
+        .range = script_expr_range(ctx->doc, e),
+    };
+    ctx->signal |= ScriptEvalSignal_Panic;
     return script_null();
   }
   switch (expr_type(ctx, e)) {
@@ -310,18 +313,6 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e)
   UNREACHABLE
 }
 
-static ScriptErrorRuntime script_error_runtime_type(const ScriptEvalContext* ctx) {
-  if (UNLIKELY(ctx->signal & ScriptEvalSignal_Error)) {
-    diag_assert_msg(ctx->error, "Invalid error signal");
-    return ctx->error;
-  }
-  if (ctx->signal == ScriptEvalSignal_Return) {
-    return ScriptErrorRuntime_None;
-  }
-  diag_assert_msg(!ctx->signal, "Unhandled signal");
-  return ScriptErrorRuntime_None;
-}
-
 ScriptEvalResult script_eval(
     const ScriptDoc*    doc,
     ScriptMem*          m,
@@ -338,10 +329,13 @@ ScriptEvalResult script_eval(
       .bindCtx = bindCtx,
   };
 
+  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
+  diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
+  diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
+
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
-  res.error         = script_error_runtime_type(&ctx);
-  res.errorRange    = ctx.errorRange;
+  res.panic         = ctx.panic;
   res.executedExprs = ctx.executedExprs;
   return res;
 }
@@ -354,10 +348,13 @@ script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr 
       .m   = (ScriptMem*)m, // NOTE: Safe as long as the readonly invariant is maintained.
   };
 
+  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
+  diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
+  diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
+
   ScriptEvalResult res;
   res.val           = eval(&ctx, expr);
-  res.error         = script_error_runtime_type(&ctx);
-  res.errorRange    = ctx.errorRange;
+  res.panic         = ctx.panic;
   res.executedExprs = ctx.executedExprs;
   return res;
 }
