@@ -8,9 +8,9 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
 
-#define script_binder_slot_sentinel sentinel_u32
+#define script_binder_slot_sentinel sentinel_u16
 
-typedef u32 ScriptBinderSlot;
+typedef u16 ScriptBinderSlot;
 typedef u64 ScriptBinderSignature;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs);
@@ -49,7 +49,7 @@ void script_binder_finalize(ScriptBinder*);
  * Return the binding count.
  * Pre-condition: Binder has been finalized.
  */
-u32 script_binder_count(const ScriptBinder*);
+u16 script_binder_count(const ScriptBinder*);
 
 /**
  * Compute a signature for the binder.

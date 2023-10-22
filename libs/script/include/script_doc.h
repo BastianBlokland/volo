@@ -11,7 +11,7 @@ typedef struct sAllocator Allocator;
 typedef struct sScriptRange ScriptRange;
 
 // Forward declare from 'script_binder.h'.
-typedef u32 ScriptBinderSlot;
+typedef u16 ScriptBinderSlot;
 
 #define script_var_count 16
 #define script_expr_sentinel sentinel_u32
@@ -74,7 +74,7 @@ ScriptExpr script_add_mem_load(ScriptDoc*, ScriptRange, StringHash key);
 ScriptExpr script_add_mem_store(ScriptDoc*, ScriptRange, StringHash key, ScriptExpr val);
 ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptRange, ScriptIntrinsic, const ScriptExpr args[]);
 ScriptExpr script_add_block(ScriptDoc*, ScriptRange, const ScriptExpr exprs[], u32 exprCount);
-ScriptExpr script_add_extern(ScriptDoc*, ScriptRange, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
+ScriptExpr script_add_extern(ScriptDoc*, ScriptRange, ScriptBinderSlot, const ScriptExpr args[], u16 argCount);
 
 ScriptExpr script_add_anon_value(ScriptDoc*, ScriptVal val);
 ScriptExpr script_add_anon_var_load(ScriptDoc*, ScriptVarId);

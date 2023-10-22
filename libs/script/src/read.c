@@ -551,7 +551,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
     return;
   case ScriptExprType_Intrinsic: {
     const ScriptExprData* data = dynarray_at_t(&doc->exprData, expr, ScriptExprData);
-    switch (data->data_intrinsic.intrinsic) {
+    switch (data->intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
     case ScriptIntrinsic_Return:
@@ -948,7 +948,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-      return script_add_extern(ctx->doc, callRange, externFunc, args, (u32)argCount);
+      diag_assert((u32)argCount < u16_max);
+      return script_add_extern(ctx->doc, callRange, externFunc, args, (u16)argCount);
     }
   }
 
