@@ -7,6 +7,7 @@
 #include "json.h"
 #include "script_binder.h"
 #include "script_diag.h"
+#include "script_eval.h"
 #include "script_format.h"
 #include "script_read.h"
 #include "script_sym.h"
@@ -54,6 +55,7 @@ typedef struct {
   ScriptDoc*     scriptDoc;
   ScriptDiagBag* scriptDiags;
   ScriptSymBag*  scriptSyms;
+  ScriptExpr     scriptRoot;
 } LspDocument;
 
 typedef struct {
@@ -85,6 +87,11 @@ typedef struct {
   ScriptDiagSeverity severity;
   String             message;
 } LspDiag;
+
+typedef struct {
+  ScriptRangeLineCol range;
+  String             text;
+} LspHover;
 
 typedef enum {
   LspCompletionItemKind_Function    = 3,
@@ -302,6 +309,13 @@ static JsonVal lsp_range_to_json(LspContext* ctx, const ScriptRangeLineCol* rang
   return obj;
 }
 
+static JsonVal lsp_hover_to_json(LspContext* ctx, const LspHover* hover) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &hover->range));
+  json_add_field_lit(ctx->jDoc, obj, "contents", json_add_string(ctx->jDoc, hover->text));
+  return obj;
+}
+
 static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
   JsonVal labelDetailsObj = sentinel_u32;
   if (!string_is_empty(item->labelDetail) || !string_is_empty(item->labelDescription)) {
@@ -501,7 +515,8 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
   const TimeSteady readStartTime = time_steady_clock();
 
-  script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
+  doc->scriptRoot =
+      script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
 
   if (ctx->flags & LspFlags_Trace) {
     const TimeDuration dur   = time_steady_duration(readStartTime, time_steady_clock());
@@ -641,6 +656,8 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, docSyncOpts, "openClose", json_add_bool(ctx->jDoc, true));
   json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 1));
 
+  const JsonVal hoverOpts = json_add_object(ctx->jDoc);
+
   const JsonVal completionTriggerCharArr = json_add_array(ctx->jDoc);
   json_add_elem(ctx->jDoc, completionTriggerCharArr, json_add_string_lit(ctx->jDoc, "$"));
 
@@ -655,6 +672,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal positionEncoding = json_add_string_lit(ctx->jDoc, "utf-16");
   json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
   json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "hoverProvider", hoverOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
 
@@ -675,6 +693,73 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   ctx->flags |= LspFlags_Shutdown;
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+}
+
+static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  if (ctx->flags & LspFlags_Trace) {
+    const String txt = fmt_write_scratch(
+        "Hover: {} [{}:{}]", fmt_text(uri), fmt_int(posLc.line + 1), fmt_int(posLc.column + 1));
+    lsp_send_trace(ctx, txt);
+  }
+
+  if (sentinel_check(doc->scriptRoot)) {
+    // Script did not parse correctly (likely due to structural errors); no hover possible.
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return;
+  }
+
+  const ScriptExpr     hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
+  const ScriptRange    hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
+  const ScriptExprType hoverType  = script_expr_type(doc->scriptDoc, hoverExpr);
+
+  // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
+  diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
+
+  if (hoverType == ScriptExprType_Block) {
+    // Ignore hovers on block expressions.
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return;
+  }
+
+  DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
+  dynstring_append(&textBuffer, script_expr_type_str(hoverType));
+
+  if (script_expr_static(doc->scriptDoc, hoverExpr)) {
+    const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
+    fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
+  }
+
+  const LspHover hover = {
+      .range = script_range_to_line_col(doc->text, hoverRange),
+      .text  = dynstring_view(&textBuffer),
+  };
+  lsp_send_response_success(ctx, req, lsp_hover_to_json(ctx, &hover));
+  dynstring_destroy(&textBuffer);
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
 static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSym* sym) {
@@ -704,9 +789,9 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(string_is_empty(uri))) {
     goto InvalidParams;
   }
-  const JsonVal    posLineColVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
-  ScriptPosLineCol posLineCol;
-  if (UNLIKELY(!lsp_position_from_json(ctx, posLineColVal, &posLineCol))) {
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
     goto InvalidParams;
   }
 
@@ -715,19 +800,15 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLineCol);
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
 
   if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(
-        ctx,
-        fmt_write_scratch(
-            "Complete: {} [{}:{}]",
-            fmt_text(uri),
-            fmt_int(posLineCol.line + 1),
-            fmt_int(posLineCol.column + 1)));
+    const String txt = fmt_write_scratch(
+        "Complete: {} [{}:{}]", fmt_text(uri), fmt_int(posLc.line + 1), fmt_int(posLc.column + 1));
+    lsp_send_trace(ctx, txt);
   }
 
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
@@ -811,6 +892,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
+      {string_static("textDocument/hover"), lsp_handle_req_hover},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
   };

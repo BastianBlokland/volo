@@ -55,6 +55,33 @@ static const ScriptExpr* script_doc_expr_set_data(const ScriptDoc* doc, const Sc
   return dynarray_begin_t(&doc->exprSets, ScriptExpr) + set;
 }
 
+static void script_validate_subrange(
+    MAYBE_UNUSED const ScriptDoc*  doc,
+    MAYBE_UNUSED const ScriptRange range,
+    MAYBE_UNUSED const ScriptExpr  expr) {
+#ifndef VOLO_FAST
+  const ScriptRange exprRange = script_expr_range(doc, expr);
+  if (!sentinel_check(exprRange.start) && !sentinel_check(exprRange.end)) {
+    diag_assert_msg(
+        script_range_subrange(range, exprRange),
+        "Child expression range is not a sub-range of its parent");
+  }
+#endif
+}
+
+static void script_validate_subrange_set(
+    MAYBE_UNUSED const ScriptDoc*    doc,
+    MAYBE_UNUSED const ScriptRange   range,
+    MAYBE_UNUSED const ScriptExprSet set,
+    MAYBE_UNUSED const u32           count) {
+#ifndef VOLO_FAST
+  const ScriptExpr* exprs = script_doc_expr_set_data(doc, set);
+  for (u32 i = 0; i != count; ++i) {
+    script_validate_subrange(doc, range, exprs[i]);
+  }
+#endif
+}
+
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
 
@@ -101,6 +128,7 @@ ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const Sc
 ScriptExpr script_add_var_store(
     ScriptDoc* doc, const ScriptRange range, const ScriptVarId var, const ScriptExpr val) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
+  script_validate_subrange(doc, range, val);
   return script_doc_expr_add(
       doc, range, ScriptExprType_VarStore, (ScriptExprData){.var_store = {.var = var, .val = val}});
 }
@@ -114,6 +142,7 @@ ScriptExpr script_add_mem_load(ScriptDoc* doc, const ScriptRange range, const St
 ScriptExpr script_add_mem_store(
     ScriptDoc* doc, const ScriptRange range, const StringHash key, const ScriptExpr val) {
   diag_assert_msg(key, "Empty key is not valid");
+  script_validate_subrange(doc, range, val);
   return script_doc_expr_add(
       doc, range, ScriptExprType_MemStore, (ScriptExprData){.mem_store = {.key = key, .val = val}});
 }
@@ -122,6 +151,7 @@ ScriptExpr script_add_intrinsic(
     ScriptDoc* doc, const ScriptRange range, const ScriptIntrinsic i, const ScriptExpr args[]) {
   const u32           argCount = script_intrinsic_arg_count(i);
   const ScriptExprSet argSet   = script_doc_expr_set_add(doc, args, argCount);
+  script_validate_subrange_set(doc, range, argSet, argCount);
   return script_doc_expr_add(
       doc,
       range,
@@ -134,6 +164,7 @@ ScriptExpr script_add_block(
   diag_assert_msg(exprCount, "Zero sized blocks are not supported");
 
   const ScriptExprSet set = script_doc_expr_set_add(doc, exprs, exprCount);
+  script_validate_subrange_set(doc, range, set, exprCount);
   return script_doc_expr_add(
       doc,
       range,
@@ -148,6 +179,7 @@ ScriptExpr script_add_extern(
     const ScriptExpr       args[],
     const u16              argCount) {
   const ScriptExprSet argSet = script_doc_expr_set_add(doc, args, argCount);
+  script_validate_subrange_set(doc, range, argSet, argCount);
   return script_doc_expr_add(
       doc,
       range,
@@ -380,7 +412,84 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
   UNREACHABLE
 }
 
+ScriptExpr script_expr_find(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
+  const ScriptExprData* data = script_doc_expr_data(doc, root);
+  switch (script_doc_expr_type(doc, root)) {
+  case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_MemLoad:
+    return root;
+  case ScriptExprType_VarStore:
+    if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
+      return script_expr_find(doc, data->var_store.val, pos);
+    }
+    return root;
+  case ScriptExprType_MemStore:
+    if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
+      return script_expr_find(doc, data->mem_store.val, pos);
+    }
+    return root;
+  case ScriptExprType_Intrinsic: {
+    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->intrinsic.argSet);
+    const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
+    for (u32 i = 0; i != argCount; ++i) {
+      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+        return script_expr_find(doc, args[i], pos);
+      }
+    }
+    return root;
+  }
+  case ScriptExprType_Block: {
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->block.exprSet);
+    for (u32 i = 0; i != data->block.exprCount; ++i) {
+      if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
+        return script_expr_find(doc, exprs[i], pos);
+      }
+    }
+    return root;
+  }
+  case ScriptExprType_Extern: {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
+    for (u16 i = 0; i != data->extern_.argCount; ++i) {
+      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+        return script_expr_find(doc, args[i], pos);
+      }
+    }
+    return root;
+  }
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
 u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
+
+String script_expr_type_str(const ScriptExprType type) {
+  switch (type) {
+  case ScriptExprType_Value:
+    return string_lit("value");
+  case ScriptExprType_VarLoad:
+    return string_lit("var-load");
+  case ScriptExprType_VarStore:
+    return string_lit("var-store");
+  case ScriptExprType_MemLoad:
+    return string_lit("mem-load");
+  case ScriptExprType_MemStore:
+    return string_lit("mem-store");
+  case ScriptExprType_Intrinsic:
+    return string_lit("intrinsic");
+  case ScriptExprType_Block:
+    return string_lit("block");
+  case ScriptExprType_Extern:
+    return string_lit("extern");
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
 
 static void script_expr_str_write_sep(const u32 indent, DynString* str) {
   dynstring_append_char(str, '\n');
