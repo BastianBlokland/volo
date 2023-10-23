@@ -66,6 +66,10 @@ bool script_range_contains(const ScriptRange range, const ScriptPos pos) {
   return pos >= range.start && pos <= range.end;
 }
 
+bool script_range_contains_range(const ScriptRange a, const ScriptRange b) {
+  return script_range_contains(a, b.start) && script_range_contains(a, b.end);
+}
+
 ScriptRange script_range_full(String src) { return script_range(0, (u32)src.size); }
 
 String script_range_text(const String src, const ScriptRange range) {
