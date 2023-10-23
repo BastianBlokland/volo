@@ -66,7 +66,7 @@ bool script_range_contains(const ScriptRange range, const ScriptPos pos) {
   return pos >= range.start && pos <= range.end;
 }
 
-bool script_range_contains_range(const ScriptRange a, const ScriptRange b) {
+bool script_range_subrange(const ScriptRange a, const ScriptRange b) {
   return script_range_contains(a, b.start) && script_range_contains(a, b.end);
 }
 

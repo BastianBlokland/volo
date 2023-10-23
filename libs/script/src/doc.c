@@ -86,6 +86,33 @@ void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->values);
 }
 
+MAYBE_UNUSED static void script_validate_subrange(
+    MAYBE_UNUSED const ScriptDoc*  doc,
+    MAYBE_UNUSED const ScriptRange range,
+    MAYBE_UNUSED const ScriptExpr  expr) {
+#ifndef VOLO_FAST
+  const ScriptRange exprRange = script_expr_range(doc, expr);
+  if (!sentinel_check(exprRange.start) && !sentinel_check(exprRange.end)) {
+    diag_assert_msg(
+        script_range_subrange(range, exprRange),
+        "Child expression range is not a sub-range of its parent");
+  }
+#endif
+}
+
+MAYBE_UNUSED static void script_validate_subrange_set(
+    MAYBE_UNUSED const ScriptDoc*    doc,
+    MAYBE_UNUSED const ScriptRange   range,
+    MAYBE_UNUSED const ScriptExprSet set,
+    MAYBE_UNUSED const u32           count) {
+#ifndef VOLO_FAST
+  const ScriptExpr* exprs = script_doc_expr_set_data(doc, set);
+  for (u32 i = 0; i != count; ++i) {
+    script_validate_subrange(doc, range, exprs[i]);
+  }
+#endif
+}
+
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   const ScriptValId valId = script_doc_val_add(doc, val);
   return script_doc_expr_add(
@@ -101,6 +128,7 @@ ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const Sc
 ScriptExpr script_add_var_store(
     ScriptDoc* doc, const ScriptRange range, const ScriptVarId var, const ScriptExpr val) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
+  script_validate_subrange(doc, range, val);
   return script_doc_expr_add(
       doc, range, ScriptExprType_VarStore, (ScriptExprData){.var_store = {.var = var, .val = val}});
 }
@@ -114,6 +142,7 @@ ScriptExpr script_add_mem_load(ScriptDoc* doc, const ScriptRange range, const St
 ScriptExpr script_add_mem_store(
     ScriptDoc* doc, const ScriptRange range, const StringHash key, const ScriptExpr val) {
   diag_assert_msg(key, "Empty key is not valid");
+  script_validate_subrange(doc, range, val);
   return script_doc_expr_add(
       doc, range, ScriptExprType_MemStore, (ScriptExprData){.mem_store = {.key = key, .val = val}});
 }
@@ -122,6 +151,7 @@ ScriptExpr script_add_intrinsic(
     ScriptDoc* doc, const ScriptRange range, const ScriptIntrinsic i, const ScriptExpr args[]) {
   const u32           argCount = script_intrinsic_arg_count(i);
   const ScriptExprSet argSet   = script_doc_expr_set_add(doc, args, argCount);
+  script_validate_subrange_set(doc, range, argSet, argCount);
   return script_doc_expr_add(
       doc,
       range,
@@ -134,6 +164,7 @@ ScriptExpr script_add_block(
   diag_assert_msg(exprCount, "Zero sized blocks are not supported");
 
   const ScriptExprSet set = script_doc_expr_set_add(doc, exprs, exprCount);
+  script_validate_subrange_set(doc, range, set, exprCount);
   return script_doc_expr_add(
       doc,
       range,
@@ -148,6 +179,7 @@ ScriptExpr script_add_extern(
     const ScriptExpr       args[],
     const u16              argCount) {
   const ScriptExprSet argSet = script_doc_expr_set_add(doc, args, argCount);
+  script_validate_subrange_set(doc, range, argSet, argCount);
   return script_doc_expr_add(
       doc,
       range,
