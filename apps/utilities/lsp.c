@@ -54,6 +54,7 @@ typedef struct {
   ScriptDoc*     scriptDoc;
   ScriptDiagBag* scriptDiags;
   ScriptSymBag*  scriptSyms;
+  ScriptExpr     scriptRoot;
 } LspDocument;
 
 typedef struct {
@@ -501,6 +502,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
   const TimeSteady readStartTime = time_steady_clock();
 
+  doc->scriptRoot =
   script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
 
   if (ctx->flags & LspFlags_Trace) {
