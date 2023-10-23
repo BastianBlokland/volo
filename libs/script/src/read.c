@@ -794,8 +794,9 @@ ArgEnd:
 }
 
 static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos start) {
+  const ScriptPos   idStart = read_pos_next(ctx);
   const ScriptToken token   = read_consume(ctx);
-  const ScriptRange idRange = read_range_to_current(ctx, start);
+  const ScriptRange idRange = read_range_to_current(ctx, idStart);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
     return read_emit_err(ctx, ScriptDiag_VarIdInvalid, idRange), read_fail_structural(ctx);
   }
