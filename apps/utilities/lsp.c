@@ -723,6 +723,12 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     lsp_send_trace(ctx, txt);
   }
 
+  if (sentinel_check(doc->scriptRoot)) {
+    // Script did not parse correctly (likely due to structural errors); no hover possible.
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return;
+  }
+
   const ScriptExpr     hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
   const ScriptRange    hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
   const ScriptExprType hoverType  = script_expr_type(doc->scriptDoc, hoverExpr);
@@ -730,28 +736,26 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
   diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
 
-  JsonVal result;
   if (hoverType == ScriptExprType_Block) {
-    result = json_add_null(ctx->jDoc);
-  } else {
-    DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
-    dynstring_append(&textBuffer, script_expr_type_str(hoverType));
-
-    if (script_expr_static(doc->scriptDoc, hoverExpr)) {
-      const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
-      fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
-    }
-
-    const LspHover hover = {
-        .range = script_range_to_line_col(doc->text, hoverRange),
-        .text  = dynstring_view(&textBuffer),
-    };
-    result = lsp_hover_to_json(ctx, &hover);
-
-    dynstring_destroy(&textBuffer);
+    // Ignore hovers on block expressions.
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return;
   }
 
-  lsp_send_response_success(ctx, req, result);
+  DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
+  dynstring_append(&textBuffer, script_expr_type_str(hoverType));
+
+  if (script_expr_static(doc->scriptDoc, hoverExpr)) {
+    const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
+    fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
+  }
+
+  const LspHover hover = {
+      .range = script_range_to_line_col(doc->text, hoverRange),
+      .text  = dynstring_view(&textBuffer),
+  };
+  lsp_send_response_success(ctx, req, lsp_hover_to_json(ctx, &hover));
+  dynstring_destroy(&textBuffer);
   return;
 
 InvalidParams:
