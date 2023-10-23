@@ -63,11 +63,11 @@ ScriptRange script_range(const ScriptPos start, const ScriptPos end) {
 }
 
 bool script_range_contains(const ScriptRange range, const ScriptPos pos) {
-  return pos >= range.start && pos <= range.end;
+  return pos >= range.start && pos < range.end;
 }
 
 bool script_range_subrange(const ScriptRange a, const ScriptRange b) {
-  return script_range_contains(a, b.start) && script_range_contains(a, b.end);
+  return a.start <= b.start && a.end >= b.end;
 }
 
 ScriptRange script_range_full(String src) { return script_range(0, (u32)src.size); }
