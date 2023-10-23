@@ -700,9 +700,9 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(string_is_empty(uri))) {
     goto InvalidParams;
   }
-  const JsonVal    posLineColVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
-  ScriptPosLineCol posLineCol;
-  if (UNLIKELY(!lsp_position_from_json(ctx, posLineColVal, &posLineCol))) {
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
     goto InvalidParams;
   }
 
@@ -711,19 +711,15 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLineCol);
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
 
   if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(
-        ctx,
-        fmt_write_scratch(
-            "Hover: {} [{}:{}]",
-            fmt_text(uri),
-            fmt_int(posLineCol.line + 1),
-            fmt_int(posLineCol.column + 1)));
+    const String txt = fmt_write_scratch(
+        "Hover: {} [{}:{}]", fmt_text(uri), fmt_int(posLc.line + 1), fmt_int(posLc.column + 1));
+    lsp_send_trace(ctx, txt);
   }
 
   const ScriptExpr  hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
@@ -777,9 +773,9 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(string_is_empty(uri))) {
     goto InvalidParams;
   }
-  const JsonVal    posLineColVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
-  ScriptPosLineCol posLineCol;
-  if (UNLIKELY(!lsp_position_from_json(ctx, posLineColVal, &posLineCol))) {
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
     goto InvalidParams;
   }
 
@@ -788,19 +784,15 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLineCol);
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
 
   if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(
-        ctx,
-        fmt_write_scratch(
-            "Complete: {} [{}:{}]",
-            fmt_text(uri),
-            fmt_int(posLineCol.line + 1),
-            fmt_int(posLineCol.column + 1)));
+    const String txt = fmt_write_scratch(
+        "Complete: {} [{}:{}]", fmt_text(uri), fmt_int(posLc.line + 1), fmt_int(posLc.column + 1));
+    lsp_send_trace(ctx, txt);
   }
 
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
