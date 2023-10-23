@@ -115,6 +115,7 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc*, ScriptExpr)
 /**
  * Create a textual representation of the given expression.
  */
+String script_expr_type_str(ScriptExprType);
 void   script_expr_str_write(const ScriptDoc*, ScriptExpr, u32 indent, DynString*);
 String script_expr_str_scratch(const ScriptDoc*, ScriptExpr);
 

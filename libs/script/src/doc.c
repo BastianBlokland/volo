@@ -466,6 +466,31 @@ ScriptExpr script_expr_find(const ScriptDoc* doc, const ScriptExpr root, const S
 
 u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
 
+String script_expr_type_str(const ScriptExprType type) {
+  switch (type) {
+  case ScriptExprType_Value:
+    return string_lit("value");
+  case ScriptExprType_VarLoad:
+    return string_lit("var-load");
+  case ScriptExprType_VarStore:
+    return string_lit("var-store");
+  case ScriptExprType_MemLoad:
+    return string_lit("mem-load");
+  case ScriptExprType_MemStore:
+    return string_lit("mem-store");
+  case ScriptExprType_Intrinsic:
+    return string_lit("intrinsic");
+  case ScriptExprType_Block:
+    return string_lit("block");
+  case ScriptExprType_Extern:
+    return string_lit("extern");
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
 static void script_expr_str_write_sep(const u32 indent, DynString* str) {
   dynstring_append_char(str, '\n');
   dynstring_append_chars(str, ' ', indent * 2);
