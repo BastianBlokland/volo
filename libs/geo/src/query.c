@@ -221,7 +221,6 @@ static void geo_query_validate_dir(MAYBE_UNUSED const GeoVector vec) {
       math_abs(geo_vector_mag_sqr(vec) - 1.0f) <= 1e-5f,
       "Direction ({}) is not normalized",
       geo_vector_fmt(vec));
-  return;
 }
 
 static bool geo_query_filter_layer(const GeoQueryFilter* filter, const GeoQueryLayer shapeLayer) {
