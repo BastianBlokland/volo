@@ -7,6 +7,7 @@
 #include "json.h"
 #include "script_binder.h"
 #include "script_diag.h"
+#include "script_eval.h"
 #include "script_format.h"
 #include "script_read.h"
 #include "script_sym.h"
@@ -733,11 +734,21 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   if (hoverType == ScriptExprType_Block) {
     result = json_add_null(ctx->jDoc);
   } else {
+    DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
+    dynstring_append(&textBuffer, script_expr_type_str(hoverType));
+
+    if (script_expr_static(doc->scriptDoc, hoverExpr)) {
+      const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
+      fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
+    }
+
     const LspHover hover = {
         .range = script_range_to_line_col(doc->text, hoverRange),
-        .text  = fmt_write_scratch("expr: {}", fmt_text(script_expr_type_str(hoverType))),
+        .text  = dynstring_view(&textBuffer),
     };
     result = lsp_hover_to_json(ctx, &hover);
+
+    dynstring_destroy(&textBuffer);
   }
 
   lsp_send_response_success(ctx, req, result);
