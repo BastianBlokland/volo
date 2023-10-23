@@ -323,6 +323,10 @@ static ScriptRange read_range_to_current(ScriptReadContext* ctx, const ScriptPos
   return script_range(start, read_pos_current(ctx));
 }
 
+static ScriptRange read_range_to_next(ScriptReadContext* ctx, const ScriptPos start) {
+  return script_range(start, read_pos_next(ctx) + 1);
+}
+
 static ScriptRange read_range_full(ScriptReadContext* ctx) {
   return script_range_full(ctx->inputTotal);
 }
@@ -368,7 +372,7 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     const ScriptSym sym = {
         .type       = ScriptSymType_Variable,
         .label      = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .validRange = read_range_to_current(ctx, scope->vars[i].validUsageStart),
+        .validRange = read_range_to_next(ctx, scope->vars[i].validUsageStart),
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -442,7 +446,7 @@ static bool read_var_declare(
         .id              = id,
         .varSlot         = *out,
         .declRange       = declRange,
-        .validUsageStart = read_pos_next(ctx), // TODO: Should this be an input parameter?
+        .validUsageStart = read_pos_current(ctx),
     };
     return true;
   }
