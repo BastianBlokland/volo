@@ -315,6 +315,10 @@ static ScriptPos read_pos_next(ScriptReadContext* ctx) {
   return script_pos_trim(ctx->inputTotal, read_pos_current(ctx));
 }
 
+static ScriptRange read_range_dummy(ScriptReadContext* ctx) {
+  return script_range(read_pos_current(ctx), read_pos_current(ctx));
+}
+
 static ScriptRange read_range_to_current(ScriptReadContext* ctx, const ScriptPos start) {
   return script_range(start, read_pos_current(ctx));
 }
@@ -667,9 +671,7 @@ BlockNext:
 BlockEnd:;
   switch (exprCount) {
   case 0: {
-    // NOTE: This range is questionable as this block doesn't have any tokens associated with it.
-    const ScriptRange blockRange = {.start = read_pos_current(ctx), .end = read_pos_current(ctx)};
-    return script_add_value(ctx->doc, blockRange, script_null());
+    return script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   }
   case 1:
     return exprs[0];
@@ -782,7 +784,7 @@ ArgEnd:
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_ParenClose)) {
     ScriptRange range;
     if (count == 0) {
-      range = script_range(read_pos_current(ctx), read_pos_current(ctx));
+      range = read_range_dummy(ctx);
     } else {
       range = script_expr_range(ctx->doc, outExprs[count - 1]);
     }
@@ -813,7 +815,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
       return read_fail_structural(ctx);
     }
   } else {
-    valExpr = script_add_value(ctx->doc, idRange, script_null());
+    valExpr = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   }
 
   const ScriptRange range = read_range_to_current(ctx, start);
@@ -882,7 +884,7 @@ static ScriptExpr read_expr_var_modify(
 
   var->used = true;
 
-  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, range, var->varSlot);
+  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, read_range_dummy(ctx), var->varSlot);
   const ScriptExpr intrArgs[] = {loadExpr, val};
   const ScriptExpr intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
   return script_add_var_store(ctx->doc, range, var->varSlot, intrExpr);
@@ -916,7 +918,7 @@ static ScriptExpr read_expr_mem_modify(
     return read_fail_structural(ctx);
   }
   const ScriptRange range      = read_range_to_current(ctx, start);
-  const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, range, key);
+  const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, read_range_dummy(ctx), key);
   const ScriptExpr  intrArgs[] = {loadExpr, val};
   const ScriptExpr  intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
   return script_add_mem_store(ctx->doc, range, key, intrExpr);
@@ -1023,8 +1025,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
-    const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
-    b2                           = script_add_value(ctx->doc, blockRange, script_null());
+    b2 = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   }
 
   diag_assert(&scope == read_scope_tail(ctx));
@@ -1078,8 +1079,8 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
   const ScriptRange range = read_range_to_current(ctx, start);
   // NOTE: Setup and Increment loop parts are not used in while loops.
-  const ScriptExpr setupExpr  = script_add_value(ctx->doc, range, script_null());
-  const ScriptExpr incrExpr   = script_add_value(ctx->doc, range, script_null());
+  const ScriptExpr setupExpr  = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
+  const ScriptExpr incrExpr   = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Loop, intrArgs);
 }
@@ -1226,8 +1227,7 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
 
   ScriptExpr retExpr;
   if (read_is_return_separator(nextToken.type)) {
-    const ScriptRange range = read_range_to_current(ctx, start);
-    retExpr                 = script_add_value(ctx->doc, range, script_null());
+    retExpr = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   } else {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
     retExpr                         = read_expr(ctx, OpPrecedence_Assignment);
@@ -1388,8 +1388,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
 static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
-    const ScriptRange range = read_range_to_current(ctx, read_pos_current(ctx));
-    read_emit_err(ctx, ScriptDiag_RecursionLimitExceeded, range);
+    read_emit_err(ctx, ScriptDiag_RecursionLimitExceeded, read_range_dummy(ctx));
     return read_fail_structural(ctx);
   }
 
