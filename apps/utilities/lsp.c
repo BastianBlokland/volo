@@ -87,6 +87,11 @@ typedef struct {
   String             message;
 } LspDiag;
 
+typedef struct {
+  ScriptRangeLineCol range;
+  String             text;
+} LspHover;
+
 typedef enum {
   LspCompletionItemKind_Function    = 3,
   LspCompletionItemKind_Constructor = 4,
@@ -303,6 +308,13 @@ static JsonVal lsp_range_to_json(LspContext* ctx, const ScriptRangeLineCol* rang
   return obj;
 }
 
+static JsonVal lsp_hover_to_json(LspContext* ctx, const LspHover* hover) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &hover->range));
+  json_add_field_lit(ctx->jDoc, obj, "contents", json_add_string(ctx->jDoc, hover->text));
+  return obj;
+}
+
 static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
   JsonVal labelDetailsObj = sentinel_u32;
   if (!string_is_empty(item->labelDetail) || !string_is_empty(item->labelDescription)) {
@@ -503,7 +515,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   const TimeSteady readStartTime = time_steady_clock();
 
   doc->scriptRoot =
-  script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
+      script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
 
   if (ctx->flags & LspFlags_Trace) {
     const TimeDuration dur   = time_steady_duration(readStartTime, time_steady_clock());
@@ -714,8 +726,24 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
             fmt_int(posLineCol.column + 1)));
   }
 
-  const JsonVal hover = json_add_null(ctx->jDoc);
-  lsp_send_response_success(ctx, req, hover);
+  const ScriptExpr  hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
+  const ScriptRange hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
+
+  // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
+  diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
+
+  JsonVal result;
+  if (script_expr_type(doc->scriptDoc, hoverExpr) == ScriptExprType_Block) {
+    result = json_add_null(ctx->jDoc);
+  } else {
+    const LspHover hover = {
+        .range = script_range_to_line_col(doc->text, hoverRange),
+        .text  = script_expr_str_scratch(doc->scriptDoc, hoverExpr),
+    };
+    result = lsp_hover_to_json(ctx, &hover);
+  }
+
+  lsp_send_response_success(ctx, req, result);
   return;
 
 InvalidParams:
