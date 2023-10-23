@@ -865,7 +865,7 @@ static ScriptExpr read_expr_var_modify(
     ScriptReadContext*    ctx,
     const StringHash      id,
     const ScriptTokenType type,
-    const ScriptPos       start) {
+    const ScriptRange     varRange) {
   const ScriptSection   prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
   const ScriptIntrinsic intr        = token_op_binary_modify(type);
   const ScriptExpr      val         = token_intr_rhs_scope(intr)
@@ -875,7 +875,7 @@ static ScriptExpr read_expr_var_modify(
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range = read_range_to_current(ctx, start);
+  const ScriptRange range = read_range_to_current(ctx, varRange.start);
 
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
@@ -884,7 +884,7 @@ static ScriptExpr read_expr_var_modify(
 
   var->used = true;
 
-  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, read_range_dummy(ctx), var->varSlot);
+  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->varSlot);
   const ScriptExpr intrArgs[] = {loadExpr, val};
   const ScriptExpr intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
   return script_add_var_store(ctx->doc, range, var->varSlot, intrExpr);
@@ -907,7 +907,7 @@ static ScriptExpr read_expr_mem_modify(
     ScriptReadContext*    ctx,
     const StringHash      key,
     const ScriptTokenType type,
-    const ScriptPos       start) {
+    const ScriptRange     keyRange) {
   const ScriptSection   prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
   const ScriptIntrinsic intr        = token_op_binary_modify(type);
   const ScriptExpr      val         = token_intr_rhs_scope(intr)
@@ -917,8 +917,8 @@ static ScriptExpr read_expr_mem_modify(
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range      = read_range_to_current(ctx, start);
-  const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, read_range_dummy(ctx), key);
+  const ScriptRange range      = read_range_to_current(ctx, keyRange.start);
+  const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, keyRange, key);
   const ScriptExpr  intrArgs[] = {loadExpr, val};
   const ScriptExpr  intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
   return script_add_mem_store(ctx->doc, range, key, intrExpr);
@@ -1320,7 +1320,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_PercentEq:
     case ScriptTokenType_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_var_modify(ctx, token.val_key, nextToken.type, start);
+      return read_expr_var_modify(ctx, token.val_key, nextToken.type, range);
     default:
       return read_expr_var_lookup(ctx, token.val_identifier, start);
     }
@@ -1366,7 +1366,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_PercentEq:
     case ScriptTokenType_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_mem_modify(ctx, token.val_key, nextToken.type, start);
+      return read_expr_mem_modify(ctx, token.val_key, nextToken.type, range);
     default:
       return script_add_mem_load(ctx->doc, range, token.val_key);
     }
