@@ -791,10 +791,9 @@ ArgEnd:
   return count;
 }
 
-static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
-  const ScriptPos   startPos = read_pos_next(ctx);
-  const ScriptToken token    = read_consume(ctx);
-  const ScriptRange idRange  = read_range_to_current(ctx, startPos);
+static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos start) {
+  const ScriptToken token   = read_consume(ctx);
+  const ScriptRange idRange = read_range_to_current(ctx, start);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
     return read_emit_err(ctx, ScriptDiag_VarIdInvalid, idRange), read_fail_structural(ctx);
   }
@@ -817,7 +816,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
     valExpr = script_add_value(ctx->doc, idRange, script_null());
   }
 
-  const ScriptRange range = read_range_to_current(ctx, startPos);
+  const ScriptRange range = read_range_to_current(ctx, start);
 
   ScriptVarId varId;
   if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
@@ -1284,7 +1283,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     if (UNLIKELY(ctx->section & ScriptSection_DisallowVarDeclare)) {
       return read_emit_err(ctx, ScriptDiag_VarDeclareNotAllowed, range), read_fail_structural(ctx);
     }
-    return read_expr_var_declare(ctx);
+    return read_expr_var_declare(ctx, start);
   case ScriptTokenType_Continue:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
       return read_emit_err(ctx, ScriptDiag_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
