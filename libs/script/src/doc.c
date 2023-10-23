@@ -55,6 +55,33 @@ static const ScriptExpr* script_doc_expr_set_data(const ScriptDoc* doc, const Sc
   return dynarray_begin_t(&doc->exprSets, ScriptExpr) + set;
 }
 
+static void script_validate_subrange(
+    MAYBE_UNUSED const ScriptDoc*  doc,
+    MAYBE_UNUSED const ScriptRange range,
+    MAYBE_UNUSED const ScriptExpr  expr) {
+#ifndef VOLO_FAST
+  const ScriptRange exprRange = script_expr_range(doc, expr);
+  if (!sentinel_check(exprRange.start) && !sentinel_check(exprRange.end)) {
+    diag_assert_msg(
+        script_range_subrange(range, exprRange),
+        "Child expression range is not a sub-range of its parent");
+  }
+#endif
+}
+
+static void script_validate_subrange_set(
+    MAYBE_UNUSED const ScriptDoc*    doc,
+    MAYBE_UNUSED const ScriptRange   range,
+    MAYBE_UNUSED const ScriptExprSet set,
+    MAYBE_UNUSED const u32           count) {
+#ifndef VOLO_FAST
+  const ScriptExpr* exprs = script_doc_expr_set_data(doc, set);
+  for (u32 i = 0; i != count; ++i) {
+    script_validate_subrange(doc, range, exprs[i]);
+  }
+#endif
+}
+
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
 
@@ -84,33 +111,6 @@ void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->exprRanges);
   dynarray_clear(&doc->exprSets);
   dynarray_clear(&doc->values);
-}
-
-MAYBE_UNUSED static void script_validate_subrange(
-    MAYBE_UNUSED const ScriptDoc*  doc,
-    MAYBE_UNUSED const ScriptRange range,
-    MAYBE_UNUSED const ScriptExpr  expr) {
-#ifndef VOLO_FAST
-  const ScriptRange exprRange = script_expr_range(doc, expr);
-  if (!sentinel_check(exprRange.start) && !sentinel_check(exprRange.end)) {
-    diag_assert_msg(
-        script_range_subrange(range, exprRange),
-        "Child expression range is not a sub-range of its parent");
-  }
-#endif
-}
-
-MAYBE_UNUSED static void script_validate_subrange_set(
-    MAYBE_UNUSED const ScriptDoc*    doc,
-    MAYBE_UNUSED const ScriptRange   range,
-    MAYBE_UNUSED const ScriptExprSet set,
-    MAYBE_UNUSED const u32           count) {
-#ifndef VOLO_FAST
-  const ScriptExpr* exprs = script_doc_expr_set_data(doc, set);
-  for (u32 i = 0; i != count; ++i) {
-    script_validate_subrange(doc, range, exprs[i]);
-  }
-#endif
 }
 
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
