@@ -412,6 +412,58 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
   UNREACHABLE
 }
 
+ScriptExpr script_expr_find(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
+  const ScriptExprData* data = script_doc_expr_data(doc, root);
+  switch (script_doc_expr_type(doc, root)) {
+  case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_MemLoad:
+    return root;
+  case ScriptExprType_VarStore:
+    if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
+      return script_expr_find(doc, data->var_store.val, pos);
+    }
+    return root;
+  case ScriptExprType_MemStore:
+    if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
+      return script_expr_find(doc, data->mem_store.val, pos);
+    }
+    return root;
+  case ScriptExprType_Intrinsic: {
+    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->intrinsic.argSet);
+    const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
+    for (u32 i = 0; i != argCount; ++i) {
+      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+        return script_expr_find(doc, args[i], pos);
+      }
+    }
+    return root;
+  }
+  case ScriptExprType_Block: {
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->block.exprSet);
+    for (u32 i = 0; i != data->block.exprCount; ++i) {
+      if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
+        return script_expr_find(doc, exprs[i], pos);
+      }
+    }
+    return root;
+  }
+  case ScriptExprType_Extern: {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->extern_.argSet);
+    for (u16 i = 0; i != data->extern_.argCount; ++i) {
+      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+        return script_expr_find(doc, args[i], pos);
+      }
+    }
+    return root;
+  }
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
 u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
 
 static void script_expr_str_write_sep(const u32 indent, DynString* str) {

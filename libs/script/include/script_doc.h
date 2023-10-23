@@ -8,6 +8,7 @@
 typedef struct sAllocator Allocator;
 
 // Forward declare from 'script_pos.h'.
+typedef u32                 ScriptPos;
 typedef struct sScriptRange ScriptRange;
 
 // Forward declare from 'script_binder.h'.
@@ -92,6 +93,7 @@ ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
 bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
+ScriptExpr     script_expr_find(const ScriptDoc*, ScriptExpr root, ScriptPos);
 u32            script_values_total(const ScriptDoc*);
 
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
