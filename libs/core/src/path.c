@@ -111,9 +111,10 @@ bool path_canonize(DynString* str, String path) {
    * output string. This way we can erase a segment if we encounter a '..' entry.
    */
 
-  static const usize g_maxSegments = 64;
-  DynArray segStarts = dynarray_create_over_t(mem_stack(g_maxSegments * sizeof(usize)), usize);
-  *dynarray_push_t(&segStarts, usize) = str->size; // Start of the first segment.
+  usize segStarts[64];
+  u32   segCount = 0;
+
+  segStarts[segCount++] = str->size; // Start of the first segment.
 
   bool success = true;
   while (path.size) {
@@ -130,26 +131,25 @@ bool path_canonize(DynString* str, String path) {
       continue;
     }
     if (string_eq(seg, string_lit(".."))) {
-      if (segStarts.size > 1) {
+      if (segCount > 1) {
         // Erase the last written segment.
-        str->size = *dynarray_at_t(&segStarts, segStarts.size - 1, usize);
-        dynarray_pop(&segStarts, 1);
+        str->size = segStarts[segCount - 1];
+        --segCount;
       }
       continue;
     }
 
-    if (segStarts.size > 1 && !path_ends_with_seperator(dynstring_view(str))) {
+    if (segCount > 1 && !path_ends_with_seperator(dynstring_view(str))) {
       dynstring_append_char(str, '/');
     }
-    *dynarray_push_t(&segStarts, usize) = str->size; // Remember where this segment starts.
-    if (segStarts.size == g_maxSegments) {
+    segStarts[segCount++] = str->size; // Remember where this segment starts.
+    if (UNLIKELY(segCount == array_elems(segStarts))) {
       success = false;
       break;
     }
     dynstring_append(str, seg); // Write the segment to the output.
   }
 
-  dynarray_destroy(&segStarts);
   return success;
 }
 
