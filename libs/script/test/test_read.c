@@ -964,7 +964,7 @@ spec(read) {
         {string_static("1 ? 1 : 1 2"), ScriptDiag_MissingSemicolon},
         {string_static("distance"), ScriptDiag_NoVarFoundForId},
         {string_static("distance("), ScriptDiag_UnterminatedArgumentList},
-        {string_static("distance(,"), ScriptDiag_InvalidPrimaryExpr},
+        {string_static("distance(,"), ScriptDiag_MissingPrimaryExpr},
         {string_static("distance(1 2"), ScriptDiag_UnterminatedArgumentList},
         {string_static("distance(1,"), ScriptDiag_MissingPrimaryExpr},
         {string_static("distance(1,2,3)"), ScriptDiag_IncorrectArgCountForBuiltinFunc},
@@ -1077,6 +1077,35 @@ spec(read) {
           fmt_int(diag->type),
           fmt_int(g_testData[i].expected),
           fmt_text(g_testData[i].input));
+    }
+  }
+
+  it("can return programs with semantic errors") {
+    static const struct {
+      String         input;
+      ScriptDiagType expected;
+    } g_testData[] = {
+        {string_static("hello()"), ScriptDiag_NoFuncFoundForId},
+        {string_static("type(1 +)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(, 1)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(,)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(1,)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(1 +,)"), ScriptDiag_MissingPrimaryExpr},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      // NOTE: Invalid programs are only returned when providing a diagnostic-bag as otherwise there
+      // would be no way to determine if the output program was valid.
+      script_diag_clear(diags);
+      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diags, symsNull);
+
+      check_msg(!sentinel_check(expr), "valid expression [{}]", fmt_text(g_testData[i].input));
+
+      const u32 errorCount = script_diag_count(diags, ScriptDiagFilter_Error);
+      check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
+
+      const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
+      check(diag->type == g_testData[i].expected);
     }
   }
 

@@ -110,7 +110,7 @@ void asset_load_script(
 
   script_diag_bag_destroy(diags);
 
-  if (UNLIKELY(sentinel_check(expr))) {
+  if (UNLIKELY(sentinel_check(expr) || diagCount > 0)) {
     goto Error;
   }
 

@@ -13,7 +13,7 @@ static void SYS_DECL signal_pal_interrupt_handler(int signal) {
 }
 
 static void signal_pal_setup_interrupt_handler() {
-  struct sigaction action = (struct sigaction){
+  struct sigaction action = {
       .sa_handler = signal_pal_interrupt_handler,
       .sa_flags   = SA_RESTART,
   };

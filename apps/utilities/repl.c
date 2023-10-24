@@ -318,7 +318,8 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     if (flags & ReplFlags_OutputStats) {
       repl_output_stats(script, expr);
     }
-    if (!(flags & ReplFlags_NoEval)) {
+    const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
+    if (noErrors && !(flags & ReplFlags_NoEval)) {
       const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
       if (script_panic_valid(&evalRes.panic)) {
         repl_output_panic(input, &evalRes.panic, id);
