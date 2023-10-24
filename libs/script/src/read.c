@@ -266,10 +266,11 @@ typedef enum {
 
 typedef enum {
   ScriptSection_InsideLoop           = 1 << 0,
-  ScriptSection_DisallowVarDeclare   = 1 << 1,
-  ScriptSection_DisallowLoop         = 1 << 2,
-  ScriptSection_DisallowIf           = 1 << 3,
-  ScriptSection_DisallowReturn       = 1 << 4,
+  ScriptSection_InsideArg            = 1 << 1,
+  ScriptSection_DisallowVarDeclare   = 1 << 2,
+  ScriptSection_DisallowLoop         = 1 << 3,
+  ScriptSection_DisallowIf           = 1 << 4,
+  ScriptSection_DisallowReturn       = 1 << 5,
   ScriptSection_DisallowStatement    = 0 | ScriptSection_DisallowVarDeclare
                                          | ScriptSection_DisallowLoop
                                          | ScriptSection_DisallowIf
@@ -746,6 +747,10 @@ static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start)
   return expr;
 }
 
+static bool read_is_arg_end(const ScriptTokenType type) {
+  return type == ScriptTokenType_Comma || type == ScriptTokenType_ParenClose;
+}
+
 static bool read_is_args_end(const ScriptTokenType type) {
   return type == ScriptTokenType_End || type == ScriptTokenType_ParenClose;
 }
@@ -774,7 +779,9 @@ ArgNext:;
     const ScriptRange lastArgRange = script_expr_range(ctx->doc, outExprs[count - 1]);
     return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, lastArgRange), -1;
   }
-  const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
+  const ScriptSection prevSection = read_section_add(ctx, ScriptSection_InsideArg);
+  const ScriptExpr    arg         = read_expr(ctx, OpPrecedence_None);
+  ctx->section                    = prevSection;
   if (UNLIKELY(sentinel_check(arg))) {
     return -1;
   }
@@ -1250,8 +1257,9 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
 static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   const ScriptPos start = read_pos_next(ctx);
 
-  ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
+  ScriptToken  token;
+  const String prevInput = ctx->input;
+  ctx->input             = script_lex(prevInput, g_stringtable, &token, ScriptLexFlags_None);
 
   const ScriptRange range = read_range_to_current(ctx, start);
 
@@ -1386,6 +1394,19 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_End:
     return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range), read_fail_structural(ctx);
   default:
+    /**
+     * If we encounter an argument end token (comma or close-paren) inside an arg expression we can
+     * reasonably assume that this was meant to end the expression and the actually expression is
+     * missing. This has the advantage of turning it into a semantic error where we can keep parsing
+     * the rest of the script.
+     */
+    if (ctx->section & ScriptSection_InsideArg && read_is_arg_end(token.type)) {
+      ctx->input = prevInput; // Un-consume the token.
+      read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range);
+      return read_fail_semantic(ctx, read_range_dummy(ctx));
+    }
+
+    // Unexpected token; we have to treat it as a structural failure.
     return read_emit_err(ctx, ScriptDiag_InvalidPrimaryExpr, range), read_fail_structural(ctx);
   }
 }
