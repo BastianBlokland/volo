@@ -223,7 +223,7 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
 
   script_diag_bag_destroy(diags);
 
-  if (UNLIKELY(sentinel_check(expr))) {
+  if (UNLIKELY(sentinel_check(expr) || diagCount > 0)) {
     ctx->error = BehaviorError_ScriptInvalid;
     return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
   }
@@ -253,7 +253,7 @@ static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNod
 
   script_diag_bag_destroy(diags);
 
-  if (UNLIKELY(sentinel_check(expr))) {
+  if (UNLIKELY(sentinel_check(expr) || diagCount > 0)) {
     ctx->error = BehaviorError_ScriptInvalid;
     return (AssetAiNodeExecute){.scriptExpr = sentinel_u32};
   }

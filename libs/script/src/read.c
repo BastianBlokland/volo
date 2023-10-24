@@ -1604,5 +1604,14 @@ ScriptExpr script_read(
     diag_assert_msg(fail || !hasErrDiag, "Error diagnostic was produced for a successful read");
   }
 #endif
-  return fail ? script_expr_sentinel : expr;
+
+  /**
+   * NOTE: Currently we assume that if the caller provides a diagnostic bag it will check if the bag
+   * has any errors to determine if the program is valid instead of just checking the output
+   * expression. This is useful for tools that want to inspect the program even if it is invalid.
+   * TODO: This should probably be an input flag instead.
+   */
+  const bool allowInvalidProgram = diags != null;
+
+  return (fail && !allowInvalidProgram) ? script_expr_sentinel : expr;
 }
