@@ -1088,6 +1088,9 @@ spec(read) {
         {string_static("hello()"), ScriptDiag_NoFuncFoundForId},
         {string_static("type(1 +)"), ScriptDiag_MissingPrimaryExpr},
         {string_static("type(, 1)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(,)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(1,)"), ScriptDiag_MissingPrimaryExpr},
+        {string_static("type(1 +,)"), ScriptDiag_MissingPrimaryExpr},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

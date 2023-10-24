@@ -773,12 +773,6 @@ ArgNext:;
     };
     return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
   }
-  if (UNLIKELY(read_consume_if(ctx, ScriptTokenType_ParenClose))) {
-    diag_assert(count != 0); // Only happens after reading at least 1 argument.
-    // TODO: Ideality we would report the range of the last separator token.
-    const ScriptRange lastArgRange = script_expr_range(ctx->doc, outExprs[count - 1]);
-    return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, lastArgRange), -1;
-  }
   const ScriptSection prevSection = read_section_add(ctx, ScriptSection_InsideArg);
   const ScriptExpr    arg         = read_expr(ctx, OpPrecedence_None);
   ctx->section                    = prevSection;
