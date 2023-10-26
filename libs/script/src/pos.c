@@ -54,7 +54,7 @@ ScriptPos script_pos_from_line_col(const String src, const ScriptPosLineCol lc) 
     currentPos += (u32)math_max(utf8_cp_bytes_from_first(ch), 1);
   }
 
-  return currentPos;
+  return math_min(currentPos, (u32)src.size - 1);
 }
 
 ScriptRange script_range(const ScriptPos start, const ScriptPos end) {
