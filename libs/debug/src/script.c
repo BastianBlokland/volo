@@ -126,7 +126,6 @@ static void info_panel_tab_draw(
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
@@ -134,11 +133,12 @@ static void info_panel_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
-  ui_table_next_column(canvas, &table);
-  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
-  if (ui_button(canvas, .label = string_lit("Open"))) {
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
+  if (ui_button(canvas, .label = string_lit("Open Script"))) {
     panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
+  ui_layout_pop(canvas);
 
   ui_table_next_row(canvas, &table);
   bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
