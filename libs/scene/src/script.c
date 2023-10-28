@@ -676,6 +676,13 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
+static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args) {
+  (void)ctx;
+  (void)args;
+  diag_break();
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs);
@@ -729,6 +736,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
+    eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 
     script_binder_finalize(b);

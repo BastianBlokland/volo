@@ -963,6 +963,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_lit("damage"), null);
   script_binder_declare(binder, string_lit("attack"), null);
   script_binder_declare(binder, string_lit("debug_log"), null);
+  script_binder_declare(binder, string_lit("debug_break"), null);
 
   script_binder_finalize(binder);
   return binder;
