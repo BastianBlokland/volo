@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "debug_register.h"
 #include "debug_text.h"
 #include "ecs_utils.h"
@@ -66,7 +67,11 @@ static GeoVector debug_text_canvas_pos(const GeoMatrix* viewProj, const GeoVecto
 }
 
 static UiColor debug_text_to_ui_color(const GeoColor c) {
-  return ui_color((u8)(c.r * 255), (u8)(c.g * 255), (u8)(c.b * 255), (u8)(c.a * 255));
+  return ui_color(
+      (u8)(math_min(c.r, 1.0f) * 255),
+      (u8)(math_min(c.g, 1.0f) * 255),
+      (u8)(math_min(c.b, 1.0f) * 255),
+      (u8)(math_min(c.a, 1.0f) * 255));
 }
 
 ecs_system_define(DebugTextInitSys) {
