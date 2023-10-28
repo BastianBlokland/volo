@@ -74,13 +74,17 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
 }
 
-static void debug_launch_editor(const String path) {
+static void debug_launch_editor(const String path, const ScriptPosLineCol pos) {
 #if defined(VOLO_WIN32)
   const String editorFile = string_lit("code-tunnel.exe");
 #else
   const String editorFile = string_lit("code");
 #endif
-  const String editorArgs[] = {string_lit("--reuse-window"), path};
+  const String editorArgs[] = {
+      string_lit("--reuse-window"),
+      string_lit("--goto"),
+      fmt_write_scratch("{}:{}:{}", fmt_text(path), fmt_int(pos.line + 1), fmt_int(pos.column + 1)),
+  };
   Process* proc = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
   const ProcessExitCode exitCode = process_block(proc);
   if (exitCode != 0) {
@@ -231,7 +235,7 @@ static void output_panel_tab_draw(
     if (ui_button(canvas, .label = locText, .noFrame = true)) {
       DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
       if (asset_path_by_id(assetManager, entry->scriptId, &scriptPathStr)) {
-        debug_launch_editor(dynstring_view(&scriptPathStr));
+        debug_launch_editor(dynstring_view(&scriptPathStr), entry->range.start);
       }
       dynstring_destroy(&scriptPathStr);
     }
@@ -275,7 +279,7 @@ static void stats_panel_tab_draw(
     ui_table_next_column(canvas, &table);
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
     if (ui_button(canvas, .label = string_lit("Edit Script"))) {
-      debug_launch_editor(dynstring_view(&scriptPathStr));
+      debug_launch_editor(dynstring_view(&scriptPathStr), (ScriptPosLineCol){0});
     }
   }
   dynstring_destroy(&scriptPathStr);
