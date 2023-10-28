@@ -140,7 +140,8 @@ static void output_add_panic(
   };
 }
 
-static void output_query(DebugScriptTrackerComp* tracker, EcsWorld* world, EcsView* subjectView) {
+static void
+output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* subjectView) {
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   output_prune_older(tracker, oldestToKeep);
@@ -150,9 +151,9 @@ static void output_query(DebugScriptTrackerComp* tracker, EcsWorld* world, EcsVi
     const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
     const ScriptPanic*     panic          = scene_script_panic(scriptInstance);
     if (panic) {
-      const EcsEntityId assetEntity = scene_script_asset(scriptInstance);
-      const AssetComp*  asset       = ecs_utils_read_t(world, AssetView, assetEntity, AssetComp);
-      const String      scriptName  = asset_id(asset);
+      ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
+      const AssetComp* asset      = ecs_view_read_t(assetItr, AssetComp);
+      const String     scriptName = asset_id(asset);
       output_add_panic(tracker, entity, now, scriptName, panic);
     }
   }
@@ -211,20 +212,20 @@ static void output_panel_tab_draw(
 
 static void stats_panel_tab_draw(
     UiCanvasComp*           canvas,
-    EcsWorld*               world,
     const AssetManagerComp* assetManager,
-    EcsIterator*            subject) {
-  diag_assert(subject);
+    EcsIterator*            assetItr,
+    EcsIterator*            subjectItr) {
+  diag_assert(subjectItr);
 
-  const SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
+  const SceneScriptComp* scriptInstance = ecs_view_write_t(subjectItr, SceneScriptComp);
   if (!scriptInstance) {
     ui_label(canvas, string_lit("No statistics available."), .align = UiAlign_MiddleCenter);
     return;
   }
 
-  const SceneScriptStats* stats             = scene_script_stats(scriptInstance);
-  const EcsEntityId       scriptAssetEntity = scene_script_asset(scriptInstance);
-  const AssetComp* scriptAsset = ecs_utils_read_t(world, AssetView, scriptAssetEntity, AssetComp);
+  const SceneScriptStats* stats = scene_script_stats(scriptInstance);
+  ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
+  const AssetComp* scriptAsset = ecs_view_read_t(assetItr, AssetComp);
   const String     scriptName  = asset_id(scriptAsset);
 
   UiTable table = ui_table();
@@ -467,10 +468,10 @@ static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) 
 static void script_panel_draw(
     UiCanvasComp*                 canvas,
     DebugScriptPanelComp*         panelComp,
-    EcsWorld*                     world,
     const DebugScriptTrackerComp* tracker,
     const AssetManagerComp*       assetManager,
-    EcsIterator*                  subject) {
+    EcsIterator*                  assetItr,
+    EcsIterator*                  subjectItr) {
 
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
@@ -486,22 +487,22 @@ static void script_panel_draw(
     output_panel_tab_draw(canvas, panelComp, tracker);
     break;
   case DebugScriptTab_Stats:
-    if (subject) {
-      stats_panel_tab_draw(canvas, world, assetManager, subject);
+    if (subjectItr) {
+      stats_panel_tab_draw(canvas, assetManager, assetItr, subjectItr);
     } else {
       ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
     break;
   case DebugScriptTab_Memory:
-    if (subject) {
-      memory_panel_tab_draw(canvas, panelComp, subject);
+    if (subjectItr) {
+      memory_panel_tab_draw(canvas, panelComp, subjectItr);
     } else {
       ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
     break;
   case DebugScriptTab_Settings:
-    if (subject) {
-      settings_panel_tab_draw(canvas, subject);
+    if (subjectItr) {
+      settings_panel_tab_draw(canvas, subjectItr);
     } else {
       ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
@@ -536,10 +537,13 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   const SceneSelectionComp* selection    = ecs_view_read_t(globalItr, SceneSelectionComp);
   const AssetManagerComp*   assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
-  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subject     = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+  EcsView*     assetView = ecs_world_view_t(world, AssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
 
-  output_query(tracker, world, subjectView);
+  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+
+  output_query(tracker, assetItr, subjectView);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -547,7 +551,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, world, tracker, assetManager, subject);
+    script_panel_draw(canvas, panelComp, tracker, assetManager, assetItr, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
