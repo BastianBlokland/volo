@@ -1318,25 +1318,39 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
   const SceneTagComp*       tagComp       = ecs_view_read_t(subject, SceneTagComp);
   const SceneScriptComp*    scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
   const EcsEntityId         e             = ecs_view_entity(subject);
-  const bool                selected      = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
 
-  Unicode icon = 0;
-  if (scriptComp) {
-    icon = UiShape_Description;
-  } else if (ecs_world_has_t(world, e, SceneVfxDecalComp)) {
-    icon = UiShape_Image;
-  } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
-    icon = UiShape_Grain;
-  } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
-    icon = UiShape_MusicNote;
+  Unicode  icon;
+  GeoColor color;
+
+  const bool didPanic = scriptComp && scene_script_did_panic(scriptComp);
+  if (didPanic) {
+    icon  = UiShape_Error;
+    color = geo_color(0.75f, 0, 0, 0.75f);
+  } else {
+    if (scriptComp) {
+      icon = UiShape_Description;
+    } else if (ecs_world_has_t(world, e, SceneVfxDecalComp)) {
+      icon = UiShape_Image;
+    } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
+      icon = UiShape_Grain;
+    } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
+      icon = UiShape_MusicNote;
+    } else {
+      icon = 0;
+    }
+    color = geo_color(0.85f, 0.85f, 0.85f, 0.5f);
+  }
+
+  const bool selected = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
+  if (selected) {
+    color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 
   if (icon && transformComp) {
     DynString textBuffer = dynstring_create_over(mem_stack(4));
     utf8_cp_write(&textBuffer, icon);
 
-    const String   str   = dynstring_view(&textBuffer);
-    const GeoColor color = selected ? geo_color(0, 1, 0, 0.5f) : geo_color(1, 1, 1, 0.75f);
+    const String str = dynstring_view(&textBuffer);
     debug_text(text, transformComp->position, str, .fontSize = 20, .color = color);
   }
 }
