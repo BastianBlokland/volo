@@ -79,6 +79,11 @@ GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 GeoColor geo_color_bilerp(GeoColor v1, GeoColor v2, GeoColor v3, GeoColor v4, f32 tX, f32 tY);
 
 /**
+ * Replace the alpha value for the given color.
+ */
+GeoColor geo_color_with_alpha(GeoColor, f32 alpha);
+
+/**
  * Apply the srgb encoding curve.
  * More info: https://en.wikipedia.org/wiki/SRGB.
  * NOTE: Only defined for values within the 0 - 1 range.
