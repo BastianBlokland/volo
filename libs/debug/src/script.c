@@ -15,6 +15,8 @@
 #include "script_mem.h"
 #include "ui.h"
 
+#define output_max_age time_seconds(60)
+
 typedef enum {
   DebugScriptTab_Output,
   DebugScriptTab_Stats,
@@ -37,11 +39,25 @@ typedef struct {
   String     name;
 } DebugMemoryEntry;
 
+typedef struct {
+  TimeReal    timestamp;
+  EcsEntityId entity;
+} DebugScriptOutput;
+
+ecs_comp_define(DebugScriptTrackerComp) {
+  DynArray entries; // DebugScriptOutput[]
+};
+
 ecs_comp_define(DebugScriptPanelComp) {
   UiPanel      panel;
   bool         hideNullMemory;
   UiScrollview scrollview;
 };
+
+static void ecs_destruct_script_tracker(void* data) {
+  DebugScriptTrackerComp* comp = data;
+  dynarray_destroy(&comp->entries);
+}
 
 static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
@@ -68,6 +84,29 @@ ecs_view_define(SubjectView) {
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+
+static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
+  return ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      DebugScriptTrackerComp,
+      .entries = dynarray_create_t(g_alloc_heap, DebugScriptOutput, 64));
+}
+
+static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
+  usize keepIndex = 0;
+  for (; keepIndex != tracker->entries.size; ++keepIndex) {
+    if (dynarray_at_t(&tracker->entries, keepIndex, DebugScriptOutput)->timestamp >= timestamp) {
+      break;
+    }
+  }
+  dynarray_remove(&tracker->entries, 0, keepIndex);
+}
+
+static void output_query(DebugScriptTrackerComp* tracker) {
+  const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -output_max_age);
+  output_prune_older(tracker, oldestToKeep);
+}
 
 static void output_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world) {
   (void)canvas;
@@ -370,6 +409,7 @@ static void script_panel_draw(
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(SceneSelectionComp);
   ecs_access_read(AssetManagerComp);
+  ecs_access_maybe_write(DebugScriptTrackerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -383,6 +423,12 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
+  DebugScriptTrackerComp* tracker = ecs_view_write_t(globalItr, DebugScriptTrackerComp);
+  if (!tracker) {
+    tracker = output_tracker_create(world);
+  }
+  output_query(tracker);
+
   const SceneSelectionComp* selection    = ecs_view_read_t(globalItr, SceneSelectionComp);
   const AssetManagerComp*   assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
@@ -408,6 +454,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
 
 ecs_module_init(debug_script_module) {
   ecs_register_comp(DebugScriptPanelComp);
+  ecs_register_comp(DebugScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
 
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
