@@ -747,6 +747,7 @@ ecs_comp_define(SceneScriptComp) {
   u8               resVersion;
   SceneScriptStats stats;
   EcsEntityId      scriptAsset;
+  ScriptPanic      lastPanic;
   DynArray         actions; // ScriptAction[].
 };
 
@@ -839,6 +840,9 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("entity", fmt_int(ctx->entity, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
+    ctx->scriptInstance->lastPanic = evalRes.panic;
+  } else {
+    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
   }
 
   // Update stats.
@@ -1133,6 +1137,8 @@ void scene_script_flags_unset(SceneScriptComp* script, const SceneScriptFlags fl
 void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags flags) {
   script->flags ^= flags;
 }
+
+const ScriptPanic* scene_script_panic(const SceneScriptComp* script) { return &script->lastPanic; }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
 
