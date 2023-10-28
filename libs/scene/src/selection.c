@@ -49,6 +49,9 @@ static void selection_tag_set(EcsWorld* world, const EcsEntityId entity) {
 }
 
 static void selection_add(EcsWorld* world, SceneSelectionComp* comp, const EcsEntityId tgt) {
+  if (!ecs_world_exists(world, tgt)) {
+    return;
+  }
   DynArray* selEntities = &comp->selectedEntities;
   *(EcsEntityId*)dynarray_find_or_insert_sorted(selEntities, ecs_compare_entity, &tgt) = tgt;
 
