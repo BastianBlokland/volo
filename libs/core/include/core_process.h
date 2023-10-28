@@ -83,7 +83,7 @@ ProcessId process_id(const Process*);
 /**
  * Check if the given process is still running.
  */
-bool process_poll(const Process*);
+bool process_poll(Process*);
 
 /**
  * Retrieve a file handle to process pipes.
