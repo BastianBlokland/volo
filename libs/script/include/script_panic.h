@@ -18,5 +18,6 @@ typedef struct sScriptPanic {
 } ScriptPanic;
 
 bool   script_panic_valid(const ScriptPanic*);
+String script_panic_type_str(ScriptPanicType);
 void   script_panic_pretty_write(DynString*, String sourceText, const ScriptPanic*);
 String script_panic_pretty_scratch(String sourceText, const ScriptPanic*);
