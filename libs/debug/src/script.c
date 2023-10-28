@@ -43,6 +43,7 @@ typedef struct {
 typedef struct {
   TimeReal    timestamp;
   EcsEntityId entity;
+  String      scriptName;
 } DebugScriptOutput;
 
 ecs_comp_define(DebugScriptTrackerComp) {
@@ -108,6 +109,7 @@ static void output_add_panic(
     DebugScriptTrackerComp* tracker,
     const EcsEntityId       entity,
     const TimeReal          time,
+    const String            scriptName,
     const ScriptPanic*      panic) {
   usize oldestIndex;
   u32   perEntityCount = 0;
@@ -123,13 +125,14 @@ static void output_add_panic(
     dynarray_remove(&tracker->entries, oldestIndex, 1);
   }
   *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
-      .entity    = entity,
-      .timestamp = time,
+      .entity     = entity,
+      .timestamp  = time,
+      .scriptName = scriptName,
   };
   (void)panic;
 }
 
-static void output_query(DebugScriptTrackerComp* tracker, EcsView* subjectView) {
+static void output_query(DebugScriptTrackerComp* tracker, EcsWorld* world, EcsView* subjectView) {
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   output_prune_older(tracker, oldestToKeep);
@@ -139,7 +142,10 @@ static void output_query(DebugScriptTrackerComp* tracker, EcsView* subjectView) 
     const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
     const ScriptPanic*     panic          = scene_script_panic(scriptInstance);
     if (panic) {
-      output_add_panic(tracker, entity, now, panic);
+      const EcsEntityId assetEntity = scene_script_asset(scriptInstance);
+      const AssetComp*  asset       = ecs_utils_read_t(world, AssetView, assetEntity, AssetComp);
+      const String      scriptName  = asset_id(asset);
+      output_add_panic(tracker, entity, now, scriptName, panic);
     }
   }
 }
@@ -156,6 +162,7 @@ static void output_panel_tab_draw(
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
 
   ui_table_draw_header(
@@ -164,6 +171,7 @@ static void output_panel_tab_draw(
       (const UiTableColumnName[]){
           {string_lit("Entity"), string_lit("Script entity.")},
           {string_lit("Content"), string_lit("Script output.")},
+          {string_lit("Script"), string_lit("Script asset.")},
       });
 
   const u32 numEntries = (u32)tracker->entries.size;
@@ -180,6 +188,8 @@ static void output_panel_tab_draw(
     ui_label_entity(canvas, entry->entity);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, string_lit("Hello World"));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, entry->scriptName, .selectable = true);
   }
   ui_canvas_id_block_next(canvas);
 
@@ -517,7 +527,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subject     = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
 
-  output_query(tracker, subjectView);
+  output_query(tracker, world, subjectView);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
