@@ -833,7 +833,7 @@ static void scene_script_eval(EvalContext* ctx) {
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
     const String msg = script_panic_pretty_scratch(ctx->scriptAsset->sourceText, &evalRes.panic);
-    log_w(
+    log_e(
         "Script panic",
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
