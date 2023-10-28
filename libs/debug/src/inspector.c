@@ -1337,7 +1337,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     } else {
       icon = 0;
     }
-    color = geo_color(0.85f, 0.85f, 0.85f, 0.5f);
+    color = geo_color(0.85f, 0.85f, 0.85f, 0.6f);
   }
 
   if (tagComp && (tagComp->tags & SceneTags_Selected) != 0) {
