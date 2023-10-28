@@ -744,12 +744,16 @@ typedef enum {
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
+  u8               resVersion;
   SceneScriptStats stats;
   EcsEntityId      scriptAsset;
   DynArray         actions; // ScriptAction[].
 };
 
-ecs_comp_define(SceneScriptResourceComp) { SceneScriptResFlags flags; };
+ecs_comp_define(SceneScriptResourceComp) {
+  SceneScriptResFlags flags : 8;
+  u8                  resVersion; // NOTE: Allowed to wrap around.
+};
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
@@ -770,6 +774,7 @@ ecs_view_define(ScriptUpdateView) {
 ecs_view_define(ResourceAssetView) {
   ecs_access_read(AssetComp);
   ecs_access_read(AssetScriptComp);
+  ecs_access_read(SceneScriptResourceComp);
 }
 
 ecs_view_define(ResourceLoadView) { ecs_access_write(SceneScriptResourceComp); }
@@ -782,6 +787,7 @@ ecs_system_define(SceneScriptResourceLoadSys) {
     if (!(res->flags & (SceneScriptRes_ResourceAcquired | SceneScriptRes_ResourceUnloading))) {
       asset_acquire(world, ecs_view_entity(itr));
       res->flags |= SceneScriptRes_ResourceAcquired;
+      ++res->resVersion;
     }
   }
 }
@@ -879,6 +885,11 @@ ecs_system_define(SceneScriptUpdateSys) {
       ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
       ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
 
+      const u8 resVersion = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
+      if (UNLIKELY(ctx.scriptInstance->resVersion != resVersion)) {
+        ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
+        ctx.scriptInstance->resVersion = resVersion;
+      }
       scene_script_eval(&ctx);
       continue;
     }
