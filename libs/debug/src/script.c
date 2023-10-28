@@ -16,6 +16,7 @@
 #include "ui.h"
 
 typedef enum {
+  DebugScriptTab_Output,
   DebugScriptTab_Stats,
   DebugScriptTab_Memory,
   DebugScriptTab_Settings,
@@ -24,6 +25,7 @@ typedef enum {
 } DebugScriptTab;
 
 static const String g_scriptTabNames[] = {
+    string_static("Output"),
     string_static("\uE4FC Stats"),
     string_static("\uE322 Memory"),
     string_static("\uE8B8 Settings"),
@@ -66,6 +68,11 @@ ecs_view_define(SubjectView) {
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+
+static void output_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world) {
+  (void)canvas;
+  (void)world;
+}
 
 static void stats_panel_tab_draw(
     UiCanvasComp*           canvas,
@@ -340,6 +347,9 @@ static void script_panel_draw(
 
   if (subject) {
     switch (panelComp->panel.activeTab) {
+    case DebugScriptTab_Output:
+      output_panel_tab_draw(canvas, world);
+      break;
     case DebugScriptTab_Stats:
       stats_panel_tab_draw(canvas, world, assetManager, subject);
       break;
