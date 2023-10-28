@@ -43,6 +43,19 @@ typedef struct {
 } DebugMemoryEntry;
 
 typedef enum {
+  DebugScriptOutputMode_All,
+  DebugScriptOutputMode_Self,
+
+  DebugScriptOutputMode_Count
+} DebugScriptOutputMode;
+
+static const String g_outputModeNames[] = {
+    string_static("All"),
+    string_static("Self"),
+};
+ASSERT(array_elems(g_outputModeNames) == DebugScriptOutputMode_Count, "Incorrect number of names");
+
+typedef enum {
   DebugScriptOutputType_Panic,
 } DebugScriptOutputType;
 
@@ -65,11 +78,13 @@ ecs_comp_define(DebugScriptTrackerComp) {
 };
 
 ecs_comp_define(DebugScriptPanelComp) {
-  UiPanel            panel;
-  bool               hideNullMemory;
-  UiScrollview       scrollview;
-  DebugEditorRequest editorReq;
-  Process*           editorLaunch;
+  UiPanel               panel;
+  bool                  hideNullMemory;
+  DebugScriptOutputMode outputMode;
+  UiScrollview          scrollview;
+  u32                   lastRowCount;
+  DebugEditorRequest    editorReq;
+  Process*              editorLaunch;
 };
 
 static void ecs_destruct_script_tracker(void* data) {
@@ -181,8 +196,27 @@ static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
   UNREACHABLE
 }
 
+static void output_options_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Mode:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->outputMode, g_outputModeNames, DebugScriptOutputMode_Count);
+
+  ui_layout_pop(canvas);
+}
+
 static void output_panel_tab_draw(
-    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, const DebugScriptTrackerComp* tracker) {
+    UiCanvasComp*                 canvas,
+    DebugScriptPanelComp*         panelComp,
+    const DebugScriptTrackerComp* tracker,
+    EcsIterator*                  subjectItr) {
+  output_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -200,14 +234,27 @@ static void output_panel_tab_draw(
           {string_lit("Location"), string_lit("Script output location.")},
       });
 
-  const u32 numEntries = (u32)tracker->entries.size;
+  const u32 numEntries = panelComp->lastRowCount;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numEntries));
 
   if (!numEntries) {
     ui_label(canvas, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
   }
 
+  panelComp->lastRowCount = 0;
   dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+    switch (panelComp->outputMode) {
+    case DebugScriptOutputMode_All:
+      break;
+    case DebugScriptOutputMode_Self:
+      if (!subjectItr || ecs_view_entity(subjectItr) != entry->entity) {
+        continue;
+      }
+      break;
+    case DebugScriptOutputMode_Count:
+      break;
+    }
+
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, output_entry_bg_color(entry));
 
@@ -228,6 +275,7 @@ static void output_panel_tab_draw(
       panelComp->editorReq =
           (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
+    ++panelComp->lastRowCount;
   }
   ui_canvas_id_block_next(canvas);
 
@@ -504,7 +552,7 @@ static void script_panel_draw(
 
   switch (panelComp->panel.activeTab) {
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker);
+    output_panel_tab_draw(canvas, panelComp, tracker, subjectItr);
     break;
   case DebugScriptTab_Stats:
     if (subjectItr) {
