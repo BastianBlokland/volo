@@ -1138,7 +1138,9 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
   script->flags ^= flags;
 }
 
-const ScriptPanic* scene_script_panic(const SceneScriptComp* script) { return &script->lastPanic; }
+const ScriptPanic* scene_script_panic(const SceneScriptComp* script) {
+  return script_panic_valid(&script->lastPanic) ? &script->lastPanic : null;
+}
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
 
