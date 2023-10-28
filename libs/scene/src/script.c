@@ -831,6 +831,8 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
         log_param("entity", fmt_int(ctx->entity, .base = 16)));
+
+    ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
   }
 
   // Update stats.
@@ -1119,11 +1121,6 @@ void scene_script_flags_unset(SceneScriptComp* script, const SceneScriptFlags fl
 
 void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags flags) {
   script->flags ^= flags;
-}
-
-bool scene_script_did_panic(const SceneScriptComp* script) {
-  (void)script;
-  return true;
 }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }

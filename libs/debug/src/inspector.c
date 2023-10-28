@@ -1322,8 +1322,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
   Unicode  icon;
   GeoColor color;
 
-  const bool didPanic = scriptComp && scene_script_did_panic(scriptComp);
-  if (didPanic) {
+  if (scriptComp && (scene_script_flags(scriptComp) & SceneScriptFlags_DidPanic) != 0) {
     icon  = UiShape_Error;
     color = geo_color(0.75f, 0, 0, 0.75f);
   } else {
@@ -1341,8 +1340,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     color = geo_color(0.85f, 0.85f, 0.85f, 0.5f);
   }
 
-  const bool selected = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
-  if (selected) {
+  if (tagComp && (tagComp->tags & SceneTags_Selected) != 0) {
     color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 

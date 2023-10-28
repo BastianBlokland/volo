@@ -7,7 +7,8 @@ typedef i64 TimeDuration;
 
 typedef enum {
   SceneScriptFlags_None            = 0,
-  SceneScriptFlags_PauseEvaluation = 1 << 0,
+  SceneScriptFlags_DidPanic        = 1 << 0,
+  SceneScriptFlags_PauseEvaluation = 1 << 1,
 } SceneScriptFlags;
 
 typedef struct {
@@ -18,7 +19,7 @@ typedef struct {
 ecs_comp_extern(SceneScriptComp);
 
 /**
- * Query and update the scripts's configuration flags.
+ * Query and update the scripts's flags.
  */
 SceneScriptFlags scene_script_flags(const SceneScriptComp*);
 void             scene_script_flags_set(SceneScriptComp*, SceneScriptFlags);
@@ -28,7 +29,6 @@ void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 /**
  * Retrieve statistics for the given script.
  */
-bool                    scene_script_did_panic(const SceneScriptComp*);
 EcsEntityId             scene_script_asset(const SceneScriptComp*);
 const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
 
