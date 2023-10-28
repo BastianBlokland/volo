@@ -43,6 +43,7 @@ String asset_id(const AssetComp*);
  * NOTE: Returns false if the manager cannot retrieve the path.
  */
 bool asset_path(const AssetManagerComp*, const AssetComp*, DynString* out);
+bool asset_path_by_id(const AssetManagerComp*, String id, DynString* out);
 
 /**
  * Create a asset-manager (on the global entity) that loads assets from the file-system.

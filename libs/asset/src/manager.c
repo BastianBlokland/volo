@@ -396,6 +396,10 @@ bool asset_path(const AssetManagerComp* manager, const AssetComp* asset, DynStri
   return asset_repo_path(manager->repo, asset->id, out);
 }
 
+bool asset_path_by_id(const AssetManagerComp* manager, const String id, DynString* out) {
+  return asset_repo_path(manager->repo, id, out);
+}
+
 AssetManagerComp*
 asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
   return asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
