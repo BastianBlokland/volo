@@ -13,6 +13,7 @@
 #include "scene_script.h"
 #include "scene_selection.h"
 #include "script_mem.h"
+#include "script_panic.h"
 #include "ui.h"
 
 #define output_max_age time_seconds(60)
@@ -48,7 +49,8 @@ typedef struct {
   DebugScriptOutputType type;
   TimeReal              timestamp;
   EcsEntityId           entity;
-  String                scriptName;
+  String                scriptName; // NOTE: Has to be persistently allocated.
+  String                message;    // NOTE: Has to be persistently allocated.
 } DebugScriptOutput;
 
 ecs_comp_define(DebugScriptTrackerComp) {
@@ -134,8 +136,8 @@ static void output_add_panic(
       .entity     = entity,
       .timestamp  = time,
       .scriptName = scriptName,
+      .message    = script_panic_type_str(panic->type),
   };
-  (void)panic;
 }
 
 static void output_query(DebugScriptTrackerComp* tracker, EcsWorld* world, EcsView* subjectView) {
@@ -172,16 +174,16 @@ static void output_panel_tab_draw(
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
       canvas,
       &table,
       (const UiTableColumnName[]){
           {string_lit("Entity"), string_lit("Script entity.")},
-          {string_lit("Content"), string_lit("Script output.")},
-          {string_lit("Script"), string_lit("Script asset.")},
+          {string_lit("Message"), string_lit("Script output message.")},
+          {string_lit("Location"), string_lit("Script output location.")},
       });
 
   const u32 numEntries = (u32)tracker->entries.size;
@@ -197,7 +199,7 @@ static void output_panel_tab_draw(
 
     ui_label_entity(canvas, entry->entity);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, string_lit("Hello World"));
+    ui_label(canvas, entry->message, .selectable = true);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, entry->scriptName, .selectable = true);
   }
