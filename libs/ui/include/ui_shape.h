@@ -9,7 +9,6 @@
   X(0xE050, VolumeUp)                                                                              \
   X(0xE069, WebAsset)                                                                              \
   X(0xE145, Add)                                                                                   \
-  X(0xE160, Error)                                                                                 \
   X(0xE161, Save)                                                                                  \
   X(0xE162, SelectAll)                                                                             \
   X(0xE1DB, Storage)                                                                               \
@@ -35,6 +34,7 @@
   X(0xE5D5, Refresh)                                                                               \
   X(0xE5D6, UnfoldLess)                                                                            \
   X(0xE5D7, UnfoldMore)                                                                            \
+  X(0xE645, Error)                                                                                 \
   X(0xE71C, Animation)                                                                             \
   X(0xE7EF, Group)                                                                                 \
   X(0xE80B, Globe)                                                                                 \
