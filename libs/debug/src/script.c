@@ -183,7 +183,10 @@ static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
 }
 
 static void output_panel_tab_draw(
-    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, const DebugScriptTrackerComp* tracker) {
+    UiCanvasComp*                 canvas,
+    DebugScriptPanelComp*         panelComp,
+    const DebugScriptTrackerComp* tracker,
+    const AssetManagerComp*       assetManager) {
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -215,16 +218,23 @@ static void output_panel_tab_draw(
     ui_label_entity(canvas, entry->entity);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, entry->message, .selectable = true);
+
+    const String locText = fmt_write_scratch(
+        "{}:{}:{}-{}:{}",
+        fmt_text(entry->scriptId),
+        fmt_int(entry->range.start.line + 1),
+        fmt_int(entry->range.start.column + 1),
+        fmt_int(entry->range.end.line + 1),
+        fmt_int(entry->range.end.column + 1));
+
     ui_table_next_column(canvas, &table);
-    ui_label(
-        canvas,
-        fmt_write_scratch(
-            "{}:{}:{}-{}:{}",
-            fmt_text(entry->scriptId),
-            fmt_int(entry->range.start.line + 1),
-            fmt_int(entry->range.start.column + 1),
-            fmt_int(entry->range.end.line + 1),
-            fmt_int(entry->range.end.column + 1)));
+    if (ui_button(canvas, .label = locText, .noFrame = true)) {
+      DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
+      if (asset_path_by_id(assetManager, entry->scriptId, &scriptPathStr)) {
+        debug_launch_editor(dynstring_view(&scriptPathStr));
+      }
+      dynstring_destroy(&scriptPathStr);
+    }
   }
   ui_canvas_id_block_next(canvas);
 
@@ -506,7 +516,7 @@ static void script_panel_draw(
 
   switch (panelComp->panel.activeTab) {
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker);
+    output_panel_tab_draw(canvas, panelComp, tracker, assetManager);
     break;
   case DebugScriptTab_Stats:
     if (subjectItr) {
