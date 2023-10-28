@@ -1321,10 +1321,12 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
 
   Unicode  icon;
   GeoColor color;
+  u16      size;
 
   if (scriptComp && (scene_script_flags(scriptComp) & SceneScriptFlags_DidPanic) != 0) {
     icon  = UiShape_Error;
-    color = geo_color(0.75f, 0, 0, 0.75f);
+    color = geo_color(1.0f, 0, 0, 0.75f);
+    size  = 25;
   } else {
     if (scriptComp) {
       icon = UiShape_Description;
@@ -1338,6 +1340,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = 0;
     }
     color = geo_color(0.85f, 0.85f, 0.85f, 0.6f);
+    size  = 20;
   }
 
   if (tagComp && (tagComp->tags & SceneTags_Selected) != 0) {
@@ -1349,7 +1352,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     utf8_cp_write(&textBuffer, icon);
 
     const String str = dynstring_view(&textBuffer);
-    debug_text(text, transformComp->position, str, .fontSize = 20, .color = color);
+    debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
   }
 }
 
