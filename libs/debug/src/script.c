@@ -18,7 +18,6 @@
 #include "ui.h"
 
 #define output_max_age time_seconds(60)
-#define output_max_per_entity 5
 
 typedef enum {
   DebugScriptTab_Output,
@@ -139,18 +138,12 @@ static void output_add(
     const String                scriptId,
     const String                message,
     const ScriptRangeLineCol    range) {
-  usize oldestIndex;
-  u32   perEntityCount = 0;
   for (usize i = 0; i != tracker->entries.size; ++i) {
     const DebugScriptOutput* entry = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
-    if (entry->entity == entity) {
-      if (perEntityCount++ == 0) {
-        oldestIndex = i;
-      }
+    if (entry->type == type && entry->entity == entity) {
+      dynarray_remove(&tracker->entries, i, 1);
+      break;
     }
-  }
-  if (perEntityCount == output_max_per_entity) {
-    dynarray_remove(&tracker->entries, oldestIndex, 1);
   }
   *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
       .type      = type,
