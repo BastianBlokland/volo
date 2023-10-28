@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "asset_script.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -49,8 +50,9 @@ typedef struct {
   DebugScriptOutputType type;
   TimeReal              timestamp;
   EcsEntityId           entity;
-  String                scriptName; // NOTE: Has to be persistently allocated.
-  String                message;    // NOTE: Has to be persistently allocated.
+  String                scriptId; // NOTE: Has to be persistently allocated.
+  String                message;  // NOTE: Has to be persistently allocated.
+  ScriptRangeLineCol    range;
 } DebugScriptOutput;
 
 ecs_comp_define(DebugScriptTrackerComp) {
@@ -92,7 +94,10 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneScriptComp);
 }
 
-ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+ecs_view_define(AssetView) {
+  ecs_access_read(AssetComp);
+  ecs_access_maybe_read(AssetScriptComp); // Maybe-read because it could have been unloaded since.
+}
 
 static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
   return ecs_world_add_t(
@@ -112,12 +117,14 @@ static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal t
   dynarray_remove(&tracker->entries, 0, keepIndex);
 }
 
-static void output_add_panic(
-    DebugScriptTrackerComp* tracker,
-    const EcsEntityId       entity,
-    const TimeReal          time,
-    const String            scriptName,
-    const ScriptPanic*      panic) {
+static void output_add(
+    DebugScriptTrackerComp*     tracker,
+    const DebugScriptOutputType type,
+    const EcsEntityId           entity,
+    const TimeReal              time,
+    const String                scriptId,
+    const String                message,
+    const ScriptRangeLineCol    range) {
   usize oldestIndex;
   u32   perEntityCount = 0;
   for (usize i = 0; i != tracker->entries.size; ++i) {
@@ -132,11 +139,12 @@ static void output_add_panic(
     dynarray_remove(&tracker->entries, oldestIndex, 1);
   }
   *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
-      .type       = DebugScriptOutputType_Panic,
-      .entity     = entity,
-      .timestamp  = time,
-      .scriptName = scriptName,
-      .message    = script_panic_type_str(panic->type),
+      .type      = type,
+      .entity    = entity,
+      .timestamp = time,
+      .scriptId  = scriptId,
+      .message   = message,
+      .range     = range,
   };
 }
 
@@ -152,9 +160,15 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     const ScriptPanic*     panic          = scene_script_panic(scriptInstance);
     if (panic) {
       ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
-      const AssetComp* asset      = ecs_view_read_t(assetItr, AssetComp);
-      const String     scriptName = asset_id(asset);
-      output_add_panic(tracker, entity, now, scriptName, panic);
+      const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
+      const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
+      const String           scriptId   = asset_id(assetComp);
+      const String           msg        = script_panic_type_str(panic->type);
+      ScriptRangeLineCol     range      = {0};
+      if (scriptComp) {
+        range = script_range_to_line_col(scriptComp->sourceText, panic->range);
+      }
+      output_add(tracker, DebugScriptOutputType_Panic, entity, now, scriptId, msg, range);
     }
   }
 }
@@ -202,7 +216,15 @@ static void output_panel_tab_draw(
     ui_table_next_column(canvas, &table);
     ui_label(canvas, entry->message, .selectable = true);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, entry->scriptName, .selectable = true);
+    ui_label(
+        canvas,
+        fmt_write_scratch(
+            "{}:{}:{}-{}:{}",
+            fmt_text(entry->scriptId),
+            fmt_int(entry->range.start.line + 1),
+            fmt_int(entry->range.start.column + 1),
+            fmt_int(entry->range.end.line + 1),
+            fmt_int(entry->range.end.column + 1)));
   }
   ui_canvas_id_block_next(canvas);
 
@@ -226,7 +248,7 @@ static void stats_panel_tab_draw(
   const SceneScriptStats* stats = scene_script_stats(scriptInstance);
   ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
   const AssetComp* scriptAsset = ecs_view_read_t(assetItr, AssetComp);
-  const String     scriptName  = asset_id(scriptAsset);
+  const String     scriptId    = asset_id(scriptAsset);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -236,7 +258,7 @@ static void stats_panel_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Script:"));
   ui_table_next_column(canvas, &table);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptName)), .selectable = true);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
   DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
   if (asset_path(assetManager, scriptAsset, &scriptPathStr)) {
