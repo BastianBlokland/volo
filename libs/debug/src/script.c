@@ -45,7 +45,7 @@ typedef struct {
 } DebugScriptOutput;
 
 ecs_comp_define(DebugScriptTrackerComp) {
-  DynArray entries; // DebugScriptOutput[]
+  DynArray entries; // DebugScriptOutput[], sorted on timestamp.
 };
 
 ecs_comp_define(DebugScriptPanelComp) {
@@ -130,9 +130,47 @@ static void output_query(DebugScriptTrackerComp* tracker, EcsView* subjectView) 
   }
 }
 
-static void output_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world) {
-  (void)canvas;
-  (void)world;
+static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
+  (void)entry;
+  return ui_color(64, 16, 16, 192);
+}
+
+static void output_panel_tab_draw(
+    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, const DebugScriptTrackerComp* tracker) {
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Entity"), string_lit("Script entity.")},
+          {string_lit("Content"), string_lit("Script output.")},
+      });
+
+  const u32 numEntries = (u32)tracker->entries.size;
+  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numEntries));
+
+  if (!numEntries) {
+    ui_label(canvas, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
+  }
+
+  dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, output_entry_bg_color(entry));
+
+    ui_label_entity(canvas, entry->entity);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, string_lit("Hello World"));
+  }
+  ui_canvas_id_block_next(canvas);
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
 }
 
 static void stats_panel_tab_draw(
@@ -391,11 +429,12 @@ static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) 
 }
 
 static void script_panel_draw(
-    UiCanvasComp*           canvas,
-    DebugScriptPanelComp*   panelComp,
-    EcsWorld*               world,
-    const AssetManagerComp* assetManager,
-    EcsIterator*            subject) {
+    UiCanvasComp*                 canvas,
+    DebugScriptPanelComp*         panelComp,
+    EcsWorld*                     world,
+    const DebugScriptTrackerComp* tracker,
+    const AssetManagerComp*       assetManager,
+    EcsIterator*                  subject) {
 
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
@@ -406,23 +445,31 @@ static void script_panel_draw(
       .tabCount    = DebugScriptTab_Count,
       .topBarColor = ui_color(100, 0, 0, 192));
 
-  if (subject) {
-    switch (panelComp->panel.activeTab) {
-    case DebugScriptTab_Output:
-      output_panel_tab_draw(canvas, world);
-      break;
-    case DebugScriptTab_Stats:
+  switch (panelComp->panel.activeTab) {
+  case DebugScriptTab_Output:
+    output_panel_tab_draw(canvas, panelComp, tracker);
+    break;
+  case DebugScriptTab_Stats:
+    if (subject) {
       stats_panel_tab_draw(canvas, world, assetManager, subject);
-      break;
-    case DebugScriptTab_Memory:
-      memory_panel_tab_draw(canvas, panelComp, subject);
-      break;
-    case DebugScriptTab_Settings:
-      settings_panel_tab_draw(canvas, subject);
-      break;
+    } else {
+      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
-  } else {
-    ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+    break;
+  case DebugScriptTab_Memory:
+    if (subject) {
+      memory_panel_tab_draw(canvas, panelComp, subject);
+    } else {
+      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+    }
+    break;
+  case DebugScriptTab_Settings:
+    if (subject) {
+      settings_panel_tab_draw(canvas, subject);
+    } else {
+      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+    }
+    break;
   }
 
   ui_panel_end(canvas, &panelComp->panel);
@@ -464,7 +511,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, world, assetManager, subject);
+    script_panel_draw(canvas, panelComp, world, tracker, assetManager, subject);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
