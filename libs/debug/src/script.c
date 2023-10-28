@@ -671,3 +671,14 @@ EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
       .hideNullMemory = true);
   return panelEntity;
 }
+
+EcsEntityId debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window) {
+  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_t(
+      world,
+      panelEntity,
+      DebugScriptPanelComp,
+      .panel          = ui_panel(.size = ui_vector(800, 500), .activeTab = DebugScriptTab_Output),
+      .hideNullMemory = true);
+  return panelEntity;
+}
