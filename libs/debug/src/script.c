@@ -300,7 +300,6 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
           {string_lit("Value"), string_lit("Memory value.")},
       });
 
-  // Collect the memory entries.
   DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
@@ -313,10 +312,8 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
     };
   }
 
-  // Sort the memory entries.
   dynarray_sort(&entries, memory_compare_entry_name);
 
-  // Draw the memory entries.
   const f32 totalHeight = ui_table_height(&table, (u32)entries.size);
   ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
 
@@ -443,14 +440,15 @@ static void output_panel_tab_draw(
     UiCanvasComp*                 canvas,
     DebugScriptPanelComp*         panelComp,
     const DebugScriptTrackerComp* tracker,
+    SceneSelectionComp*           selection,
     EcsIterator*                  subjectItr) {
   output_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -481,6 +479,21 @@ static void output_panel_tab_draw(
     ui_table_draw_row_bg(canvas, &table, output_entry_bg_color(entry));
 
     ui_label_entity(canvas, entry->entity);
+    ui_layout_push(canvas);
+    ui_layout_inner(
+        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+    const bool selected = scene_selection_main(selection) == entry->entity;
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_SelectAll),
+            .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
+            .fontSize   = 18,
+            .tooltip    = string_lit("Select."))) {
+      scene_selection_clear(selection);
+      scene_selection_add(selection, entry->entity);
+    }
+    ui_layout_pop(canvas);
+
     ui_table_next_column(canvas, &table);
     ui_label(canvas, entry->message, .selectable = true);
 
@@ -509,6 +522,7 @@ static void script_panel_draw(
     UiCanvasComp*                 canvas,
     DebugScriptPanelComp*         panelComp,
     const DebugScriptTrackerComp* tracker,
+    SceneSelectionComp*           selection,
     EcsIterator*                  assetItr,
     EcsIterator*                  subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
@@ -536,7 +550,7 @@ static void script_panel_draw(
     }
     break;
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker, subjectItr);
+    output_panel_tab_draw(canvas, panelComp, tracker, selection, subjectItr);
     break;
   }
 
@@ -544,9 +558,9 @@ static void script_panel_draw(
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
-  ecs_access_read(SceneSelectionComp);
-  ecs_access_read(AssetManagerComp);
   ecs_access_maybe_write(DebugScriptTrackerComp);
+  ecs_access_read(AssetManagerComp);
+  ecs_access_write(SceneSelectionComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -600,8 +614,8 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     tracker = output_tracker_create(world);
   }
 
-  const SceneSelectionComp* selection    = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const AssetManagerComp*   assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
+  SceneSelectionComp*     selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
+  const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
@@ -617,7 +631,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, tracker, assetItr, subjectItr);
+    script_panel_draw(canvas, panelComp, tracker, selection, assetItr, subjectItr);
 
     debug_editor_update(panelComp, assetManager);
 
@@ -653,7 +667,7 @@ EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugScriptPanelComp,
-      .panel          = ui_panel(.size = ui_vector(750, 500)),
+      .panel          = ui_panel(.size = ui_vector(800, 500)),
       .hideNullMemory = true);
   return panelEntity;
 }
