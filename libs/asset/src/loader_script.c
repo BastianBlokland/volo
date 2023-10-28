@@ -48,6 +48,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_lit("damage"), null);
     script_binder_declare(binder, string_lit("attack"), null);
     script_binder_declare(binder, string_lit("debug_log"), null);
+    script_binder_declare(binder, string_lit("debug_break"), null);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -105,7 +106,7 @@ void asset_load_script(
   for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
     const String      msg  = script_diag_pretty_scratch(src->data, diag);
-    log_e("Script error", log_param("error", fmt_text(msg)));
+    log_e("Script load error", log_param("error", fmt_text(msg)));
   }
 
   script_diag_bag_destroy(diags);

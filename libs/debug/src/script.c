@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "asset_script.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -8,25 +9,29 @@
 #include "debug_register.h"
 #include "debug_script.h"
 #include "ecs_utils.h"
+#include "gap_window.h"
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_script.h"
 #include "scene_selection.h"
 #include "script_mem.h"
+#include "script_panic.h"
 #include "ui.h"
 
+#define output_max_age time_seconds(60)
+
 typedef enum {
-  DebugScriptTab_Stats,
+  DebugScriptTab_Info,
   DebugScriptTab_Memory,
-  DebugScriptTab_Settings,
+  DebugScriptTab_Output,
 
   DebugScriptTab_Count,
 } DebugScriptTab;
 
 static const String g_scriptTabNames[] = {
-    string_static("\uE4FC Stats"),
+    string_static("Info"),
     string_static("\uE322 Memory"),
-    string_static("\uE8B8 Settings"),
+    string_static("Output"),
 };
 ASSERT(array_elems(g_scriptTabNames) == DebugScriptTab_Count, "Incorrect number of names");
 
@@ -35,29 +40,62 @@ typedef struct {
   String     name;
 } DebugMemoryEntry;
 
-ecs_comp_define(DebugScriptPanelComp) {
-  UiPanel      panel;
-  bool         hideNullMemory;
-  UiScrollview scrollview;
+typedef enum {
+  DebugScriptOutputMode_All,
+  DebugScriptOutputMode_Self,
+
+  DebugScriptOutputMode_Count
+} DebugScriptOutputMode;
+
+static const String g_outputModeNames[] = {
+    string_static("All"),
+    string_static("Self"),
+};
+ASSERT(array_elems(g_outputModeNames) == DebugScriptOutputMode_Count, "Incorrect number of names");
+
+typedef enum {
+  DebugScriptOutputType_Panic,
+} DebugScriptOutputType;
+
+typedef struct {
+  DebugScriptOutputType type;
+  TimeReal              timestamp;
+  EcsEntityId           entity;
+  String                scriptId; // NOTE: Has to be persistently allocated.
+  String                message;  // NOTE: Has to be persistently allocated.
+  ScriptRangeLineCol    range;
+} DebugScriptOutput;
+
+typedef struct {
+  String           scriptId; // NOTE: Has to be persistently allocated.
+  ScriptPosLineCol pos;
+} DebugEditorRequest;
+
+ecs_comp_define(DebugScriptTrackerComp) {
+  DynArray entries; // DebugScriptOutput[], sorted on timestamp.
+  bool     autoOpenOnPanic;
 };
 
-static i8 memory_compare_entry_name(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
+ecs_comp_define(DebugScriptPanelComp) {
+  UiPanel               panel;
+  bool                  hideNullMemory;
+  DebugScriptOutputMode outputMode;
+  UiScrollview          scrollview;
+  u32                   lastRowCount;
+  DebugEditorRequest    editorReq;
+  Process*              editorLaunch;
+};
+
+static void ecs_destruct_script_tracker(void* data) {
+  DebugScriptTrackerComp* comp = data;
+  dynarray_destroy(&comp->entries);
 }
 
-static void debug_launch_editor(const String path) {
-#if defined(VOLO_WIN32)
-  const String editorFile = string_lit("code-tunnel.exe");
-#else
-  const String editorFile = string_lit("code");
-#endif
-  const String editorArgs[] = {string_lit("--reuse-window"), path};
-  Process* proc = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
-  const ProcessExitCode exitCode = process_block(proc);
-  if (exitCode != 0) {
-    log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
+static void ecs_destroy_script_panel(void* data) {
+  DebugScriptPanelComp* comp = data;
+  if (comp->editorLaunch) {
+    process_destroy(comp->editorLaunch);
   }
-  process_destroy(proc);
 }
 
 ecs_view_define(SubjectView) {
@@ -65,45 +103,54 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneScriptComp);
 }
 
-ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+ecs_view_define(AssetView) {
+  ecs_access_read(AssetComp);
+  ecs_access_maybe_read(AssetScriptComp); // Maybe-read because it could have been unloaded since.
+}
 
-static void stats_panel_tab_draw(
-    UiCanvasComp*           canvas,
-    EcsWorld*               world,
-    const AssetManagerComp* assetManager,
-    EcsIterator*            subject) {
-  diag_assert(subject);
+ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
-  const SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
+static void info_panel_tab_draw(
+    UiCanvasComp*         canvas,
+    DebugScriptPanelComp* panelComp,
+    EcsIterator*          assetItr,
+    EcsIterator*          subjectItr) {
+  diag_assert(subjectItr);
+
+  SceneScriptComp* scriptInstance = ecs_view_write_t(subjectItr, SceneScriptComp);
   if (!scriptInstance) {
     ui_label(canvas, string_lit("No statistics available."), .align = UiAlign_MiddleCenter);
     return;
   }
 
-  const SceneScriptStats* stats             = scene_script_stats(scriptInstance);
-  const EcsEntityId       scriptAssetEntity = scene_script_asset(scriptInstance);
-  const AssetComp* scriptAsset = ecs_utils_read_t(world, AssetView, scriptAssetEntity, AssetComp);
-  const String     scriptName  = asset_id(scriptAsset);
+  const SceneScriptStats* stats = scene_script_stats(scriptInstance);
+  ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
+  const AssetComp* scriptAsset = ecs_view_read_t(assetItr, AssetComp);
+  const String     scriptId    = asset_id(scriptAsset);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Script:"));
   ui_table_next_column(canvas, &table);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptName)), .selectable = true);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
-  DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  if (asset_path(assetManager, scriptAsset, &scriptPathStr)) {
-    ui_table_next_column(canvas, &table);
-    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(canvas, .label = string_lit("Edit Script"))) {
-      debug_launch_editor(dynstring_view(&scriptPathStr));
-    }
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
+  if (ui_button(canvas, .label = string_lit("Open Script"))) {
+    panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
-  dynstring_destroy(&scriptPathStr);
+  ui_layout_pop(canvas);
+
+  ui_table_next_row(canvas, &table);
+  bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
+  ui_label(canvas, string_lit("Pause:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseEval)) {
+    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Expressions:"));
@@ -228,6 +275,10 @@ static void memory_options_draw(UiCanvasComp* canvas, DebugScriptPanelComp* pane
   ui_layout_pop(canvas);
 }
 
+static i8 memory_compare_entry_name(const void* a, const void* b) {
+  return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
+}
+
 static void
 memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIterator* subject) {
   diag_assert(subject);
@@ -253,7 +304,6 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
           {string_lit("Value"), string_lit("Memory value.")},
       });
 
-  // Collect the memory entries.
   DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
@@ -266,10 +316,8 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
     };
   }
 
-  // Sort the memory entries.
   dynarray_sort(&entries, memory_compare_entry_name);
 
-  // Draw the memory entries.
   const f32 totalHeight = ui_table_height(&table, (u32)entries.size);
   ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
 
@@ -300,35 +348,197 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   ui_layout_container_pop(canvas);
 }
 
-static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
-  diag_assert(subject);
+static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
+  return ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      DebugScriptTrackerComp,
+      .entries         = dynarray_create_t(g_alloc_heap, DebugScriptOutput, 64),
+      .autoOpenOnPanic = true);
+}
 
-  SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
-  if (!scriptInstance) {
-    ui_label(canvas, string_lit("No settings available."), .align = UiAlign_MiddleCenter);
-    return;
+static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
+  dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+    if (entry->type == DebugScriptOutputType_Panic) {
+      return true;
+    }
   }
+  return false;
+}
 
-  UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
+  usize keepIndex = 0;
+  for (; keepIndex != tracker->entries.size; ++keepIndex) {
+    if (dynarray_at_t(&tracker->entries, keepIndex, DebugScriptOutput)->timestamp >= timestamp) {
+      break;
+    }
+  }
+  dynarray_remove(&tracker->entries, 0, keepIndex);
+}
 
-  ui_table_next_row(canvas, &table);
-  bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause evaluation:"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &pauseEval)) {
-    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
+static void output_add(
+    DebugScriptTrackerComp*     tracker,
+    const DebugScriptOutputType type,
+    const EcsEntityId           entity,
+    const TimeReal              time,
+    const String                scriptId,
+    const String                message,
+    const ScriptRangeLineCol    range) {
+  for (usize i = 0; i != tracker->entries.size; ++i) {
+    const DebugScriptOutput* entry = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
+    if (entry->type == type && entry->entity == entity) {
+      dynarray_remove(&tracker->entries, i, 1);
+      break;
+    }
+  }
+  *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
+      .type      = type,
+      .entity    = entity,
+      .timestamp = time,
+      .scriptId  = scriptId,
+      .message   = message,
+      .range     = range,
+  };
+}
+
+static void
+output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* subjectView) {
+  const TimeReal now          = time_real_clock();
+  const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
+  output_prune_older(tracker, oldestToKeep);
+
+  for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+    const EcsEntityId      entity         = ecs_view_entity(itr);
+    const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
+    const ScriptPanic*     panic          = scene_script_panic(scriptInstance);
+    if (panic) {
+      ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
+      const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
+      const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
+      const String           scriptId   = asset_id(assetComp);
+      const String           msg        = script_panic_type_str(panic->type);
+      ScriptRangeLineCol     range      = {0};
+      if (scriptComp) {
+        range = script_range_to_line_col(scriptComp->sourceText, panic->range);
+      }
+      output_add(tracker, DebugScriptOutputType_Panic, entity, now, scriptId, msg, range);
+    }
   }
 }
 
-static void script_panel_draw(
-    UiCanvasComp*           canvas,
-    DebugScriptPanelComp*   panelComp,
-    EcsWorld*               world,
-    const AssetManagerComp* assetManager,
-    EcsIterator*            subject) {
+static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
+  switch (entry->type) {
+  case DebugScriptOutputType_Panic:
+    return ui_color(64, 16, 16, 192);
+  }
+  diag_assert_fail("Invalid script output type");
+  UNREACHABLE
+}
 
+static void output_options_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Mode:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->outputMode, g_outputModeNames, DebugScriptOutputMode_Count);
+
+  ui_layout_pop(canvas);
+}
+
+static void output_panel_tab_draw(
+    UiCanvasComp*                 canvas,
+    DebugScriptPanelComp*         panelComp,
+    const DebugScriptTrackerComp* tracker,
+    SceneSelectionComp*           selection,
+    EcsIterator*                  subjectItr) {
+  output_options_draw(canvas, panelComp);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Entity"), string_lit("Script entity.")},
+          {string_lit("Message"), string_lit("Script output message.")},
+          {string_lit("Location"), string_lit("Script output location.")},
+      });
+
+  const u32 numEntries = panelComp->lastRowCount;
+  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numEntries));
+
+  if (!numEntries) {
+    ui_label(canvas, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
+  }
+
+  panelComp->lastRowCount = 0;
+  dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+    if (panelComp->outputMode == DebugScriptOutputMode_Self) {
+      if (!subjectItr || ecs_view_entity(subjectItr) != entry->entity) {
+        continue;
+      }
+    }
+
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, output_entry_bg_color(entry));
+
+    ui_label_entity(canvas, entry->entity);
+    ui_layout_push(canvas);
+    ui_layout_inner(
+        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+    const bool selected = scene_selection_main(selection) == entry->entity;
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_SelectAll),
+            .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
+            .fontSize   = 18,
+            .tooltip    = string_lit("Select."))) {
+      scene_selection_clear(selection);
+      scene_selection_add(selection, entry->entity);
+    }
+    ui_layout_pop(canvas);
+
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, entry->message, .selectable = true);
+
+    const String locText = fmt_write_scratch(
+        "{}:{}:{}-{}:{}",
+        fmt_text(entry->scriptId),
+        fmt_int(entry->range.start.line + 1),
+        fmt_int(entry->range.start.column + 1),
+        fmt_int(entry->range.end.line + 1),
+        fmt_int(entry->range.end.column + 1));
+
+    ui_table_next_column(canvas, &table);
+    if (ui_button(canvas, .label = locText, .noFrame = true)) {
+      panelComp->editorReq =
+          (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
+    }
+    ++panelComp->lastRowCount;
+  }
+  ui_canvas_id_block_next(canvas);
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
+}
+
+static void script_panel_draw(
+    UiCanvasComp*                 canvas,
+    DebugScriptPanelComp*         panelComp,
+    const DebugScriptTrackerComp* tracker,
+    SceneSelectionComp*           selection,
+    EcsIterator*                  assetItr,
+    EcsIterator*                  subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
       canvas,
@@ -338,33 +548,73 @@ static void script_panel_draw(
       .tabCount    = DebugScriptTab_Count,
       .topBarColor = ui_color(100, 0, 0, 192));
 
-  if (subject) {
-    switch (panelComp->panel.activeTab) {
-    case DebugScriptTab_Stats:
-      stats_panel_tab_draw(canvas, world, assetManager, subject);
-      break;
-    case DebugScriptTab_Memory:
-      memory_panel_tab_draw(canvas, panelComp, subject);
-      break;
-    case DebugScriptTab_Settings:
-      settings_panel_tab_draw(canvas, subject);
-      break;
+  switch (panelComp->panel.activeTab) {
+  case DebugScriptTab_Info:
+    if (subjectItr) {
+      info_panel_tab_draw(canvas, panelComp, assetItr, subjectItr);
+    } else {
+      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
-  } else {
-    ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+    break;
+  case DebugScriptTab_Memory:
+    if (subjectItr) {
+      memory_panel_tab_draw(canvas, panelComp, subjectItr);
+    } else {
+      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+    }
+    break;
+  case DebugScriptTab_Output:
+    output_panel_tab_draw(canvas, panelComp, tracker, selection, subjectItr);
+    break;
   }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
-  ecs_access_read(SceneSelectionComp);
+  ecs_access_maybe_write(DebugScriptTrackerComp);
   ecs_access_read(AssetManagerComp);
+  ecs_access_write(SceneSelectionComp);
 }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugScriptPanelComp);
   ecs_access_write(UiCanvasComp);
+}
+
+static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetManagerComp* assets) {
+  if (panelComp->editorLaunch && !process_poll(panelComp->editorLaunch)) {
+    const ProcessExitCode exitCode = process_block(panelComp->editorLaunch);
+    if (exitCode != 0) {
+      log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
+    }
+    process_destroy(panelComp->editorLaunch);
+    panelComp->editorLaunch = null;
+  }
+
+  if (!panelComp->editorLaunch && !string_is_empty(panelComp->editorReq.scriptId)) {
+    DebugEditorRequest* req     = &panelComp->editorReq;
+    DynString           pathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
+    if (asset_path_by_id(assets, req->scriptId, &pathStr)) {
+      const String path = dynstring_view(&pathStr);
+
+#if defined(VOLO_WIN32)
+      const String editorFile = string_lit("code-tunnel.exe");
+#else
+      const String editorFile = string_lit("code");
+#endif
+      const String editorArgs[] = {
+          string_lit("--reuse-window"),
+          string_lit("--goto"),
+          fmt_write_scratch(
+              "{}:{}:{}", fmt_text(path), fmt_int(req->pos.line + 1), fmt_int(req->pos.column + 1)),
+      };
+      Process* p = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
+      panelComp->editorLaunch = p;
+    }
+    dynstring_destroy(&pathStr);
+    *req = (DebugEditorRequest){0};
+  }
 }
 
 ecs_system_define(DebugScriptUpdatePanelSys) {
@@ -373,11 +623,29 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSelectionComp* selection    = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const AssetManagerComp*   assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
+  DebugScriptTrackerComp* tracker = ecs_view_write_t(globalItr, DebugScriptTrackerComp);
+  if (!tracker) {
+    tracker = output_tracker_create(world);
+  }
+
+  SceneSelectionComp*     selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
+  const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
+
+  EcsView*     assetView = ecs_world_view_t(world, AssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subject     = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+
+  output_query(tracker, assetItr, subjectView);
+
+  if (tracker->autoOpenOnPanic && output_has_panic(tracker)) {
+    EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
+    if (windowItr) {
+      debug_script_output_panel_open(world, ecs_view_entity(windowItr));
+      tracker->autoOpenOnPanic = false;
+    }
+  }
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -385,7 +653,9 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, world, assetManager, subject);
+    script_panel_draw(canvas, panelComp, tracker, selection, assetItr, subjectItr);
+
+    debug_editor_update(panelComp, assetManager);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -397,19 +667,22 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
 }
 
 ecs_module_init(debug_script_module) {
-  ecs_register_comp(DebugScriptPanelComp);
+  ecs_register_comp(DebugScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
+  ecs_register_comp(DebugScriptPanelComp, .destructor = ecs_destroy_script_panel);
 
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(SubjectView);
   ecs_register_view(AssetView);
+  ecs_register_view(WindowView);
 
   ecs_register_system(
       DebugScriptUpdatePanelSys,
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(SubjectView),
-      ecs_view_id(AssetView));
+      ecs_view_id(AssetView),
+      ecs_view_id(WindowView));
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
@@ -418,7 +691,18 @@ EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugScriptPanelComp,
-      .panel          = ui_panel(.size = ui_vector(750, 500)),
+      .panel          = ui_panel(.size = ui_vector(800, 500)),
+      .hideNullMemory = true);
+  return panelEntity;
+}
+
+EcsEntityId debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window) {
+  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_t(
+      world,
+      panelEntity,
+      DebugScriptPanelComp,
+      .panel          = ui_panel(.size = ui_vector(800, 500), .activeTab = DebugScriptTab_Output),
       .hideNullMemory = true);
   return panelEntity;
 }

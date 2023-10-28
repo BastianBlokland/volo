@@ -25,8 +25,10 @@ struct sProcess {
   Allocator*    alloc;
   ProcessFlags  flags : 8;
   ProcessResult startResult : 8;
+  bool          terminated;
   bool          inputPipeClosed;
   pid_t         handle;
+  int           terminationStatus;
   File          pipes[ProcessPipe_Count];
 };
 
@@ -254,7 +256,7 @@ Process* process_create(
 }
 
 void process_destroy(Process* process) {
-  if (!(process->flags & ProcessFlags_Detached)) {
+  if (!process->terminated && !(process->flags & ProcessFlags_Detached)) {
     process_signal(process, Signal_Kill);
     process_block(process); // Wait for process to stop, this prevents leaking zombie processes.
   }
@@ -274,6 +276,19 @@ ProcessResult process_start_result(const Process* process) { return process->sta
 
 ProcessId process_id(const Process* process) {
   return process->startResult == ProcessResult_Success ? process->handle : -1;
+}
+
+bool process_poll(Process* process) {
+  const pid_t proc = process->handle;
+  if (proc <= 0 || process->terminated) {
+    return false;
+  }
+  const int waitRes = waitpid(proc, &process->terminationStatus, WNOHANG);
+  if (waitRes != 0) {
+    process->terminated = true;
+    return false;
+  }
+  return true;
 }
 
 File* process_pipe_in(Process* process) {
@@ -329,14 +344,16 @@ ProcessExitCode process_block(Process* process) {
   if (UNLIKELY(proc <= 0)) {
     return ProcessExitCode_InvalidProcess;
   }
-  int status;
-  if (waitpid(proc, &status, 0) != proc) {
-    return ProcessExitCode_UnknownError;
+  if (!process->terminated) {
+    if (waitpid(proc, &process->terminationStatus, 0) != proc) {
+      return ProcessExitCode_UnknownError;
+    }
+    process->terminated = true;
   }
-  if (WIFEXITED(status)) {
-    return (ProcessExitCode)WEXITSTATUS(status);
+  if (WIFEXITED(process->terminationStatus)) {
+    return (ProcessExitCode)WEXITSTATUS(process->terminationStatus);
   }
-  if (WIFSIGNALED(status)) {
+  if (WIFSIGNALED(process->terminationStatus)) {
     return ProcessExitCode_TerminatedBySignal;
   }
   return ProcessExitCode_UnknownError;

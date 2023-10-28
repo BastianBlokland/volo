@@ -12,6 +12,11 @@ ASSERT(array_elems(g_panicTypeStrs) == ScriptPanicType_Count, "Incorrect number 
 
 bool script_panic_valid(const ScriptPanic* panic) { return panic->type != ScriptPanic_None; }
 
+String script_panic_type_str(const ScriptPanicType type) {
+  diag_assert(type < ScriptPanicType_Count);
+  return g_panicTypeStrs[type];
+}
+
 void script_panic_pretty_write(DynString* out, const String sourceText, const ScriptPanic* panic) {
   diag_assert(panic->type != ScriptPanic_None && panic->type < ScriptPanicType_Count);
 

@@ -99,7 +99,11 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
 
   ui_style_push(canvas);
-  ui_interactable_frame_style(canvas, opts->frameColor, status);
+  if (opts->noFrame) {
+    ui_style_layer(canvas, UiLayer_Invisible);
+  } else {
+    ui_interactable_frame_style(canvas, opts->frameColor, status);
+  }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
   ui_style_pop(canvas);
 

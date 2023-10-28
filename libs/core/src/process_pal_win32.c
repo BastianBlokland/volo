@@ -252,6 +252,14 @@ ProcessId process_id(const Process* process) {
   return process->startResult == ProcessResult_Success ? (i64)process->processInfo.dwProcessId : -1;
 }
 
+bool process_poll(Process* process) {
+  const HANDLE handle = process->processInfo.hProcess;
+  if (UNLIKELY(!handle)) {
+    return false;
+  }
+  return WaitForSingleObject(handle, 0) != WAIT_OBJECT_0;
+}
+
 File* process_pipe_in(Process* process) {
   diag_assert_msg(process->flags & ProcessFlags_PipeStdIn, "Input not piped");
   if (process->startResult == ProcessResult_Success) {

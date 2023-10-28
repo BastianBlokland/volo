@@ -12,11 +12,12 @@ typedef enum {
   ScriptPanicType_Count,
 } ScriptPanicType;
 
-typedef struct {
+typedef struct sScriptPanic {
   ScriptPanicType type;
   ScriptRange     range;
 } ScriptPanic;
 
 bool   script_panic_valid(const ScriptPanic*);
+String script_panic_type_str(ScriptPanicType);
 void   script_panic_pretty_write(DynString*, String sourceText, const ScriptPanic*);
 String script_panic_pretty_scratch(String sourceText, const ScriptPanic*);

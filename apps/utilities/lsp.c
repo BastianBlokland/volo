@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "json.h"
 #include "script_binder.h"
@@ -800,10 +801,13 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
+  // NOTE: The cursor can be after the last character, in which case its outside of the document
+  // text (and we won't find any completion items), to counter this we clamp it.
+  pos = math_min(pos, (u32)doc->text.size - 1);
 
   if (ctx->flags & LspFlags_Trace) {
     const String txt = fmt_write_scratch(
@@ -959,6 +963,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_lit("damage"), null);
   script_binder_declare(binder, string_lit("attack"), null);
   script_binder_declare(binder, string_lit("debug_log"), null);
+  script_binder_declare(binder, string_lit("debug_break"), null);
 
   script_binder_finalize(binder);
   return binder;

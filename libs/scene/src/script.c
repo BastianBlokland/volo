@@ -676,6 +676,13 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
+static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args) {
+  (void)ctx;
+  (void)args;
+  diag_break();
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs);
@@ -729,6 +736,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
+    eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 
     script_binder_finalize(b);
@@ -744,12 +752,17 @@ typedef enum {
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
+  u8               resVersion;
   SceneScriptStats stats;
   EcsEntityId      scriptAsset;
+  ScriptPanic      lastPanic;
   DynArray         actions; // ScriptAction[].
 };
 
-ecs_comp_define(SceneScriptResourceComp) { SceneScriptResFlags flags; };
+ecs_comp_define(SceneScriptResourceComp) {
+  SceneScriptResFlags flags : 8;
+  u8                  resVersion; // NOTE: Allowed to wrap around.
+};
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
@@ -770,6 +783,7 @@ ecs_view_define(ScriptUpdateView) {
 ecs_view_define(ResourceAssetView) {
   ecs_access_read(AssetComp);
   ecs_access_read(AssetScriptComp);
+  ecs_access_read(SceneScriptResourceComp);
 }
 
 ecs_view_define(ResourceLoadView) { ecs_access_write(SceneScriptResourceComp); }
@@ -782,6 +796,7 @@ ecs_system_define(SceneScriptResourceLoadSys) {
     if (!(res->flags & (SceneScriptRes_ResourceAcquired | SceneScriptRes_ResourceUnloading))) {
       asset_acquire(world, ecs_view_entity(itr));
       res->flags |= SceneScriptRes_ResourceAcquired;
+      ++res->resVersion;
     }
   }
 }
@@ -811,6 +826,8 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 
 static void scene_script_eval(EvalContext* ctx) {
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
+    ctx->scriptInstance->stats     = (SceneScriptStats){0};
+    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
     return;
   }
 
@@ -826,11 +843,16 @@ static void scene_script_eval(EvalContext* ctx) {
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
     const String msg = script_panic_pretty_scratch(ctx->scriptAsset->sourceText, &evalRes.panic);
-    log_w(
-        "Script execution failed",
+    log_e(
+        "Script panic",
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
         log_param("entity", fmt_int(ctx->entity, .base = 16)));
+
+    ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
+    ctx->scriptInstance->lastPanic = evalRes.panic;
+  } else {
+    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
   }
 
   // Update stats.
@@ -877,6 +899,11 @@ ecs_system_define(SceneScriptUpdateSys) {
       ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
       ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
 
+      const u8 resVersion = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
+      if (UNLIKELY(ctx.scriptInstance->resVersion != resVersion)) {
+        ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
+        ctx.scriptInstance->resVersion = resVersion;
+      }
       scene_script_eval(&ctx);
       continue;
     }
@@ -1119,6 +1146,10 @@ void scene_script_flags_unset(SceneScriptComp* script, const SceneScriptFlags fl
 
 void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags flags) {
   script->flags ^= flags;
+}
+
+const ScriptPanic* scene_script_panic(const SceneScriptComp* script) {
+  return script_panic_valid(&script->lastPanic) ? &script->lastPanic : null;
 }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }

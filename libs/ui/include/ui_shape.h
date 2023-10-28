@@ -34,6 +34,7 @@
   X(0xE5D5, Refresh)                                                                               \
   X(0xE5D6, UnfoldLess)                                                                            \
   X(0xE5D7, UnfoldMore)                                                                            \
+  X(0xE645, Error)                                                                                 \
   X(0xE71C, Animation)                                                                             \
   X(0xE7EF, Group)                                                                                 \
   X(0xE80B, Globe)                                                                                 \

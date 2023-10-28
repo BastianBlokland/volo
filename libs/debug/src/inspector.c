@@ -24,7 +24,9 @@
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
+#include "scene_script.h"
 #include "scene_selection.h"
+#include "scene_sound.h"
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -154,6 +156,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(SceneScriptComp);
   ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
@@ -1310,36 +1313,46 @@ static void inspector_vis_draw_navigation_grid(
   }
 }
 
-ecs_comp_extern(SceneBrainComp);
-ecs_comp_extern(SceneScriptComp);
-ecs_comp_extern(SceneSoundComp);
-
 static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
   const SceneTagComp*       tagComp       = ecs_view_read_t(subject, SceneTagComp);
+  const SceneScriptComp*    scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
   const EcsEntityId         e             = ecs_view_entity(subject);
-  const bool                selected      = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
 
-  Unicode icon = 0;
-  if (ecs_world_has_t(world, e, SceneScriptComp)) {
-    icon = UiShape_Description;
-  } else if (ecs_world_has_t(world, e, SceneBrainComp)) {
-    icon = UiShape_Psychology;
-  } else if (ecs_world_has_t(world, e, SceneVfxDecalComp)) {
-    icon = UiShape_Image;
-  } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
-    icon = UiShape_Grain;
-  } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
-    icon = UiShape_MusicNote;
+  Unicode  icon;
+  GeoColor color;
+  u16      size;
+
+  if (scriptComp && (scene_script_flags(scriptComp) & SceneScriptFlags_DidPanic) != 0) {
+    icon  = UiShape_Error;
+    color = geo_color(1.0f, 0, 0, 0.75f);
+    size  = 25;
+  } else {
+    if (scriptComp) {
+      icon = UiShape_Description;
+    } else if (ecs_world_has_t(world, e, SceneVfxDecalComp)) {
+      icon = UiShape_Image;
+    } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
+      icon = UiShape_Grain;
+    } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
+      icon = UiShape_MusicNote;
+    } else {
+      icon = 0;
+    }
+    color = geo_color(0.85f, 0.85f, 0.85f, 0.6f);
+    size  = 20;
+  }
+
+  if (tagComp && (tagComp->tags & SceneTags_Selected) != 0) {
+    color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 
   if (icon && transformComp) {
     DynString textBuffer = dynstring_create_over(mem_stack(4));
     utf8_cp_write(&textBuffer, icon);
 
-    const String   str   = dynstring_view(&textBuffer);
-    const GeoColor color = selected ? geo_color(0, 1, 0, 0.5f) : geo_color(1, 1, 1, 0.75f);
-    debug_text(text, transformComp->position, str, .fontSize = 20, .color = color);
+    const String str = dynstring_view(&textBuffer);
+    debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
   }
 }
 

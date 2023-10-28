@@ -44,7 +44,9 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
+
     check_eq_int(process_block(child), 42);
+    check(!process_poll(child));
 
     process_destroy(child);
   }
@@ -56,8 +58,12 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
+    check(process_poll(child));
+
     check_eq_int(process_signal(child, Signal_Kill), ProcessResult_Success);
+
     check_eq_int(process_block(child), ProcessExitCode_TerminatedBySignal);
+    check(!process_poll(child));
 
     process_destroy(child);
   }
@@ -69,9 +75,13 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
+    check(process_poll(child));
+
     thread_sleep(time_milliseconds(50)); // Wait for child to setup interrupt handler.
     check_eq_int(process_signal(child, Signal_Interrupt), ProcessResult_Success);
+
     check_eq_int(process_block(child), 42);
+    check(!process_poll(child));
 
     process_destroy(child);
   }
@@ -83,11 +93,13 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
+    check(process_poll(child));
 
     check_eq_int(file_read_to_end_sync(process_pipe_out(child), &buffer), FileResult_Success);
     check_eq_string(dynstring_view(&buffer), string_lit("Hello Out\n"));
 
     check_eq_int(process_block(child), 0);
+    check(!process_poll(child));
 
     process_destroy(child);
   }
@@ -99,6 +111,7 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
+    check(process_poll(child));
 
     check_eq_int(file_read_to_end_sync(process_pipe_err(child), &buffer), FileResult_Success);
     check_eq_string(dynstring_view(&buffer), string_lit("Hello Err\n"));
@@ -115,6 +128,7 @@ spec(process) {
     Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
+    check(process_poll(child));
 
     const String str = string_lit("Hello World!");
     check_eq_int(file_write_sync(process_pipe_in(child), str), FileResult_Success);

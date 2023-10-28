@@ -103,6 +103,10 @@ GeoColor geo_color_bilerp(
 #endif
 }
 
+GeoColor geo_color_with_alpha(const GeoColor color, const f32 alpha) {
+  return geo_color(color.r, color.g, color.b, alpha);
+}
+
 GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
 /**
  * Linear to srgb curve approximation.
