@@ -40,10 +40,15 @@ typedef struct {
   String     name;
 } DebugMemoryEntry;
 
+typedef enum {
+  DebugScriptOutputType_Panic,
+} DebugScriptOutputType;
+
 typedef struct {
-  TimeReal    timestamp;
-  EcsEntityId entity;
-  String      scriptName;
+  DebugScriptOutputType type;
+  TimeReal              timestamp;
+  EcsEntityId           entity;
+  String                scriptName;
 } DebugScriptOutput;
 
 ecs_comp_define(DebugScriptTrackerComp) {
@@ -125,6 +130,7 @@ static void output_add_panic(
     dynarray_remove(&tracker->entries, oldestIndex, 1);
   }
   *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
+      .type       = DebugScriptOutputType_Panic,
       .entity     = entity,
       .timestamp  = time,
       .scriptName = scriptName,
@@ -151,8 +157,12 @@ static void output_query(DebugScriptTrackerComp* tracker, EcsWorld* world, EcsVi
 }
 
 static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
-  (void)entry;
-  return ui_color(64, 16, 16, 192);
+  switch (entry->type) {
+  case DebugScriptOutputType_Panic:
+    return ui_color(64, 16, 16, 192);
+  }
+  diag_assert_fail("Invalid script output type");
+  UNREACHABLE
 }
 
 static void output_panel_tab_draw(
