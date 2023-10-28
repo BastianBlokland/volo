@@ -55,15 +55,21 @@ typedef struct {
   ScriptRangeLineCol    range;
 } DebugScriptOutput;
 
+typedef struct {
+  String           scriptId; // NOTE: Has to be persistently allocated.
+  ScriptPosLineCol pos;
+} DebugEditorRequest;
+
 ecs_comp_define(DebugScriptTrackerComp) {
   DynArray entries; // DebugScriptOutput[], sorted on timestamp.
 };
 
 ecs_comp_define(DebugScriptPanelComp) {
-  UiPanel      panel;
-  bool         hideNullMemory;
-  UiScrollview scrollview;
-  Process*     activeEditorLaunch;
+  UiPanel            panel;
+  bool               hideNullMemory;
+  UiScrollview       scrollview;
+  DebugEditorRequest editorReq;
+  Process*           editorLaunch;
 };
 
 static void ecs_destruct_script_tracker(void* data) {
@@ -73,33 +79,13 @@ static void ecs_destruct_script_tracker(void* data) {
 
 static void ecs_destroy_script_panel(void* data) {
   DebugScriptPanelComp* comp = data;
-  if (comp->activeEditorLaunch) {
-    process_destroy(comp->activeEditorLaunch);
+  if (comp->editorLaunch) {
+    process_destroy(comp->editorLaunch);
   }
 }
 
 static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
-}
-
-static bool debug_launch_editor(
-    DebugScriptPanelComp* panelComp, const String path, const ScriptPosLineCol pos) {
-  if (panelComp->activeEditorLaunch) {
-    return false;
-  }
-#if defined(VOLO_WIN32)
-  const String editorFile = string_lit("code-tunnel.exe");
-#else
-  const String editorFile = string_lit("code");
-#endif
-  const String editorArgs[] = {
-      string_lit("--reuse-window"),
-      string_lit("--goto"),
-      fmt_write_scratch("{}:{}:{}", fmt_text(path), fmt_int(pos.line + 1), fmt_int(pos.column + 1)),
-  };
-  Process* proc = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
-  panelComp->activeEditorLaunch = proc;
-  return true;
 }
 
 ecs_view_define(SubjectView) {
@@ -196,10 +182,7 @@ static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
 }
 
 static void output_panel_tab_draw(
-    UiCanvasComp*                 canvas,
-    DebugScriptPanelComp*         panelComp,
-    const DebugScriptTrackerComp* tracker,
-    const AssetManagerComp*       assetManager) {
+    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, const DebugScriptTrackerComp* tracker) {
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -242,11 +225,8 @@ static void output_panel_tab_draw(
 
     ui_table_next_column(canvas, &table);
     if (ui_button(canvas, .label = locText, .noFrame = true)) {
-      DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
-      if (asset_path_by_id(assetManager, entry->scriptId, &scriptPathStr)) {
-        debug_launch_editor(panelComp, dynstring_view(&scriptPathStr), entry->range.start);
-      }
-      dynstring_destroy(&scriptPathStr);
+      panelComp->editorReq =
+          (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
   }
   ui_canvas_id_block_next(canvas);
@@ -256,11 +236,10 @@ static void output_panel_tab_draw(
 }
 
 static void stats_panel_tab_draw(
-    UiCanvasComp*           canvas,
-    DebugScriptPanelComp*   panelComp,
-    const AssetManagerComp* assetManager,
-    EcsIterator*            assetItr,
-    EcsIterator*            subjectItr) {
+    UiCanvasComp*         canvas,
+    DebugScriptPanelComp* panelComp,
+    EcsIterator*          assetItr,
+    EcsIterator*          subjectItr) {
   diag_assert(subjectItr);
 
   const SceneScriptComp* scriptInstance = ecs_view_write_t(subjectItr, SceneScriptComp);
@@ -284,15 +263,11 @@ static void stats_panel_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
-  DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  if (asset_path(assetManager, scriptAsset, &scriptPathStr)) {
-    ui_table_next_column(canvas, &table);
-    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(canvas, .label = string_lit("Edit Script"))) {
-      debug_launch_editor(panelComp, dynstring_view(&scriptPathStr), (ScriptPosLineCol){0});
-    }
+  ui_table_next_column(canvas, &table);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = string_lit("Edit Script"))) {
+    panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
-  dynstring_destroy(&scriptPathStr);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Expressions:"));
@@ -515,7 +490,6 @@ static void script_panel_draw(
     UiCanvasComp*                 canvas,
     DebugScriptPanelComp*         panelComp,
     const DebugScriptTrackerComp* tracker,
-    const AssetManagerComp*       assetManager,
     EcsIterator*                  assetItr,
     EcsIterator*                  subjectItr) {
 
@@ -530,11 +504,11 @@ static void script_panel_draw(
 
   switch (panelComp->panel.activeTab) {
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker, assetManager);
+    output_panel_tab_draw(canvas, panelComp, tracker);
     break;
   case DebugScriptTab_Stats:
     if (subjectItr) {
-      stats_panel_tab_draw(canvas, panelComp, assetManager, assetItr, subjectItr);
+      stats_panel_tab_draw(canvas, panelComp, assetItr, subjectItr);
     } else {
       ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
@@ -569,6 +543,41 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetManagerComp* assets) {
+  if (panelComp->editorLaunch && !process_poll(panelComp->editorLaunch)) {
+    const ProcessExitCode exitCode = process_block(panelComp->editorLaunch);
+    if (exitCode != 0) {
+      log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
+    }
+    process_destroy(panelComp->editorLaunch);
+    panelComp->editorLaunch = null;
+  }
+
+  if (!panelComp->editorLaunch && !string_is_empty(panelComp->editorReq.scriptId)) {
+    DebugEditorRequest* req     = &panelComp->editorReq;
+    DynString           pathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
+    if (asset_path_by_id(assets, req->scriptId, &pathStr)) {
+      const String path = dynstring_view(&pathStr);
+
+#if defined(VOLO_WIN32)
+      const String editorFile = string_lit("code-tunnel.exe");
+#else
+      const String editorFile = string_lit("code");
+#endif
+      const String editorArgs[] = {
+          string_lit("--reuse-window"),
+          string_lit("--goto"),
+          fmt_write_scratch(
+              "{}:{}:{}", fmt_text(path), fmt_int(req->pos.line + 1), fmt_int(req->pos.column + 1)),
+      };
+      Process* p = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
+      panelComp->editorLaunch = p;
+    }
+    dynstring_destroy(&pathStr);
+    *req = (DebugEditorRequest){0};
+  }
+}
+
 ecs_system_define(DebugScriptUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -597,16 +606,9 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, tracker, assetManager, assetItr, subjectItr);
+    script_panel_draw(canvas, panelComp, tracker, assetItr, subjectItr);
 
-    if (panelComp->activeEditorLaunch && !process_poll(panelComp->activeEditorLaunch)) {
-      const ProcessExitCode exitCode = process_block(panelComp->activeEditorLaunch);
-      if (exitCode != 0) {
-        log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
-      }
-      process_destroy(panelComp->activeEditorLaunch);
-      panelComp->activeEditorLaunch = null;
-    }
+    debug_editor_update(panelComp, assetManager);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
