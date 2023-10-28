@@ -63,6 +63,7 @@ ecs_comp_define(DebugScriptPanelComp) {
   UiPanel      panel;
   bool         hideNullMemory;
   UiScrollview scrollview;
+  Process*     activeEditorLaunch;
 };
 
 static void ecs_destruct_script_tracker(void* data) {
@@ -70,11 +71,22 @@ static void ecs_destruct_script_tracker(void* data) {
   dynarray_destroy(&comp->entries);
 }
 
+static void ecs_destroy_script_panel(void* data) {
+  DebugScriptPanelComp* comp = data;
+  if (comp->activeEditorLaunch) {
+    process_destroy(comp->activeEditorLaunch);
+  }
+}
+
 static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
 }
 
-static void debug_launch_editor(const String path, const ScriptPosLineCol pos) {
+static bool debug_launch_editor(
+    DebugScriptPanelComp* panelComp, const String path, const ScriptPosLineCol pos) {
+  if (panelComp->activeEditorLaunch) {
+    return false;
+  }
 #if defined(VOLO_WIN32)
   const String editorFile = string_lit("code-tunnel.exe");
 #else
@@ -86,11 +98,8 @@ static void debug_launch_editor(const String path, const ScriptPosLineCol pos) {
       fmt_write_scratch("{}:{}:{}", fmt_text(path), fmt_int(pos.line + 1), fmt_int(pos.column + 1)),
   };
   Process* proc = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
-  const ProcessExitCode exitCode = process_block(proc);
-  if (exitCode != 0) {
-    log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
-  }
-  process_destroy(proc);
+  panelComp->activeEditorLaunch = proc;
+  return true;
 }
 
 ecs_view_define(SubjectView) {
@@ -235,7 +244,7 @@ static void output_panel_tab_draw(
     if (ui_button(canvas, .label = locText, .noFrame = true)) {
       DynString scriptPathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
       if (asset_path_by_id(assetManager, entry->scriptId, &scriptPathStr)) {
-        debug_launch_editor(dynstring_view(&scriptPathStr), entry->range.start);
+        debug_launch_editor(panelComp, dynstring_view(&scriptPathStr), entry->range.start);
       }
       dynstring_destroy(&scriptPathStr);
     }
@@ -248,6 +257,7 @@ static void output_panel_tab_draw(
 
 static void stats_panel_tab_draw(
     UiCanvasComp*           canvas,
+    DebugScriptPanelComp*   panelComp,
     const AssetManagerComp* assetManager,
     EcsIterator*            assetItr,
     EcsIterator*            subjectItr) {
@@ -279,7 +289,7 @@ static void stats_panel_tab_draw(
     ui_table_next_column(canvas, &table);
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(150, 0), UiBase_Absolute, Ui_X);
     if (ui_button(canvas, .label = string_lit("Edit Script"))) {
-      debug_launch_editor(dynstring_view(&scriptPathStr), (ScriptPosLineCol){0});
+      debug_launch_editor(panelComp, dynstring_view(&scriptPathStr), (ScriptPosLineCol){0});
     }
   }
   dynstring_destroy(&scriptPathStr);
@@ -524,7 +534,7 @@ static void script_panel_draw(
     break;
   case DebugScriptTab_Stats:
     if (subjectItr) {
-      stats_panel_tab_draw(canvas, assetManager, assetItr, subjectItr);
+      stats_panel_tab_draw(canvas, panelComp, assetManager, assetItr, subjectItr);
     } else {
       ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
@@ -589,6 +599,15 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     ui_canvas_reset(canvas);
     script_panel_draw(canvas, panelComp, tracker, assetManager, assetItr, subjectItr);
 
+    if (panelComp->activeEditorLaunch && !process_poll(panelComp->activeEditorLaunch)) {
+      const ProcessExitCode exitCode = process_block(panelComp->activeEditorLaunch);
+      if (exitCode != 0) {
+        log_e("Failed to start editor", log_param("code", fmt_int(exitCode)));
+      }
+      process_destroy(panelComp->activeEditorLaunch);
+      panelComp->activeEditorLaunch = null;
+    }
+
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
@@ -599,8 +618,8 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
 }
 
 ecs_module_init(debug_script_module) {
-  ecs_register_comp(DebugScriptPanelComp);
   ecs_register_comp(DebugScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
+  ecs_register_comp(DebugScriptPanelComp, .destructor = ecs_destroy_script_panel);
 
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
