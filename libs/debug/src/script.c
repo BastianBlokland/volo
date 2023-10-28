@@ -9,6 +9,7 @@
 #include "debug_register.h"
 #include "debug_script.h"
 #include "ecs_utils.h"
+#include "gap_window.h"
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_script.h"
@@ -72,6 +73,7 @@ typedef struct {
 
 ecs_comp_define(DebugScriptTrackerComp) {
   DynArray entries; // DebugScriptOutput[], sorted on timestamp.
+  bool     autoOpenOnPanic;
 };
 
 ecs_comp_define(DebugScriptPanelComp) {
@@ -105,6 +107,8 @@ ecs_view_define(AssetView) {
   ecs_access_read(AssetComp);
   ecs_access_maybe_read(AssetScriptComp); // Maybe-read because it could have been unloaded since.
 }
+
+ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
 static void info_panel_tab_draw(
     UiCanvasComp*         canvas,
@@ -349,7 +353,17 @@ static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       DebugScriptTrackerComp,
-      .entries = dynarray_create_t(g_alloc_heap, DebugScriptOutput, 64));
+      .entries         = dynarray_create_t(g_alloc_heap, DebugScriptOutput, 64),
+      .autoOpenOnPanic = true);
+}
+
+static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
+  dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+    if (entry->type == DebugScriptOutputType_Panic) {
+      return true;
+    }
+  }
+  return false;
 }
 
 static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
@@ -625,6 +639,14 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
 
   output_query(tracker, assetItr, subjectView);
 
+  if (tracker->autoOpenOnPanic && output_has_panic(tracker)) {
+    EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
+    if (windowItr) {
+      debug_script_output_panel_open(world, ecs_view_entity(windowItr));
+      tracker->autoOpenOnPanic = false;
+    }
+  }
+
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
@@ -652,13 +674,15 @@ ecs_module_init(debug_script_module) {
   ecs_register_view(PanelUpdateView);
   ecs_register_view(SubjectView);
   ecs_register_view(AssetView);
+  ecs_register_view(WindowView);
 
   ecs_register_system(
       DebugScriptUpdatePanelSys,
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(SubjectView),
-      ecs_view_id(AssetView));
+      ecs_view_id(AssetView),
+      ecs_view_id(WindowView));
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
