@@ -276,6 +276,11 @@ ProcessId process_id(const Process* process) {
   return process->startResult == ProcessResult_Success ? process->handle : -1;
 }
 
+bool process_poll(const Process* process) {
+  const pid_t proc = process->handle;
+  return proc > 0 && kill(proc, 0) == 0;
+}
+
 File* process_pipe_in(Process* process) {
   diag_assert_msg(process->flags & ProcessFlags_PipeStdIn, "Input not piped");
   if (process->startResult == ProcessResult_Success) {

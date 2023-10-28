@@ -81,6 +81,11 @@ ProcessResult process_start_result(const Process*);
 ProcessId process_id(const Process*);
 
 /**
+ * Check if the given process is still running.
+ */
+bool process_poll(const Process*);
+
+/**
  * Retrieve a file handle to process pipes.
  * NOTE: Returns null if the process failed to start.
  * Pre-condition:  he process was started with the corresponding pipe flag.
