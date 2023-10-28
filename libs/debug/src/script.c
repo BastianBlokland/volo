@@ -103,9 +103,31 @@ static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal t
   dynarray_remove(&tracker->entries, 0, keepIndex);
 }
 
-static void output_query(DebugScriptTrackerComp* tracker) {
-  const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -output_max_age);
+static void output_add_panic(
+    DebugScriptTrackerComp* tracker,
+    const EcsEntityId       entity,
+    const TimeReal          time,
+    const ScriptPanic*      panic) {
+  *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
+      .entity    = entity,
+      .timestamp = time,
+  };
+  (void)panic;
+}
+
+static void output_query(DebugScriptTrackerComp* tracker, EcsView* subjectView) {
+  const TimeReal now          = time_real_clock();
+  const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   output_prune_older(tracker, oldestToKeep);
+
+  for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+    const EcsEntityId      entity         = ecs_view_entity(itr);
+    const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
+    const ScriptPanic*     panic          = scene_script_panic(scriptInstance);
+    if (panic) {
+      output_add_panic(tracker, entity, now, panic);
+    }
+  }
 }
 
 static void output_panel_tab_draw(UiCanvasComp* canvas, EcsWorld* world) {
@@ -427,13 +449,14 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (!tracker) {
     tracker = output_tracker_create(world);
   }
-  output_query(tracker);
 
   const SceneSelectionComp* selection    = ecs_view_read_t(globalItr, SceneSelectionComp);
   const AssetManagerComp*   assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subject     = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+
+  output_query(tracker, subjectView);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
