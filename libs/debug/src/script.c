@@ -10,6 +10,8 @@
 #include "debug_script.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
+#include "geo_quat.h"
+#include "geo_vector.h"
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_script.h"

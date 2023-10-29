@@ -6,7 +6,7 @@
  * Describes a rotation in 3 dimensional space.
  */
 
-typedef union {
+typedef union uGeoQuat {
   struct {
     f32 x, y, z, w;
   };

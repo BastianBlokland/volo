@@ -8,6 +8,8 @@
 #include "core_stringtable.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "ecs_entity.h"
+#include "geo_quat.h"
 #include "script_val.h"
 
 /**
