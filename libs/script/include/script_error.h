@@ -10,6 +10,7 @@ typedef enum {
   ScriptError_None,
   ScriptError_InvalidArgument,
   ScriptError_MissingArgument,
+  ScriptError_InvalidEnumEntry,
 } ScriptErrorType;
 
 typedef struct sScriptError {

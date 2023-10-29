@@ -9,6 +9,7 @@ static const String g_panicTypeStrs[] = {
     string_static("Execution limit exceeded"),
     string_static("Invalid argument"),
     string_static("Missing argument"),
+    string_static("Invalid enum entry"),
 };
 ASSERT(array_elems(g_panicTypeStrs) == ScriptPanicType_Count, "Incorrect number of type strs");
 

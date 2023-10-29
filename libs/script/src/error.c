@@ -10,6 +10,8 @@ ScriptPanicType script_error_to_panic(const ScriptErrorType type) {
     return ScriptPanic_InvalidArgument;
   case ScriptError_MissingArgument:
     return ScriptPanic_MissingArgument;
+  case ScriptError_InvalidEnumEntry:
+    return ScriptPanic_InvalidEnumEntry;
   }
   diag_assert_fail("Invalid script error type");
   UNREACHABLE

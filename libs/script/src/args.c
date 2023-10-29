@@ -97,7 +97,7 @@ i32 script_arg_maybe_enum(const ScriptArgs args, const u16 i, const ScriptEnum* 
   if (!hash) {
     return def;
   }
-  return script_enum_lookup_value(e, hash, def);
+  return script_enum_lookup_maybe_value(e, hash, def);
 }
 
 ScriptVal script_arg_last_or_null(const ScriptArgs args) {

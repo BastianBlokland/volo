@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_stringtable.h"
 #include "script_enum.h"
+#include "script_error.h"
 
 void script_enum_push(ScriptEnum* e, const String name, const i32 value) {
   diag_assert_msg(e->count < script_enum_max_entries, "ScriptEnum entry count exceeds max");
@@ -9,13 +10,26 @@ void script_enum_push(ScriptEnum* e, const String name, const i32 value) {
   ++e->count;
 }
 
-i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, const i32 fallback) {
+i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, ScriptError* err) {
   for (u32 i = 0; i != e->count; ++i) {
     if (e->nameHashes[i] == nameHash) {
       return e->values[i];
     }
   }
-  return fallback;
+  *err = (ScriptError){
+      .type     = ScriptError_InvalidEnumEntry,
+      .argIndex = script_error_arg_sentinel,
+  };
+  return 0;
+}
+
+i32 script_enum_lookup_maybe_value(const ScriptEnum* e, const StringHash nameHash, const i32 def) {
+  for (u32 i = 0; i != e->count; ++i) {
+    if (e->nameHashes[i] == nameHash) {
+      return e->values[i];
+    }
+  }
+  return def;
 }
 
 StringHash script_enum_lookup_name(const ScriptEnum* e, const i32 value) {
