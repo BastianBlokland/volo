@@ -10,10 +10,21 @@ typedef union uScriptVal ScriptVal;
 // Forward declare from 'script_enum.h'.
 typedef struct sScriptEnum ScriptEnum;
 
+// Forward declare from 'script_error.h'.
+typedef struct sScriptError ScriptError;
+
 typedef struct {
   const ScriptVal* values;
   u16              count;
 } ScriptArgs;
+
+f64          script_arg_number(ScriptArgs, u16 i, ScriptError*);
+bool         script_arg_bool(ScriptArgs, u16 i, ScriptError*);
+GeoVector    script_arg_vector3(ScriptArgs, u16 i, ScriptError*);
+GeoQuat      script_arg_quat(ScriptArgs, u16 i, ScriptError*);
+EcsEntityId  script_arg_entity(ScriptArgs, u16 i, ScriptError*);
+StringHash   script_arg_string(ScriptArgs, u16 i, ScriptError*);
+TimeDuration script_arg_time(ScriptArgs, u16 i, ScriptError*);
 
 f64          script_arg_maybe_number(ScriptArgs, u16 i, f64 def);
 bool         script_arg_maybe_bool(ScriptArgs, u16 i, bool def);
