@@ -15,13 +15,13 @@ typedef struct {
   usize            count;
 } ScriptArgs;
 
-f64          script_arg_number(ScriptArgs, u32 i, f64 fallback);
-bool         script_arg_bool(ScriptArgs, u32 i, bool fallback);
-GeoVector    script_arg_vector3(ScriptArgs, u32 i, GeoVector fallback);
-GeoQuat      script_arg_quat(ScriptArgs, u32 i, GeoQuat fallback);
-EcsEntityId  script_arg_entity(ScriptArgs, u32 i, EcsEntityId fallback);
-StringHash   script_arg_string(ScriptArgs, u32 i, StringHash fallback);
-TimeDuration script_arg_time(ScriptArgs, u32 i, TimeDuration fallback);
-i32          script_arg_enum(ScriptArgs, u32 i, const ScriptEnum*, i32 fallback);
+f64          script_arg_maybe_number(ScriptArgs, u32 i, f64 def);
+bool         script_arg_maybe_bool(ScriptArgs, u32 i, bool def);
+GeoVector    script_arg_maybe_vector3(ScriptArgs, u32 i, GeoVector def);
+GeoQuat      script_arg_maybe_quat(ScriptArgs, u32 i, GeoQuat def);
+EcsEntityId  script_arg_maybe_entity(ScriptArgs, u32 i, EcsEntityId def);
+StringHash   script_arg_maybe_string(ScriptArgs, u32 i, StringHash def);
+TimeDuration script_arg_maybe_time(ScriptArgs, u32 i, TimeDuration def);
+i32          script_arg_maybe_enum(ScriptArgs, u32 i, const ScriptEnum*, i32 def);
 
 ScriptVal script_arg_last_or_null(ScriptArgs);
