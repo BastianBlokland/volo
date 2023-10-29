@@ -21,7 +21,7 @@
  */
 
 MAYBE_UNUSED INLINE_HINT static ScriptType val_type(const ScriptVal value) {
-  return (ScriptType)value.data[3];
+  return (ScriptType)value.words[3];
 }
 
 MAYBE_UNUSED INLINE_HINT static bool val_type_check(const ScriptVal v, const ScriptTypeMask mask) {
@@ -35,56 +35,56 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_null() {
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_number(const f64 value) {
   ScriptVal result;
-  *(f64*)result.data = value;
-  result.data[3]     = ScriptType_Number;
+  *(f64*)result.bytes = value;
+  result.words[3]     = ScriptType_Number;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_bool(const bool value) {
   ScriptVal result;
-  *(bool*)result.data = value;
-  result.data[3]      = ScriptType_Bool;
+  *(bool*)result.bytes = value;
+  result.words[3]      = ScriptType_Bool;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_vector3(const GeoVector value) {
   ScriptVal result;
-  *(GeoVector*)result.data = value;
-  result.data[3]           = ScriptType_Vector3;
+  *(GeoVector*)result.bytes = value;
+  result.words[3]           = ScriptType_Vector3;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_quat(const GeoQuat q) {
   ScriptVal result;
-  *(GeoQuat*)result.data = geo_quat_norm_or_ident(q);
-  result.data[3]         = ScriptType_Quat;
+  *(GeoQuat*)result.bytes = geo_quat_norm_or_ident(q);
+  result.words[3]         = ScriptType_Quat;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_entity(const EcsEntityId value) {
   ScriptVal result;
-  *(EcsEntityId*)result.data = value;
-  result.data[3]             = ScriptType_Entity;
+  *(EcsEntityId*)result.bytes = value;
+  result.words[3]             = ScriptType_Entity;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_string(const StringHash value) {
   ScriptVal result;
-  *(StringHash*)result.data = value;
-  result.data[3]            = ScriptType_String;
+  *(StringHash*)result.bytes = value;
+  result.words[3]            = ScriptType_String;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static f64 val_as_number(const ScriptVal value) {
-  return *(f64*)value.data;
+  return *(f64*)value.bytes;
 }
 
 MAYBE_UNUSED INLINE_HINT static bool val_as_bool(const ScriptVal value) {
-  return *(bool*)value.data;
+  return *(bool*)value.bytes;
 }
 
 MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vector3_dirty_w(const ScriptVal value) {
-  return *(GeoVector*)value.data;
+  return *(GeoVector*)value.bytes;
 }
 
 MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) {
@@ -94,16 +94,16 @@ MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) 
 }
 
 MAYBE_UNUSED INLINE_HINT static GeoQuat val_as_quat(const ScriptVal value) {
-  GeoQuat   result = *(GeoQuat*)value.data;
+  GeoQuat   result = *(GeoQuat*)value.bytes;
   const f32 sum    = result.x * result.x + result.y * result.y + result.z * result.z;
   result.w         = intrinsic_sqrt_f32(1.0f - sum);
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) {
-  return *(EcsEntityId*)value.data;
+  return *(EcsEntityId*)value.bytes;
 }
 
 MAYBE_UNUSED INLINE_HINT static StringHash val_as_string(const ScriptVal value) {
-  return *(StringHash*)value.data;
+  return *(StringHash*)value.bytes;
 }
