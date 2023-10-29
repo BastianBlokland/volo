@@ -24,6 +24,18 @@ f64 script_arg_number(const ScriptArgs args, const u16 i, ScriptError* err) {
   if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
     return val_as_number(args.values[i]);
   }
+  return *err = script_arg_err(args, i), 0.0;
+}
+
+f64 script_arg_number_range(
+    const ScriptArgs args, const u16 i, const f64 min, const f64 max, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
+    const f64 res = val_as_number(args.values[i]);
+    if (LIKELY(res >= min && res < max)) {
+      return res;
+    }
+    return *err = script_error_arg(ScriptError_ArgumentOutOfRange, i), 1.0;
+  }
   return *err = script_arg_err(args, i), 1.0;
 }
 
@@ -85,7 +97,7 @@ f64 script_arg_opt_number(const ScriptArgs args, const u16 i, const f64 def, Scr
     if (LIKELY(val_type(args.values[i]) == ScriptType_Number)) {
       return val_as_number(args.values[i]);
     }
-    return *err = script_arg_err(args, i), 0;
+    return *err = script_arg_err(args, i), 0.0;
   }
   return def;
 }

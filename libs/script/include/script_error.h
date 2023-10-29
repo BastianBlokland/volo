@@ -10,6 +10,7 @@ typedef enum {
   ScriptError_None,
   ScriptError_ArgumentInvalid,
   ScriptError_ArgumentMissing,
+  ScriptError_ArgumentOutOfRange,
   ScriptError_EnumInvalidEntry,
 } ScriptErrorType;
 

@@ -24,6 +24,8 @@ ScriptPanicType script_error_to_panic(const ScriptErrorType type) {
     return ScriptPanic_ArgumentInvalid;
   case ScriptError_ArgumentMissing:
     return ScriptPanic_ArgumentMissing;
+  case ScriptError_ArgumentOutOfRange:
+    return ScriptPanic_ArgumentOutOfRange;
   case ScriptError_EnumInvalidEntry:
     return ScriptPanic_EnumInvalidEntry;
   }

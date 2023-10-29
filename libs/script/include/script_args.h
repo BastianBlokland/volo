@@ -22,6 +22,7 @@ typedef struct {
 bool script_arg_check(ScriptArgs, u16 i, ScriptTypeMask, ScriptError*);
 
 f64          script_arg_number(ScriptArgs, u16 i, ScriptError*);
+f64          script_arg_number_range(ScriptArgs, u16 i, f64 min, f64 max, ScriptError*);
 bool         script_arg_bool(ScriptArgs, u16 i, ScriptError*);
 GeoVector    script_arg_vector3(ScriptArgs, u16 i, ScriptError*);
 GeoQuat      script_arg_quat(ScriptArgs, u16 i, ScriptError*);
