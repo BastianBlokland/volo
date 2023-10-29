@@ -107,6 +107,7 @@ typedef struct {
   String                label;
   String                labelDetail;
   String                labelDescription;
+  String                doc;
   LspCompletionItemKind kind : 8;
   u8                    commitChar;
 } LspCompletionItem;
@@ -342,6 +343,9 @@ static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionI
   json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, item->label));
   if (!sentinel_check(labelDetailsObj)) {
     json_add_field_lit(ctx->jDoc, obj, "labelDetails", labelDetailsObj);
+  }
+  if (!string_is_empty(item->doc)) {
+    json_add_field_lit(ctx->jDoc, obj, "documentation", json_add_string(ctx->jDoc, item->doc));
   }
   json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
   json_add_field_lit(ctx->jDoc, obj, "commitCharacters", commitCharsArr);
@@ -824,6 +828,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
         .label            = sym->label,
         .labelDetail      = script_sym_is_func(sym) ? string_lit("()") : string_empty,
         .labelDescription = script_sym_type_str(sym->type),
+        .doc              = sym->doc,
         .kind             = lsp_completion_kind_for_sym(sym),
         .commitChar       = script_sym_is_func(sym) ? '(' : ' ',
     };

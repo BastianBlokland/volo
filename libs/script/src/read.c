@@ -52,18 +52,20 @@ typedef struct {
   u32             argCount;
   ScriptIntrinsic intr;
   String          id;
+  String          doc;
 } ScriptBuiltinFunc;
 
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
 static u32               g_scriptBuiltinFuncCount;
 
-static void script_builtin_func_add(const String id, const ScriptIntrinsic intr) {
+static void script_builtin_func_add(const String id, const ScriptIntrinsic intr, const String doc) {
   diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
   g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
       .idHash   = string_hash(id),
       .argCount = script_intrinsic_arg_count(intr),
       .intr     = intr,
       .id       = id,
+      .doc      = doc,
   };
 }
 
@@ -89,41 +91,45 @@ static void script_builtin_init() {
   diag_assert(g_scriptBuiltinConstCount == 0);
   diag_assert(g_scriptBuiltinFuncCount == 0);
 
+  // clang-format off
+
   // Builtin constants.
-  script_builtin_const_add(string_lit("null"), script_null());
-  script_builtin_const_add(string_lit("true"), script_bool(true));
-  script_builtin_const_add(string_lit("false"), script_bool(false));
-  script_builtin_const_add(string_lit("pi"), script_number(math_pi_f64));
-  script_builtin_const_add(string_lit("deg_to_rad"), script_number(math_deg_to_rad));
-  script_builtin_const_add(string_lit("rad_to_deg"), script_number(math_rad_to_deg));
-  script_builtin_const_add(string_lit("up"), script_vector3(geo_up));
-  script_builtin_const_add(string_lit("down"), script_vector3(geo_down));
-  script_builtin_const_add(string_lit("left"), script_vector3(geo_left));
-  script_builtin_const_add(string_lit("right"), script_vector3(geo_right));
-  script_builtin_const_add(string_lit("forward"), script_vector3(geo_forward));
-  script_builtin_const_add(string_lit("backward"), script_vector3(geo_backward));
-  script_builtin_const_add(string_lit("quat_ident"), script_quat(geo_quat_ident));
+  script_builtin_const_add(string_lit("null"),        script_null());
+  script_builtin_const_add(string_lit("true"),        script_bool(true));
+  script_builtin_const_add(string_lit("false"),       script_bool(false));
+  script_builtin_const_add(string_lit("pi"),          script_number(math_pi_f64));
+  script_builtin_const_add(string_lit("deg_to_rad"),  script_number(math_deg_to_rad));
+  script_builtin_const_add(string_lit("rad_to_deg"),  script_number(math_rad_to_deg));
+  script_builtin_const_add(string_lit("up"),          script_vector3(geo_up));
+  script_builtin_const_add(string_lit("down"),        script_vector3(geo_down));
+  script_builtin_const_add(string_lit("left"),        script_vector3(geo_left));
+  script_builtin_const_add(string_lit("right"),       script_vector3(geo_right));
+  script_builtin_const_add(string_lit("forward"),     script_vector3(geo_forward));
+  script_builtin_const_add(string_lit("backward"),    script_vector3(geo_backward));
+  script_builtin_const_add(string_lit("quat_ident"),  script_quat(geo_quat_ident));
 
   // Builtin functions.
-  script_builtin_func_add(string_lit("type"), ScriptIntrinsic_Type);
-  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_Vector3Compose);
-  script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
-  script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
-  script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
-  script_builtin_func_add(string_lit("euler"), ScriptIntrinsic_QuatFromEuler);
-  script_builtin_func_add(string_lit("angle_axis"), ScriptIntrinsic_QuatFromAngleAxis);
-  script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Distance);
-  script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Magnitude);
-  script_builtin_func_add(string_lit("normalize"), ScriptIntrinsic_Normalize);
-  script_builtin_func_add(string_lit("angle"), ScriptIntrinsic_Angle);
-  script_builtin_func_add(string_lit("random"), ScriptIntrinsic_Random);
-  script_builtin_func_add(string_lit("random"), ScriptIntrinsic_RandomBetween);
-  script_builtin_func_add(string_lit("random_sphere"), ScriptIntrinsic_RandomSphere);
-  script_builtin_func_add(string_lit("random_circle_xz"), ScriptIntrinsic_RandomCircleXZ);
-  script_builtin_func_add(string_lit("round_down"), ScriptIntrinsic_RoundDown);
-  script_builtin_func_add(string_lit("round_nearest"), ScriptIntrinsic_RoundNearest);
-  script_builtin_func_add(string_lit("round_up"), ScriptIntrinsic_RoundUp);
-  script_builtin_func_add(string_lit("assert"), ScriptIntrinsic_Assert);
+  script_builtin_func_add(string_lit("type"),             ScriptIntrinsic_Type,               string_lit("Retrieve the type of the given value."));
+  script_builtin_func_add(string_lit("vector"),           ScriptIntrinsic_Vector3Compose,     string_lit("Construct a new vector."));
+  script_builtin_func_add(string_lit("vector_x"),         ScriptIntrinsic_VectorX,            string_lit("Retrieve the x component of a vector."));
+  script_builtin_func_add(string_lit("vector_y"),         ScriptIntrinsic_VectorY,            string_lit("Retrieve the y component of a vector."));
+  script_builtin_func_add(string_lit("vector_z"),         ScriptIntrinsic_VectorZ,            string_lit("Retrieve the z component of a vector."));
+  script_builtin_func_add(string_lit("euler"),            ScriptIntrinsic_QuatFromEuler,      string_lit("Construct a quaternion from the given euler angles (in radians)."));
+  script_builtin_func_add(string_lit("angle_axis"),       ScriptIntrinsic_QuatFromAngleAxis,  string_lit("Construct a quaternion from an angle (in radians) and an axis."));
+  script_builtin_func_add(string_lit("distance"),         ScriptIntrinsic_Distance,           string_lit("Compute the distance between two values."));
+  script_builtin_func_add(string_lit("distance"),         ScriptIntrinsic_Magnitude,          string_lit("Compute the magnitude of the given value."));
+  script_builtin_func_add(string_lit("normalize"),        ScriptIntrinsic_Normalize,          string_lit("Normalize the given value."));
+  script_builtin_func_add(string_lit("angle"),            ScriptIntrinsic_Angle,              string_lit("Compute the angle (in radians) between two directions or two quaternions."));
+  script_builtin_func_add(string_lit("random"),           ScriptIntrinsic_Random,             string_lit("Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution."));
+  script_builtin_func_add(string_lit("random"),           ScriptIntrinsic_RandomBetween,      string_lit("Compute a random value between the two given values."));
+  script_builtin_func_add(string_lit("random_sphere"),    ScriptIntrinsic_RandomSphere,       string_lit("Compute a random vector inside a unit sphere."));
+  script_builtin_func_add(string_lit("random_circle_xz"), ScriptIntrinsic_RandomCircleXZ,     string_lit("Compute a random vector inside a xz unit circle."));
+  script_builtin_func_add(string_lit("round_down"),       ScriptIntrinsic_RoundDown,          string_lit("Round the given value down to an integer."));
+  script_builtin_func_add(string_lit("round_nearest"),    ScriptIntrinsic_RoundNearest,       string_lit("Round the given value to the nearest integer."));
+  script_builtin_func_add(string_lit("round_up"),         ScriptIntrinsic_RoundUp,            string_lit("Round the given value up to an integer."));
+  script_builtin_func_add(string_lit("assert"),           ScriptIntrinsic_Assert,             string_lit("Assert that the given value is truthy."));
+
+  // clang-format on
 }
 
 typedef enum {
@@ -1504,6 +1510,7 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
     const ScriptSym sym = {
         .type  = ScriptSymType_BuiltinFunction,
         .label = g_scriptBuiltinFuncs[i].id,
+        .doc   = g_scriptBuiltinFuncs[i].doc,
     };
     script_sym_push(ctx->syms, &sym);
   }

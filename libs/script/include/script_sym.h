@@ -28,6 +28,7 @@ typedef struct {
 typedef struct {
   ScriptSymType type;
   String        label;
+  String        doc;
   union {
     ScriptSymVariable variable;
   } data;
