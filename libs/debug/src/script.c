@@ -368,6 +368,8 @@ static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
   return false;
 }
 
+static void output_clear(DebugScriptTrackerComp* tracker) { dynarray_clear(&tracker->entries); }
+
 static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
   usize keepIndex = 0;
   for (; keepIndex != tracker->entries.size; ++keepIndex) {
@@ -437,28 +439,35 @@ static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
   UNREACHABLE
 }
 
-static void output_options_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp) {
+static void output_options_draw(
+    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Mode:"));
   ui_table_next_column(canvas, &table);
   ui_select(canvas, (i32*)&panelComp->outputMode, g_outputModeNames, DebugScriptOutputMode_Count);
 
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("Clear"))) {
+    output_clear(tracker);
+  }
+
   ui_layout_pop(canvas);
 }
 
 static void output_panel_tab_draw(
-    UiCanvasComp*                 canvas,
-    DebugScriptPanelComp*         panelComp,
-    const DebugScriptTrackerComp* tracker,
-    SceneSelectionComp*           selection,
-    EcsIterator*                  subjectItr) {
-  output_options_draw(canvas, panelComp);
+    UiCanvasComp*           canvas,
+    DebugScriptPanelComp*   panelComp,
+    DebugScriptTrackerComp* tracker,
+    SceneSelectionComp*     selection,
+    EcsIterator*            subjectItr) {
+  output_options_draw(canvas, panelComp, tracker);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -535,12 +544,12 @@ static void output_panel_tab_draw(
 }
 
 static void script_panel_draw(
-    UiCanvasComp*                 canvas,
-    DebugScriptPanelComp*         panelComp,
-    const DebugScriptTrackerComp* tracker,
-    SceneSelectionComp*           selection,
-    EcsIterator*                  assetItr,
-    EcsIterator*                  subjectItr) {
+    UiCanvasComp*           canvas,
+    DebugScriptPanelComp*   panelComp,
+    DebugScriptTrackerComp* tracker,
+    SceneSelectionComp*     selection,
+    EcsIterator*            assetItr,
+    EcsIterator*            subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
       canvas,
