@@ -61,6 +61,13 @@ TimeDuration script_arg_time(const ScriptArgs args, const u16 i, ScriptError* er
   return *err = script_arg_err(args, i), 0;
 }
 
+i32 script_arg_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_String)) {
+    return script_enum_lookup_value(e, val_as_string(args.values[i]), err);
+  }
+  return *err = script_arg_err(args, i), 0;
+}
+
 f64 script_arg_maybe_number(const ScriptArgs args, const u16 i, const f64 def) {
   return args.count > i ? script_get_number(args.values[i], def) : def;
 }

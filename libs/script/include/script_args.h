@@ -25,6 +25,7 @@ GeoQuat      script_arg_quat(ScriptArgs, u16 i, ScriptError*);
 EcsEntityId  script_arg_entity(ScriptArgs, u16 i, ScriptError*);
 StringHash   script_arg_string(ScriptArgs, u16 i, ScriptError*);
 TimeDuration script_arg_time(ScriptArgs, u16 i, ScriptError*);
+i32          script_arg_enum(ScriptArgs, u16 i, const ScriptEnum*, ScriptError*);
 
 f64          script_arg_maybe_number(ScriptArgs, u16 i, f64 def);
 bool         script_arg_maybe_bool(ScriptArgs, u16 i, bool def);
