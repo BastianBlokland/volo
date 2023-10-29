@@ -30,6 +30,9 @@ typedef enum {
   ScriptType_Count,
 } ScriptType;
 
+typedef u16 ScriptTypeMask;
+ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
+
 /**
  * Type-erased script value.
  */
@@ -44,6 +47,7 @@ ASSERT(alignof(ScriptVal) == 16, "Expected ScriptVal's alignment to be 128 bits"
  * Retrieve the type of the given value.
  */
 ScriptType script_type(ScriptVal);
+bool       script_type_check(ScriptVal, ScriptTypeMask);
 
 /**
  * Type-erase a value into a ScriptVal.

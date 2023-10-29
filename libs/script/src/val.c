@@ -16,6 +16,10 @@
 
 ScriptType script_type(const ScriptVal value) { return val_type(value); }
 
+bool script_type_check(const ScriptVal value, const ScriptTypeMask mask) {
+  return val_type_check(value, mask);
+}
+
 ScriptVal script_null() { return val_null(); }
 ScriptVal script_number(const f64 value) { return val_number(value); }
 ScriptVal script_bool(const bool value) { return val_bool(value); }
@@ -609,8 +613,8 @@ ScriptVal script_val_round_up(const ScriptVal val) {
 }
 
 ScriptVal script_val_vector3_compose(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
-  if (val_type(x) != ScriptType_Number || val_type(y) != ScriptType_Number ||
-      val_type(z) != ScriptType_Number) {
+  const ScriptType numType = ScriptType_Number;
+  if (val_type(x) != numType || val_type(y) != numType || val_type(z) != numType) {
     return val_null();
   }
   return val_vector3(
@@ -633,8 +637,8 @@ ScriptVal script_val_vector_z(const ScriptVal val) {
 }
 
 ScriptVal script_val_quat_from_euler(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
-  if (val_type(x) != ScriptType_Number || val_type(y) != ScriptType_Number ||
-      val_type(z) != ScriptType_Number) {
+  const ScriptType numType = ScriptType_Number;
+  if (val_type(x) != numType || val_type(y) != numType || val_type(z) != numType) {
     return val_null();
   }
   const GeoVector eulerAngles =
