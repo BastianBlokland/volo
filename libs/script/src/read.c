@@ -93,41 +93,50 @@ static void script_builtin_init() {
 
   // clang-format off
 
+#define BUILTIN_C(_NAME_, _VAL_)                                                                   \
+    script_builtin_const_add(string_lit(_NAME_), _VAL_)
+
+#define BUILTIN_F(_NAME_, _INTR_, _DOC_)                                                           \
+    script_builtin_func_add(string_lit(_NAME_), ScriptIntrinsic_##_INTR_, string_lit(_DOC_))
+
   // Builtin constants.
-  script_builtin_const_add(string_lit("null"),        script_null());
-  script_builtin_const_add(string_lit("true"),        script_bool(true));
-  script_builtin_const_add(string_lit("false"),       script_bool(false));
-  script_builtin_const_add(string_lit("pi"),          script_number(math_pi_f64));
-  script_builtin_const_add(string_lit("deg_to_rad"),  script_number(math_deg_to_rad));
-  script_builtin_const_add(string_lit("rad_to_deg"),  script_number(math_rad_to_deg));
-  script_builtin_const_add(string_lit("up"),          script_vector3(geo_up));
-  script_builtin_const_add(string_lit("down"),        script_vector3(geo_down));
-  script_builtin_const_add(string_lit("left"),        script_vector3(geo_left));
-  script_builtin_const_add(string_lit("right"),       script_vector3(geo_right));
-  script_builtin_const_add(string_lit("forward"),     script_vector3(geo_forward));
-  script_builtin_const_add(string_lit("backward"),    script_vector3(geo_backward));
-  script_builtin_const_add(string_lit("quat_ident"),  script_quat(geo_quat_ident));
+  BUILTIN_C("null",        script_null());
+  BUILTIN_C("true",        script_bool(true));
+  BUILTIN_C("false",       script_bool(false));
+  BUILTIN_C("pi",          script_number(math_pi_f64));
+  BUILTIN_C("deg_to_rad",  script_number(math_deg_to_rad));
+  BUILTIN_C("rad_to_deg",  script_number(math_rad_to_deg));
+  BUILTIN_C("up",          script_vector3(geo_up));
+  BUILTIN_C("down",        script_vector3(geo_down));
+  BUILTIN_C("left",        script_vector3(geo_left));
+  BUILTIN_C("right",       script_vector3(geo_right));
+  BUILTIN_C("forward",     script_vector3(geo_forward));
+  BUILTIN_C("backward",    script_vector3(geo_backward));
+  BUILTIN_C("quat_ident",  script_quat(geo_quat_ident));
 
   // Builtin functions.
-  script_builtin_func_add(string_lit("type"),             ScriptIntrinsic_Type,               string_lit("Retrieve the type of the given value."));
-  script_builtin_func_add(string_lit("vector"),           ScriptIntrinsic_Vector3Compose,     string_lit("Construct a new vector."));
-  script_builtin_func_add(string_lit("vector_x"),         ScriptIntrinsic_VectorX,            string_lit("Retrieve the x component of a vector."));
-  script_builtin_func_add(string_lit("vector_y"),         ScriptIntrinsic_VectorY,            string_lit("Retrieve the y component of a vector."));
-  script_builtin_func_add(string_lit("vector_z"),         ScriptIntrinsic_VectorZ,            string_lit("Retrieve the z component of a vector."));
-  script_builtin_func_add(string_lit("euler"),            ScriptIntrinsic_QuatFromEuler,      string_lit("Construct a quaternion from the given euler angles (in radians)."));
-  script_builtin_func_add(string_lit("angle_axis"),       ScriptIntrinsic_QuatFromAngleAxis,  string_lit("Construct a quaternion from an angle (in radians) and an axis."));
-  script_builtin_func_add(string_lit("distance"),         ScriptIntrinsic_Distance,           string_lit("Compute the distance between two values."));
-  script_builtin_func_add(string_lit("distance"),         ScriptIntrinsic_Magnitude,          string_lit("Compute the magnitude of the given value."));
-  script_builtin_func_add(string_lit("normalize"),        ScriptIntrinsic_Normalize,          string_lit("Normalize the given value."));
-  script_builtin_func_add(string_lit("angle"),            ScriptIntrinsic_Angle,              string_lit("Compute the angle (in radians) between two directions or two quaternions."));
-  script_builtin_func_add(string_lit("random"),           ScriptIntrinsic_Random,             string_lit("Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution."));
-  script_builtin_func_add(string_lit("random"),           ScriptIntrinsic_RandomBetween,      string_lit("Compute a random value between the two given values."));
-  script_builtin_func_add(string_lit("random_sphere"),    ScriptIntrinsic_RandomSphere,       string_lit("Compute a random vector inside a unit sphere."));
-  script_builtin_func_add(string_lit("random_circle_xz"), ScriptIntrinsic_RandomCircleXZ,     string_lit("Compute a random vector inside a xz unit circle."));
-  script_builtin_func_add(string_lit("round_down"),       ScriptIntrinsic_RoundDown,          string_lit("Round the given value down to an integer."));
-  script_builtin_func_add(string_lit("round_nearest"),    ScriptIntrinsic_RoundNearest,       string_lit("Round the given value to the nearest integer."));
-  script_builtin_func_add(string_lit("round_up"),         ScriptIntrinsic_RoundUp,            string_lit("Round the given value up to an integer."));
-  script_builtin_func_add(string_lit("assert"),           ScriptIntrinsic_Assert,             string_lit("Assert that the given value is truthy."));
+  BUILTIN_F("type",             Type,               "Retrieve the type of the given value.");
+  BUILTIN_F("vector",           Vector3Compose,     "Construct a new vector.");
+  BUILTIN_F("vector_x",         VectorX,            "Retrieve the x component of a vector.");
+  BUILTIN_F("vector_y",         VectorY,            "Retrieve the y component of a vector.");
+  BUILTIN_F("vector_z",         VectorZ,            "Retrieve the z component of a vector.");
+  BUILTIN_F("euler",            QuatFromEuler,      "Construct a quaternion from the given euler angles (in radians).");
+  BUILTIN_F("angle_axis",       QuatFromAngleAxis,  "Construct a quaternion from an angle (in radians) and an axis.");
+  BUILTIN_F("distance",         Distance,           "Compute the distance between two values.");
+  BUILTIN_F("distance",         Magnitude,          "Compute the magnitude of the given value.");
+  BUILTIN_F("normalize",        Normalize,          "Normalize the given value.");
+  BUILTIN_F("angle",            Angle,              "Compute the angle (in radians) between two directions or two quaternions.");
+  BUILTIN_F("random",           Random,             "Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution.");
+  BUILTIN_F("random",           RandomBetween,      "Compute a random value between the two given values.");
+  BUILTIN_F("random_sphere",    RandomSphere,       "Compute a random vector inside a unit sphere.");
+  BUILTIN_F("random_circle_xz", RandomCircleXZ,     "Compute a random vector inside a xz unit circle.");
+  BUILTIN_F("round_down",       RoundDown,          "Round the given value down to an integer.");
+  BUILTIN_F("round_nearest",    RoundNearest,       "Round the given value to the nearest integer.");
+  BUILTIN_F("round_up",         RoundUp,            "Round the given value up to an integer.");
+  BUILTIN_F("assert",           Assert,             "Assert that the given value is truthy.");
+
+#undef BUILTIN_C
+#undef BUILTIN_F
 
   // clang-format on
 }
