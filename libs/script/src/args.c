@@ -6,10 +6,10 @@
 #include "val_internal.h"
 
 NO_INLINE_HINT static ScriptError script_arg_err(const ScriptArgs args, const u16 i) {
-  return (ScriptError){
-      .type     = args.count > i ? ScriptError_InvalidArgument : ScriptError_MissingArgument,
-      .argIndex = i,
-  };
+  if (args.count > i) {
+    return script_error_arg(ScriptError_InvalidArgument, i);
+  }
+  return script_error_arg(ScriptError_MissingArgument, i);
 }
 
 f64 script_arg_number(const ScriptArgs args, const u16 i, ScriptError* err) {

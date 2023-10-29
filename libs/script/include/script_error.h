@@ -18,4 +18,7 @@ typedef struct sScriptError {
   u16             argIndex;
 } ScriptError;
 
+ScriptError script_error(ScriptErrorType);
+ScriptError script_error_arg(ScriptErrorType, u16 argIndex);
+
 ScriptPanicType script_error_to_panic(ScriptErrorType);
