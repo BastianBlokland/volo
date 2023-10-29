@@ -461,9 +461,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_number(args, 2, 0.0);
@@ -934,13 +934,14 @@ ecs_system_define(SceneScriptUpdateSys) {
         ctx.scriptInstance->resVersion = resVersion;
       }
       scene_script_eval(&ctx);
-      continue;
-    }
-
-    // Otherwise start loading the asset.
-    if (!ecs_world_has_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp)) {
-      if (++startedAssetLoads < scene_script_max_asset_loads) {
-        ecs_world_add_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp);
+    } else {
+      // Script asset not loaded; clear any previous stats and start loading it.
+      ctx.scriptInstance->stats     = (SceneScriptStats){0};
+      ctx.scriptInstance->lastPanic = (ScriptPanic){0};
+      if (!ecs_world_has_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp)) {
+        if (++startedAssetLoads < scene_script_max_asset_loads) {
+          ecs_world_add_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp);
+        }
       }
     }
   }
