@@ -10,8 +10,8 @@ typedef enum {
 } ScriptErrorType;
 
 typedef struct sScriptError {
-  ScriptErrorType type : 8;
-  u8              argIndex;
+  ScriptErrorType type : 16;
+  u16             argIndex;
 } ScriptError;
 
 ScriptPanicType script_error_to_panic(ScriptErrorType);
