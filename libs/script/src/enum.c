@@ -16,7 +16,7 @@ i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, Scr
       return e->values[i];
     }
   }
-  return *err = script_error(ScriptError_InvalidEnumEntry), 0;
+  return *err = script_error(ScriptError_EnumInvalidEntry), 0;
 }
 
 i32 script_enum_lookup_maybe_value(const ScriptEnum* e, const StringHash nameHash, const i32 def) {

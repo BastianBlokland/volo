@@ -8,9 +8,9 @@ typedef enum eScriptPanicType {
   ScriptPanic_None,
   ScriptPanic_AssertionFailed,
   ScriptPanic_ExecutionLimitExceeded,
-  ScriptPanic_InvalidArgument,
-  ScriptPanic_MissingArgument,
-  ScriptPanic_InvalidEnumEntry,
+  ScriptPanic_ArgumentInvalid,
+  ScriptPanic_ArgumentMissing,
+  ScriptPanic_EnumInvalidEntry,
 
   ScriptPanicType_Count,
 } ScriptPanicType;

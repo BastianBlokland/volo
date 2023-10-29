@@ -8,9 +8,9 @@ typedef enum eScriptPanicType ScriptPanicType;
 
 typedef enum {
   ScriptError_None,
-  ScriptError_InvalidArgument,
-  ScriptError_MissingArgument,
-  ScriptError_InvalidEnumEntry,
+  ScriptError_ArgumentInvalid,
+  ScriptError_ArgumentMissing,
+  ScriptError_EnumInvalidEntry,
 } ScriptErrorType;
 
 typedef struct sScriptError {

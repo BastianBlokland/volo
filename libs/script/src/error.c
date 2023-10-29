@@ -20,12 +20,12 @@ ScriptPanicType script_error_to_panic(const ScriptErrorType type) {
   switch (type) {
   case ScriptError_None:
     return ScriptPanic_None;
-  case ScriptError_InvalidArgument:
-    return ScriptPanic_InvalidArgument;
-  case ScriptError_MissingArgument:
-    return ScriptPanic_MissingArgument;
-  case ScriptError_InvalidEnumEntry:
-    return ScriptPanic_InvalidEnumEntry;
+  case ScriptError_ArgumentInvalid:
+    return ScriptPanic_ArgumentInvalid;
+  case ScriptError_ArgumentMissing:
+    return ScriptPanic_ArgumentMissing;
+  case ScriptError_EnumInvalidEntry:
+    return ScriptPanic_EnumInvalidEntry;
   }
   diag_assert_fail("Invalid script error type");
   UNREACHABLE
