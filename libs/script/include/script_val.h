@@ -1,10 +1,22 @@
 #pragma once
-#include "core_dynstring.h"
-#include "ecs_entity.h"
-#include "geo_quat.h"
+#include "core_annotation.h"
+#include "core_string.h"
+#include "core_types.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
+// Forward declare from 'geo_quat.h'.
+typedef union uGeoQuat GeoQuat;
+
+// Forward declare from 'geo_vector.h'.
+typedef union uGeoVector GeoVector;
+
+// Forward declare from 'ecs_entity.h'.
+typedef u64 EcsEntityId;
 
 typedef enum {
   ScriptType_Null,
@@ -18,17 +30,25 @@ typedef enum {
   ScriptType_Count,
 } ScriptType;
 
+typedef u16 ScriptTypeMask;
+ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
+
+#define script_type_mask(_TYPE_) ((ScriptTypeMask)(1 << _TYPE_))
+#define script_type_mask_null script_type_mask(ScriptType_Null)
+#define script_type_mask_number script_type_mask(ScriptType_Number)
+#define script_type_mask_bool script_type_mask(ScriptType_Bool)
+#define script_type_mask_vector3 script_type_mask(ScriptType_Vector3)
+#define script_type_mask_quat script_type_mask(ScriptType_Quat)
+#define script_type_mask_entity script_type_mask(ScriptType_Entity)
+#define script_type_mask_string script_type_mask(ScriptType_String)
+#define script_type_mask_time script_type_mask(ScriptType_Number)
+
 /**
  * Type-erased script value.
  */
 typedef union uScriptVal {
-  ALIGNAS(16) u32 data[4];
-  f64         unsafeNumber;
-  bool        unsafeBool;
-  GeoVector   unsafeVector;
-  GeoQuat     unsafeQuat;
-  EcsEntityId unsafeEntity;
-  StringHash  unsafeStringHash;
+  ALIGNAS(16) u8 bytes[16];
+  ALIGNAS(16) u32 words[4];
 } ScriptVal;
 
 ASSERT(sizeof(ScriptVal) == 16, "Expected ScriptVal's size to be 128 bits");
@@ -38,6 +58,7 @@ ASSERT(alignof(ScriptVal) == 16, "Expected ScriptVal's alignment to be 128 bits"
  * Retrieve the type of the given value.
  */
 ScriptType script_type(ScriptVal);
+bool       script_type_check(ScriptVal, ScriptTypeMask);
 
 /**
  * Type-erase a value into a ScriptVal.

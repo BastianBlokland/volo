@@ -4,10 +4,14 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
-typedef enum {
+typedef enum eScriptPanicType {
   ScriptPanic_None,
   ScriptPanic_AssertionFailed,
   ScriptPanic_ExecutionLimitExceeded,
+  ScriptPanic_ArgumentInvalid,
+  ScriptPanic_ArgumentMissing,
+  ScriptPanic_ArgumentOutOfRange,
+  ScriptPanic_EnumInvalidEntry,
 
   ScriptPanicType_Count,
 } ScriptPanicType;

@@ -10,7 +10,7 @@ typedef struct sRng Rng;
  * For describing a position / offset in 2 / 3 / 4 dimensions.
  */
 
-typedef union {
+typedef union uGeoVector {
   struct {
     f32 x, y, z, w;
   };

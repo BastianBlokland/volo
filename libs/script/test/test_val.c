@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_stringtable.h"
 #include "core_time.h"
+#include "geo_quat.h"
 #include "script_val.h"
 
 #include "utils_internal.h"

@@ -120,8 +120,12 @@ ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBind
 }
 
 ScriptVal script_binder_exec(
-    const ScriptBinder* binder, const ScriptBinderSlot func, void* ctx, const ScriptArgs args) {
+    const ScriptBinder*    binder,
+    const ScriptBinderSlot func,
+    void*                  ctx,
+    const ScriptArgs       args,
+    ScriptError*           err) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert(func < binder->count);
-  return binder->funcs[func](ctx, args);
+  return binder->funcs[func](ctx, args, err);
 }

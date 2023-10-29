@@ -1,22 +1,25 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "script_binder.h"
+#include "script_error.h"
 #include "script_val.h"
 
 typedef struct {
   u32 counterA, counterB;
 } ScriptBindTestCtx;
 
-static ScriptVal test_bind_a(void* ctx, const ScriptArgs args) {
+static ScriptVal test_bind_a(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
+  (void)err;
 
   ScriptBindTestCtx* typedCtx = ctx;
   ++typedCtx->counterA;
   return script_null();
 }
 
-static ScriptVal test_bind_b(void* ctx, const ScriptArgs args) {
+static ScriptVal test_bind_b(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
+  (void)err;
 
   ScriptBindTestCtx* typedCtx = ctx;
   ++typedCtx->counterB;
@@ -45,18 +48,23 @@ spec(binder) {
   }
 
   it("can execute bound functions") {
-    script_binder_declare(binder, string_lit("a"), test_bind_a);
-    script_binder_declare(binder, string_lit("b"), test_bind_b);
+    ScriptError err = {0};
+
+    const String a = string_lit("a");
+    const String b = string_lit("b");
+
+    script_binder_declare(binder, a, test_bind_a);
+    script_binder_declare(binder, b, test_bind_b);
     script_binder_finalize(binder);
 
     ScriptBindTestCtx ctx  = {0};
     const ScriptArgs  args = {0};
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash_lit("a")), &ctx, args);
+    script_binder_exec(binder, script_binder_lookup(binder, string_hash(a)), &ctx, args, &err);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 0);
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash_lit("b")), &ctx, args);
+    script_binder_exec(binder, script_binder_lookup(binder, string_hash(b)), &ctx, args, &err);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 1);
   }
