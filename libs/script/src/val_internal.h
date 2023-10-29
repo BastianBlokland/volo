@@ -64,6 +64,13 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_entity(const EcsEntityId value) {
   return result;
 }
 
+MAYBE_UNUSED INLINE_HINT static ScriptVal val_string(const StringHash value) {
+  ScriptVal result;
+  *(StringHash*)result.data = value;
+  result.data[3]            = ScriptType_String;
+  return result;
+}
+
 MAYBE_UNUSED INLINE_HINT static f64 val_as_number(const ScriptVal value) {
   return *(f64*)value.data;
 }
