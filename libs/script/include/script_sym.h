@@ -1,5 +1,6 @@
 #pragma once
 #include "core_dynstring.h"
+#include "script_intrinsic.h"
 #include "script_pos.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -22,6 +23,10 @@ typedef enum {
 } ScriptSymType;
 
 typedef struct {
+  ScriptIntrinsic intr;
+} ScriptSymBuiltinFunction;
+
+typedef struct {
   ScriptRange scope;
 } ScriptSymVariable;
 
@@ -30,7 +35,8 @@ typedef struct {
   String        label;
   String        doc;
   union {
-    ScriptSymVariable variable;
+    ScriptSymBuiltinFunction builtinFunction;
+    ScriptSymVariable        variable;
   } data;
 } ScriptSym;
 
