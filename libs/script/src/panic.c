@@ -8,6 +8,7 @@ static const String g_panicTypeStrs[] = {
     string_static("Assertion failed"),
     string_static("Execution limit exceeded"),
     string_static("Invalid value"),
+    string_static("Missing argument"),
 };
 ASSERT(array_elems(g_panicTypeStrs) == ScriptPanicType_Count, "Incorrect number of type strs");
 
