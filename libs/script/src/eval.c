@@ -331,7 +331,7 @@ ScriptEvalResult script_eval(
     const ScriptBinder* binder,
     void*               bindCtx) {
   if (binder) {
-    diag_assert_msg(script_binder_sig(binder) == doc->binderSignature, "Incompatible binder");
+    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
   }
   ScriptEvalContext ctx = {
       .doc     = doc,

@@ -2,7 +2,7 @@
 #include "script_doc.h"
 
 // Forward declare from 'script_binder.h'.
-typedef u64 ScriptBinderSignature;
+typedef u64 ScriptBinderHash;
 
 typedef u32 ScriptValId;
 typedef u32 ScriptExprSet;
@@ -57,11 +57,11 @@ typedef union {
 } ScriptExprData;
 
 struct sScriptDoc {
-  DynArray              exprData;   // ScriptExprData[]
-  DynArray              exprTypes;  // u8[] (ScriptExprType[])
-  DynArray              exprRanges; // ScriptRange[]
-  DynArray              exprSets;   // ScriptExpr[]
-  DynArray              values;     // ScriptVal[]
-  Allocator*            alloc;
-  ScriptBinderSignature binderSignature;
+  DynArray         exprData;   // ScriptExprData[]
+  DynArray         exprTypes;  // u8[] (ScriptExprType[])
+  DynArray         exprRanges; // ScriptRange[]
+  DynArray         exprSets;   // ScriptExpr[]
+  DynArray         values;     // ScriptVal[]
+  Allocator*       alloc;
+  ScriptBinderHash binderHash;
 };

@@ -1553,11 +1553,11 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
 }
 
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
-  const ScriptBinderSignature signature = script_binder_sig(binder);
-  if (doc->binderSignature && doc->binderSignature != signature) {
+  const ScriptBinderHash hash = script_binder_hash(binder);
+  if (doc->binderHash && doc->binderHash != hash) {
     diag_assert_fail("ScriptDoc was already used with a different (and incompatible binder)");
   }
-  doc->binderSignature = signature;
+  doc->binderHash = hash;
 }
 
 static void script_read_init() {

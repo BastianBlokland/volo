@@ -14,7 +14,7 @@ typedef struct sScriptError ScriptError;
 #define script_binder_slot_sentinel sentinel_u16
 
 typedef u16 ScriptBinderSlot;
-typedef u64 ScriptBinderSignature;
+typedef u64 ScriptBinderHash;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs, ScriptError*);
 
@@ -55,11 +55,11 @@ void script_binder_finalize(ScriptBinder*);
 u16 script_binder_count(const ScriptBinder*);
 
 /**
- * Compute a signature for the binder.
- * Binders with the same signature are compatible.
+ * Compute a hash for the binder.
+ * Binders with the same hash are compatible.
  * Pre-condition: Binder has been finalized.
  */
-ScriptBinderSignature script_binder_sig(const ScriptBinder*);
+ScriptBinderHash script_binder_hash(const ScriptBinder*);
 
 /**
  * Lookup a function by name.
