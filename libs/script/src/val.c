@@ -12,100 +12,19 @@
 #include "geo_quat.h"
 #include "script_val.h"
 
-/**
- * ScriptVal's are 128bit values with 128bit alignment.
- *
- * | Type    | Word 0        | Word 1        | Word 2     | Word 3       |
- * |---------|---------------|---------------|------------|--------------|
- * | null    | unused        | unused        | unused     | type tag (0) |
- * | number  | lower 32 bits | upper 32 bits | unused     | type tag (1) |
- * | Bool    | 0 / 1         | unused        | unused     | type tag (2) |
- * | Vector3 | f32 x         | f32 y         | f32 z      | type tag (3) |
- * | Quat    | f32 q1        | f32 q2        | f32 q3     | type tag (4) |
- * | Entity  | lower 32 bits | upper 32 bits | unused     | type tag (5) |
- * | String  | u32           | unused        | unused     | type tag (6) |
- *
- * NOTE: Only unit quaternions are supported (as the 4th component is reconstructed).
- * NOTE: Assumes little-endian byte order.
- */
-
-INLINE_HINT static f64 val_as_number(const ScriptVal value) { return *(f64*)value.data; }
-
-INLINE_HINT static bool val_as_bool(const ScriptVal value) { return *(bool*)value.data; }
-
-INLINE_HINT static GeoVector val_as_vector3_dirty_w(const ScriptVal value) {
-  return *(GeoVector*)value.data;
-}
-
-INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) {
-  GeoVector result = val_as_vector3_dirty_w(value);
-  result.w         = 0.0f; // W value is aliased with the type tag.
-  return result;
-}
-
-INLINE_HINT static GeoQuat val_as_quat(const ScriptVal value) {
-  GeoQuat   result = *(GeoQuat*)value.data;
-  const f32 sum    = result.x * result.x + result.y * result.y + result.z * result.z;
-  result.w         = intrinsic_sqrt_f32(1.0f - sum);
-  return result;
-}
-
-INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) {
-  return *(EcsEntityId*)value.data;
-}
-
-INLINE_HINT static StringHash val_as_string(const ScriptVal value) {
-  return *(StringHash*)value.data;
-}
+#include "val_internal.h"
 
 ScriptType script_type(const ScriptVal value) { return (ScriptType)value.data[3]; }
 
-ScriptVal script_null() {
-  ASSERT(ScriptType_Null == 0, "ScriptType_Null should be initializable using zero-init");
-  return (ScriptVal){0};
-}
-
-ScriptVal script_number(const f64 value) {
-  ScriptVal result;
-  *(f64*)result.data = value;
-  result.data[3]     = ScriptType_Number;
-  return result;
-}
-
-ScriptVal script_bool(const bool value) {
-  ScriptVal result;
-  *(bool*)result.data = value;
-  result.data[3]      = ScriptType_Bool;
-  return result;
-}
-
-ScriptVal script_vector3(const GeoVector value) {
-  ScriptVal result;
-  *(GeoVector*)result.data = value;
-  result.data[3]           = ScriptType_Vector3;
-  return result;
-}
-
+ScriptVal script_null() { return val_null(); }
+ScriptVal script_number(const f64 value) { return val_number(value); }
+ScriptVal script_bool(const bool value) { return val_bool(value); }
+ScriptVal script_vector3(const GeoVector value) { return val_vector3(value); }
 ScriptVal script_vector3_lit(const f32 x, const f32 y, const f32 z) {
-  ScriptVal result;
-  *(GeoVector*)result.data = geo_vector(x, y, z);
-  result.data[3]           = ScriptType_Vector3;
-  return result;
+  return val_vector3(geo_vector(x, y, z));
 }
-
-ScriptVal script_quat(const GeoQuat q) {
-  ScriptVal result;
-  *(GeoQuat*)result.data = geo_quat_norm_or_ident(q);
-  result.data[3]         = ScriptType_Quat;
-  return result;
-}
-
-ScriptVal script_entity(const EcsEntityId value) {
-  ScriptVal result;
-  *(EcsEntityId*)result.data = value;
-  result.data[3]             = ScriptType_Entity;
-  return result;
-}
+ScriptVal script_quat(const GeoQuat q) { return val_quat(q); }
+ScriptVal script_entity(const EcsEntityId value) { return val_entity(value); }
 
 ScriptVal script_entity_or_null(const EcsEntityId entity) {
   return entity ? script_entity(entity) : script_null();
