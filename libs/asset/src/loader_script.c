@@ -1,5 +1,6 @@
 #include "asset_script.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -8,6 +9,40 @@
 #include "script_read.h"
 
 #include "repo_internal.h"
+
+static const struct {
+  String name;
+} g_scriptFinderFuncs[] = {
+    {string_static("self")},
+    {string_static("exists")},
+    {string_static("position")},
+    {string_static("rotation")},
+    {string_static("scale")},
+    {string_static("name")},
+    {string_static("faction")},
+    {string_static("health")},
+    {string_static("time")},
+    {string_static("nav_query")},
+    {string_static("nav_target")},
+    {string_static("line_of_sight")},
+    {string_static("capable")},
+    {string_static("active")},
+    {string_static("target_primary")},
+    {string_static("target_range_min")},
+    {string_static("target_range_max")},
+    {string_static("spawn")},
+    {string_static("destroy")},
+    {string_static("destroy_after")},
+    {string_static("teleport")},
+    {string_static("nav_travel")},
+    {string_static("nav_stop")},
+    {string_static("attach")},
+    {string_static("detach")},
+    {string_static("damage")},
+    {string_static("attack")},
+    {string_static("debug_log")},
+    {string_static("debug_break")},
+};
 
 static ScriptBinder* g_scriptBinder;
 
@@ -20,36 +55,9 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
-    script_binder_declare(binder, string_lit("self"), null);
-    script_binder_declare(binder, string_lit("exists"), null);
-    script_binder_declare(binder, string_lit("position"), null);
-    script_binder_declare(binder, string_lit("rotation"), null);
-    script_binder_declare(binder, string_lit("scale"), null);
-    script_binder_declare(binder, string_lit("name"), null);
-    script_binder_declare(binder, string_lit("faction"), null);
-    script_binder_declare(binder, string_lit("health"), null);
-    script_binder_declare(binder, string_lit("time"), null);
-    script_binder_declare(binder, string_lit("nav_query"), null);
-    script_binder_declare(binder, string_lit("nav_target"), null);
-    script_binder_declare(binder, string_lit("line_of_sight"), null);
-    script_binder_declare(binder, string_lit("capable"), null);
-    script_binder_declare(binder, string_lit("active"), null);
-    script_binder_declare(binder, string_lit("target_primary"), null);
-    script_binder_declare(binder, string_lit("target_range_min"), null);
-    script_binder_declare(binder, string_lit("target_range_max"), null);
-    script_binder_declare(binder, string_lit("spawn"), null);
-    script_binder_declare(binder, string_lit("destroy"), null);
-    script_binder_declare(binder, string_lit("destroy_after"), null);
-    script_binder_declare(binder, string_lit("teleport"), null);
-    script_binder_declare(binder, string_lit("nav_travel"), null);
-    script_binder_declare(binder, string_lit("nav_stop"), null);
-    script_binder_declare(binder, string_lit("attach"), null);
-    script_binder_declare(binder, string_lit("detach"), null);
-    script_binder_declare(binder, string_lit("damage"), null);
-    script_binder_declare(binder, string_lit("attack"), null);
-    script_binder_declare(binder, string_lit("debug_log"), null);
-    script_binder_declare(binder, string_lit("debug_break"), null);
-
+    for (u32 i = 0; i != array_elems(g_scriptFinderFuncs); ++i) {
+      script_binder_declare(binder, g_scriptFinderFuncs[i].name, null);
+    }
     script_binder_finalize(binder);
     g_scriptBinder = binder;
   }
