@@ -6,8 +6,8 @@ ScriptPanicType script_error_to_panic(const ScriptErrorType type) {
   switch (type) {
   case ScriptError_None:
     return ScriptPanic_None;
-  case ScriptError_InvalidValue:
-    return ScriptPanic_InvalidValue;
+  case ScriptError_InvalidArgument:
+    return ScriptPanic_InvalidArgument;
   case ScriptError_MissingArgument:
     return ScriptPanic_MissingArgument;
   }
