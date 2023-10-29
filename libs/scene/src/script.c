@@ -264,41 +264,48 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   a->data_attack  = *data;
 }
 
-static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
+  (void)err;
   return script_entity(ctx->entity);
 }
 
-static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   return script_bool(e && ecs_world_exists(ctx->world, e));
 }
 
-static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
-static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
-static ScriptVal eval_scale(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_scale(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->scaleItr, e);
   return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
-static ScriptVal eval_name(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_name(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
-static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->factionItr, e);
   if (itr) {
@@ -309,7 +316,8 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->healthItr, e);
   if (itr) {
@@ -319,7 +327,8 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const SceneTimeComp* time = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
   if (!args.count) {
     return script_time(time->time);
@@ -339,7 +348,8 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const SceneNavEnvComp*    navEnv        = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoVector           pos           = script_arg_vector3(args, 0, geo_vector(0));
   GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
@@ -360,7 +370,8 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_nav_target(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_nav_target(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId        e     = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
   const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
@@ -404,7 +415,8 @@ static bool eval_line_of_sight_filter(const void* context, const EcsEntityId ent
   return true;
 }
 
-static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
   const EcsEntityId srcEntity = script_arg_entity(args, 0, ecs_entity_invalid);
@@ -449,9 +461,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_number(args, 2, 0.0);
@@ -467,7 +479,8 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
   return hasLos ? script_number(hit.time) : script_null();
 }
 
-static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   if (!e || !ecs_world_exists(ctx->world, e)) {
     return script_bool(false);
@@ -481,7 +494,8 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
   case 0: {
@@ -508,7 +522,8 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
@@ -517,7 +532,8 @@ static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
@@ -526,7 +542,8 @@ static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args) 
   return script_null();
 }
 
-static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
@@ -535,7 +552,8 @@ static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args) 
   return script_null();
 }
 
-static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const StringHash prefabId = script_arg_string(args, 0, string_hash_invalid);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
@@ -554,7 +572,8 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args) {
   return script_entity(result);
 }
 
-static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
@@ -562,7 +581,8 @@ static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_destroy_after(
@@ -576,7 +596,8 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_teleport(
@@ -590,7 +611,8 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_nav_travel(
@@ -604,7 +626,8 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_nav_stop(ctx, &(ScriptActionNavStop){.entity = entity});
@@ -612,7 +635,8 @@ static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
   if (entity && target) {
@@ -627,7 +651,8 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_detach(ctx, &(ScriptActionDetach){.entity = entity});
@@ -635,7 +660,8 @@ static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const f32         amount = (f32)script_arg_number(args, 1, 0.0f);
   if (entity && amount > f32_epsilon) {
@@ -649,7 +675,8 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
   if (entity) {
@@ -658,7 +685,8 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
-static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
   for (usize i = 0; i != args.count; ++i) {
     if (i) {
@@ -676,16 +704,17 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
-static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args) {
+static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
+  (void)err;
   diag_break();
   return script_null();
 }
 
 static ScriptBinder* g_scriptBinder;
 
-typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs);
+typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs, ScriptError* err);
 
 static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
   // NOTE: Func pointer cast is needed to type-erase the context type.

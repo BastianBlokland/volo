@@ -13,22 +13,27 @@ typedef struct {
   u32 counter;
 } ScriptEvalTestCtx;
 
-static ScriptVal test_increase_counter(void* ctx, const ScriptArgs args) {
+static ScriptVal test_increase_counter(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
+  (void)err;
 
   ScriptEvalTestCtx* typedCtx = ctx;
   ++typedCtx->counter;
   return script_null();
 }
 
-static ScriptVal test_return_null(void* ctx, const ScriptArgs args) {
+static ScriptVal test_return_null(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
+  (void)err;
+
   return script_null();
 }
 
-static ScriptVal test_return_first(void* ctx, const ScriptArgs args) {
+static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
+  (void)err;
+
   return args.count ? args.values[0] : script_null();
 }
 

@@ -8,12 +8,15 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
 
+// Forward declare from 'script_error.h'.
+typedef struct sScriptError ScriptError;
+
 #define script_binder_slot_sentinel sentinel_u16
 
 typedef u16 ScriptBinderSlot;
 typedef u64 ScriptBinderSignature;
 
-typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs);
+typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs, ScriptError*);
 
 /**
  * Table of native bound functions.
@@ -82,4 +85,5 @@ ScriptBinderSlot script_binder_next(const ScriptBinder*, ScriptBinderSlot);
  * Execute a bound function.
  * Pre-condition: Binder has been finalized.
  */
-ScriptVal script_binder_exec(const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptArgs);
+ScriptVal script_binder_exec(
+    const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptArgs, ScriptError* err);

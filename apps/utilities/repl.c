@@ -220,8 +220,9 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   return TtyFgColor_Default;
 }
 
-static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args) {
+static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
+  (void)err;
 
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
@@ -240,8 +241,9 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
-static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args) {
+static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
+  (void)err;
 
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
@@ -257,8 +259,9 @@ static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
-static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args) {
+static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
+  (void)err;
 
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);

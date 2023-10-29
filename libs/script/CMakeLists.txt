@@ -10,16 +10,17 @@ add_library(lib_script STATIC
   src/diag.c
   src/doc.c
   src/enum.c
-  src/format.c
+  src/error.c
   src/eval.c
+  src/format.c
   src/intrinsic.c
   src/lex.c
   src/mem.c
   src/panic.c
   src/pos.c
   src/read.c
-  src/val.c
   src/sym.c
+  src/val.c
   )
 target_include_directories(lib_script PUBLIC include)
 target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
