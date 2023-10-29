@@ -33,6 +33,15 @@ typedef enum {
 typedef u16 ScriptTypeMask;
 ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 
+#define script_type_mask(_TYPE_) ((ScriptTypeMask)(1 << _TYPE_))
+#define script_type_mask_null script_type_mask(ScriptType_Null)
+#define script_type_mask_number script_type_mask(ScriptType_Number)
+#define script_type_mask_bool script_type_mask(ScriptType_Bool)
+#define script_type_mask_vector3 script_type_mask(ScriptType_Vector3)
+#define script_type_mask_quat script_type_mask(ScriptType_Quat)
+#define script_type_mask_entity script_type_mask(ScriptType_Entity)
+#define script_type_mask_string script_type_mask(ScriptType_String)
+
 /**
  * Type-erased script value.
  */
