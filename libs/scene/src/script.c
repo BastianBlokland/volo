@@ -657,6 +657,9 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!script_arg_check(args, 1, script_type_mask_entity | script_type_mask_null, err))) {
+    return script_null();
+  }
   const EcsEntityId target = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
   if (LIKELY(entity)) {
     action_push_attack(ctx, &(ScriptActionAttack){.entity = entity, .target = target});
