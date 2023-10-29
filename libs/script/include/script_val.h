@@ -41,6 +41,7 @@ ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 #define script_type_mask_quat script_type_mask(ScriptType_Quat)
 #define script_type_mask_entity script_type_mask(ScriptType_Entity)
 #define script_type_mask_string script_type_mask(ScriptType_String)
+#define script_type_mask_time script_type_mask(ScriptType_Number)
 
 /**
  * Type-erased script value.
