@@ -6,7 +6,7 @@
 
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
-typedef u16              ScriptTypeMask;
+typedef u16              ScriptMask;
 
 // Forward declare from 'script_enum.h'.
 typedef struct sScriptEnum ScriptEnum;
@@ -19,7 +19,7 @@ typedef struct {
   u16              count;
 } ScriptArgs;
 
-bool script_arg_check(ScriptArgs, u16 i, ScriptTypeMask, ScriptError*);
+bool script_arg_check(ScriptArgs, u16 i, ScriptMask, ScriptError*);
 
 f64          script_arg_number(ScriptArgs, u16 i, ScriptError*);
 f64          script_arg_number_range(ScriptArgs, u16 i, f64 min, f64 max, ScriptError*);

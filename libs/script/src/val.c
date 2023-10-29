@@ -16,7 +16,7 @@
 
 ScriptType script_type(const ScriptVal value) { return val_type(value); }
 
-bool script_type_check(const ScriptVal value, const ScriptTypeMask mask) {
+bool script_type_check(const ScriptVal value, const ScriptMask mask) {
   return val_type_check(value, mask);
 }
 

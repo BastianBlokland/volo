@@ -568,8 +568,8 @@ static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptErr
 }
 
 static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId    entity     = script_arg_entity(args, 0, err);
-  const ScriptTypeMask targetMask = script_type_mask_entity | script_type_mask_time;
+  const EcsEntityId entity     = script_arg_entity(args, 0, err);
+  const ScriptMask  targetMask = script_mask_entity | script_mask_time;
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
     action_push_destroy_after(
         ctx,
@@ -597,8 +597,8 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
 }
 
 static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId    entity     = script_arg_entity(args, 0, err);
-  const ScriptTypeMask targetMask = script_type_mask_entity | script_type_mask_vector3;
+  const EcsEntityId entity     = script_arg_entity(args, 0, err);
+  const ScriptMask  targetMask = script_mask_entity | script_mask_vector3;
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
     action_push_nav_travel(
         ctx,
@@ -657,9 +657,9 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
 }
 
 static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId    entity     = script_arg_entity(args, 0, err);
-  const ScriptTypeMask targetMask = script_type_mask_entity | script_type_mask_null;
-  const EcsEntityId    target     = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
+  const EcsEntityId entity     = script_arg_entity(args, 0, err);
+  const ScriptMask  targetMask = script_mask_entity | script_mask_null;
+  const EcsEntityId target     = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
     action_push_attack(ctx, &(ScriptActionAttack){.entity = entity, .target = target});
   }
