@@ -14,7 +14,7 @@
 
 #include "val_internal.h"
 
-ScriptType script_type(const ScriptVal value) { return (ScriptType)value.data[3]; }
+ScriptType script_type(const ScriptVal value) { return val_type(value); }
 
 ScriptVal script_null() { return val_null(); }
 ScriptVal script_number(const f64 value) { return val_number(value); }

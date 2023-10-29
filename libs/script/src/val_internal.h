@@ -20,6 +20,10 @@
  * NOTE: Assumes little-endian byte order.
  */
 
+MAYBE_UNUSED INLINE_HINT static ScriptType val_type(const ScriptVal value) {
+  return (ScriptType)value.data[3];
+}
+
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_null() {
   ASSERT(ScriptType_Null == 0, "ScriptType_Null should be initializable using zero-init");
   return (ScriptVal){0};
