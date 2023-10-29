@@ -22,9 +22,15 @@ typedef enum {
 } ScriptSymType;
 
 typedef struct {
+  ScriptRange scope;
+} ScriptSymVariable;
+
+typedef struct {
   ScriptSymType type;
   String        label;
-  ScriptRange   validRange;
+  union {
+    ScriptSymVariable variable;
+  } data;
 } ScriptSym;
 
 typedef struct sScriptSymBag ScriptSymBag;

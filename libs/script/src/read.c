@@ -328,10 +328,6 @@ static ScriptRange read_range_to_next(ScriptReadContext* ctx, const ScriptPos st
   return script_range(start, read_pos_next(ctx) + 1);
 }
 
-static ScriptRange read_range_full(ScriptReadContext* ctx) {
-  return script_range_full(ctx->inputTotal);
-}
-
 static void read_emit_err(ScriptReadContext* ctx, const ScriptDiagType type, const ScriptRange r) {
   if (ctx->diags) {
     const ScriptDiag diag = {
@@ -371,9 +367,9 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
       break;
     }
     const ScriptSym sym = {
-        .type       = ScriptSymType_Variable,
-        .label      = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .validRange = read_range_to_next(ctx, scope->vars[i].validUsageStart),
+        .type          = ScriptSymType_Variable,
+        .label         = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
+        .data.variable = {.scope = read_range_to_next(ctx, scope->vars[i].validUsageStart)},
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -607,9 +603,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .severity = ScriptDiagSeverity_Warning,
-          .type     = ScriptDiag_ExprUnreachable,
-          .range    = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .type     = ScriptDiag_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1486,9 +1482,8 @@ static void read_sym_push_keywords(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_Keyword,
-        .label      = script_lex_keyword_data()[i].id,
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_Keyword,
+        .label = script_lex_keyword_data()[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1500,17 +1495,15 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_BuiltinConstant,
-        .label      = g_scriptBuiltinConsts[i].id,
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_BuiltinConstant,
+        .label = g_scriptBuiltinConsts[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_BuiltinFunction,
-        .label      = g_scriptBuiltinFuncs[i].id,
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_BuiltinFunction,
+        .label = g_scriptBuiltinFuncs[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1523,9 +1516,8 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_ExternFunction,
-        .label      = script_binder_name_str(ctx->binder, itr),
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_ExternFunction,
+        .label = script_binder_name_str(ctx->binder, itr),
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1543,9 +1535,8 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
     const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
       const ScriptSym sym = {
-          .type       = ScriptSymType_MemoryKey,
-          .label      = fmt_write_scratch("${}", fmt_text(keyStr)),
-          .validRange = read_range_full(ctx),
+          .type  = ScriptSymType_MemoryKey,
+          .label = fmt_write_scratch("${}", fmt_text(keyStr)),
       };
       script_sym_push(ctx->syms, &sym);
     }
@@ -1588,13 +1579,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

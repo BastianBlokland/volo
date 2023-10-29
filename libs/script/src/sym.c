@@ -6,11 +6,16 @@
 
 ASSERT(script_syms_max < u16_max, "ScriptSymId has to be storable as a 16-bit integer");
 
-INLINE_HINT static bool script_sym_valid(const ScriptSym* sym, const ScriptPos pos) {
-  if (sentinel_check(pos)) {
-    return true; // 'script_pos_sentinel' indicates that symbols from all ranges should be returned.
+INLINE_HINT static bool script_sym_in_scope(const ScriptSym* sym, const ScriptPos pos) {
+  switch (sym->type) {
+  case ScriptSymType_Variable:
+    if (sentinel_check(pos)) {
+      return true; // 'script_pos_sentinel' indicates that all ranges should be included.
+    }
+    return script_range_contains(sym->data.variable.scope, pos);
+  default:
+    return true;
   }
-  return script_range_contains(sym->validRange, pos);
 }
 
 struct sScriptSymBag {
@@ -44,9 +49,9 @@ ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSym* sym) {
   }
 
   *dynarray_push_t(&bag->symbols, ScriptSym) = (ScriptSym){
-      .type       = sym->type,
-      .label      = string_dup(bag->alloc, sym->label),
-      .validRange = sym->validRange,
+      .type  = sym->type,
+      .label = string_dup(bag->alloc, sym->label),
+      .data  = sym->data,
   };
 
   return id;
@@ -86,14 +91,14 @@ ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
     return script_sym_sentinel;
   }
   const ScriptSym* first = script_sym_data(bag, 0);
-  return script_sym_valid(first, pos) ? 0 : script_sym_next(bag, 0, pos);
+  return script_sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
 ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSymId itr) {
   const ScriptSymId lastId = (ScriptSymId)(bag->symbols.size - 1);
   const ScriptSym*  data   = dynarray_begin_t(&bag->symbols, ScriptSym);
   while (itr < lastId) {
-    if (script_sym_valid(&data[++itr], pos)) {
+    if (script_sym_in_scope(&data[++itr], pos)) {
       return itr;
     }
   }
@@ -101,18 +106,9 @@ ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, Script
 }
 
 void script_sym_write(DynString* out, const String sourceText, const ScriptSym* sym) {
-  const ScriptPosLineCol validStart = script_pos_to_line_col(sourceText, sym->validRange.start);
-  const ScriptPosLineCol validEnd   = script_pos_to_line_col(sourceText, sym->validRange.end);
+  (void)sourceText;
 
-  fmt_write(
-      out,
-      "[{}] {} ({}:{}-{}:{})",
-      fmt_text(script_sym_type_str(sym->type)),
-      fmt_text(sym->label),
-      fmt_int(validStart.line + 1),
-      fmt_int(validStart.column + 1),
-      fmt_int(validEnd.line + 1),
-      fmt_int(validEnd.column + 1));
+  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(sym->type)), fmt_text(sym->label));
 }
 
 String script_sym_scratch(const String sourceText, const ScriptSym* sym) {
