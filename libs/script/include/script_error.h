@@ -4,6 +4,8 @@
 // Forward declare from 'script_panic.h'.
 typedef enum eScriptPanicType ScriptPanicType;
 
+#define script_error_arg_sentinel sentinel_u16
+
 typedef enum {
   ScriptError_None,
   ScriptError_InvalidValue,
