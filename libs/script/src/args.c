@@ -73,56 +73,56 @@ i32 script_arg_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, Scr
 }
 
 f64 script_arg_maybe_number(const ScriptArgs args, const u16 i, const f64 def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Number) {
     return val_as_number(args.values[i]);
   }
   return def;
 }
 
 bool script_arg_maybe_bool(const ScriptArgs args, const u16 i, const bool def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Bool)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Bool) {
     return val_as_bool(args.values[i]);
   }
   return def;
 }
 
 GeoVector script_arg_maybe_vector3(const ScriptArgs args, const u16 i, const GeoVector def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Vector3)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Vector3) {
     return val_as_vector3(args.values[i]);
   }
   return def;
 }
 
 GeoQuat script_arg_maybe_quat(const ScriptArgs args, const u16 i, const GeoQuat def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Quat)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Quat) {
     return val_as_quat(args.values[i]);
   }
   return def;
 }
 
 EcsEntityId script_arg_maybe_entity(const ScriptArgs args, const u16 i, const EcsEntityId def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Entity)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Entity) {
     return val_as_entity(args.values[i]);
   }
   return def;
 }
 
 StringHash script_arg_maybe_string(const ScriptArgs args, const u16 i, const StringHash def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_String)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_String) {
     return val_as_string(args.values[i]);
   }
   return def;
 }
 
 TimeDuration script_arg_maybe_time(const ScriptArgs args, const u16 i, const TimeDuration def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Number) {
     return (TimeDuration)time_seconds(val_as_number(args.values[i]));
   }
   return def;
 }
 
 i32 script_arg_maybe_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, const i32 def) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_String)) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_String) {
     return script_enum_lookup_maybe_value(e, val_as_string(args.values[i]), def);
   }
   return def;
