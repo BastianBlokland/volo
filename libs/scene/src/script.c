@@ -454,12 +454,12 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
-  const f32    radius = (f32)script_arg_opt_number(args, 2, 0.0, err);
+  const f32    radius = (f32)script_arg_opt_number_range(args, 2, 0.0, 10.0, 0.0, err);
 
   SceneRayHit hit;
   bool        hasHit;
@@ -553,7 +553,7 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
           .prefabId = prefabId,
           .position = script_arg_opt_vector3(args, 1, geo_vector(0), err),
           .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-          .scale    = (f32)script_arg_opt_number(args, 3, 1.0, err),
+          .scale    = (f32)script_arg_opt_number_range(args, 3, 0.001, 1000.0, 1.0, err),
           .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
       });
   return script_entity(result);
@@ -561,7 +561,7 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
 
 static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  if (entity) {
+  if (LIKELY(entity)) {
     action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
   }
   return script_null();
@@ -644,8 +644,7 @@ static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  const f32         amount = (f32)script_arg_number(args, 1, err);
-  // TODO: Add error check for negative damages.
+  const f32         amount = (f32)script_arg_number_range(args, 1.0, 10000.0, 1.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     action_push_damage(
         ctx,
