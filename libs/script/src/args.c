@@ -12,6 +12,14 @@ NO_INLINE_HINT static ScriptError script_arg_err(const ScriptArgs args, const u1
   return script_error_arg(ScriptError_MissingArgument, i);
 }
 
+bool script_arg_check(
+    const ScriptArgs args, const u16 i, const ScriptTypeMask mask, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type_check(args.values[i], mask))) {
+    return true;
+  }
+  return *err = script_arg_err(args, i), false;
+}
+
 f64 script_arg_number(const ScriptArgs args, const u16 i, ScriptError* err) {
   if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
     return val_as_number(args.values[i]);
