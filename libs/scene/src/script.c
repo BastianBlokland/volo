@@ -459,7 +459,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
                  .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
-  const f32    radius = (f32)script_arg_maybe_number(args, 2, 0.0);
+  const f32    radius = (f32)script_arg_opt_number(args, 2, 0.0, err);
 
   SceneRayHit hit;
   bool        hasHit;
@@ -551,10 +551,10 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
       &(ScriptActionSpawn){
           .entity   = result,
           .prefabId = prefabId,
-          .position = script_arg_maybe_vector3(args, 1, geo_vector(0)),
-          .rotation = script_arg_maybe_quat(args, 2, geo_quat_ident),
-          .scale    = (f32)script_arg_maybe_number(args, 3, 1.0),
-          .faction  = script_arg_maybe_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None),
+          .position = script_arg_opt_vector3(args, 1, geo_vector(0), err),
+          .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
+          .scale    = (f32)script_arg_opt_number(args, 3, 1.0, err),
+          .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
       });
   return script_entity(result);
 }
@@ -588,8 +588,8 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
         ctx,
         &(ScriptActionTeleport){
             .entity   = entity,
-            .position = script_arg_maybe_vector3(args, 1, geo_vector(0)),
-            .rotation = script_arg_maybe_quat(args, 2, geo_quat_ident),
+            .position = script_arg_opt_vector3(args, 1, geo_vector(0), err),
+            .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
         });
   }
   return script_null();
@@ -626,7 +626,7 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptErro
         &(ScriptActionAttach){
             .entity    = entity,
             .target    = target,
-            .jointName = script_arg_maybe_string(args, 2, 0),
+            .jointName = script_arg_opt_string(args, 2, 0, err),
         });
   }
   return script_null();
