@@ -4,9 +4,20 @@
 #include "core_dynarray.h"
 #include "script_sym.h"
 
+#include "doc_internal.h"
+
 ASSERT(script_syms_max < u16_max, "ScriptSymId has to be storable as a 16-bit integer");
 
-INLINE_HINT static bool script_sym_in_scope(const ScriptSym* sym, const ScriptPos pos) {
+struct sScriptSymBag {
+  Allocator* alloc;
+  DynArray   symbols; // ScriptSym[]
+};
+
+INLINE_HINT static const ScriptSym* sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
+  return &dynarray_begin_t(&bag->symbols, ScriptSym)[id];
+}
+
+INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) {
   switch (sym->type) {
   case ScriptSymType_Variable:
     if (sentinel_check(pos)) {
@@ -18,10 +29,21 @@ INLINE_HINT static bool script_sym_in_scope(const ScriptSym* sym, const ScriptPo
   }
 }
 
-struct sScriptSymBag {
-  Allocator* alloc;
-  DynArray   symbols; // ScriptSym[]
-};
+static ScriptSymId sym_find_by_intr(const ScriptSymBag* bag, const ScriptIntrinsic intr) {
+  for (ScriptSymId id = 0; id != bag->symbols.size; ++id) {
+    const ScriptSym* sym = sym_data(bag, id);
+    switch (sym->type) {
+    case ScriptSymType_BuiltinFunction:
+      if (sym->data.builtinFunction.intr == intr) {
+        return id;
+      }
+      // Fallthrough.
+    default:
+      break;
+    }
+  }
+  return script_sym_sentinel;
+}
 
 ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
@@ -35,10 +57,7 @@ ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
 }
 
 void script_sym_bag_destroy(ScriptSymBag* bag) {
-  dynarray_for_t(&bag->symbols, ScriptSym, sym) {
-    string_free(bag->alloc, sym->label);
-    string_maybe_free(bag->alloc, sym->doc);
-  }
+  script_sym_clear(bag);
   dynarray_destroy(&bag->symbols);
   alloc_free_t(bag->alloc, bag);
 }
@@ -90,7 +109,16 @@ String script_sym_type_str(const ScriptSymType type) {
 
 const ScriptSym* script_sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
   diag_assert_msg(id < bag->symbols.size, "Invalid symbol-id");
-  return dynarray_at_t(&bag->symbols, id, ScriptSym);
+  return sym_data(bag, id);
+}
+
+ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
+  switch (expr_type(doc, expr)) {
+  case ScriptExprType_Intrinsic:
+    return sym_find_by_intr(bag, expr_data(doc, expr)->intrinsic.intrinsic);
+  default:
+    return script_sym_sentinel;
+  }
 }
 
 ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
@@ -98,14 +126,13 @@ ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
     return script_sym_sentinel;
   }
   const ScriptSym* first = script_sym_data(bag, 0);
-  return script_sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
+  return sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
 ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSymId itr) {
   const ScriptSymId lastId = (ScriptSymId)(bag->symbols.size - 1);
-  const ScriptSym*  data   = dynarray_begin_t(&bag->symbols, ScriptSym);
   while (itr < lastId) {
-    if (script_sym_in_scope(&data[++itr], pos)) {
+    if (sym_in_scope(sym_data(bag, ++itr), pos)) {
       return itr;
     }
   }
