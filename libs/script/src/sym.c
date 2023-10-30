@@ -124,6 +124,16 @@ bool script_sym_is_func(const ScriptSym* sym) {
   return sym->type == ScriptSymType_BuiltinFunction || sym->type == ScriptSymType_ExternFunction;
 }
 
+ScriptRange script_sym_location(const ScriptSym* sym) {
+  switch (sym->type) {
+  case ScriptSymType_Variable:
+    return sym->data.variable.location;
+  default:
+    break;
+  }
+  return script_range_sentinel;
+}
+
 String script_sym_type_str(const ScriptSymType type) {
   static const String g_names[] = {
       string_static("Keyword"),

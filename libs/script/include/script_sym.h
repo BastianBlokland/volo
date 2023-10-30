@@ -61,6 +61,7 @@ ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSym*);
 void        script_sym_clear(ScriptSymBag*);
 
 bool             script_sym_is_func(const ScriptSym*);
+ScriptRange      script_sym_location(const ScriptSym*);
 String           script_sym_type_str(ScriptSymType);
 const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
 
