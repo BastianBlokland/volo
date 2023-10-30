@@ -45,6 +45,22 @@ static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic
   return script_sym_sentinel;
 }
 
+static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
+  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+    const ScriptSym* sym = sym_data(b, id);
+    switch (sym->type) {
+    case ScriptSymType_ExternFunction:
+      if (sym->data.externFunc.binderSlot == slot) {
+        return id;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  return script_sym_sentinel;
+}
+
 static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
   for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
     const ScriptSym* sym = sym_data(b, id);
@@ -166,6 +182,8 @@ ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const
     return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_load.key);
   case ScriptExprType_MemStore:
     return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_store.key);
+  case ScriptExprType_Extern:
+    return sym_find_by_binder_slot(bag, expr_data(doc, expr)->extern_.func);
   default:
     return script_sym_sentinel;
   }
