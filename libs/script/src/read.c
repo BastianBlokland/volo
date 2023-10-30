@@ -382,9 +382,14 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
       break;
     }
     const ScriptSym sym = {
-        .type          = ScriptSymType_Variable,
-        .label         = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .data.variable = {.scope = read_range_to_next(ctx, scope->vars[i].validUsageStart)},
+        .type  = ScriptSymType_Variable,
+        .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
+        .data.variable =
+            {
+                .slot     = scope->vars[i].varSlot,
+                .location = scope->vars[i].declRange,
+                .scope    = read_range_to_next(ctx, scope->vars[i].validUsageStart),
+            },
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1551,8 +1556,9 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
     const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
       const ScriptSym sym = {
-          .type  = ScriptSymType_MemoryKey,
-          .label = fmt_write_scratch("${}", fmt_text(keyStr)),
+          .type           = ScriptSymType_MemoryKey,
+          .label          = fmt_write_scratch("${}", fmt_text(keyStr)),
+          .data.memoryKey = {.key = ctx->trackedMemKeys[i]},
       };
       script_sym_push(ctx->syms, &sym);
     }

@@ -9,6 +9,7 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'script_doc.h'.
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
+typedef u8                ScriptVarId;
 
 #define script_syms_max 4096
 #define script_sym_sentinel sentinel_u16
@@ -31,8 +32,14 @@ typedef struct {
 } ScriptSymBuiltinFunction;
 
 typedef struct {
+  ScriptVarId slot; // NOTE: Only unique within the scope.
+  ScriptRange location;
   ScriptRange scope;
 } ScriptSymVariable;
+
+typedef struct {
+  StringHash key;
+} ScriptSymMemoryKey;
 
 typedef struct {
   ScriptSymType type;
@@ -41,6 +48,7 @@ typedef struct {
   union {
     ScriptSymBuiltinFunction builtinFunction;
     ScriptSymVariable        variable;
+    ScriptSymMemoryKey       memoryKey;
   } data;
 } ScriptSym;
 
@@ -53,6 +61,7 @@ ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSym*);
 void        script_sym_clear(ScriptSymBag*);
 
 bool             script_sym_is_func(const ScriptSym*);
+ScriptRange      script_sym_location(const ScriptSym*);
 String           script_sym_type_str(ScriptSymType);
 const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
 
