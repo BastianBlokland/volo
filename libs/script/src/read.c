@@ -127,9 +127,9 @@ static void script_builtin_init() {
   BUILTIN_F("normalize",        Normalize,          "Normalize the given value.");
   BUILTIN_F("angle",            Angle,              "Compute the angle (in radians) between two directions or two quaternions.");
   BUILTIN_F("random",           Random,             "Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution.");
-  BUILTIN_F("random",           RandomBetween,      "Compute a random value between the two given values.");
-  BUILTIN_F("random_sphere",    RandomSphere,       "Compute a random vector inside a unit sphere.");
-  BUILTIN_F("random_circle_xz", RandomCircleXZ,     "Compute a random vector inside a xz unit circle.");
+  BUILTIN_F("random",           RandomBetween,      "Compute a random value between the given min (inclusive) and max (exclusive) values with a uniform distribution.");
+  BUILTIN_F("random_sphere",    RandomSphere,       "Compute a random vector inside a unit sphere with a uniform distribution.");
+  BUILTIN_F("random_circle_xz", RandomCircleXZ,     "Compute a random vector inside a xz unit circle with a uniform distribution.");
   BUILTIN_F("round_down",       RoundDown,          "Round the given value down to an integer.");
   BUILTIN_F("round_nearest",    RoundNearest,       "Round the given value to the nearest integer.");
   BUILTIN_F("round_up",         RoundUp,            "Round the given value up to an integer.");
