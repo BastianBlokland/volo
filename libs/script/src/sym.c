@@ -29,15 +29,31 @@ INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) 
   }
 }
 
-static ScriptSymId sym_find_by_intr(const ScriptSymBag* bag, const ScriptIntrinsic intr) {
-  for (ScriptSymId id = 0; id != bag->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(bag, id);
+static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
+  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+    const ScriptSym* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_BuiltinFunction:
       if (sym->data.builtinFunction.intr == intr) {
         return id;
       }
-      // Fallthrough.
+      break;
+    default:
+      break;
+    }
+  }
+  return script_sym_sentinel;
+}
+
+static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
+  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+    const ScriptSym* sym = sym_data(b, id);
+    switch (sym->type) {
+    case ScriptSymType_Variable:
+      if (sym->data.variable.id == v && sym_in_scope(sym, p)) {
+        return id;
+      }
+      break;
     default:
       break;
     }
@@ -116,6 +132,10 @@ ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const
   switch (expr_type(doc, expr)) {
   case ScriptExprType_Intrinsic:
     return sym_find_by_intr(bag, expr_data(doc, expr)->intrinsic.intrinsic);
+  case ScriptExprType_VarLoad:
+    return sym_find_by_var(bag, expr_data(doc, expr)->var_load.var, expr_range(doc, expr).start);
+  case ScriptExprType_VarStore:
+    return sym_find_by_var(bag, expr_data(doc, expr)->var_store.var, expr_range(doc, expr).start);
   default:
     return script_sym_sentinel;
   }
