@@ -754,6 +754,13 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
     fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
   }
+  const ScriptSymId symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
+  if (!sentinel_check(symId)) {
+    const ScriptSym* sym = script_sym_data(doc->scriptSyms, symId);
+    if (!string_is_empty(sym->doc)) {
+      fmt_write(&textBuffer, "\n\n{}", fmt_text(sym->doc));
+    }
+  }
 
   const LspHover hover = {
       .range = script_range_to_line_col(doc->text, hoverRange),
