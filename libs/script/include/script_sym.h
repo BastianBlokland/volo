@@ -13,6 +13,9 @@ typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
 typedef u8                ScriptVarId;
 
+// Forward declare from 'script_binder.h'.
+typedef u16 ScriptBinderSlot;
+
 #define script_syms_max 4096
 #define script_sym_sentinel sentinel_u16
 
@@ -34,6 +37,10 @@ typedef struct {
 } ScriptSymBuiltinFunction;
 
 typedef struct {
+  ScriptBinderSlot binderSlot;
+} ScriptSymExternFunction;
+
+typedef struct {
   ScriptVarId slot; // NOTE: Only unique within the scope.
   ScriptRange location;
   ScriptRange scope;
@@ -49,6 +56,7 @@ typedef struct {
   String        doc;
   union {
     ScriptSymBuiltinFunction builtinFunction;
+    ScriptSymExternFunction  externFunction;
     ScriptSymVariable        variable;
     ScriptSymMemoryKey       memoryKey;
   } data;
