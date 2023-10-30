@@ -382,9 +382,13 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
       break;
     }
     const ScriptSym sym = {
-        .type          = ScriptSymType_Variable,
-        .label         = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .data.variable = {.scope = read_range_to_next(ctx, scope->vars[i].validUsageStart)},
+        .type  = ScriptSymType_Variable,
+        .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
+        .data.variable =
+            {
+                .id    = scope->vars[i].id,
+                .scope = read_range_to_next(ctx, scope->vars[i].validUsageStart),
+            },
     };
     script_sym_push(ctx->syms, &sym);
   }
