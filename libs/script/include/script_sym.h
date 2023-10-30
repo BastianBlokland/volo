@@ -33,6 +33,7 @@ typedef struct {
 
 typedef struct {
   ScriptVarId id; // NOTE: Only unique within the scope.
+  ScriptRange location;
   ScriptRange scope;
 } ScriptSymVariable;
 

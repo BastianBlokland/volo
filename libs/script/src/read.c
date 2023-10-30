@@ -386,8 +386,9 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
         .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
         .data.variable =
             {
-                .id    = scope->vars[i].id,
-                .scope = read_range_to_next(ctx, scope->vars[i].validUsageStart),
+                .id       = scope->vars[i].id,
+                .location = scope->vars[i].declRange,
+                .scope    = read_range_to_next(ctx, scope->vars[i].validUsageStart),
             },
     };
     script_sym_push(ctx->syms, &sym);
