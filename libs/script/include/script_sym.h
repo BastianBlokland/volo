@@ -34,31 +34,31 @@ typedef enum {
 
 typedef struct {
   ScriptIntrinsic intr;
-} ScriptSymBuiltinFunction;
+} ScriptSymBuiltinFunc;
 
 typedef struct {
   ScriptBinderSlot binderSlot;
-} ScriptSymExternFunction;
+} ScriptSymExternFunc;
 
 typedef struct {
   ScriptVarId slot; // NOTE: Only unique within the scope.
   ScriptRange location;
   ScriptRange scope;
-} ScriptSymVariable;
+} ScriptSymVar;
 
 typedef struct {
   StringHash key;
-} ScriptSymMemoryKey;
+} ScriptSymMemKey;
 
 typedef struct {
   ScriptSymType type;
   String        label;
   String        doc;
   union {
-    ScriptSymBuiltinFunction builtinFunction;
-    ScriptSymExternFunction  externFunction;
-    ScriptSymVariable        variable;
-    ScriptSymMemoryKey       memoryKey;
+    ScriptSymBuiltinFunc builtinFunc;
+    ScriptSymExternFunc  externFunc;
+    ScriptSymVar         var;
+    ScriptSymMemKey      memKey;
   } data;
 } ScriptSym;
 

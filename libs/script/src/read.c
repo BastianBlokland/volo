@@ -384,7 +384,7 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     const ScriptSym sym = {
         .type  = ScriptSymType_Variable,
         .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .data.variable =
+        .data.var =
             {
                 .slot     = scope->vars[i].varSlot,
                 .location = scope->vars[i].declRange,
@@ -1521,10 +1521,10 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     const ScriptSym sym = {
-        .type                 = ScriptSymType_BuiltinFunction,
-        .label                = g_scriptBuiltinFuncs[i].id,
-        .doc                  = g_scriptBuiltinFuncs[i].doc,
-        .data.builtinFunction = {.intr = g_scriptBuiltinFuncs[i].intr},
+        .type             = ScriptSymType_BuiltinFunction,
+        .label            = g_scriptBuiltinFuncs[i].id,
+        .doc              = g_scriptBuiltinFuncs[i].doc,
+        .data.builtinFunc = {.intr = g_scriptBuiltinFuncs[i].intr},
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1537,9 +1537,9 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
     const ScriptSym sym = {
-        .type                = ScriptSymType_ExternFunction,
-        .label               = script_binder_name_str(ctx->binder, itr),
-        .data.externFunction = {.binderSlot = itr},
+        .type            = ScriptSymType_ExternFunction,
+        .label           = script_binder_name_str(ctx->binder, itr),
+        .data.externFunc = {.binderSlot = itr},
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1557,9 +1557,9 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
     const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
       const ScriptSym sym = {
-          .type           = ScriptSymType_MemoryKey,
-          .label          = fmt_write_scratch("${}", fmt_text(keyStr)),
-          .data.memoryKey = {.key = ctx->trackedMemKeys[i]},
+          .type        = ScriptSymType_MemoryKey,
+          .label       = fmt_write_scratch("${}", fmt_text(keyStr)),
+          .data.memKey = {.key = ctx->trackedMemKeys[i]},
       };
       script_sym_push(ctx->syms, &sym);
     }
