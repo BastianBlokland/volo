@@ -52,18 +52,20 @@ typedef struct {
   u32             argCount;
   ScriptIntrinsic intr;
   String          id;
+  String          doc;
 } ScriptBuiltinFunc;
 
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
 static u32               g_scriptBuiltinFuncCount;
 
-static void script_builtin_func_add(const String id, const ScriptIntrinsic intr) {
+static void script_builtin_func_add(const String id, const ScriptIntrinsic intr, const String doc) {
   diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
   g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
       .idHash   = string_hash(id),
       .argCount = script_intrinsic_arg_count(intr),
       .intr     = intr,
       .id       = id,
+      .doc      = doc,
   };
 }
 
@@ -89,41 +91,54 @@ static void script_builtin_init() {
   diag_assert(g_scriptBuiltinConstCount == 0);
   diag_assert(g_scriptBuiltinFuncCount == 0);
 
+  // clang-format off
+
+#define BUILTIN_C(_NAME_, _VAL_)                                                                   \
+    script_builtin_const_add(string_lit(_NAME_), _VAL_)
+
+#define BUILTIN_F(_NAME_, _INTR_, _DOC_)                                                           \
+    script_builtin_func_add(string_lit(_NAME_), ScriptIntrinsic_##_INTR_, string_lit(_DOC_))
+
   // Builtin constants.
-  script_builtin_const_add(string_lit("null"), script_null());
-  script_builtin_const_add(string_lit("true"), script_bool(true));
-  script_builtin_const_add(string_lit("false"), script_bool(false));
-  script_builtin_const_add(string_lit("pi"), script_number(math_pi_f64));
-  script_builtin_const_add(string_lit("deg_to_rad"), script_number(math_deg_to_rad));
-  script_builtin_const_add(string_lit("rad_to_deg"), script_number(math_rad_to_deg));
-  script_builtin_const_add(string_lit("up"), script_vector3(geo_up));
-  script_builtin_const_add(string_lit("down"), script_vector3(geo_down));
-  script_builtin_const_add(string_lit("left"), script_vector3(geo_left));
-  script_builtin_const_add(string_lit("right"), script_vector3(geo_right));
-  script_builtin_const_add(string_lit("forward"), script_vector3(geo_forward));
-  script_builtin_const_add(string_lit("backward"), script_vector3(geo_backward));
-  script_builtin_const_add(string_lit("quat_ident"), script_quat(geo_quat_ident));
+  BUILTIN_C("null",        script_null());
+  BUILTIN_C("true",        script_bool(true));
+  BUILTIN_C("false",       script_bool(false));
+  BUILTIN_C("pi",          script_number(math_pi_f64));
+  BUILTIN_C("deg_to_rad",  script_number(math_deg_to_rad));
+  BUILTIN_C("rad_to_deg",  script_number(math_rad_to_deg));
+  BUILTIN_C("up",          script_vector3(geo_up));
+  BUILTIN_C("down",        script_vector3(geo_down));
+  BUILTIN_C("left",        script_vector3(geo_left));
+  BUILTIN_C("right",       script_vector3(geo_right));
+  BUILTIN_C("forward",     script_vector3(geo_forward));
+  BUILTIN_C("backward",    script_vector3(geo_backward));
+  BUILTIN_C("quat_ident",  script_quat(geo_quat_ident));
 
   // Builtin functions.
-  script_builtin_func_add(string_lit("type"), ScriptIntrinsic_Type);
-  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_Vector3Compose);
-  script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
-  script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
-  script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
-  script_builtin_func_add(string_lit("euler"), ScriptIntrinsic_QuatFromEuler);
-  script_builtin_func_add(string_lit("angle_axis"), ScriptIntrinsic_QuatFromAngleAxis);
-  script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Distance);
-  script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Magnitude);
-  script_builtin_func_add(string_lit("normalize"), ScriptIntrinsic_Normalize);
-  script_builtin_func_add(string_lit("angle"), ScriptIntrinsic_Angle);
-  script_builtin_func_add(string_lit("random"), ScriptIntrinsic_Random);
-  script_builtin_func_add(string_lit("random"), ScriptIntrinsic_RandomBetween);
-  script_builtin_func_add(string_lit("random_sphere"), ScriptIntrinsic_RandomSphere);
-  script_builtin_func_add(string_lit("random_circle_xz"), ScriptIntrinsic_RandomCircleXZ);
-  script_builtin_func_add(string_lit("round_down"), ScriptIntrinsic_RoundDown);
-  script_builtin_func_add(string_lit("round_nearest"), ScriptIntrinsic_RoundNearest);
-  script_builtin_func_add(string_lit("round_up"), ScriptIntrinsic_RoundUp);
-  script_builtin_func_add(string_lit("assert"), ScriptIntrinsic_Assert);
+  BUILTIN_F("type",             Type,               "Retrieve the type of the given value.");
+  BUILTIN_F("vector",           Vector3Compose,     "Construct a new vector.");
+  BUILTIN_F("vector_x",         VectorX,            "Retrieve the x component of a vector.");
+  BUILTIN_F("vector_y",         VectorY,            "Retrieve the y component of a vector.");
+  BUILTIN_F("vector_z",         VectorZ,            "Retrieve the z component of a vector.");
+  BUILTIN_F("euler",            QuatFromEuler,      "Construct a quaternion from the given euler angles (in radians).");
+  BUILTIN_F("angle_axis",       QuatFromAngleAxis,  "Construct a quaternion from an angle (in radians) and an axis.");
+  BUILTIN_F("distance",         Distance,           "Compute the distance between two values.");
+  BUILTIN_F("distance",         Magnitude,          "Compute the magnitude of the given value.");
+  BUILTIN_F("normalize",        Normalize,          "Normalize the given value.");
+  BUILTIN_F("angle",            Angle,              "Compute the angle (in radians) between two directions or two quaternions.");
+  BUILTIN_F("random",           Random,             "Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution.");
+  BUILTIN_F("random",           RandomBetween,      "Compute a random value between the given min (inclusive) and max (exclusive) values with a uniform distribution.");
+  BUILTIN_F("random_sphere",    RandomSphere,       "Compute a random vector inside a unit sphere with a uniform distribution.");
+  BUILTIN_F("random_circle_xz", RandomCircleXZ,     "Compute a random vector inside a xz unit circle with a uniform distribution.");
+  BUILTIN_F("round_down",       RoundDown,          "Round the given value down to an integer.");
+  BUILTIN_F("round_nearest",    RoundNearest,       "Round the given value to the nearest integer.");
+  BUILTIN_F("round_up",         RoundUp,            "Round the given value up to an integer.");
+  BUILTIN_F("assert",           Assert,             "Assert that the given value is truthy.");
+
+#undef BUILTIN_C
+#undef BUILTIN_F
+
+  // clang-format on
 }
 
 typedef enum {
@@ -328,10 +343,6 @@ static ScriptRange read_range_to_next(ScriptReadContext* ctx, const ScriptPos st
   return script_range(start, read_pos_next(ctx) + 1);
 }
 
-static ScriptRange read_range_full(ScriptReadContext* ctx) {
-  return script_range_full(ctx->inputTotal);
-}
-
 static void read_emit_err(ScriptReadContext* ctx, const ScriptDiagType type, const ScriptRange r) {
   if (ctx->diags) {
     const ScriptDiag diag = {
@@ -371,9 +382,9 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
       break;
     }
     const ScriptSym sym = {
-        .type       = ScriptSymType_Variable,
-        .label      = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .validRange = read_range_to_next(ctx, scope->vars[i].validUsageStart),
+        .type          = ScriptSymType_Variable,
+        .label         = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
+        .data.variable = {.scope = read_range_to_next(ctx, scope->vars[i].validUsageStart)},
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -546,7 +557,7 @@ static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const Script
 
 static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* hasSideEffect = ctx;
-  switch (script_expr_type(doc, expr)) {
+  switch (expr_type(doc, expr)) {
   case ScriptExprType_MemStore:
   case ScriptExprType_VarStore:
   case ScriptExprType_Extern:
@@ -558,8 +569,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
   case ScriptExprType_Block:
     return;
   case ScriptExprType_Intrinsic: {
-    const ScriptExprData* data = dynarray_at_t(&doc->exprData, expr, ScriptExprData);
-    switch (data->intrinsic.intrinsic) {
+    switch (expr_data(doc, expr)->intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
     case ScriptIntrinsic_Return:
@@ -589,7 +599,7 @@ read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 
       const ScriptDiag noEffectDiag = {
           .severity = ScriptDiagSeverity_Warning,
           .type     = ScriptDiag_ExprHasNoEffect,
-          .range    = script_expr_range(ctx->doc, exprs[i]),
+          .range    = expr_range(ctx->doc, exprs[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
     }
@@ -604,8 +614,8 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
   for (u32 i = 0; i != (exprCount - 1); ++i) {
     const ScriptDocSignal uncaughtSignal = script_expr_always_uncaught_signal(ctx->doc, exprs[i]);
     if (uncaughtSignal) {
-      const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
-      const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
+      const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
+      const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
           .severity = ScriptDiagSeverity_Warning,
           .type     = ScriptDiag_ExprUnreachable,
@@ -643,7 +653,7 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    const ScriptPos   blockStart = script_expr_range(ctx->doc, exprs[0]).start;
+    const ScriptPos   blockStart = expr_range(ctx->doc, exprs[0]).start;
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
     return read_emit_err(ctx, ScriptDiag_BlockTooBig, blockRange), read_fail_structural(ctx);
   }
@@ -662,7 +672,7 @@ BlockNext:
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
 
   if (!read_is_block_separator(sepToken.type)) {
-    read_emit_err(ctx, ScriptDiag_MissingSemicolon, script_expr_range(ctx->doc, exprNew));
+    read_emit_err(ctx, ScriptDiag_MissingSemicolon, expr_range(ctx->doc, exprNew));
     return read_fail_structural(ctx);
   }
   if (sepToken.type == ScriptTokenType_Semicolon) {
@@ -685,8 +695,8 @@ BlockEnd:;
     read_emit_unreachable(ctx, exprs, exprCount);
 
     const ScriptRange blockRange = {
-        .start = script_expr_range(ctx->doc, exprs[0]).start,
-        .end   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end,
+        .start = expr_range(ctx->doc, exprs[0]).start,
+        .end   = expr_range(ctx->doc, exprs[exprCount - 1]).end,
     };
     return script_add_block(ctx->doc, blockRange, exprs, exprCount);
   }
@@ -711,7 +721,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
   }
 
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyClose)) {
-    const ScriptRange range = script_expr_range(ctx->doc, expr);
+    const ScriptRange range = expr_range(ctx->doc, expr);
     return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
   }
 
@@ -768,8 +778,8 @@ static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max
 ArgNext:;
   if (UNLIKELY(count == script_args_max)) {
     const ScriptRange wholeArgsRange = {
-        .start = script_expr_range(ctx->doc, outExprs[0]).start,
-        .end   = script_expr_range(ctx->doc, outExprs[count - 1]).end,
+        .start = expr_range(ctx->doc, outExprs[0]).start,
+        .end   = expr_range(ctx->doc, outExprs[count - 1]).end,
     };
     return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
   }
@@ -791,7 +801,7 @@ ArgEnd:
     if (count == 0) {
       range = read_range_dummy(ctx);
     } else {
-      range = script_expr_range(ctx->doc, outExprs[count - 1]);
+      range = expr_range(ctx->doc, outExprs[count - 1]);
     }
     return read_emit_err(ctx, ScriptDiag_UnterminatedArgumentList, range), -1;
   }
@@ -970,7 +980,7 @@ static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr 
     const ScriptDiag staticConditionDiag = {
         .severity = ScriptDiagSeverity_Warning,
         .type     = ScriptDiag_ConditionExprStatic,
-        .range    = script_expr_range(ctx->doc, expr),
+        .range    = expr_range(ctx->doc, expr),
     };
     script_diag_push(ctx->diags, &staticConditionDiag);
   }
@@ -1191,7 +1201,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 }
 
 static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptPos start = script_expr_range(ctx->doc, condition).start;
+  const ScriptPos start = expr_range(ctx->doc, condition).start;
 
   const ScriptExpr b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(sentinel_check(b1))) {
@@ -1486,9 +1496,8 @@ static void read_sym_push_keywords(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_Keyword,
-        .label      = script_lex_keyword_data()[i].id,
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_Keyword,
+        .label = script_lex_keyword_data()[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1500,17 +1509,17 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_BuiltinConstant,
-        .label      = g_scriptBuiltinConsts[i].id,
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_BuiltinConstant,
+        .label = g_scriptBuiltinConsts[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_BuiltinFunction,
-        .label      = g_scriptBuiltinFuncs[i].id,
-        .validRange = read_range_full(ctx),
+        .type                 = ScriptSymType_BuiltinFunction,
+        .label                = g_scriptBuiltinFuncs[i].id,
+        .doc                  = g_scriptBuiltinFuncs[i].doc,
+        .data.builtinFunction = {.intr = g_scriptBuiltinFuncs[i].intr},
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1523,9 +1532,8 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
     const ScriptSym sym = {
-        .type       = ScriptSymType_ExternFunction,
-        .label      = script_binder_name_str(ctx->binder, itr),
-        .validRange = read_range_full(ctx),
+        .type  = ScriptSymType_ExternFunction,
+        .label = script_binder_name_str(ctx->binder, itr),
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1543,9 +1551,8 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
     const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
       const ScriptSym sym = {
-          .type       = ScriptSymType_MemoryKey,
-          .label      = fmt_write_scratch("${}", fmt_text(keyStr)),
-          .validRange = read_range_full(ctx),
+          .type  = ScriptSymType_MemoryKey,
+          .label = fmt_write_scratch("${}", fmt_text(keyStr)),
       };
       script_sym_push(ctx->syms, &sym);
     }
@@ -1553,11 +1560,11 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
 }
 
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
-  const ScriptBinderSignature signature = script_binder_sig(binder);
-  if (doc->binderSignature && doc->binderSignature != signature) {
+  const ScriptBinderHash hash = script_binder_hash(binder);
+  if (doc->binderHash && doc->binderHash != hash) {
     diag_assert_fail("ScriptDoc was already used with a different (and incompatible binder)");
   }
-  doc->binderSignature = signature;
+  doc->binderHash = hash;
 }
 
 static void script_read_init() {

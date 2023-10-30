@@ -78,7 +78,7 @@ u16 script_binder_count(const ScriptBinder* binder) {
   return binder->count;
 }
 
-ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
+ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
   u32 funcNameHash = 42;
@@ -86,7 +86,7 @@ ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
     funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
   }
 
-  return (ScriptBinderSignature)((u64)funcNameHash | ((u64)binder->count << 32u));
+  return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
 }
 
 ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash name) {

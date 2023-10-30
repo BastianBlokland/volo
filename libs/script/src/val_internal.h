@@ -24,7 +24,7 @@ MAYBE_UNUSED INLINE_HINT static ScriptType val_type(const ScriptVal value) {
   return (ScriptType)value.words[3];
 }
 
-MAYBE_UNUSED INLINE_HINT static bool val_type_check(const ScriptVal v, const ScriptTypeMask mask) {
+MAYBE_UNUSED INLINE_HINT static bool val_type_check(const ScriptVal v, const ScriptMask mask) {
   return (mask & (1 << val_type(v))) != 0;
 }
 

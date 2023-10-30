@@ -1,9 +1,14 @@
 #pragma once
 #include "core_dynstring.h"
+#include "script_intrinsic.h"
 #include "script_pos.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
+
+// Forward declare from 'script_doc.h'.
+typedef struct sScriptDoc ScriptDoc;
+typedef u32               ScriptExpr;
 
 #define script_syms_max 4096
 #define script_sym_sentinel sentinel_u16
@@ -22,9 +27,21 @@ typedef enum {
 } ScriptSymType;
 
 typedef struct {
+  ScriptIntrinsic intr;
+} ScriptSymBuiltinFunction;
+
+typedef struct {
+  ScriptRange scope;
+} ScriptSymVariable;
+
+typedef struct {
   ScriptSymType type;
   String        label;
-  ScriptRange   validRange;
+  String        doc;
+  union {
+    ScriptSymBuiltinFunction builtinFunction;
+    ScriptSymVariable        variable;
+  } data;
 } ScriptSym;
 
 typedef struct sScriptSymBag ScriptSymBag;
@@ -38,6 +55,8 @@ void        script_sym_clear(ScriptSymBag*);
 bool             script_sym_is_func(const ScriptSym*);
 String           script_sym_type_str(ScriptSymType);
 const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
+
+ScriptSymId script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 
 ScriptSymId script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSymId script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSymId);

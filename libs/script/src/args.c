@@ -12,8 +12,7 @@ NO_INLINE_HINT static ScriptError script_arg_err(const ScriptArgs args, const u1
   return script_error_arg(ScriptError_ArgumentMissing, i);
 }
 
-bool script_arg_check(
-    const ScriptArgs args, const u16 i, const ScriptTypeMask mask, ScriptError* err) {
+bool script_arg_check(const ScriptArgs args, const u16 i, const ScriptMask mask, ScriptError* err) {
   if (LIKELY(args.count > i && val_type_check(args.values[i], mask))) {
     return true;
   }

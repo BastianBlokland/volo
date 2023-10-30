@@ -1,7 +1,7 @@
 #pragma once
 #include "core_annotation.h"
+#include "core_bits.h"
 #include "core_string.h"
-#include "core_types.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -30,18 +30,20 @@ typedef enum {
   ScriptType_Count,
 } ScriptType;
 
-typedef u16 ScriptTypeMask;
+typedef u16 ScriptMask;
 ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 
-#define script_type_mask(_TYPE_) ((ScriptTypeMask)(1 << _TYPE_))
-#define script_type_mask_null script_type_mask(ScriptType_Null)
-#define script_type_mask_number script_type_mask(ScriptType_Number)
-#define script_type_mask_bool script_type_mask(ScriptType_Bool)
-#define script_type_mask_vector3 script_type_mask(ScriptType_Vector3)
-#define script_type_mask_quat script_type_mask(ScriptType_Quat)
-#define script_type_mask_entity script_type_mask(ScriptType_Entity)
-#define script_type_mask_string script_type_mask(ScriptType_String)
-#define script_type_mask_time script_type_mask(ScriptType_Number)
+#define script_mask(_TYPE_) ((ScriptMask)(1 << _TYPE_))
+#define script_mask_none ((ScriptMask)0)
+#define script_mask_any ((ScriptMask)bit_range_32(0, ScriptType_Count))
+#define script_mask_null script_mask(ScriptType_Null)
+#define script_mask_number script_mask(ScriptType_Number)
+#define script_mask_bool script_mask(ScriptType_Bool)
+#define script_mask_vector3 script_mask(ScriptType_Vector3)
+#define script_mask_quat script_mask(ScriptType_Quat)
+#define script_mask_entity script_mask(ScriptType_Entity)
+#define script_mask_string script_mask(ScriptType_String)
+#define script_mask_time script_mask(ScriptType_Number)
 
 /**
  * Type-erased script value.
@@ -58,7 +60,7 @@ ASSERT(alignof(ScriptVal) == 16, "Expected ScriptVal's alignment to be 128 bits"
  * Retrieve the type of the given value.
  */
 ScriptType script_type(ScriptVal);
-bool       script_type_check(ScriptVal, ScriptTypeMask);
+bool       script_type_check(ScriptVal, ScriptMask);
 
 /**
  * Type-erase a value into a ScriptVal.
