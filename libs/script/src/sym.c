@@ -50,7 +50,7 @@ static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, c
     const ScriptSym* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_Variable:
-      if (sym->data.variable.id == v && sym_in_scope(sym, p)) {
+      if (sym->data.variable.slot == v && sym_in_scope(sym, p)) {
         return id;
       }
       break;

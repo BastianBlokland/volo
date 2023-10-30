@@ -32,7 +32,7 @@ typedef struct {
 } ScriptSymBuiltinFunction;
 
 typedef struct {
-  ScriptVarId id; // NOTE: Only unique within the scope.
+  ScriptVarId slot; // NOTE: Only unique within the scope.
   ScriptRange location;
   ScriptRange scope;
 } ScriptSymVariable;

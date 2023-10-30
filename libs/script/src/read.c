@@ -386,7 +386,7 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
         .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
         .data.variable =
             {
-                .id       = scope->vars[i].id,
+                .slot     = scope->vars[i].varSlot,
                 .location = scope->vars[i].declRange,
                 .scope    = read_range_to_next(ctx, scope->vars[i].validUsageStart),
             },
