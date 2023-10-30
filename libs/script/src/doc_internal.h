@@ -1,5 +1,6 @@
 #pragma once
 #include "script_doc.h"
+#include "script_pos.h"
 
 // Forward declare from 'script_binder.h'.
 typedef u64 ScriptBinderHash;
@@ -65,3 +66,23 @@ struct sScriptDoc {
   Allocator*       alloc;
   ScriptBinderHash binderHash;
 };
+
+// clang-format off
+
+MAYBE_UNUSED INLINE_HINT static ScriptExprType expr_type(const ScriptDoc* d, const ScriptExpr e) {
+  return (ScriptExprType)(dynarray_begin_t(&d->exprTypes, u8)[e]);
+}
+
+MAYBE_UNUSED INLINE_HINT static const ScriptExprData* expr_data(const ScriptDoc* d, const ScriptExpr e) {
+  return &dynarray_begin_t(&d->exprData, ScriptExprData)[e];
+}
+
+MAYBE_UNUSED INLINE_HINT static ScriptRange expr_range(const ScriptDoc* d, const ScriptExpr e) {
+  return dynarray_begin_t(&d->exprRanges, ScriptRange)[e];
+}
+
+INLINE_HINT MAYBE_UNUSED static const ScriptExpr* expr_set_data(const ScriptDoc* d, const ScriptExprSet s) {
+  return &dynarray_begin_t(&d->exprSets, ScriptExpr)[s];
+}
+
+// clang-format on

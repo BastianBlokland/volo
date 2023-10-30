@@ -557,7 +557,7 @@ static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const Script
 
 static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* hasSideEffect = ctx;
-  switch (script_expr_type(doc, expr)) {
+  switch (expr_type(doc, expr)) {
   case ScriptExprType_MemStore:
   case ScriptExprType_VarStore:
   case ScriptExprType_Extern:
@@ -569,8 +569,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
   case ScriptExprType_Block:
     return;
   case ScriptExprType_Intrinsic: {
-    const ScriptExprData* data = dynarray_at_t(&doc->exprData, expr, ScriptExprData);
-    switch (data->intrinsic.intrinsic) {
+    switch (expr_data(doc, expr)->intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
     case ScriptIntrinsic_Return:
@@ -600,7 +599,7 @@ read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 
       const ScriptDiag noEffectDiag = {
           .severity = ScriptDiagSeverity_Warning,
           .type     = ScriptDiag_ExprHasNoEffect,
-          .range    = script_expr_range(ctx->doc, exprs[i]),
+          .range    = expr_range(ctx->doc, exprs[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
     }
@@ -615,12 +614,12 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
   for (u32 i = 0; i != (exprCount - 1); ++i) {
     const ScriptDocSignal uncaughtSignal = script_expr_always_uncaught_signal(ctx->doc, exprs[i]);
     if (uncaughtSignal) {
-      const ScriptPos  unreachableStart = script_expr_range(ctx->doc, exprs[i + 1]).start;
-      const ScriptPos  unreachableEnd   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end;
+      const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
+      const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .type     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .type     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -654,7 +653,7 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    const ScriptPos   blockStart = script_expr_range(ctx->doc, exprs[0]).start;
+    const ScriptPos   blockStart = expr_range(ctx->doc, exprs[0]).start;
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
     return read_emit_err(ctx, ScriptDiag_BlockTooBig, blockRange), read_fail_structural(ctx);
   }
@@ -673,7 +672,7 @@ BlockNext:
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
 
   if (!read_is_block_separator(sepToken.type)) {
-    read_emit_err(ctx, ScriptDiag_MissingSemicolon, script_expr_range(ctx->doc, exprNew));
+    read_emit_err(ctx, ScriptDiag_MissingSemicolon, expr_range(ctx->doc, exprNew));
     return read_fail_structural(ctx);
   }
   if (sepToken.type == ScriptTokenType_Semicolon) {
@@ -696,8 +695,8 @@ BlockEnd:;
     read_emit_unreachable(ctx, exprs, exprCount);
 
     const ScriptRange blockRange = {
-        .start = script_expr_range(ctx->doc, exprs[0]).start,
-        .end   = script_expr_range(ctx->doc, exprs[exprCount - 1]).end,
+        .start = expr_range(ctx->doc, exprs[0]).start,
+        .end   = expr_range(ctx->doc, exprs[exprCount - 1]).end,
     };
     return script_add_block(ctx->doc, blockRange, exprs, exprCount);
   }
@@ -722,7 +721,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
   }
 
   if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyClose)) {
-    const ScriptRange range = script_expr_range(ctx->doc, expr);
+    const ScriptRange range = expr_range(ctx->doc, expr);
     return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
   }
 
@@ -779,8 +778,8 @@ static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max
 ArgNext:;
   if (UNLIKELY(count == script_args_max)) {
     const ScriptRange wholeArgsRange = {
-        .start = script_expr_range(ctx->doc, outExprs[0]).start,
-        .end   = script_expr_range(ctx->doc, outExprs[count - 1]).end,
+        .start = expr_range(ctx->doc, outExprs[0]).start,
+        .end   = expr_range(ctx->doc, outExprs[count - 1]).end,
     };
     return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
   }
@@ -802,7 +801,7 @@ ArgEnd:
     if (count == 0) {
       range = read_range_dummy(ctx);
     } else {
-      range = script_expr_range(ctx->doc, outExprs[count - 1]);
+      range = expr_range(ctx->doc, outExprs[count - 1]);
     }
     return read_emit_err(ctx, ScriptDiag_UnterminatedArgumentList, range), -1;
   }
@@ -981,7 +980,7 @@ static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr 
     const ScriptDiag staticConditionDiag = {
         .severity = ScriptDiagSeverity_Warning,
         .type     = ScriptDiag_ConditionExprStatic,
-        .range    = script_expr_range(ctx->doc, expr),
+        .range    = expr_range(ctx->doc, expr),
     };
     script_diag_push(ctx->diags, &staticConditionDiag);
   }
@@ -1202,7 +1201,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 }
 
 static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptPos start = script_expr_range(ctx->doc, condition).start;
+  const ScriptPos start = expr_range(ctx->doc, condition).start;
 
   const ScriptExpr b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(sentinel_check(b1))) {
@@ -1596,13 +1595,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
