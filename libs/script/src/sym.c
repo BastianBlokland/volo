@@ -23,7 +23,7 @@ INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) 
     if (sentinel_check(pos)) {
       return true; // 'script_pos_sentinel' indicates that all ranges should be included.
     }
-    return script_range_contains(sym->data.variable.scope, pos);
+    return script_range_contains(sym->data.var.scope, pos);
   default:
     return true;
   }
@@ -34,7 +34,23 @@ static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic
     const ScriptSym* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_BuiltinFunction:
-      if (sym->data.builtinFunction.intr == intr) {
+      if (sym->data.builtinFunc.intr == intr) {
+        return id;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  return script_sym_sentinel;
+}
+
+static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
+  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+    const ScriptSym* sym = sym_data(b, id);
+    switch (sym->type) {
+    case ScriptSymType_ExternFunction:
+      if (sym->data.externFunc.binderSlot == slot) {
         return id;
       }
       break;
@@ -50,7 +66,7 @@ static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, c
     const ScriptSym* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_Variable:
-      if (sym->data.variable.slot == v && sym_in_scope(sym, p)) {
+      if (sym->data.var.slot == v && sym_in_scope(sym, p)) {
         return id;
       }
       break;
@@ -66,7 +82,7 @@ static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash m
     const ScriptSym* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_MemoryKey:
-      if (sym->data.memoryKey.key == memKey) {
+      if (sym->data.memKey.key == memKey) {
         return id;
       }
       break;
@@ -127,7 +143,7 @@ bool script_sym_is_func(const ScriptSym* sym) {
 ScriptRange script_sym_location(const ScriptSym* sym) {
   switch (sym->type) {
   case ScriptSymType_Variable:
-    return sym->data.variable.location;
+    return sym->data.var.location;
   default:
     break;
   }
@@ -166,6 +182,8 @@ ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const
     return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_load.key);
   case ScriptExprType_MemStore:
     return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_store.key);
+  case ScriptExprType_Extern:
+    return sym_find_by_binder_slot(bag, expr_data(doc, expr)->extern_.func);
   default:
     return script_sym_sentinel;
   }
