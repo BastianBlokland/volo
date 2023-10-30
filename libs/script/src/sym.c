@@ -61,6 +61,22 @@ static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, c
   return script_sym_sentinel;
 }
 
+static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
+  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+    const ScriptSym* sym = sym_data(b, id);
+    switch (sym->type) {
+    case ScriptSymType_MemoryKey:
+      if (sym->data.memoryKey.key == memKey) {
+        return id;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  return script_sym_sentinel;
+}
+
 ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
@@ -136,6 +152,10 @@ ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const
     return sym_find_by_var(bag, expr_data(doc, expr)->var_load.var, expr_range(doc, expr).start);
   case ScriptExprType_VarStore:
     return sym_find_by_var(bag, expr_data(doc, expr)->var_store.var, expr_range(doc, expr).start);
+  case ScriptExprType_MemLoad:
+    return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_load.key);
+  case ScriptExprType_MemStore:
+    return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_store.key);
   default:
     return script_sym_sentinel;
   }

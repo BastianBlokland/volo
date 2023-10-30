@@ -38,12 +38,17 @@ typedef struct {
 } ScriptSymVariable;
 
 typedef struct {
+  StringHash key;
+} ScriptSymMemoryKey;
+
+typedef struct {
   ScriptSymType type;
   String        label;
   String        doc;
   union {
     ScriptSymBuiltinFunction builtinFunction;
     ScriptSymVariable        variable;
+    ScriptSymMemoryKey       memoryKey;
   } data;
 } ScriptSym;
 
