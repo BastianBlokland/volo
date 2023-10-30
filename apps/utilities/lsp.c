@@ -94,6 +94,11 @@ typedef struct {
   String             text;
 } LspHover;
 
+typedef struct {
+  String             uri;
+  ScriptRangeLineCol range;
+} LspLocation;
+
 typedef enum {
   LspCompletionItemKind_Function    = 3,
   LspCompletionItemKind_Constructor = 4,
@@ -315,6 +320,13 @@ static JsonVal lsp_hover_to_json(LspContext* ctx, const LspHover* hover) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &hover->range));
   json_add_field_lit(ctx->jDoc, obj, "contents", json_add_string(ctx->jDoc, hover->text));
+  return obj;
+}
+
+static JsonVal lsp_location_to_json(LspContext* ctx, const LspLocation* location) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "uri", json_add_string(ctx->jDoc, location->uri));
+  json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &location->range));
   return obj;
 }
 
@@ -661,7 +673,8 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, docSyncOpts, "openClose", json_add_bool(ctx->jDoc, true));
   json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 1));
 
-  const JsonVal hoverOpts = json_add_object(ctx->jDoc);
+  const JsonVal hoverOpts      = json_add_object(ctx->jDoc);
+  const JsonVal definitionOpts = json_add_object(ctx->jDoc);
 
   const JsonVal completionTriggerCharArr = json_add_array(ctx->jDoc);
   json_add_elem(ctx->jDoc, completionTriggerCharArr, json_add_string_lit(ctx->jDoc, "$"));
@@ -678,6 +691,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
   json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "hoverProvider", hoverOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
 
@@ -772,6 +786,65 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
 
 InvalidParams:
   lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
+static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  if (ctx->flags & LspFlags_Trace) {
+    const String txt = fmt_write_scratch(
+        "Goto: {} [{}:{}]", fmt_text(uri), fmt_int(posLc.line + 1), fmt_int(posLc.column + 1));
+    lsp_send_trace(ctx, txt);
+  }
+
+  if (sentinel_check(doc->scriptRoot)) {
+    goto NoLocation; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  const ScriptExpr  refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
+  const ScriptSymId symId   = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
+  if (sentinel_check(symId)) {
+    goto NoLocation; // No symbol found for the expression.
+  }
+
+  const ScriptSym*  sym      = script_sym_data(doc->scriptSyms, symId);
+  const ScriptRange symRange = script_sym_location(sym);
+  if (sentinel_check(symRange.start)) {
+    goto NoLocation; // No location found for the symbol.
+  }
+
+  const LspLocation hover = {
+      .uri   = uri,
+      .range = script_range_to_line_col(doc->text, symRange),
+  };
+  lsp_send_response_success(ctx, req, lsp_location_to_json(ctx, &hover));
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+  return;
+
+NoLocation:
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
 static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSym* sym) {
@@ -909,6 +982,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
       {string_static("textDocument/hover"), lsp_handle_req_hover},
+      {string_static("textDocument/definition"), lsp_handle_req_definition},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
   };
