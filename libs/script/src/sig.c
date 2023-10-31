@@ -39,11 +39,11 @@ ScriptSig* script_sig_create(
     allocSize += sig_arg_data_size(args[i]);
     allocSize += bits_padding(allocSize, alignof(ScriptSig));
   }
-  ScriptSig* sig = alloc_alloc(alloc, allocSize, alignof(ScriptSig)).ptr;
 
-  sig->alloc    = alloc;
-  sig->retMask  = ret;
-  sig->argCount = argCount;
+  ScriptSig* sig = alloc_alloc(alloc, allocSize, alignof(ScriptSig)).ptr;
+  sig->alloc     = alloc;
+  sig->retMask   = ret;
+  sig->argCount  = argCount;
 
   usize offset = sizeof(ScriptSig);
   for (u8 i = 0; i != argCount; ++i) {
@@ -51,9 +51,18 @@ ScriptSig* script_sig_create(
     diag_assert(bits_aligned(offset, alignof(ScriptMask)));
 
     sig->argOffsets[i] = (u16)offset;
+
+    const ScriptMask mask = args[i].mask;
+    const String     name = args[i].name;
+
+    *(ScriptMask*)bits_ptr_offset(sig, offset)              = mask;
+    *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask)) = (u8)name.size;
+    mem_cpy(mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 1), name.size), name);
+
     offset += sig_arg_data_size(args[i]);
     offset += bits_padding(offset, alignof(ScriptMask));
   }
+  diag_assert(offset == allocSize);
 
   return sig;
 }
