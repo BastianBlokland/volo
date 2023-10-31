@@ -37,8 +37,9 @@ ScriptSig* script_sig_create(
   usize allocSize = sizeof(ScriptSig);
   for (u8 i = 0; i != argCount; ++i) {
     allocSize += sig_arg_data_size(args[i]);
-    allocSize += bits_padding(allocSize, alignof(ScriptSig));
+    allocSize += bits_padding(allocSize, alignof(ScriptMask));
   }
+  allocSize += bits_padding(allocSize, alignof(ScriptSig));
 
   ScriptSig* sig = alloc_alloc(alloc, allocSize, alignof(ScriptSig)).ptr;
   sig->alloc     = alloc;
@@ -62,7 +63,7 @@ ScriptSig* script_sig_create(
     offset += sig_arg_data_size(args[i]);
     offset += bits_padding(offset, alignof(ScriptMask));
   }
-  diag_assert(offset == allocSize);
+  diag_assert(bits_align(offset, alignof(ScriptSig)) == allocSize);
 
   return sig;
 }
