@@ -31,11 +31,11 @@ struct sScriptSig {
 };
 
 static usize sig_data_size(ScriptSig* sig) {
-  usize result = sizeof(ScriptSig);
-  for (u8 i = 0; i != sig->argCount; ++i) {
-    result += sig_arg_data_size(script_sig_arg(sig, i));
-    result += bits_padding(result, alignof(ScriptMask));
+  if (!sig->argCount) {
+    return sizeof(ScriptSig);
   }
+  usize result = sig->argOffsets[sig->argCount - 1];
+  result += sig_arg_data_size(script_sig_arg(sig, sig->argCount - 1));
   result += bits_padding(result, alignof(ScriptSig));
   return result;
 }
@@ -78,8 +78,21 @@ ScriptSig* script_sig_create(
   return sig;
 }
 
+ScriptSig* script_sig_clone(Allocator* alloc, ScriptSig* sig) {
+  const usize dataSize = sig_data_size(sig);
+
+  Mem newSigMem = alloc_alloc(alloc, dataSize, alignof(ScriptSig));
+  mem_cpy(newSigMem, mem_create(sig, dataSize));
+
+  ScriptSig* newSig = newSigMem.ptr;
+  newSig->alloc     = alloc;
+
+  return newSig;
+}
+
 void script_sig_destroy(ScriptSig* sig) {
-  alloc_free(sig->alloc, mem_create(sig, sig_data_size(sig)));
+  const usize dataSize = sig_data_size(sig);
+  alloc_free(sig->alloc, mem_create(sig, dataSize));
 }
 
 ScriptMask script_sig_ret(const ScriptSig* sig) { return sig->retMask; }
