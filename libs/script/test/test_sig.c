@@ -13,7 +13,21 @@ spec(sig) {
     script_sig_destroy(sig);
   }
 
-  it("can store ret type and arguments") {
+  it("can store ret type and a single argument") {
+    const ScriptSigArg args[] = {
+        {.name = string_lit("argA"), .mask = script_mask_number},
+    };
+    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_bool, args, array_elems(args));
+
+    check_eq_int(script_sig_ret(sig), script_mask_bool);
+    check_eq_int(script_sig_arg_count(sig), 1);
+    check_eq_string(script_sig_arg(sig, 0).name, args[0].name);
+    check_eq_int(script_sig_arg(sig, 0).mask, args[0].mask);
+
+    script_sig_destroy(sig);
+  }
+
+  it("can store ret type and multiple arguments") {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_number},
         {.name = string_lit("argB"), .mask = script_mask_null},
