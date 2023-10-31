@@ -30,7 +30,7 @@ struct sScriptSig {
   u16        argOffsets[script_sig_arg_count_max];
 };
 
-static usize sig_data_size(ScriptSig* sig) {
+static usize sig_data_size(const ScriptSig* sig) {
   if (!sig->argCount) {
     return sizeof(ScriptSig);
   }
@@ -78,7 +78,7 @@ ScriptSig* script_sig_create(
   return sig;
 }
 
-ScriptSig* script_sig_clone(Allocator* alloc, ScriptSig* sig) {
+ScriptSig* script_sig_clone(Allocator* alloc, const ScriptSig* sig) {
   const usize dataSize = sig_data_size(sig);
 
   Mem newSigMem = alloc_alloc(alloc, dataSize, alignof(ScriptSig));
