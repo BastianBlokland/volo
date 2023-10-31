@@ -19,6 +19,7 @@ add_library(lib_script STATIC
   src/panic.c
   src/pos.c
   src/read.c
+  src/sig.c
   src/sym.c
   src/val.c
   )
