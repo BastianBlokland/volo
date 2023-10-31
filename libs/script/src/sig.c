@@ -12,6 +12,7 @@
  * - ScriptMask (2 bytes)
  * - nameLen (1 byte)
  * - Name (nameLen bytes)
+ * - Padding (? bytes)
  *
  */
 
@@ -36,6 +37,7 @@ ScriptSig* script_sig_create(
   usize allocSize = sizeof(ScriptSig);
   for (u8 i = 0; i != argCount; ++i) {
     allocSize += sig_arg_data_size(args[i]);
+    allocSize += bits_padding(allocSize, alignof(ScriptSig));
   }
   ScriptSig* sig = alloc_alloc(alloc, allocSize, alignof(ScriptSig)).ptr;
 
@@ -50,6 +52,7 @@ ScriptSig* script_sig_create(
 
     sig->argOffsets[i] = (u16)offset;
     offset += sig_arg_data_size(args[i]);
+    offset += bits_padding(offset, alignof(ScriptMask));
   }
 
   return sig;
