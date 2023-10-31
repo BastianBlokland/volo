@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_sentinel.h"
 #include "script_sig.h"
+#include "script_val.h"
 
 /**
  * Signature, stores the return type and names and types for arguments.
@@ -110,4 +111,30 @@ ScriptSigArg script_sig_arg(const ScriptSig* sig, const u8 index) {
   const String name = mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 1), nameLen);
 
   return (ScriptSigArg){.mask = mask, .name = name};
+}
+
+void script_sig_str_write(const ScriptSig* sig, DynString* str) {
+  dynstring_append_char(str, '(');
+  for (u8 i = 0; i != sig->argCount; ++i) {
+    const ScriptSigArg arg = script_sig_arg(sig, i);
+    if (i) {
+      dynstring_append(str, string_lit(", "));
+    }
+    dynstring_append(str, arg.name);
+    dynstring_append(str, string_lit(": "));
+    script_mask_str_write(arg.mask, str);
+  }
+  dynstring_append(str, string_lit(") -> "));
+  script_mask_str_write(sig->retMask, str);
+}
+
+String script_sig_str_scratch(const ScriptSig* sig) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 512, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  script_sig_str_write(sig, &str);
+
+  const String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
 }

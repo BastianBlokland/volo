@@ -4,6 +4,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
 // Forward declare from 'script_val.h'.
 typedef u16 ScriptMask;
 
@@ -24,3 +27,6 @@ void       script_sig_destroy(ScriptSig*);
 ScriptMask   script_sig_ret(const ScriptSig*);
 u8           script_sig_arg_count(const ScriptSig*);
 ScriptSigArg script_sig_arg(const ScriptSig* sig, u8 index);
+
+void   script_sig_str_write(const ScriptSig*, DynString*);
+String script_sig_str_scratch(const ScriptSig*);

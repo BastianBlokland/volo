@@ -93,4 +93,39 @@ spec(sig) {
     script_sig_destroy(sigA);
     script_sig_destroy(sigB);
   }
+
+  it("can create a textual representation of a signature with zero arguments") {
+    const ScriptMask ret = script_mask_null | script_mask_bool;
+    ScriptSig*       sig = script_sig_create(g_alloc_scratch, ret, null, 0);
+
+    check_eq_string(script_sig_str_scratch(sig), string_lit("() -> null | bool"));
+
+    script_sig_destroy(sig);
+  }
+
+  it("can create a textual representation of a signature with one argument") {
+    const ScriptSigArg args[] = {
+        {.name = string_lit("argA"), .mask = script_mask_number},
+    };
+    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
+
+    check_eq_string(script_sig_str_scratch(sig), string_lit("(argA: number) -> any"));
+
+    script_sig_destroy(sig);
+  }
+
+  it("can create a textual representation of a signature with multiple arguments") {
+    const ScriptSigArg args[] = {
+        {.name = string_lit("argA"), .mask = script_mask_number},
+        {.name = string_lit("argB"), .mask = script_mask_null},
+        {.name = string_lit("argC"), .mask = script_mask_null | script_mask_vector3},
+    };
+    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
+
+    check_eq_string(
+        script_sig_str_scratch(sig),
+        string_lit("(argA: number, argB: null, argC: null | vector3) -> any"));
+
+    script_sig_destroy(sig);
+  }
 }
