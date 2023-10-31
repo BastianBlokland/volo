@@ -128,4 +128,17 @@ spec(sig) {
 
     script_sig_destroy(sig);
   }
+
+  it("excludes empty masks from the textual representation") {
+    const ScriptSigArg args[] = {
+        {.name = string_lit("argA"), .mask = script_mask_none},
+        {.name = string_lit("argB"), .mask = script_mask_none},
+        {.name = string_lit("argC"), .mask = script_mask_none},
+    };
+    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_none, args, array_elems(args));
+
+    check_eq_string(script_sig_str_scratch(sig), string_lit("(argA, argB, argC)"));
+
+    script_sig_destroy(sig);
+  }
 }

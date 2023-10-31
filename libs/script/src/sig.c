@@ -121,11 +121,16 @@ void script_sig_str_write(const ScriptSig* sig, DynString* str) {
       dynstring_append(str, string_lit(", "));
     }
     dynstring_append(str, arg.name);
-    dynstring_append(str, string_lit(": "));
-    script_mask_str_write(arg.mask, str);
+    if (arg.mask) {
+      dynstring_append(str, string_lit(": "));
+      script_mask_str_write(arg.mask, str);
+    }
   }
-  dynstring_append(str, string_lit(") -> "));
-  script_mask_str_write(sig->retMask, str);
+  dynstring_append_char(str, ')');
+  if (sig->retMask) {
+    dynstring_append(str, string_lit(" -> "));
+    script_mask_str_write(sig->retMask, str);
+  }
 }
 
 String script_sig_str_scratch(const ScriptSig* sig) {
