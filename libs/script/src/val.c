@@ -181,6 +181,36 @@ String script_val_str_scratch(const ScriptVal value) {
   return res;
 }
 
+void script_mask_str_write(const ScriptMask mask, DynString* str) {
+  if (mask == script_mask_any) {
+    dynstring_append(str, string_lit("any"));
+    return;
+  }
+  if (mask == script_mask_none) {
+    dynstring_append(str, string_lit("none"));
+    return;
+  }
+  bool first = true;
+  bitset_for(bitset_from_var(mask), typeIndex) {
+    if (!first) {
+      dynstring_append(str, string_lit(" | "));
+    }
+    first = false;
+    dynstring_append(str, script_val_type_str((ScriptType)typeIndex));
+  }
+}
+
+String script_mask_str_scratch(const ScriptMask mask) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 256, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  script_mask_str_write(mask, &str);
+
+  const String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
 bool script_val_equal(const ScriptVal a, const ScriptVal b) {
   if (val_type(a) != val_type(b)) {
     return false;
