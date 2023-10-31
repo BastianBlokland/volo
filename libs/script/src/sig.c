@@ -30,6 +30,16 @@ struct sScriptSig {
   u16        argOffsets[script_sig_arg_count_max];
 };
 
+static usize sig_data_size(ScriptSig* sig) {
+  usize result = sizeof(ScriptSig);
+  for (u8 i = 0; i != sig->argCount; ++i) {
+    result += sig_arg_data_size(script_sig_arg(sig, i));
+    result += bits_padding(result, alignof(ScriptMask));
+  }
+  result += bits_padding(result, alignof(ScriptSig));
+  return result;
+}
+
 ScriptSig* script_sig_create(
     Allocator* alloc, const ScriptMask ret, const ScriptSigArg args[], const u8 argCount) {
   diag_assert_msg(argCount <= script_sig_arg_count_max, "Argument count exceeds max");
@@ -69,11 +79,7 @@ ScriptSig* script_sig_create(
 }
 
 void script_sig_destroy(ScriptSig* sig) {
-  usize allocSize = sizeof(ScriptSig);
-  for (u8 i = 0; i != sig->argCount; ++i) {
-    allocSize += sig_arg_data_size(script_sig_arg(sig, i));
-  }
-  alloc_free(sig->alloc, mem_create(sig, allocSize));
+  alloc_free(sig->alloc, mem_create(sig, sig_data_size(sig)));
 }
 
 ScriptMask script_sig_ret(const ScriptSig* sig) { return sig->retMask; }
