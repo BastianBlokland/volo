@@ -20,9 +20,9 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RoundNearest:
   case ScriptIntrinsic_RoundUp:
   case ScriptIntrinsic_Type:
-  case ScriptIntrinsic_VectorX:
-  case ScriptIntrinsic_VectorY:
-  case ScriptIntrinsic_VectorZ:
+  case ScriptIntrinsic_VecX:
+  case ScriptIntrinsic_VecY:
+  case ScriptIntrinsic_VecZ:
     return 1;
   case ScriptIntrinsic_Add:
   case ScriptIntrinsic_Angle:
@@ -45,7 +45,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
     return 2;
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_Select:
-  case ScriptIntrinsic_Vector3Compose:
+  case ScriptIntrinsic_Vec3Compose:
     return 3;
   case ScriptIntrinsic_Loop:
     return 4;
@@ -124,10 +124,10 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Angle]             = string_static("angle"),
       [ScriptIntrinsic_Normalize]         = string_static("normalize"),
       [ScriptIntrinsic_Magnitude]         = string_static("magnitude"),
-      [ScriptIntrinsic_VectorX]           = string_static("vector-x"),
-      [ScriptIntrinsic_VectorY]           = string_static("vector-y"),
-      [ScriptIntrinsic_VectorZ]           = string_static("vector-z"),
-      [ScriptIntrinsic_Vector3Compose]    = string_static("vector3-compose"),
+      [ScriptIntrinsic_VecX]              = string_static("vec-x"),
+      [ScriptIntrinsic_VecY]              = string_static("vec-y"),
+      [ScriptIntrinsic_VecZ]              = string_static("vec-z"),
+      [ScriptIntrinsic_Vec3Compose]       = string_static("vec3-compose"),
       [ScriptIntrinsic_QuatFromEuler]     = string_static("quat-from-euler"),
       [ScriptIntrinsic_QuatFromAngleAxis] = string_static("quat-from-angle-axis"),
       [ScriptIntrinsic_Random]            = string_static("random"),

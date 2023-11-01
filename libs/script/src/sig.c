@@ -113,7 +113,7 @@ ScriptSigArg script_sig_arg(const ScriptSig* sig, const u8 index) {
   return (ScriptSigArg){.mask = mask, .name = name};
 }
 
-void script_sig_str_write(const ScriptSig* sig, DynString* str) {
+void script_sig_write(const ScriptSig* sig, DynString* str) {
   dynstring_append_char(str, '(');
   for (u8 i = 0; i != sig->argCount; ++i) {
     const ScriptSigArg arg = script_sig_arg(sig, i);
@@ -133,11 +133,11 @@ void script_sig_str_write(const ScriptSig* sig, DynString* str) {
   }
 }
 
-String script_sig_str_scratch(const ScriptSig* sig) {
+String script_sig_scratch(const ScriptSig* sig) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, 512, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
-  script_sig_str_write(sig, &str);
+  script_sig_write(sig, &str);
 
   const String res = dynstring_view(&str);
   dynstring_destroy(&str);

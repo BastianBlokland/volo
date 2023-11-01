@@ -127,12 +127,12 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Retrieve the type of the given value.");
     const ScriptMask   ret    = script_mask_str;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_any},
+        {string_lit("v"), script_mask_any},
     };
     script_builtin_func_add(name, ScriptIntrinsic_Type, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("vector");
+    const String       name   = string_lit("vec");
     const String       doc    = string_lit("Construct a new vector.");
     const ScriptMask   ret    = script_mask_vec3;
     const ScriptSigArg args[] = {
@@ -140,34 +140,34 @@ static void script_builtin_init() {
         {string_lit("y"), script_mask_num},
         {string_lit("z"), script_mask_num},
     };
-    script_builtin_func_add(name, ScriptIntrinsic_Vector3Compose, doc, ret, args, array_elems(args));
+    script_builtin_func_add(name, ScriptIntrinsic_Vec3Compose, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("vector_x");
+    const String       name   = string_lit("vec_x");
     const String       doc    = string_lit("Retrieve the x component of a vector.");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_vec3},
+        {string_lit("v"), script_mask_vec3},
     };
-    script_builtin_func_add(name, ScriptIntrinsic_VectorX, doc, ret, args, array_elems(args));
+    script_builtin_func_add(name, ScriptIntrinsic_VecX, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("vector_y");
+    const String       name   = string_lit("vec_y");
     const String       doc    = string_lit("Retrieve the y component of a vector.");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_vec3},
+        {string_lit("v"), script_mask_vec3},
     };
-    script_builtin_func_add(name, ScriptIntrinsic_VectorY, doc, ret, args, array_elems(args));
+    script_builtin_func_add(name, ScriptIntrinsic_VecY, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("vector_z");
+    const String       name   = string_lit("vec_z");
     const String       doc    = string_lit("Retrieve the z component of a vector.");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_vec3},
+        {string_lit("v"), script_mask_vec3},
     };
-    script_builtin_func_add(name, ScriptIntrinsic_VectorZ, doc, ret, args, array_elems(args));
+    script_builtin_func_add(name, ScriptIntrinsic_VecZ, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("euler");
@@ -205,7 +205,7 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Compute the magnitude of the given value.");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_num | script_mask_vec3},
+        {string_lit("v"), script_mask_num | script_mask_vec3},
     };
     script_builtin_func_add(name, ScriptIntrinsic_Magnitude, doc, ret, args, array_elems(args));
   }
@@ -214,7 +214,7 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Normalize the given value.");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_quat;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_vec3 | script_mask_quat},
+        {string_lit("v"), script_mask_vec3 | script_mask_quat},
     };
     script_builtin_func_add(name, ScriptIntrinsic_Normalize, doc, ret, args, array_elems(args));
   }
@@ -261,7 +261,7 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Round the given value down to an integer.");
     const ScriptMask   ret    = script_mask_num | script_mask_vec3;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_num | script_mask_vec3},
+        {string_lit("v"), script_mask_num | script_mask_vec3},
     };
     script_builtin_func_add(name, ScriptIntrinsic_RoundDown, doc, ret, args, array_elems(args));
   }
@@ -270,7 +270,7 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Round the given value to the nearest integer.");
     const ScriptMask   ret    = script_mask_num | script_mask_vec3;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_num | script_mask_vec3},
+        {string_lit("v"), script_mask_num | script_mask_vec3},
     };
     script_builtin_func_add(name, ScriptIntrinsic_RoundNearest, doc, ret, args, array_elems(args));
   }
@@ -279,7 +279,7 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Round the given value up to an integer.");
     const ScriptMask   ret    = script_mask_num | script_mask_vec3;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_num | script_mask_vec3},
+        {string_lit("v"), script_mask_num | script_mask_vec3},
     };
     script_builtin_func_add(name, ScriptIntrinsic_RoundUp, doc, ret, args, array_elems(args));
   }
@@ -288,7 +288,7 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Assert that the given value is truthy.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
-        {string_lit("value"), script_mask_any},
+        {string_lit("v"), script_mask_any},
     };
     script_builtin_func_add(name, ScriptIntrinsic_Assert, doc, ret, args, array_elems(args));
   }

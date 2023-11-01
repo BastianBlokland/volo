@@ -100,12 +100,12 @@ String script_val_type_str(const ScriptType type) {
   diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
   static const String g_names[] = {
       string_static("null"),
-      string_static("number"),
+      string_static("num"),
       string_static("bool"),
-      string_static("vector3"),
+      string_static("vec3"),
       string_static("quat"),
       string_static("entity"),
-      string_static("string"),
+      string_static("str"),
   };
   ASSERT(array_elems(g_names) == ScriptType_Count, "Incorrect number of names");
   return g_names[type];

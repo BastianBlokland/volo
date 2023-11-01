@@ -140,22 +140,22 @@ spec(val) {
 
   it("can produce a textual representation for a type") {
     check_eq_string(script_val_type_str(ScriptType_Null), string_lit("null"));
-    check_eq_string(script_val_type_str(ScriptType_Num), string_lit("number"));
+    check_eq_string(script_val_type_str(ScriptType_Num), string_lit("num"));
     check_eq_string(script_val_type_str(ScriptType_Bool), string_lit("bool"));
-    check_eq_string(script_val_type_str(ScriptType_Vec3), string_lit("vector3"));
+    check_eq_string(script_val_type_str(ScriptType_Vec3), string_lit("vec3"));
     check_eq_string(script_val_type_str(ScriptType_Quat), string_lit("quat"));
     check_eq_string(script_val_type_str(ScriptType_Entity), string_lit("entity"));
-    check_eq_string(script_val_type_str(ScriptType_Str), string_lit("string"));
+    check_eq_string(script_val_type_str(ScriptType_Str), string_lit("str"));
   }
 
   it("can produce a hash for a value type") {
     check_eq_int(script_val_type_hash(ScriptType_Null), string_hash_lit("null"));
-    check_eq_int(script_val_type_hash(ScriptType_Num), string_hash_lit("number"));
+    check_eq_int(script_val_type_hash(ScriptType_Num), string_hash_lit("num"));
     check_eq_int(script_val_type_hash(ScriptType_Bool), string_hash_lit("bool"));
-    check_eq_int(script_val_type_hash(ScriptType_Vec3), string_hash_lit("vector3"));
+    check_eq_int(script_val_type_hash(ScriptType_Vec3), string_hash_lit("vec3"));
     check_eq_int(script_val_type_hash(ScriptType_Quat), string_hash_lit("quat"));
     check_eq_int(script_val_type_hash(ScriptType_Entity), string_hash_lit("entity"));
-    check_eq_int(script_val_type_hash(ScriptType_Str), string_hash_lit("string"));
+    check_eq_int(script_val_type_hash(ScriptType_Str), string_hash_lit("str"));
   }
 
   it("can create a textual representation of a value") {
@@ -195,20 +195,20 @@ spec(val) {
         {script_mask_none, string_lit("none")},
         {script_mask_any, string_lit("any")},
         {script_mask_null, string_lit("null")},
-        {script_mask_num, string_lit("number")},
+        {script_mask_num, string_lit("num")},
         {script_mask_bool, string_lit("bool")},
-        {script_mask_vec3, string_lit("vector3")},
+        {script_mask_vec3, string_lit("vec3")},
         {script_mask_quat, string_lit("quat")},
         {script_mask_entity, string_lit("entity")},
-        {script_mask_str, string_lit("string")},
-        {script_mask_null | script_mask_num, string_lit("null | number")},
+        {script_mask_str, string_lit("str")},
+        {script_mask_null | script_mask_num, string_lit("null | num")},
         {
             script_mask_null | script_mask_num | script_mask_str,
-            string_lit("null | number | string"),
+            string_lit("null | num | str"),
         },
         {
             script_mask_null | script_mask_num | script_mask_str | script_mask_vec3,
-            string_lit("null | number | vector3 | string"),
+            string_lit("null | num | vec3 | str"),
         },
     };
 

@@ -194,13 +194,13 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_norm(eval(ctx, args[0]));
   case ScriptIntrinsic_Magnitude:
     return script_val_mag(eval(ctx, args[0]));
-  case ScriptIntrinsic_VectorX:
+  case ScriptIntrinsic_VecX:
     return script_val_vec_x(eval(ctx, args[0]));
-  case ScriptIntrinsic_VectorY:
+  case ScriptIntrinsic_VecY:
     return script_val_vec_y(eval(ctx, args[0]));
-  case ScriptIntrinsic_VectorZ:
+  case ScriptIntrinsic_VecZ:
     return script_val_vec_z(eval(ctx, args[0]));
-  case ScriptIntrinsic_Vector3Compose: {
+  case ScriptIntrinsic_Vec3Compose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
     return script_val_vec3_compose(arg0, arg1, eval(ctx, args[2]));

@@ -75,7 +75,7 @@ void check_expr_str_impl(
     const String      expect,
     const SourceLoc   src) {
 
-  const String exprStr = script_expr_str_scratch(doc, expr);
+  const String exprStr = script_expr_scratch(doc, expr);
   if (UNLIKELY(!string_eq(exprStr, expect))) {
     const String msg = fmt_write_scratch("{} == {}", fmt_text(exprStr), fmt_text(expect));
     check_report_error(ctx, msg, src);

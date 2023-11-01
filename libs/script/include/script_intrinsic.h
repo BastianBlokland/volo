@@ -29,10 +29,10 @@ typedef enum {
   ScriptIntrinsic_Angle,             // Args: lhs, rhs.
   ScriptIntrinsic_Normalize,         // Args: value.
   ScriptIntrinsic_Magnitude,         // Args: value.
-  ScriptIntrinsic_VectorX,           // Args: value.
-  ScriptIntrinsic_VectorY,           // Args: value.
-  ScriptIntrinsic_VectorZ,           // Args: value.
-  ScriptIntrinsic_Vector3Compose,    // Args: x, y, z.
+  ScriptIntrinsic_VecX,              // Args: value.
+  ScriptIntrinsic_VecY,              // Args: value.
+  ScriptIntrinsic_VecZ,              // Args: value.
+  ScriptIntrinsic_Vec3Compose,       // Args: x, y, z.
   ScriptIntrinsic_QuatFromEuler,     // Args: x, y, z.
   ScriptIntrinsic_QuatFromAngleAxis, // Args: angle, axis.
   ScriptIntrinsic_Random,            // Args: none.

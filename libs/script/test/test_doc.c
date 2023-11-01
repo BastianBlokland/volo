@@ -51,13 +51,13 @@ spec(doc) {
         doc,
         script_add_anon_intrinsic(
             doc,
-            ScriptIntrinsic_Vector3Compose,
+            ScriptIntrinsic_Vec3Compose,
             (const ScriptExpr[]){
                 script_add_anon_value(doc, script_num(1)),
                 script_add_anon_value(doc, script_num(2)),
                 script_add_anon_value(doc, script_num(3)),
             }),
-        "[intrinsic: vector3-compose]\n"
+        "[intrinsic: vec3-compose]\n"
         "  [value: 1]\n"
         "  [value: 2]\n"
         "  [value: 3]");
@@ -156,7 +156,7 @@ spec(doc) {
         {string_static("true ? 1 + 2 : 3 + 4"), .isStatic = true},
         {string_static("while(false) {}"), .isStatic = true},
         {string_static("for(;;) {}"), .isStatic = true},
-        {string_static("vector(1, 2, 3)"), .isStatic = true},
+        {string_static("vec(1, 2, 3)"), .isStatic = true},
         {string_static("distance(1 + 2, 3 / 4)"), .isStatic = true},
 
         {string_static("random()"), .isStatic = false},
@@ -199,7 +199,7 @@ spec(doc) {
         {string_static("true"), .isTruthy = true},
         {string_static("2 > 1"), .isTruthy = true},
         {string_static("2 > 1 ? (1 < 2) : (2 > 3)"), .isTruthy = true},
-        {string_static("distance(vector(1,2,3), vector(0,0,0)) > 0"), .isTruthy = true},
+        {string_static("distance(vec(1,2,3), vec(0,0,0)) > 0"), .isTruthy = true},
 
         {string_static("while(true) {}"), .isTruthy = false},
         {string_static("false"), .isTruthy = false},
@@ -237,8 +237,8 @@ spec(doc) {
         {string_static("(while(true) {}) ? return 0 : return 1"), .sig = ScriptDocSignal_None},
         {string_static("var i = { return }"), .sig = ScriptDocSignal_Return},
         {string_static("$i = { return }"), .sig = ScriptDocSignal_Return},
-        {string_static("vector(1,2,3)"), .sig = ScriptDocSignal_None},
-        {string_static("vector(1,return 2,3)"), .sig = ScriptDocSignal_Return},
+        {string_static("vec(1,2,3)"), .sig = ScriptDocSignal_None},
+        {string_static("vec(1,return 2,3)"), .sig = ScriptDocSignal_Return},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
