@@ -13,6 +13,9 @@ typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
 typedef u8                ScriptVarId;
 
+// Forward declare from 'script_sig.h'.
+typedef struct sScriptSig ScriptSig;
+
 // Forward declare from 'script_binder.h'.
 typedef u16 ScriptBinderSlot;
 
@@ -34,6 +37,7 @@ typedef enum {
 
 typedef struct {
   ScriptIntrinsic intr;
+  ScriptSig*      sig;
 } ScriptSymBuiltinFunc;
 
 typedef struct {
@@ -72,6 +76,7 @@ void        script_sym_clear(ScriptSymBag*);
 
 bool             script_sym_is_func(const ScriptSym*);
 ScriptRange      script_sym_location(const ScriptSym*);
+const ScriptSig* script_sym_sig(const ScriptSym*);
 String           script_sym_type_str(ScriptSymType);
 const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
 

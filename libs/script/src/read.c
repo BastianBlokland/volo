@@ -1679,8 +1679,10 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
         .type             = ScriptSymType_BuiltinFunction,
         .label            = g_scriptBuiltinFuncs[i].id,
         .doc              = g_scriptBuiltinFuncs[i].doc,
-        .data.builtinFunc = {.intr = g_scriptBuiltinFuncs[i].intr},
-    };
+        .data.builtinFunc = {
+            .intr = g_scriptBuiltinFuncs[i].intr,
+            .sig  = g_scriptBuiltinFuncs[i].sig,
+        }};
     script_sym_push(ctx->syms, &sym);
   }
 }
