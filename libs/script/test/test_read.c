@@ -70,8 +70,8 @@ spec(read) {
                           "    [value: 4]"),
         },
         {
-            string_static("vector(1, 2, 3)"),
-            string_static("[intrinsic: vector3-compose]\n"
+            string_static("vec(1, 2, 3)"),
+            string_static("[intrinsic: vec3-compose]\n"
                           "  [value: 1]\n"
                           "  [value: 2]\n"
                           "  [value: 3]"),
@@ -88,18 +88,18 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
-            string_static("vector_x(1)"),
-            string_static("[intrinsic: vector-x]\n"
+            string_static("vec_x(1)"),
+            string_static("[intrinsic: vec-x]\n"
                           "  [value: 1]"),
         },
         {
-            string_static("vector_y(1)"),
-            string_static("[intrinsic: vector-y]\n"
+            string_static("vec_y(1)"),
+            string_static("[intrinsic: vec-y]\n"
                           "  [value: 1]"),
         },
         {
-            string_static("vector_z(1)"),
-            string_static("[intrinsic: vector-z]\n"
+            string_static("vec_z(1)"),
+            string_static("[intrinsic: vec-z]\n"
                           "  [value: 1]"),
         },
         {

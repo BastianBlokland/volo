@@ -111,7 +111,7 @@ spec(node_parallel) {
                     .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test1"),
-                        script_add_anon_value(scriptDoc, script_number(1))),
+                        script_add_anon_value(scriptDoc, script_num(1))),
                 },
         },
         {
@@ -122,7 +122,7 @@ spec(node_parallel) {
                     .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test2"),
-                        script_add_anon_value(scriptDoc, script_number(2))),
+                        script_add_anon_value(scriptDoc, script_num(2))),
                 },
         },
         {
@@ -133,7 +133,7 @@ spec(node_parallel) {
                     .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test3"),
-                        script_add_anon_value(scriptDoc, script_number(3))),
+                        script_add_anon_value(scriptDoc, script_num(3))),
                 },
         },
     };
@@ -145,9 +145,9 @@ spec(node_parallel) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 4);
-    check(script_val_equal(script_mem_get(memory, string_hash_lit("test1")), script_number(1)));
-    check(script_val_equal(script_mem_get(memory, string_hash_lit("test2")), script_number(2)));
-    check(script_val_equal(script_mem_get(memory, string_hash_lit("test3")), script_number(3)));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test1")), script_num(1)));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test2")), script_num(2)));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test3")), script_num(3)));
   }
 
   teardown() {

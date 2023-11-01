@@ -279,7 +279,7 @@ static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args, ScriptErro
 static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
-  return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
+  return itr ? script_vec3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
 static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -291,13 +291,13 @@ static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args, ScriptEr
 static ScriptVal eval_scale(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->scaleItr, e);
-  return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
+  return itr ? script_num(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
 static ScriptVal eval_name(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
-  return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+  return itr ? script_str(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
 static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -306,7 +306,7 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
   if (itr) {
     const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
     const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
-    return factionName ? script_string(factionName) : script_null();
+    return factionName ? script_str(factionName) : script_null();
   }
   return script_null();
 }
@@ -316,7 +316,7 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->healthItr, e);
   if (itr) {
     const SceneHealthComp* healthComp = ecs_view_read_t(itr, SceneHealthComp);
-    return script_number(scene_health_points(healthComp));
+    return script_num(scene_health_points(healthComp));
   }
   return script_null();
 }
@@ -336,31 +336,31 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
   case 3:
     return script_time(time->realDelta);
   case 4:
-    return script_number(time->ticks);
+    return script_num(time->ticks);
   }
   return script_null();
 }
 
 static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
-  const GeoVector        pos    = script_arg_vector3(args, 0, err);
+  const GeoVector        pos    = script_arg_vec3(args, 0, err);
   if (UNLIKELY(err->type)) {
     return script_null();
   }
   GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
   const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
   if (args.count == 1) {
-    return script_vector3(scene_nav_position(navEnv, cell));
+    return script_vec3(scene_nav_position(navEnv, cell));
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, err)) {
   case 0:
-    return script_vector3(scene_nav_position(navEnv, cell));
+    return script_vec3(scene_nav_position(navEnv, cell));
   case 1:
     scene_nav_closest_unblocked_n(navEnv, cell, cellContainer);
-    return script_vector3(scene_nav_position(navEnv, cell));
+    return script_vec3(scene_nav_position(navEnv, cell));
   case 2:
     scene_nav_closest_free_n(navEnv, cell, cellContainer);
-    return script_vector3(scene_nav_position(navEnv, cell));
+    return script_vec3(scene_nav_position(navEnv, cell));
   }
   return script_null();
 }
@@ -372,8 +372,7 @@ static ScriptVal eval_nav_target(EvalContext* ctx, const ScriptArgs args, Script
   if (!agent) {
     return script_null();
   }
-  return agent->targetEntity ? script_entity(agent->targetEntity)
-                             : script_vector3(agent->targetPos);
+  return agent->targetEntity ? script_entity(agent->targetEntity) : script_vec3(agent->targetPos);
 }
 
 static GeoVector eval_aim_center(
@@ -446,7 +445,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
   const GeoVector toTgt = geo_vector_sub(tgtPos, srcPos);
   const f32       dist  = geo_vector_mag(toTgt);
   if (dist < scene_script_line_of_sight_min) {
-    return script_number(dist); // Close enough that we always have line-of-sight.
+    return script_num(dist); // Close enough that we always have line-of-sight.
   }
   if (dist > scene_script_line_of_sight_max) {
     return script_null(); // Far enough that we never have line-of-sight.
@@ -454,12 +453,12 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
-  const f32    radius = (f32)script_arg_opt_number_range(args, 2, 0.0, 10.0, 0.0, err);
+  const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
 
   SceneRayHit hit;
   bool        hasHit;
@@ -469,7 +468,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
     hasHit = scene_query_ray_fat(colEnv, &ray, radius, dist, &filter, &hit);
   }
   const bool hasLos = hasHit && hit.entity == tgtEntity;
-  return hasLos ? script_number(hit.time) : script_null();
+  return hasLos ? script_num(hit.time) : script_null();
 }
 
 static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -526,7 +525,7 @@ static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args, 
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
-    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMin);
+    return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMin);
   }
   return script_null();
 }
@@ -535,13 +534,13 @@ static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, 
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
-    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
+    return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
   }
   return script_null();
 }
 
 static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const StringHash prefabId = script_arg_string(args, 0, err);
+  const StringHash prefabId = script_arg_str(args, 0, err);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
@@ -551,9 +550,9 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
       &(ScriptActionSpawn){
           .entity   = result,
           .prefabId = prefabId,
-          .position = script_arg_opt_vector3(args, 1, geo_vector(0), err),
+          .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
           .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-          .scale    = (f32)script_arg_opt_number_range(args, 3, 0.001, 1000.0, 1.0, err),
+          .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
           .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
       });
   return script_entity(result);
@@ -589,7 +588,7 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
         ctx,
         &(ScriptActionTeleport){
             .entity   = entity,
-            .position = script_arg_opt_vector3(args, 1, geo_vector(0), err),
+            .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
             .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
         });
   }
@@ -598,14 +597,14 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
 
 static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity     = script_arg_entity(args, 0, err);
-  const ScriptMask  targetMask = script_mask_entity | script_mask_vector3;
+  const ScriptMask  targetMask = script_mask_entity | script_mask_vec3;
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
     action_push_nav_travel(
         ctx,
         &(ScriptActionNavTravel){
             .entity         = entity,
             .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
-            .targetPosition = script_arg_maybe_vector3(args, 1, geo_vector(0)),
+            .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
         });
   }
   return script_null();
@@ -628,7 +627,7 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptErro
         &(ScriptActionAttach){
             .entity    = entity,
             .target    = target,
-            .jointName = script_arg_opt_string(args, 2, 0, err),
+            .jointName = script_arg_opt_str(args, 2, 0, err),
         });
   }
   return script_null();
@@ -644,7 +643,7 @@ static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  const f32         amount = (f32)script_arg_number_range(args, 1.0, 10000.0, 1.0, err);
+  const f32         amount = (f32)script_arg_num_range(args, 1.0, 10000.0, 1.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     action_push_damage(
         ctx,
@@ -673,7 +672,7 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_str_write(args.values[i], &buffer);
+    script_val_write(args.values[i], &buffer);
   }
 
   log_i(

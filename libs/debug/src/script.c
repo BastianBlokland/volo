@@ -174,23 +174,23 @@ static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
   return false;
 }
 
-static bool memory_draw_f64(UiCanvasComp* canvas, ScriptVal* value) {
-  f64 valNumber = script_get_number(*value, 0);
+static bool memory_draw_num(UiCanvasComp* canvas, ScriptVal* value) {
+  f64 valNumber = script_get_num(*value, 0);
   if (ui_numbox(canvas, &valNumber, .min = f64_min, .max = f64_max)) {
-    *value = script_number(valNumber);
+    *value = script_num(valNumber);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_vector3(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_vec3(UiCanvasComp* canvas, ScriptVal* value) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
   ui_layout_resize(canvas, align, ui_vector(1.0f / 3, 0), UiBase_Current, Ui_X);
   ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / 3, 0), UiBase_Absolute, Ui_X);
 
-  GeoVector vec3 = script_get_vector3(*value, geo_vector(0));
+  GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
 
   bool dirty = false;
   for (u8 comp = 0; comp != 3; ++comp) {
@@ -204,7 +204,7 @@ static bool memory_draw_vector3(UiCanvasComp* canvas, ScriptVal* value) {
   ui_layout_pop(canvas);
 
   if (dirty) {
-    *value = script_vector3(vec3);
+    *value = script_vec3(vec3);
   }
   return dirty;
 }
@@ -234,28 +234,28 @@ static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
   return false;
 }
 
-static bool memory_draw_string(UiCanvasComp* canvas, ScriptVal* value) {
-  ui_label(canvas, script_val_str_scratch(*value));
+static bool memory_draw_str(UiCanvasComp* canvas, ScriptVal* value) {
+  ui_label(canvas, script_val_scratch(*value));
   return false;
 }
 
-static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_val(UiCanvasComp* canvas, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
     ui_label(canvas, string_lit("< null >"));
     return false;
-  case ScriptType_Number:
-    return memory_draw_f64(canvas, value);
+  case ScriptType_Num:
+    return memory_draw_num(canvas, value);
   case ScriptType_Bool:
     return memory_draw_bool(canvas, value);
-  case ScriptType_Vector3:
-    return memory_draw_vector3(canvas, value);
+  case ScriptType_Vec3:
+    return memory_draw_vec3(canvas, value);
   case ScriptType_Quat:
     return memory_draw_quat(canvas, value);
   case ScriptType_Entity:
     return memory_draw_entity(canvas, value);
-  case ScriptType_String:
-    return memory_draw_string(canvas, value);
+  case ScriptType_Str:
+    return memory_draw_str(canvas, value);
   case ScriptType_Count:
     break;
   }
@@ -336,7 +336,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
       ui_label(canvas, script_val_type_str(script_type(value)));
       ui_table_next_column(canvas, &table);
 
-      if (memory_draw_value(canvas, &value)) {
+      if (memory_draw_val(canvas, &value)) {
         script_mem_set(memory, entry->key, value);
       }
     }

@@ -480,24 +480,24 @@ String script_expr_type_str(const ScriptExprType type) {
   UNREACHABLE
 }
 
-static void script_expr_str_write_sep(const u32 indent, DynString* str) {
+static void script_expr_write_sep(const u32 indent, DynString* str) {
   dynstring_append_char(str, '\n');
   dynstring_append_chars(str, ' ', indent * 2);
 }
 
-static void script_expr_str_write_child(
+static void script_expr_write_child(
     const ScriptDoc* doc, const ScriptExpr expr, const u32 indent, DynString* str) {
-  script_expr_str_write_sep(indent, str);
-  script_expr_str_write(doc, expr, indent, str);
+  script_expr_write_sep(indent, str);
+  script_expr_write(doc, expr, indent, str);
 }
 
-void script_expr_str_write(
+void script_expr_write(
     const ScriptDoc* doc, const ScriptExpr expr, const u32 indent, DynString* str) {
   const ScriptExprData* data = expr_data(doc, expr);
   switch (expr_type(doc, expr)) {
   case ScriptExprType_Value:
     fmt_write(str, "[value: ");
-    script_val_str_write(script_doc_val_data(doc, data->value.valId), str);
+    script_val_write(script_doc_val_data(doc, data->value.valId), str);
     fmt_write(str, "]");
     return;
   case ScriptExprType_VarLoad:
@@ -505,21 +505,21 @@ void script_expr_str_write(
     return;
   case ScriptExprType_VarStore:
     fmt_write(str, "[var-store: {}]", fmt_int(data->var_store.var));
-    script_expr_str_write_child(doc, data->var_store.val, indent + 1, str);
+    script_expr_write_child(doc, data->var_store.val, indent + 1, str);
     return;
   case ScriptExprType_MemLoad:
     fmt_write(str, "[mem-load: ${}]", fmt_int(data->mem_load.key));
     return;
   case ScriptExprType_MemStore:
     fmt_write(str, "[mem-store: ${}]", fmt_int(data->mem_store.key));
-    script_expr_str_write_child(doc, data->mem_store.val, indent + 1, str);
+    script_expr_write_child(doc, data->mem_store.val, indent + 1, str);
     return;
   case ScriptExprType_Intrinsic: {
     fmt_write(str, "[intrinsic: {}]", script_intrinsic_fmt(data->intrinsic.intrinsic));
     const ScriptExpr* args     = expr_set_data(doc, data->block.exprSet);
     const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
     for (u32 i = 0; i != argCount; ++i) {
-      script_expr_str_write_child(doc, args[i], indent + 1, str);
+      script_expr_write_child(doc, args[i], indent + 1, str);
     }
     return;
   }
@@ -527,7 +527,7 @@ void script_expr_str_write(
     fmt_write(str, "[block]");
     const ScriptExpr* exprs = expr_set_data(doc, data->block.exprSet);
     for (u32 i = 0; i != data->block.exprCount; ++i) {
-      script_expr_str_write_child(doc, exprs[i], indent + 1, str);
+      script_expr_write_child(doc, exprs[i], indent + 1, str);
     }
     return;
   }
@@ -535,7 +535,7 @@ void script_expr_str_write(
     fmt_write(str, "[extern: {}]", fmt_int(data->extern_.func));
     const ScriptExpr* args = expr_set_data(doc, data->extern_.argSet);
     for (u16 i = 0; i != data->extern_.argCount; ++i) {
-      script_expr_str_write_child(doc, args[i], indent + 1, str);
+      script_expr_write_child(doc, args[i], indent + 1, str);
     }
     return;
   }
@@ -546,12 +546,12 @@ void script_expr_str_write(
   UNREACHABLE
 }
 
-String script_expr_str_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
+String script_expr_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 8, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   const u32 indent = 0;
-  script_expr_str_write(doc, expr, indent, &str);
+  script_expr_write(doc, expr, indent, &str);
 
   const String res = dynstring_view(&str);
   dynstring_destroy(&str);

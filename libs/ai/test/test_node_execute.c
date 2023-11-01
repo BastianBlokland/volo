@@ -27,7 +27,7 @@ spec(node_execute) {
             .data_execute =
                 {
                     .scriptExpr = script_add_anon_mem_store(
-                        scriptDoc, key, script_add_anon_value(scriptDoc, script_number(42))),
+                        scriptDoc, key, script_add_anon_value(scriptDoc, script_num(42))),
                 },
         },
     };
@@ -39,7 +39,7 @@ spec(node_execute) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_int(script_get_number(script_mem_get(memory, key), 0), 42);
+    check_eq_int(script_get_num(script_mem_get(memory, key), 0), 42);
   }
 
   teardown() {

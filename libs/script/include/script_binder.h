@@ -72,7 +72,7 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
  * Lookup a the  name for a slot.
  * Pre-condition: Binder has been finalized.
  */
-String script_binder_name_str(const ScriptBinder*, ScriptBinderSlot);
+String script_binder_name(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Iterate over the bound slots.

@@ -37,7 +37,7 @@ struct sScriptBinder {
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
   *binder              = (ScriptBinder){
-      .alloc = alloc,
+                   .alloc = alloc,
   };
   return binder;
 }
@@ -98,7 +98,7 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   return itr ? (ScriptBinderSlot)(itr - binder->names) : script_binder_slot_sentinel;
 }
 
-String script_binder_name_str(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+String script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 

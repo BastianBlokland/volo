@@ -759,15 +759,14 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
 
   if (script_expr_static(doc->scriptDoc, hoverExpr)) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
-    fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
+    fmt_write(&textBuffer, " `{}`", fmt_text(script_val_scratch(evalRes.val)));
   }
   const ScriptSymId symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
   if (!sentinel_check(symId)) {
     const ScriptSym* sym = script_sym_data(doc->scriptSyms, symId);
     const ScriptSig* sig = script_sym_sig(sym);
     if (sig) {
-      fmt_write(
-          &textBuffer, "\n\n`{}{}`", fmt_text(sym->label), fmt_text(script_sig_str_scratch(sig)));
+      fmt_write(&textBuffer, "\n\n`{}{}`", fmt_text(sym->label), fmt_text(script_sig_scratch(sig)));
     }
     if (!string_is_empty(sym->doc)) {
       fmt_write(&textBuffer, "\n\n{}", fmt_text(sym->doc));
@@ -905,7 +904,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     const ScriptSig*        sig            = script_sym_sig(sym);
     const LspCompletionItem completionItem = {
         .label       = sym->label,
-        .labelDetail = sig ? script_sig_str_scratch(sig) : string_empty,
+        .labelDetail = sig ? script_sig_scratch(sig) : string_empty,
         .doc         = sym->doc,
         .kind        = lsp_completion_kind_for_sym(sym),
         .commitChar  = script_sym_is_func(sym) ? '(' : ' ',

@@ -231,7 +231,7 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* 
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_str_write(args.values[i], &buffer);
+    script_val_write(args.values[i], &buffer);
   }
   dynstring_append_char(&buffer, '\n');
 
