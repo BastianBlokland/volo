@@ -9,6 +9,7 @@
 #include "script_diag.h"
 #include "script_lex.h"
 #include "script_read.h"
+#include "script_sig.h"
 #include "script_sym.h"
 
 #include "doc_internal.h"
@@ -49,7 +50,7 @@ static const ScriptBuiltinConst* script_builtin_const_lookup(const StringHash id
 
 typedef struct {
   StringHash      idHash;
-  u32             argCount;
+  ScriptSig*      sig;
   ScriptIntrinsic intr;
   String          id;
   String          doc;
@@ -58,14 +59,22 @@ typedef struct {
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
 static u32               g_scriptBuiltinFuncCount;
 
-static void script_builtin_func_add(const String id, const ScriptIntrinsic intr, const String doc) {
+static void script_builtin_func_add(
+    const String          id,
+    const ScriptIntrinsic intr,
+    const String          doc,
+    const ScriptMask      retMask,
+    const ScriptSigArg    args[],
+    const u8              argCount) {
   diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
+  diag_assert(script_intrinsic_arg_count(intr) == argCount);
+  diag_assert(argCount < script_args_max);
   g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
-      .idHash   = string_hash(id),
-      .argCount = script_intrinsic_arg_count(intr),
-      .intr     = intr,
-      .id       = id,
-      .doc      = doc,
+      .idHash = string_hash(id),
+      .sig    = script_sig_create(g_alloc_persist, retMask, args, argCount),
+      .intr   = intr,
+      .id     = id,
+      .doc    = doc,
   };
 }
 
@@ -80,9 +89,13 @@ static bool script_builtin_func_exists(const StringHash id) {
 
 static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, const u32 argc) {
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
-    if (g_scriptBuiltinFuncs[i].idHash == id && g_scriptBuiltinFuncs[i].argCount == argc) {
-      return &g_scriptBuiltinFuncs[i];
+    if (g_scriptBuiltinFuncs[i].idHash != id) {
+      continue;
     }
+    if (script_sig_arg_count(g_scriptBuiltinFuncs[i].sig) != argc) {
+      continue;
+    }
+    return &g_scriptBuiltinFuncs[i];
   }
   return null;
 }
@@ -93,50 +106,192 @@ static void script_builtin_init() {
 
   // clang-format off
 
-#define BUILTIN_C(_NAME_, _VAL_)                                                                   \
-    script_builtin_const_add(string_lit(_NAME_), _VAL_)
-
-#define BUILTIN_F(_NAME_, _INTR_, _DOC_)                                                           \
-    script_builtin_func_add(string_lit(_NAME_), ScriptIntrinsic_##_INTR_, string_lit(_DOC_))
-
   // Builtin constants.
-  BUILTIN_C("null",        script_null());
-  BUILTIN_C("true",        script_bool(true));
-  BUILTIN_C("false",       script_bool(false));
-  BUILTIN_C("pi",          script_number(math_pi_f64));
-  BUILTIN_C("deg_to_rad",  script_number(math_deg_to_rad));
-  BUILTIN_C("rad_to_deg",  script_number(math_rad_to_deg));
-  BUILTIN_C("up",          script_vector3(geo_up));
-  BUILTIN_C("down",        script_vector3(geo_down));
-  BUILTIN_C("left",        script_vector3(geo_left));
-  BUILTIN_C("right",       script_vector3(geo_right));
-  BUILTIN_C("forward",     script_vector3(geo_forward));
-  BUILTIN_C("backward",    script_vector3(geo_backward));
-  BUILTIN_C("quat_ident",  script_quat(geo_quat_ident));
+  script_builtin_const_add(string_lit("null"),        script_null());
+  script_builtin_const_add(string_lit("true"),        script_bool(true));
+  script_builtin_const_add(string_lit("false"),       script_bool(false));
+  script_builtin_const_add(string_lit("pi"),          script_number(math_pi_f64));
+  script_builtin_const_add(string_lit("deg_to_rad"),  script_number(math_deg_to_rad));
+  script_builtin_const_add(string_lit("rad_to_deg"),  script_number(math_rad_to_deg));
+  script_builtin_const_add(string_lit("up"),          script_vector3(geo_up));
+  script_builtin_const_add(string_lit("down"),        script_vector3(geo_down));
+  script_builtin_const_add(string_lit("left"),        script_vector3(geo_left));
+  script_builtin_const_add(string_lit("right"),       script_vector3(geo_right));
+  script_builtin_const_add(string_lit("forward"),     script_vector3(geo_forward));
+  script_builtin_const_add(string_lit("backward"),    script_vector3(geo_backward));
+  script_builtin_const_add(string_lit("quat_ident"),  script_quat(geo_quat_ident));
 
   // Builtin functions.
-  BUILTIN_F("type",             Type,               "Retrieve the type of the given value.");
-  BUILTIN_F("vector",           Vector3Compose,     "Construct a new vector.");
-  BUILTIN_F("vector_x",         VectorX,            "Retrieve the x component of a vector.");
-  BUILTIN_F("vector_y",         VectorY,            "Retrieve the y component of a vector.");
-  BUILTIN_F("vector_z",         VectorZ,            "Retrieve the z component of a vector.");
-  BUILTIN_F("euler",            QuatFromEuler,      "Construct a quaternion from the given euler angles (in radians).");
-  BUILTIN_F("angle_axis",       QuatFromAngleAxis,  "Construct a quaternion from an angle (in radians) and an axis.");
-  BUILTIN_F("distance",         Distance,           "Compute the distance between two values.");
-  BUILTIN_F("distance",         Magnitude,          "Compute the magnitude of the given value.");
-  BUILTIN_F("normalize",        Normalize,          "Normalize the given value.");
-  BUILTIN_F("angle",            Angle,              "Compute the angle (in radians) between two directions or two quaternions.");
-  BUILTIN_F("random",           Random,             "Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution.");
-  BUILTIN_F("random",           RandomBetween,      "Compute a random value between the given min (inclusive) and max (exclusive) values with a uniform distribution.");
-  BUILTIN_F("random_sphere",    RandomSphere,       "Compute a random vector inside a unit sphere with a uniform distribution.");
-  BUILTIN_F("random_circle_xz", RandomCircleXZ,     "Compute a random vector inside a xz unit circle with a uniform distribution.");
-  BUILTIN_F("round_down",       RoundDown,          "Round the given value down to an integer.");
-  BUILTIN_F("round_nearest",    RoundNearest,       "Round the given value to the nearest integer.");
-  BUILTIN_F("round_up",         RoundUp,            "Round the given value up to an integer.");
-  BUILTIN_F("assert",           Assert,             "Assert that the given value is truthy.");
-
-#undef BUILTIN_C
-#undef BUILTIN_F
+  {
+    const String       name   = string_lit("type");
+    const String       doc    = string_lit("Retrieve the type of the given value.");
+    const ScriptMask   ret    = script_mask_string;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Type, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("vector");
+    const String       doc    = string_lit("Construct a new vector.");
+    const ScriptMask   ret    = script_mask_vector3;
+    const ScriptSigArg args[] = {
+        {string_lit("x"), script_mask_number},
+        {string_lit("y"), script_mask_number},
+        {string_lit("z"), script_mask_number},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Vector3Compose, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("vector_x");
+    const String       doc    = string_lit("Retrieve the x component of a vector.");
+    const ScriptMask   ret    = script_mask_number;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_VectorX, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("vector_y");
+    const String       doc    = string_lit("Retrieve the y component of a vector.");
+    const ScriptMask   ret    = script_mask_number;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_VectorY, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("vector_z");
+    const String       doc    = string_lit("Retrieve the z component of a vector.");
+    const ScriptMask   ret    = script_mask_number;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_VectorZ, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("euler");
+    const String       doc    = string_lit("Construct a quaternion from the given euler angles (in radians).");
+    const ScriptMask   ret    = script_mask_quat;
+    const ScriptSigArg args[] = {
+        {string_lit("x"), script_mask_number},
+        {string_lit("y"), script_mask_number},
+        {string_lit("z"), script_mask_number},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_QuatFromEuler, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("angle_axis");
+    const String       doc    = string_lit("Construct a quaternion from an angle (in radians) and an axis.");
+    const ScriptMask   ret    = script_mask_quat;
+    const ScriptSigArg args[] = {
+        {string_lit("angle"), script_mask_number},
+        {string_lit("axis"), script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_QuatFromAngleAxis, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("distance");
+    const String       doc    = string_lit("Compute the distance between two values.");
+    const ScriptMask   ret    = script_mask_number;
+    const ScriptSigArg args[] = {
+        {string_lit("a"), script_mask_number | script_mask_vector3},
+        {string_lit("b"), script_mask_number | script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Distance, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("distance");
+    const String       doc    = string_lit("Compute the magnitude of the given value.");
+    const ScriptMask   ret    = script_mask_number;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_number | script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Magnitude, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("normalize");
+    const String       doc    = string_lit("Normalize the given value.");
+    const ScriptMask   ret    = script_mask_vector3 | script_mask_quat;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_vector3 | script_mask_quat},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Normalize, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("angle");
+    const String       doc    = string_lit("Compute the angle (in radians) between two directions or two quaternions.");
+    const ScriptMask   ret    = script_mask_number;
+    const ScriptSigArg args[] = {
+        {string_lit("a"), script_mask_vector3 | script_mask_quat},
+        {string_lit("b"), script_mask_vector3 | script_mask_quat},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Angle, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("random");
+    const String       doc    = string_lit("Compute a random value between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution.");
+    const ScriptMask   ret    = script_mask_number;
+    script_builtin_func_add(name, ScriptIntrinsic_Random, doc, ret, null, 0);
+  }
+  {
+    const String       name   = string_lit("random");
+    const String       doc    = string_lit("Compute a random value between the given min (inclusive) and max (exclusive) values with a uniform distribution.");
+    const ScriptMask   ret    = script_mask_number | script_mask_vector3;
+    const ScriptSigArg args[] = {
+        {string_lit("a"), script_mask_number | script_mask_vector3},
+        {string_lit("b"), script_mask_number | script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_RandomBetween, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("random_sphere");
+    const String       doc    = string_lit("Compute a random vector inside a unit sphere with a uniform distribution.");
+    const ScriptMask   ret    = script_mask_vector3;
+    script_builtin_func_add(name, ScriptIntrinsic_RandomSphere, doc, ret, null, 0);
+  }
+  {
+    const String       name   = string_lit("random_circle_xz");
+    const String       doc    = string_lit("Compute a random vector inside a xz unit circle with a uniform distribution.");
+    const ScriptMask   ret    = script_mask_vector3;
+    script_builtin_func_add(name, ScriptIntrinsic_RandomCircleXZ, doc, ret, null, 0);
+  }
+  {
+    const String       name   = string_lit("round_down");
+    const String       doc    = string_lit("Round the given value down to an integer.");
+    const ScriptMask   ret    = script_mask_number | script_mask_vector3;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_number | script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_RoundDown, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("round_nearest");
+    const String       doc    = string_lit("Round the given value to the nearest integer.");
+    const ScriptMask   ret    = script_mask_number | script_mask_vector3;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_number | script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_RoundNearest, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("round_up");
+    const String       doc    = string_lit("Round the given value up to an integer.");
+    const ScriptMask   ret    = script_mask_number | script_mask_vector3;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_number | script_mask_vector3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_RoundUp, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("assert");
+    const String       doc    = string_lit("Assert that the given value is truthy.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Assert, doc, ret, args, array_elems(args));
+  }
 
   // clang-format on
 }
@@ -622,9 +777,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .type     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .type     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1602,13 +1757,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
