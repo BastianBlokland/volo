@@ -239,8 +239,8 @@ static void script_builtin_init() {
     const String       doc    = string_lit("Compute a random value between the given min (inclusive) and max (exclusive) values with a uniform distribution.");
     const ScriptMask   ret    = script_mask_num | script_mask_vec3;
     const ScriptSigArg args[] = {
-        {string_lit("a"), script_mask_num | script_mask_vec3},
-        {string_lit("b"), script_mask_num | script_mask_vec3},
+        {string_lit("min"), script_mask_num | script_mask_vec3},
+        {string_lit("max"), script_mask_num | script_mask_vec3},
     };
     script_builtin_func_add(name, ScriptIntrinsic_RandomBetween, doc, ret, args, array_elems(args));
   }
