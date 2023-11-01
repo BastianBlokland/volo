@@ -764,6 +764,11 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   const ScriptSymId symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
   if (!sentinel_check(symId)) {
     const ScriptSym* sym = script_sym_data(doc->scriptSyms, symId);
+    const ScriptSig* sig = script_sym_sig(sym);
+    if (sig) {
+      fmt_write(
+          &textBuffer, "\n\n`{}{}`", fmt_text(sym->label), fmt_text(script_sig_str_scratch(sig)));
+    }
     if (!string_is_empty(sym->doc)) {
       fmt_write(&textBuffer, "\n\n{}", fmt_text(sym->doc));
     }
@@ -825,11 +830,11 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto NoLocation; // No location found for the symbol.
   }
 
-  const LspLocation hover = {
+  const LspLocation location = {
       .uri   = uri,
       .range = script_range_to_line_col(doc->text, symRange),
   };
-  lsp_send_response_success(ctx, req, lsp_location_to_json(ctx, &hover));
+  lsp_send_response_success(ctx, req, lsp_location_to_json(ctx, &location));
   return;
 
 InvalidParams:
