@@ -2,7 +2,7 @@
 var me = self()
 
 $move_target ??= {
-  var origin = vector(0, 0, 0)
+  var origin = vec(0, 0, 0)
   var radius = 150
   origin + random_circle_xz() * radius
 }
