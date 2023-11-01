@@ -19,6 +19,7 @@ add_library(lib_script STATIC
   src/panic.c
   src/pos.c
   src/read.c
+  src/sig.c
   src/sym.c
   src/val.c
   )
@@ -29,11 +30,12 @@ add_executable(test_lib_script
   test/config.c
   test/test_binder.c
   test/test_doc.c
-  test/test_format.c
   test/test_eval.c
+  test/test_format.c
   test/test_lex.c
   test/test_mem.c
   test/test_read.c
+  test/test_sig.c
   test/test_val.c
   test/utils.c
   )

@@ -187,6 +187,36 @@ spec(val) {
     }
   }
 
+  it("can create a textual representation of a mask") {
+    const struct {
+      ScriptMask mask;
+      String     expected;
+    } testData[] = {
+        {script_mask_none, string_lit("none")},
+        {script_mask_any, string_lit("any")},
+        {script_mask_null, string_lit("null")},
+        {script_mask_number, string_lit("number")},
+        {script_mask_bool, string_lit("bool")},
+        {script_mask_vector3, string_lit("vector3")},
+        {script_mask_quat, string_lit("quat")},
+        {script_mask_entity, string_lit("entity")},
+        {script_mask_string, string_lit("string")},
+        {script_mask_null | script_mask_number, string_lit("null | number")},
+        {
+            script_mask_null | script_mask_number | script_mask_string,
+            string_lit("null | number | string"),
+        },
+        {
+            script_mask_null | script_mask_number | script_mask_string | script_mask_vector3,
+            string_lit("null | number | vector3 | string"),
+        },
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      check_eq_string(script_mask_str_scratch(testData[i].mask), testData[i].expected);
+    }
+  }
+
   it("can test if values are equal") {
     const struct {
       ScriptVal a, b;

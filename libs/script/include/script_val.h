@@ -102,6 +102,8 @@ String     script_val_type_str(ScriptType);
 StringHash script_val_type_hash(ScriptType);
 void       script_val_str_write(ScriptVal, DynString*);
 String     script_val_str_scratch(ScriptVal);
+void       script_mask_str_write(ScriptMask, DynString*);
+String     script_mask_str_scratch(ScriptMask);
 
 /**
  * Compare values.
@@ -146,3 +148,4 @@ ScriptVal script_val_quat_from_angle_axis(ScriptVal angle, ScriptVal axis);
  * Create a formatting argument for a script value.
  */
 #define script_val_fmt(_VAL_) fmt_text(script_val_str_scratch(_VAL_))
+#define script_mask_fmt(_MASK_) fmt_text(script_mask_str_scratch(_MASK_))

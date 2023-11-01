@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "script_sig.h"
 #include "script_sym.h"
 
 #include "doc_internal.h"
@@ -93,6 +94,35 @@ static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash m
   return script_sym_sentinel;
 }
 
+static void script_sym_clone_into(Allocator* alloc, ScriptSym* dst, const ScriptSym* src) {
+  *dst = (ScriptSym){
+      .type  = src->type,
+      .label = string_dup(alloc, src->label),
+      .doc   = string_maybe_dup(alloc, src->doc),
+  };
+  switch (src->type) {
+  case ScriptSymType_BuiltinFunction:
+    dst->data.builtinFunc.intr = src->data.builtinFunc.intr;
+    if (src->data.builtinFunc.sig) {
+      dst->data.builtinFunc.sig = script_sig_clone(alloc, src->data.builtinFunc.sig);
+    }
+    break;
+  case ScriptSymType_ExternFunction:
+    dst->data.externFunc = src->data.externFunc;
+    break;
+  case ScriptSymType_Variable:
+    dst->data.var = src->data.var;
+    break;
+  case ScriptSymType_MemoryKey:
+    dst->data.memKey = src->data.memKey;
+    break;
+  case ScriptSymType_BuiltinConstant:
+  case ScriptSymType_Keyword:
+  case ScriptSymType_Count:
+    break;
+  }
+}
+
 ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
@@ -118,12 +148,7 @@ ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSym* sym) {
     return script_sym_sentinel;
   }
 
-  *dynarray_push_t(&bag->symbols, ScriptSym) = (ScriptSym){
-      .type  = sym->type,
-      .label = string_dup(bag->alloc, sym->label),
-      .doc   = string_maybe_dup(bag->alloc, sym->doc),
-      .data  = sym->data,
-  };
+  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSym), sym);
 
   return id;
 }
@@ -132,6 +157,20 @@ void script_sym_clear(ScriptSymBag* bag) {
   dynarray_for_t(&bag->symbols, ScriptSym, sym) {
     string_free(bag->alloc, sym->label);
     string_maybe_free(bag->alloc, sym->doc);
+    switch (sym->type) {
+    case ScriptSymType_BuiltinFunction:
+      if (sym->data.builtinFunc.sig) {
+        script_sig_destroy(sym->data.builtinFunc.sig);
+      }
+      break;
+    case ScriptSymType_ExternFunction:
+    case ScriptSymType_Variable:
+    case ScriptSymType_MemoryKey:
+    case ScriptSymType_BuiltinConstant:
+    case ScriptSymType_Keyword:
+    case ScriptSymType_Count:
+      break;
+    }
   }
   dynarray_clear(&bag->symbols);
 }
@@ -148,6 +187,16 @@ ScriptRange script_sym_location(const ScriptSym* sym) {
     break;
   }
   return script_range_sentinel;
+}
+
+const ScriptSig* script_sym_sig(const ScriptSym* sym) {
+  switch (sym->type) {
+  case ScriptSymType_BuiltinFunction:
+    return sym->data.builtinFunc.sig;
+  default:
+    break;
+  }
+  return null;
 }
 
 String script_sym_type_str(const ScriptSymType type) {
