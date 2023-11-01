@@ -27,9 +27,9 @@ spec(doc) {
 
   it("can create value expressions") {
     check_expr_str_lit(doc, script_add_anon_value(doc, script_null()), "[value: null]");
-    check_expr_str_lit(doc, script_add_anon_value(doc, script_number(42)), "[value: 42]");
+    check_expr_str_lit(doc, script_add_anon_value(doc, script_num(42)), "[value: 42]");
     check_expr_str_lit(
-        doc, script_add_anon_value(doc, script_vector3_lit(1, 2, 3)), "[value: 1, 2, 3]");
+        doc, script_add_anon_value(doc, script_vec3_lit(1, 2, 3)), "[value: 1, 2, 3]");
   }
 
   it("can create load expressions") {
@@ -41,7 +41,7 @@ spec(doc) {
     check_expr_str_lit(
         doc,
         script_add_anon_mem_store(
-            doc, string_hash_lit("Hello"), script_add_anon_value(doc, script_number(42))),
+            doc, string_hash_lit("Hello"), script_add_anon_value(doc, script_num(42))),
         "[mem-store: $938478706]\n"
         "  [value: 42]");
   }
@@ -53,9 +53,9 @@ spec(doc) {
             doc,
             ScriptIntrinsic_Vector3Compose,
             (const ScriptExpr[]){
-                script_add_anon_value(doc, script_number(1)),
-                script_add_anon_value(doc, script_number(2)),
-                script_add_anon_value(doc, script_number(3)),
+                script_add_anon_value(doc, script_num(1)),
+                script_add_anon_value(doc, script_num(2)),
+                script_add_anon_value(doc, script_num(3)),
             }),
         "[intrinsic: vector3-compose]\n"
         "  [value: 1]\n"
@@ -75,13 +75,13 @@ spec(doc) {
                     ScriptIntrinsic_Equal,
                     (const ScriptExpr[]){
                         script_add_anon_value(doc, script_null()),
-                        script_add_anon_value(doc, script_vector3_lit(1, 2, 3)),
+                        script_add_anon_value(doc, script_vec3_lit(1, 2, 3)),
                     }),
                 script_add_anon_intrinsic(
                     doc,
                     ScriptIntrinsic_Negate,
                     (const ScriptExpr[]){
-                        script_add_anon_value(doc, script_number(42)),
+                        script_add_anon_value(doc, script_num(42)),
                     }),
             }),
         "[intrinsic: greater]\n"
@@ -102,13 +102,13 @@ spec(doc) {
                 ScriptIntrinsic_Equal,
                 (const ScriptExpr[]){
                     script_add_anon_value(doc, script_null()),
-                    script_add_anon_value(doc, script_vector3_lit(1, 2, 3)),
+                    script_add_anon_value(doc, script_vec3_lit(1, 2, 3)),
                 }),
             script_add_anon_intrinsic(
                 doc,
                 ScriptIntrinsic_Negate,
                 (const ScriptExpr[]){
-                    script_add_anon_value(doc, script_number(42)),
+                    script_add_anon_value(doc, script_num(42)),
                 }),
         });
     CountVisitorContext ctx = {0};

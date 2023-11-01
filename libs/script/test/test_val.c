@@ -11,14 +11,14 @@ spec(val) {
   it("can type-erase values") {
     check_eq_int(script_type(script_null()), ScriptType_Null);
 
-    check_eq_int(script_type(script_number(42)), ScriptType_Number);
-    check_eq_float(script_get_number(script_number(42), 0), 42, 1e-6);
+    check_eq_int(script_type(script_num(42)), ScriptType_Num);
+    check_eq_float(script_get_num(script_num(42), 0), 42, 1e-6);
 
     check_eq_int(script_type(script_bool(true)), ScriptType_Bool);
     check(script_get_bool(script_bool(true), false) == true);
 
-    check_eq_int(script_type(script_vector3_lit(1, 2, 3)), ScriptType_Vector3);
-    check_eq_float(script_get_vector3(script_vector3_lit(1, 2, 3), geo_vector(0)).z, 3, 1e-6);
+    check_eq_int(script_type(script_vec3_lit(1, 2, 3)), ScriptType_Vec3);
+    check_eq_float(script_get_vec3(script_vec3_lit(1, 2, 3), geo_vector(0)).z, 3, 1e-6);
 
     check_eq_int(script_type(script_quat(geo_quat_ident)), ScriptType_Quat);
     const ScriptVal quatForwardToDown = script_quat(geo_quat_forward_to_down);
@@ -30,20 +30,20 @@ spec(val) {
     check_eq_int(script_type(script_entity(0x42)), ScriptType_Entity);
     check_eq_int(script_get_entity(script_entity(0x42), 0), 0x42);
 
-    check_eq_int(script_type(script_time(time_seconds(2))), ScriptType_Number);
+    check_eq_int(script_type(script_time(time_seconds(2))), ScriptType_Num);
     check_eq_float(script_get_time(script_time(time_seconds(2)), 0), time_seconds(2), 1e-6);
 
-    const ScriptVal str = script_string(string_hash_lit("Hello World"));
-    check_eq_int(script_type(str), ScriptType_String);
-    check(script_get_string(str, 0) == string_hash_lit("Hello World"));
+    const ScriptVal str = script_str(string_hash_lit("Hello World"));
+    check_eq_int(script_type(str), ScriptType_Str);
+    check(script_get_str(str, 0) == string_hash_lit("Hello World"));
   }
 
   it("clears the w component of vector3's") {
-    const ScriptVal val = script_vector3(geo_vector(1, 2, 3, 4));
-    check_eq_float(script_get_vector3(val, geo_vector(0)).x, 1, 1e-6f);
-    check_eq_float(script_get_vector3(val, geo_vector(0)).y, 2, 1e-6f);
-    check_eq_float(script_get_vector3(val, geo_vector(0)).z, 3, 1e-6f);
-    check_eq_float(script_get_vector3(val, geo_vector(0)).w, 0, 1e-6f);
+    const ScriptVal val = script_vec3(geo_vector(1, 2, 3, 4));
+    check_eq_float(script_get_vec3(val, geo_vector(0)).x, 1, 1e-6f);
+    check_eq_float(script_get_vec3(val, geo_vector(0)).y, 2, 1e-6f);
+    check_eq_float(script_get_vec3(val, geo_vector(0)).z, 3, 1e-6f);
+    check_eq_float(script_get_vec3(val, geo_vector(0)).w, 0, 1e-6f);
   }
 
   it("normalizes incoming quaternions") {
@@ -54,19 +54,19 @@ spec(val) {
   }
 
   it("can extract specific types from values") {
-    check_eq_float(script_get_number(script_number(42), 1337), 42, 1e-6);
-    check_eq_float(script_get_number(script_null(), 1337), 1337, 1e-6);
-    check_eq_float(script_get_number(script_bool(false), 1337), 1337, 1e-6);
+    check_eq_float(script_get_num(script_num(42), 1337), 42, 1e-6);
+    check_eq_float(script_get_num(script_null(), 1337), 1337, 1e-6);
+    check_eq_float(script_get_num(script_bool(false), 1337), 1337, 1e-6);
 
     check(script_get_bool(script_bool(true), false) == true);
     check(script_get_bool(script_null(), false) == false);
 
     check(geo_vector_equal(
-        script_get_vector3(script_vector3_lit(1, 2, 3), geo_vector(4, 5, 6)),
+        script_get_vec3(script_vec3_lit(1, 2, 3), geo_vector(4, 5, 6)),
         geo_vector(1, 2, 3),
         1e-6f));
     check(geo_vector_equal(
-        script_get_vector3(script_null(), geo_vector(4, 5, 6)), geo_vector(4, 5, 6), 1e-6f));
+        script_get_vec3(script_null(), geo_vector(4, 5, 6)), geo_vector(4, 5, 6), 1e-6f));
 
     check_eq_float(
         script_get_quat(script_quat(geo_quat_ident), geo_quat_forward_to_down).w, 1.0, 1e-6f);
@@ -78,84 +78,84 @@ spec(val) {
     check(script_get_entity(script_entity(0x1), 0x2) == 0x1);
     check(script_get_entity(script_null(), 0x2) == 0x2);
 
-    const ScriptVal str = script_string(string_hash_lit("Hello World"));
-    check(script_get_string(str, 42) == string_hash_lit("Hello World"));
-    check(script_get_string(script_null(), 42) == 42);
+    const ScriptVal str = script_str(string_hash_lit("Hello World"));
+    check(script_get_str(str, 42) == string_hash_lit("Hello World"));
+    check(script_get_str(script_null(), 42) == 42);
   }
 
   it("can test if a value is truthy") {
     check(!script_truthy(script_null()));
 
-    check(!script_truthy(script_number(0)));
-    check(!script_truthy(script_number(-0.0)));
-    check(script_truthy(script_number(42)));
+    check(!script_truthy(script_num(0)));
+    check(!script_truthy(script_num(-0.0)));
+    check(script_truthy(script_num(42)));
 
     check(!script_truthy(script_bool(false)));
     check(script_truthy(script_bool(true)));
 
-    check(!script_truthy(script_vector3_lit(0, 0, 0)));
-    check(script_truthy(script_vector3_lit(1, 2, 0)));
+    check(!script_truthy(script_vec3_lit(0, 0, 0)));
+    check(script_truthy(script_vec3_lit(1, 2, 0)));
 
     check(script_truthy(script_quat(geo_quat_ident)));
 
     check(!script_truthy(script_entity(0x0)));
     check(script_truthy(script_entity(u64_lit(0x42) << 32)));
 
-    check(!script_truthy(script_string(0)));
-    check(script_truthy(script_string(string_hash_lit("Hello World"))));
+    check(!script_truthy(script_str(0)));
+    check(script_truthy(script_str(string_hash_lit("Hello World"))));
   }
 
   it("can test if a value is falsy") {
     check(script_falsy(script_null()));
 
-    check(script_falsy(script_number(0)));
-    check(!script_falsy(script_number(42)));
+    check(script_falsy(script_num(0)));
+    check(!script_falsy(script_num(42)));
 
     check(script_falsy(script_bool(false)));
     check(!script_falsy(script_bool(true)));
 
-    check(script_falsy(script_vector3_lit(0, 0, 0)));
-    check(!script_falsy(script_vector3_lit(1, 2, 0)));
+    check(script_falsy(script_vec3_lit(0, 0, 0)));
+    check(!script_falsy(script_vec3_lit(1, 2, 0)));
 
     check(!script_falsy(script_quat(geo_quat_ident)));
 
     check(script_falsy(script_entity(0x0)));
     check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
 
-    check(script_falsy(script_string(0)));
-    check(!script_falsy(script_string(string_hash_lit("Hello World"))));
+    check(script_falsy(script_str(0)));
+    check(!script_falsy(script_str(string_hash_lit("Hello World"))));
   }
 
   it("can test if a value is not null") {
-    check(script_val_has(script_number(42)));
+    check(script_val_has(script_num(42)));
     check(!script_val_has(script_null()));
   }
 
   it("can return a default if the value is null") {
-    check_eq_val(script_val_or(script_number(42), script_number(1337)), script_number(42));
-    check_eq_val(script_val_or(script_number(42), script_null()), script_number(42));
-    check_eq_val(script_val_or(script_null(), script_number(1337)), script_number(1337));
+    check_eq_val(script_val_or(script_num(42), script_num(1337)), script_num(42));
+    check_eq_val(script_val_or(script_num(42), script_null()), script_num(42));
+    check_eq_val(script_val_or(script_null(), script_num(1337)), script_num(1337));
     check_eq_val(script_val_or(script_null(), script_null()), script_null());
   }
 
   it("can produce a textual representation for a type") {
     check_eq_string(script_val_type_str(ScriptType_Null), string_lit("null"));
-    check_eq_string(script_val_type_str(ScriptType_Number), string_lit("number"));
+    check_eq_string(script_val_type_str(ScriptType_Num), string_lit("number"));
     check_eq_string(script_val_type_str(ScriptType_Bool), string_lit("bool"));
-    check_eq_string(script_val_type_str(ScriptType_Vector3), string_lit("vector3"));
+    check_eq_string(script_val_type_str(ScriptType_Vec3), string_lit("vector3"));
     check_eq_string(script_val_type_str(ScriptType_Quat), string_lit("quat"));
     check_eq_string(script_val_type_str(ScriptType_Entity), string_lit("entity"));
-    check_eq_string(script_val_type_str(ScriptType_String), string_lit("string"));
+    check_eq_string(script_val_type_str(ScriptType_Str), string_lit("string"));
   }
 
   it("can produce a hash for a value type") {
     check_eq_int(script_val_type_hash(ScriptType_Null), string_hash_lit("null"));
-    check_eq_int(script_val_type_hash(ScriptType_Number), string_hash_lit("number"));
+    check_eq_int(script_val_type_hash(ScriptType_Num), string_hash_lit("number"));
     check_eq_int(script_val_type_hash(ScriptType_Bool), string_hash_lit("bool"));
-    check_eq_int(script_val_type_hash(ScriptType_Vector3), string_hash_lit("vector3"));
+    check_eq_int(script_val_type_hash(ScriptType_Vec3), string_hash_lit("vector3"));
     check_eq_int(script_val_type_hash(ScriptType_Quat), string_hash_lit("quat"));
     check_eq_int(script_val_type_hash(ScriptType_Entity), string_hash_lit("entity"));
-    check_eq_int(script_val_type_hash(ScriptType_String), string_hash_lit("string"));
+    check_eq_int(script_val_type_hash(ScriptType_Str), string_hash_lit("string"));
   }
 
   it("can create a textual representation of a value") {
@@ -164,11 +164,11 @@ spec(val) {
       String    expected;
     } testData[] = {
         {script_null(), string_lit("null")},
-        {script_number(42), string_lit("42")},
-        {script_number(42.1), string_lit("42.1")},
+        {script_num(42), string_lit("42")},
+        {script_num(42.1), string_lit("42.1")},
         {script_bool(true), string_lit("true")},
         {script_bool(false), string_lit("false")},
-        {script_vector3_lit(1, 2, 3), string_lit("1, 2, 3")},
+        {script_vec3_lit(1, 2, 3), string_lit("1, 2, 3")},
         {script_quat(geo_quat_ident), string_lit("0, 0, 0, 1")},
         {script_quat(geo_quat_forward_to_backward), string_lit("0, 1, 0, 0")},
         {script_entity(0x1337), string_lit("1337")},
@@ -176,14 +176,14 @@ spec(val) {
         {script_time(time_hour), string_lit("3600")},
         {script_time(time_milliseconds(500)), string_lit("0.5")},
         {script_time(time_milliseconds(42)), string_lit("0.042")},
-        {script_string(string_hash_lit("Hello World")), string_lit("\"Hello World\"")},
+        {script_str(string_hash_lit("Hello World")), string_lit("\"Hello World\"")},
     };
 
     // NOTE: Normally we expect the script lexer to register the strings.
     stringtable_add(g_stringtable, string_lit("Hello World"));
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      check_eq_string(script_val_str_scratch(testData[i].value), testData[i].expected);
+      check_eq_string(script_val_scratch(testData[i].value), testData[i].expected);
     }
   }
 
@@ -195,25 +195,25 @@ spec(val) {
         {script_mask_none, string_lit("none")},
         {script_mask_any, string_lit("any")},
         {script_mask_null, string_lit("null")},
-        {script_mask_number, string_lit("number")},
+        {script_mask_num, string_lit("number")},
         {script_mask_bool, string_lit("bool")},
-        {script_mask_vector3, string_lit("vector3")},
+        {script_mask_vec3, string_lit("vector3")},
         {script_mask_quat, string_lit("quat")},
         {script_mask_entity, string_lit("entity")},
-        {script_mask_string, string_lit("string")},
-        {script_mask_null | script_mask_number, string_lit("null | number")},
+        {script_mask_str, string_lit("string")},
+        {script_mask_null | script_mask_num, string_lit("null | number")},
         {
-            script_mask_null | script_mask_number | script_mask_string,
+            script_mask_null | script_mask_num | script_mask_str,
             string_lit("null | number | string"),
         },
         {
-            script_mask_null | script_mask_number | script_mask_string | script_mask_vector3,
+            script_mask_null | script_mask_num | script_mask_str | script_mask_vec3,
             string_lit("null | number | vector3 | string"),
         },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      check_eq_string(script_mask_str_scratch(testData[i].mask), testData[i].expected);
+      check_eq_string(script_mask_scratch(testData[i].mask), testData[i].expected);
     }
   }
 
@@ -223,20 +223,20 @@ spec(val) {
       bool      expected;
     } testData[] = {
         {script_null(), script_null(), .expected = true},
-        {script_null(), script_number(42), .expected = false},
-        {script_number(42), script_null(), .expected = false},
+        {script_null(), script_num(42), .expected = false},
+        {script_num(42), script_null(), .expected = false},
 
-        {script_number(42), script_number(42), .expected = true},
-        {script_number(42), script_number(42.1), .expected = false},
-        {script_number(42), script_number(42.000001), .expected = false},
-        {script_number(42), script_number(42.0000001), .expected = true},
+        {script_num(42), script_num(42), .expected = true},
+        {script_num(42), script_num(42.1), .expected = false},
+        {script_num(42), script_num(42.000001), .expected = false},
+        {script_num(42), script_num(42.0000001), .expected = true},
 
         {script_bool(true), script_bool(true), .expected = true},
         {script_bool(false), script_bool(false), .expected = true},
         {script_bool(false), script_bool(true), .expected = false},
 
-        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 2, 0), .expected = true},
-        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 3, 0), .expected = false},
+        {script_vec3_lit(1, 2, 0), script_vec3_lit(1, 2, 0), .expected = true},
+        {script_vec3_lit(1, 2, 0), script_vec3_lit(1, 3, 0), .expected = false},
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = true},
         {script_quat(geo_quat_forward_to_up),
@@ -253,17 +253,17 @@ spec(val) {
         {script_entity(1), script_entity(1), .expected = true},
         {script_entity(1), script_entity(2), .expected = false},
 
-        {script_number(1), script_bool(true), .expected = false},
+        {script_num(1), script_bool(true), .expected = false},
 
-        {script_string(string_hash_lit("A")), script_null(), .expected = false},
+        {script_str(string_hash_lit("A")), script_null(), .expected = false},
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("A")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("A")),
             .expected = true,
         },
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = false,
         },
     };
@@ -283,21 +283,21 @@ spec(val) {
       bool      expected;
     } testData[] = {
         {script_null(), script_null(), .expected = false},
-        {script_null(), script_number(42), .expected = false},
-        {script_number(42), script_null(), .expected = false},
+        {script_null(), script_num(42), .expected = false},
+        {script_num(42), script_null(), .expected = false},
 
-        {script_number(1), script_number(2), .expected = true},
-        {script_number(2), script_number(1), .expected = false},
-        {script_number(1), script_number(1), .expected = false},
+        {script_num(1), script_num(2), .expected = true},
+        {script_num(2), script_num(1), .expected = false},
+        {script_num(1), script_num(1), .expected = false},
 
         {script_bool(true), script_bool(true), .expected = false},
         {script_bool(false), script_bool(false), .expected = false},
         {script_bool(true), script_bool(false), .expected = false},
         {script_bool(false), script_bool(true), .expected = true},
 
-        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 2, 0), .expected = false},
-        {script_vector3_lit(1, 3, 0), script_vector3_lit(1, 2, 0), .expected = false},
-        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 3, 0), .expected = true},
+        {script_vec3_lit(1, 2, 0), script_vec3_lit(1, 2, 0), .expected = false},
+        {script_vec3_lit(1, 3, 0), script_vec3_lit(1, 2, 0), .expected = false},
+        {script_vec3_lit(1, 2, 0), script_vec3_lit(1, 3, 0), .expected = true},
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = false},
 
@@ -305,11 +305,11 @@ spec(val) {
         {script_time(time_seconds(2)), script_time(time_seconds(1)), .expected = false},
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = false},
 
-        {script_number(1), script_bool(true), .expected = false},
+        {script_num(1), script_bool(true), .expected = false},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = false,
         },
     };
@@ -321,8 +321,8 @@ spec(val) {
         check_msg(
             !script_val_less(testData[i].a, testData[i].b),
             "{} >= {}",
-            fmt_text(script_val_str_scratch(testData[i].a)),
-            fmt_text(script_val_str_scratch(testData[i].b)));
+            fmt_text(script_val_scratch(testData[i].a)),
+            fmt_text(script_val_scratch(testData[i].b)));
       }
     }
   }
@@ -333,21 +333,21 @@ spec(val) {
       bool      expected;
     } testData[] = {
         {script_null(), script_null(), .expected = false},
-        {script_null(), script_number(42), .expected = false},
-        {script_number(42), script_null(), .expected = false},
+        {script_null(), script_num(42), .expected = false},
+        {script_num(42), script_null(), .expected = false},
 
-        {script_number(2), script_number(1), .expected = true},
-        {script_number(1), script_number(2), .expected = false},
-        {script_number(1), script_number(1), .expected = false},
+        {script_num(2), script_num(1), .expected = true},
+        {script_num(1), script_num(2), .expected = false},
+        {script_num(1), script_num(1), .expected = false},
 
         {script_bool(true), script_bool(false), .expected = true},
         {script_bool(true), script_bool(true), .expected = false},
         {script_bool(false), script_bool(false), .expected = false},
         {script_bool(false), script_bool(true), .expected = false},
 
-        {script_vector3_lit(1, 3, 0), script_vector3_lit(1, 2, 0), .expected = true},
-        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 2, 0), .expected = false},
-        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 3, 0), .expected = false},
+        {script_vec3_lit(1, 3, 0), script_vec3_lit(1, 2, 0), .expected = true},
+        {script_vec3_lit(1, 2, 0), script_vec3_lit(1, 2, 0), .expected = false},
+        {script_vec3_lit(1, 2, 0), script_vec3_lit(1, 3, 0), .expected = false},
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = false},
 
@@ -355,11 +355,11 @@ spec(val) {
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = false},
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = false},
 
-        {script_number(1), script_bool(true), .expected = false},
+        {script_num(1), script_bool(true), .expected = false},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = false,
         },
     };
@@ -371,8 +371,8 @@ spec(val) {
         check_msg(
             !script_val_greater(testData[i].a, testData[i].b),
             "{} <= {}",
-            fmt_text(script_val_str_scratch(testData[i].a)),
-            fmt_text(script_val_str_scratch(testData[i].b)));
+            fmt_text(script_val_scratch(testData[i].a)),
+            fmt_text(script_val_scratch(testData[i].b)));
       }
     }
   }
@@ -383,12 +383,12 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), .expected = script_null()},
-        {script_number(42), .expected = script_number(-42)},
+        {script_num(42), .expected = script_num(-42)},
         {script_bool(true), .expected = script_null()},
-        {script_vector3_lit(1, 2, 3), .expected = script_vector3_lit(-1, -2, -3)},
+        {script_vec3_lit(1, 2, 3), .expected = script_vec3_lit(-1, -2, -3)},
         {script_quat(geo_quat_forward_to_up), .expected = script_quat(geo_quat_forward_to_down)},
         {script_time(time_seconds(2)), .expected = script_time(time_seconds(-2))},
-        {script_string(string_hash_lit("A")), .expected = script_null()},
+        {script_str(string_hash_lit("A")), .expected = script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -403,13 +403,13 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), .expected = script_bool(true)},
-        {script_number(42), .expected = script_bool(false)},
+        {script_num(42), .expected = script_bool(false)},
         {script_bool(true), .expected = script_bool(false)},
         {script_bool(false), .expected = script_bool(true)},
-        {script_vector3_lit(1, 2, 3), .expected = script_bool(false)},
+        {script_vec3_lit(1, 2, 3), .expected = script_bool(false)},
         {script_quat(geo_quat_ident), .expected = script_bool(false)},
         {script_time(time_seconds(2)), .expected = script_bool(false)},
-        {script_string(string_hash_lit("A")), .expected = script_bool(false)},
+        {script_str(string_hash_lit("A")), .expected = script_bool(false)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -424,20 +424,20 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_null()},
-        {script_number(42), script_null(), .expected = script_null()},
-        {script_number(42), script_bool(false), .expected = script_null()},
+        {script_null(), script_num(42), .expected = script_null()},
+        {script_num(42), script_null(), .expected = script_null()},
+        {script_num(42), script_bool(false), .expected = script_null()},
 
-        {script_number(42), script_number(1), .expected = script_number(43)},
-        {script_number(42), script_number(1337), .expected = script_number(1379)},
+        {script_num(42), script_num(1), .expected = script_num(43)},
+        {script_num(42), script_num(1337), .expected = script_num(1379)},
 
         {script_bool(true), script_bool(false), .expected = script_null()},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_vector3_lit(4, 5, 6),
-         .expected = script_vector3_lit(5, 7, 9)},
+        {.a        = script_vec3_lit(1, 2, 3),
+         .b        = script_vec3_lit(4, 5, 6),
+         .expected = script_vec3_lit(5, 7, 9)},
 
-        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+        {.a = script_vec3_lit(1, 2, 3), .b = script_num(42), .expected = script_null()},
 
         {
             script_quat(geo_quat_ident),
@@ -454,8 +454,8 @@ spec(val) {
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = script_null(),
         },
     };
@@ -472,20 +472,20 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_null()},
-        {script_number(42), script_null(), .expected = script_null()},
-        {script_number(42), script_bool(false), .expected = script_null()},
+        {script_null(), script_num(42), .expected = script_null()},
+        {script_num(42), script_null(), .expected = script_null()},
+        {script_num(42), script_bool(false), .expected = script_null()},
 
-        {script_number(42), script_number(1), .expected = script_number(41)},
-        {script_number(42), script_number(1337), .expected = script_number(-1295)},
+        {script_num(42), script_num(1), .expected = script_num(41)},
+        {script_num(42), script_num(1337), .expected = script_num(-1295)},
 
         {script_bool(true), script_bool(false), .expected = script_null()},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_vector3_lit(4, 5, 6),
-         .expected = script_vector3_lit(-3, -3, -3)},
+        {.a        = script_vec3_lit(1, 2, 3),
+         .b        = script_vec3_lit(4, 5, 6),
+         .expected = script_vec3_lit(-3, -3, -3)},
 
-        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+        {.a = script_vec3_lit(1, 2, 3), .b = script_num(42), .expected = script_null()},
 
         {
             script_quat(geo_quat_ident),
@@ -502,8 +502,8 @@ spec(val) {
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = script_null(),
         },
     };
@@ -520,22 +520,22 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_null()},
-        {script_number(42), script_null(), .expected = script_null()},
-        {script_number(42), script_bool(false), .expected = script_null()},
+        {script_null(), script_num(42), .expected = script_null()},
+        {script_num(42), script_null(), .expected = script_null()},
+        {script_num(42), script_bool(false), .expected = script_null()},
 
-        {script_number(42), script_number(2), .expected = script_number(84)},
-        {script_number(42), script_number(1337), .expected = script_number(56154)},
+        {script_num(42), script_num(2), .expected = script_num(84)},
+        {script_num(42), script_num(1337), .expected = script_num(56154)},
 
         {script_bool(true), script_bool(false), .expected = script_null()},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_vector3_lit(4, 5, 6),
-         .expected = script_vector3_lit(4, 10, 18)},
+        {.a        = script_vec3_lit(1, 2, 3),
+         .b        = script_vec3_lit(4, 5, 6),
+         .expected = script_vec3_lit(4, 10, 18)},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_number(42),
-         .expected = script_vector3_lit(42, 84, 126)},
+        {.a        = script_vec3_lit(1, 2, 3),
+         .b        = script_num(42),
+         .expected = script_vec3_lit(42, 84, 126)},
 
         {.a        = script_quat(geo_quat_ident),
          .b        = script_quat(geo_quat_ident),
@@ -548,8 +548,8 @@ spec(val) {
          .expected = script_quat(geo_quat_forward_to_up)},
 
         {.a        = script_quat(geo_quat_ident),
-         .b        = script_vector3_lit(1, 2, 3),
-         .expected = script_vector3_lit(1, 2, 3)},
+         .b        = script_vec3_lit(1, 2, 3),
+         .expected = script_vec3_lit(1, 2, 3)},
 
         {.a        = script_time(time_seconds(2)),
          .b        = script_time(time_seconds(3)),
@@ -560,8 +560,8 @@ spec(val) {
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = script_null(),
         },
     };
@@ -578,22 +578,20 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_null()},
-        {script_number(42), script_null(), .expected = script_null()},
-        {script_number(42), script_bool(false), .expected = script_null()},
+        {script_null(), script_num(42), .expected = script_null()},
+        {script_num(42), script_null(), .expected = script_null()},
+        {script_num(42), script_bool(false), .expected = script_null()},
 
-        {script_number(42), script_number(2), .expected = script_number(21)},
-        {script_number(1337), script_number(42), .expected = script_number(1337.0 / 42.0)},
+        {script_num(42), script_num(2), .expected = script_num(21)},
+        {script_num(1337), script_num(42), .expected = script_num(1337.0 / 42.0)},
 
         {script_bool(true), script_bool(false), .expected = script_null()},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_vector3_lit(4, 5, 6),
-         .expected = script_vector3_lit(0.25f, 0.4f, 0.5f)},
+        {.a        = script_vec3_lit(1, 2, 3),
+         .b        = script_vec3_lit(4, 5, 6),
+         .expected = script_vec3_lit(0.25f, 0.4f, 0.5f)},
 
-        {.a        = script_vector3_lit(2, 4, 8),
-         .b        = script_number(2),
-         .expected = script_vector3_lit(1, 2, 4)},
+        {.a = script_vec3_lit(2, 4, 8), .b = script_num(2), .expected = script_vec3_lit(1, 2, 4)},
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = script_null()},
 
@@ -606,8 +604,8 @@ spec(val) {
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = script_null(),
         },
     };
@@ -624,39 +622,37 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_null()},
-        {script_number(42), script_null(), .expected = script_null()},
-        {script_number(42), script_bool(false), .expected = script_null()},
+        {script_null(), script_num(42), .expected = script_null()},
+        {script_num(42), script_null(), .expected = script_null()},
+        {script_num(42), script_bool(false), .expected = script_null()},
 
-        {script_number(42), script_number(1), .expected = script_number(0)},
-        {script_number(42), script_number(2), .expected = script_number(0)},
-        {script_number(42), script_number(42), .expected = script_number(0)},
-        {script_number(42), script_number(4), .expected = script_number(2)},
-        {script_number(42), script_number(43), .expected = script_number(42)},
-        {script_number(42), script_number(-1), .expected = script_number(0)},
-        {script_number(42), script_number(-43), .expected = script_number(42)},
+        {script_num(42), script_num(1), .expected = script_num(0)},
+        {script_num(42), script_num(2), .expected = script_num(0)},
+        {script_num(42), script_num(42), .expected = script_num(0)},
+        {script_num(42), script_num(4), .expected = script_num(2)},
+        {script_num(42), script_num(43), .expected = script_num(42)},
+        {script_num(42), script_num(-1), .expected = script_num(0)},
+        {script_num(42), script_num(-43), .expected = script_num(42)},
 
-        {script_number(-42), script_number(1), .expected = script_number(0)},
-        {script_number(-42), script_number(2), .expected = script_number(0)},
-        {script_number(-42), script_number(42), .expected = script_number(0)},
-        {script_number(-42), script_number(4), .expected = script_number(-2)},
-        {script_number(-42), script_number(43), .expected = script_number(-42)},
-        {script_number(-42), script_number(43), .expected = script_number(-42)},
-        {script_number(-42), script_number(-1), .expected = script_number(0)},
-        {script_number(-42), script_number(-43), .expected = script_number(-42)},
+        {script_num(-42), script_num(1), .expected = script_num(0)},
+        {script_num(-42), script_num(2), .expected = script_num(0)},
+        {script_num(-42), script_num(42), .expected = script_num(0)},
+        {script_num(-42), script_num(4), .expected = script_num(-2)},
+        {script_num(-42), script_num(43), .expected = script_num(-42)},
+        {script_num(-42), script_num(43), .expected = script_num(-42)},
+        {script_num(-42), script_num(-1), .expected = script_num(0)},
+        {script_num(-42), script_num(-43), .expected = script_num(-42)},
 
-        {.a        = script_vector3_lit(4, 6, 6),
-         .b        = script_vector3_lit(2, 3, 4),
-         .expected = script_vector3_lit(0, 0, 2)},
-        {.a        = script_vector3_lit(4, 6, 6),
-         .b        = script_number(4),
-         .expected = script_vector3_lit(0, 2, 2)},
+        {.a        = script_vec3_lit(4, 6, 6),
+         .b        = script_vec3_lit(2, 3, 4),
+         .expected = script_vec3_lit(0, 0, 2)},
+        {.a = script_vec3_lit(4, 6, 6), .b = script_num(4), .expected = script_vec3_lit(0, 2, 2)},
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = script_null()},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = script_null(),
         },
     };
@@ -673,30 +669,28 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_null()},
-        {script_number(42), script_null(), .expected = script_null()},
-        {script_number(42), script_bool(false), .expected = script_null()},
+        {script_null(), script_num(42), .expected = script_null()},
+        {script_num(42), script_null(), .expected = script_null()},
+        {script_num(42), script_bool(false), .expected = script_null()},
 
-        {script_number(0), script_number(0), .expected = script_number(0)},
-        {script_number(-1), script_number(1), .expected = script_number(2)},
-        {script_number(0), script_number(42), .expected = script_number(42)},
-        {script_number(-42), script_number(0), .expected = script_number(42)},
-        {script_number(42), script_number(2), .expected = script_number(40)},
-        {script_number(-1337), script_number(42), .expected = script_number(1379)},
+        {script_num(0), script_num(0), .expected = script_num(0)},
+        {script_num(-1), script_num(1), .expected = script_num(2)},
+        {script_num(0), script_num(42), .expected = script_num(42)},
+        {script_num(-42), script_num(0), .expected = script_num(42)},
+        {script_num(42), script_num(2), .expected = script_num(40)},
+        {script_num(-1337), script_num(42), .expected = script_num(1379)},
 
         {script_bool(true), script_bool(false), .expected = script_null()},
 
-        {.a        = script_vector3_lit(0, 0, 0),
-         .b        = script_vector3_lit(0, 42, 0),
-         .expected = script_number(42)},
+        {.a = script_vec3_lit(0, 0, 0), .b = script_vec3_lit(0, 42, 0), .expected = script_num(42)},
 
-        {.a        = script_vector3_lit(0, -42, 0),
-         .b        = script_vector3_lit(0, 42, 0),
-         .expected = script_number(84)},
+        {.a        = script_vec3_lit(0, -42, 0),
+         .b        = script_vec3_lit(0, 42, 0),
+         .expected = script_num(84)},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_vector3_lit(4, 5, 6),
-         .expected = script_number(5.1961522)},
+        {.a        = script_vec3_lit(1, 2, 3),
+         .b        = script_vec3_lit(4, 5, 6),
+         .expected = script_num(5.1961522)},
 
         {.a        = script_quat(geo_quat_ident),
          .b        = script_quat(geo_quat_ident),
@@ -709,8 +703,8 @@ spec(val) {
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
 
         {
-            script_string(string_hash_lit("A")),
-            script_string(string_hash_lit("B")),
+            script_str(string_hash_lit("A")),
+            script_str(string_hash_lit("B")),
             .expected = script_null(),
         },
     };
@@ -727,26 +721,26 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {
-            script_number(1),
-            script_number(2),
-            script_number(3),
-            .expected = script_vector3_lit(1, 2, 3),
+            script_num(1),
+            script_num(2),
+            script_num(3),
+            .expected = script_vec3_lit(1, 2, 3),
         },
         {
             script_null(),
-            script_number(2),
-            script_number(3),
+            script_num(2),
+            script_num(3),
             .expected = script_null(),
         },
         {
-            script_number(1),
+            script_num(1),
             script_null(),
-            script_number(3),
+            script_num(3),
             .expected = script_null(),
         },
         {
-            script_number(1),
-            script_number(2),
+            script_num(1),
+            script_num(2),
             script_null(),
             .expected = script_null(),
         },
@@ -754,8 +748,7 @@ spec(val) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      const ScriptVal actual =
-          script_val_vector3_compose(testData[i].a, testData[i].b, testData[i].c);
+      const ScriptVal actual = script_val_vec3_compose(testData[i].a, testData[i].b, testData[i].c);
       check_eq_val(actual, testData[i].expected);
     }
   }

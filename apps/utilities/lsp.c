@@ -759,7 +759,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
 
   if (script_expr_static(doc->scriptDoc, hoverExpr)) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
-    fmt_write(&textBuffer, " `{}`", fmt_text(script_val_str_scratch(evalRes.val)));
+    fmt_write(&textBuffer, " `{}`", fmt_text(script_val_scratch(evalRes.val)));
   }
   const ScriptSymId symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
   if (!sentinel_check(symId)) {

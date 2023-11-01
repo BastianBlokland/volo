@@ -87,7 +87,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return ret;
   }
   case ScriptIntrinsic_Type:
-    return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
+    return script_str(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
@@ -195,15 +195,15 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   case ScriptIntrinsic_Magnitude:
     return script_val_mag(eval(ctx, args[0]));
   case ScriptIntrinsic_VectorX:
-    return script_val_vector_x(eval(ctx, args[0]));
+    return script_val_vec_x(eval(ctx, args[0]));
   case ScriptIntrinsic_VectorY:
-    return script_val_vector_y(eval(ctx, args[0]));
+    return script_val_vec_y(eval(ctx, args[0]));
   case ScriptIntrinsic_VectorZ:
-    return script_val_vector_z(eval(ctx, args[0]));
+    return script_val_vec_z(eval(ctx, args[0]));
   case ScriptIntrinsic_Vector3Compose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
-    return script_val_vector3_compose(arg0, arg1, eval(ctx, args[2]));
+    return script_val_vec3_compose(arg0, arg1, eval(ctx, args[2]));
   }
   case ScriptIntrinsic_QuatFromEuler: {
     EVAL_ARG_WITH_INTERRUPT(0);
@@ -271,8 +271,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.type)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-        .type  = script_error_to_panic(err.type),
-        .range = script_expr_range(ctx->doc, errExpr),
+                      .type  = script_error_to_panic(err.type),
+                      .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }

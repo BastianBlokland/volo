@@ -20,12 +20,12 @@ typedef u64 EcsEntityId;
 
 typedef enum {
   ScriptType_Null,
-  ScriptType_Number,
+  ScriptType_Num,
   ScriptType_Bool,
-  ScriptType_Vector3,
+  ScriptType_Vec3,
   ScriptType_Quat,
   ScriptType_Entity,
-  ScriptType_String,
+  ScriptType_Str,
 
   ScriptType_Count,
 } ScriptType;
@@ -37,13 +37,13 @@ ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 #define script_mask_none ((ScriptMask)0)
 #define script_mask_any ((ScriptMask)bit_range_32(0, ScriptType_Count))
 #define script_mask_null script_mask(ScriptType_Null)
-#define script_mask_number script_mask(ScriptType_Number)
+#define script_mask_num script_mask(ScriptType_Num)
 #define script_mask_bool script_mask(ScriptType_Bool)
-#define script_mask_vector3 script_mask(ScriptType_Vector3)
+#define script_mask_vec3 script_mask(ScriptType_Vec3)
 #define script_mask_quat script_mask(ScriptType_Quat)
 #define script_mask_entity script_mask(ScriptType_Entity)
-#define script_mask_string script_mask(ScriptType_String)
-#define script_mask_time script_mask(ScriptType_Number)
+#define script_mask_str script_mask(ScriptType_Str)
+#define script_mask_time script_mask(ScriptType_Num)
 
 /**
  * Type-erased script value.
@@ -66,25 +66,25 @@ bool       script_type_check(ScriptVal, ScriptMask);
  * Type-erase a value into a ScriptVal.
  */
 ScriptVal script_null(void);
-ScriptVal script_number(f64);
+ScriptVal script_num(f64);
 ScriptVal script_bool(bool);
-ScriptVal script_vector3(GeoVector);
-ScriptVal script_vector3_lit(f32 x, f32 y, f32 z);
+ScriptVal script_vec3(GeoVector);
+ScriptVal script_vec3_lit(f32 x, f32 y, f32 z);
 ScriptVal script_quat(GeoQuat);
 ScriptVal script_entity(EcsEntityId);
 ScriptVal script_entity_or_null(EcsEntityId);
-ScriptVal script_string(StringHash);
+ScriptVal script_str(StringHash);
 ScriptVal script_time(TimeDuration); // Stored as seconds in a number value.
 
 /**
  * Extract a specific type.
  */
-f64          script_get_number(ScriptVal, f64 fallback);
+f64          script_get_num(ScriptVal, f64 fallback);
 bool         script_get_bool(ScriptVal, bool fallback);
-GeoVector    script_get_vector3(ScriptVal, GeoVector fallback);
+GeoVector    script_get_vec3(ScriptVal, GeoVector fallback);
 GeoQuat      script_get_quat(ScriptVal, GeoQuat fallback);
 EcsEntityId  script_get_entity(ScriptVal, EcsEntityId fallback);
-StringHash   script_get_string(ScriptVal, StringHash fallback);
+StringHash   script_get_str(ScriptVal, StringHash fallback);
 TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
 
 /**
@@ -100,10 +100,10 @@ ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
  */
 String     script_val_type_str(ScriptType);
 StringHash script_val_type_hash(ScriptType);
-void       script_val_str_write(ScriptVal, DynString*);
-String     script_val_str_scratch(ScriptVal);
-void       script_mask_str_write(ScriptMask, DynString*);
-String     script_mask_str_scratch(ScriptMask);
+void       script_val_write(ScriptVal, DynString*);
+String     script_val_scratch(ScriptVal);
+void       script_mask_write(ScriptMask, DynString*);
+String     script_mask_scratch(ScriptMask);
 
 /**
  * Compare values.
@@ -137,15 +137,15 @@ ScriptVal script_val_round_up(ScriptVal);
 /**
  * Value conversions.
  */
-ScriptVal script_val_vector3_compose(ScriptVal x, ScriptVal y, ScriptVal z);
-ScriptVal script_val_vector_x(ScriptVal);
-ScriptVal script_val_vector_y(ScriptVal);
-ScriptVal script_val_vector_z(ScriptVal);
+ScriptVal script_val_vec3_compose(ScriptVal x, ScriptVal y, ScriptVal z);
+ScriptVal script_val_vec_x(ScriptVal);
+ScriptVal script_val_vec_y(ScriptVal);
+ScriptVal script_val_vec_z(ScriptVal);
 ScriptVal script_val_quat_from_euler(ScriptVal x, ScriptVal y, ScriptVal z);
 ScriptVal script_val_quat_from_angle_axis(ScriptVal angle, ScriptVal axis);
 
 /**
  * Create a formatting argument for a script value.
  */
-#define script_val_fmt(_VAL_) fmt_text(script_val_str_scratch(_VAL_))
-#define script_mask_fmt(_MASK_) fmt_text(script_mask_str_scratch(_MASK_))
+#define script_val_fmt(_VAL_) fmt_text(script_val_scratch(_VAL_))
+#define script_mask_fmt(_MASK_) fmt_text(script_mask_scratch(_MASK_))

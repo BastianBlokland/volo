@@ -86,7 +86,7 @@ spec(node_invert) {
                     .scriptExpr = script_add_anon_mem_store(
                         scriptDoc,
                         string_hash_lit("test"),
-                        script_add_anon_value(scriptDoc, script_number(42.42))),
+                        script_add_anon_value(scriptDoc, script_num(42.42))),
                 },
         },
     };
@@ -98,7 +98,7 @@ spec(node_invert) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Failure);
     check_eq_int(tracer.count, 2);
-    check(script_val_equal(script_mem_get(memory, string_hash_lit("test")), script_number(42.42)));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test")), script_num(42.42)));
   }
 
   teardown() {

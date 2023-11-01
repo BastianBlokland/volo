@@ -41,7 +41,7 @@ ecs_system_define(SceneControllerUpdateSys) {
         if (script_type(navTarget) == ScriptType_Entity) {
           scene_nav_travel_to_entity(navAgent, script_get_entity(navTarget, ecs_entity_invalid));
         } else {
-          scene_nav_travel_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
+          scene_nav_travel_to(navAgent, script_get_vec3(navTarget, geo_vector(0)));
         }
         scene_knowledge_set_null(knowledge, g_brainKeyNavTarget);
       }

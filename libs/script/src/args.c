@@ -19,17 +19,17 @@ bool script_arg_check(const ScriptArgs args, const u16 i, const ScriptMask mask,
   return *err = script_arg_err(args, i), false;
 }
 
-f64 script_arg_number(const ScriptArgs args, const u16 i, ScriptError* err) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
-    return val_as_number(args.values[i]);
+f64 script_arg_num(const ScriptArgs args, const u16 i, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Num)) {
+    return val_as_num(args.values[i]);
   }
   return *err = script_arg_err(args, i), 0.0;
 }
 
-f64 script_arg_number_range(
+f64 script_arg_num_range(
     const ScriptArgs args, const u16 i, const f64 min, const f64 max, ScriptError* err) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
-    const f64 res = val_as_number(args.values[i]);
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Num)) {
+    const f64 res = val_as_num(args.values[i]);
     if (LIKELY(res >= min && res < max)) {
       return res;
     }
@@ -45,9 +45,9 @@ bool script_arg_bool(const ScriptArgs args, const u16 i, ScriptError* err) {
   return *err = script_arg_err(args, i), false;
 }
 
-GeoVector script_arg_vector3(const ScriptArgs args, const u16 i, ScriptError* err) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Vector3)) {
-    return val_as_vector3(args.values[i]);
+GeoVector script_arg_vec3(const ScriptArgs args, const u16 i, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Vec3)) {
+    return val_as_vec3(args.values[i]);
   }
   return *err = script_arg_err(args, i), geo_vector(0);
 }
@@ -66,23 +66,23 @@ EcsEntityId script_arg_entity(const ScriptArgs args, const u16 i, ScriptError* e
   return *err = script_arg_err(args, i), 0;
 }
 
-StringHash script_arg_string(const ScriptArgs args, const u16 i, ScriptError* err) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_String)) {
-    return val_as_string(args.values[i]);
+StringHash script_arg_str(const ScriptArgs args, const u16 i, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Str)) {
+    return val_as_str(args.values[i]);
   }
   return *err = script_arg_err(args, i), 0;
 }
 
 TimeDuration script_arg_time(const ScriptArgs args, const u16 i, ScriptError* err) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Number)) {
-    return (TimeDuration)time_seconds(val_as_number(args.values[i]));
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Num)) {
+    return (TimeDuration)time_seconds(val_as_num(args.values[i]));
   }
   return *err = script_arg_err(args, i), 0;
 }
 
 i32 script_arg_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, ScriptError* err) {
-  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_String)) {
-    const i32 res = script_enum_lookup_value(e, val_as_string(args.values[i]), err);
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Str)) {
+    const i32 res = script_enum_lookup_value(e, val_as_str(args.values[i]), err);
     if (UNLIKELY(err->type)) {
       err->argIndex = i; // Preserve argument index.
     }
@@ -91,17 +91,17 @@ i32 script_arg_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, Scr
   return *err = script_arg_err(args, i), 0;
 }
 
-f64 script_arg_opt_number(const ScriptArgs args, const u16 i, const f64 def, ScriptError* err) {
+f64 script_arg_opt_num(const ScriptArgs args, const u16 i, const f64 def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Number)) {
-      return val_as_number(args.values[i]);
+    if (LIKELY(val_type(args.values[i]) == ScriptType_Num)) {
+      return val_as_num(args.values[i]);
     }
     return *err = script_arg_err(args, i), 0.0;
   }
   return def;
 }
 
-f64 script_arg_opt_number_range(
+f64 script_arg_opt_num_range(
     const ScriptArgs args,
     const u16        i,
     const f64        min,
@@ -109,8 +109,8 @@ f64 script_arg_opt_number_range(
     const f64        def,
     ScriptError*     err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Number)) {
-      const f64 res = val_as_number(args.values[i]);
+    if (LIKELY(val_type(args.values[i]) == ScriptType_Num)) {
+      const f64 res = val_as_num(args.values[i]);
       if (LIKELY(res >= min && res < max)) {
         return res;
       }
@@ -132,10 +132,10 @@ bool script_arg_opt_bool(const ScriptArgs args, const u16 i, const bool def, Scr
 }
 
 GeoVector
-script_arg_opt_vector3(const ScriptArgs args, const u16 i, const GeoVector def, ScriptError* err) {
+script_arg_opt_vec3(const ScriptArgs args, const u16 i, const GeoVector def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Vector3)) {
-      return val_as_vector3(args.values[i]);
+    if (LIKELY(val_type(args.values[i]) == ScriptType_Vec3)) {
+      return val_as_vec3(args.values[i]);
     }
     return *err = script_arg_err(args, i), geo_vector(0);
   }
@@ -165,10 +165,10 @@ script_arg_opt_entity(const ScriptArgs args, const u16 i, const EcsEntityId def,
 }
 
 StringHash
-script_arg_opt_string(const ScriptArgs args, const u16 i, const StringHash def, ScriptError* err) {
+script_arg_opt_str(const ScriptArgs args, const u16 i, const StringHash def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_String)) {
-      return val_as_string(args.values[i]);
+    if (LIKELY(val_type(args.values[i]) == ScriptType_Str)) {
+      return val_as_str(args.values[i]);
     }
     return *err = script_arg_err(args, i), 0;
   }
@@ -178,8 +178,8 @@ script_arg_opt_string(const ScriptArgs args, const u16 i, const StringHash def, 
 TimeDuration
 script_arg_opt_time(const ScriptArgs args, const u16 i, const TimeDuration def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Number)) {
-      return (TimeDuration)time_seconds(val_as_number(args.values[i]));
+    if (LIKELY(val_type(args.values[i]) == ScriptType_Num)) {
+      return (TimeDuration)time_seconds(val_as_num(args.values[i]));
     }
     return *err = script_arg_err(args, i), 0;
   }
@@ -189,17 +189,17 @@ script_arg_opt_time(const ScriptArgs args, const u16 i, const TimeDuration def, 
 i32 script_arg_opt_enum(
     const ScriptArgs args, const u16 i, const ScriptEnum* e, const i32 def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_String)) {
-      return script_enum_lookup_value(e, val_as_string(args.values[i]), err);
+    if (LIKELY(val_type(args.values[i]) == ScriptType_Str)) {
+      return script_enum_lookup_value(e, val_as_str(args.values[i]), err);
     }
     return *err = script_arg_err(args, i), 0;
   }
   return def;
 }
 
-f64 script_arg_maybe_number(const ScriptArgs args, const u16 i, const f64 def) {
-  if (args.count > i && val_type(args.values[i]) == ScriptType_Number) {
-    return val_as_number(args.values[i]);
+f64 script_arg_maybe_num(const ScriptArgs args, const u16 i, const f64 def) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Num) {
+    return val_as_num(args.values[i]);
   }
   return def;
 }
@@ -211,9 +211,9 @@ bool script_arg_maybe_bool(const ScriptArgs args, const u16 i, const bool def) {
   return def;
 }
 
-GeoVector script_arg_maybe_vector3(const ScriptArgs args, const u16 i, const GeoVector def) {
-  if (args.count > i && val_type(args.values[i]) == ScriptType_Vector3) {
-    return val_as_vector3(args.values[i]);
+GeoVector script_arg_maybe_vec3(const ScriptArgs args, const u16 i, const GeoVector def) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Vec3) {
+    return val_as_vec3(args.values[i]);
   }
   return def;
 }
@@ -232,23 +232,23 @@ EcsEntityId script_arg_maybe_entity(const ScriptArgs args, const u16 i, const Ec
   return def;
 }
 
-StringHash script_arg_maybe_string(const ScriptArgs args, const u16 i, const StringHash def) {
-  if (args.count > i && val_type(args.values[i]) == ScriptType_String) {
-    return val_as_string(args.values[i]);
+StringHash script_arg_maybe_str(const ScriptArgs args, const u16 i, const StringHash def) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Str) {
+    return val_as_str(args.values[i]);
   }
   return def;
 }
 
 TimeDuration script_arg_maybe_time(const ScriptArgs args, const u16 i, const TimeDuration def) {
-  if (args.count > i && val_type(args.values[i]) == ScriptType_Number) {
-    return (TimeDuration)time_seconds(val_as_number(args.values[i]));
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Num) {
+    return (TimeDuration)time_seconds(val_as_num(args.values[i]));
   }
   return def;
 }
 
 i32 script_arg_maybe_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, const i32 def) {
-  if (args.count > i && val_type(args.values[i]) == ScriptType_String) {
-    return script_enum_lookup_maybe_value(e, val_as_string(args.values[i]), def);
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Str) {
+    return script_enum_lookup_maybe_value(e, val_as_str(args.values[i]), def);
   }
   return def;
 }

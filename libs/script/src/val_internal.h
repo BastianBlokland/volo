@@ -9,12 +9,12 @@
  * | Type    | Word 0        | Word 1        | Word 2     | Word 3       |
  * |---------|---------------|---------------|------------|--------------|
  * | null    | unused        | unused        | unused     | type tag (0) |
- * | number  | lower 32 bits | upper 32 bits | unused     | type tag (1) |
- * | Bool    | 0 / 1         | unused        | unused     | type tag (2) |
- * | Vector3 | f32 x         | f32 y         | f32 z      | type tag (3) |
- * | Quat    | f32 q1        | f32 q2        | f32 q3     | type tag (4) |
- * | Entity  | lower 32 bits | upper 32 bits | unused     | type tag (5) |
- * | String  | u32           | unused        | unused     | type tag (6) |
+ * | num     | lower 32 bits | upper 32 bits | unused     | type tag (1) |
+ * | bool    | 0 / 1         | unused        | unused     | type tag (2) |
+ * | vec3    | f32 x         | f32 y         | f32 z      | type tag (3) |
+ * | quat    | f32 q1        | f32 q2        | f32 q3     | type tag (4) |
+ * | entity  | lower 32 bits | upper 32 bits | unused     | type tag (5) |
+ * | str     | u32           | unused        | unused     | type tag (6) |
  *
  * NOTE: Only unit quaternions are supported (as the 4th component is reconstructed).
  * NOTE: Assumes little-endian byte order.
@@ -33,10 +33,10 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_null() {
   return (ScriptVal){0};
 }
 
-MAYBE_UNUSED INLINE_HINT static ScriptVal val_number(const f64 value) {
+MAYBE_UNUSED INLINE_HINT static ScriptVal val_num(const f64 value) {
   ScriptVal result;
   *(f64*)result.bytes = value;
-  result.words[3]     = ScriptType_Number;
+  result.words[3]     = ScriptType_Num;
   return result;
 }
 
@@ -47,10 +47,10 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_bool(const bool value) {
   return result;
 }
 
-MAYBE_UNUSED INLINE_HINT static ScriptVal val_vector3(const GeoVector value) {
+MAYBE_UNUSED INLINE_HINT static ScriptVal val_vec3(const GeoVector value) {
   ScriptVal result;
   *(GeoVector*)result.bytes = value;
-  result.words[3]           = ScriptType_Vector3;
+  result.words[3]           = ScriptType_Vec3;
   return result;
 }
 
@@ -68,27 +68,25 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_entity(const EcsEntityId value) {
   return result;
 }
 
-MAYBE_UNUSED INLINE_HINT static ScriptVal val_string(const StringHash value) {
+MAYBE_UNUSED INLINE_HINT static ScriptVal val_str(const StringHash value) {
   ScriptVal result;
   *(StringHash*)result.bytes = value;
-  result.words[3]            = ScriptType_String;
+  result.words[3]            = ScriptType_Str;
   return result;
 }
 
-MAYBE_UNUSED INLINE_HINT static f64 val_as_number(const ScriptVal value) {
-  return *(f64*)value.bytes;
-}
+MAYBE_UNUSED INLINE_HINT static f64 val_as_num(const ScriptVal value) { return *(f64*)value.bytes; }
 
 MAYBE_UNUSED INLINE_HINT static bool val_as_bool(const ScriptVal value) {
   return *(bool*)value.bytes;
 }
 
-MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vector3_dirty_w(const ScriptVal value) {
+MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vec3_dirty_w(const ScriptVal value) {
   return *(GeoVector*)value.bytes;
 }
 
-MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) {
-  GeoVector result = val_as_vector3_dirty_w(value);
+MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vec3(const ScriptVal value) {
+  GeoVector result = val_as_vec3_dirty_w(value);
   result.w         = 0.0f; // W value is aliased with the type tag.
   return result;
 }
@@ -104,6 +102,6 @@ MAYBE_UNUSED INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value)
   return *(EcsEntityId*)value.bytes;
 }
 
-MAYBE_UNUSED INLINE_HINT static StringHash val_as_string(const ScriptVal value) {
+MAYBE_UNUSED INLINE_HINT static StringHash val_as_str(const ScriptVal value) {
   return *(StringHash*)value.bytes;
 }

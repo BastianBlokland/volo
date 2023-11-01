@@ -123,13 +123,13 @@ void script_sig_str_write(const ScriptSig* sig, DynString* str) {
     dynstring_append(str, arg.name);
     if (arg.mask) {
       dynstring_append(str, string_lit(": "));
-      script_mask_str_write(arg.mask, str);
+      script_mask_write(arg.mask, str);
     }
   }
   dynstring_append_char(str, ')');
   if (sig->retMask) {
     dynstring_append(str, string_lit(" -> "));
-    script_mask_str_write(sig->retMask, str);
+    script_mask_write(sig->retMask, str);
   }
 }
 

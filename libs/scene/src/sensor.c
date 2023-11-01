@@ -64,17 +64,17 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     if (transform) {
-      scene_knowledge_set(knowledge, g_brainKeyPosition, script_vector3(transform->position));
+      scene_knowledge_set(knowledge, g_brainKeyPosition, script_vec3(transform->position));
     }
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
     if (health) {
-      scene_knowledge_set(knowledge, g_brainKeyHealth, script_number(health->norm));
+      scene_knowledge_set(knowledge, g_brainKeyHealth, script_num(health->norm));
     }
 
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
     if (faction) {
-      scene_knowledge_set(knowledge, g_brainKeyFaction, script_number(faction->id));
+      scene_knowledge_set(knowledge, g_brainKeyFaction, script_num(faction->id));
     }
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
@@ -82,7 +82,7 @@ ecs_system_define(SceneSensorUpdateSys) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
         scene_knowledge_set_null(knowledge, g_brainKeyNavArrived);
       } else {
-        scene_knowledge_set(knowledge, g_brainKeyNavArrived, script_vector3(navAgent->targetPos));
+        scene_knowledge_set(knowledge, g_brainKeyNavArrived, script_vec3(navAgent->targetPos));
       }
     }
 
@@ -97,13 +97,12 @@ ecs_system_define(SceneSensorUpdateSys) {
     if (target) {
       const bool los = (targetFinder->flags & SceneTarget_LineOfSight) != 0;
 
-      scene_knowledge_set(
-          knowledge, g_brainKeyTargetRangeMax, script_number(targetFinder->rangeMax));
+      scene_knowledge_set(knowledge, g_brainKeyTargetRangeMax, script_num(targetFinder->rangeMax));
       scene_knowledge_set(knowledge, g_brainKeyTargetEntity, script_entity(target));
       scene_knowledge_set(
-          knowledge, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
+          knowledge, g_brainKeyTargetPos, script_vec3(targetFinder->targetPosition));
       scene_knowledge_set(
-          knowledge, g_brainKeyTargetDist, script_number(targetFinder->targetDistance));
+          knowledge, g_brainKeyTargetDist, script_num(targetFinder->targetDistance));
       scene_knowledge_set(knowledge, g_brainKeyTargetLos, script_bool(los));
     } else {
       scene_knowledge_set_null(knowledge, g_brainKeyTargetEntity);

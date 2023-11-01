@@ -497,7 +497,7 @@ void script_expr_str_write(
   switch (expr_type(doc, expr)) {
   case ScriptExprType_Value:
     fmt_write(str, "[value: ");
-    script_val_str_write(script_doc_val_data(doc, data->value.valId), str);
+    script_val_write(script_doc_val_data(doc, data->value.valId), str);
     fmt_write(str, "]");
     return;
   case ScriptExprType_VarLoad:
