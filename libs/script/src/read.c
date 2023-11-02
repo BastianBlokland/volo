@@ -1655,11 +1655,8 @@ static void read_sym_push_keywords(ScriptReadContext* ctx) {
     return;
   }
   for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
-    const ScriptSymData sym = {
-        .type  = ScriptSymType_Keyword,
-        .label = script_lex_keyword_data()[i].id,
-    };
-    script_sym_push(ctx->syms, &sym);
+    const String label = script_lex_keyword_data()[i].id;
+    script_sym_push_keyword(ctx->syms, label);
   }
 }
 

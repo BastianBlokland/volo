@@ -19,6 +19,15 @@ INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const 
   return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
+static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
+  const ScriptSym id = (ScriptSym)bag->symbols.size;
+  if (UNLIKELY(id == script_syms_max)) {
+    return script_sym_sentinel;
+  }
+  *dynarray_push_t(&bag->symbols, ScriptSymData) = *data;
+  return id;
+}
+
 INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos pos) {
   switch (sym->type) {
   case ScriptSymType_Variable:
@@ -176,6 +185,16 @@ ScriptSym script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
   return id;
 }
 
+ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .label = label,
+      });
+}
+
 ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
   return sym_data(bag, sym)->type;
 }
@@ -216,21 +235,6 @@ const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
   return null;
 }
 
-String script_sym_type_str(const ScriptSymType type) {
-  static const String g_names[] = {
-      string_static("Keyword"),
-      string_static("BuiltinConstant"),
-      string_static("BuiltinFunction"),
-      string_static("ExternFunction"),
-      string_static("Variable"),
-      string_static("MemoryKey"),
-  };
-  ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
-
-  diag_assert(type < ScriptSymType_Count);
-  return g_names[type];
-}
-
 ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
   switch (expr_type(doc, expr)) {
   case ScriptExprType_Intrinsic:
@@ -266,6 +270,21 @@ ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSy
     }
   }
   return script_sym_sentinel;
+}
+
+String script_sym_type_str(const ScriptSymType type) {
+  static const String g_names[] = {
+      string_static("Keyword"),
+      string_static("BuiltinConstant"),
+      string_static("BuiltinFunction"),
+      string_static("ExternFunction"),
+      string_static("Variable"),
+      string_static("MemoryKey"),
+  };
+  ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
+
+  diag_assert(type < ScriptSymType_Count);
+  return g_names[type];
 }
 
 void script_sym_write(DynString* out, const ScriptSymBag* bag, const ScriptSym sym) {

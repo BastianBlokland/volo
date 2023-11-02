@@ -74,18 +74,20 @@ void          script_sym_bag_clear(ScriptSymBag*);
 
 ScriptSym script_sym_push(ScriptSymBag*, const ScriptSymData*);
 
+ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);
+
 ScriptSymType    script_sym_type(const ScriptSymBag*, ScriptSym);
 String           script_sym_label(const ScriptSymBag*, ScriptSym);
 String           script_sym_doc(const ScriptSymBag*, ScriptSym);
 bool             script_sym_is_func(const ScriptSymBag*, ScriptSym);
 ScriptRange      script_sym_location(const ScriptSymBag*, ScriptSym);
 const ScriptSig* script_sym_sig(const ScriptSymBag*, ScriptSym);
-String           script_sym_type_str(ScriptSymType);
 
 ScriptSym script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 
 ScriptSym script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSym script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSym);
 
+String script_sym_type_str(ScriptSymType);
 void   script_sym_write(DynString*, const ScriptSymBag*, ScriptSym);
 String script_sym_scratch(const ScriptSymBag*, ScriptSym);
