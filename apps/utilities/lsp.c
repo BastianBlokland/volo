@@ -764,7 +764,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   const ScriptSym symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
   if (!sentinel_check(symId)) {
     const ScriptSymData* sym = script_sym_data(doc->scriptSyms, symId);
-    const ScriptSig*     sig = script_sym_sig(sym);
+    const ScriptSig*     sig = script_sym_sig(doc->scriptSyms, symId);
     if (sig) {
       fmt_write(&textBuffer, "\n\n`{}{}`", fmt_text(sym->label), fmt_text(script_sig_scratch(sig)));
     }
@@ -818,13 +818,12 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
-  const ScriptSym  symId   = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
-  if (sentinel_check(symId)) {
+  const ScriptSym  sym     = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
+  if (sentinel_check(sym)) {
     goto NoLocation; // No symbol found for the expression.
   }
 
-  const ScriptSymData* sym      = script_sym_data(doc->scriptSyms, symId);
-  const ScriptRange    symRange = script_sym_location(sym);
+  const ScriptRange symRange = script_sym_location(doc->scriptSyms, sym);
   if (sentinel_check(symRange.start)) {
     goto NoLocation; // No location found for the symbol.
   }
@@ -901,13 +900,13 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   ScriptSym itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
     const ScriptSymData*    sym            = script_sym_data(doc->scriptSyms, itr);
-    const ScriptSig*        sig            = script_sym_sig(sym);
+    const ScriptSig*        sig            = script_sym_sig(doc->scriptSyms, itr);
     const LspCompletionItem completionItem = {
         .label       = sym->label,
         .labelDetail = sig ? script_sig_scratch(sig) : string_empty,
         .doc         = sym->doc,
         .kind        = lsp_completion_kind_for_sym(sym),
-        .commitChar  = script_sym_is_func(sym) ? '(' : ' ',
+        .commitChar  = script_sym_is_func(doc->scriptSyms, itr) ? '(' : ' ',
     };
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
   }

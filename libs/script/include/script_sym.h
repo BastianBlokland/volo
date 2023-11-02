@@ -74,9 +74,9 @@ void          script_sym_bag_destroy(ScriptSymBag*);
 ScriptSym script_sym_push(ScriptSymBag*, const ScriptSymData*);
 void      script_sym_clear(ScriptSymBag*);
 
-bool                 script_sym_is_func(const ScriptSymData*);
-ScriptRange          script_sym_location(const ScriptSymData*);
-const ScriptSig*     script_sym_sig(const ScriptSymData*);
+bool                 script_sym_is_func(const ScriptSymBag*, ScriptSym);
+ScriptRange          script_sym_location(const ScriptSymBag*, ScriptSym);
+const ScriptSig*     script_sym_sig(const ScriptSymBag*, ScriptSym);
 String               script_sym_type_str(ScriptSymType);
 const ScriptSymData* script_sym_data(const ScriptSymBag*, ScriptSym);
 

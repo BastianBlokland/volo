@@ -175,24 +175,28 @@ void script_sym_clear(ScriptSymBag* bag) {
   dynarray_clear(&bag->symbols);
 }
 
-bool script_sym_is_func(const ScriptSymData* sym) {
-  return sym->type == ScriptSymType_BuiltinFunction || sym->type == ScriptSymType_ExternFunction;
+bool script_sym_is_func(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = script_sym_data(bag, sym);
+  return symData->type == ScriptSymType_BuiltinFunction ||
+         symData->type == ScriptSymType_ExternFunction;
 }
 
-ScriptRange script_sym_location(const ScriptSymData* sym) {
-  switch (sym->type) {
+ScriptRange script_sym_location(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = script_sym_data(bag, sym);
+  switch (symData->type) {
   case ScriptSymType_Variable:
-    return sym->data.var.location;
+    return symData->data.var.location;
   default:
     break;
   }
   return script_range_sentinel;
 }
 
-const ScriptSig* script_sym_sig(const ScriptSymData* sym) {
-  switch (sym->type) {
+const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = script_sym_data(bag, sym);
+  switch (symData->type) {
   case ScriptSymType_BuiltinFunction:
-    return sym->data.builtinFunc.sig;
+    return symData->data.builtinFunc.sig;
   default:
     break;
   }
