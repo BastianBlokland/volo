@@ -14,11 +14,11 @@ struct sScriptSymBag {
   DynArray   symbols; // ScriptSym[]
 };
 
-INLINE_HINT static const ScriptSym* sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
-  return &dynarray_begin_t(&bag->symbols, ScriptSym)[id];
+INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
+  return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
-INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) {
+INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos pos) {
   switch (sym->type) {
   case ScriptSymType_Variable:
     if (sentinel_check(pos)) {
@@ -32,7 +32,7 @@ INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) 
 
 static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
   for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_BuiltinFunction:
       if (sym->data.builtinFunc.intr == intr) {
@@ -48,7 +48,7 @@ static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic
 
 static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
   for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_ExternFunction:
       if (sym->data.externFunc.binderSlot == slot) {
@@ -64,7 +64,7 @@ static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBi
 
 static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
   for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_Variable:
       if (sym->data.var.slot == v && sym_in_scope(sym, p)) {
@@ -80,7 +80,7 @@ static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, c
 
 static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
   for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_MemoryKey:
       if (sym->data.memKey.key == memKey) {
@@ -94,8 +94,8 @@ static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash m
   return script_sym_sentinel;
 }
 
-static void script_sym_clone_into(Allocator* alloc, ScriptSym* dst, const ScriptSym* src) {
-  *dst = (ScriptSym){
+static void script_sym_clone_into(Allocator* alloc, ScriptSymData* dst, const ScriptSymData* src) {
+  *dst = (ScriptSymData){
       .type  = src->type,
       .label = string_dup(alloc, src->label),
       .doc   = string_maybe_dup(alloc, src->doc),
@@ -128,7 +128,7 @@ ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
 
   *bag = (ScriptSymBag){
       .alloc   = alloc,
-      .symbols = dynarray_create_t(alloc, ScriptSym, 128),
+      .symbols = dynarray_create_t(alloc, ScriptSymData, 128),
   };
 
   return bag;
@@ -140,7 +140,7 @@ void script_sym_bag_destroy(ScriptSymBag* bag) {
   alloc_free_t(bag->alloc, bag);
 }
 
-ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSym* sym) {
+ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
   diag_assert(!string_is_empty(sym->label));
 
   const ScriptSymId id = (ScriptSymId)bag->symbols.size;
@@ -148,13 +148,13 @@ ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSym* sym) {
     return script_sym_sentinel;
   }
 
-  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSym), sym);
+  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSymData), sym);
 
   return id;
 }
 
 void script_sym_clear(ScriptSymBag* bag) {
-  dynarray_for_t(&bag->symbols, ScriptSym, sym) {
+  dynarray_for_t(&bag->symbols, ScriptSymData, sym) {
     string_free(bag->alloc, sym->label);
     string_maybe_free(bag->alloc, sym->doc);
     switch (sym->type) {
@@ -175,11 +175,11 @@ void script_sym_clear(ScriptSymBag* bag) {
   dynarray_clear(&bag->symbols);
 }
 
-bool script_sym_is_func(const ScriptSym* sym) {
+bool script_sym_is_func(const ScriptSymData* sym) {
   return sym->type == ScriptSymType_BuiltinFunction || sym->type == ScriptSymType_ExternFunction;
 }
 
-ScriptRange script_sym_location(const ScriptSym* sym) {
+ScriptRange script_sym_location(const ScriptSymData* sym) {
   switch (sym->type) {
   case ScriptSymType_Variable:
     return sym->data.var.location;
@@ -189,7 +189,7 @@ ScriptRange script_sym_location(const ScriptSym* sym) {
   return script_range_sentinel;
 }
 
-const ScriptSig* script_sym_sig(const ScriptSym* sym) {
+const ScriptSig* script_sym_sig(const ScriptSymData* sym) {
   switch (sym->type) {
   case ScriptSymType_BuiltinFunction:
     return sym->data.builtinFunc.sig;
@@ -214,7 +214,7 @@ String script_sym_type_str(const ScriptSymType type) {
   return g_names[type];
 }
 
-const ScriptSym* script_sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
+const ScriptSymData* script_sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
   diag_assert_msg(id < bag->symbols.size, "Invalid symbol-id");
   return sym_data(bag, id);
 }
@@ -242,7 +242,7 @@ ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
   if (!bag->symbols.size) {
     return script_sym_sentinel;
   }
-  const ScriptSym* first = script_sym_data(bag, 0);
+  const ScriptSymData* first = script_sym_data(bag, 0);
   return sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
@@ -256,13 +256,13 @@ ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, Script
   return script_sym_sentinel;
 }
 
-void script_sym_write(DynString* out, const String sourceText, const ScriptSym* sym) {
+void script_sym_write(DynString* out, const String sourceText, const ScriptSymData* sym) {
   (void)sourceText;
 
   fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(sym->type)), fmt_text(sym->label));
 }
 
-String script_sym_scratch(const String sourceText, const ScriptSym* sym) {
+String script_sym_scratch(const String sourceText, const ScriptSymData* sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 

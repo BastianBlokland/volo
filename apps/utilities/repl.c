@@ -96,7 +96,7 @@ static void repl_output_panic(const String src, const ScriptPanic* panic, const 
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_sym(const String src, const ScriptSym* sym) {
+static void repl_output_sym(const String src, const ScriptSymData* sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 

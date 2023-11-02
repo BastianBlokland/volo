@@ -536,7 +536,7 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     if (!scope->vars[i].id) {
       break;
     }
-    const ScriptSym sym = {
+    const ScriptSymData sym = {
         .type  = ScriptSymType_Variable,
         .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
         .data.var =
@@ -777,9 +777,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .type     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .type     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1655,7 +1655,7 @@ static void read_sym_push_keywords(ScriptReadContext* ctx) {
     return;
   }
   for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
-    const ScriptSym sym = {
+    const ScriptSymData sym = {
         .type  = ScriptSymType_Keyword,
         .label = script_lex_keyword_data()[i].id,
     };
@@ -1668,14 +1668,14 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
     return;
   }
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
-    const ScriptSym sym = {
+    const ScriptSymData sym = {
         .type  = ScriptSymType_BuiltinConstant,
         .label = g_scriptBuiltinConsts[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
-    const ScriptSym sym = {
+    const ScriptSymData sym = {
         .type             = ScriptSymType_BuiltinFunction,
         .label            = g_scriptBuiltinFuncs[i].id,
         .doc              = g_scriptBuiltinFuncs[i].doc,
@@ -1693,7 +1693,7 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   }
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
-    const ScriptSym sym = {
+    const ScriptSymData sym = {
         .type            = ScriptSymType_ExternFunction,
         .label           = script_binder_name(ctx->binder, itr),
         .data.externFunc = {.binderSlot = itr},
@@ -1713,7 +1713,7 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
     // TODO: Using the global string-table for this is kinda questionable.
     const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
-      const ScriptSym sym = {
+      const ScriptSymData sym = {
           .type        = ScriptSymType_MemoryKey,
           .label       = fmt_write_scratch("${}", fmt_text(keyStr)),
           .data.memKey = {.key = ctx->trackedMemKeys[i]},
@@ -1759,13 +1759,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

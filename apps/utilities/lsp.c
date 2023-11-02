@@ -763,8 +763,8 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   }
   const ScriptSymId symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
   if (!sentinel_check(symId)) {
-    const ScriptSym* sym = script_sym_data(doc->scriptSyms, symId);
-    const ScriptSig* sig = script_sym_sig(sym);
+    const ScriptSymData* sym = script_sym_data(doc->scriptSyms, symId);
+    const ScriptSig*     sig = script_sym_sig(sym);
     if (sig) {
       fmt_write(&textBuffer, "\n\n`{}{}`", fmt_text(sym->label), fmt_text(script_sig_scratch(sig)));
     }
@@ -823,8 +823,8 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto NoLocation; // No symbol found for the expression.
   }
 
-  const ScriptSym*  sym      = script_sym_data(doc->scriptSyms, symId);
-  const ScriptRange symRange = script_sym_location(sym);
+  const ScriptSymData* sym      = script_sym_data(doc->scriptSyms, symId);
+  const ScriptRange    symRange = script_sym_location(sym);
   if (sentinel_check(symRange.start)) {
     goto NoLocation; // No location found for the symbol.
   }
@@ -844,7 +844,7 @@ NoLocation:
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
-static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSym* sym) {
+static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSymData* sym) {
   switch (sym->type) {
   case ScriptSymType_Keyword:
     return LspCompletionItemKind_Keyword;
@@ -900,7 +900,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
   ScriptSymId itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
-    const ScriptSym*        sym            = script_sym_data(doc->scriptSyms, itr);
+    const ScriptSymData*    sym            = script_sym_data(doc->scriptSyms, itr);
     const ScriptSig*        sig            = script_sym_sig(sym);
     const LspCompletionItem completionItem = {
         .label       = sym->label,

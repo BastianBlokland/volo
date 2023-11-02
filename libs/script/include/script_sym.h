@@ -64,26 +64,26 @@ typedef struct {
     ScriptSymVar         var;
     ScriptSymMemKey      memKey;
   } data;
-} ScriptSym;
+} ScriptSymData;
 
 typedef struct sScriptSymBag ScriptSymBag;
 
 ScriptSymBag* script_sym_bag_create(Allocator*);
 void          script_sym_bag_destroy(ScriptSymBag*);
 
-ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSym*);
+ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSymData*);
 void        script_sym_clear(ScriptSymBag*);
 
-bool             script_sym_is_func(const ScriptSym*);
-ScriptRange      script_sym_location(const ScriptSym*);
-const ScriptSig* script_sym_sig(const ScriptSym*);
-String           script_sym_type_str(ScriptSymType);
-const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
+bool                 script_sym_is_func(const ScriptSymData*);
+ScriptRange          script_sym_location(const ScriptSymData*);
+const ScriptSig*     script_sym_sig(const ScriptSymData*);
+String               script_sym_type_str(ScriptSymType);
+const ScriptSymData* script_sym_data(const ScriptSymBag*, ScriptSymId);
 
 ScriptSymId script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 
 ScriptSymId script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSymId script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSymId);
 
-void   script_sym_write(DynString*, String sourceText, const ScriptSym*);
-String script_sym_scratch(String sourceText, const ScriptSym*);
+void   script_sym_write(DynString*, String sourceText, const ScriptSymData*);
+String script_sym_scratch(String sourceText, const ScriptSymData*);
