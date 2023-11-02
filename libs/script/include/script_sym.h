@@ -85,5 +85,5 @@ ScriptSym script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 ScriptSym script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSym script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSym);
 
-void   script_sym_write(DynString*, String sourceText, const ScriptSymData*);
-String script_sym_scratch(String sourceText, const ScriptSymData*);
+void   script_sym_write(DynString*, const ScriptSymBag*, ScriptSym);
+String script_sym_scratch(const ScriptSymBag*, ScriptSym);

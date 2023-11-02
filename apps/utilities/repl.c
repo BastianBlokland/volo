@@ -96,12 +96,12 @@ static void repl_output_panic(const String src, const ScriptPanic* panic, const 
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_sym(const String src, const ScriptSymData* sym) {
+static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   dynstring_append(&buffer, string_lit("Sym: "));
-  script_sym_write(&buffer, src, sym);
+  script_sym_write(&buffer, symBag, sym);
   dynstring_append_char(&buffer, '\n');
 
   repl_output(dynstring_view(&buffer));
@@ -310,7 +310,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   if (flags & ReplFlags_OutputSymbols) {
     ScriptSym itr = script_sym_first(syms, script_pos_sentinel);
     for (; !sentinel_check(itr); itr = script_sym_next(syms, script_pos_sentinel, itr)) {
-      repl_output_sym(input, script_sym_data(syms, itr));
+      repl_output_sym(syms, itr);
     }
   }
 

@@ -256,17 +256,16 @@ ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSy
   return script_sym_sentinel;
 }
 
-void script_sym_write(DynString* out, const String sourceText, const ScriptSymData* sym) {
-  (void)sourceText;
-
-  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(sym->type)), fmt_text(sym->label));
+void script_sym_write(DynString* out, const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = script_sym_data(bag, sym);
+  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(symData->type)), fmt_text(symData->label));
 }
 
-String script_sym_scratch(const String sourceText, const ScriptSymData* sym) {
+String script_sym_scratch(const ScriptSymBag* bag, const ScriptSym sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_sym_write(&buffer, sourceText, sym);
+  script_sym_write(&buffer, bag, sym);
 
   return dynstring_view(&buffer);
 }
