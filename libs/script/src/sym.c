@@ -207,6 +207,25 @@ ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label) {
       });
 }
 
+ScriptSym script_sym_push_builtin_func(
+    ScriptSymBag*         bag,
+    const String          label,
+    const String          doc,
+    const ScriptIntrinsic intr,
+    const ScriptSig*      sig) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type                  = ScriptSymType_BuiltinConstant,
+          .label                 = string_dup(bag->alloc, label),
+          .doc                   = string_maybe_dup(bag->alloc, doc),
+          .data.builtinFunc.intr = intr,
+          .data.builtinFunc.sig  = sig ? script_sig_clone(bag->alloc, sig) : null,
+      });
+}
+
 ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
   return sym_data(bag, sym)->type;
 }
