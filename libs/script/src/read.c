@@ -1692,12 +1692,8 @@ static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
     // TODO: Using the global string-table for this is kinda questionable.
     const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
-      const ScriptSymData sym = {
-          .type        = ScriptSymType_MemoryKey,
-          .label       = fmt_write_scratch("${}", fmt_text(keyStr)),
-          .data.memKey = {.key = ctx->trackedMemKeys[i]},
-      };
-      script_sym_push(ctx->syms, &sym);
+      const String label = fmt_write_scratch("${}", fmt_text(keyStr));
+      script_sym_push_mem_key(ctx->syms, label, ctx->trackedMemKeys[i]);
     }
   }
 }

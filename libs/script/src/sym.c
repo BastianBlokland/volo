@@ -258,6 +258,18 @@ ScriptSym script_sym_push_var(
       });
 }
 
+ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const StringHash key) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type            = ScriptSymType_MemoryKey,
+          .label           = string_dup(bag->alloc, label),
+          .data.memKey.key = key,
+      });
+}
+
 ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
   return sym_data(bag, sym)->type;
 }
