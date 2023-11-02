@@ -226,6 +226,19 @@ ScriptSym script_sym_push_builtin_func(
       });
 }
 
+ScriptSym script_sym_push_extern_func(
+    ScriptSymBag* bag, const String label, const ScriptBinderSlot binderSlot) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type                       = ScriptSymType_BuiltinConstant,
+          .label                      = string_dup(bag->alloc, label),
+          .data.externFunc.binderSlot = binderSlot,
+      });
+}
+
 ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
   return sym_data(bag, sym)->type;
 }
