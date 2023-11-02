@@ -7,17 +7,43 @@
 
 #include "doc_internal.h"
 
-ASSERT(script_syms_max < u16_max, "ScriptSymId has to be storable as a 16-bit integer");
+ASSERT(script_syms_max < u16_max, "ScriptSym has to be storable as a 16-bit integer");
+
+typedef struct {
+  ScriptIntrinsic intr;
+  ScriptSig*      sig;
+} ScriptSymBuiltinFunc;
+
+typedef struct {
+  ScriptBinderSlot binderSlot;
+} ScriptSymExternFunc;
+
+typedef struct {
+  ScriptVarId slot; // NOTE: Only unique within the scope.
+  ScriptRange location;
+  ScriptRange scope;
+} ScriptSymVar;
+
+typedef struct {
+  StringHash key;
+} ScriptSymMemKey;
+
+typedef struct {
+  ScriptSymType type;
+  String        label;
+  String        doc;
+  union {
+    ScriptSymBuiltinFunc builtinFunc;
+    ScriptSymExternFunc  externFunc;
+    ScriptSymVar         var;
+    ScriptSymMemKey      memKey;
+  } data;
+} ScriptSymData;
 
 struct sScriptSymBag {
   Allocator* alloc;
   DynArray   symbols; // ScriptSym[]
 };
-
-INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
-  diag_assert(id < bag->symbols.size);
-  return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
-}
 
 static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
   const ScriptSym id = (ScriptSym)bag->symbols.size;
@@ -26,6 +52,11 @@ static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
   }
   *dynarray_push_t(&bag->symbols, ScriptSymData) = *data;
   return id;
+}
+
+INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
+  diag_assert(id < bag->symbols.size);
+  return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
 INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos pos) {

@@ -35,37 +35,6 @@ typedef enum {
   ScriptSymType_Count,
 } ScriptSymType;
 
-typedef struct {
-  ScriptIntrinsic intr;
-  ScriptSig*      sig;
-} ScriptSymBuiltinFunc;
-
-typedef struct {
-  ScriptBinderSlot binderSlot;
-} ScriptSymExternFunc;
-
-typedef struct {
-  ScriptVarId slot; // NOTE: Only unique within the scope.
-  ScriptRange location;
-  ScriptRange scope;
-} ScriptSymVar;
-
-typedef struct {
-  StringHash key;
-} ScriptSymMemKey;
-
-typedef struct {
-  ScriptSymType type;
-  String        label;
-  String        doc;
-  union {
-    ScriptSymBuiltinFunc builtinFunc;
-    ScriptSymExternFunc  externFunc;
-    ScriptSymVar         var;
-    ScriptSymMemKey      memKey;
-  } data;
-} ScriptSymData;
-
 typedef struct sScriptSymBag ScriptSymBag;
 
 ScriptSymBag* script_sym_bag_create(Allocator*);
