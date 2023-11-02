@@ -72,8 +72,6 @@ ScriptSymBag* script_sym_bag_create(Allocator*);
 void          script_sym_bag_destroy(ScriptSymBag*);
 void          script_sym_bag_clear(ScriptSymBag*);
 
-ScriptSym script_sym_push(ScriptSymBag*, const ScriptSymData*);
-
 // clang-format off
 
 ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);

@@ -104,35 +104,6 @@ static ScriptSym sym_find_by_mem_key(const ScriptSymBag* b, const StringHash mem
   return script_sym_sentinel;
 }
 
-static void script_sym_clone_into(Allocator* alloc, ScriptSymData* dst, const ScriptSymData* src) {
-  *dst = (ScriptSymData){
-      .type  = src->type,
-      .label = string_dup(alloc, src->label),
-      .doc   = string_maybe_dup(alloc, src->doc),
-  };
-  switch (src->type) {
-  case ScriptSymType_BuiltinFunction:
-    dst->data.builtinFunc.intr = src->data.builtinFunc.intr;
-    if (src->data.builtinFunc.sig) {
-      dst->data.builtinFunc.sig = script_sig_clone(alloc, src->data.builtinFunc.sig);
-    }
-    break;
-  case ScriptSymType_ExternFunction:
-    dst->data.externFunc = src->data.externFunc;
-    break;
-  case ScriptSymType_Variable:
-    dst->data.var = src->data.var;
-    break;
-  case ScriptSymType_MemoryKey:
-    dst->data.memKey = src->data.memKey;
-    break;
-  case ScriptSymType_BuiltinConstant:
-  case ScriptSymType_Keyword:
-  case ScriptSymType_Count:
-    break;
-  }
-}
-
 ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
@@ -170,19 +141,6 @@ void script_sym_bag_clear(ScriptSymBag* bag) {
     }
   }
   dynarray_clear(&bag->symbols);
-}
-
-ScriptSym script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
-  diag_assert(!string_is_empty(sym->label));
-
-  const ScriptSym id = (ScriptSym)bag->symbols.size;
-  if (UNLIKELY(id == script_syms_max)) {
-    return script_sym_sentinel;
-  }
-
-  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSymData), sym);
-
-  return id;
 }
 
 ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
