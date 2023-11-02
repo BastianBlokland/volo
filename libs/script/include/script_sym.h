@@ -75,6 +75,7 @@ void          script_sym_bag_clear(ScriptSymBag*);
 ScriptSym script_sym_push(ScriptSymBag*, const ScriptSymData*);
 
 ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);
+ScriptSym script_sym_push_builtin_const(ScriptSymBag*, String label);
 
 ScriptSymType    script_sym_type(const ScriptSymBag*, ScriptSym);
 String           script_sym_label(const ScriptSymBag*, ScriptSym);

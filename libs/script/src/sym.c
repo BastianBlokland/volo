@@ -191,7 +191,19 @@ ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
   return sym_push(
       bag,
       &(ScriptSymData){
-          .label = label,
+          .type  = ScriptSymType_Keyword,
+          .label = string_dup(bag->alloc, label),
+      });
+}
+
+ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type  = ScriptSymType_BuiltinConstant,
+          .label = string_dup(bag->alloc, label),
       });
 }
 

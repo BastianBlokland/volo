@@ -1665,11 +1665,7 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
     return;
   }
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
-    const ScriptSymData sym = {
-        .type  = ScriptSymType_BuiltinConstant,
-        .label = g_scriptBuiltinConsts[i].id,
-    };
-    script_sym_push(ctx->syms, &sym);
+    script_sym_push_builtin_const(ctx->syms, g_scriptBuiltinConsts[i].id);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     const ScriptSymData sym = {
