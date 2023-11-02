@@ -136,25 +136,12 @@ ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
 }
 
 void script_sym_bag_destroy(ScriptSymBag* bag) {
-  script_sym_clear(bag);
+  script_sym_bag_clear(bag);
   dynarray_destroy(&bag->symbols);
   alloc_free_t(bag->alloc, bag);
 }
 
-ScriptSym script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
-  diag_assert(!string_is_empty(sym->label));
-
-  const ScriptSym id = (ScriptSym)bag->symbols.size;
-  if (UNLIKELY(id == script_syms_max)) {
-    return script_sym_sentinel;
-  }
-
-  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSymData), sym);
-
-  return id;
-}
-
-void script_sym_clear(ScriptSymBag* bag) {
+void script_sym_bag_clear(ScriptSymBag* bag) {
   dynarray_for_t(&bag->symbols, ScriptSymData, sym) {
     string_free(bag->alloc, sym->label);
     string_maybe_free(bag->alloc, sym->doc);
@@ -174,6 +161,19 @@ void script_sym_clear(ScriptSymBag* bag) {
     }
   }
   dynarray_clear(&bag->symbols);
+}
+
+ScriptSym script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
+  diag_assert(!string_is_empty(sym->label));
+
+  const ScriptSym id = (ScriptSym)bag->symbols.size;
+  if (UNLIKELY(id == script_syms_max)) {
+    return script_sym_sentinel;
+  }
+
+  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSymData), sym);
+
+  return id;
 }
 
 ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {

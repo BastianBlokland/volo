@@ -70,9 +70,9 @@ typedef struct sScriptSymBag ScriptSymBag;
 
 ScriptSymBag* script_sym_bag_create(Allocator*);
 void          script_sym_bag_destroy(ScriptSymBag*);
+void          script_sym_bag_clear(ScriptSymBag*);
 
 ScriptSym script_sym_push(ScriptSymBag*, const ScriptSymData*);
-void      script_sym_clear(ScriptSymBag*);
 
 ScriptSymType    script_sym_type(const ScriptSymBag*, ScriptSym);
 String           script_sym_label(const ScriptSymBag*, ScriptSym);
