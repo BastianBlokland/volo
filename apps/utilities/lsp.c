@@ -521,7 +521,7 @@ Error:
 static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_clear(doc->scriptDoc);
   script_diag_clear(doc->scriptDiags);
-  script_sym_clear(doc->scriptSyms);
+  script_sym_bag_clear(doc->scriptSyms);
 
   const TimeSteady readStartTime = time_steady_clock();
 
