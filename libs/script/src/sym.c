@@ -15,6 +15,7 @@ struct sScriptSymBag {
 };
 
 INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
+  diag_assert(id < bag->symbols.size);
   return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
@@ -176,25 +177,25 @@ void script_sym_clear(ScriptSymBag* bag) {
 }
 
 ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
-  return script_sym_data(bag, sym)->type;
+  return sym_data(bag, sym)->type;
 }
 
 String script_sym_label(const ScriptSymBag* bag, const ScriptSym sym) {
-  return script_sym_data(bag, sym)->label;
+  return sym_data(bag, sym)->label;
 }
 
 String script_sym_doc(const ScriptSymBag* bag, const ScriptSym sym) {
-  return script_sym_data(bag, sym)->doc;
+  return sym_data(bag, sym)->doc;
 }
 
 bool script_sym_is_func(const ScriptSymBag* bag, const ScriptSym sym) {
-  const ScriptSymData* symData = script_sym_data(bag, sym);
+  const ScriptSymData* symData = sym_data(bag, sym);
   return symData->type == ScriptSymType_BuiltinFunction ||
          symData->type == ScriptSymType_ExternFunction;
 }
 
 ScriptRange script_sym_location(const ScriptSymBag* bag, const ScriptSym sym) {
-  const ScriptSymData* symData = script_sym_data(bag, sym);
+  const ScriptSymData* symData = sym_data(bag, sym);
   switch (symData->type) {
   case ScriptSymType_Variable:
     return symData->data.var.location;
@@ -205,7 +206,7 @@ ScriptRange script_sym_location(const ScriptSymBag* bag, const ScriptSym sym) {
 }
 
 const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
-  const ScriptSymData* symData = script_sym_data(bag, sym);
+  const ScriptSymData* symData = sym_data(bag, sym);
   switch (symData->type) {
   case ScriptSymType_BuiltinFunction:
     return symData->data.builtinFunc.sig;
@@ -228,11 +229,6 @@ String script_sym_type_str(const ScriptSymType type) {
 
   diag_assert(type < ScriptSymType_Count);
   return g_names[type];
-}
-
-const ScriptSymData* script_sym_data(const ScriptSymBag* bag, const ScriptSym id) {
-  diag_assert_msg(id < bag->symbols.size, "Invalid symbol-id");
-  return sym_data(bag, id);
 }
 
 ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
@@ -258,7 +254,7 @@ ScriptSym script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
   if (!bag->symbols.size) {
     return script_sym_sentinel;
   }
-  const ScriptSymData* first = script_sym_data(bag, 0);
+  const ScriptSymData* first = sym_data(bag, 0);
   return sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
@@ -273,7 +269,7 @@ ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSy
 }
 
 void script_sym_write(DynString* out, const ScriptSymBag* bag, const ScriptSym sym) {
-  const ScriptSymData* symData = script_sym_data(bag, sym);
+  const ScriptSymData* symData = sym_data(bag, sym);
   fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(symData->type)), fmt_text(symData->label));
 }
 
