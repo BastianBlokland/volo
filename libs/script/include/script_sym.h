@@ -22,7 +22,7 @@ typedef u16 ScriptBinderSlot;
 #define script_syms_max 4096
 #define script_sym_sentinel sentinel_u16
 
-typedef u16 ScriptSymId;
+typedef u16 ScriptSym;
 
 typedef enum {
   ScriptSymType_Keyword,
@@ -35,55 +35,35 @@ typedef enum {
   ScriptSymType_Count,
 } ScriptSymType;
 
-typedef struct {
-  ScriptIntrinsic intr;
-  ScriptSig*      sig;
-} ScriptSymBuiltinFunc;
-
-typedef struct {
-  ScriptBinderSlot binderSlot;
-} ScriptSymExternFunc;
-
-typedef struct {
-  ScriptVarId slot; // NOTE: Only unique within the scope.
-  ScriptRange location;
-  ScriptRange scope;
-} ScriptSymVar;
-
-typedef struct {
-  StringHash key;
-} ScriptSymMemKey;
-
-typedef struct {
-  ScriptSymType type;
-  String        label;
-  String        doc;
-  union {
-    ScriptSymBuiltinFunc builtinFunc;
-    ScriptSymExternFunc  externFunc;
-    ScriptSymVar         var;
-    ScriptSymMemKey      memKey;
-  } data;
-} ScriptSym;
-
 typedef struct sScriptSymBag ScriptSymBag;
 
 ScriptSymBag* script_sym_bag_create(Allocator*);
 void          script_sym_bag_destroy(ScriptSymBag*);
+void          script_sym_bag_clear(ScriptSymBag*);
 
-ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSym*);
-void        script_sym_clear(ScriptSymBag*);
+// clang-format off
 
-bool             script_sym_is_func(const ScriptSym*);
-ScriptRange      script_sym_location(const ScriptSym*);
-const ScriptSig* script_sym_sig(const ScriptSym*);
-String           script_sym_type_str(ScriptSymType);
-const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
+ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);
+ScriptSym script_sym_push_builtin_const(ScriptSymBag*, String label);
+ScriptSym script_sym_push_builtin_func(ScriptSymBag*, String label, String doc, ScriptIntrinsic, const ScriptSig*);
+ScriptSym script_sym_push_extern_func(ScriptSymBag*, String label, ScriptBinderSlot);
+ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptRange location, ScriptRange scope);
+ScriptSym script_sym_push_mem_key(ScriptSymBag*, String label, StringHash key);
 
-ScriptSymId script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
+// clang-format on
 
-ScriptSymId script_sym_first(const ScriptSymBag*, ScriptPos);
-ScriptSymId script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSymId);
+ScriptSymType    script_sym_type(const ScriptSymBag*, ScriptSym);
+String           script_sym_label(const ScriptSymBag*, ScriptSym);
+String           script_sym_doc(const ScriptSymBag*, ScriptSym);
+bool             script_sym_is_func(const ScriptSymBag*, ScriptSym);
+ScriptRange      script_sym_location(const ScriptSymBag*, ScriptSym);
+const ScriptSig* script_sym_sig(const ScriptSymBag*, ScriptSym);
 
-void   script_sym_write(DynString*, String sourceText, const ScriptSym*);
-String script_sym_scratch(String sourceText, const ScriptSym*);
+ScriptSym script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
+
+ScriptSym script_sym_first(const ScriptSymBag*, ScriptPos);
+ScriptSym script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSym);
+
+String script_sym_type_str(ScriptSymType);
+void   script_sym_write(DynString*, const ScriptSymBag*, ScriptSym);
+String script_sym_scratch(const ScriptSymBag*, ScriptSym);

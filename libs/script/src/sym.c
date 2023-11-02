@@ -7,18 +7,59 @@
 
 #include "doc_internal.h"
 
-ASSERT(script_syms_max < u16_max, "ScriptSymId has to be storable as a 16-bit integer");
+ASSERT(script_syms_max < u16_max, "ScriptSym has to be storable as a 16-bit integer");
+
+typedef struct {
+  ScriptIntrinsic intr;
+  ScriptSig*      sig;
+} ScriptSymBuiltinFunc;
+
+typedef struct {
+  ScriptBinderSlot binderSlot;
+} ScriptSymExternFunc;
+
+typedef struct {
+  ScriptVarId slot; // NOTE: Only unique within the scope.
+  ScriptRange location;
+  ScriptRange scope;
+} ScriptSymVar;
+
+typedef struct {
+  StringHash key;
+} ScriptSymMemKey;
+
+typedef struct {
+  ScriptSymType type;
+  String        label;
+  String        doc;
+  union {
+    ScriptSymBuiltinFunc builtinFunc;
+    ScriptSymExternFunc  externFunc;
+    ScriptSymVar         var;
+    ScriptSymMemKey      memKey;
+  } data;
+} ScriptSymData;
 
 struct sScriptSymBag {
   Allocator* alloc;
   DynArray   symbols; // ScriptSym[]
 };
 
-INLINE_HINT static const ScriptSym* sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
-  return &dynarray_begin_t(&bag->symbols, ScriptSym)[id];
+static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
+  const ScriptSym id = (ScriptSym)bag->symbols.size;
+  if (UNLIKELY(id == script_syms_max)) {
+    return script_sym_sentinel;
+  }
+  *dynarray_push_t(&bag->symbols, ScriptSymData) = *data;
+  return id;
 }
 
-INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) {
+INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
+  diag_assert(id < bag->symbols.size);
+  return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
+}
+
+INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos pos) {
   switch (sym->type) {
   case ScriptSymType_Variable:
     if (sentinel_check(pos)) {
@@ -30,9 +71,9 @@ INLINE_HINT static bool sym_in_scope(const ScriptSym* sym, const ScriptPos pos) 
   }
 }
 
-static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_BuiltinFunction:
       if (sym->data.builtinFunc.intr == intr) {
@@ -46,9 +87,9 @@ static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic
   return script_sym_sentinel;
 }
 
-static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+static ScriptSym sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_ExternFunction:
       if (sym->data.externFunc.binderSlot == slot) {
@@ -62,9 +103,9 @@ static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBi
   return script_sym_sentinel;
 }
 
-static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+static ScriptSym sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_Variable:
       if (sym->data.var.slot == v && sym_in_scope(sym, p)) {
@@ -78,9 +119,9 @@ static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, c
   return script_sym_sentinel;
 }
 
-static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
-    const ScriptSym* sym = sym_data(b, id);
+static ScriptSym sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
+    const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_MemoryKey:
       if (sym->data.memKey.key == memKey) {
@@ -94,67 +135,25 @@ static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash m
   return script_sym_sentinel;
 }
 
-static void script_sym_clone_into(Allocator* alloc, ScriptSym* dst, const ScriptSym* src) {
-  *dst = (ScriptSym){
-      .type  = src->type,
-      .label = string_dup(alloc, src->label),
-      .doc   = string_maybe_dup(alloc, src->doc),
-  };
-  switch (src->type) {
-  case ScriptSymType_BuiltinFunction:
-    dst->data.builtinFunc.intr = src->data.builtinFunc.intr;
-    if (src->data.builtinFunc.sig) {
-      dst->data.builtinFunc.sig = script_sig_clone(alloc, src->data.builtinFunc.sig);
-    }
-    break;
-  case ScriptSymType_ExternFunction:
-    dst->data.externFunc = src->data.externFunc;
-    break;
-  case ScriptSymType_Variable:
-    dst->data.var = src->data.var;
-    break;
-  case ScriptSymType_MemoryKey:
-    dst->data.memKey = src->data.memKey;
-    break;
-  case ScriptSymType_BuiltinConstant:
-  case ScriptSymType_Keyword:
-  case ScriptSymType_Count:
-    break;
-  }
-}
-
 ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
   *bag = (ScriptSymBag){
       .alloc   = alloc,
-      .symbols = dynarray_create_t(alloc, ScriptSym, 128),
+      .symbols = dynarray_create_t(alloc, ScriptSymData, 128),
   };
 
   return bag;
 }
 
 void script_sym_bag_destroy(ScriptSymBag* bag) {
-  script_sym_clear(bag);
+  script_sym_bag_clear(bag);
   dynarray_destroy(&bag->symbols);
   alloc_free_t(bag->alloc, bag);
 }
 
-ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSym* sym) {
-  diag_assert(!string_is_empty(sym->label));
-
-  const ScriptSymId id = (ScriptSymId)bag->symbols.size;
-  if (UNLIKELY(id == script_syms_max)) {
-    return script_sym_sentinel;
-  }
-
-  script_sym_clone_into(bag->alloc, dynarray_push_t(&bag->symbols, ScriptSym), sym);
-
-  return id;
-}
-
-void script_sym_clear(ScriptSymBag* bag) {
-  dynarray_for_t(&bag->symbols, ScriptSym, sym) {
+void script_sym_bag_clear(ScriptSymBag* bag) {
+  dynarray_for_t(&bag->symbols, ScriptSymData, sym) {
     string_free(bag->alloc, sym->label);
     string_maybe_free(bag->alloc, sym->doc);
     switch (sym->type) {
@@ -175,51 +174,132 @@ void script_sym_clear(ScriptSymBag* bag) {
   dynarray_clear(&bag->symbols);
 }
 
-bool script_sym_is_func(const ScriptSym* sym) {
-  return sym->type == ScriptSymType_BuiltinFunction || sym->type == ScriptSymType_ExternFunction;
+ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type  = ScriptSymType_Keyword,
+          .label = string_dup(bag->alloc, label),
+      });
 }
 
-ScriptRange script_sym_location(const ScriptSym* sym) {
-  switch (sym->type) {
+ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type  = ScriptSymType_BuiltinConstant,
+          .label = string_dup(bag->alloc, label),
+      });
+}
+
+ScriptSym script_sym_push_builtin_func(
+    ScriptSymBag*         bag,
+    const String          label,
+    const String          doc,
+    const ScriptIntrinsic intr,
+    const ScriptSig*      sig) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type                  = ScriptSymType_BuiltinFunction,
+          .label                 = string_dup(bag->alloc, label),
+          .doc                   = string_maybe_dup(bag->alloc, doc),
+          .data.builtinFunc.intr = intr,
+          .data.builtinFunc.sig  = sig ? script_sig_clone(bag->alloc, sig) : null,
+      });
+}
+
+ScriptSym script_sym_push_extern_func(
+    ScriptSymBag* bag, const String label, const ScriptBinderSlot binderSlot) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type                       = ScriptSymType_ExternFunction,
+          .label                      = string_dup(bag->alloc, label),
+          .data.externFunc.binderSlot = binderSlot,
+      });
+}
+
+ScriptSym script_sym_push_var(
+    ScriptSymBag*     bag,
+    const String      label,
+    const ScriptVarId slot,
+    const ScriptRange location,
+    const ScriptRange scope) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type              = ScriptSymType_Variable,
+          .label             = string_dup(bag->alloc, label),
+          .data.var.slot     = slot,
+          .data.var.location = location,
+          .data.var.scope    = scope,
+      });
+}
+
+ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const StringHash key) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type            = ScriptSymType_MemoryKey,
+          .label           = string_dup(bag->alloc, label),
+          .data.memKey.key = key,
+      });
+}
+
+ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
+  return sym_data(bag, sym)->type;
+}
+
+String script_sym_label(const ScriptSymBag* bag, const ScriptSym sym) {
+  return sym_data(bag, sym)->label;
+}
+
+String script_sym_doc(const ScriptSymBag* bag, const ScriptSym sym) {
+  return sym_data(bag, sym)->doc;
+}
+
+bool script_sym_is_func(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = sym_data(bag, sym);
+  return symData->type == ScriptSymType_BuiltinFunction ||
+         symData->type == ScriptSymType_ExternFunction;
+}
+
+ScriptRange script_sym_location(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = sym_data(bag, sym);
+  switch (symData->type) {
   case ScriptSymType_Variable:
-    return sym->data.var.location;
+    return symData->data.var.location;
   default:
     break;
   }
   return script_range_sentinel;
 }
 
-const ScriptSig* script_sym_sig(const ScriptSym* sym) {
-  switch (sym->type) {
+const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = sym_data(bag, sym);
+  switch (symData->type) {
   case ScriptSymType_BuiltinFunction:
-    return sym->data.builtinFunc.sig;
+    return symData->data.builtinFunc.sig;
   default:
     break;
   }
   return null;
 }
 
-String script_sym_type_str(const ScriptSymType type) {
-  static const String g_names[] = {
-      string_static("Keyword"),
-      string_static("BuiltinConstant"),
-      string_static("BuiltinFunction"),
-      string_static("ExternFunction"),
-      string_static("Variable"),
-      string_static("MemoryKey"),
-  };
-  ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
-
-  diag_assert(type < ScriptSymType_Count);
-  return g_names[type];
-}
-
-const ScriptSym* script_sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
-  diag_assert_msg(id < bag->symbols.size, "Invalid symbol-id");
-  return sym_data(bag, id);
-}
-
-ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
+ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
   switch (expr_type(doc, expr)) {
   case ScriptExprType_Intrinsic:
     return sym_find_by_intr(bag, expr_data(doc, expr)->intrinsic.intrinsic);
@@ -238,16 +318,16 @@ ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const
   }
 }
 
-ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
+ScriptSym script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
   if (!bag->symbols.size) {
     return script_sym_sentinel;
   }
-  const ScriptSym* first = script_sym_data(bag, 0);
+  const ScriptSymData* first = sym_data(bag, 0);
   return sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
-ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSymId itr) {
-  const ScriptSymId lastId = (ScriptSymId)(bag->symbols.size - 1);
+ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSym itr) {
+  const ScriptSym lastId = (ScriptSym)(bag->symbols.size - 1);
   while (itr < lastId) {
     if (sym_in_scope(sym_data(bag, ++itr), pos)) {
       return itr;
@@ -256,17 +336,31 @@ ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, Script
   return script_sym_sentinel;
 }
 
-void script_sym_write(DynString* out, const String sourceText, const ScriptSym* sym) {
-  (void)sourceText;
+String script_sym_type_str(const ScriptSymType type) {
+  static const String g_names[] = {
+      string_static("Keyword"),
+      string_static("BuiltinConstant"),
+      string_static("BuiltinFunction"),
+      string_static("ExternFunction"),
+      string_static("Variable"),
+      string_static("MemoryKey"),
+  };
+  ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
 
-  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(sym->type)), fmt_text(sym->label));
+  diag_assert(type < ScriptSymType_Count);
+  return g_names[type];
 }
 
-String script_sym_scratch(const String sourceText, const ScriptSym* sym) {
+void script_sym_write(DynString* out, const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymData* symData = sym_data(bag, sym);
+  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(symData->type)), fmt_text(symData->label));
+}
+
+String script_sym_scratch(const ScriptSymBag* bag, const ScriptSym sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_sym_write(&buffer, sourceText, sym);
+  script_sym_write(&buffer, bag, sym);
 
   return dynstring_view(&buffer);
 }
