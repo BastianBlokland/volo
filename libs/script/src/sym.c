@@ -14,7 +14,7 @@ struct sScriptSymBag {
   DynArray   symbols; // ScriptSym[]
 };
 
-INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
+INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
   return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
@@ -30,8 +30,8 @@ INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos p
   }
 }
 
-static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_BuiltinFunction:
@@ -46,8 +46,8 @@ static ScriptSymId sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic
   return script_sym_sentinel;
 }
 
-static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+static ScriptSym sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_ExternFunction:
@@ -62,8 +62,8 @@ static ScriptSymId sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBi
   return script_sym_sentinel;
 }
 
-static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+static ScriptSym sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_Variable:
@@ -78,8 +78,8 @@ static ScriptSymId sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, c
   return script_sym_sentinel;
 }
 
-static ScriptSymId sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
-  for (ScriptSymId id = 0; id != b->symbols.size; ++id) {
+static ScriptSym sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->type) {
     case ScriptSymType_MemoryKey:
@@ -140,10 +140,10 @@ void script_sym_bag_destroy(ScriptSymBag* bag) {
   alloc_free_t(bag->alloc, bag);
 }
 
-ScriptSymId script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
+ScriptSym script_sym_push(ScriptSymBag* bag, const ScriptSymData* sym) {
   diag_assert(!string_is_empty(sym->label));
 
-  const ScriptSymId id = (ScriptSymId)bag->symbols.size;
+  const ScriptSym id = (ScriptSym)bag->symbols.size;
   if (UNLIKELY(id == script_syms_max)) {
     return script_sym_sentinel;
   }
@@ -214,12 +214,12 @@ String script_sym_type_str(const ScriptSymType type) {
   return g_names[type];
 }
 
-const ScriptSymData* script_sym_data(const ScriptSymBag* bag, const ScriptSymId id) {
+const ScriptSymData* script_sym_data(const ScriptSymBag* bag, const ScriptSym id) {
   diag_assert_msg(id < bag->symbols.size, "Invalid symbol-id");
   return sym_data(bag, id);
 }
 
-ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
+ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
   switch (expr_type(doc, expr)) {
   case ScriptExprType_Intrinsic:
     return sym_find_by_intr(bag, expr_data(doc, expr)->intrinsic.intrinsic);
@@ -238,7 +238,7 @@ ScriptSymId script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const
   }
 }
 
-ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
+ScriptSym script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
   if (!bag->symbols.size) {
     return script_sym_sentinel;
   }
@@ -246,8 +246,8 @@ ScriptSymId script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
   return sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
-ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSymId itr) {
-  const ScriptSymId lastId = (ScriptSymId)(bag->symbols.size - 1);
+ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSym itr) {
+  const ScriptSym lastId = (ScriptSym)(bag->symbols.size - 1);
   while (itr < lastId) {
     if (sym_in_scope(sym_data(bag, ++itr), pos)) {
       return itr;

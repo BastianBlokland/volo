@@ -761,7 +761,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
     fmt_write(&textBuffer, " `{}`", fmt_text(script_val_scratch(evalRes.val)));
   }
-  const ScriptSymId symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
+  const ScriptSym symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
   if (!sentinel_check(symId)) {
     const ScriptSymData* sym = script_sym_data(doc->scriptSyms, symId);
     const ScriptSig*     sig = script_sym_sig(sym);
@@ -817,8 +817,8 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto NoLocation; // Script did not parse correctly (likely due to structural errors).
   }
 
-  const ScriptExpr  refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
-  const ScriptSymId symId   = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
+  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
+  const ScriptSym  symId   = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
   if (sentinel_check(symId)) {
     goto NoLocation; // No symbol found for the expression.
   }
@@ -898,7 +898,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
 
-  ScriptSymId itr = script_sym_first(doc->scriptSyms, pos);
+  ScriptSym itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
     const ScriptSymData*    sym            = script_sym_data(doc->scriptSyms, itr);
     const ScriptSig*        sig            = script_sym_sig(sym);
