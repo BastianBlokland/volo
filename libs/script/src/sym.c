@@ -218,7 +218,7 @@ ScriptSym script_sym_push_builtin_func(
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type                  = ScriptSymType_BuiltinConstant,
+          .type                  = ScriptSymType_BuiltinFunction,
           .label                 = string_dup(bag->alloc, label),
           .doc                   = string_maybe_dup(bag->alloc, doc),
           .data.builtinFunc.intr = intr,
@@ -233,9 +233,28 @@ ScriptSym script_sym_push_extern_func(
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type                       = ScriptSymType_BuiltinConstant,
+          .type                       = ScriptSymType_ExternFunction,
           .label                      = string_dup(bag->alloc, label),
           .data.externFunc.binderSlot = binderSlot,
+      });
+}
+
+ScriptSym script_sym_push_var(
+    ScriptSymBag*     bag,
+    const String      label,
+    const ScriptVarId slot,
+    const ScriptRange location,
+    const ScriptRange scope) {
+  diag_assert(!string_is_empty(label));
+
+  return sym_push(
+      bag,
+      &(ScriptSymData){
+          .type              = ScriptSymType_Variable,
+          .label             = string_dup(bag->alloc, label),
+          .data.var.slot     = slot,
+          .data.var.location = location,
+          .data.var.scope    = scope,
       });
 }
 

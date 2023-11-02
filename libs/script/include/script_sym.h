@@ -80,6 +80,7 @@ ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);
 ScriptSym script_sym_push_builtin_const(ScriptSymBag*, String label);
 ScriptSym script_sym_push_builtin_func(ScriptSymBag*, String label, String doc, ScriptIntrinsic, const ScriptSig*);
 ScriptSym script_sym_push_extern_func(ScriptSymBag*, String label, ScriptBinderSlot);
+ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptRange location, ScriptRange scope);
 
 // clang-format on
 

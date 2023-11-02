@@ -536,17 +536,10 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     if (!scope->vars[i].id) {
       break;
     }
-    const ScriptSymData sym = {
-        .type  = ScriptSymType_Variable,
-        .label = script_range_text(ctx->inputTotal, scope->vars[i].declRange),
-        .data.var =
-            {
-                .slot     = scope->vars[i].varSlot,
-                .location = scope->vars[i].declRange,
-                .scope    = read_range_to_next(ctx, scope->vars[i].validUsageStart),
-            },
-    };
-    script_sym_push(ctx->syms, &sym);
+    const String      label      = script_range_text(ctx->inputTotal, scope->vars[i].declRange);
+    const ScriptRange location   = scope->vars[i].declRange;
+    const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validUsageStart);
+    script_sym_push_var(ctx->syms, label, scope->vars[i].varSlot, location, validRange);
   }
 }
 
