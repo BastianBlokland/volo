@@ -175,6 +175,18 @@ void script_sym_clear(ScriptSymBag* bag) {
   dynarray_clear(&bag->symbols);
 }
 
+ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
+  return script_sym_data(bag, sym)->type;
+}
+
+String script_sym_label(const ScriptSymBag* bag, const ScriptSym sym) {
+  return script_sym_data(bag, sym)->label;
+}
+
+String script_sym_doc(const ScriptSymBag* bag, const ScriptSym sym) {
+  return script_sym_data(bag, sym)->doc;
+}
+
 bool script_sym_is_func(const ScriptSymBag* bag, const ScriptSym sym) {
   const ScriptSymData* symData = script_sym_data(bag, sym);
   return symData->type == ScriptSymType_BuiltinFunction ||

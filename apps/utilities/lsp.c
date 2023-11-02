@@ -761,15 +761,16 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
     fmt_write(&textBuffer, " `{}`", fmt_text(script_val_scratch(evalRes.val)));
   }
-  const ScriptSym symId = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
-  if (!sentinel_check(symId)) {
-    const ScriptSymData* sym = script_sym_data(doc->scriptSyms, symId);
-    const ScriptSig*     sig = script_sym_sig(doc->scriptSyms, symId);
+  const ScriptSym sym = script_sym_find(doc->scriptSyms, doc->scriptDoc, hoverExpr);
+  if (!sentinel_check(sym)) {
+    const String     label = script_sym_label(doc->scriptSyms, sym);
+    const ScriptSig* sig   = script_sym_sig(doc->scriptSyms, sym);
     if (sig) {
-      fmt_write(&textBuffer, "\n\n`{}{}`", fmt_text(sym->label), fmt_text(script_sig_scratch(sig)));
+      fmt_write(&textBuffer, "\n\n`{}{}`", fmt_text(label), fmt_text(script_sig_scratch(sig)));
     }
-    if (!string_is_empty(sym->doc)) {
-      fmt_write(&textBuffer, "\n\n{}", fmt_text(sym->doc));
+    const String documentation = script_sym_doc(doc->scriptSyms, sym);
+    if (!string_is_empty(documentation)) {
+      fmt_write(&textBuffer, "\n\n{}", fmt_text(documentation));
     }
   }
 
@@ -843,8 +844,8 @@ NoLocation:
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
-static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSymData* sym) {
-  switch (sym->type) {
+static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSymType symType) {
+  switch (symType) {
   case ScriptSymType_Keyword:
     return LspCompletionItemKind_Keyword;
   case ScriptSymType_BuiltinConstant:
@@ -899,13 +900,13 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
   ScriptSym itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
-    const ScriptSymData*    sym            = script_sym_data(doc->scriptSyms, itr);
+    const ScriptSymType     type           = script_sym_type(doc->scriptSyms, itr);
     const ScriptSig*        sig            = script_sym_sig(doc->scriptSyms, itr);
     const LspCompletionItem completionItem = {
-        .label       = sym->label,
+        .label       = script_sym_label(doc->scriptSyms, itr),
         .labelDetail = sig ? script_sig_scratch(sig) : string_empty,
-        .doc         = sym->doc,
-        .kind        = lsp_completion_kind_for_sym(sym),
+        .doc         = script_sym_doc(doc->scriptSyms, itr),
+        .kind        = lsp_completion_kind_for_sym(type),
         .commitChar  = script_sym_is_func(doc->scriptSyms, itr) ? '(' : ' ',
     };
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
