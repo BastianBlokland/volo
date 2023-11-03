@@ -60,25 +60,6 @@ typedef struct {
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
 static u32               g_scriptBuiltinFuncCount;
 
-static void script_builtin_func_add(
-    const String          id,
-    const ScriptIntrinsic intr,
-    const String          doc,
-    const ScriptMask      retMask,
-    const ScriptSigArg    args[],
-    const u8              argCount) {
-  diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
-  diag_assert(script_intrinsic_arg_count(intr) == argCount);
-  diag_assert(argCount < script_args_max);
-  g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
-      .idHash = string_hash(id),
-      .sig    = script_sig_create(g_alloc_persist, retMask, args, argCount),
-      .intr   = intr,
-      .id     = id,
-      .doc    = doc,
-  };
-}
-
 static bool script_builtin_func_exists(const StringHash id) {
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     if (g_scriptBuiltinFuncs[i].idHash == id) {
@@ -99,6 +80,26 @@ static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, 
     return &g_scriptBuiltinFuncs[i];
   }
   return null;
+}
+
+static void script_builtin_func_add(
+    const String          id,
+    const ScriptIntrinsic intr,
+    const String          doc,
+    const ScriptMask      retMask,
+    const ScriptSigArg    args[],
+    const u8              argCount) {
+  diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
+  diag_assert(script_intrinsic_arg_count(intr) == argCount);
+  diag_assert(argCount < script_args_max);
+  diag_assert(!script_builtin_func_exists(string_hash(id)));
+  g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
+      .idHash = string_hash(id),
+      .sig    = script_sig_create(g_alloc_persist, retMask, args, argCount),
+      .intr   = intr,
+      .id     = id,
+      .doc    = doc,
+  };
 }
 
 static void script_builtin_init() {
