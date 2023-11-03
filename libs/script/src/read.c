@@ -30,15 +30,6 @@ typedef struct {
 static ScriptBuiltinConst g_scriptBuiltinConsts[script_builtin_consts_max];
 static u32                g_scriptBuiltinConstCount;
 
-static void script_builtin_const_add(const String id, const ScriptVal val) {
-  diag_assert(g_scriptBuiltinConstCount != script_builtin_consts_max);
-  g_scriptBuiltinConsts[g_scriptBuiltinConstCount++] = (ScriptBuiltinConst){
-      .id     = id,
-      .idHash = string_hash(id),
-      .val    = val,
-  };
-}
-
 static const ScriptBuiltinConst* script_builtin_const_lookup(const StringHash id) {
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
     if (g_scriptBuiltinConsts[i].idHash == id) {
@@ -46,6 +37,16 @@ static const ScriptBuiltinConst* script_builtin_const_lookup(const StringHash id
     }
   }
   return null;
+}
+
+static void script_builtin_const_add(const String id, const ScriptVal val) {
+  diag_assert(g_scriptBuiltinConstCount != script_builtin_consts_max);
+  diag_assert(!script_builtin_const_lookup(string_hash(id)));
+  g_scriptBuiltinConsts[g_scriptBuiltinConstCount++] = (ScriptBuiltinConst){
+      .id     = id,
+      .idHash = string_hash(id),
+      .val    = val,
+  };
 }
 
 typedef struct {
