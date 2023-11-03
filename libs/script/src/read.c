@@ -60,24 +60,11 @@ typedef struct {
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
 static u32               g_scriptBuiltinFuncCount;
 
-static bool script_builtin_func_exists(const StringHash id) {
+static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id) {
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     if (g_scriptBuiltinFuncs[i].idHash == id) {
-      return true;
+      return &g_scriptBuiltinFuncs[i];
     }
-  }
-  return false;
-}
-
-static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, const u32 argc) {
-  for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
-    if (g_scriptBuiltinFuncs[i].idHash != id) {
-      continue;
-    }
-    if (script_sig_arg_count(g_scriptBuiltinFuncs[i].sig) != argc) {
-      continue;
-    }
-    return &g_scriptBuiltinFuncs[i];
   }
   return null;
 }
@@ -92,7 +79,7 @@ static void script_builtin_func_add(
   diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
   diag_assert(script_intrinsic_arg_count(intr) == argCount);
   diag_assert(argCount < script_args_max);
-  diag_assert(!script_builtin_func_exists(string_hash(id)));
+  diag_assert(!script_builtin_func_lookup(string_hash(id)));
   g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
       .idHash = string_hash(id),
       .sig    = script_sig_create(g_alloc_persist, retMask, args, argCount),
@@ -1107,13 +1094,13 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   }
   const ScriptRange callRange = read_range_to_current(ctx, idRange.start);
 
-  const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id, (u32)argCount);
+  const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id);
   if (builtin) {
+    if (UNLIKELY(script_sig_arg_count(builtin->sig) != argCount)) {
+      read_emit_err(ctx, ScriptDiag_IncorrectArgCountForBuiltinFunc, callRange);
+      return read_fail_semantic(ctx, callRange);
+    }
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
-  }
-  if (script_builtin_func_exists(id)) {
-    read_emit_err(ctx, ScriptDiag_IncorrectArgCountForBuiltinFunc, callRange);
-    return read_fail_semantic(ctx, callRange);
   }
 
   if (ctx->binder) {
