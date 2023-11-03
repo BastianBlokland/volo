@@ -9,14 +9,14 @@ var spawnCountMin = 50
 var spawnCountMax = 150
 var unitPrefab    = "InfantryEnemy"
 
-$nextWaveTime ??= time() + random(intervalMin, intervalMax)
+$nextWaveTime ??= time() + random_between(intervalMin, intervalMax)
 if ($nextWaveTime <= time()) {
   $nextWaveTime = null
 
   var center     = position(self())
   var faction    = faction(self()) ?? "FactionB"
   var scale      = 1.0
-  var spawnCount = round_nearest(random(spawnCountMin, spawnCountMax))
+  var spawnCount = round_nearest(random_between(spawnCountMin, spawnCountMax))
 
   for (var i = 0; i != spawnCount; i += 1) {
     var pos          = center + random_circle_xz() * radius

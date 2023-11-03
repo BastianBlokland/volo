@@ -156,11 +156,11 @@ spec(doc) {
         {string_static("true ? 1 + 2 : 3 + 4"), .isStatic = true},
         {string_static("while(false) {}"), .isStatic = true},
         {string_static("for(;;) {}"), .isStatic = true},
-        {string_static("vec(1, 2, 3)"), .isStatic = true},
+        {string_static("vec3(1, 2, 3)"), .isStatic = true},
         {string_static("distance(1 + 2, 3 / 4)"), .isStatic = true},
 
         {string_static("random()"), .isStatic = false},
-        {string_static("random(1, 2)"), .isStatic = false},
+        {string_static("random_between(1, 2)"), .isStatic = false},
         {string_static("random_sphere()"), .isStatic = false},
         {string_static("random_circle_xz()"), .isStatic = false},
         {string_static("return"), .isStatic = false},
@@ -199,7 +199,7 @@ spec(doc) {
         {string_static("true"), .isTruthy = true},
         {string_static("2 > 1"), .isTruthy = true},
         {string_static("2 > 1 ? (1 < 2) : (2 > 3)"), .isTruthy = true},
-        {string_static("distance(vec(1,2,3), vec(0,0,0)) > 0"), .isTruthy = true},
+        {string_static("distance(vec3(1,2,3), vec3(0,0,0)) > 0"), .isTruthy = true},
 
         {string_static("while(true) {}"), .isTruthy = false},
         {string_static("false"), .isTruthy = false},
@@ -237,8 +237,8 @@ spec(doc) {
         {string_static("(while(true) {}) ? return 0 : return 1"), .sig = ScriptDocSignal_None},
         {string_static("var i = { return }"), .sig = ScriptDocSignal_Return},
         {string_static("$i = { return }"), .sig = ScriptDocSignal_Return},
-        {string_static("vec(1,2,3)"), .sig = ScriptDocSignal_None},
-        {string_static("vec(1,return 2,3)"), .sig = ScriptDocSignal_Return},
+        {string_static("vec3(1,2,3)"), .sig = ScriptDocSignal_None},
+        {string_static("vec3(1,return 2,3)"), .sig = ScriptDocSignal_Return},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

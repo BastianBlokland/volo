@@ -132,7 +132,7 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Type, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("vec");
+    const String       name   = string_lit("vec3");
     const String       doc    = string_lit("Construct a new vector.");
     const ScriptMask   ret    = script_mask_vec3;
     const ScriptSigArg args[] = {
@@ -201,7 +201,7 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Distance, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("distance");
+    const String       name   = string_lit("magnitude");
     const String       doc    = string_lit("Compute the magnitude of the given value.");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
@@ -235,7 +235,7 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Random, doc, ret, null, 0);
   }
   {
-    const String       name   = string_lit("random");
+    const String       name   = string_lit("random_between");
     const String       doc    = string_lit("Compute a random value between the given min (inclusive) and max (exclusive) values with a uniform distribution.");
     const ScriptMask   ret    = script_mask_num | script_mask_vec3;
     const ScriptSigArg args[] = {

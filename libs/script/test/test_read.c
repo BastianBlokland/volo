@@ -55,7 +55,7 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
-            string_static("distance(1)"),
+            string_static("magnitude(1)"),
             string_static("[intrinsic: magnitude]\n"
                           "  [value: 1]"),
         },
@@ -70,7 +70,7 @@ spec(read) {
                           "    [value: 4]"),
         },
         {
-            string_static("vec(1, 2, 3)"),
+            string_static("vec3(1, 2, 3)"),
             string_static("[intrinsic: vec3-compose]\n"
                           "  [value: 1]\n"
                           "  [value: 2]\n"
