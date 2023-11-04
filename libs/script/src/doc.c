@@ -199,6 +199,8 @@ script_add_anon_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptE
   return script_add_intrinsic(doc, script_range_sentinel, i, args);
 }
 
+u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
+
 ScriptExprKind script_expr_kind(const ScriptDoc* doc, const ScriptExpr expr) {
   diag_assert_msg(expr < doc->exprData.size, "Out of bounds ScriptExpr");
   return expr_kind(doc, expr);
@@ -452,8 +454,6 @@ ScriptExpr script_expr_find(const ScriptDoc* doc, const ScriptExpr root, const S
   diag_assert_fail("Unknown expression kind");
   UNREACHABLE
 }
-
-u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
 
 String script_expr_kind_str(const ScriptExprKind kind) {
   switch (kind) {
