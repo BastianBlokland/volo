@@ -403,56 +403,77 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
   UNREACHABLE
 }
 
-ScriptExpr script_expr_find(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
+ScriptExpr script_expr_find(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
   const ScriptExprData* data = expr_data(doc, root);
   switch (expr_kind(doc, root)) {
-  case ScriptExprKind_Value:
-  case ScriptExprKind_VarLoad:
-  case ScriptExprKind_MemLoad:
-    return root;
   case ScriptExprKind_VarStore:
     if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
-      return script_expr_find(doc, data->var_store.val, pos);
+      const ScriptExpr res = script_expr_find(doc, data->var_store.val, pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
     }
-    return root;
+    break;
   case ScriptExprKind_MemStore:
     if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
-      return script_expr_find(doc, data->mem_store.val, pos);
+      const ScriptExpr res = script_expr_find(doc, data->mem_store.val, pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
     }
-    return root;
+    break;
   case ScriptExprKind_Intrinsic: {
     const ScriptExpr* args     = expr_set_data(doc, data->intrinsic.argSet);
     const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
     for (u32 i = 0; i != argCount; ++i) {
       if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
-        return script_expr_find(doc, args[i], pos);
+        const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
+        if (!sentinel_check(res)) {
+          return res;
+        }
+        break;
       }
     }
-    return root;
+    break;
   }
   case ScriptExprKind_Block: {
     const ScriptExpr* exprs = expr_set_data(doc, data->block.exprSet);
     for (u32 i = 0; i != data->block.exprCount; ++i) {
       if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
-        return script_expr_find(doc, exprs[i], pos);
+        const ScriptExpr res = script_expr_find(doc, exprs[i], pos, ctx, pred);
+        if (!sentinel_check(res)) {
+          return res;
+        }
+        break;
       }
     }
-    return root;
+    break;
   }
   case ScriptExprKind_Extern: {
     const ScriptExpr* args = expr_set_data(doc, data->extern_.argSet);
     for (u16 i = 0; i != data->extern_.argCount; ++i) {
       if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
-        return script_expr_find(doc, args[i], pos);
+        const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
+        if (!sentinel_check(res)) {
+          return res;
+        }
+        break;
       }
     }
     return root;
   }
+  case ScriptExprKind_Value:
+  case ScriptExprKind_VarLoad:
+  case ScriptExprKind_MemLoad:
   case ScriptExprKind_Count:
-    break;
+    break; // No child expressions.
   }
-  diag_assert_fail("Unknown expression kind");
-  UNREACHABLE
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
 }
 
 String script_expr_kind_str(const ScriptExprKind kind) {

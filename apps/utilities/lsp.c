@@ -741,9 +741,9 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  const ScriptExpr     hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
-  const ScriptRange    hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
-  const ScriptExprKind hoverKind  = script_expr_kind(doc->scriptDoc, hoverExpr);
+  const ScriptExpr  hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
+  const ScriptRange hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
+  const ScriptExprKind hoverKind = script_expr_kind(doc->scriptDoc, hoverExpr);
 
   // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
   diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
@@ -818,7 +818,7 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto NoLocation; // Script did not parse correctly (likely due to structural errors).
   }
 
-  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
+  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
   const ScriptSym  sym     = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
   if (sentinel_check(sym)) {
     goto NoLocation; // No symbol found for the expression.
