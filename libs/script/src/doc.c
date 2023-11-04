@@ -403,70 +403,116 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
   UNREACHABLE
 }
 
-ScriptExpr script_expr_find(
+INLINE_HINT static ScriptExpr script_expr_find_var_store(
     const ScriptDoc* doc,
     const ScriptExpr root,
     const ScriptPos  pos,
     void*            ctx,
     const ScriptPred pred) {
   const ScriptExprData* data = expr_data(doc, root);
+  if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
+    const ScriptExpr res = script_expr_find(doc, data->var_store.val, pos, ctx, pred);
+    if (!sentinel_check(res)) {
+      return res;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_mem_store(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data = expr_data(doc, root);
+  if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
+    const ScriptExpr res = script_expr_find(doc, data->mem_store.val, pos, ctx, pred);
+    if (!sentinel_check(res)) {
+      return res;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_intrinsic(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data     = expr_data(doc, root);
+  const ScriptExpr*     args     = expr_set_data(doc, data->intrinsic.argSet);
+  const u32             argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
+  for (u32 i = 0; i != argCount; ++i) {
+    if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+      const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
+      break;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_block(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data  = expr_data(doc, root);
+  const ScriptExpr*     exprs = expr_set_data(doc, data->block.exprSet);
+  for (u32 i = 0; i != data->block.exprCount; ++i) {
+    if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
+      const ScriptExpr res = script_expr_find(doc, exprs[i], pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
+      break;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_extern(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data = expr_data(doc, root);
+  const ScriptExpr*     args = expr_set_data(doc, data->extern_.argSet);
+  for (u16 i = 0; i != data->extern_.argCount; ++i) {
+    if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+      const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
+      break;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+ScriptExpr script_expr_find(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
   switch (expr_kind(doc, root)) {
   case ScriptExprKind_VarStore:
-    if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
-      const ScriptExpr res = script_expr_find(doc, data->var_store.val, pos, ctx, pred);
-      if (!sentinel_check(res)) {
-        return res;
-      }
-    }
-    break;
+    return script_expr_find_var_store(doc, root, pos, ctx, pred);
   case ScriptExprKind_MemStore:
-    if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
-      const ScriptExpr res = script_expr_find(doc, data->mem_store.val, pos, ctx, pred);
-      if (!sentinel_check(res)) {
-        return res;
-      }
-    }
-    break;
-  case ScriptExprKind_Intrinsic: {
-    const ScriptExpr* args     = expr_set_data(doc, data->intrinsic.argSet);
-    const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
-    for (u32 i = 0; i != argCount; ++i) {
-      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
-        const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
-        if (!sentinel_check(res)) {
-          return res;
-        }
-        break;
-      }
-    }
-    break;
-  }
-  case ScriptExprKind_Block: {
-    const ScriptExpr* exprs = expr_set_data(doc, data->block.exprSet);
-    for (u32 i = 0; i != data->block.exprCount; ++i) {
-      if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
-        const ScriptExpr res = script_expr_find(doc, exprs[i], pos, ctx, pred);
-        if (!sentinel_check(res)) {
-          return res;
-        }
-        break;
-      }
-    }
-    break;
-  }
-  case ScriptExprKind_Extern: {
-    const ScriptExpr* args = expr_set_data(doc, data->extern_.argSet);
-    for (u16 i = 0; i != data->extern_.argCount; ++i) {
-      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
-        const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
-        if (!sentinel_check(res)) {
-          return res;
-        }
-        break;
-      }
-    }
-    return root;
-  }
+    return script_expr_find_mem_store(doc, root, pos, ctx, pred);
+  case ScriptExprKind_Intrinsic:
+    return script_expr_find_intrinsic(doc, root, pos, ctx, pred);
+  case ScriptExprKind_Block:
+    return script_expr_find_block(doc, root, pos, ctx, pred);
+  case ScriptExprKind_Extern:
+    return script_expr_find_extern(doc, root, pos, ctx, pred);
   case ScriptExprKind_Value:
   case ScriptExprKind_VarLoad:
   case ScriptExprKind_MemLoad:
