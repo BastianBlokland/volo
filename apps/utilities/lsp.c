@@ -966,6 +966,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   if (sentinel_check(callExpr)) {
     goto NoSignature; // No call expression at the given position.
   }
+  const ScriptSym  callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
+  const ScriptSig* callSig = script_sym_sig(doc->scriptSyms, callSym);
+  diag_assert(callSig);
 
   goto NoSignature;
 
