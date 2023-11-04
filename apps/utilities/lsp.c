@@ -948,6 +948,15 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
 
+  if (sentinel_check(doc->scriptRoot)) {
+    goto NoSignature; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  const ScriptExpr callExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
+  if (sentinel_check(callExpr)) {
+    goto NoSignature; // No call expression at the given position.
+  }
+
   goto NoSignature;
 
 NoSignature:
