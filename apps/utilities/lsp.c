@@ -118,6 +118,11 @@ typedef struct {
 } LspCompletionItem;
 
 typedef struct {
+  const ScriptSig* scriptSig;
+  String           doc;
+} LspSignature;
+
+typedef struct {
   ScriptRangeLineCol range;
   String             newText;
 } LspTextEdit;
@@ -361,6 +366,27 @@ static JsonVal lsp_text_edit_to_json(LspContext* ctx, const LspTextEdit* edit) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &edit->range));
   json_add_field_lit(ctx->jDoc, obj, "newText", json_add_string(ctx->jDoc, edit->newText));
+  return obj;
+}
+
+static JsonVal lsp_signature_to_json(LspContext* ctx, const LspSignature* signature) {
+  const JsonVal obj   = json_add_object(ctx->jDoc);
+  const String  label = script_sig_scratch(signature->scriptSig);
+  json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, label));
+  if (!string_is_empty(signature->doc)) {
+    json_add_field_lit(ctx->jDoc, obj, "documentation", json_add_string(ctx->jDoc, signature->doc));
+  }
+  const JsonVal paramsArr = json_add_array(ctx->jDoc);
+  for (u8 i = 0; i != script_sig_arg_count(signature->scriptSig); ++i) {
+    const JsonVal paramObj = json_add_object(ctx->jDoc);
+
+    // TODO: Instead of passing label as a string, pass it as two indices into the signature label.
+    const String paramLabel = script_sig_arg_scratch(signature->scriptSig, i);
+    json_add_field_lit(ctx->jDoc, paramObj, "label", json_add_string(ctx->jDoc, paramLabel));
+
+    json_add_elem(ctx->jDoc, paramsArr, paramObj);
+  }
+  json_add_field_lit(ctx->jDoc, obj, "parameters", paramsArr);
   return obj;
 }
 
@@ -966,11 +992,20 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   if (sentinel_check(callExpr)) {
     goto NoSignature; // No call expression at the given position.
   }
-  const ScriptSym  callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
-  const ScriptSig* callSig = script_sym_sig(doc->scriptSyms, callSym);
-  diag_assert(callSig);
+  const ScriptSym    callSym   = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
+  const LspSignature signature = {
+      .doc       = script_sym_doc(doc->scriptSyms, callSym),
+      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+  };
 
-  goto NoSignature;
+  const JsonVal signaturesArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, signaturesArr, lsp_signature_to_json(ctx, &signature));
+
+  const JsonVal signatureHelp = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, signatureHelp, "signatures", signaturesArr);
+
+  lsp_send_response_success(ctx, req, signatureHelp);
+  return;
 
 NoSignature:
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
