@@ -118,8 +118,9 @@ typedef struct {
 } LspCompletionItem;
 
 typedef struct {
-  const ScriptSig* scriptSig;
+  String           label;
   String           doc;
+  const ScriptSig* scriptSig;
 } LspSignature;
 
 typedef struct {
@@ -370,19 +371,23 @@ static JsonVal lsp_text_edit_to_json(LspContext* ctx, const LspTextEdit* edit) {
 }
 
 static JsonVal lsp_signature_to_json(LspContext* ctx, const LspSignature* signature) {
-  const JsonVal obj   = json_add_object(ctx->jDoc);
-  const String  label = script_sig_scratch(signature->scriptSig);
-  json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, label));
+  const JsonVal obj = json_add_object(ctx->jDoc);
+
+  const String text = fmt_write_scratch(
+      "{}{}", fmt_text(signature->label), fmt_text(script_sig_scratch(signature->scriptSig)));
+  json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, text));
+
   if (!string_is_empty(signature->doc)) {
     json_add_field_lit(ctx->jDoc, obj, "documentation", json_add_string(ctx->jDoc, signature->doc));
   }
+
   const JsonVal paramsArr = json_add_array(ctx->jDoc);
   for (u8 i = 0; i != script_sig_arg_count(signature->scriptSig); ++i) {
     const JsonVal paramObj = json_add_object(ctx->jDoc);
 
-    // TODO: Instead of passing label as a string, pass it as two indices into the signature label.
-    const String paramLabel = script_sig_arg_scratch(signature->scriptSig, i);
-    json_add_field_lit(ctx->jDoc, paramObj, "label", json_add_string(ctx->jDoc, paramLabel));
+    // TODO: Instead of passing label as a string, pass it as two indices into the signature text.
+    const String paramText = script_sig_arg_scratch(signature->scriptSig, i);
+    json_add_field_lit(ctx->jDoc, paramObj, "label", json_add_string(ctx->jDoc, paramText));
 
     json_add_elem(ctx->jDoc, paramsArr, paramObj);
   }
@@ -994,6 +999,7 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym   = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature signature = {
+      .label     = script_sym_label(doc->scriptSyms, callSym),
       .doc       = script_sym_doc(doc->scriptSyms, callSym),
       .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
