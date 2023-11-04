@@ -29,7 +29,7 @@ typedef struct {
 } ScriptSymMemKey;
 
 typedef struct {
-  ScriptSymType type;
+  ScriptSymKind kind;
   String        label;
   String        doc;
   union {
@@ -60,8 +60,8 @@ INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const 
 }
 
 INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos pos) {
-  switch (sym->type) {
-  case ScriptSymType_Variable:
+  switch (sym->kind) {
+  case ScriptSymKind_Variable:
     if (sentinel_check(pos)) {
       return true; // 'script_pos_sentinel' indicates that all ranges should be included.
     }
@@ -74,8 +74,8 @@ INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos p
 static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
-    switch (sym->type) {
-    case ScriptSymType_BuiltinFunction:
+    switch (sym->kind) {
+    case ScriptSymKind_BuiltinFunction:
       if (sym->data.builtinFunc.intr == intr) {
         return id;
       }
@@ -90,8 +90,8 @@ static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic i
 static ScriptSym sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
-    switch (sym->type) {
-    case ScriptSymType_ExternFunction:
+    switch (sym->kind) {
+    case ScriptSymKind_ExternFunction:
       if (sym->data.externFunc.binderSlot == slot) {
         return id;
       }
@@ -106,8 +106,8 @@ static ScriptSym sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBind
 static ScriptSym sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
-    switch (sym->type) {
-    case ScriptSymType_Variable:
+    switch (sym->kind) {
+    case ScriptSymKind_Variable:
       if (sym->data.var.slot == v && sym_in_scope(sym, p)) {
         return id;
       }
@@ -122,8 +122,8 @@ static ScriptSym sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, con
 static ScriptSym sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
-    switch (sym->type) {
-    case ScriptSymType_MemoryKey:
+    switch (sym->kind) {
+    case ScriptSymKind_MemoryKey:
       if (sym->data.memKey.key == memKey) {
         return id;
       }
@@ -156,18 +156,18 @@ void script_sym_bag_clear(ScriptSymBag* bag) {
   dynarray_for_t(&bag->symbols, ScriptSymData, sym) {
     string_free(bag->alloc, sym->label);
     string_maybe_free(bag->alloc, sym->doc);
-    switch (sym->type) {
-    case ScriptSymType_BuiltinFunction:
+    switch (sym->kind) {
+    case ScriptSymKind_BuiltinFunction:
       if (sym->data.builtinFunc.sig) {
         script_sig_destroy(sym->data.builtinFunc.sig);
       }
       break;
-    case ScriptSymType_ExternFunction:
-    case ScriptSymType_Variable:
-    case ScriptSymType_MemoryKey:
-    case ScriptSymType_BuiltinConstant:
-    case ScriptSymType_Keyword:
-    case ScriptSymType_Count:
+    case ScriptSymKind_ExternFunction:
+    case ScriptSymKind_Variable:
+    case ScriptSymKind_MemoryKey:
+    case ScriptSymKind_BuiltinConstant:
+    case ScriptSymKind_Keyword:
+    case ScriptSymKind_Count:
       break;
     }
   }
@@ -180,7 +180,7 @@ ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type  = ScriptSymType_Keyword,
+          .kind  = ScriptSymKind_Keyword,
           .label = string_dup(bag->alloc, label),
       });
 }
@@ -191,7 +191,7 @@ ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label) {
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type  = ScriptSymType_BuiltinConstant,
+          .kind  = ScriptSymKind_BuiltinConstant,
           .label = string_dup(bag->alloc, label),
       });
 }
@@ -207,7 +207,7 @@ ScriptSym script_sym_push_builtin_func(
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type                  = ScriptSymType_BuiltinFunction,
+          .kind                  = ScriptSymKind_BuiltinFunction,
           .label                 = string_dup(bag->alloc, label),
           .doc                   = string_maybe_dup(bag->alloc, doc),
           .data.builtinFunc.intr = intr,
@@ -222,7 +222,7 @@ ScriptSym script_sym_push_extern_func(
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type                       = ScriptSymType_ExternFunction,
+          .kind                       = ScriptSymKind_ExternFunction,
           .label                      = string_dup(bag->alloc, label),
           .data.externFunc.binderSlot = binderSlot,
       });
@@ -239,7 +239,7 @@ ScriptSym script_sym_push_var(
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type              = ScriptSymType_Variable,
+          .kind              = ScriptSymKind_Variable,
           .label             = string_dup(bag->alloc, label),
           .data.var.slot     = slot,
           .data.var.location = location,
@@ -253,14 +253,14 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const S
   return sym_push(
       bag,
       &(ScriptSymData){
-          .type            = ScriptSymType_MemoryKey,
+          .kind            = ScriptSymKind_MemoryKey,
           .label           = string_dup(bag->alloc, label),
           .data.memKey.key = key,
       });
 }
 
-ScriptSymType script_sym_type(const ScriptSymBag* bag, const ScriptSym sym) {
-  return sym_data(bag, sym)->type;
+ScriptSymKind script_sym_kind(const ScriptSymBag* bag, const ScriptSym sym) {
+  return sym_data(bag, sym)->kind;
 }
 
 String script_sym_label(const ScriptSymBag* bag, const ScriptSym sym) {
@@ -273,14 +273,14 @@ String script_sym_doc(const ScriptSymBag* bag, const ScriptSym sym) {
 
 bool script_sym_is_func(const ScriptSymBag* bag, const ScriptSym sym) {
   const ScriptSymData* symData = sym_data(bag, sym);
-  return symData->type == ScriptSymType_BuiltinFunction ||
-         symData->type == ScriptSymType_ExternFunction;
+  return symData->kind == ScriptSymKind_BuiltinFunction ||
+         symData->kind == ScriptSymKind_ExternFunction;
 }
 
 ScriptRange script_sym_location(const ScriptSymBag* bag, const ScriptSym sym) {
   const ScriptSymData* symData = sym_data(bag, sym);
-  switch (symData->type) {
-  case ScriptSymType_Variable:
+  switch (symData->kind) {
+  case ScriptSymKind_Variable:
     return symData->data.var.location;
   default:
     break;
@@ -290,8 +290,8 @@ ScriptRange script_sym_location(const ScriptSymBag* bag, const ScriptSym sym) {
 
 const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
   const ScriptSymData* symData = sym_data(bag, sym);
-  switch (symData->type) {
-  case ScriptSymType_BuiltinFunction:
+  switch (symData->kind) {
+  case ScriptSymKind_BuiltinFunction:
     return symData->data.builtinFunc.sig;
   default:
     break;
@@ -336,7 +336,7 @@ ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSy
   return script_sym_sentinel;
 }
 
-String script_sym_type_str(const ScriptSymType type) {
+String script_sym_kind_str(const ScriptSymKind kind) {
   static const String g_names[] = {
       string_static("Keyword"),
       string_static("BuiltinConstant"),
@@ -345,15 +345,15 @@ String script_sym_type_str(const ScriptSymType type) {
       string_static("Variable"),
       string_static("MemoryKey"),
   };
-  ASSERT(array_elems(g_names) == ScriptSymType_Count, "Incorrect number of ScriptSymType names");
+  ASSERT(array_elems(g_names) == ScriptSymKind_Count, "Incorrect number of ScriptSymKind names");
 
-  diag_assert(type < ScriptSymType_Count);
-  return g_names[type];
+  diag_assert(kind < ScriptSymKind_Count);
+  return g_names[kind];
 }
 
 void script_sym_write(DynString* out, const ScriptSymBag* bag, const ScriptSym sym) {
   const ScriptSymData* symData = sym_data(bag, sym);
-  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(symData->type)), fmt_text(symData->label));
+  fmt_write(out, "[{}] {}", fmt_text(script_sym_kind_str(symData->kind)), fmt_text(symData->label));
 }
 
 String script_sym_scratch(const ScriptSymBag* bag, const ScriptSym sym) {
