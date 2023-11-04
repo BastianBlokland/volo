@@ -119,7 +119,7 @@ static void repl_output_tokens(String text) {
   for (;;) {
     ScriptToken token;
     text = script_lex(text, null, &token, flags);
-    if (token.type == ScriptTokenType_End) {
+    if (token.kind == ScriptTokenKind_End) {
       break;
     }
     dynstring_append(&buffer, script_token_str_scratch(&token));
@@ -159,62 +159,62 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   dynstring_destroy(&buffer);
 }
 
-static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
-  switch (tokenType) {
-  case ScriptTokenType_Diag:
+static TtyFgColor repl_token_color(const ScriptTokenKind tokenKind) {
+  switch (tokenKind) {
+  case ScriptTokenKind_Diag:
     return TtyFgColor_BrightRed;
-  case ScriptTokenType_Number:
-  case ScriptTokenType_String:
+  case ScriptTokenKind_Number:
+  case ScriptTokenKind_String:
     return TtyFgColor_Yellow;
-  case ScriptTokenType_Identifier:
+  case ScriptTokenKind_Identifier:
     return TtyFgColor_Magenta;
-  case ScriptTokenType_Key:
+  case ScriptTokenKind_Key:
     return TtyFgColor_Blue;
-  case ScriptTokenType_Eq:
-  case ScriptTokenType_EqEq:
-  case ScriptTokenType_Bang:
-  case ScriptTokenType_BangEq:
-  case ScriptTokenType_Le:
-  case ScriptTokenType_LeEq:
-  case ScriptTokenType_Gt:
-  case ScriptTokenType_GtEq:
-  case ScriptTokenType_Plus:
-  case ScriptTokenType_PlusEq:
-  case ScriptTokenType_Minus:
-  case ScriptTokenType_MinusEq:
-  case ScriptTokenType_Star:
-  case ScriptTokenType_StarEq:
-  case ScriptTokenType_Slash:
-  case ScriptTokenType_SlashEq:
-  case ScriptTokenType_Percent:
-  case ScriptTokenType_PercentEq:
-  case ScriptTokenType_Colon:
-  case ScriptTokenType_Semicolon:
-  case ScriptTokenType_AmpAmp:
-  case ScriptTokenType_PipePipe:
-  case ScriptTokenType_QMark:
-  case ScriptTokenType_QMarkQMark:
-  case ScriptTokenType_QMarkQMarkEq:
+  case ScriptTokenKind_Eq:
+  case ScriptTokenKind_EqEq:
+  case ScriptTokenKind_Bang:
+  case ScriptTokenKind_BangEq:
+  case ScriptTokenKind_Le:
+  case ScriptTokenKind_LeEq:
+  case ScriptTokenKind_Gt:
+  case ScriptTokenKind_GtEq:
+  case ScriptTokenKind_Plus:
+  case ScriptTokenKind_PlusEq:
+  case ScriptTokenKind_Minus:
+  case ScriptTokenKind_MinusEq:
+  case ScriptTokenKind_Star:
+  case ScriptTokenKind_StarEq:
+  case ScriptTokenKind_Slash:
+  case ScriptTokenKind_SlashEq:
+  case ScriptTokenKind_Percent:
+  case ScriptTokenKind_PercentEq:
+  case ScriptTokenKind_Colon:
+  case ScriptTokenKind_Semicolon:
+  case ScriptTokenKind_AmpAmp:
+  case ScriptTokenKind_PipePipe:
+  case ScriptTokenKind_QMark:
+  case ScriptTokenKind_QMarkQMark:
+  case ScriptTokenKind_QMarkQMarkEq:
     return TtyFgColor_Green;
-  case ScriptTokenType_If:
-  case ScriptTokenType_Else:
-  case ScriptTokenType_Var:
-  case ScriptTokenType_While:
-  case ScriptTokenType_For:
-  case ScriptTokenType_Continue:
-  case ScriptTokenType_Break:
-  case ScriptTokenType_Return:
+  case ScriptTokenKind_If:
+  case ScriptTokenKind_Else:
+  case ScriptTokenKind_Var:
+  case ScriptTokenKind_While:
+  case ScriptTokenKind_For:
+  case ScriptTokenKind_Continue:
+  case ScriptTokenKind_Break:
+  case ScriptTokenKind_Return:
     return TtyFgColor_Cyan;
-  case ScriptTokenType_CommentLine:
-  case ScriptTokenType_CommentBlock:
+  case ScriptTokenKind_CommentLine:
+  case ScriptTokenKind_CommentBlock:
     return TtyFgColor_BrightBlack;
-  case ScriptTokenType_ParenOpen:
-  case ScriptTokenType_ParenClose:
-  case ScriptTokenType_CurlyOpen:
-  case ScriptTokenType_CurlyClose:
-  case ScriptTokenType_Comma:
-  case ScriptTokenType_Newline:
-  case ScriptTokenType_End:
+  case ScriptTokenKind_ParenOpen:
+  case ScriptTokenKind_ParenClose:
+  case ScriptTokenKind_CurlyOpen:
+  case ScriptTokenKind_CurlyClose:
+  case ScriptTokenKind_Comma:
+  case ScriptTokenKind_Newline:
+  case ScriptTokenKind_End:
     break;
   }
   return TtyFgColor_Default;
@@ -405,9 +405,9 @@ static void repl_edit_render(const ReplEditor* editor) {
     const String remText   = script_lex(editText, null, &token, ScriptLexFlags_IncludeComments);
     const usize  tokenSize = editText.size - remText.size;
     const String tokenText = string_slice(editText, 0, tokenSize);
-    tty_write_style_sequence(&buffer, ttystyle(.fgColor = repl_token_color(token.type)));
+    tty_write_style_sequence(&buffer, ttystyle(.fgColor = repl_token_color(token.kind)));
     dynstring_append(&buffer, tokenText);
-    if (token.type == ScriptTokenType_End) {
+    if (token.kind == ScriptTokenKind_End) {
       break;
     }
     editText = remText;

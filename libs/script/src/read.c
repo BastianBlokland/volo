@@ -297,39 +297,39 @@ typedef enum {
   OpPrecedence_Unary,
 } OpPrecedence;
 
-static OpPrecedence op_precedence(const ScriptTokenType type) {
-  switch (type) {
-  case ScriptTokenType_EqEq:
-  case ScriptTokenType_BangEq:
+static OpPrecedence op_precedence(const ScriptTokenKind kind) {
+  switch (kind) {
+  case ScriptTokenKind_EqEq:
+  case ScriptTokenKind_BangEq:
     return OpPrecedence_Equality;
-  case ScriptTokenType_Le:
-  case ScriptTokenType_LeEq:
-  case ScriptTokenType_Gt:
-  case ScriptTokenType_GtEq:
+  case ScriptTokenKind_Le:
+  case ScriptTokenKind_LeEq:
+  case ScriptTokenKind_Gt:
+  case ScriptTokenKind_GtEq:
     return OpPrecedence_Relational;
-  case ScriptTokenType_Plus:
-  case ScriptTokenType_Minus:
+  case ScriptTokenKind_Plus:
+  case ScriptTokenKind_Minus:
     return OpPrecedence_Additive;
-  case ScriptTokenType_Star:
-  case ScriptTokenType_Slash:
-  case ScriptTokenType_Percent:
+  case ScriptTokenKind_Star:
+  case ScriptTokenKind_Slash:
+  case ScriptTokenKind_Percent:
     return OpPrecedence_Multiplicative;
-  case ScriptTokenType_AmpAmp:
-  case ScriptTokenType_PipePipe:
+  case ScriptTokenKind_AmpAmp:
+  case ScriptTokenKind_PipePipe:
     return OpPrecedence_Logical;
-  case ScriptTokenType_QMark:
-  case ScriptTokenType_QMarkQMark:
+  case ScriptTokenKind_QMark:
+  case ScriptTokenKind_QMarkQMark:
     return OpPrecedence_Conditional;
   default:
     return OpPrecedence_None;
   }
 }
 
-static ScriptIntrinsic token_op_unary(const ScriptTokenType type) {
-  switch (type) {
-  case ScriptTokenType_Minus:
+static ScriptIntrinsic token_op_unary(const ScriptTokenKind kind) {
+  switch (kind) {
+  case ScriptTokenKind_Minus:
     return ScriptIntrinsic_Negate;
-  case ScriptTokenType_Bang:
+  case ScriptTokenKind_Bang:
     return ScriptIntrinsic_Invert;
   default:
     diag_assert_fail("Invalid unary operation token");
@@ -337,35 +337,35 @@ static ScriptIntrinsic token_op_unary(const ScriptTokenType type) {
   }
 }
 
-static ScriptIntrinsic token_op_binary(const ScriptTokenType type) {
-  switch (type) {
-  case ScriptTokenType_EqEq:
+static ScriptIntrinsic token_op_binary(const ScriptTokenKind kind) {
+  switch (kind) {
+  case ScriptTokenKind_EqEq:
     return ScriptIntrinsic_Equal;
-  case ScriptTokenType_BangEq:
+  case ScriptTokenKind_BangEq:
     return ScriptIntrinsic_NotEqual;
-  case ScriptTokenType_Le:
+  case ScriptTokenKind_Le:
     return ScriptIntrinsic_Less;
-  case ScriptTokenType_LeEq:
+  case ScriptTokenKind_LeEq:
     return ScriptIntrinsic_LessOrEqual;
-  case ScriptTokenType_Gt:
+  case ScriptTokenKind_Gt:
     return ScriptIntrinsic_Greater;
-  case ScriptTokenType_GtEq:
+  case ScriptTokenKind_GtEq:
     return ScriptIntrinsic_GreaterOrEqual;
-  case ScriptTokenType_Plus:
+  case ScriptTokenKind_Plus:
     return ScriptIntrinsic_Add;
-  case ScriptTokenType_Minus:
+  case ScriptTokenKind_Minus:
     return ScriptIntrinsic_Sub;
-  case ScriptTokenType_Star:
+  case ScriptTokenKind_Star:
     return ScriptIntrinsic_Mul;
-  case ScriptTokenType_Slash:
+  case ScriptTokenKind_Slash:
     return ScriptIntrinsic_Div;
-  case ScriptTokenType_Percent:
+  case ScriptTokenKind_Percent:
     return ScriptIntrinsic_Mod;
-  case ScriptTokenType_AmpAmp:
+  case ScriptTokenKind_AmpAmp:
     return ScriptIntrinsic_LogicAnd;
-  case ScriptTokenType_PipePipe:
+  case ScriptTokenKind_PipePipe:
     return ScriptIntrinsic_LogicOr;
-  case ScriptTokenType_QMarkQMark:
+  case ScriptTokenKind_QMarkQMark:
     return ScriptIntrinsic_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
@@ -373,19 +373,19 @@ static ScriptIntrinsic token_op_binary(const ScriptTokenType type) {
   }
 }
 
-static ScriptIntrinsic token_op_binary_modify(const ScriptTokenType type) {
-  switch (type) {
-  case ScriptTokenType_PlusEq:
+static ScriptIntrinsic token_op_binary_modify(const ScriptTokenKind kind) {
+  switch (kind) {
+  case ScriptTokenKind_PlusEq:
     return ScriptIntrinsic_Add;
-  case ScriptTokenType_MinusEq:
+  case ScriptTokenKind_MinusEq:
     return ScriptIntrinsic_Sub;
-  case ScriptTokenType_StarEq:
+  case ScriptTokenKind_StarEq:
     return ScriptIntrinsic_Mul;
-  case ScriptTokenType_SlashEq:
+  case ScriptTokenKind_SlashEq:
     return ScriptIntrinsic_Div;
-  case ScriptTokenType_PercentEq:
+  case ScriptTokenKind_PercentEq:
     return ScriptIntrinsic_Mod;
-  case ScriptTokenType_QMarkQMarkEq:
+  case ScriptTokenKind_QMarkQMarkEq:
     return ScriptIntrinsic_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary modify operation token");
@@ -646,10 +646,10 @@ static ScriptToken read_consume(ScriptReadContext* ctx) {
   return token;
 }
 
-static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) {
+static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenKind kind) {
   ScriptToken  token;
   const String rem = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
-  if (token.type == type) {
+  if (token.kind == kind) {
     ctx->input = rem;
     return true;
   }
@@ -687,7 +687,7 @@ static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const Script
   }
   ScriptToken nextToken;
   script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
-  if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
+  if (UNLIKELY(nextToken.kind == ScriptTokenKind_Newline)) {
     const ScriptDiag unnecessaryDiag = {
         .severity = ScriptDiagSeverity_Warning,
         .kind     = ScriptDiag_UnnecessarySemicolon,
@@ -774,22 +774,22 @@ typedef enum {
   ScriptBlockType_Explicit,
 } ScriptBlockType;
 
-static bool read_is_block_end(const ScriptTokenType tokenType, const ScriptBlockType blockType) {
-  if (blockType == ScriptBlockType_Explicit && tokenType == ScriptTokenType_CurlyClose) {
+static bool read_is_block_end(const ScriptTokenKind tokenKind, const ScriptBlockType blockType) {
+  if (blockType == ScriptBlockType_Explicit && tokenKind == ScriptTokenKind_CurlyClose) {
     return true;
   }
-  return tokenType == ScriptTokenType_End;
+  return tokenKind == ScriptTokenKind_End;
 }
 
-static bool read_is_block_separator(const ScriptTokenType tokenType) {
-  return tokenType == ScriptTokenType_Newline || tokenType == ScriptTokenType_Semicolon;
+static bool read_is_block_separator(const ScriptTokenKind tokenKind) {
+  return tokenKind == ScriptTokenKind_Newline || tokenKind == ScriptTokenKind_Semicolon;
 }
 
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
 
-  if (read_is_block_end(read_peek(ctx).type, blockType)) {
+  if (read_is_block_end(read_peek(ctx).kind, blockType)) {
     goto BlockEnd; // Empty block.
   }
 
@@ -805,7 +805,7 @@ BlockNext:
   }
   exprs[exprCount++] = exprNew;
 
-  if (read_is_block_end(read_peek(ctx).type, blockType)) {
+  if (read_is_block_end(read_peek(ctx).kind, blockType)) {
     goto BlockEnd;
   }
 
@@ -813,15 +813,15 @@ BlockNext:
   ScriptToken     sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
 
-  if (!read_is_block_separator(sepToken.type)) {
+  if (!read_is_block_separator(sepToken.kind)) {
     read_emit_err(ctx, ScriptDiag_MissingSemicolon, expr_range(ctx->doc, exprNew));
     return read_fail_structural(ctx);
   }
-  if (sepToken.type == ScriptTokenType_Semicolon) {
+  if (sepToken.kind == ScriptTokenKind_Semicolon) {
     const ScriptRange sepRange = read_range_to_current(ctx, sepStart);
     read_emit_unnecessary_semicolon(ctx, sepRange);
   }
-  if (!read_is_block_end(read_peek(ctx).type, blockType)) {
+  if (!read_is_block_end(read_peek(ctx).kind, blockType)) {
     goto BlockNext;
   }
 
@@ -862,7 +862,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
     return read_fail_structural(ctx);
   }
 
-  if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyClose)) {
+  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyClose)) {
     const ScriptRange range = expr_range(ctx->doc, expr);
     return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
   }
@@ -891,7 +891,7 @@ static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start)
     return read_fail_structural(ctx);
   }
   const ScriptToken closeToken = read_consume(ctx);
-  if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
+  if (UNLIKELY(closeToken.kind != ScriptTokenKind_ParenClose)) {
     const ScriptRange range = read_range_to_current(ctx, start);
     read_emit_err(ctx, ScriptDiag_UnclosedParenthesizedExpr, range);
     return read_fail_structural(ctx);
@@ -899,12 +899,12 @@ static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start)
   return expr;
 }
 
-static bool read_is_arg_end(const ScriptTokenType type) {
-  return type == ScriptTokenType_Comma || type == ScriptTokenType_ParenClose;
+static bool read_is_arg_end(const ScriptTokenKind tokenKind) {
+  return tokenKind == ScriptTokenKind_Comma || tokenKind == ScriptTokenKind_ParenClose;
 }
 
-static bool read_is_args_end(const ScriptTokenType type) {
-  return type == ScriptTokenType_End || type == ScriptTokenType_ParenClose;
+static bool read_is_args_end(const ScriptTokenKind tokenKind) {
+  return tokenKind == ScriptTokenKind_End || tokenKind == ScriptTokenKind_ParenClose;
 }
 
 /**
@@ -913,7 +913,7 @@ static bool read_is_args_end(const ScriptTokenType type) {
 static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max]) {
   i32 count = 0;
 
-  if (read_is_args_end(read_peek(ctx).type)) {
+  if (read_is_args_end(read_peek(ctx).kind)) {
     goto ArgEnd; // Empty argument list.
   }
 
@@ -933,12 +933,12 @@ ArgNext:;
   }
   outExprs[count++] = arg;
 
-  if (read_consume_if(ctx, ScriptTokenType_Comma)) {
+  if (read_consume_if(ctx, ScriptTokenKind_Comma)) {
     goto ArgNext;
   }
 
 ArgEnd:
-  if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_ParenClose)) {
+  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_ParenClose)) {
     ScriptRange range;
     if (count == 0) {
       range = read_range_dummy(ctx);
@@ -954,7 +954,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
   const ScriptPos   idStart = read_pos_next(ctx);
   const ScriptToken token   = read_consume(ctx);
   const ScriptRange idRange = read_range_to_current(ctx, idStart);
-  if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
+  if (UNLIKELY(token.kind != ScriptTokenKind_Identifier)) {
     return read_emit_err(ctx, ScriptDiag_VarIdInvalid, idRange), read_fail_structural(ctx);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
@@ -965,7 +965,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
   }
 
   ScriptExpr valExpr;
-  if (read_consume_if(ctx, ScriptTokenType_Eq)) {
+  if (read_consume_if(ctx, ScriptTokenKind_Eq)) {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
     valExpr                         = read_expr(ctx, OpPrecedence_Assignment);
     ctx->section                    = prevSection;
@@ -1022,10 +1022,10 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
 static ScriptExpr read_expr_var_modify(
     ScriptReadContext*    ctx,
     const StringHash      id,
-    const ScriptTokenType type,
+    const ScriptTokenKind tokenKind,
     const ScriptRange     varRange) {
   const ScriptSection   prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
-  const ScriptIntrinsic intr        = token_op_binary_modify(type);
+  const ScriptIntrinsic intr        = token_op_binary_modify(tokenKind);
   const ScriptExpr      val         = token_intr_rhs_scope(intr)
                                           ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
                                           : read_expr(ctx, OpPrecedence_Assignment);
@@ -1064,10 +1064,10 @@ read_expr_mem_store(ScriptReadContext* ctx, const StringHash key, const ScriptPo
 static ScriptExpr read_expr_mem_modify(
     ScriptReadContext*    ctx,
     const StringHash      key,
-    const ScriptTokenType type,
+    const ScriptTokenKind tokenKind,
     const ScriptRange     keyRange) {
   const ScriptSection   prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
-  const ScriptIntrinsic intr        = token_op_binary_modify(type);
+  const ScriptIntrinsic intr        = token_op_binary_modify(tokenKind);
   const ScriptExpr      val         = token_intr_rhs_scope(intr)
                                           ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
                                           : read_expr(ctx, OpPrecedence_Assignment);
@@ -1143,7 +1143,7 @@ static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr 
 
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
-  if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
+  if (UNLIKELY(token.kind != ScriptTokenKind_ParenOpen)) {
     const ScriptRange wholeRange = read_range_to_current(ctx, start);
     return read_emit_err(ctx, ScriptDiag_InvalidIf, wholeRange), read_fail_structural(ctx);
   }
@@ -1165,7 +1165,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
 
   const ScriptPos blockStart = read_pos_next(ctx);
 
-  if (read_consume(ctx).type != ScriptTokenType_CurlyOpen) {
+  if (read_consume(ctx).kind != ScriptTokenKind_CurlyOpen) {
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
     read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -1178,14 +1178,14 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptPos elseStart = read_pos_next(ctx);
 
   ScriptExpr b2;
-  if (read_consume_if(ctx, ScriptTokenType_Else)) {
+  if (read_consume_if(ctx, ScriptTokenKind_Else)) {
     const ScriptPos elseBlockStart = read_pos_next(ctx);
-    if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
+    if (read_consume_if(ctx, ScriptTokenKind_CurlyOpen)) {
       b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
-    } else if (read_consume_if(ctx, ScriptTokenType_If)) {
+    } else if (read_consume_if(ctx, ScriptTokenKind_If)) {
       b2 = read_expr_if(ctx, elseBlockStart);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -1209,7 +1209,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
 
 static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
-  if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
+  if (UNLIKELY(token.kind != ScriptTokenKind_ParenOpen)) {
     const ScriptRange wholeRange = read_range_to_current(ctx, start);
     return read_emit_err(ctx, ScriptDiag_InvalidWhileLoop, wholeRange), read_fail_structural(ctx);
   }
@@ -1231,7 +1231,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
   const ScriptPos blockStart = read_pos_next(ctx);
 
-  if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyOpen)) {
+  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyOpen)) {
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
     read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -1278,18 +1278,18 @@ typedef enum {
 } ReadForComp;
 
 static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp comp) {
-  static const ScriptTokenType g_endTokens[] = {
-      [ReadForComp_Setup]     = ScriptTokenType_Semicolon,
-      [ReadForComp_Condition] = ScriptTokenType_Semicolon,
-      [ReadForComp_Increment] = ScriptTokenType_ParenClose,
+  static const ScriptTokenKind g_endTokens[] = {
+      [ReadForComp_Setup]     = ScriptTokenKind_Semicolon,
+      [ReadForComp_Condition] = ScriptTokenKind_Semicolon,
+      [ReadForComp_Increment] = ScriptTokenKind_ParenClose,
   };
   const ScriptPos start = read_pos_next(ctx);
   ScriptExpr      res;
-  if (read_peek(ctx).type == g_endTokens[comp]) {
+  if (read_peek(ctx).kind == g_endTokens[comp]) {
     const ScriptRange range   = read_range_to_current(ctx, start);
     const ScriptVal   skipVal = comp == ReadForComp_Condition ? script_bool(true) : script_null();
     res                       = script_add_value(ctx->doc, range, skipVal);
-  } else if (UNLIKELY(read_peek(ctx).type == ScriptTokenType_ParenClose)) {
+  } else if (UNLIKELY(read_peek(ctx).kind == ScriptTokenKind_ParenClose)) {
     const ScriptRange range = read_range_to_current(ctx, start);
     return read_emit_err(ctx, ScriptDiag_ForLoopCompMissing, range), read_fail_structural(ctx);
   } else {
@@ -1299,7 +1299,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
     }
     read_emit_static_for_comp(ctx, res, read_range_to_current(ctx, start));
   }
-  if (UNLIKELY(read_consume(ctx).type != g_endTokens[comp])) {
+  if (UNLIKELY(read_consume(ctx).kind != g_endTokens[comp])) {
     const ScriptRange    range = read_range_to_current(ctx, start);
     const ScriptDiagKind err   = comp == ReadForComp_Increment ? ScriptDiag_InvalidForLoop
                                                                : ScriptDiag_ForLoopSeparatorMissing;
@@ -1310,7 +1310,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
 
 static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
-  if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
+  if (UNLIKELY(token.kind != ScriptTokenKind_ParenOpen)) {
     const ScriptRange range = read_range_to_current(ctx, start);
     return read_emit_err(ctx, ScriptDiag_InvalidForLoop, range), read_fail_structural(ctx);
   }
@@ -1333,7 +1333,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 
   const ScriptPos blockStart = read_pos_next(ctx);
 
-  if (UNLIKELY(read_consume(ctx).type != ScriptTokenType_CurlyOpen)) {
+  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyOpen)) {
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
     read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
     return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -1364,7 +1364,7 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
   }
 
   const ScriptToken token = read_consume(ctx);
-  if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
+  if (UNLIKELY(token.kind != ScriptTokenKind_Colon)) {
     const ScriptRange range = read_range_to_current(ctx, start);
     read_emit_err(ctx, ScriptDiag_MissingColonInSelectExpr, range);
     return read_fail_structural(ctx);
@@ -1380,12 +1380,12 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Select, intrArgs);
 }
 
-static bool read_is_return_separator(const ScriptTokenType tokenType) {
-  switch (tokenType) {
-  case ScriptTokenType_Newline:
-  case ScriptTokenType_Semicolon:
-  case ScriptTokenType_CurlyClose:
-  case ScriptTokenType_End:
+static bool read_is_return_separator(const ScriptTokenKind tokenKind) {
+  switch (tokenKind) {
+  case ScriptTokenKind_Newline:
+  case ScriptTokenKind_Semicolon:
+  case ScriptTokenKind_CurlyClose:
+  case ScriptTokenKind_End:
     return true;
   default:
     return false;
@@ -1397,7 +1397,7 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
   script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
 
   ScriptExpr retExpr;
-  if (read_is_return_separator(nextToken.type)) {
+  if (read_is_return_separator(nextToken.kind)) {
     retExpr = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   } else {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
@@ -1422,51 +1422,51 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
 
   const ScriptRange range = read_range_to_current(ctx, start);
 
-  switch (token.type) {
+  switch (token.kind) {
   /**
    * Parenthesized expression.
    */
-  case ScriptTokenType_ParenOpen:
+  case ScriptTokenKind_ParenOpen:
     return read_expr_paren(ctx, start);
   /**
    * Scope.
    */
-  case ScriptTokenType_CurlyOpen:
+  case ScriptTokenKind_CurlyOpen:
     return read_expr_scope_block(ctx);
   /**
    * Keywords.
    */
-  case ScriptTokenType_If:
+  case ScriptTokenKind_If:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowIf)) {
       return read_emit_err(ctx, ScriptDiag_IfNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_if(ctx, start);
-  case ScriptTokenType_While:
+  case ScriptTokenKind_While:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowLoop)) {
       return read_emit_err(ctx, ScriptDiag_LoopNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_while(ctx, start);
-  case ScriptTokenType_For:
+  case ScriptTokenKind_For:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowLoop)) {
       return read_emit_err(ctx, ScriptDiag_LoopNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_for(ctx, start);
-  case ScriptTokenType_Var:
+  case ScriptTokenKind_Var:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowVarDeclare)) {
       return read_emit_err(ctx, ScriptDiag_VarDeclareNotAllowed, range), read_fail_structural(ctx);
     }
     return read_expr_var_declare(ctx, start);
-  case ScriptTokenType_Continue:
+  case ScriptTokenKind_Continue:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
       return read_emit_err(ctx, ScriptDiag_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
     }
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Continue, null);
-  case ScriptTokenType_Break:
+  case ScriptTokenKind_Break:
     if (UNLIKELY(!(ctx->section & ScriptSection_InsideLoop))) {
       return read_emit_err(ctx, ScriptDiag_OnlyValidInLoop, range), read_fail_semantic(ctx, range);
     }
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Break, null);
-  case ScriptTokenType_Return:
+  case ScriptTokenKind_Return:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowReturn)) {
       return read_emit_err(ctx, ScriptDiag_ReturnNotAllowed, range), read_fail_structural(ctx);
     }
@@ -1474,25 +1474,25 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Identifiers.
    */
-  case ScriptTokenType_Identifier: {
+  case ScriptTokenKind_Identifier: {
     const ScriptRange idRange = read_range_to_current(ctx, start);
     ScriptToken       nextToken;
     const String      remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
-    switch (nextToken.type) {
-    case ScriptTokenType_ParenOpen:
+    switch (nextToken.kind) {
+    case ScriptTokenKind_ParenOpen:
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_call(ctx, token.val_identifier, idRange);
-    case ScriptTokenType_Eq:
+    case ScriptTokenKind_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_var_assign(ctx, token.val_identifier, start);
-    case ScriptTokenType_PlusEq:
-    case ScriptTokenType_MinusEq:
-    case ScriptTokenType_StarEq:
-    case ScriptTokenType_SlashEq:
-    case ScriptTokenType_PercentEq:
-    case ScriptTokenType_QMarkQMarkEq:
+    case ScriptTokenKind_PlusEq:
+    case ScriptTokenKind_MinusEq:
+    case ScriptTokenKind_StarEq:
+    case ScriptTokenKind_SlashEq:
+    case ScriptTokenKind_PercentEq:
+    case ScriptTokenKind_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_var_modify(ctx, token.val_key, nextToken.type, range);
+      return read_expr_var_modify(ctx, token.val_key, nextToken.kind, range);
     default:
       return read_expr_var_lookup(ctx, token.val_identifier, start);
     }
@@ -1500,45 +1500,45 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Unary operators.
    */
-  case ScriptTokenType_Minus:
-  case ScriptTokenType_Bang: {
+  case ScriptTokenKind_Minus:
+  case ScriptTokenKind_Bang: {
     const ScriptExpr val = read_expr(ctx, OpPrecedence_Unary);
     if (UNLIKELY(sentinel_check(val))) {
       return read_fail_structural(ctx);
     }
     const ScriptRange     rangeInclExpr = read_range_to_current(ctx, start);
-    const ScriptIntrinsic intr          = token_op_unary(token.type);
+    const ScriptIntrinsic intr          = token_op_unary(token.kind);
     const ScriptExpr      intrArgs[]    = {val};
     return script_add_intrinsic(ctx->doc, rangeInclExpr, intr, intrArgs);
   }
   /**
    * Literals.
    */
-  case ScriptTokenType_Number:
+  case ScriptTokenKind_Number:
     return script_add_value(ctx->doc, range, script_num(token.val_number));
-  case ScriptTokenType_String:
+  case ScriptTokenKind_String:
     return script_add_value(ctx->doc, range, script_str(token.val_string));
   /**
    * Memory access.
    */
-  case ScriptTokenType_Key: {
+  case ScriptTokenKind_Key: {
     // TODO: Should failing to track be an error? Currently these are only used to report symbols.
     read_track_mem_key(ctx, token.val_key);
 
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
-    switch (nextToken.type) {
-    case ScriptTokenType_Eq:
+    switch (nextToken.kind) {
+    case ScriptTokenKind_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_mem_store(ctx, token.val_key, start);
-    case ScriptTokenType_PlusEq:
-    case ScriptTokenType_MinusEq:
-    case ScriptTokenType_StarEq:
-    case ScriptTokenType_SlashEq:
-    case ScriptTokenType_PercentEq:
-    case ScriptTokenType_QMarkQMarkEq:
+    case ScriptTokenKind_PlusEq:
+    case ScriptTokenKind_MinusEq:
+    case ScriptTokenKind_StarEq:
+    case ScriptTokenKind_SlashEq:
+    case ScriptTokenKind_PercentEq:
+    case ScriptTokenKind_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_mem_modify(ctx, token.val_key, nextToken.type, range);
+      return read_expr_mem_modify(ctx, token.val_key, nextToken.kind, range);
     default:
       return script_add_mem_load(ctx->doc, range, token.val_key);
     }
@@ -1546,11 +1546,11 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Lex errors.
    */
-  case ScriptTokenType_Semicolon:
+  case ScriptTokenKind_Semicolon:
     return read_emit_err(ctx, ScriptDiag_UnexpectedSemicolon, range), read_fail_structural(ctx);
-  case ScriptTokenType_Diag:
+  case ScriptTokenKind_Diag:
     return read_emit_err(ctx, token.val_diag, range), read_fail_structural(ctx);
-  case ScriptTokenType_End:
+  case ScriptTokenKind_End:
     return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range), read_fail_structural(ctx);
   default:
     /**
@@ -1559,7 +1559,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
      * missing. This has the advantage of turning it into a semantic error where we can keep parsing
      * the rest of the script.
      */
-    if (ctx->section & ScriptSection_InsideArg && read_is_arg_end(token.type)) {
+    if (ctx->section & ScriptSection_InsideArg && read_is_arg_end(token.kind)) {
       ctx->input = prevInput; // Un-consume the token.
       read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range);
       return read_fail_semantic(ctx, read_range_dummy(ctx));
@@ -1590,7 +1590,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, g_stringtable, &nextToken, ScriptLexFlags_None);
 
-    const OpPrecedence opPrecedence = op_precedence(nextToken.type);
+    const OpPrecedence opPrecedence = op_precedence(nextToken.kind);
     if (!opPrecedence || opPrecedence <= minPrecedence) {
       break;
     }
@@ -1603,8 +1603,8 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     /**
      * Binary / Ternary expressions.
      */
-    switch (nextToken.type) {
-    case ScriptTokenType_QMark: {
+    switch (nextToken.kind) {
+    case ScriptTokenKind_QMark: {
       read_emit_static_condition(ctx, res);
 
       res = read_expr_select(ctx, res);
@@ -1612,21 +1612,21 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
         return read_fail_structural(ctx);
       }
     } break;
-    case ScriptTokenType_EqEq:
-    case ScriptTokenType_BangEq:
-    case ScriptTokenType_Le:
-    case ScriptTokenType_LeEq:
-    case ScriptTokenType_Gt:
-    case ScriptTokenType_GtEq:
-    case ScriptTokenType_Plus:
-    case ScriptTokenType_Minus:
-    case ScriptTokenType_Star:
-    case ScriptTokenType_Slash:
-    case ScriptTokenType_Percent:
-    case ScriptTokenType_AmpAmp:
-    case ScriptTokenType_PipePipe:
-    case ScriptTokenType_QMarkQMark: {
-      const ScriptIntrinsic intr = token_op_binary(nextToken.type);
+    case ScriptTokenKind_EqEq:
+    case ScriptTokenKind_BangEq:
+    case ScriptTokenKind_Le:
+    case ScriptTokenKind_LeEq:
+    case ScriptTokenKind_Gt:
+    case ScriptTokenKind_GtEq:
+    case ScriptTokenKind_Plus:
+    case ScriptTokenKind_Minus:
+    case ScriptTokenKind_Star:
+    case ScriptTokenKind_Slash:
+    case ScriptTokenKind_Percent:
+    case ScriptTokenKind_AmpAmp:
+    case ScriptTokenKind_PipePipe:
+    case ScriptTokenKind_QMarkQMark: {
+      const ScriptIntrinsic intr = token_op_binary(nextToken.kind);
       const ScriptExpr rhs = token_intr_rhs_scope(intr) ? read_expr_scope_single(ctx, opPrecedence)
                                                         : read_expr(ctx, opPrecedence);
       if (UNLIKELY(sentinel_check(rhs))) {
@@ -1752,7 +1752,7 @@ ScriptExpr script_read(
 
   const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit);
   if (!sentinel_check(expr)) {
-    diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
+    diag_assert_msg(read_peek(&ctx).kind == ScriptTokenKind_End, "Not all input consumed");
   }
 
   read_sym_push_mem_keys(&ctx);

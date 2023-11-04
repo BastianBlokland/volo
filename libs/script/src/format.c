@@ -58,28 +58,28 @@ static bool format_separate_by_space(const FormatAtom* a, const FormatAtom* b) {
   return true;
 }
 
-static FormatAtomType format_atom_type(const ScriptTokenType tokenType) {
-  switch (tokenType) {
-  case ScriptTokenType_Newline:
+static FormatAtomType format_atom_type(const ScriptTokenKind tokenKind) {
+  switch (tokenKind) {
+  case ScriptTokenKind_Newline:
     return FormatAtomType_Newline;
-  case ScriptTokenType_CurlyOpen:
+  case ScriptTokenKind_CurlyOpen:
     return FormatAtomType_BlockStart;
-  case ScriptTokenType_CurlyClose:
+  case ScriptTokenKind_CurlyClose:
     return FormatAtomType_BlockEnd;
-  case ScriptTokenType_ParenOpen:
+  case ScriptTokenKind_ParenOpen:
     return FormatAtomType_SetStart;
-  case ScriptTokenType_ParenClose:
+  case ScriptTokenKind_ParenClose:
     return FormatAtomType_SetEnd;
-  case ScriptTokenType_Identifier:
+  case ScriptTokenKind_Identifier:
     return FormatAtomType_Identifier;
-  case ScriptTokenType_Semicolon:
-  case ScriptTokenType_Comma:
+  case ScriptTokenKind_Semicolon:
+  case ScriptTokenKind_Comma:
     return FormatAtomType_Separator;
-  case ScriptTokenType_Eq:
+  case ScriptTokenKind_Eq:
     return FormatAtomType_Assignment;
-  case ScriptTokenType_CommentLine:
+  case ScriptTokenKind_CommentLine:
     return FormatAtomType_CommentLine;
-  case ScriptTokenType_CommentBlock:
+  case ScriptTokenKind_CommentBlock:
     return FormatAtomType_CommentBlock;
   default:
     return FormatAtomType_Generic;
@@ -128,10 +128,10 @@ static void format_span_render(FormatContext* ctx, const FormatSpan span) {
   }
 }
 
-static bool token_is_unary(const ScriptTokenType tokenType) {
-  switch (tokenType) {
-  case ScriptTokenType_Bang:
-  case ScriptTokenType_Minus:
+static bool token_is_unary(const ScriptTokenKind tokenKind) {
+  switch (tokenKind) {
+  case ScriptTokenKind_Bang:
+  case ScriptTokenKind_Minus:
     return true;
   default:
     return false;
@@ -145,7 +145,7 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
 
   ScriptToken tok;
   ctx->input = script_lex(ctx->input, null, &tok, flags);
-  if (UNLIKELY(tok.type == ScriptTokenType_End)) {
+  if (UNLIKELY(tok.kind == ScriptTokenKind_End)) {
     return false;
   }
 
@@ -156,7 +156,7 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
    * by spaces while unary are not), but for tokens that can both be used as unary or binary
    * operators (like the minus sign) we cannot tell which to use without implementing a full parser.
    */
-  while (token_is_unary(tok.type) && ctx->input.size == script_lex_trim(ctx->input, flags).size) {
+  while (token_is_unary(tok.kind) && ctx->input.size == script_lex_trim(ctx->input, flags).size) {
     ctx->input = script_lex(ctx->input, null, &tok, flags);
   }
 
@@ -164,7 +164,7 @@ static bool format_read_atom(FormatContext* ctx, FormatAtom* out) {
   const String textUntrimmed = string_slice(ctx->inputTotal, offsetStart, offsetEnd - offsetStart);
   const String text          = script_lex_trim(textUntrimmed, flags);
 
-  FormatAtomType type = format_atom_type(tok.type);
+  FormatAtomType type = format_atom_type(tok.kind);
   if (type == FormatAtomType_CommentBlock && mem_contains(text, '\n')) {
     type = FormatAtomType_CommentBlockMultiLine;
   }
@@ -290,12 +290,12 @@ void script_format(DynString* out, const String input, const ScriptFormatSetting
   DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
   DynArray      lines = dynarray_create_t(g_alloc_heap, FormatSpan, 512);
   FormatContext ctx   = {
-        .settings   = settings,
-        .input      = input,
-        .inputTotal = input,
-        .out        = out,
-        .atoms      = &atoms,
-        .lines      = &lines,
+      .settings   = settings,
+      .input      = input,
+      .inputTotal = input,
+      .out        = out,
+      .atoms      = &atoms,
+      .lines      = &lines,
   };
 
   format_span_read_all_lines(&ctx);
