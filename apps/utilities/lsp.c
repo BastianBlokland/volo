@@ -997,20 +997,25 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   if (sentinel_check(callExpr)) {
     goto NoSignature; // No call expression at the given position.
   }
-  const ScriptSym    callSym   = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
-  const LspSignature signature = {
+  const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
+  const LspSignature sig     = {
       .label     = script_sym_label(doc->scriptSyms, callSym),
       .doc       = script_sym_doc(doc->scriptSyms, callSym),
       .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
-  json_add_elem(ctx->jDoc, signaturesArr, lsp_signature_to_json(ctx, &signature));
+  json_add_elem(ctx->jDoc, signaturesArr, lsp_signature_to_json(ctx, &sig));
 
-  const JsonVal signatureHelp = json_add_object(ctx->jDoc);
-  json_add_field_lit(ctx->jDoc, signatureHelp, "signatures", signaturesArr);
+  const JsonVal sigHelp = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, sigHelp, "signatures", signaturesArr);
 
-  lsp_send_response_success(ctx, req, signatureHelp);
+  const u32 index = script_expr_arg_index(doc->scriptDoc, callExpr, pos);
+  if (!sentinel_check(index)) {
+    json_add_field_lit(ctx->jDoc, sigHelp, "activeParameter", json_add_number(ctx->jDoc, index));
+  }
+
+  lsp_send_response_success(ctx, req, sigHelp);
   return;
 
 NoSignature:
