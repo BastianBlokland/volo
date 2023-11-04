@@ -542,7 +542,7 @@ u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr root, const Scr
         return i;
       }
     }
-    return data->extern_.argCount ? (data->extern_.argCount - 1) : sentinel_u32;
+    return data->extern_.argCount ? (u32)(data->extern_.argCount - 1) : sentinel_u32;
   }
   default:
     return sentinel_u32;
