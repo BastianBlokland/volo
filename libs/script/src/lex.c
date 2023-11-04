@@ -7,8 +7,8 @@
 #include "core_utf8.h"
 #include "script_lex.h"
 
-#define script_token_err(_ERR_)                                                                    \
-  (ScriptToken) { .type = ScriptTokenType_Error, .val_error = (_ERR_) }
+#define script_token_diag(_DIAG_)                                                                  \
+  (ScriptToken) { .type = ScriptTokenType_Diag, .val_diag = (_DIAG_) }
 
 INLINE_HINT static String script_consume_chars(const String str, const usize amount) {
   return (String){
@@ -190,13 +190,13 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
 
 NumberEnd:
   if (UNLIKELY(invalidChar)) {
-    return *out = script_token_err(ScriptDiag_InvalidCharInNumber), str;
+    return *out = script_token_diag(ScriptDiag_InvalidCharInNumber), str;
   }
   if (UNLIKELY(lastChar == '.')) {
-    return *out = script_token_err(ScriptDiag_NumberEndsWithDecPoint), str;
+    return *out = script_token_diag(ScriptDiag_NumberEndsWithDecPoint), str;
   }
   if (UNLIKELY(lastChar == '_')) {
-    return *out = script_token_err(ScriptDiag_NumberEndsWithSeparator), str;
+    return *out = script_token_diag(ScriptDiag_NumberEndsWithSeparator), str;
   }
   out->type       = ScriptTokenType_Number;
   out->val_number = mantissa / divider;
@@ -209,12 +209,12 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
-    return *out = script_token_err(ScriptDiag_KeyEmpty), str;
+    return *out = script_token_diag(ScriptDiag_KeyEmpty), str;
   }
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    return *out = script_token_err(ScriptDiag_InvalidUtf8), str;
+    return *out = script_token_diag(ScriptDiag_InvalidUtf8), str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
 
@@ -229,12 +229,12 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
 
   const u32 end = script_scan_string_end(str);
   if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
-    return *out = script_token_err(ScriptDiag_UnterminatedString), str;
+    return *out = script_token_diag(ScriptDiag_UnterminatedString), str;
   }
 
   const String val = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
-    return *out = script_token_err(ScriptDiag_InvalidUtf8), str;
+    return *out = script_token_diag(ScriptDiag_InvalidUtf8), str;
   }
   const StringHash valHash = stringtable ? stringtable_add(stringtable, val) : string_hash(val);
 
@@ -249,7 +249,7 @@ static String script_lex_identifier(const String str, ScriptToken* out) {
 
   const String id = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(id))) {
-    return *out = script_token_err(ScriptDiag_InvalidUtf8), str;
+    return *out = script_token_diag(ScriptDiag_InvalidUtf8), str;
   }
   const StringHash idHash = string_hash(id);
 
@@ -346,12 +346,12 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       if (script_peek(str, 1) == '&') {
         return out->type = ScriptTokenType_AmpAmp, script_consume_chars(str, 2);
       }
-      return *out = script_token_err(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
+      return *out = script_token_diag(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
     case '|':
       if (script_peek(str, 1) == '|') {
         return out->type = ScriptTokenType_PipePipe, script_consume_chars(str, 2);
       }
-      return *out = script_token_err(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
+      return *out = script_token_diag(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
         if (script_peek(str, 2) == '=') {
@@ -390,7 +390,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       if (script_is_word_start(c)) {
         return script_lex_identifier(str, out);
       }
-      return *out = script_token_err(ScriptDiag_InvalidChar), script_consume_word_or_char(str);
+      return *out = script_token_diag(ScriptDiag_InvalidChar), script_consume_word_or_char(str);
     }
   }
 
@@ -451,8 +451,8 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
     return a->val_key == b->val_key;
   case ScriptTokenType_String:
     return a->val_string == b->val_string;
-  case ScriptTokenType_Error:
-    return a->val_error == b->val_error;
+  case ScriptTokenType_Diag:
+    return a->val_diag == b->val_diag;
   default:
     return true;
   }
@@ -550,8 +550,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("comment-block");
   case ScriptTokenType_Newline:
     return string_lit("newline");
-  case ScriptTokenType_Error:
-    return string_lit("error");
+  case ScriptTokenType_Diag:
+    return string_lit("diag");
   case ScriptTokenType_End:
     return string_lit("\0");
   }

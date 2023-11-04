@@ -1548,8 +1548,8 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_Semicolon:
     return read_emit_err(ctx, ScriptDiag_UnexpectedSemicolon, range), read_fail_structural(ctx);
-  case ScriptTokenType_Error:
-    return read_emit_err(ctx, token.val_error, range), read_fail_structural(ctx);
+  case ScriptTokenType_Diag:
+    return read_emit_err(ctx, token.val_diag, range), read_fail_structural(ctx);
   case ScriptTokenType_End:
     return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range), read_fail_structural(ctx);
   default:

@@ -48,7 +48,7 @@ typedef enum {
   ScriptTokenType_Newline,      // \n
   ScriptTokenType_CommentLine,  // // Hello
   ScriptTokenType_CommentBlock, // /* World */
-  ScriptTokenType_Error,        //
+  ScriptTokenType_Diag,         //
   ScriptTokenType_End,          // \0
 } ScriptTokenType;
 
@@ -59,7 +59,7 @@ typedef struct {
     StringHash     val_identifier;
     StringHash     val_key;
     StringHash     val_string;
-    ScriptDiagKind val_error;
+    ScriptDiagKind val_diag;
   };
 } ScriptToken;
 

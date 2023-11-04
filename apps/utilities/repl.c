@@ -161,7 +161,7 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
 
 static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   switch (tokenType) {
-  case ScriptTokenType_Error:
+  case ScriptTokenType_Diag:
     return TtyFgColor_BrightRed;
   case ScriptTokenType_Number:
   case ScriptTokenType_String:
