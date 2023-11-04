@@ -52,7 +52,7 @@
     { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }
   ],
   "json.format.keepLines": true,
-  "volo-lsp.trace.server": "messages",
+  "volo-lsp.trace.server": "off",
   "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
   "glsllint.linkShader": false,
   "emeraldwalk.runonsave": {
