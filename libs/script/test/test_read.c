@@ -935,7 +935,7 @@ spec(read) {
   it("fails when parsing invalid expressions") {
     static const struct {
       String         input;
-      ScriptDiagType expected;
+      ScriptDiagKind expected;
     } g_testData[] = {
         {string_static("}"), ScriptDiag_InvalidPrimaryExpr},
         {string_static("1 }"), ScriptDiag_MissingSemicolon},
@@ -1072,9 +1072,9 @@ spec(read) {
 
       const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
       check_msg(
-          diag->type == g_testData[i].expected,
+          diag->kind == g_testData[i].expected,
           "{} == {} [{}]",
-          fmt_int(diag->type),
+          fmt_int(diag->kind),
           fmt_int(g_testData[i].expected),
           fmt_text(g_testData[i].input));
     }
@@ -1083,7 +1083,7 @@ spec(read) {
   it("can return programs with semantic errors") {
     static const struct {
       String         input;
-      ScriptDiagType expected;
+      ScriptDiagKind expected;
     } g_testData[] = {
         {string_static("hello()"), ScriptDiag_NoFuncFoundForId},
         {string_static("type(1 +)"), ScriptDiag_MissingPrimaryExpr},
@@ -1105,7 +1105,7 @@ spec(read) {
       check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
 
       const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
-      check(diag->type == g_testData[i].expected);
+      check(diag->kind == g_testData[i].expected);
     }
   }
 
@@ -1124,7 +1124,7 @@ spec(read) {
 
     check_require(script_diag_count(diags, ScriptDiagFilter_Error) == 1);
     const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
-    check_eq_int(diag->type, ScriptDiag_RecursionLimitExceeded);
+    check_eq_int(diag->kind, ScriptDiag_RecursionLimitExceeded);
 
     dynstring_destroy(&str);
   }
@@ -1140,7 +1140,7 @@ spec(read) {
 
     check_require(script_diag_count(diags, ScriptDiagFilter_Error) == 1);
     const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
-    check_eq_int(diag->type, ScriptDiag_VarLimitExceeded);
+    check_eq_int(diag->kind, ScriptDiag_VarLimitExceeded);
 
     dynstring_destroy(&str);
   }

@@ -487,11 +487,11 @@ static ScriptRange read_range_to_next(ScriptReadContext* ctx, const ScriptPos st
   return script_range(start, read_pos_next(ctx) + 1);
 }
 
-static void read_emit_err(ScriptReadContext* ctx, const ScriptDiagType type, const ScriptRange r) {
+static void read_emit_err(ScriptReadContext* ctx, const ScriptDiagKind kind, const ScriptRange r) {
   if (ctx->diags) {
     const ScriptDiag diag = {
         .severity = ScriptDiagSeverity_Error,
-        .type     = type,
+        .kind     = kind,
         .range    = r,
     };
     script_diag_push(ctx->diags, &diag);
@@ -509,7 +509,7 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
     if (!scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
           .severity = ScriptDiagSeverity_Warning,
-          .type     = ScriptDiag_VarUnused,
+          .kind     = ScriptDiag_VarUnused,
           .range    = scope->vars[i].declRange,
       };
       script_diag_push(ctx->diags, &unusedDiag);
@@ -690,7 +690,7 @@ static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const Script
   if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
     const ScriptDiag unnecessaryDiag = {
         .severity = ScriptDiagSeverity_Warning,
-        .type     = ScriptDiag_UnnecessarySemicolon,
+        .kind     = ScriptDiag_UnnecessarySemicolon,
         .range    = sepRange,
     };
     script_diag_push(ctx->diags, &unnecessaryDiag);
@@ -740,7 +740,7 @@ read_emit_no_effect(ScriptReadContext* ctx, const ScriptExpr exprs[], const u32 
     if (!hasSideEffect) {
       const ScriptDiag noEffectDiag = {
           .severity = ScriptDiagSeverity_Warning,
-          .type     = ScriptDiag_ExprHasNoEffect,
+          .kind     = ScriptDiag_ExprHasNoEffect,
           .range    = expr_range(ctx->doc, exprs[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
@@ -760,7 +760,7 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
           .severity = ScriptDiagSeverity_Warning,
-          .type     = ScriptDiag_ExprUnreachable,
+          .kind     = ScriptDiag_ExprUnreachable,
           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
@@ -1134,7 +1134,7 @@ static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr 
   if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticConditionDiag = {
         .severity = ScriptDiagSeverity_Warning,
-        .type     = ScriptDiag_ConditionExprStatic,
+        .kind     = ScriptDiag_ConditionExprStatic,
         .range    = expr_range(ctx->doc, expr),
     };
     script_diag_push(ctx->diags, &staticConditionDiag);
@@ -1264,7 +1264,7 @@ static void read_emit_static_for_comp(
   if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticForCompDiag = {
         .severity = ScriptDiagSeverity_Warning,
-        .type     = ScriptDiag_ForLoopCompStatic,
+        .kind     = ScriptDiag_ForLoopCompStatic,
         .range    = exprRange,
     };
     script_diag_push(ctx->diags, &staticForCompDiag);
@@ -1301,7 +1301,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
   }
   if (UNLIKELY(read_consume(ctx).type != g_endTokens[comp])) {
     const ScriptRange    range = read_range_to_current(ctx, start);
-    const ScriptDiagType err   = comp == ReadForComp_Increment ? ScriptDiag_InvalidForLoop
+    const ScriptDiagKind err   = comp == ReadForComp_Increment ? ScriptDiag_InvalidForLoop
                                                                : ScriptDiag_ForLoopSeparatorMissing;
     return read_emit_err(ctx, err, range), read_fail_structural(ctx);
   }

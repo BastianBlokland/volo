@@ -59,7 +59,7 @@ typedef struct {
     StringHash     val_identifier;
     StringHash     val_key;
     StringHash     val_string;
-    ScriptDiagType val_error;
+    ScriptDiagKind val_error;
   };
 } ScriptToken;
 
