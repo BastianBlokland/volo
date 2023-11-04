@@ -96,6 +96,8 @@ bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
 typedef bool (*ScriptPred)(void* ctx, const ScriptDoc*, ScriptExpr);
 ScriptExpr script_expr_find(const ScriptDoc*, ScriptExpr root, ScriptPos, void* ctx, ScriptPred);
 
+u32 script_expr_arg_index(const ScriptDoc*, ScriptExpr root, ScriptPos);
+
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
 void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);
 

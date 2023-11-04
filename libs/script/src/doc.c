@@ -522,6 +522,33 @@ ScriptExpr script_expr_find(
   return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
 }
 
+u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
+  const ScriptExprData* data = expr_data(doc, root);
+  switch (expr_kind(doc, root)) {
+  case ScriptExprKind_Intrinsic: {
+    const ScriptExpr* args     = expr_set_data(doc, data->intrinsic.argSet);
+    const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
+    for (u32 i = 0; i != argCount; ++i) {
+      if (pos <= script_expr_range(doc, args[i]).end) {
+        return i;
+      }
+    }
+    return argCount ? (argCount - 1) : sentinel_u32;
+  }
+  case ScriptExprKind_Extern: {
+    const ScriptExpr* args = expr_set_data(doc, data->extern_.argSet);
+    for (u16 i = 0; i != data->extern_.argCount; ++i) {
+      if (pos <= script_expr_range(doc, args[i]).end) {
+        return i;
+      }
+    }
+    return data->extern_.argCount ? (data->extern_.argCount - 1) : sentinel_u32;
+  }
+  default:
+    return sentinel_u32;
+  }
+}
+
 String script_expr_kind_str(const ScriptExprKind kind) {
   switch (kind) {
   case ScriptExprKind_Value:
