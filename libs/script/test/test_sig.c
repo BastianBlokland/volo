@@ -103,6 +103,17 @@ spec(sig) {
     script_sig_destroy(sig);
   }
 
+  it("can create a textual representation of a signature argument") {
+    const ScriptSigArg args[] = {
+        {.name = string_lit("argA"), .mask = script_mask_num},
+    };
+    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
+
+    check_eq_string(script_sig_arg_scratch(sig, 0), string_lit("argA: num"));
+
+    script_sig_destroy(sig);
+  }
+
   it("can create a textual representation of a signature with one argument") {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_num},

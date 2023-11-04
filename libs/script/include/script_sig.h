@@ -28,5 +28,8 @@ ScriptMask   script_sig_ret(const ScriptSig*);
 u8           script_sig_arg_count(const ScriptSig*);
 ScriptSigArg script_sig_arg(const ScriptSig* sig, u8 index);
 
+void   script_sig_arg_write(const ScriptSig*, u8 index, DynString*);
+String script_sig_arg_scratch(const ScriptSig*, u8 index);
+
 void   script_sig_write(const ScriptSig*, DynString*);
 String script_sig_scratch(const ScriptSig*);
