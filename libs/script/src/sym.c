@@ -300,18 +300,18 @@ const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
 }
 
 ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
-  switch (expr_type(doc, expr)) {
-  case ScriptExprType_Intrinsic:
+  switch (expr_kind(doc, expr)) {
+  case ScriptExprKind_Intrinsic:
     return sym_find_by_intr(bag, expr_data(doc, expr)->intrinsic.intrinsic);
-  case ScriptExprType_VarLoad:
+  case ScriptExprKind_VarLoad:
     return sym_find_by_var(bag, expr_data(doc, expr)->var_load.var, expr_range(doc, expr).start);
-  case ScriptExprType_VarStore:
+  case ScriptExprKind_VarStore:
     return sym_find_by_var(bag, expr_data(doc, expr)->var_store.var, expr_range(doc, expr).start);
-  case ScriptExprType_MemLoad:
+  case ScriptExprKind_MemLoad:
     return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_load.key);
-  case ScriptExprType_MemStore:
+  case ScriptExprKind_MemStore:
     return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_store.key);
-  case ScriptExprType_Extern:
+  case ScriptExprKind_Extern:
     return sym_find_by_binder_slot(bag, expr_data(doc, expr)->extern_.func);
   default:
     return script_sym_sentinel;

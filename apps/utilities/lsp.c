@@ -743,19 +743,19 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
 
   const ScriptExpr     hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
   const ScriptRange    hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
-  const ScriptExprType hoverType  = script_expr_type(doc->scriptDoc, hoverExpr);
+  const ScriptExprKind hoverKind  = script_expr_kind(doc->scriptDoc, hoverExpr);
 
   // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
   diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
 
-  if (hoverType == ScriptExprType_Block) {
+  if (hoverKind == ScriptExprKind_Block) {
     // Ignore hovers on block expressions.
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
     return;
   }
 
   DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  dynstring_append(&textBuffer, script_expr_type_str(hoverType));
+  dynstring_append(&textBuffer, script_expr_kind_str(hoverKind));
 
   if (script_expr_static(doc->scriptDoc, hoverExpr)) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);

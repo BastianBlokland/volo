@@ -271,8 +271,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.type)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-                      .type  = script_error_to_panic(err.type),
-                      .range = script_expr_range(ctx->doc, errExpr),
+        .type  = script_error_to_panic(err.type),
+        .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }
@@ -288,27 +288,27 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e)
     ctx->signal |= ScriptEvalSignal_Panic;
     return script_null();
   }
-  switch (expr_type(ctx->doc, e)) {
-  case ScriptExprType_Value:
+  switch (expr_kind(ctx->doc, e)) {
+  case ScriptExprKind_Value:
     return eval_value(ctx, e);
-  case ScriptExprType_VarLoad:
+  case ScriptExprKind_VarLoad:
     return eval_var_load(ctx, e);
-  case ScriptExprType_VarStore:
+  case ScriptExprKind_VarStore:
     return eval_var_store(ctx, e);
-  case ScriptExprType_MemLoad:
+  case ScriptExprKind_MemLoad:
     return eval_mem_load(ctx, e);
-  case ScriptExprType_MemStore:
+  case ScriptExprKind_MemStore:
     return eval_mem_store(ctx, e);
-  case ScriptExprType_Intrinsic:
+  case ScriptExprKind_Intrinsic:
     return eval_intr(ctx, e);
-  case ScriptExprType_Block:
+  case ScriptExprKind_Block:
     return eval_block(ctx, e);
-  case ScriptExprType_Extern:
+  case ScriptExprKind_Extern:
     return eval_extern(ctx, e);
-  case ScriptExprType_Count:
+  case ScriptExprKind_Count:
     break;
   }
-  diag_assert_fail("Unknown expression type");
+  diag_assert_fail("Unknown expression kind");
   UNREACHABLE
 }
 

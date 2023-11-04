@@ -699,18 +699,18 @@ static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const Script
 
 static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* hasSideEffect = ctx;
-  switch (expr_type(doc, expr)) {
-  case ScriptExprType_MemStore:
-  case ScriptExprType_VarStore:
-  case ScriptExprType_Extern:
+  switch (expr_kind(doc, expr)) {
+  case ScriptExprKind_MemStore:
+  case ScriptExprKind_VarStore:
+  case ScriptExprKind_Extern:
     *hasSideEffect = true;
     return;
-  case ScriptExprType_Value:
-  case ScriptExprType_VarLoad:
-  case ScriptExprType_MemLoad:
-  case ScriptExprType_Block:
+  case ScriptExprKind_Value:
+  case ScriptExprKind_VarLoad:
+  case ScriptExprKind_MemLoad:
+  case ScriptExprKind_Block:
     return;
-  case ScriptExprType_Intrinsic: {
+  case ScriptExprKind_Intrinsic: {
     switch (expr_data(doc, expr)->intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
@@ -722,10 +722,10 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
       return;
     }
   }
-  case ScriptExprType_Count:
+  case ScriptExprKind_Count:
     break;
   }
-  diag_assert_fail("Unknown expression type");
+  diag_assert_fail("Unknown expression kind");
   UNREACHABLE
 }
 

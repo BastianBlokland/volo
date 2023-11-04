@@ -32,13 +32,13 @@ typedef enum {
 } ReplFlags;
 
 typedef struct {
-  u32 exprs[ScriptExprType_Count];
+  u32 exprs[ScriptExprKind_Count];
   u32 exprsTotal;
 } ReplScriptStats;
 
 static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   ReplScriptStats* stats = ctx;
-  ++stats->exprs[script_expr_type(doc, expr)];
+  ++stats->exprs[script_expr_kind(doc, expr)];
   ++stats->exprsTotal;
 }
 
@@ -143,14 +143,14 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   DynString buffer    = dynstring_create_over(bufferMem);
 
   // clang-format off
-  fmt_write(&buffer, "Expr value:     {}\n", fmt_int(stats.exprs[ScriptExprType_Value]));
-  fmt_write(&buffer, "Expr var-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_VarLoad]));
-  fmt_write(&buffer, "Expr var-store: {}\n", fmt_int(stats.exprs[ScriptExprType_VarStore]));
-  fmt_write(&buffer, "Expr mem-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_MemLoad]));
-  fmt_write(&buffer, "Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore]));
-  fmt_write(&buffer, "Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic]));
-  fmt_write(&buffer, "Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block]));
-  fmt_write(&buffer, "Expr extern:    {}\n", fmt_int(stats.exprs[ScriptExprType_Extern]));
+  fmt_write(&buffer, "Expr value:     {}\n", fmt_int(stats.exprs[ScriptExprKind_Value]));
+  fmt_write(&buffer, "Expr var-load:  {}\n", fmt_int(stats.exprs[ScriptExprKind_VarLoad]));
+  fmt_write(&buffer, "Expr var-store: {}\n", fmt_int(stats.exprs[ScriptExprKind_VarStore]));
+  fmt_write(&buffer, "Expr mem-load:  {}\n", fmt_int(stats.exprs[ScriptExprKind_MemLoad]));
+  fmt_write(&buffer, "Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprKind_MemStore]));
+  fmt_write(&buffer, "Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprKind_Intrinsic]));
+  fmt_write(&buffer, "Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprKind_Block]));
+  fmt_write(&buffer, "Expr extern:    {}\n", fmt_int(stats.exprs[ScriptExprKind_Extern]));
   fmt_write(&buffer, "Expr total:     {}\n", fmt_int(stats.exprsTotal));
   fmt_write(&buffer, "Values total:   {}\n", fmt_int(script_values_total(script)));
   // clang-format on
