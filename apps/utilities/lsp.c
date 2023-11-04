@@ -676,6 +676,13 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, completionOpts, "resolveProvider", json_add_bool(ctx->jDoc, false));
   json_add_field_lit(ctx->jDoc, completionOpts, "triggerCharacters", completionTriggerCharArr);
 
+  const JsonVal signatureTriggerCharArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, signatureTriggerCharArr, json_add_string_lit(ctx->jDoc, "("));
+  json_add_elem(ctx->jDoc, signatureTriggerCharArr, json_add_string_lit(ctx->jDoc, ","));
+
+  const JsonVal signatureHelpOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, signatureHelpOpts, "triggerCharacters", signatureTriggerCharArr);
+
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
@@ -686,6 +693,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "hoverProvider", hoverOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
@@ -798,7 +806,7 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
@@ -877,7 +885,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
@@ -912,6 +920,38 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
   }
   lsp_send_response_success(ctx, req, itemsArr);
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
+static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  goto NoSignature;
+
+NoSignature:
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
   return;
 
 InvalidParams:
@@ -981,6 +1021,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/hover"), lsp_handle_req_hover},
       {string_static("textDocument/definition"), lsp_handle_req_definition},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
+      {string_static("textDocument/signatureHelp"), lsp_handle_req_signature_help},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
   };
 
