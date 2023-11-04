@@ -327,7 +327,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
-    check(evalRes.panic.type == ScriptPanic_AssertionFailed);
+    check(evalRes.panic.kind == ScriptPanic_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
   }
@@ -338,7 +338,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
-    check(evalRes.panic.type == ScriptPanic_ExecutionLimitExceeded);
+    check(evalRes.panic.kind == ScriptPanic_ExecutionLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 

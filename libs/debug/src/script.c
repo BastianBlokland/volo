@@ -420,7 +420,7 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
       const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
       const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
       const String           scriptId   = asset_id(assetComp);
-      const String           msg        = script_panic_type_str(panic->type);
+      const String           msg        = script_panic_kind_str(panic->kind);
       ScriptRangeLineCol     range      = {0};
       if (scriptComp) {
         range = script_range_to_line_col(scriptComp->sourceText, panic->range);

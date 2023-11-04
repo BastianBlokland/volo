@@ -2,22 +2,22 @@
 #include "script_error.h"
 #include "script_panic.h"
 
-ScriptError script_error(const ScriptErrorType type) {
+ScriptError script_error(const ScriptErrorKind kind) {
   return (ScriptError){
-      .type     = type,
+      .kind     = kind,
       .argIndex = script_error_arg_sentinel,
   };
 }
 
-ScriptError script_error_arg(const ScriptErrorType type, const u16 argIndex) {
+ScriptError script_error_arg(const ScriptErrorKind kind, const u16 argIndex) {
   return (ScriptError){
-      .type     = type,
+      .kind     = kind,
       .argIndex = argIndex,
   };
 }
 
-ScriptPanicType script_error_to_panic(const ScriptErrorType type) {
-  switch (type) {
+ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
+  switch (kind) {
   case ScriptError_None:
     return ScriptPanic_None;
   case ScriptError_ArgumentInvalid:
@@ -29,6 +29,6 @@ ScriptPanicType script_error_to_panic(const ScriptErrorType type) {
   case ScriptError_EnumInvalidEntry:
     return ScriptPanic_EnumInvalidEntry;
   }
-  diag_assert_fail("Invalid script error type");
+  diag_assert_fail("Invalid script error kind");
   UNREACHABLE
 }

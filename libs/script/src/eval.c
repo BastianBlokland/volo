@@ -91,7 +91,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
-          .type  = ScriptPanic_AssertionFailed,
+          .kind  = ScriptPanic_AssertionFailed,
           .range = script_expr_range(ctx->doc, e),
       };
       ctx->signal |= ScriptEvalSignal_Panic;
@@ -268,10 +268,10 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   const ScriptArgs args = {.values = argValues, .count = data->argCount};
   ScriptError      err  = {0};
   const ScriptVal  ret  = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, args, &err);
-  if (UNLIKELY(err.type)) {
+  if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-        .type  = script_error_to_panic(err.type),
+        .kind  = script_error_to_panic(err.kind),
         .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
@@ -282,7 +282,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e) {
   if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
     ctx->panic = (ScriptPanic){
-        .type  = ScriptPanic_ExecutionLimitExceeded,
+        .kind  = ScriptPanic_ExecutionLimitExceeded,
         .range = script_expr_range(ctx->doc, e),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
