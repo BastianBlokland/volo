@@ -926,6 +926,15 @@ InvalidParams:
   lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
+static bool find_pred_with_signature(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  ScriptSymBag*   symBag = ctx;
+  const ScriptSym sym    = script_sym_find(symBag, doc, expr);
+  if (sentinel_check(sym)) {
+    return false;
+  }
+  return script_sym_sig(symBag, sym) != null;
+}
+
 static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
@@ -952,7 +961,8 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
     goto NoSignature; // Script did not parse correctly (likely due to structural errors).
   }
 
-  const ScriptExpr callExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
+  const ScriptExpr callExpr = script_expr_find(
+      doc->scriptDoc, doc->scriptRoot, pos, doc->scriptSyms, find_pred_with_signature);
   if (sentinel_check(callExpr)) {
     goto NoSignature; // No call expression at the given position.
   }
