@@ -7,8 +7,8 @@
 #include "core_utf8.h"
 #include "script_lex.h"
 
-#define script_token_err(_ERR_)                                                                    \
-  (ScriptToken) { .type = ScriptTokenType_Error, .val_error = (_ERR_) }
+#define script_token_diag(_DIAG_)                                                                  \
+  (ScriptToken) { .kind = ScriptTokenKind_Diag, .val_diag = (_DIAG_) }
 
 INLINE_HINT static String script_consume_chars(const String str, const usize amount) {
   return (String){
@@ -18,14 +18,14 @@ INLINE_HINT static String script_consume_chars(const String str, const usize amo
 }
 
 static ScriptLexKeyword g_lexKeywords[] = {
-    {.id = string_static("if"), .token = ScriptTokenType_If},
-    {.id = string_static("else"), .token = ScriptTokenType_Else},
-    {.id = string_static("var"), .token = ScriptTokenType_Var},
-    {.id = string_static("while"), .token = ScriptTokenType_While},
-    {.id = string_static("continue"), .token = ScriptTokenType_Continue},
-    {.id = string_static("break"), .token = ScriptTokenType_Break},
-    {.id = string_static("for"), .token = ScriptTokenType_For},
-    {.id = string_static("return"), .token = ScriptTokenType_Return},
+    {.id = string_static("if"), .token = ScriptTokenKind_If},
+    {.id = string_static("else"), .token = ScriptTokenKind_Else},
+    {.id = string_static("var"), .token = ScriptTokenKind_Var},
+    {.id = string_static("while"), .token = ScriptTokenKind_While},
+    {.id = string_static("continue"), .token = ScriptTokenKind_Continue},
+    {.id = string_static("break"), .token = ScriptTokenKind_Break},
+    {.id = string_static("for"), .token = ScriptTokenKind_For},
+    {.id = string_static("return"), .token = ScriptTokenKind_Return},
 };
 
 static void script_lex_keywords_init() {
@@ -190,15 +190,15 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
 
 NumberEnd:
   if (UNLIKELY(invalidChar)) {
-    return *out = script_token_err(ScriptDiag_InvalidCharInNumber), str;
+    return *out = script_token_diag(ScriptDiag_InvalidCharInNumber), str;
   }
   if (UNLIKELY(lastChar == '.')) {
-    return *out = script_token_err(ScriptDiag_NumberEndsWithDecPoint), str;
+    return *out = script_token_diag(ScriptDiag_NumberEndsWithDecPoint), str;
   }
   if (UNLIKELY(lastChar == '_')) {
-    return *out = script_token_err(ScriptDiag_NumberEndsWithSeparator), str;
+    return *out = script_token_diag(ScriptDiag_NumberEndsWithSeparator), str;
   }
-  out->type       = ScriptTokenType_Number;
+  out->kind       = ScriptTokenKind_Number;
   out->val_number = mantissa / divider;
   return str;
 }
@@ -209,16 +209,16 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
-    return *out = script_token_err(ScriptDiag_KeyEmpty), str;
+    return *out = script_token_diag(ScriptDiag_KeyEmpty), str;
   }
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    return *out = script_token_err(ScriptDiag_InvalidUtf8), str;
+    return *out = script_token_diag(ScriptDiag_InvalidUtf8), str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
 
-  out->type    = ScriptTokenType_Key;
+  out->kind    = ScriptTokenKind_Key;
   out->val_key = keyHash;
   return script_consume_chars(str, end);
 }
@@ -229,16 +229,16 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
 
   const u32 end = script_scan_string_end(str);
   if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
-    return *out = script_token_err(ScriptDiag_UnterminatedString), str;
+    return *out = script_token_diag(ScriptDiag_UnterminatedString), str;
   }
 
   const String val = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
-    return *out = script_token_err(ScriptDiag_InvalidUtf8), str;
+    return *out = script_token_diag(ScriptDiag_InvalidUtf8), str;
   }
   const StringHash valHash = stringtable ? stringtable_add(stringtable, val) : string_hash(val);
 
-  out->type       = ScriptTokenType_String;
+  out->kind       = ScriptTokenKind_String;
   out->val_string = valHash;
   return script_consume_chars(str, end + 1); // + 1 for the closing '"'.
 }
@@ -249,18 +249,18 @@ static String script_lex_identifier(const String str, ScriptToken* out) {
 
   const String id = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(id))) {
-    return *out = script_token_err(ScriptDiag_InvalidUtf8), str;
+    return *out = script_token_diag(ScriptDiag_InvalidUtf8), str;
   }
   const StringHash idHash = string_hash(id);
 
   script_lex_keywords_init();
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
     if (idHash == keyword->idHash) {
-      return out->type = keyword->token, script_consume_chars(str, end);
+      return out->kind = keyword->token, script_consume_chars(str, end);
     }
   }
 
-  out->type           = ScriptTokenType_Identifier;
+  out->kind           = ScriptTokenKind_Identifier;
   out->val_identifier = idHash;
   return script_consume_chars(str, end);
 }
@@ -270,96 +270,96 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
     const u8 c = string_begin(str)[0];
     switch (c) {
     case '(':
-      return out->type = ScriptTokenType_ParenOpen, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_ParenOpen, script_consume_chars(str, 1);
     case ')':
-      return out->type = ScriptTokenType_ParenClose, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_ParenClose, script_consume_chars(str, 1);
     case '{':
-      return out->type = ScriptTokenType_CurlyOpen, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_CurlyOpen, script_consume_chars(str, 1);
     case '}':
-      return out->type = ScriptTokenType_CurlyClose, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_CurlyClose, script_consume_chars(str, 1);
     case ',':
-      return out->type = ScriptTokenType_Comma, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Comma, script_consume_chars(str, 1);
     case '=':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_EqEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_EqEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Eq, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Eq, script_consume_chars(str, 1);
     case '!':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_BangEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_BangEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Bang, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Bang, script_consume_chars(str, 1);
     case '<':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_LeEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_LeEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Le, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Le, script_consume_chars(str, 1);
     case '>':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_GtEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_GtEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Gt, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Gt, script_consume_chars(str, 1);
     case ':':
-      return out->type = ScriptTokenType_Colon, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Colon, script_consume_chars(str, 1);
     case ';':
-      return out->type = ScriptTokenType_Semicolon, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Semicolon, script_consume_chars(str, 1);
     case '+':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_PlusEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_PlusEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Plus, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Plus, script_consume_chars(str, 1);
     case '-':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_MinusEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_MinusEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Minus, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Minus, script_consume_chars(str, 1);
     case '*':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_StarEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_StarEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Star, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Star, script_consume_chars(str, 1);
     case '/':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_SlashEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_SlashEq, script_consume_chars(str, 2);
       }
       if (script_peek(str, 1) == '/') {
         str = script_consume_chars(str, script_scan_line_end(str)); // Consume comment.
         if (fl & ScriptLexFlags_IncludeComments) {
-          return out->type = ScriptTokenType_CommentLine, str;
+          return out->kind = ScriptTokenKind_CommentLine, str;
         }
         continue;
       }
       if (script_peek(str, 1) == '*') {
         str = script_consume_chars(str, script_scan_block_comment_end(str)); // Consume comment.
         if (fl & ScriptLexFlags_IncludeComments) {
-          return out->type = ScriptTokenType_CommentBlock, str;
+          return out->kind = ScriptTokenKind_CommentBlock, str;
         }
         continue;
       }
-      return out->type = ScriptTokenType_Slash, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Slash, script_consume_chars(str, 1);
     case '%':
       if (script_peek(str, 1) == '=') {
-        return out->type = ScriptTokenType_PercentEq, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_PercentEq, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_Percent, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_Percent, script_consume_chars(str, 1);
     case '&':
       if (script_peek(str, 1) == '&') {
-        return out->type = ScriptTokenType_AmpAmp, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_AmpAmp, script_consume_chars(str, 2);
       }
-      return *out = script_token_err(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
+      return *out = script_token_diag(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
     case '|':
       if (script_peek(str, 1) == '|') {
-        return out->type = ScriptTokenType_PipePipe, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_PipePipe, script_consume_chars(str, 2);
       }
-      return *out = script_token_err(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
+      return *out = script_token_diag(ScriptDiag_InvalidChar), script_consume_chars(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
         if (script_peek(str, 2) == '=') {
-          return out->type = ScriptTokenType_QMarkQMarkEq, script_consume_chars(str, 3);
+          return out->kind = ScriptTokenKind_QMarkQMarkEq, script_consume_chars(str, 3);
         }
-        return out->type = ScriptTokenType_QMarkQMark, script_consume_chars(str, 2);
+        return out->kind = ScriptTokenKind_QMarkQMark, script_consume_chars(str, 2);
       }
-      return out->type = ScriptTokenType_QMark, script_consume_chars(str, 1);
+      return out->kind = ScriptTokenKind_QMark, script_consume_chars(str, 1);
     case '.':
     case '0':
     case '1':
@@ -378,7 +378,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       return script_lex_string(str, stringtable, out);
     case '\n':
       if (fl & ScriptLexFlags_IncludeNewlines) {
-        return out->type = ScriptTokenType_Newline, script_consume_chars(str, 1);
+        return out->kind = ScriptTokenKind_Newline, script_consume_chars(str, 1);
       }
       // Fallthrough.
     case ' ':
@@ -390,11 +390,11 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       if (script_is_word_start(c)) {
         return script_lex_identifier(str, out);
       }
-      return *out = script_token_err(ScriptDiag_InvalidChar), script_consume_word_or_char(str);
+      return *out = script_token_diag(ScriptDiag_InvalidChar), script_consume_word_or_char(str);
     }
   }
 
-  return out->type = ScriptTokenType_End, string_empty;
+  return out->kind = ScriptTokenKind_End, string_empty;
 }
 
 String script_lex_trim(String str, const ScriptLexFlags fl) {
@@ -439,122 +439,122 @@ const ScriptLexKeyword* script_lex_keyword_data() {
 }
 
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
-  if (a->type != b->type) {
+  if (a->kind != b->kind) {
     return false;
   }
-  switch (a->type) {
-  case ScriptTokenType_Number:
+  switch (a->kind) {
+  case ScriptTokenKind_Number:
     return a->val_number == b->val_number;
-  case ScriptTokenType_Identifier:
+  case ScriptTokenKind_Identifier:
     return a->val_identifier == b->val_identifier;
-  case ScriptTokenType_Key:
+  case ScriptTokenKind_Key:
     return a->val_key == b->val_key;
-  case ScriptTokenType_String:
+  case ScriptTokenKind_String:
     return a->val_string == b->val_string;
-  case ScriptTokenType_Error:
-    return a->val_error == b->val_error;
+  case ScriptTokenKind_Diag:
+    return a->val_diag == b->val_diag;
   default:
     return true;
   }
 }
 
 String script_token_str_scratch(const ScriptToken* token) {
-  switch (token->type) {
-  case ScriptTokenType_ParenOpen:
+  switch (token->kind) {
+  case ScriptTokenKind_ParenOpen:
     return string_lit("(");
-  case ScriptTokenType_ParenClose:
+  case ScriptTokenKind_ParenClose:
     return string_lit(")");
-  case ScriptTokenType_CurlyOpen:
+  case ScriptTokenKind_CurlyOpen:
     return string_lit("{");
-  case ScriptTokenType_CurlyClose:
+  case ScriptTokenKind_CurlyClose:
     return string_lit("}");
-  case ScriptTokenType_Comma:
+  case ScriptTokenKind_Comma:
     return string_lit(",");
-  case ScriptTokenType_Eq:
+  case ScriptTokenKind_Eq:
     return string_lit("=");
-  case ScriptTokenType_EqEq:
+  case ScriptTokenKind_EqEq:
     return string_lit("==");
-  case ScriptTokenType_Bang:
+  case ScriptTokenKind_Bang:
     return string_lit("!");
-  case ScriptTokenType_BangEq:
+  case ScriptTokenKind_BangEq:
     return string_lit("!=");
-  case ScriptTokenType_Le:
+  case ScriptTokenKind_Le:
     return string_lit("<");
-  case ScriptTokenType_LeEq:
+  case ScriptTokenKind_LeEq:
     return string_lit("<=");
-  case ScriptTokenType_Gt:
+  case ScriptTokenKind_Gt:
     return string_lit(">");
-  case ScriptTokenType_GtEq:
+  case ScriptTokenKind_GtEq:
     return string_lit(">=");
-  case ScriptTokenType_Plus:
+  case ScriptTokenKind_Plus:
     return string_lit("+");
-  case ScriptTokenType_PlusEq:
+  case ScriptTokenKind_PlusEq:
     return string_lit("+=");
-  case ScriptTokenType_Minus:
+  case ScriptTokenKind_Minus:
     return string_lit("-");
-  case ScriptTokenType_MinusEq:
+  case ScriptTokenKind_MinusEq:
     return string_lit("-=");
-  case ScriptTokenType_Star:
+  case ScriptTokenKind_Star:
     return string_lit("*");
-  case ScriptTokenType_StarEq:
+  case ScriptTokenKind_StarEq:
     return string_lit("*=");
-  case ScriptTokenType_Slash:
+  case ScriptTokenKind_Slash:
     return string_lit("/");
-  case ScriptTokenType_SlashEq:
+  case ScriptTokenKind_SlashEq:
     return string_lit("/=");
-  case ScriptTokenType_Percent:
+  case ScriptTokenKind_Percent:
     return string_lit("%");
-  case ScriptTokenType_PercentEq:
+  case ScriptTokenKind_PercentEq:
     return string_lit("%=");
-  case ScriptTokenType_Colon:
+  case ScriptTokenKind_Colon:
     return string_lit(":");
-  case ScriptTokenType_Semicolon:
+  case ScriptTokenKind_Semicolon:
     return string_lit(";");
-  case ScriptTokenType_AmpAmp:
+  case ScriptTokenKind_AmpAmp:
     return string_lit("&&");
-  case ScriptTokenType_PipePipe:
+  case ScriptTokenKind_PipePipe:
     return string_lit("||");
-  case ScriptTokenType_QMark:
+  case ScriptTokenKind_QMark:
     return string_lit("?");
-  case ScriptTokenType_QMarkQMark:
+  case ScriptTokenKind_QMarkQMark:
     return string_lit("??");
-  case ScriptTokenType_QMarkQMarkEq:
+  case ScriptTokenKind_QMarkQMarkEq:
     return string_lit("?\?=");
-  case ScriptTokenType_Number:
+  case ScriptTokenKind_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
-  case ScriptTokenType_Identifier:
+  case ScriptTokenKind_Identifier:
     return fmt_write_scratch("{}", fmt_int(token->val_identifier, .base = 16));
-  case ScriptTokenType_Key:
+  case ScriptTokenKind_Key:
     return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
-  case ScriptTokenType_String:
+  case ScriptTokenKind_String:
     return fmt_write_scratch("#{}", fmt_int(token->val_string, .base = 16));
-  case ScriptTokenType_If:
+  case ScriptTokenKind_If:
     return string_lit("if");
-  case ScriptTokenType_Else:
+  case ScriptTokenKind_Else:
     return string_lit("else");
-  case ScriptTokenType_Var:
+  case ScriptTokenKind_Var:
     return string_lit("var");
-  case ScriptTokenType_While:
+  case ScriptTokenKind_While:
     return string_lit("while");
-  case ScriptTokenType_For:
+  case ScriptTokenKind_For:
     return string_lit("for");
-  case ScriptTokenType_Continue:
+  case ScriptTokenKind_Continue:
     return string_lit("continue");
-  case ScriptTokenType_Break:
+  case ScriptTokenKind_Break:
     return string_lit("break");
-  case ScriptTokenType_Return:
+  case ScriptTokenKind_Return:
     return string_lit("return");
-  case ScriptTokenType_CommentLine:
+  case ScriptTokenKind_CommentLine:
     return string_lit("comment-line");
-  case ScriptTokenType_CommentBlock:
+  case ScriptTokenKind_CommentBlock:
     return string_lit("comment-block");
-  case ScriptTokenType_Newline:
+  case ScriptTokenKind_Newline:
     return string_lit("newline");
-  case ScriptTokenType_Error:
-    return string_lit("error");
-  case ScriptTokenType_End:
+  case ScriptTokenKind_Diag:
+    return string_lit("diag");
+  case ScriptTokenKind_End:
     return string_lit("\0");
   }
-  diag_assert_fail("Unknown token-type");
+  diag_assert_fail("Unknown token-kind");
   UNREACHABLE
 }

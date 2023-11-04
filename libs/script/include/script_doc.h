@@ -24,21 +24,18 @@ typedef u8 ScriptVarId;
  */
 typedef struct sScriptDoc ScriptDoc;
 
-/**
- * Type of a Script expression.
- */
 typedef enum {
-  ScriptExprType_Value,
-  ScriptExprType_VarLoad,
-  ScriptExprType_VarStore,
-  ScriptExprType_MemLoad,
-  ScriptExprType_MemStore,
-  ScriptExprType_Intrinsic,
-  ScriptExprType_Block,
-  ScriptExprType_Extern,
+  ScriptExprKind_Value,
+  ScriptExprKind_VarLoad,
+  ScriptExprKind_VarStore,
+  ScriptExprKind_MemLoad,
+  ScriptExprKind_MemStore,
+  ScriptExprKind_Intrinsic,
+  ScriptExprKind_Block,
+  ScriptExprKind_Extern,
 
-  ScriptExprType_Count,
-} ScriptExprType;
+  ScriptExprKind_Count,
+} ScriptExprKind;
 
 /**
  * Handle to a Script expression.
@@ -88,7 +85,7 @@ ScriptExpr script_add_anon_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptEx
 /**
  * Query expression data.
  */
-ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
+ScriptExprKind script_expr_kind(const ScriptDoc*, ScriptExpr);
 ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
@@ -115,7 +112,7 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc*, ScriptExpr)
 /**
  * Create a textual representation of the given expression.
  */
-String script_expr_type_str(ScriptExprType);
+String script_expr_kind_str(ScriptExprKind);
 void   script_expr_write(const ScriptDoc*, ScriptExpr, u32 indent, DynString*);
 String script_expr_scratch(const ScriptDoc*, ScriptExpr);
 

@@ -55,8 +55,8 @@ typedef enum {
   ScriptDiag_ExprUnreachable,
   ScriptDiag_ConditionExprStatic,
 
-  ScriptDiagType_Count,
-} ScriptDiagType;
+  ScriptDiagKind_Count,
+} ScriptDiagKind;
 
 typedef enum {
   ScriptDiagSeverity_Error,
@@ -72,7 +72,7 @@ typedef enum {
 
 typedef struct {
   ScriptDiagSeverity severity : 8;
-  ScriptDiagType     type : 8;
+  ScriptDiagKind     kind : 8;
   ScriptRange        range;
 } ScriptDiag;
 

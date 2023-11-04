@@ -3,7 +3,7 @@
 #include "core_diag.h"
 #include "script_panic.h"
 
-static const String g_panicTypeStrs[] = {
+static const String g_panicKindStrs[] = {
     string_static("None"),
     string_static("Assertion failed"),
     string_static("Execution limit exceeded"),
@@ -12,17 +12,17 @@ static const String g_panicTypeStrs[] = {
     string_static("Argument out of range"),
     string_static("Invalid enum entry"),
 };
-ASSERT(array_elems(g_panicTypeStrs) == ScriptPanicType_Count, "Incorrect number of type strs");
+ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
-bool script_panic_valid(const ScriptPanic* panic) { return panic->type != ScriptPanic_None; }
+bool script_panic_valid(const ScriptPanic* panic) { return panic->kind != ScriptPanic_None; }
 
-String script_panic_type_str(const ScriptPanicType type) {
-  diag_assert(type < ScriptPanicType_Count);
-  return g_panicTypeStrs[type];
+String script_panic_kind_str(const ScriptPanicKind kind) {
+  diag_assert(kind < ScriptPanicKind_Count);
+  return g_panicKindStrs[kind];
 }
 
 void script_panic_pretty_write(DynString* out, const String sourceText, const ScriptPanic* panic) {
-  diag_assert(panic->type != ScriptPanic_None && panic->type < ScriptPanicType_Count);
+  diag_assert(panic->kind != ScriptPanic_None && panic->kind < ScriptPanicKind_Count);
 
   const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(sourceText, panic->range);
   fmt_write(
@@ -32,7 +32,7 @@ void script_panic_pretty_write(DynString* out, const String sourceText, const Sc
       fmt_int(rangeLineCol.start.column + 1),
       fmt_int(rangeLineCol.end.line + 1),
       fmt_int(rangeLineCol.end.column + 1),
-      fmt_text(g_panicTypeStrs[panic->type]));
+      fmt_text(g_panicKindStrs[panic->kind]));
 }
 
 String script_panic_pretty_scratch(const String sourceText, const ScriptPanic* diag) {

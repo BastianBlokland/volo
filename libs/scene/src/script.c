@@ -344,7 +344,7 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
 static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoVector        pos    = script_arg_vec3(args, 0, err);
-  if (UNLIKELY(err->type)) {
+  if (UNLIKELY(err->kind)) {
     return script_null();
   }
   GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
@@ -453,9 +453,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);

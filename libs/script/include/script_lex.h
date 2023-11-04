@@ -3,63 +3,63 @@
 #include "script_diag.h"
 
 typedef enum {
-  ScriptTokenType_ParenOpen,    // (
-  ScriptTokenType_ParenClose,   // )
-  ScriptTokenType_CurlyOpen,    // {
-  ScriptTokenType_CurlyClose,   // }
-  ScriptTokenType_Comma,        // ,
-  ScriptTokenType_Eq,           // =
-  ScriptTokenType_EqEq,         // ==
-  ScriptTokenType_Bang,         // !
-  ScriptTokenType_BangEq,       // !=
-  ScriptTokenType_Le,           // <
-  ScriptTokenType_LeEq,         // <=
-  ScriptTokenType_Gt,           // >
-  ScriptTokenType_GtEq,         // >=
-  ScriptTokenType_Plus,         // +
-  ScriptTokenType_PlusEq,       // +=
-  ScriptTokenType_Minus,        // -
-  ScriptTokenType_MinusEq,      // -=
-  ScriptTokenType_Star,         // *
-  ScriptTokenType_StarEq,       // *=
-  ScriptTokenType_Slash,        // /
-  ScriptTokenType_SlashEq,      // /=
-  ScriptTokenType_Percent,      // %
-  ScriptTokenType_PercentEq,    // %=
-  ScriptTokenType_Colon,        // :
-  ScriptTokenType_Semicolon,    // ;
-  ScriptTokenType_AmpAmp,       // &&
-  ScriptTokenType_PipePipe,     // ||
-  ScriptTokenType_QMark,        // ?
-  ScriptTokenType_QMarkQMark,   // ??
-  ScriptTokenType_QMarkQMarkEq, // ??=
-  ScriptTokenType_Number,       // 42.1337
-  ScriptTokenType_Identifier,   // foo
-  ScriptTokenType_Key,          // $bar
-  ScriptTokenType_String,       // "Hello World"
-  ScriptTokenType_If,           // if
-  ScriptTokenType_Else,         // else
-  ScriptTokenType_Var,          // var
-  ScriptTokenType_While,        // while
-  ScriptTokenType_For,          // for
-  ScriptTokenType_Continue,     // continue
-  ScriptTokenType_Break,        // break
-  ScriptTokenType_Return,       // return
-  ScriptTokenType_Newline,      // \n
-  ScriptTokenType_CommentLine,  // // Hello
-  ScriptTokenType_CommentBlock, // /* World */
-  ScriptTokenType_Error,        //
-  ScriptTokenType_End,          // \0
-} ScriptTokenType;
+  ScriptTokenKind_ParenOpen,    // (
+  ScriptTokenKind_ParenClose,   // )
+  ScriptTokenKind_CurlyOpen,    // {
+  ScriptTokenKind_CurlyClose,   // }
+  ScriptTokenKind_Comma,        // ,
+  ScriptTokenKind_Eq,           // =
+  ScriptTokenKind_EqEq,         // ==
+  ScriptTokenKind_Bang,         // !
+  ScriptTokenKind_BangEq,       // !=
+  ScriptTokenKind_Le,           // <
+  ScriptTokenKind_LeEq,         // <=
+  ScriptTokenKind_Gt,           // >
+  ScriptTokenKind_GtEq,         // >=
+  ScriptTokenKind_Plus,         // +
+  ScriptTokenKind_PlusEq,       // +=
+  ScriptTokenKind_Minus,        // -
+  ScriptTokenKind_MinusEq,      // -=
+  ScriptTokenKind_Star,         // *
+  ScriptTokenKind_StarEq,       // *=
+  ScriptTokenKind_Slash,        // /
+  ScriptTokenKind_SlashEq,      // /=
+  ScriptTokenKind_Percent,      // %
+  ScriptTokenKind_PercentEq,    // %=
+  ScriptTokenKind_Colon,        // :
+  ScriptTokenKind_Semicolon,    // ;
+  ScriptTokenKind_AmpAmp,       // &&
+  ScriptTokenKind_PipePipe,     // ||
+  ScriptTokenKind_QMark,        // ?
+  ScriptTokenKind_QMarkQMark,   // ??
+  ScriptTokenKind_QMarkQMarkEq, // ??=
+  ScriptTokenKind_Number,       // 42.1337
+  ScriptTokenKind_Identifier,   // foo
+  ScriptTokenKind_Key,          // $bar
+  ScriptTokenKind_String,       // "Hello World"
+  ScriptTokenKind_If,           // if
+  ScriptTokenKind_Else,         // else
+  ScriptTokenKind_Var,          // var
+  ScriptTokenKind_While,        // while
+  ScriptTokenKind_For,          // for
+  ScriptTokenKind_Continue,     // continue
+  ScriptTokenKind_Break,        // break
+  ScriptTokenKind_Return,       // return
+  ScriptTokenKind_Newline,      // \n
+  ScriptTokenKind_CommentLine,  // // Hello
+  ScriptTokenKind_CommentBlock, // /* World */
+  ScriptTokenKind_Diag,         //
+  ScriptTokenKind_End,          // \0
+} ScriptTokenKind;
 
 typedef struct {
-  ScriptTokenType type;
+  ScriptTokenKind kind;
   union {
     f64            val_number;
     StringHash     val_identifier;
     StringHash     val_key;
     StringHash     val_string;
-    ScriptDiagType val_error;
+    ScriptDiagKind val_diag;
   };
 } ScriptToken;
 
@@ -72,7 +72,7 @@ typedef enum {
 typedef struct {
   String          id;
   StringHash      idHash;
-  ScriptTokenType token;
+  ScriptTokenKind token;
 } ScriptLexKeyword;
 
 /**

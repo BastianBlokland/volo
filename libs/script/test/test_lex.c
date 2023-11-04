@@ -86,15 +86,15 @@ spec(lex) {
         {string_static(".1"), tok_number(.1)},
         {string_static(".000000000000001337"), tok_number(.000000000000001337)},
         {string_static("0.0"), tok_number(0.0)},
-        {string_static("0."), tok_err(NumberEndsWithDecPoint)},
-        {string_static("0.0."), tok_err(NumberEndsWithDecPoint)},
+        {string_static("0."), tok_diag(NumberEndsWithDecPoint)},
+        {string_static("0.0."), tok_diag(NumberEndsWithDecPoint)},
         {string_static("0.17976931348623157"), tok_number(0.17976931348623157)},
-        {string_static("0a"), tok_err(InvalidCharInNumber)},
-        {string_static("0a123"), tok_err(InvalidCharInNumber)},
-        {string_static("0123a"), tok_err(InvalidCharInNumber)},
-        {string_static("01a2a3a"), tok_err(InvalidCharInNumber)},
-        {string_static("_42"), tok_err(InvalidChar)},
-        {string_static("42_"), tok_err(NumberEndsWithSeparator)},
+        {string_static("0a"), tok_diag(InvalidCharInNumber)},
+        {string_static("0a123"), tok_diag(InvalidCharInNumber)},
+        {string_static("0123a"), tok_diag(InvalidCharInNumber)},
+        {string_static("01a2a3a"), tok_diag(InvalidCharInNumber)},
+        {string_static("_42"), tok_diag(InvalidChar)},
+        {string_static("42_"), tok_diag(NumberEndsWithSeparator)},
         {string_static("4_2"), tok_number(42.0)},
         {string_static("1_3_3_7"), tok_number(1337.0)},
         {string_static("13_37"), tok_number(1337.0)},
@@ -113,7 +113,7 @@ spec(lex) {
         {string_static("$123hello"), tok_key_lit("123hello")},
         {string_static("$你好世界"), tok_key_lit("你好世界")},
         {string_static(" \t $héllo"), tok_key_lit("héllo")},
-        {string_static("$"), tok_err(KeyEmpty)},
+        {string_static("$"), tok_diag(KeyEmpty)},
 
         {string_static("\"\""), tok_string_lit("")},
         {string_static("\"hello\""), tok_string_lit("hello")},
@@ -123,7 +123,7 @@ spec(lex) {
         {string_static("\"123 hello \""), tok_string_lit("123 hello ")},
         {string_static("\"你好\t世界\""), tok_string_lit("你好\t世界")},
         {string_static(" \t \"héllo\""), tok_string_lit("héllo")},
-        {string_static("\""), tok_err(UnterminatedString)},
+        {string_static("\""), tok_diag(UnterminatedString)},
 
         {string_static("if"), tok_simple(If)},
         {string_static("else"), tok_simple(Else)},
@@ -134,11 +134,11 @@ spec(lex) {
         {string_static("break"), tok_simple(Break)},
         {string_static("return"), tok_simple(Return)},
 
-        {string_static("&"), tok_err(InvalidChar)},
-        {string_static("|"), tok_err(InvalidChar)},
-        {string_static("@"), tok_err(InvalidChar)},
-        {string_static("\0"), tok_err(InvalidChar)},
-        {string_static("\a"), tok_err(InvalidChar)},
+        {string_static("&"), tok_diag(InvalidChar)},
+        {string_static("|"), tok_diag(InvalidChar)},
+        {string_static("@"), tok_diag(InvalidChar)},
+        {string_static("\0"), tok_diag(InvalidChar)},
+        {string_static("\a"), tok_diag(InvalidChar)},
 
         {string_static(""), tok_end()},
         {string_static(" "), tok_end()},
@@ -178,22 +178,22 @@ spec(lex) {
     String      str = string_lit("42 // Hello \n/* World */ 42 /* More */");
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_Number);
+    check_eq_int(token.kind, ScriptTokenKind_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_CommentLine);
+    check_eq_int(token.kind, ScriptTokenKind_CommentLine);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_CommentBlock);
+    check_eq_int(token.kind, ScriptTokenKind_CommentBlock);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_Number);
+    check_eq_int(token.kind, ScriptTokenKind_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_CommentBlock);
+    check_eq_int(token.kind, ScriptTokenKind_CommentBlock);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check_eq_int(token.type, ScriptTokenType_End);
+    check_eq_int(token.kind, ScriptTokenKind_End);
   }
 
   it("can optionally include newline tokens") {
@@ -201,22 +201,22 @@ spec(lex) {
     String      str = string_lit("42 \n/* World */ 1337 \r\n\n");
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
-    check_eq_int(token.type, ScriptTokenType_Number);
+    check_eq_int(token.kind, ScriptTokenKind_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
-    check_eq_int(token.type, ScriptTokenType_Newline);
+    check_eq_int(token.kind, ScriptTokenKind_Newline);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
-    check_eq_int(token.type, ScriptTokenType_Number);
+    check_eq_int(token.kind, ScriptTokenKind_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
-    check_eq_int(token.type, ScriptTokenType_Newline);
+    check_eq_int(token.kind, ScriptTokenKind_Newline);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
-    check_eq_int(token.type, ScriptTokenType_Newline);
+    check_eq_int(token.kind, ScriptTokenKind_Newline);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
-    check_eq_int(token.type, ScriptTokenType_End);
+    check_eq_int(token.kind, ScriptTokenKind_End);
   }
 
   it("can trim until the next token") {

@@ -4,7 +4,7 @@
 #include "core_format.h"
 #include "script_diag.h"
 
-static const String g_diagTypeStrs[] = {
+static const String g_diagKindStrs[] = {
     string_static("Invalid character"),
     string_static("Invalid Utf8 text"),
     string_static("Invalid character in number"),
@@ -50,7 +50,7 @@ static const String g_diagTypeStrs[] = {
     string_static("Unreachable expressions"),
     string_static("Condition expression is static"),
 };
-ASSERT(array_elems(g_diagTypeStrs) == ScriptDiagType_Count, "Incorrect number of type strs");
+ASSERT(array_elems(g_diagKindStrs) == ScriptDiagKind_Count, "Incorrect number of kind strs");
 
 struct sScriptDiagBag {
   Allocator*       alloc;
@@ -62,8 +62,8 @@ struct sScriptDiagBag {
 ScriptDiagBag* script_diag_bag_create(Allocator* alloc, const ScriptDiagFilter filter) {
   ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
   *bag               = (ScriptDiagBag){
-                    .alloc  = alloc,
-                    .filter = filter,
+      .alloc  = alloc,
+      .filter = filter,
   };
   return bag;
 }
@@ -118,7 +118,7 @@ String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) 
   if (rangeText.size < 32) {
     formatArgs[0] = fmt_text(rangeText);
   }
-  return format_write_formatted_scratch(g_diagTypeStrs[diag->type], formatArgs);
+  return format_write_formatted_scratch(g_diagKindStrs[diag->kind], formatArgs);
 }
 
 void script_diag_pretty_write(DynString* out, const String sourceText, const ScriptDiag* diag) {

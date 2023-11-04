@@ -25,15 +25,15 @@ typedef u16 ScriptBinderSlot;
 typedef u16 ScriptSym;
 
 typedef enum {
-  ScriptSymType_Keyword,
-  ScriptSymType_BuiltinConstant,
-  ScriptSymType_BuiltinFunction,
-  ScriptSymType_ExternFunction,
-  ScriptSymType_Variable,
-  ScriptSymType_MemoryKey,
+  ScriptSymKind_Keyword,
+  ScriptSymKind_BuiltinConstant,
+  ScriptSymKind_BuiltinFunction,
+  ScriptSymKind_ExternFunction,
+  ScriptSymKind_Variable,
+  ScriptSymKind_MemoryKey,
 
-  ScriptSymType_Count,
-} ScriptSymType;
+  ScriptSymKind_Count,
+} ScriptSymKind;
 
 typedef struct sScriptSymBag ScriptSymBag;
 
@@ -52,7 +52,7 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag*, String label, StringHash key);
 
 // clang-format on
 
-ScriptSymType    script_sym_type(const ScriptSymBag*, ScriptSym);
+ScriptSymKind    script_sym_kind(const ScriptSymBag*, ScriptSym);
 String           script_sym_label(const ScriptSymBag*, ScriptSym);
 String           script_sym_doc(const ScriptSymBag*, ScriptSym);
 bool             script_sym_is_func(const ScriptSymBag*, ScriptSym);
@@ -64,6 +64,6 @@ ScriptSym script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 ScriptSym script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSym script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSym);
 
-String script_sym_type_str(ScriptSymType);
+String script_sym_kind_str(ScriptSymKind);
 void   script_sym_write(DynString*, const ScriptSymBag*, ScriptSym);
 String script_sym_scratch(const ScriptSymBag*, ScriptSym);

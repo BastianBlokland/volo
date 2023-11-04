@@ -59,7 +59,7 @@ typedef union {
 
 struct sScriptDoc {
   DynArray         exprData;   // ScriptExprData[]
-  DynArray         exprTypes;  // u8[] (ScriptExprType[])
+  DynArray         exprKinds;  // u8[] (ScriptExprKind[])
   DynArray         exprRanges; // ScriptRange[]
   DynArray         exprSets;   // ScriptExpr[]
   DynArray         values;     // ScriptVal[]
@@ -69,8 +69,8 @@ struct sScriptDoc {
 
 // clang-format off
 
-MAYBE_UNUSED INLINE_HINT static ScriptExprType expr_type(const ScriptDoc* d, const ScriptExpr e) {
-  return (ScriptExprType)(dynarray_begin_t(&d->exprTypes, u8)[e]);
+MAYBE_UNUSED INLINE_HINT static ScriptExprKind expr_kind(const ScriptDoc* d, const ScriptExpr e) {
+  return (ScriptExprKind)(dynarray_begin_t(&d->exprKinds, u8)[e]);
 }
 
 MAYBE_UNUSED INLINE_HINT static const ScriptExprData* expr_data(const ScriptDoc* d, const ScriptExpr e) {

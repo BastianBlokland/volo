@@ -4,7 +4,7 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
-typedef enum eScriptPanicType {
+typedef enum eScriptPanicKind {
   ScriptPanic_None,
   ScriptPanic_AssertionFailed,
   ScriptPanic_ExecutionLimitExceeded,
@@ -13,15 +13,15 @@ typedef enum eScriptPanicType {
   ScriptPanic_ArgumentOutOfRange,
   ScriptPanic_EnumInvalidEntry,
 
-  ScriptPanicType_Count,
-} ScriptPanicType;
+  ScriptPanicKind_Count,
+} ScriptPanicKind;
 
 typedef struct sScriptPanic {
-  ScriptPanicType type;
+  ScriptPanicKind kind;
   ScriptRange     range;
 } ScriptPanic;
 
 bool   script_panic_valid(const ScriptPanic*);
-String script_panic_type_str(ScriptPanicType);
+String script_panic_kind_str(ScriptPanicKind);
 void   script_panic_pretty_write(DynString*, String sourceText, const ScriptPanic*);
 String script_panic_pretty_scratch(String sourceText, const ScriptPanic*);

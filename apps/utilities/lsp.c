@@ -743,19 +743,19 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
 
   const ScriptExpr     hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
   const ScriptRange    hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
-  const ScriptExprType hoverType  = script_expr_type(doc->scriptDoc, hoverExpr);
+  const ScriptExprKind hoverKind  = script_expr_kind(doc->scriptDoc, hoverExpr);
 
   // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
   diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
 
-  if (hoverType == ScriptExprType_Block) {
+  if (hoverKind == ScriptExprKind_Block) {
     // Ignore hovers on block expressions.
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
     return;
   }
 
   DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  dynstring_append(&textBuffer, script_expr_type_str(hoverType));
+  dynstring_append(&textBuffer, script_expr_kind_str(hoverKind));
 
   if (script_expr_static(doc->scriptDoc, hoverExpr)) {
     const ScriptEvalResult evalRes = script_eval(doc->scriptDoc, null, hoverExpr, null, null);
@@ -844,22 +844,22 @@ NoLocation:
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
-static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSymType symType) {
-  switch (symType) {
-  case ScriptSymType_Keyword:
+static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSymKind symKind) {
+  switch (symKind) {
+  case ScriptSymKind_Keyword:
     return LspCompletionItemKind_Keyword;
-  case ScriptSymType_BuiltinConstant:
+  case ScriptSymKind_BuiltinConstant:
     return LspCompletionItemKind_Constant;
-  case ScriptSymType_BuiltinFunction:
+  case ScriptSymKind_BuiltinFunction:
     // NOTE: This is taking some creative liberties with the 'Constructor' meaning.
     return LspCompletionItemKind_Constructor;
-  case ScriptSymType_ExternFunction:
+  case ScriptSymKind_ExternFunction:
     return LspCompletionItemKind_Function;
-  case ScriptSymType_Variable:
+  case ScriptSymKind_Variable:
     return LspCompletionItemKind_Variable;
-  case ScriptSymType_MemoryKey:
+  case ScriptSymKind_MemoryKey:
     return LspCompletionItemKind_Property;
-  case ScriptSymType_Count:
+  case ScriptSymKind_Count:
     break;
   }
   diag_crash();
@@ -900,13 +900,13 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
   ScriptSym itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
-    const ScriptSymType     type           = script_sym_type(doc->scriptSyms, itr);
+    const ScriptSymKind     kind           = script_sym_kind(doc->scriptSyms, itr);
     const ScriptSig*        sig            = script_sym_sig(doc->scriptSyms, itr);
     const LspCompletionItem completionItem = {
         .label       = script_sym_label(doc->scriptSyms, itr),
         .labelDetail = sig ? script_sig_scratch(sig) : string_empty,
         .doc         = script_sym_doc(doc->scriptSyms, itr),
-        .kind        = lsp_completion_kind_for_sym(type),
+        .kind        = lsp_completion_kind_for_sym(kind),
         .commitChar  = script_sym_is_func(doc->scriptSyms, itr) ? '(' : ' ',
     };
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
