@@ -123,6 +123,16 @@ typedef struct {
   const ScriptSig* scriptSig;
 } LspSignature;
 
+typedef enum {
+  LspSymbolKind_Variable = 13,
+} LspSymbolKind;
+
+typedef struct {
+  String             name;
+  ScriptRangeLineCol range;
+  LspSymbolKind      kind : 8;
+} LspSymbol;
+
 typedef struct {
   ScriptRangeLineCol range;
   String             newText;
@@ -360,6 +370,15 @@ static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionI
   }
   json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
   json_add_field_lit(ctx->jDoc, obj, "commitCharacters", commitCharsArr);
+  return obj;
+}
+
+static JsonVal lsp_symbol_to_json(LspContext* ctx, const LspSymbol* symbol) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "name", json_add_string(ctx->jDoc, symbol->name));
+  json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, symbol->kind));
+  json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &symbol->range));
+  json_add_field_lit(ctx->jDoc, obj, "selectionRange", lsp_range_to_json(ctx, &symbol->range));
   return obj;
 }
 
@@ -714,6 +733,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal signatureHelpOpts = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, signatureHelpOpts, "triggerCharacters", signatureTriggerCharArr);
 
+  const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
@@ -725,6 +745,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
@@ -999,9 +1020,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(doc->scriptSyms, callSym),
-      .doc       = script_sym_doc(doc->scriptSyms, callSym),
-      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+          .label     = script_sym_label(doc->scriptSyms, callSym),
+          .doc       = script_sym_doc(doc->scriptSyms, callSym),
+          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1020,6 +1041,40 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
 NoSignature:
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
+static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const JsonVal symbolsArr = json_add_array(ctx->jDoc);
+
+  ScriptSym itr = script_sym_first(doc->scriptSyms, script_pos_sentinel);
+  for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, script_pos_sentinel, itr)) {
+    if (script_sym_kind(doc->scriptSyms, itr) != ScriptSymKind_Variable) {
+      continue;
+    }
+    const ScriptRange location = script_sym_location(doc->scriptSyms, itr);
+    // TODO: Report text ranges in utf16 instead of utf32.
+    const LspSymbol symbol = {
+        .name  = script_sym_label(doc->scriptSyms, itr),
+        .kind  = LspSymbolKind_Variable,
+        .range = script_range_to_line_col(doc->text, location),
+    };
+    json_add_elem(ctx->jDoc, symbolsArr, lsp_symbol_to_json(ctx, &symbol));
+  }
+  lsp_send_response_success(ctx, req, symbolsArr);
   return;
 
 InvalidParams:
@@ -1090,6 +1145,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/definition"), lsp_handle_req_definition},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
       {string_static("textDocument/signatureHelp"), lsp_handle_req_signature_help},
+      {string_static("textDocument/documentSymbol"), lsp_handle_req_symbols},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
   };
 
