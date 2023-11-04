@@ -199,6 +199,8 @@ script_add_anon_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptE
   return script_add_intrinsic(doc, script_range_sentinel, i, args);
 }
 
+u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
+
 ScriptExprKind script_expr_kind(const ScriptDoc* doc, const ScriptExpr expr) {
   diag_assert_msg(expr < doc->exprData.size, "Out of bounds ScriptExpr");
   return expr_kind(doc, expr);
@@ -401,59 +403,151 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
   UNREACHABLE
 }
 
-ScriptExpr script_expr_find(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
+INLINE_HINT static ScriptExpr script_expr_find_var_store(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
   const ScriptExprData* data = expr_data(doc, root);
+  if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
+    const ScriptExpr res = script_expr_find(doc, data->var_store.val, pos, ctx, pred);
+    if (!sentinel_check(res)) {
+      return res;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_mem_store(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data = expr_data(doc, root);
+  if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
+    const ScriptExpr res = script_expr_find(doc, data->mem_store.val, pos, ctx, pred);
+    if (!sentinel_check(res)) {
+      return res;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_intrinsic(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data     = expr_data(doc, root);
+  const ScriptExpr*     args     = expr_set_data(doc, data->intrinsic.argSet);
+  const u32             argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
+  for (u32 i = 0; i != argCount; ++i) {
+    if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+      const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
+      break;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_block(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data  = expr_data(doc, root);
+  const ScriptExpr*     exprs = expr_set_data(doc, data->block.exprSet);
+  for (u32 i = 0; i != data->block.exprCount; ++i) {
+    if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
+      const ScriptExpr res = script_expr_find(doc, exprs[i], pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
+      break;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+INLINE_HINT static ScriptExpr script_expr_find_extern(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
+  const ScriptExprData* data = expr_data(doc, root);
+  const ScriptExpr*     args = expr_set_data(doc, data->extern_.argSet);
+  for (u16 i = 0; i != data->extern_.argCount; ++i) {
+    if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
+      const ScriptExpr res = script_expr_find(doc, args[i], pos, ctx, pred);
+      if (!sentinel_check(res)) {
+        return res;
+      }
+      break;
+    }
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+ScriptExpr script_expr_find(
+    const ScriptDoc* doc,
+    const ScriptExpr root,
+    const ScriptPos  pos,
+    void*            ctx,
+    const ScriptPred pred) {
   switch (expr_kind(doc, root)) {
+  case ScriptExprKind_VarStore:
+    return script_expr_find_var_store(doc, root, pos, ctx, pred);
+  case ScriptExprKind_MemStore:
+    return script_expr_find_mem_store(doc, root, pos, ctx, pred);
+  case ScriptExprKind_Intrinsic:
+    return script_expr_find_intrinsic(doc, root, pos, ctx, pred);
+  case ScriptExprKind_Block:
+    return script_expr_find_block(doc, root, pos, ctx, pred);
+  case ScriptExprKind_Extern:
+    return script_expr_find_extern(doc, root, pos, ctx, pred);
   case ScriptExprKind_Value:
   case ScriptExprKind_VarLoad:
   case ScriptExprKind_MemLoad:
-    return root;
-  case ScriptExprKind_VarStore:
-    if (script_range_contains(script_expr_range(doc, data->var_store.val), pos)) {
-      return script_expr_find(doc, data->var_store.val, pos);
-    }
-    return root;
-  case ScriptExprKind_MemStore:
-    if (script_range_contains(script_expr_range(doc, data->mem_store.val), pos)) {
-      return script_expr_find(doc, data->mem_store.val, pos);
-    }
-    return root;
+  case ScriptExprKind_Count:
+    break; // No child expressions.
+  }
+  return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
+}
+
+u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
+  const ScriptExprData* data = expr_data(doc, root);
+  switch (expr_kind(doc, root)) {
   case ScriptExprKind_Intrinsic: {
     const ScriptExpr* args     = expr_set_data(doc, data->intrinsic.argSet);
     const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
     for (u32 i = 0; i != argCount; ++i) {
-      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
-        return script_expr_find(doc, args[i], pos);
+      if (pos <= script_expr_range(doc, args[i]).end) {
+        return i;
       }
     }
-    return root;
-  }
-  case ScriptExprKind_Block: {
-    const ScriptExpr* exprs = expr_set_data(doc, data->block.exprSet);
-    for (u32 i = 0; i != data->block.exprCount; ++i) {
-      if (script_range_contains(script_expr_range(doc, exprs[i]), pos)) {
-        return script_expr_find(doc, exprs[i], pos);
-      }
-    }
-    return root;
+    return argCount ? (argCount - 1) : sentinel_u32;
   }
   case ScriptExprKind_Extern: {
     const ScriptExpr* args = expr_set_data(doc, data->extern_.argSet);
     for (u16 i = 0; i != data->extern_.argCount; ++i) {
-      if (script_range_contains(script_expr_range(doc, args[i]), pos)) {
-        return script_expr_find(doc, args[i], pos);
+      if (pos <= script_expr_range(doc, args[i]).end) {
+        return i;
       }
     }
-    return root;
+    return data->extern_.argCount ? (u32)(data->extern_.argCount - 1) : sentinel_u32;
   }
-  case ScriptExprKind_Count:
-    break;
+  default:
+    return sentinel_u32;
   }
-  diag_assert_fail("Unknown expression kind");
-  UNREACHABLE
 }
-
-u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
 
 String script_expr_kind_str(const ScriptExprKind kind) {
   switch (kind) {

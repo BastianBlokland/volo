@@ -80,18 +80,23 @@ ScriptExpr script_add_anon_var_store(ScriptDoc*, ScriptVarId, ScriptExpr val);
 ScriptExpr script_add_anon_mem_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_anon_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
 ScriptExpr script_add_anon_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
+
 // clang-format on
 
 /**
  * Query expression data.
  */
+u32            script_values_total(const ScriptDoc*);
 ScriptExprKind script_expr_kind(const ScriptDoc*, ScriptExpr);
 ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
 bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
-ScriptExpr     script_expr_find(const ScriptDoc*, ScriptExpr root, ScriptPos);
-u32            script_values_total(const ScriptDoc*);
+
+typedef bool (*ScriptPred)(void* ctx, const ScriptDoc*, ScriptExpr);
+ScriptExpr script_expr_find(const ScriptDoc*, ScriptExpr root, ScriptPos, void* ctx, ScriptPred);
+
+u32 script_expr_arg_index(const ScriptDoc*, ScriptExpr root, ScriptPos);
 
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
 void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);

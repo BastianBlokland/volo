@@ -118,6 +118,12 @@ typedef struct {
 } LspCompletionItem;
 
 typedef struct {
+  String           label;
+  String           doc;
+  const ScriptSig* scriptSig;
+} LspSignature;
+
+typedef struct {
   ScriptRangeLineCol range;
   String             newText;
 } LspTextEdit;
@@ -361,6 +367,31 @@ static JsonVal lsp_text_edit_to_json(LspContext* ctx, const LspTextEdit* edit) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &edit->range));
   json_add_field_lit(ctx->jDoc, obj, "newText", json_add_string(ctx->jDoc, edit->newText));
+  return obj;
+}
+
+static JsonVal lsp_signature_to_json(LspContext* ctx, const LspSignature* signature) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+
+  const String text = fmt_write_scratch(
+      "{}{}", fmt_text(signature->label), fmt_text(script_sig_scratch(signature->scriptSig)));
+  json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, text));
+
+  if (!string_is_empty(signature->doc)) {
+    json_add_field_lit(ctx->jDoc, obj, "documentation", json_add_string(ctx->jDoc, signature->doc));
+  }
+
+  const JsonVal paramsArr = json_add_array(ctx->jDoc);
+  for (u8 i = 0; i != script_sig_arg_count(signature->scriptSig); ++i) {
+    const JsonVal paramObj = json_add_object(ctx->jDoc);
+
+    // TODO: Instead of passing label as a string, pass it as two indices into the signature text.
+    const String paramText = script_sig_arg_scratch(signature->scriptSig, i);
+    json_add_field_lit(ctx->jDoc, paramObj, "label", json_add_string(ctx->jDoc, paramText));
+
+    json_add_elem(ctx->jDoc, paramsArr, paramObj);
+  }
+  json_add_field_lit(ctx->jDoc, obj, "parameters", paramsArr);
   return obj;
 }
 
@@ -676,6 +707,13 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, completionOpts, "resolveProvider", json_add_bool(ctx->jDoc, false));
   json_add_field_lit(ctx->jDoc, completionOpts, "triggerCharacters", completionTriggerCharArr);
 
+  const JsonVal signatureTriggerCharArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, signatureTriggerCharArr, json_add_string_lit(ctx->jDoc, "("));
+  json_add_elem(ctx->jDoc, signatureTriggerCharArr, json_add_string_lit(ctx->jDoc, ","));
+
+  const JsonVal signatureHelpOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, signatureHelpOpts, "triggerCharacters", signatureTriggerCharArr);
+
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
@@ -686,6 +724,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "hoverProvider", hoverOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
@@ -741,9 +780,9 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  const ScriptExpr     hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
-  const ScriptRange    hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
-  const ScriptExprKind hoverKind  = script_expr_kind(doc->scriptDoc, hoverExpr);
+  const ScriptExpr  hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
+  const ScriptRange hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
+  const ScriptExprKind hoverKind = script_expr_kind(doc->scriptDoc, hoverExpr);
 
   // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
   diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
@@ -798,7 +837,7 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
@@ -818,7 +857,7 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto NoLocation; // Script did not parse correctly (likely due to structural errors).
   }
 
-  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos);
+  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
   const ScriptSym  sym     = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
   if (sentinel_check(sym)) {
     goto NoLocation; // No symbol found for the expression.
@@ -877,7 +916,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
@@ -912,6 +951,75 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
   }
   lsp_send_response_success(ctx, req, itemsArr);
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
+static bool find_pred_with_signature(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  ScriptSymBag*   symBag = ctx;
+  const ScriptSym sym    = script_sym_find(symBag, doc, expr);
+  if (sentinel_check(sym)) {
+    return false;
+  }
+  return script_sym_sig(symBag, sym) != null;
+}
+
+static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  if (sentinel_check(doc->scriptRoot)) {
+    goto NoSignature; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  const ScriptExpr callExpr = script_expr_find(
+      doc->scriptDoc, doc->scriptRoot, pos, doc->scriptSyms, find_pred_with_signature);
+  if (sentinel_check(callExpr)) {
+    goto NoSignature; // No call expression at the given position.
+  }
+  const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
+  const LspSignature sig     = {
+      .label     = script_sym_label(doc->scriptSyms, callSym),
+      .doc       = script_sym_doc(doc->scriptSyms, callSym),
+      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+  };
+
+  const JsonVal signaturesArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, signaturesArr, lsp_signature_to_json(ctx, &sig));
+
+  const JsonVal sigHelp = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, sigHelp, "signatures", signaturesArr);
+
+  const u32 index = script_expr_arg_index(doc->scriptDoc, callExpr, pos);
+  if (!sentinel_check(index)) {
+    json_add_field_lit(ctx->jDoc, sigHelp, "activeParameter", json_add_number(ctx->jDoc, index));
+  }
+
+  lsp_send_response_success(ctx, req, sigHelp);
+  return;
+
+NoSignature:
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
   return;
 
 InvalidParams:
@@ -981,6 +1089,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/hover"), lsp_handle_req_hover},
       {string_static("textDocument/definition"), lsp_handle_req_definition},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
+      {string_static("textDocument/signatureHelp"), lsp_handle_req_signature_help},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
   };
 
