@@ -1096,9 +1096,22 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id);
   if (builtin) {
-    if (UNLIKELY(script_sig_arg_count(builtin->sig) != argCount)) {
+    const u16 expectedArgCount = script_sig_arg_count(builtin->sig);
+    if (UNLIKELY(expectedArgCount != argCount)) {
       read_emit_err(ctx, ScriptDiag_IncorrectArgCountForBuiltinFunc, callRange);
-      return read_fail_semantic(ctx, callRange);
+
+      /**
+       * Mark the program as invalid but still emit a correct intrinsic, this helps the
+       * language-server know what intrinsic the user tried to call.
+       *
+       * NOTE: Incase of too little arguments we will have to insert null padding values to make
+       * sure the program is well formed.
+       */
+      const ScriptPos lastPos = callRange.end - 1;
+      for (u16 i = (u16)argCount; i < expectedArgCount; ++i) {
+        args[i] = script_add_value(ctx->doc, script_range(lastPos, lastPos), script_null());
+      }
+      ctx->flags |= ScriptReadFlags_ProgramInvalid;
     }
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
   }
