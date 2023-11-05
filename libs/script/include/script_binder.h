@@ -11,6 +11,9 @@ typedef union uScriptVal ScriptVal;
 // Forward declare from 'script_error.h'.
 typedef struct sScriptError ScriptError;
 
+// Forward declare from 'script_sig.h'.
+typedef struct sScriptSig ScriptSig;
+
 #define script_binder_slot_sentinel sentinel_u16
 
 typedef u16 ScriptBinderSlot;
@@ -31,7 +34,7 @@ void          script_binder_destroy(ScriptBinder*);
  * NOTE: Passing a null function is supported if the binder is only used for lookups.
  * Pre-condition: Binder has not been finalized.
  */
-void script_binder_declare(ScriptBinder*, String name, ScriptBinderFunc);
+void script_binder_declare(ScriptBinder*, String name, const ScriptSig* sig, ScriptBinderFunc);
 
 /**
  * Finalize the binder for lookups and execution.
@@ -61,10 +64,16 @@ ScriptBinderHash script_binder_hash(const ScriptBinder*);
 ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash nameHash);
 
 /**
- * Lookup a the  name for a slot.
+ * Lookup the name for a slot.
  * Pre-condition: Binder has been finalized.
  */
 String script_binder_name(const ScriptBinder*, ScriptBinderSlot);
+
+/**
+ * Lookup the signature for a slot.
+ * Pre-condition: Binder has been finalized.
+ */
+const ScriptSig* script_binder_sig(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Iterate over the bound slots.

@@ -53,10 +53,11 @@ spec(eval) {
     script_mem_set(mem, string_hash_lit("v2"), script_num(1337));
     script_mem_set(mem, string_hash_lit("v3"), script_null());
 
-    binder = script_binder_create(g_alloc_heap);
-    script_binder_declare(binder, string_lit("test_return_null"), test_return_null);
-    script_binder_declare(binder, string_lit("test_return_first"), test_return_first);
-    script_binder_declare(binder, string_lit("test_increase_counter"), test_increase_counter);
+    binder               = script_binder_create(g_alloc_heap);
+    const ScriptSig* sig = null;
+    script_binder_declare(binder, string_lit("test_return_null"), sig, test_return_null);
+    script_binder_declare(binder, string_lit("test_return_first"), sig, test_return_first);
+    script_binder_declare(binder, string_lit("test_increase_counter"), sig, test_increase_counter);
     script_binder_finalize(binder);
   }
 

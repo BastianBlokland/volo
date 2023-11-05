@@ -5,6 +5,7 @@
 #include "core_sort.h"
 #include "core_stringtable.h"
 #include "script_binder.h"
+#include "script_sig.h"
 #include "script_val.h"
 
 #define script_binder_max_funcs 64
@@ -19,8 +20,9 @@ struct sScriptBinder {
   Allocator*        alloc;
   ScriptBinderFlags flags;
   u16               count;
-  StringHash        names[script_binder_max_funcs];
   ScriptBinderFunc  funcs[script_binder_max_funcs];
+  StringHash        names[script_binder_max_funcs];
+  ScriptSig*        sigs[script_binder_max_funcs];
 };
 
 static i8 binder_index_compare(const void* ctx, const usize a, const usize b) {
@@ -32,6 +34,7 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
   ScriptBinder* binder = ctx;
   mem_swap(mem_var(binder->names[a]), mem_var(binder->names[b]));
   mem_swap(mem_var(binder->funcs[a]), mem_var(binder->funcs[b]));
+  mem_swap(mem_var(binder->sigs[a]), mem_var(binder->sigs[b]));
 }
 
 ScriptBinder* script_binder_create(Allocator* alloc) {
@@ -44,15 +47,23 @@ ScriptBinder* script_binder_create(Allocator* alloc) {
   return binder;
 }
 
-void script_binder_destroy(ScriptBinder* binder) { alloc_free_t(binder->alloc, binder); }
+void script_binder_destroy(ScriptBinder* binder) {
+  for (u16 i = 0; i != binder->count; ++i) {
+    if (binder->sigs[i]) {
+      script_sig_destroy(binder->sigs[i]);
+    }
+  }
+  alloc_free_t(binder->alloc, binder);
+}
 
 void script_binder_declare(
-    ScriptBinder* binder, const String nameStr, const ScriptBinderFunc func) {
+    ScriptBinder* binder, const String nameStr, const ScriptSig* sig, const ScriptBinderFunc func) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
   binder->names[binder->count] = stringtable_add(g_stringtable, nameStr);
   binder->funcs[binder->count] = func;
+  binder->sigs[binder->count]  = sig ? script_sig_clone(binder->alloc, sig) : null;
   ++binder->count;
 }
 
@@ -96,6 +107,13 @@ String script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slo
 
   // TODO: Using the global string-table for this is kinda questionable.
   return stringtable_lookup(g_stringtable, binder->names[slot]);
+}
+
+const ScriptSig* script_binder_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(slot < binder->count, "Invalid slot");
+
+  return binder->sigs[slot];
 }
 
 ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {

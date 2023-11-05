@@ -53,10 +53,10 @@ static void script_binder_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
-    ScriptBinder* binder = script_binder_create(g_alloc_persist);
-
+    ScriptBinder*    binder  = script_binder_create(g_alloc_persist);
+    const ScriptSig* nullSig = null;
     for (u32 i = 0; i != array_elems(g_scriptFinderFuncs); ++i) {
-      script_binder_declare(binder, g_scriptFinderFuncs[i].name, null);
+      script_binder_declare(binder, g_scriptFinderFuncs[i].name, nullSig, null);
     }
     script_binder_finalize(binder);
     g_scriptBinder = binder;

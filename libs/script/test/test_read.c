@@ -18,9 +18,11 @@ spec(read) {
     doc   = script_create(g_alloc_heap);
     diags = script_diag_bag_create(g_alloc_heap, ScriptDiagFilter_All);
 
-    binder = script_binder_create(g_alloc_heap);
-    script_binder_declare(binder, string_lit("bind_test_1"), null);
-    script_binder_declare(binder, string_lit("bind_test_2"), null);
+    binder                          = script_binder_create(g_alloc_heap);
+    const ScriptSig*       nullSig  = null;
+    const ScriptBinderFunc nullFunc = null;
+    script_binder_declare(binder, string_lit("bind_test_1"), nullSig, nullFunc);
+    script_binder_declare(binder, string_lit("bind_test_2"), nullSig, nullFunc);
     script_binder_finalize(binder);
   }
 

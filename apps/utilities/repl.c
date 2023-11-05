@@ -280,10 +280,11 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
 static const ScriptBinder* repl_bind_init() {
   static ScriptBinder* g_binder;
   if (!g_binder) {
-    g_binder = script_binder_create(g_alloc_persist);
-    script_binder_declare(g_binder, string_lit("print"), &repl_bind_print);
-    script_binder_declare(g_binder, string_lit("print_bytes"), &repl_bind_print_bytes);
-    script_binder_declare(g_binder, string_lit("print_bits"), &repl_bind_print_bits);
+    g_binder                 = script_binder_create(g_alloc_persist);
+    const ScriptSig* nullSig = null;
+    script_binder_declare(g_binder, string_lit("print"), nullSig, &repl_bind_print);
+    script_binder_declare(g_binder, string_lit("print_bytes"), nullSig, &repl_bind_print_bytes);
+    script_binder_declare(g_binder, string_lit("print_bits"), nullSig, &repl_bind_print_bits);
 
     script_binder_finalize(g_binder);
   }
