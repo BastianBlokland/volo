@@ -6,10 +6,6 @@
 static i8 test_sort_i32_index_compare(const void* ctx, const usize a, const usize b) {
   const i32* data = ctx;
   return compare_i32(data + a, data + b);
-
-  const i32 nameA = data[a];
-  const i32 nameB = data[b];
-  return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
 }
 
 static void test_sort_i32_index_swap(void* ctx, const usize a, const usize b) {
