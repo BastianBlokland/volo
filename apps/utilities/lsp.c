@@ -1267,7 +1267,7 @@ static ScriptBinder* lsp_script_binder_create() {
     const String       name   = string_lit("time");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
-        {string_lit("type"), script_mask_str},
+        {string_lit("clock"), script_mask_str | script_mask_null},
     };
     script_bind(binder, name, ret, args, array_elems(args));
   }
@@ -1276,7 +1276,7 @@ static ScriptBinder* lsp_script_binder_create() {
     const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("pos"), script_mask_vec3},
-        {string_lit("type"), script_mask_str},
+        {string_lit("type"), script_mask_str | script_mask_null},
     };
     script_bind(binder, name, ret, args, array_elems(args));
   }
@@ -1345,10 +1345,10 @@ static ScriptBinder* lsp_script_binder_create() {
     const ScriptMask   ret    = script_mask_entity | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("prefabId"), script_mask_str},
-        {string_lit("pos"), script_mask_vec3},
-        {string_lit("rot"), script_mask_quat},
-        {string_lit("scale"), script_mask_num},
-        {string_lit("faction"), script_mask_str},
+        {string_lit("pos"), script_mask_vec3 | script_mask_null},
+        {string_lit("rot"), script_mask_quat | script_mask_null},
+        {string_lit("scale"), script_mask_num | script_mask_null},
+        {string_lit("faction"), script_mask_str | script_mask_null},
     };
     script_bind(binder, name, ret, args, array_elems(args));
   }
