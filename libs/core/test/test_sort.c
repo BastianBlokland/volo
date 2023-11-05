@@ -3,6 +3,20 @@
 #include "core_math.h"
 #include "core_sort.h"
 
+static i8 test_sort_i32_index_compare(const void* ctx, const usize a, const usize b) {
+  const i32* data = ctx;
+  return compare_i32(data + a, data + b);
+
+  const i32 nameA = data[a];
+  const i32 nameB = data[b];
+  return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+}
+
+static void test_sort_i32_index_swap(void* ctx, const usize a, const usize b) {
+  i32* data = ctx;
+  mem_swap(mem_var(data[a]), mem_var(data[b]));
+}
+
 spec(sort) {
 
   struct {
@@ -79,6 +93,21 @@ spec(sort) {
 
       for (u32 j = 0; j != stringData[i].size; ++j) {
         check_eq_string(stringData[i].values[j], stringData[i].expected[j]);
+      }
+    }
+  }
+
+  it("can sort i32 integers using indices") {
+    for (usize i = 0; i != array_elems(i32Data); ++i) {
+      sort_index_quicksort(
+          i32Data[i].values,
+          0,
+          i32Data[i].size,
+          test_sort_i32_index_compare,
+          test_sort_i32_index_swap);
+
+      for (u32 j = 0; j != i32Data[i].size; ++j) {
+        check_eq_int(i32Data[i].values[j], i32Data[i].expected[j]);
       }
     }
   }
