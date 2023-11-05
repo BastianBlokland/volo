@@ -13,6 +13,7 @@
 #include "script_sym.h"
 
 #include "doc_internal.h"
+#include "val_internal.h"
 
 #define script_depth_max 25
 #define script_block_size_max 128
@@ -1083,10 +1084,15 @@ static ScriptExpr read_expr_mem_modify(
 }
 
 static void read_emit_invalid_args(
-    ScriptReadContext* ctx, const u16 argCount, const ScriptRange range, const ScriptSig* sig) {
+    ScriptReadContext* ctx,
+    const ScriptExpr   args[],
+    const u8           argCount,
+    const ScriptSig*   sig,
+    const ScriptRange  range) {
   if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
     return;
   }
+
   if (argCount < script_sig_arg_min_count(sig)) {
     const ScriptDiag tooFewArgsDiag = {
         .severity = ScriptDiagSeverity_Warning,
@@ -1096,6 +1102,7 @@ static void read_emit_invalid_args(
     script_diag_push(ctx->diags, &tooFewArgsDiag);
     return;
   }
+
   if (argCount > script_sig_arg_max_count(sig)) {
     const ScriptDiag tooManyArgsDiag = {
         .severity = ScriptDiagSeverity_Warning,
@@ -1104,6 +1111,25 @@ static void read_emit_invalid_args(
     };
     script_diag_push(ctx->diags, &tooManyArgsDiag);
     return;
+  }
+
+  for (u8 i = 0; i != argCount; ++i) {
+    const ScriptSigArg arg = script_sig_arg(sig, i);
+    if (arg.mask == script_mask_any) {
+      continue; // Any value is valid; no need to validate.
+    }
+    if (!script_expr_static(ctx->doc, args[i])) {
+      continue; // Non-static argument; cannot validate as the value is only known at runtime.
+    }
+    const ScriptVal argVal = script_expr_static_val(ctx->doc, args[i]);
+    if (!val_type_check(argVal, arg.mask)) {
+      const ScriptDiag invalidArgValue = {
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_InvalidArgumentValue,
+          .range    = script_expr_range(ctx->doc, args[i]),
+      };
+      script_diag_push(ctx->diags, &invalidArgValue);
+    }
   }
 }
 
@@ -1144,13 +1170,13 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
+      diag_assert((u32)argCount < u8_max);
 
       const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
       if (sig) {
-        read_emit_invalid_args(ctx, (u16)argCount, callRange, sig);
+        read_emit_invalid_args(ctx, args, (u8)argCount, sig, callRange);
       }
 
-      diag_assert((u32)argCount < u16_max);
       return script_add_extern(ctx->doc, callRange, externFunc, args, (u16)argCount);
     }
   }
