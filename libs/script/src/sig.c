@@ -11,6 +11,7 @@
  *
  * Memory layout is a ScriptSig header followed by the following data per argument:
  * - ScriptMask (2 bytes)
+ * - ScriptSigArgFlags (1 byte)
  * - nameLen (1 byte)
  * - Name (nameLen bytes)
  * - Padding (? bytes)
@@ -21,7 +22,7 @@ ASSERT(script_sig_arg_name_max <= u8_max, "Argument name length has to be storab
 
 static usize sig_arg_data_size(const ScriptSigArg arg) {
   diag_assert_msg(arg.name.size <= script_sig_arg_name_max, "Argument name length exceeds max");
-  return sizeof(ScriptMask) + 1 /* nameLen */ + arg.name.size;
+  return sizeof(ScriptMask) + 1 /* flags */ + 1 /* nameLen */ + arg.name.size;
 }
 
 struct sScriptSig {
@@ -64,12 +65,14 @@ ScriptSig* script_sig_create(
 
     sig->argOffsets[i] = (u16)offset;
 
-    const ScriptMask mask = args[i].mask;
-    const String     name = args[i].name;
+    const ScriptMask        mask  = args[i].mask;
+    const ScriptSigArgFlags flags = args[i].flags;
+    const String            name  = args[i].name;
 
-    *(ScriptMask*)bits_ptr_offset(sig, offset)              = mask;
-    *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask)) = (u8)name.size;
-    mem_cpy(mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 1), name.size), name);
+    *(ScriptMask*)bits_ptr_offset(sig, offset)                  = mask;
+    *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask))     = flags;
+    *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 1) = (u8)name.size;
+    mem_cpy(mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 2), name.size), name);
 
     offset += sig_arg_data_size(args[i]);
     offset += bits_padding(offset, alignof(ScriptMask));
@@ -106,11 +109,12 @@ ScriptSigArg script_sig_arg(const ScriptSig* sig, const u8 index) {
   const u16 offset = sig->argOffsets[index];
   diag_assert_msg(!sentinel_check(offset), "Argument index out of bounds");
 
-  const ScriptMask mask    = *(ScriptMask*)bits_ptr_offset(sig, offset);
-  const u8         nameLen = *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask));
-  const String name = mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 1), nameLen);
+  const ScriptMask        mask    = *(ScriptMask*)bits_ptr_offset(sig, offset);
+  const ScriptSigArgFlags flags   = *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask));
+  const u8                nameLen = *(u8*)bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 1);
+  const String name = mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 2), nameLen);
 
-  return (ScriptSigArg){.mask = mask, .name = name};
+  return (ScriptSigArg){.mask = mask, .flags = flags, .name = name};
 }
 
 void script_sig_arg_write(const ScriptSig* sig, const u8 index, DynString* str) {
