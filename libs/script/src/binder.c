@@ -11,17 +11,6 @@
 
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
-typedef struct {
-  StringHash       name;
-  ScriptBinderFunc func;
-} BinderSortEntry;
-
-static i8 script_binder_compare_entry(const void* a, const void* b) {
-  const StringHash nameA = *field_ptr(a, BinderSortEntry, name);
-  const StringHash nameB = *field_ptr(b, BinderSortEntry, name);
-  return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-}
-
 typedef enum {
   ScriptBinderFlags_Finalized = 1 << 0,
 } ScriptBinderFlags;
@@ -34,11 +23,24 @@ struct sScriptBinder {
   ScriptBinderFunc  funcs[script_binder_max_funcs];
 };
 
+static i8 binder_index_compare(const void* ctx, const usize a, const usize b) {
+  const ScriptBinder* binder = ctx;
+  return compare_stringhash(binder->names + a, binder->names + b);
+}
+
+static void binder_index_swap(void* ctx, const usize a, const usize b) {
+  ScriptBinder* binder = ctx;
+  mem_swap(mem_var(binder->names[a]), mem_var(binder->names[b]));
+  mem_swap(mem_var(binder->funcs[a]), mem_var(binder->funcs[b]));
+}
+
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
-  *binder              = (ScriptBinder){
-                   .alloc = alloc,
+
+  *binder = (ScriptBinder){
+      .alloc = alloc,
   };
+
   return binder;
 }
 
@@ -58,17 +60,7 @@ void script_binder_finalize(ScriptBinder* binder) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
 
   // Compute the binding order (sorted on the name-hash).
-  BinderSortEntry* entries = alloc_array_t(g_alloc_scratch, BinderSortEntry, binder->count);
-  for (u16 i = 0; i != binder->count; ++i) {
-    entries[i] = (BinderSortEntry){.name = binder->names[i], .func = binder->funcs[i]};
-  }
-  sort_bubblesort_t(entries, entries + binder->count, BinderSortEntry, script_binder_compare_entry);
-
-  // Re-order the names and functions to match the binding order.
-  for (u16 i = 0; i != binder->count; ++i) {
-    binder->names[i] = entries[i].name;
-    binder->funcs[i] = entries[i].func;
-  }
+  sort_index_quicksort(binder, 0, binder->count, binder_index_compare, binder_index_swap);
 
   binder->flags |= ScriptBinderFlags_Finalized;
 }
@@ -89,11 +81,11 @@ ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
   return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
 }
 
-ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash name) {
+ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash nameHash) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
   const StringHash* itr = search_binary_t(
-      binder->names, binder->names + binder->count, StringHash, compare_stringhash, &name);
+      binder->names, binder->names + binder->count, StringHash, compare_stringhash, &nameHash);
 
   return itr ? (ScriptBinderSlot)(itr - binder->names) : script_binder_slot_sentinel;
 }
