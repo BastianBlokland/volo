@@ -22,6 +22,8 @@
 
 #define output_max_age time_seconds(60)
 
+static const String g_tooltipOpenScript = string_static("Open script in external editor.");
+
 typedef enum {
   DebugScriptTab_Info,
   DebugScriptTab_Memory,
@@ -145,7 +147,7 @@ static void info_panel_tab_draw(
 
   ui_layout_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
-  if (ui_button(canvas, .label = string_lit("Open Script"))) {
+  if (ui_button(canvas, .label = string_lit("Open Script"), .tooltip = g_tooltipOpenScript)) {
     panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
   ui_layout_pop(canvas);
@@ -547,7 +549,7 @@ static void output_panel_tab_draw(
         fmt_int(entry->range.end.column + 1));
 
     ui_table_next_column(canvas, &table);
-    if (ui_button(canvas, .label = locText, .noFrame = true)) {
+    if (ui_button(canvas, .label = locText, .noFrame = true, .tooltip = g_tooltipOpenScript)) {
       panelComp->editorReq =
           (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
