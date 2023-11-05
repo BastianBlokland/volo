@@ -222,7 +222,7 @@ ecs_system_define(DebugLogDrawSys) {
     UiCanvasComp*             canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    ui_canvas_to_back(canvas);
+    ui_canvas_to_front(canvas); // Always draw logs on-top.
     debug_log_draw_messages(canvas, trackerGlobal, viewer->mask);
   }
 }
