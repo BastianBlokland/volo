@@ -134,7 +134,7 @@ spec(sig) {
     ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
 
     check_eq_string(
-        script_sig_scratch(sig), string_lit("(argA: num, argB: null, argC: null | vec3) -> any"));
+        script_sig_scratch(sig), string_lit("(argA: num, argB, argC: null | vec3) -> any"));
 
     script_sig_destroy(sig);
   }

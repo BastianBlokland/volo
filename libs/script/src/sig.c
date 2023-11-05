@@ -116,7 +116,7 @@ ScriptSigArg script_sig_arg(const ScriptSig* sig, const u8 index) {
 void script_sig_arg_write(const ScriptSig* sig, const u8 index, DynString* str) {
   const ScriptSigArg arg = script_sig_arg(sig, index);
   dynstring_append(str, arg.name);
-  if (arg.mask) {
+  if (arg.mask && arg.mask != script_mask_null) {
     dynstring_append(str, string_lit(": "));
     script_mask_write(arg.mask, str);
   }
@@ -142,7 +142,7 @@ void script_sig_write(const ScriptSig* sig, DynString* str) {
     script_sig_arg_write(sig, i, str);
   }
   dynstring_append_char(str, ')');
-  if (sig->retMask) {
+  if (sig->retMask && sig->retMask != script_mask_null) {
     dynstring_append(str, string_lit(" -> "));
     script_mask_write(sig->retMask, str);
   }
