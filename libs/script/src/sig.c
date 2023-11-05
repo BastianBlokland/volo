@@ -104,7 +104,7 @@ ScriptMask script_sig_ret(const ScriptSig* sig) { return sig->retMask; }
 u8 script_sig_arg_count(const ScriptSig* sig) { return sig->argCount; }
 
 ScriptSigArg script_sig_arg(const ScriptSig* sig, const u8 index) {
-  diag_assert_msg(index < script_sig_arg_count_max, "Argument index exceeds maximum");
+  diag_assert_msg(index < sig->argCount, "Argument index exceeds maximum");
 
   const u16 offset = sig->argOffsets[index];
   diag_assert_msg(!sentinel_check(offset), "Argument index out of bounds");

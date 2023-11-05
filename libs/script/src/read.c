@@ -1113,7 +1113,8 @@ static void read_emit_invalid_args(
     return;
   }
 
-  for (u8 i = 0; i != argCount; ++i) {
+  const u8 argsToValidate = math_min(argCount, script_sig_arg_count(sig));
+  for (u8 i = 0; i != argsToValidate; ++i) {
     const ScriptSigArg arg = script_sig_arg(sig, i);
     if (arg.mask == script_mask_any) {
       continue; // Any value is valid; no need to validate.
