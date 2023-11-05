@@ -93,8 +93,11 @@ i32 script_arg_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, Scr
 
 f64 script_arg_opt_num(const ScriptArgs args, const u16 i, const f64 def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Num)) {
+    if (val_type(args.values[i]) == ScriptType_Num) {
       return val_as_num(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), 0.0;
   }
@@ -109,12 +112,15 @@ f64 script_arg_opt_num_range(
     const f64        def,
     ScriptError*     err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Num)) {
+    if (val_type(args.values[i]) == ScriptType_Num) {
       const f64 res = val_as_num(args.values[i]);
       if (LIKELY(res >= min && res < max)) {
         return res;
       }
       return *err = script_error_arg(ScriptError_ArgumentOutOfRange, i), 0.0;
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), 0.0;
   }
@@ -123,8 +129,11 @@ f64 script_arg_opt_num_range(
 
 bool script_arg_opt_bool(const ScriptArgs args, const u16 i, const bool def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Bool)) {
+    if (val_type(args.values[i]) == ScriptType_Bool) {
       return val_as_bool(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), false;
   }
@@ -134,8 +143,11 @@ bool script_arg_opt_bool(const ScriptArgs args, const u16 i, const bool def, Scr
 GeoVector
 script_arg_opt_vec3(const ScriptArgs args, const u16 i, const GeoVector def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Vec3)) {
+    if (val_type(args.values[i]) == ScriptType_Vec3) {
       return val_as_vec3(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), geo_vector(0);
   }
@@ -145,8 +157,11 @@ script_arg_opt_vec3(const ScriptArgs args, const u16 i, const GeoVector def, Scr
 GeoQuat
 script_arg_opt_quat(const ScriptArgs args, const u16 i, const GeoQuat def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Quat)) {
+    if (val_type(args.values[i]) == ScriptType_Quat) {
       return val_as_quat(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), geo_quat_ident;
   }
@@ -156,8 +171,11 @@ script_arg_opt_quat(const ScriptArgs args, const u16 i, const GeoQuat def, Scrip
 EcsEntityId
 script_arg_opt_entity(const ScriptArgs args, const u16 i, const EcsEntityId def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Entity)) {
+    if (val_type(args.values[i]) == ScriptType_Entity) {
       return val_as_entity(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), 0;
   }
@@ -167,8 +185,11 @@ script_arg_opt_entity(const ScriptArgs args, const u16 i, const EcsEntityId def,
 StringHash
 script_arg_opt_str(const ScriptArgs args, const u16 i, const StringHash def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Str)) {
+    if (val_type(args.values[i]) == ScriptType_Str) {
       return val_as_str(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), 0;
   }
@@ -178,8 +199,11 @@ script_arg_opt_str(const ScriptArgs args, const u16 i, const StringHash def, Scr
 TimeDuration
 script_arg_opt_time(const ScriptArgs args, const u16 i, const TimeDuration def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Num)) {
+    if (val_type(args.values[i]) == ScriptType_Num) {
       return (TimeDuration)time_seconds(val_as_num(args.values[i]));
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), 0;
   }
@@ -189,8 +213,11 @@ script_arg_opt_time(const ScriptArgs args, const u16 i, const TimeDuration def, 
 i32 script_arg_opt_enum(
     const ScriptArgs args, const u16 i, const ScriptEnum* e, const i32 def, ScriptError* err) {
   if (args.count > i) {
-    if (LIKELY(val_type(args.values[i]) == ScriptType_Str)) {
+    if (val_type(args.values[i]) == ScriptType_Str) {
       return script_enum_lookup_value(e, val_as_str(args.values[i]), err);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
     }
     return *err = script_arg_err(args, i), 0;
   }
