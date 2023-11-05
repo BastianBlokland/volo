@@ -244,3 +244,7 @@ EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, c
   ecs_world_add_t(world, viewerEntity, DebugLogViewerComp, .mask = mask);
   return viewerEntity;
 }
+
+void debug_log_viewer_set_mask(DebugLogViewerComp* viewer, const LogMask mask) {
+  viewer->mask = mask;
+}
