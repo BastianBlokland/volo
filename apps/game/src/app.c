@@ -500,7 +500,7 @@ ecs_system_define(AppUpdateSys) {
       break;
     case AppMode_Debug:
       if (!appWindow->debugMenu)      { appWindow->debugMenu = debug_menu_create(world, windowEntity); }
-      if (!appWindow->debugLogViewer) { appWindow->debugLogViewer = debug_log_viewer_create(world, windowEntity); }
+      if (!appWindow->debugLogViewer) { appWindow->debugLogViewer = debug_log_viewer_create(world, windowEntity, LogMask_All); }
       if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Full); }
       input_layer_enable(input, string_hash_lit("Debug"));
       input_layer_disable(input, string_hash_lit("Game"));
