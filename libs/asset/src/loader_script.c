@@ -295,7 +295,7 @@ static void script_binder_init() {
       const String       doc    = string_lit("Log the given values.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
-          {string_lit("v"), script_mask_any},
+          {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
       };
       script_bind(binder, name, doc, ret, args, array_elems(args));
     }

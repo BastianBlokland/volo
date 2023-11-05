@@ -1028,9 +1028,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(doc->scriptSyms, callSym),
-      .doc       = script_sym_doc(doc->scriptSyms, callSym),
-      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+          .label     = script_sym_label(doc->scriptSyms, callSym),
+          .doc       = script_sym_doc(doc->scriptSyms, callSym),
+          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1436,7 +1436,7 @@ static ScriptBinder* lsp_script_binder_create() {
     const String       name   = string_lit("debug_log");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
-        {string_lit("v"), script_mask_any},
+        {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
     script_bind(binder, name, ret, args, array_elems(args));
   }
