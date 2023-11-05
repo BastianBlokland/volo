@@ -124,6 +124,9 @@ void script_sig_arg_write(const ScriptSig* sig, const u8 index, DynString* str) 
     dynstring_append(str, string_lit(": "));
     script_mask_write(arg.mask, str);
   }
+  if (arg.flags & ScriptSigArgFlags_Multi) {
+    dynstring_append(str, string_lit("..."));
+  }
 }
 
 String script_sig_arg_scratch(const ScriptSig* sig, const u8 index) {
