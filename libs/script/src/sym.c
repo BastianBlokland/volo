@@ -223,6 +223,7 @@ ScriptSym script_sym_push_builtin_func(
 ScriptSym script_sym_push_extern_func(
     ScriptSymBag*          bag,
     const String           label,
+    const String           doc,
     const ScriptBinderSlot binderSlot,
     const ScriptSig*       sig) {
   diag_assert(!string_is_empty(label));
@@ -232,6 +233,7 @@ ScriptSym script_sym_push_extern_func(
       &(ScriptSymData){
           .kind                       = ScriptSymKind_ExternFunction,
           .label                      = string_dup(bag->alloc, label),
+          .doc                        = string_maybe_dup(bag->alloc, doc),
           .data.externFunc.binderSlot = binderSlot,
           .data.externFunc.sig        = sig ? script_sig_clone(bag->alloc, sig) : null,
       });
