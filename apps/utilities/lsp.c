@@ -1020,9 +1020,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(doc->scriptSyms, callSym),
-          .doc       = script_sym_doc(doc->scriptSyms, callSym),
-          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+      .label     = script_sym_label(doc->scriptSyms, callSym),
+      .doc       = script_sym_doc(doc->scriptSyms, callSym),
+      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1179,39 +1179,263 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   }
 }
 
+static void script_bind(
+    ScriptBinder*      binder,
+    const String       name,
+    const ScriptMask   retMask,
+    const ScriptSigArg args[],
+    const u8           argCount) {
+  const ScriptSig* sig = script_sig_create(g_alloc_scratch, retMask, args, argCount);
+  script_binder_declare(binder, name, sig, null);
+}
+
 static ScriptBinder* lsp_script_binder_create() {
   ScriptBinder* binder = script_binder_create(g_alloc_heap);
 
   // TODO: Instead of manually listing the supported bindings here we should read them from a file.
-  script_binder_declare(binder, string_lit("self"), null, null);
-  script_binder_declare(binder, string_lit("exists"), null, null);
-  script_binder_declare(binder, string_lit("position"), null, null);
-  script_binder_declare(binder, string_lit("rotation"), null, null);
-  script_binder_declare(binder, string_lit("scale"), null, null);
-  script_binder_declare(binder, string_lit("name"), null, null);
-  script_binder_declare(binder, string_lit("faction"), null, null);
-  script_binder_declare(binder, string_lit("health"), null, null);
-  script_binder_declare(binder, string_lit("time"), null, null);
-  script_binder_declare(binder, string_lit("nav_query"), null, null);
-  script_binder_declare(binder, string_lit("nav_target"), null, null);
-  script_binder_declare(binder, string_lit("line_of_sight"), null, null);
-  script_binder_declare(binder, string_lit("capable"), null, null);
-  script_binder_declare(binder, string_lit("active"), null, null);
-  script_binder_declare(binder, string_lit("target_primary"), null, null);
-  script_binder_declare(binder, string_lit("target_range_min"), null, null);
-  script_binder_declare(binder, string_lit("target_range_max"), null, null);
-  script_binder_declare(binder, string_lit("spawn"), null, null);
-  script_binder_declare(binder, string_lit("destroy"), null, null);
-  script_binder_declare(binder, string_lit("destroy_after"), null, null);
-  script_binder_declare(binder, string_lit("teleport"), null, null);
-  script_binder_declare(binder, string_lit("nav_travel"), null, null);
-  script_binder_declare(binder, string_lit("nav_stop"), null, null);
-  script_binder_declare(binder, string_lit("attach"), null, null);
-  script_binder_declare(binder, string_lit("detach"), null, null);
-  script_binder_declare(binder, string_lit("damage"), null, null);
-  script_binder_declare(binder, string_lit("attack"), null, null);
-  script_binder_declare(binder, string_lit("debug_log"), null, null);
-  script_binder_declare(binder, string_lit("debug_break"), null, null);
+  {
+    const String     name = string_lit("self");
+    const ScriptMask ret  = script_mask_entity;
+    script_bind(binder, name, ret, null, 0);
+  }
+  {
+    const String       name   = string_lit("exists");
+    const ScriptMask   ret    = script_mask_bool;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("position");
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("rotation");
+    const ScriptMask   ret    = script_mask_quat | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("scale");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("name");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("faction");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("health");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("time");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("type"), script_mask_str},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("nav_query");
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("pos"), script_mask_vec3},
+        {string_lit("type"), script_mask_str},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("nav_target");
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_entity | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("line_of_sight");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("src"), script_mask_entity},
+        {string_lit("dst"), script_mask_entity},
+        {string_lit("radius"), script_mask_num},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("capable");
+    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("capability"), script_mask_str},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("active");
+    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("activity"), script_mask_str},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("target_primary");
+    const ScriptMask   ret    = script_mask_entity | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("target_range_min");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("target_range_max");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("spawn");
+    const ScriptMask   ret    = script_mask_entity | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("prefabId"), script_mask_str},
+        {string_lit("pos"), script_mask_vec3},
+        {string_lit("rot"), script_mask_quat},
+        {string_lit("scale"), script_mask_num},
+        {string_lit("faction"), script_mask_str},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("destroy");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("destroy_after");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("ownerOrDelay"), script_mask_entity | script_mask_time},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("teleport");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("pos"), script_mask_vec3},
+        {string_lit("rot"), script_mask_quat},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("nav_travel");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("target"), script_mask_entity | script_mask_vec3},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("nav_stop");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("attach");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("target"), script_mask_entity},
+        {string_lit("jointName"), script_mask_str},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("detach");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("damage");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("amount"), script_mask_num},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("attack");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+        {string_lit("target"), script_mask_entity | script_mask_null},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("debug_log");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_any},
+    };
+    script_bind(binder, name, ret, args, array_elems(args));
+  }
+  {
+    const String     name = string_lit("debug_break");
+    const ScriptMask ret  = script_mask_null;
+    script_bind(binder, name, ret, null, 0);
+  }
 
   script_binder_finalize(binder);
   return binder;
