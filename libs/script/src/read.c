@@ -1082,6 +1082,31 @@ static ScriptExpr read_expr_mem_modify(
   return script_add_mem_store(ctx->doc, range, key, intrExpr);
 }
 
+static void read_emit_invalid_args(
+    ScriptReadContext* ctx, const u16 argCount, const ScriptRange range, const ScriptSig* sig) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagSeverity_Warning)) {
+    return;
+  }
+  if (argCount < script_sig_arg_min_count(sig)) {
+    const ScriptDiag tooFewArgsDiag = {
+        .severity = ScriptDiagSeverity_Warning,
+        .kind     = ScriptDiag_TooFewArguments,
+        .range    = range,
+    };
+    script_diag_push(ctx->diags, &tooFewArgsDiag);
+    return;
+  }
+  if (argCount > script_sig_arg_max_count(sig)) {
+    const ScriptDiag tooManyArgsDiag = {
+        .severity = ScriptDiagSeverity_Warning,
+        .kind     = ScriptDiag_TooManyArguments,
+        .range    = range,
+    };
+    script_diag_push(ctx->diags, &tooManyArgsDiag);
+    return;
+  }
+}
+
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
@@ -1121,22 +1146,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
     if (!sentinel_check(externFunc)) {
 
       const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
-      if (ctx->diags && script_diag_active(ctx->diags, ScriptDiagSeverity_Warning) && sig) {
-        if (argCount < script_sig_arg_min_count(sig)) {
-          const ScriptDiag tooFewArgsDiag = {
-              .severity = ScriptDiagSeverity_Warning,
-              .kind     = ScriptDiag_TooFewArguments,
-              .range    = callRange,
-          };
-          script_diag_push(ctx->diags, &tooFewArgsDiag);
-        } else if (argCount > script_sig_arg_max_count(sig)) {
-          const ScriptDiag tooManyArgsDiag = {
-              .severity = ScriptDiagSeverity_Warning,
-              .kind     = ScriptDiag_TooManyArguments,
-              .range    = callRange,
-          };
-          script_diag_push(ctx->diags, &tooManyArgsDiag);
-        }
+      if (sig) {
+        read_emit_invalid_args(ctx, (u16)argCount, callRange, sig);
       }
 
       diag_assert((u32)argCount < u16_max);
