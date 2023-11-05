@@ -127,6 +127,15 @@ u8 script_sig_arg_min_count(const ScriptSig* sig) {
   return minCount;
 }
 
+u8 script_sig_arg_max_count(const ScriptSig* sig) {
+  for (u8 i = 0; i != sig->argCount; ++i) {
+    if (script_sig_arg(sig, i).flags & ScriptSigArgFlags_Multi) {
+      return u8_max;
+    }
+  }
+  return sig->argCount;
+}
+
 void script_sig_arg_write(const ScriptSig* sig, const u8 index, DynString* str) {
   const ScriptSigArg arg = script_sig_arg(sig, index);
   dynstring_append(str, arg.name);

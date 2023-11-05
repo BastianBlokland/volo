@@ -34,6 +34,7 @@ u8           script_sig_arg_count(const ScriptSig*);
 ScriptSigArg script_sig_arg(const ScriptSig* sig, u8 index);
 
 u8 script_sig_arg_min_count(const ScriptSig*);
+u8 script_sig_arg_max_count(const ScriptSig*);
 
 void   script_sig_arg_write(const ScriptSig*, u8 index, DynString*);
 String script_sig_arg_scratch(const ScriptSig*, u8 index);

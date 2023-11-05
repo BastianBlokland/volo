@@ -1121,7 +1121,7 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
     if (!sentinel_check(externFunc)) {
 
       const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
-      if (ctx->diags && sig) {
+      if (ctx->diags && script_diag_active(ctx->diags, ScriptDiagSeverity_Warning) && sig) {
         if (argCount < script_sig_arg_min_count(sig)) {
           const ScriptDiag tooFewArgsDiag = {
               .severity = ScriptDiagSeverity_Warning,
@@ -1129,6 +1129,13 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
               .range    = callRange,
           };
           script_diag_push(ctx->diags, &tooFewArgsDiag);
+        } else if (argCount > script_sig_arg_max_count(sig)) {
+          const ScriptDiag tooManyArgsDiag = {
+              .severity = ScriptDiagSeverity_Warning,
+              .kind     = ScriptDiag_TooManyArguments,
+              .range    = callRange,
+          };
+          script_diag_push(ctx->diags, &tooManyArgsDiag);
         }
       }
 
