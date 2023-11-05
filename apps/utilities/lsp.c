@@ -366,7 +366,11 @@ static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionI
     json_add_field_lit(ctx->jDoc, obj, "labelDetails", labelDetailsObj);
   }
   if (!string_is_empty(item->doc)) {
-    json_add_field_lit(ctx->jDoc, obj, "documentation", json_add_string(ctx->jDoc, item->doc));
+    const JsonVal docMarkupObj = json_add_object(ctx->jDoc);
+    json_add_field_lit(ctx->jDoc, docMarkupObj, "value", json_add_string(ctx->jDoc, item->doc));
+    json_add_field_lit(ctx->jDoc, docMarkupObj, "kind", json_add_string_lit(ctx->jDoc, "markdown"));
+
+    json_add_field_lit(ctx->jDoc, obj, "documentation", docMarkupObj);
   }
   json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
   json_add_field_lit(ctx->jDoc, obj, "commitCharacters", commitCharsArr);
