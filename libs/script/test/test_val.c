@@ -201,7 +201,7 @@ spec(val) {
         {script_mask_quat, string_lit("quat")},
         {script_mask_entity, string_lit("entity")},
         {script_mask_str, string_lit("str")},
-        {script_mask_null | script_mask_num, string_lit("null | num")},
+        {script_mask_null | script_mask_num, string_lit("num?")},
         {
             script_mask_null | script_mask_num | script_mask_str,
             string_lit("null | num | str"),
