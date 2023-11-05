@@ -19,25 +19,28 @@ static void test_sort_i32_index_swap(void* ctx, const usize a, const usize b) {
 
 spec(sort) {
 
+  enum { MaxElemCount = 20 };
+
   struct {
     usize size;
-    i32*  values;
-    i32*  expected;
+    i32   values[MaxElemCount];
+    i32   expected[MaxElemCount];
   } const i32Data[] = {
-      {1, (i32[]){1}, (i32[]){1}},
-      {2, (i32[]){2, 1}, (i32[]){1, 2}},
-      {5, (i32[]){1, 2, 3, 4, 5}, (i32[]){1, 2, 3, 4, 5}},
-      {5, (i32[]){5, 4, 3, 2, 1}, (i32[]){1, 2, 3, 4, 5}},
-      {5, (i32[]){5, 2, 4, 1, 3}, (i32[]){1, 2, 3, 4, 5}},
-      {5, (i32[]){1, 1, 1, 1, 1}, (i32[]){1, 1, 1, 1, 1}},
-      {5, (i32[]){1, 1, 1, 2, 1}, (i32[]){1, 1, 1, 1, 2}},
-      {9, (i32[]){2, 3, 0, 1, -3, 4, -2, -1, -4}, (i32[]){-4, -3, -2, -1, 0, 1, 2, 3, 4}},
+      {1, {1}, {1}},
+      {2, {2, 1}, {1, 2}},
+      {5, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}},
+      {5, {5, 4, 3, 2, 1}, {1, 2, 3, 4, 5}},
+      {5, {5, 2, 4, 1, 3}, {1, 2, 3, 4, 5}},
+      {5, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+      {5, {1, 1, 1, 2, 1}, {1, 1, 1, 1, 2}},
+      {9, {2, 3, 0, 1, -3, 4, -2, -1, -4}, {-4, -3, -2, -1, 0, 1, 2, 3, 4}},
       {20,
-       (i32[]){3, 16, 6, 5, 9, 15, 10, 4, 17, 13, 7, 1, 8, 20, 12, 14, 11, 19, 2, 18},
-       (i32[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}},
+       {3, 16, 6, 5, 9, 15, 10, 4, 17, 13, 7, 1, 8, 20, 12, 14, 11, 19, 2, 18},
+       {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}},
   };
 
   it("can sort i32 integers") {
+
     for (usize i = 0; i != array_elems(i32Data); ++i) {
       sort_quicksort_t(i32Data[i].values, i32Data[i].values + i32Data[i].size, i32, compare_i32);
 
@@ -48,42 +51,38 @@ spec(sort) {
   }
 
   struct {
-    usize   size;
-    String* values;
-    String* expected;
+    usize  size;
+    String values[MaxElemCount];
+    String expected[MaxElemCount];
   } const stringData[] = {
       {5,
-       (String[]){
-           string_lit("B"), string_lit("E"), string_lit("A"), string_lit("C"), string_lit("D")},
-       (String[]){
-           string_lit("A"), string_lit("B"), string_lit("C"), string_lit("D"), string_lit("E")}},
+       {string_lit("B"), string_lit("E"), string_lit("A"), string_lit("C"), string_lit("D")},
+       {string_lit("A"), string_lit("B"), string_lit("C"), string_lit("D"), string_lit("E")}},
       {12,
-       (String[]){
-           string_lit("January"),
-           string_lit("February"),
-           string_lit("March"),
-           string_lit("April"),
-           string_lit("May"),
-           string_lit("June"),
-           string_lit("July"),
-           string_lit("August"),
-           string_lit("September"),
-           string_lit("October"),
-           string_lit("November"),
-           string_lit("December")},
-       (String[]){
-           string_lit("April"),
-           string_lit("August"),
-           string_lit("December"),
-           string_lit("February"),
-           string_lit("January"),
-           string_lit("July"),
-           string_lit("June"),
-           string_lit("March"),
-           string_lit("May"),
-           string_lit("November"),
-           string_lit("October"),
-           string_lit("September")}},
+       {string_lit("January"),
+        string_lit("February"),
+        string_lit("March"),
+        string_lit("April"),
+        string_lit("May"),
+        string_lit("June"),
+        string_lit("July"),
+        string_lit("August"),
+        string_lit("September"),
+        string_lit("October"),
+        string_lit("November"),
+        string_lit("December")},
+       {string_lit("April"),
+        string_lit("August"),
+        string_lit("December"),
+        string_lit("February"),
+        string_lit("January"),
+        string_lit("July"),
+        string_lit("June"),
+        string_lit("March"),
+        string_lit("May"),
+        string_lit("November"),
+        string_lit("October"),
+        string_lit("September")}},
   };
 
   it("can sort strings") {
@@ -100,7 +99,7 @@ spec(sort) {
   it("can sort i32 integers using indices") {
     for (usize i = 0; i != array_elems(i32Data); ++i) {
       sort_index_quicksort(
-          i32Data[i].values,
+          (void*)i32Data[i].values,
           0,
           i32Data[i].size,
           test_sort_i32_index_compare,
