@@ -16,12 +16,12 @@ static ScriptBinder* g_scriptBinder;
 static void script_bind(
     ScriptBinder*      binder,
     const String       name,
+    const String       doc,
     const ScriptMask   retMask,
     const ScriptSigArg args[],
     const u8           argCount) {
-  const String     documentation = string_empty;
-  const ScriptSig* sig           = script_sig_create(g_alloc_scratch, retMask, args, argCount);
-  script_binder_declare(binder, name, documentation, sig, null);
+  const ScriptSig* sig = script_sig_create(g_alloc_scratch, retMask, args, argCount);
+  script_binder_declare(binder, name, doc, sig, null);
 }
 
 static void script_binder_init() {
@@ -32,146 +32,165 @@ static void script_binder_init() {
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
+    // clang-format off
     {
       const String     name = string_lit("self");
+      const String     doc  = string_lit("Return the entity that is executing the current script.");
       const ScriptMask ret  = script_mask_entity;
-      script_bind(binder, name, ret, null, 0);
+      script_bind(binder, name, doc, ret, null, 0);
     }
     {
       const String       name   = string_lit("exists");
+      const String       doc    = string_lit("Test if the given entity still exists.");
       const ScriptMask   ret    = script_mask_bool;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("position");
+      const String       doc    = string_lit("Lookup the position of the given entity.");
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("rotation");
+      const String       doc    = string_lit("Lookup the rotation of the given entity.");
       const ScriptMask   ret    = script_mask_quat | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("scale");
+      const String       doc    = string_lit("Lookup the scale of the given entity.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("name");
+      const String       doc    = string_lit("Lookup the name of the given entity.");
       const ScriptMask   ret    = script_mask_str | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("faction");
+      const String       doc    = string_lit("Lookup the faction of the given entity.");
       const ScriptMask   ret    = script_mask_str | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("health");
+      const String       doc    = string_lit("Lookup the health points of the given entity.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("time");
+      const String       doc    = string_lit("Lookup the current time.\n\nSupported clocks:\n-`Time`\n-`RealTime`\n-`Delta`\n-`RealDelta`\n-`Ticks`");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
-          {string_lit("type"), script_mask_str},
+          {string_lit("clock"), script_mask_str},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_query");
+      const String       doc    = string_lit("Find a navigation position.\n\nSupported queries:\n-`ClosestCell`\n-`UnblockedCell`\n-`FreeCell`");
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
-          {string_lit("type"), script_mask_str},
+          {string_lit("query"), script_mask_str},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_target");
+      const String       doc    = string_lit("Lookup the current navigation target of the given entity. Either a position or an entity.");
       const ScriptMask   ret    = script_mask_vec3 | script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("line_of_sight");
+      const String       doc    = string_lit("Test if there is a clear line of sight between the given entities.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("src"), script_mask_entity},
           {string_lit("dst"), script_mask_entity},
           {string_lit("radius"), script_mask_num},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("capable");
+      const String       doc    = string_lit("Test if the given entity has a specific capability.\n\nSupported capabilities:\n-`NavTravel`\n-`Attack`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("capability"), script_mask_str},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("active");
+      const String       doc    = string_lit("Test if the given entity is performing an activity.\n\nSupported activities:\n-`Moving`\n-`Traveling`\n-`Attacking`\n-`Firing`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("activity"), script_mask_str},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("target_primary");
+      const String       doc    = string_lit("Lookup the primary target of the given entity.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("target_range_min");
+      const String       doc    = string_lit("Lookup the minimum targeting range of the given entity.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("target_range_max");
+      const String       doc    = string_lit("Lookup the maximum targeting range of the given entity.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("spawn");
+      const String       doc    = string_lit("Spawn a prefab.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("prefabId"), script_mask_str},
@@ -180,101 +199,113 @@ static void script_binder_init() {
           {string_lit("scale"), script_mask_num},
           {string_lit("faction"), script_mask_str},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("destroy");
+      const String       doc    = string_lit("Destroy the given entity.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("destroy_after");
+      const String       doc    = string_lit("Destroy the given entity after a delay.\n\nNOTE: When providing an entity it will wait until the entity no longer exists.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
-          {string_lit("ownerOrDelay"), script_mask_entity | script_mask_time},
+          {string_lit("delay"), script_mask_entity | script_mask_time},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("teleport");
+      const String       doc    = string_lit("Teleport the given entity.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("pos"), script_mask_vec3},
           {string_lit("rot"), script_mask_quat},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_travel");
+      const String       doc    = string_lit("Instruct the given entity to travel to a target location or entity.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity | script_mask_vec3},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_stop");
+      const String       doc    = string_lit("Instruct the given entity to stop traveling.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("attach");
+      const String       doc    = string_lit("Attach the given entity to another entity (optionally at a specific joint).");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity},
-          {string_lit("jointName"), script_mask_str},
+          {string_lit("jointName"), script_mask_str | script_mask_null},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("detach");
+      const String       doc    = string_lit("Detach the given entity from all other entities.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("damage");
+      const String       doc    = string_lit("Deal damage to the given entity.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("amount"), script_mask_num},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("attack");
+      const String       doc    = string_lit("Instruct the given entity to attack another entity.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity | script_mask_null},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("debug_log");
+      const String       doc    = string_lit("Log the given values.");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_any},
       };
-      script_bind(binder, name, ret, args, array_elems(args));
+      script_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String     name = string_lit("debug_break");
+      const String     doc  = string_lit("Break into the debugger if there is one attached.");
       const ScriptMask ret  = script_mask_null;
-      script_bind(binder, name, ret, null, 0);
+      script_bind(binder, name, doc, ret, null, 0);
     }
+    // clang-format on
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
