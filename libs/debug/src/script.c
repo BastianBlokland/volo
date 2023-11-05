@@ -22,7 +22,8 @@
 
 #define output_max_age time_seconds(60)
 
-static const String g_tooltipOpenScript = string_static("Open script in external editor.");
+static const String g_tooltipOpenScript   = string_static("Open script in external editor.");
+static const String g_tooltipSelectEntity = string_static("Select the entity.");
 
 typedef enum {
   DebugScriptTab_Info,
@@ -531,7 +532,7 @@ static void output_panel_tab_draw(
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
-            .tooltip    = string_lit("Select."))) {
+            .tooltip    = g_tooltipSelectEntity)) {
       scene_selection_clear(selection);
       scene_selection_add(selection, entry->entity);
     }
