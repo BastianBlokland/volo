@@ -6,7 +6,7 @@
  * Select a pivot to partition on.
  * At the moment we always use the center element as the pivot.
  */
-static Mem quicksort_pivot(u8* begin, u8* end, u16 stride) {
+INLINE_HINT static Mem quicksort_pivot(u8* begin, u8* end, u16 stride) {
   const usize elems = (end - begin) / stride;
   return mem_create(begin + elems / 2 * stride, stride);
 }
@@ -84,4 +84,71 @@ void sort_bubblesort(u8* begin, u8* end, u16 stride, CompareFunc compare) {
     }
     len = newLen;
   }
+}
+
+/**
+ * Select a pivot to partition on.
+ * At the moment we always use the center element as the pivot.
+ */
+INLINE_HINT static usize index_quicksort_pivot(const usize begin, const usize end) {
+  return begin + (end - begin) / 2;
+}
+
+/**
+ * Partition the given range so that the elements before the returned partition point are less then
+ * the partition-point and the elements after it are not-less.
+ *
+ * Hoare's partition scheme:
+ * - https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
+ */
+static usize index_quicksort_partition(
+    void* ctx, usize begin, usize end, SortIndexCompare compare, SortIndexSwap swap) {
+  // Choose a pivot.
+  usize pivot = index_quicksort_pivot(begin, end);
+
+  while (true) {
+
+    // Skip over elements at the start that are correctly placed (less then the partition point).
+    while (compare(ctx, begin, pivot) < 0) {
+      ++begin;
+    }
+
+    // Skip over elements at the end that are correctly placed (not less then the partition point).
+    do {
+      --end;
+    } while (compare(ctx, end, pivot) > 0);
+
+    // If both ends meet then the partition is finished.
+    if (begin >= end) {
+      return begin;
+    }
+
+    // Begin is less then end, so swap them.
+    swap(ctx, begin, end);
+
+    // Patch up the pivot index in case it was moved.
+    if (begin == pivot) {
+      pivot = end;
+    } else if (end == pivot) {
+      pivot = begin;
+    }
+
+    ++begin;
+  }
+}
+
+void sort_index_quicksort(
+    void* ctx, const usize begin, const usize end, SortIndexCompare compare, SortIndexSwap swap) {
+  if ((end - begin) < 2) {
+    return; // Less then 2 items, nothing to do.
+  }
+
+  /**
+   * Details on the algorithm:
+   * - https://en.wikipedia.org/wiki/Quicksort
+   */
+
+  const usize partition = index_quicksort_partition(ctx, begin, end, compare, swap);
+  sort_index_quicksort(ctx, begin, partition, compare, swap);
+  sort_index_quicksort(ctx, partition, end, compare, swap);
 }

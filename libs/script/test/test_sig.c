@@ -98,7 +98,7 @@ spec(sig) {
     const ScriptMask ret = script_mask_null | script_mask_bool;
     ScriptSig*       sig = script_sig_create(g_alloc_scratch, ret, null, 0);
 
-    check_eq_string(script_sig_scratch(sig), string_lit("() -> null | bool"));
+    check_eq_string(script_sig_scratch(sig), string_lit("() -> bool?"));
 
     script_sig_destroy(sig);
   }
@@ -129,12 +129,16 @@ spec(sig) {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_num},
         {.name = string_lit("argB"), .mask = script_mask_null},
-        {.name = string_lit("argC"), .mask = script_mask_null | script_mask_vec3},
+        {
+            .name  = string_lit("argC"),
+            .mask  = script_mask_null | script_mask_vec3,
+            .flags = ScriptSigArgFlags_Multi,
+        },
     };
     ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
 
     check_eq_string(
-        script_sig_scratch(sig), string_lit("(argA: num, argB: null, argC: null | vec3) -> any"));
+        script_sig_scratch(sig), string_lit("(argA: num, argB, argC: vec3?...) -> any"));
 
     script_sig_destroy(sig);
   }
@@ -143,11 +147,11 @@ spec(sig) {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_none},
         {.name = string_lit("argB"), .mask = script_mask_none},
-        {.name = string_lit("argC"), .mask = script_mask_none},
+        {.name = string_lit("argC"), .mask = script_mask_none, .flags = ScriptSigArgFlags_Multi},
     };
     ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_none, args, array_elems(args));
 
-    check_eq_string(script_sig_scratch(sig), string_lit("(argA, argB, argC)"));
+    check_eq_string(script_sig_scratch(sig), string_lit("(argA, argB, argC...)"));
 
     script_sig_destroy(sig);
   }

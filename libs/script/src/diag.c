@@ -49,6 +49,9 @@ static const String g_diagKindStrs[] = {
     string_static("Expression has no effect"),
     string_static("Unreachable expressions"),
     string_static("Condition expression is static"),
+    string_static("Too few arguments"),
+    string_static("Too many arguments"),
+    string_static("Invalid value for argument"),
 };
 ASSERT(array_elems(g_diagKindStrs) == ScriptDiagKind_Count, "Incorrect number of kind strs");
 
@@ -62,8 +65,8 @@ struct sScriptDiagBag {
 ScriptDiagBag* script_diag_bag_create(Allocator* alloc, const ScriptDiagFilter filter) {
   ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
   *bag               = (ScriptDiagBag){
-      .alloc  = alloc,
-      .filter = filter,
+                    .alloc  = alloc,
+                    .filter = filter,
   };
   return bag;
 }

@@ -91,6 +91,7 @@ ScriptExprKind script_expr_kind(const ScriptDoc*, ScriptExpr);
 ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
+ScriptVal      script_expr_static_val(const ScriptDoc*, ScriptExpr);
 bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
 
 typedef bool (*ScriptPred)(void* ctx, const ScriptDoc*, ScriptExpr);

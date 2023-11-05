@@ -181,7 +181,7 @@ String script_val_scratch(const ScriptVal value) {
   return res;
 }
 
-void script_mask_write(const ScriptMask mask, DynString* str) {
+void script_mask_write(ScriptMask mask, DynString* str) {
   if (mask == script_mask_any) {
     dynstring_append(str, string_lit("any"));
     return;
@@ -190,6 +190,14 @@ void script_mask_write(const ScriptMask mask, DynString* str) {
     dynstring_append(str, string_lit("none"));
     return;
   }
+  if ((mask & (1 << ScriptType_Null)) && intrinsic_popcnt_32(mask) == 2) {
+    mask ^= 1 << ScriptType_Null; // Clear the null bit.
+    const ScriptType type = (ScriptType)bitset_next(bitset_from_var(mask), 0);
+    dynstring_append(str, script_val_type_str(type));
+    dynstring_append_char(str, '?');
+    return;
+  }
+
   bool first = true;
   bitset_for(bitset_from_var(mask), typeIndex) {
     if (!first) {

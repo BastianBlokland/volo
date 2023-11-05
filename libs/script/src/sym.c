@@ -16,6 +16,7 @@ typedef struct {
 
 typedef struct {
   ScriptBinderSlot binderSlot;
+  ScriptSig*       sig;
 } ScriptSymExternFunc;
 
 typedef struct {
@@ -163,6 +164,10 @@ void script_sym_bag_clear(ScriptSymBag* bag) {
       }
       break;
     case ScriptSymKind_ExternFunction:
+      if (sym->data.externFunc.sig) {
+        script_sig_destroy(sym->data.externFunc.sig);
+      }
+      break;
     case ScriptSymKind_Variable:
     case ScriptSymKind_MemoryKey:
     case ScriptSymKind_BuiltinConstant:
@@ -216,7 +221,11 @@ ScriptSym script_sym_push_builtin_func(
 }
 
 ScriptSym script_sym_push_extern_func(
-    ScriptSymBag* bag, const String label, const ScriptBinderSlot binderSlot) {
+    ScriptSymBag*          bag,
+    const String           label,
+    const String           doc,
+    const ScriptBinderSlot binderSlot,
+    const ScriptSig*       sig) {
   diag_assert(!string_is_empty(label));
 
   return sym_push(
@@ -224,7 +233,9 @@ ScriptSym script_sym_push_extern_func(
       &(ScriptSymData){
           .kind                       = ScriptSymKind_ExternFunction,
           .label                      = string_dup(bag->alloc, label),
+          .doc                        = string_maybe_dup(bag->alloc, doc),
           .data.externFunc.binderSlot = binderSlot,
+          .data.externFunc.sig        = sig ? script_sig_clone(bag->alloc, sig) : null,
       });
 }
 
@@ -293,6 +304,8 @@ const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
   switch (symData->kind) {
   case ScriptSymKind_BuiltinFunction:
     return symData->data.builtinFunc.sig;
+  case ScriptSymKind_ExternFunction:
+    return symData->data.externFunc.sig;
   default:
     break;
   }

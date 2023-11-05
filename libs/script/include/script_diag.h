@@ -54,6 +54,9 @@ typedef enum {
   ScriptDiag_ExprHasNoEffect,
   ScriptDiag_ExprUnreachable,
   ScriptDiag_ConditionExprStatic,
+  ScriptDiag_TooFewArguments,
+  ScriptDiag_TooManyArguments,
+  ScriptDiag_InvalidArgumentValue,
 
   ScriptDiagKind_Count,
 } ScriptDiagKind;

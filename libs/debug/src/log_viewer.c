@@ -104,13 +104,13 @@ DebugLogSink* debug_log_sink_create() {
 
   *sink = (DebugLogSink){
       .api      = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
-      .messages = dynarray_create_t(g_alloc_heap, DebugLogMessage, 64),
+      .messages = dynarray_create_t(g_alloc_heap, DebugLogMessage, 128),
   };
   return sink;
 }
 
 ecs_comp_define(DebugLogTrackerComp) { DebugLogSink* sink; };
-ecs_comp_define(DebugLogViewerComp);
+ecs_comp_define(DebugLogViewerComp) { LogMask mask; };
 
 static void ecs_destruct_log_tracker(void* data) {
   DebugLogTrackerComp* comp = data;
@@ -120,7 +120,7 @@ static void ecs_destruct_log_tracker(void* data) {
 ecs_view_define(LogTrackerGlobalView) { ecs_access_write(DebugLogTrackerComp); }
 
 ecs_view_define(LogViewerDrawView) {
-  ecs_access_with(DebugLogViewerComp);
+  ecs_access_read(DebugLogViewerComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -190,7 +190,8 @@ static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* 
       fmt_write_scratch("{}:{}", fmt_path(msg->srcLoc.file), fmt_int(msg->srcLoc.line)));
 }
 
-static void debug_log_draw_messages(UiCanvasComp* canvas, const DebugLogTrackerComp* tracker) {
+static void debug_log_draw_messages(
+    UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const LogMask mask) {
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(500, 0), UiBase_Absolute, Ui_X);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
@@ -200,8 +201,10 @@ static void debug_log_draw_messages(UiCanvasComp* canvas, const DebugLogTrackerC
   thread_spinlock_lock(&tracker->sink->messagesLock);
   {
     dynarray_for_t(&tracker->sink->messages, DebugLogMessage, msg) {
-      debug_log_draw_message(canvas, msg);
-      ui_layout_next(canvas, Ui_Down, 0);
+      if (mask & (1 << msg->lvl)) {
+        debug_log_draw_message(canvas, msg);
+        ui_layout_next(canvas, Ui_Down, 0);
+      }
     }
   }
   thread_spinlock_unlock(&tracker->sink->messagesLock);
@@ -215,17 +218,18 @@ ecs_system_define(DebugLogDrawSys) {
 
   EcsView* drawView = ecs_world_view_t(world, LogViewerDrawView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
+    const DebugLogViewerComp* viewer = ecs_view_read_t(itr, DebugLogViewerComp);
+    UiCanvasComp*             canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    ui_canvas_to_back(canvas);
-    debug_log_draw_messages(canvas, trackerGlobal);
+    ui_canvas_to_front(canvas); // Always draw logs on-top.
+    debug_log_draw_messages(canvas, trackerGlobal, viewer->mask);
   }
 }
 
 ecs_module_init(debug_log_viewer_module) {
   ecs_register_comp(DebugLogTrackerComp, .destructor = ecs_destruct_log_tracker);
-  ecs_register_comp_empty(DebugLogViewerComp);
+  ecs_register_comp(DebugLogViewerComp);
 
   ecs_register_view(LogTrackerGlobalView);
   ecs_register_view(LogViewerDrawView);
@@ -235,8 +239,12 @@ ecs_module_init(debug_log_viewer_module) {
       DebugLogDrawSys, ecs_view_id(LogTrackerGlobalView), ecs_view_id(LogViewerDrawView));
 }
 
-EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window) {
+EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
   const EcsEntityId viewerEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
-  ecs_world_add_empty_t(world, viewerEntity, DebugLogViewerComp);
+  ecs_world_add_t(world, viewerEntity, DebugLogViewerComp, .mask = mask);
   return viewerEntity;
+}
+
+void debug_log_viewer_set_mask(DebugLogViewerComp* viewer, const LogMask mask) {
+  viewer->mask = mask;
 }

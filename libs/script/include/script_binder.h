@@ -11,6 +11,9 @@ typedef union uScriptVal ScriptVal;
 // Forward declare from 'script_error.h'.
 typedef struct sScriptError ScriptError;
 
+// Forward declare from 'script_sig.h'.
+typedef struct sScriptSig ScriptSig;
+
 #define script_binder_slot_sentinel sentinel_u16
 
 typedef u16 ScriptBinderSlot;
@@ -23,23 +26,16 @@ typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs, ScriptError*);
  */
 typedef struct sScriptBinder ScriptBinder;
 
-/**
- * Create a new ScriptBinder instance.
- * Destroy using 'script_binder_destroy()'.
- */
 ScriptBinder* script_binder_create(Allocator*);
-
-/**
- * Destroy a ScriptBinder instance.
- */
-void script_binder_destroy(ScriptBinder*);
+void          script_binder_destroy(ScriptBinder*);
 
 /**
  * Declare a new function.
  * NOTE: Passing a null function is supported if the binder is only used for lookups.
  * Pre-condition: Binder has not been finalized.
  */
-void script_binder_declare(ScriptBinder*, String nameStr, ScriptBinderFunc);
+void script_binder_declare(
+    ScriptBinder*, String name, String doc, const ScriptSig* sig, ScriptBinderFunc);
 
 /**
  * Finalize the binder for lookups and execution.
@@ -66,13 +62,25 @@ ScriptBinderHash script_binder_hash(const ScriptBinder*);
  * NOTE: Returns 'script_binder_slot_sentinel' if no function was found with the given name.
  * Pre-condition: Binder has been finalized.
  */
-ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
+ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash nameHash);
 
 /**
- * Lookup a the  name for a slot.
+ * Lookup the name for a slot.
  * Pre-condition: Binder has been finalized.
  */
 String script_binder_name(const ScriptBinder*, ScriptBinderSlot);
+
+/**
+ * Lookup the documentation for a slot.
+ * Pre-condition: Binder has been finalized.
+ */
+String script_binder_doc(const ScriptBinder*, ScriptBinderSlot);
+
+/**
+ * Lookup the signature for a slot.
+ * Pre-condition: Binder has been finalized.
+ */
+const ScriptSig* script_binder_sig(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Iterate over the bound slots.

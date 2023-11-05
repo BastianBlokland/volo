@@ -33,3 +33,19 @@ void sort_quicksort(u8* begin, u8* end, u16 stride, CompareFunc);
  * Pre-condition: stride <= 128.
  */
 void sort_bubblesort(u8* begin, u8* end, u16 stride, CompareFunc);
+
+/**
+ * Index based sorting routines.
+ * Instead of operating directly on memory it operates on indices and leaves the memory operations
+ * up to the given callbacks, useful when entries are not stored linearly in memory.
+ */
+
+typedef i8 (*SortIndexCompare)(const void* ctx, usize a, usize b);
+typedef void (*SortIndexSwap)(void* ctx, usize a, usize b);
+typedef void (*SortIndexFunc)(void* ctx, usize begin, usize end, SortIndexCompare, SortIndexSwap);
+
+/**
+ * Sort elements according to the given compare function.
+ * NOTE: The sort is non-stable, meaning order of equal elements is NOT preserved.
+ */
+void sort_index_quicksort(void* ctx, usize begin, usize end, SortIndexCompare, SortIndexSwap);

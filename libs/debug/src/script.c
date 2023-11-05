@@ -22,6 +22,9 @@
 
 #define output_max_age time_seconds(60)
 
+static const String g_tooltipOpenScript   = string_static("Open script in external editor.");
+static const String g_tooltipSelectEntity = string_static("Select the entity.");
+
 typedef enum {
   DebugScriptTab_Info,
   DebugScriptTab_Memory,
@@ -113,6 +116,7 @@ ecs_view_define(AssetView) {
 ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
 static void info_panel_tab_draw(
+    EcsWorld*             world,
     UiCanvasComp*         canvas,
     DebugScriptPanelComp* panelComp,
     EcsIterator*          assetItr,
@@ -125,10 +129,13 @@ static void info_panel_tab_draw(
     return;
   }
 
-  const SceneScriptStats* stats = scene_script_stats(scriptInstance);
-  ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
-  const AssetComp* scriptAsset = ecs_view_read_t(assetItr, AssetComp);
-  const String     scriptId    = asset_id(scriptAsset);
+  const SceneScriptStats* stats             = scene_script_stats(scriptInstance);
+  const EcsEntityId       scriptAssetEntity = scene_script_asset(scriptInstance);
+  ecs_view_jump(assetItr, scriptAssetEntity);
+  const AssetComp* scriptAsset       = ecs_view_read_t(assetItr, AssetComp);
+  const bool       scriptAssetError  = ecs_world_has_t(world, scriptAssetEntity, AssetFailedComp);
+  const bool       scriptAssetLoaded = ecs_world_has_t(world, scriptAssetEntity, AssetLoadedComp);
+  const String     scriptId          = asset_id(scriptAsset);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -141,10 +148,22 @@ static void info_panel_tab_draw(
 
   ui_layout_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
-  if (ui_button(canvas, .label = string_lit("Open Script"))) {
+  if (ui_button(canvas, .label = string_lit("Open Script"), .tooltip = g_tooltipOpenScript)) {
     panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
   ui_layout_pop(canvas);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Status:"));
+  ui_table_next_column(canvas, &table);
+  if (scriptAssetError) {
+    ui_style_push(canvas);
+    ui_style_color(canvas, ui_color_red);
+    ui_label(canvas, string_lit("Invalid script"));
+    ui_style_pop(canvas);
+  } else {
+    ui_label(canvas, scriptAssetLoaded ? string_lit("Running") : string_lit("Loading script"));
+  }
 
   ui_table_next_row(canvas, &table);
   bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
@@ -513,7 +532,7 @@ static void output_panel_tab_draw(
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
-            .tooltip    = string_lit("Select."))) {
+            .tooltip    = g_tooltipSelectEntity)) {
       scene_selection_clear(selection);
       scene_selection_add(selection, entry->entity);
     }
@@ -531,7 +550,7 @@ static void output_panel_tab_draw(
         fmt_int(entry->range.end.column + 1));
 
     ui_table_next_column(canvas, &table);
-    if (ui_button(canvas, .label = locText, .noFrame = true)) {
+    if (ui_button(canvas, .label = locText, .noFrame = true, .tooltip = g_tooltipOpenScript)) {
       panelComp->editorReq =
           (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
@@ -544,6 +563,7 @@ static void output_panel_tab_draw(
 }
 
 static void script_panel_draw(
+    EcsWorld*               world,
     UiCanvasComp*           canvas,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
@@ -562,7 +582,7 @@ static void script_panel_draw(
   switch (panelComp->panel.activeTab) {
   case DebugScriptTab_Info:
     if (subjectItr) {
-      info_panel_tab_draw(canvas, panelComp, assetItr, subjectItr);
+      info_panel_tab_draw(world, canvas, panelComp, assetItr, subjectItr);
     } else {
       ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
@@ -664,7 +684,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(canvas, panelComp, tracker, selection, assetItr, subjectItr);
+    script_panel_draw(world, canvas, panelComp, tracker, selection, assetItr, subjectItr);
 
     debug_editor_update(panelComp, assetManager);
 
