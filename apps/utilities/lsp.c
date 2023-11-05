@@ -393,23 +393,27 @@ static JsonVal lsp_text_edit_to_json(LspContext* ctx, const LspTextEdit* edit) {
   return obj;
 }
 
-static JsonVal lsp_signature_to_json(LspContext* ctx, const LspSignature* signature) {
+static JsonVal lsp_signature_to_json(LspContext* ctx, const LspSignature* sig) {
   const JsonVal obj = json_add_object(ctx->jDoc);
 
-  const String text = fmt_write_scratch(
-      "{}{}", fmt_text(signature->label), fmt_text(script_sig_scratch(signature->scriptSig)));
+  const String text =
+      fmt_write_scratch("{}{}", fmt_text(sig->label), fmt_text(script_sig_scratch(sig->scriptSig)));
   json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, text));
 
-  if (!string_is_empty(signature->doc)) {
-    json_add_field_lit(ctx->jDoc, obj, "documentation", json_add_string(ctx->jDoc, signature->doc));
+  if (!string_is_empty(sig->doc)) {
+    const JsonVal docMarkupObj = json_add_object(ctx->jDoc);
+    json_add_field_lit(ctx->jDoc, docMarkupObj, "value", json_add_string(ctx->jDoc, sig->doc));
+    json_add_field_lit(ctx->jDoc, docMarkupObj, "kind", json_add_string_lit(ctx->jDoc, "markdown"));
+
+    json_add_field_lit(ctx->jDoc, obj, "documentation", docMarkupObj);
   }
 
   const JsonVal paramsArr = json_add_array(ctx->jDoc);
-  for (u8 i = 0; i != script_sig_arg_count(signature->scriptSig); ++i) {
+  for (u8 i = 0; i != script_sig_arg_count(sig->scriptSig); ++i) {
     const JsonVal paramObj = json_add_object(ctx->jDoc);
 
     // TODO: Instead of passing label as a string, pass it as two indices into the signature text.
-    const String paramText = script_sig_arg_scratch(signature->scriptSig, i);
+    const String paramText = script_sig_arg_scratch(sig->scriptSig, i);
     json_add_field_lit(ctx->jDoc, paramObj, "label", json_add_string(ctx->jDoc, paramText));
 
     json_add_elem(ctx->jDoc, paramsArr, paramObj);
