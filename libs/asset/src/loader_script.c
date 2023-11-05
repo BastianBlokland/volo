@@ -137,7 +137,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("src"), script_mask_entity},
           {string_lit("dst"), script_mask_entity},
-          {string_lit("radius"), script_mask_num},
+          {string_lit("radius"), script_mask_num | script_mask_null},
       };
       script_bind(binder, name, doc, ret, args, array_elems(args));
     }
@@ -194,10 +194,10 @@ static void script_binder_init() {
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("prefabId"), script_mask_str},
-          {string_lit("pos"), script_mask_vec3},
-          {string_lit("rot"), script_mask_quat},
-          {string_lit("scale"), script_mask_num},
-          {string_lit("faction"), script_mask_str},
+          {string_lit("pos"), script_mask_vec3 | script_mask_null},
+          {string_lit("rot"), script_mask_quat | script_mask_null},
+          {string_lit("scale"), script_mask_num | script_mask_null},
+          {string_lit("faction"), script_mask_str | script_mask_null},
       };
       script_bind(binder, name, doc, ret, args, array_elems(args));
     }
@@ -226,8 +226,8 @@ static void script_binder_init() {
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
-          {string_lit("pos"), script_mask_vec3},
-          {string_lit("rot"), script_mask_quat},
+          {string_lit("pos"), script_mask_vec3 | script_mask_null},
+          {string_lit("rot"), script_mask_quat | script_mask_null},
       };
       script_bind(binder, name, doc, ret, args, array_elems(args));
     }
