@@ -117,6 +117,16 @@ ScriptSigArg script_sig_arg(const ScriptSig* sig, const u8 index) {
   return (ScriptSigArg){.mask = mask, .flags = flags, .name = name};
 }
 
+u8 script_sig_arg_min_count(const ScriptSig* sig) {
+  u8 minCount = 0;
+  for (; minCount != sig->argCount; ++minCount) {
+    if (script_sig_arg(sig, minCount).mask & (1 << ScriptType_Null)) {
+      break;
+    }
+  }
+  return minCount;
+}
+
 void script_sig_arg_write(const ScriptSig* sig, const u8 index, DynString* str) {
   const ScriptSigArg arg = script_sig_arg(sig, index);
   dynstring_append(str, arg.name);
