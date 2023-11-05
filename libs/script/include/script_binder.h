@@ -23,16 +23,8 @@ typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs, ScriptError*);
  */
 typedef struct sScriptBinder ScriptBinder;
 
-/**
- * Create a new ScriptBinder instance.
- * Destroy using 'script_binder_destroy()'.
- */
 ScriptBinder* script_binder_create(Allocator*);
-
-/**
- * Destroy a ScriptBinder instance.
- */
-void script_binder_destroy(ScriptBinder*);
+void          script_binder_destroy(ScriptBinder*);
 
 /**
  * Declare a new function.
