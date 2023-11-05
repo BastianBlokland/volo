@@ -1185,8 +1185,9 @@ static void script_bind(
     const ScriptMask   retMask,
     const ScriptSigArg args[],
     const u8           argCount) {
-  const ScriptSig* sig = script_sig_create(g_alloc_scratch, retMask, args, argCount);
-  script_binder_declare(binder, name, sig, null);
+  const ScriptSig* sig           = script_sig_create(g_alloc_scratch, retMask, args, argCount);
+  const String     documentation = string_empty;
+  script_binder_declare(binder, name, documentation, sig, null);
 }
 
 static ScriptBinder* lsp_script_binder_create() {

@@ -19,8 +19,9 @@ static void script_bind(
     const ScriptMask   retMask,
     const ScriptSigArg args[],
     const u8           argCount) {
-  const ScriptSig* sig = script_sig_create(g_alloc_scratch, retMask, args, argCount);
-  script_binder_declare(binder, name, sig, null);
+  const String     documentation = string_empty;
+  const ScriptSig* sig           = script_sig_create(g_alloc_scratch, retMask, args, argCount);
+  script_binder_declare(binder, name, documentation, sig, null);
 }
 
 static void script_binder_init() {

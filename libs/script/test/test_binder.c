@@ -33,12 +33,13 @@ spec(binder) {
   setup() { binder = script_binder_create(g_alloc_heap); }
 
   it("sorts bindings on the string-hash") {
+    const String     doc     = string_empty;
     const ScriptSig* nullSig = null;
-    script_binder_declare(binder, string_lit("a"), nullSig, null);
-    script_binder_declare(binder, string_lit("b"), nullSig, null);
-    script_binder_declare(binder, string_lit("c"), nullSig, null);
-    script_binder_declare(binder, string_lit("d"), nullSig, null);
-    script_binder_declare(binder, string_lit("e"), nullSig, null);
+    script_binder_declare(binder, string_lit("a"), doc, nullSig, null);
+    script_binder_declare(binder, string_lit("b"), doc, nullSig, null);
+    script_binder_declare(binder, string_lit("c"), doc, nullSig, null);
+    script_binder_declare(binder, string_lit("d"), doc, nullSig, null);
+    script_binder_declare(binder, string_lit("e"), doc, nullSig, null);
     script_binder_finalize(binder);
 
     check_eq_int(script_binder_lookup(binder, string_hash_lit("b")), 0);
@@ -54,9 +55,10 @@ spec(binder) {
     const String a = string_lit("a");
     const String b = string_lit("b");
 
+    const String     doc     = string_empty;
     const ScriptSig* nullSig = null;
-    script_binder_declare(binder, a, nullSig, test_bind_a);
-    script_binder_declare(binder, b, nullSig, test_bind_b);
+    script_binder_declare(binder, a, doc, nullSig, test_bind_a);
+    script_binder_declare(binder, b, doc, nullSig, test_bind_b);
     script_binder_finalize(binder);
 
     ScriptBindTestCtx ctx  = {0};
