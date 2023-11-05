@@ -1678,8 +1678,9 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   }
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
-    const String label = script_binder_name(ctx->binder, itr);
-    script_sym_push_extern_func(ctx->syms, label, itr);
+    const String     label = script_binder_name(ctx->binder, itr);
+    const ScriptSig* sig   = script_binder_sig(ctx->binder, itr);
+    script_sym_push_extern_func(ctx->syms, label, itr, sig);
   }
 }
 
