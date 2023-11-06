@@ -158,6 +158,19 @@ spec(val) {
     check_eq_int(script_val_type_hash(ScriptType_Str), string_hash_lit("str"));
   }
 
+  it("can lookup a type from its string-hash") {
+    check_eq_int(script_val_type_from_hash(string_hash_lit("null")), ScriptType_Null);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("num")), ScriptType_Num);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("bool")), ScriptType_Bool);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("vec3")), ScriptType_Vec3);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("quat")), ScriptType_Quat);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("entity")), ScriptType_Entity);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("str")), ScriptType_Str);
+
+    check_eq_int(script_val_type_from_hash(string_hash_lit("")), ScriptType_Null);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("hello-world")), ScriptType_Null);
+  }
+
   it("can create a textual representation of a value") {
     const struct {
       ScriptVal value;

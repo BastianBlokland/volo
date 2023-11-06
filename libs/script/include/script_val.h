@@ -100,6 +100,7 @@ ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
  */
 String     script_val_type_str(ScriptType);
 StringHash script_val_type_hash(ScriptType);
+ScriptType script_val_type_from_hash(StringHash);
 void       script_val_write(ScriptVal, DynString*);
 String     script_val_scratch(ScriptVal);
 void       script_mask_write(ScriptMask, DynString*);

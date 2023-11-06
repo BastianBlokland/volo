@@ -111,22 +111,37 @@ String script_val_type_str(const ScriptType type) {
   return g_names[type];
 }
 
-StringHash script_val_type_hash(const ScriptType type) {
-  diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
-  static StringHash     g_hashes[ScriptType_Count];
+static StringHash g_valTypeHashes[ScriptType_Count];
+
+static void val_type_hashes_init() {
   static bool           g_hashesInit;
   static ThreadSpinLock g_hashesInitLock;
   if (UNLIKELY(!g_hashesInit)) {
     thread_spinlock_lock(&g_hashesInitLock);
     if (!g_hashesInit) {
       for (ScriptType t = 0; t != ScriptType_Count; ++t) {
-        g_hashes[t] = stringtable_add(g_stringtable, script_val_type_str(t));
+        g_valTypeHashes[t] = stringtable_add(g_stringtable, script_val_type_str(t));
       }
       g_hashesInit = true;
     }
     thread_spinlock_unlock(&g_hashesInitLock);
   }
-  return g_hashes[type];
+}
+
+StringHash script_val_type_hash(const ScriptType type) {
+  diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
+  val_type_hashes_init();
+  return g_valTypeHashes[type];
+}
+
+ScriptType script_val_type_from_hash(const StringHash hash) {
+  val_type_hashes_init();
+  for (ScriptType t = 0; t != ScriptType_Count; ++t) {
+    if (hash == g_valTypeHashes[t]) {
+      return t;
+    }
+  }
+  return ScriptType_Null; // TODO: Should we return a sentinel instead?
 }
 
 void script_val_write(const ScriptVal value, DynString* str) {
