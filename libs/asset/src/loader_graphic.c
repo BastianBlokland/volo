@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -236,10 +237,7 @@ void asset_load_graphic(
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
 }
 
-AssetDataReg asset_graphic_datareg() {
+void asset_graphic_jsonschema_write(DynString* str) {
   graphic_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataMeta);
 }

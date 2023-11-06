@@ -7,6 +7,7 @@
 #include "core_thread.h"
 #include "core_time.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -423,10 +424,7 @@ Cleanup:
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_vfx_datareg() {
+void asset_vfx_jsonschema_write(DynString* str) {
   vfx_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataVfxDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataVfxDefMeta);
 }

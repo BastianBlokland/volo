@@ -1,8 +1,10 @@
 #pragma once
-#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 /**
  * Weapon database.
@@ -107,4 +109,4 @@ bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon
  */
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp*, StringHash nameHash);
 
-AssetDataReg asset_weapon_datareg(void);
+void asset_weapon_jsonschema_write(DynString*);

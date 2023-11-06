@@ -10,6 +10,7 @@
 #include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
+#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -431,10 +432,7 @@ const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const Str
       &target);
 }
 
-AssetDataReg asset_atlas_datareg() {
+void asset_atlas_jsonschema_write(DynString* str) {
   atlas_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataAtlasDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataAtlasDefMeta);
 }

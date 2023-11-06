@@ -1,6 +1,8 @@
 #pragma once
-#include "asset_data.h"
 #include "ecs_module.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 /**
  * ATLas is a combination of a texture atlas and a mapping from names to indices in the atlas.
@@ -24,4 +26,4 @@ ecs_comp_extern_public(AssetAtlasComp) {
  */
 const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp*, StringHash name);
 
-AssetDataReg asset_atlas_datareg(void);
+void asset_atlas_jsonschema_write(DynString*);

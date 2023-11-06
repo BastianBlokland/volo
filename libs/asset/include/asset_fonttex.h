@@ -1,7 +1,9 @@
 #pragma once
-#include "asset_data.h"
 #include "core_unicode.h"
 #include "ecs_module.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 /**
  * FontTexture is a combination of a sdf (signed-distance-field) texture-atlas and a mapping from
@@ -37,4 +39,4 @@ ecs_comp_extern_public(AssetFontTexComp) {
  */
 const AssetFontTexChar* asset_fonttex_lookup(const AssetFontTexComp*, Unicode, u8 variation);
 
-AssetDataReg asset_fonttex_datareg(void);
+void asset_fonttex_jsonschema_write(DynString*);

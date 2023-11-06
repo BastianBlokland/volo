@@ -414,10 +414,12 @@ String asset_behavior_type_str(const AssetAiNodeType type) {
   return g_names[type];
 }
 
-AssetDataReg asset_behavior_datareg() {
+void asset_behavior_jsonschema_write(DynString* str) {
   behavior_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataNodeMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataNodeMeta);
+}
+
+void asset_behavior_treeschema_write(DynString* str) {
+  behavior_datareg_init();
+  data_treeschema_write(g_dataReg, str, g_dataNodeMeta);
 }

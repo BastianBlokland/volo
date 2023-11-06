@@ -1,7 +1,9 @@
 #pragma once
-#include "asset_data.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 // Forward declare from 'script_doc.h'.
 typedef struct sScriptDoc ScriptDoc;
@@ -91,4 +93,5 @@ ecs_comp_extern_public(AssetBehaviorComp) {
  */
 String asset_behavior_type_str(AssetAiNodeType);
 
-AssetDataReg asset_behavior_datareg(void);
+void asset_behavior_jsonschema_write(DynString*);
+void asset_behavior_treeschema_write(DynString*);

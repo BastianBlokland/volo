@@ -8,6 +8,7 @@
 #include "core_rng.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
 #include "log_logger.h"
@@ -368,10 +369,7 @@ Error:
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_texture_proc_datareg() {
+void asset_texture_proc_jsonschema_write(DynString* str) {
   proctex_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataProcTexDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataProcTexDefMeta);
 }

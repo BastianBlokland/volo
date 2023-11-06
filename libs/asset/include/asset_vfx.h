@@ -1,10 +1,12 @@
 #pragma once
-#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 #define asset_vfx_max_emitters 5
 
@@ -92,4 +94,4 @@ ecs_comp_extern_public(AssetVfxComp) {
   AssetVfxEmitter* emitters;
 };
 
-AssetDataReg asset_vfx_datareg(void);
+void asset_vfx_jsonschema_write(DynString*);

@@ -6,6 +6,7 @@
 #include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
+#include "data_schema.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -710,10 +711,7 @@ Error:
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_texture_array_datareg() {
+void asset_texture_array_jsonschema_write(DynString* str) {
   arraytex_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataArrayTexDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataArrayTexDefMeta);
 }
