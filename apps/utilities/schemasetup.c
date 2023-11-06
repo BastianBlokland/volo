@@ -9,6 +9,7 @@
 #include "asset_mesh.h"
 #include "asset_prefab.h"
 #include "asset_product.h"
+#include "asset_script.h"
 #include "asset_texture.h"
 #include "asset_vfx.h"
 #include "asset_weapon.h"
@@ -52,6 +53,7 @@ static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("vfx.schema.json"),      .writer = asset_vfx_jsonschema_write,           },
     {.pattern = string_static("weapons.schema.json"),  .writer = asset_weapon_jsonschema_write,        },
     {.pattern = string_static("products.schema.json"), .writer = asset_product_jsonschema_write,       },
+    {.pattern = string_static("script_binder.json"),   .writer = asset_script_binder_write,            },
 };
 // clang-format on
 
