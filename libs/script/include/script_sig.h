@@ -14,6 +14,7 @@ typedef u16 ScriptMask;
 #define script_sig_arg_name_max 64
 
 typedef enum {
+  ScriptSigArgFlags_None  = 0,
   ScriptSigArgFlags_Multi = 1 << 0,
 } ScriptSigArgFlags;
 
