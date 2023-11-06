@@ -167,12 +167,12 @@ static JsonVal binder_mask_to_json(JsonDoc* d, const ScriptMask mask) {
 }
 
 static JsonVal binder_arg_to_json(JsonDoc* d, const ScriptSigArg* arg) {
-  const bool multi = (arg->flags & ScriptSigArgFlags_Multi) != 0;
-
   const JsonVal obj = json_add_object(d);
   json_add_field_lit(d, obj, "name", json_add_string(d, arg->name));
   json_add_field_lit(d, obj, "mask", binder_mask_to_json(d, arg->mask));
-  json_add_field_lit(d, obj, "multi", json_add_bool(d, multi));
+  if (arg->flags & ScriptSigArgFlags_Multi) {
+    json_add_field_lit(d, obj, "multi", json_add_bool(d, true));
+  }
   return obj;
 }
 
