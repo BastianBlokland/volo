@@ -5,6 +5,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
 
@@ -95,3 +98,9 @@ ScriptBinderSlot script_binder_next(const ScriptBinder*, ScriptBinderSlot);
  */
 ScriptVal script_binder_exec(
     const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptArgs, ScriptError* err);
+
+/**
+ * Binder serialization utils.
+ */
+void script_binder_write(DynString* str, const ScriptBinder*);
+bool script_binder_read(ScriptBinder*, String);
