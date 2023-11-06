@@ -1,0 +1,622 @@
+{
+  "functions": [
+    {
+      "name": "destroy",
+      "doc": "Destroy the given entity.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "target_range_max",
+      "doc": "Lookup the maximum targeting range of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "position",
+      "doc": "Lookup the position of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "vec3"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "target_range_min",
+      "doc": "Lookup the minimum targeting range of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "name",
+      "doc": "Lookup the name of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "str"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "active",
+      "doc": "Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "activity",
+            "mask": [
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "nav_stop",
+      "doc": "Instruct the given entity to stop traveling.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "destroy_after",
+      "doc": "Destroy the given entity after a delay.\n\n*Note*: When providing an entity it will wait until the entity no longer exists.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "delay",
+            "mask": [
+              "num",
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "health",
+      "doc": "Lookup the health points of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "nav_travel",
+      "doc": "Instruct the given entity to travel to a target location or entity.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "target",
+            "mask": [
+              "vec3",
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "nav_query",
+      "doc": "Find a navigation position.\n\nSupported queries:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`",
+      "sig": {
+        "ret": [
+          "null",
+          "vec3"
+        ],
+        "args": [
+          {
+            "name": "pos",
+            "mask": [
+              "vec3"
+            ]
+          },
+          {
+            "name": "query",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "nav_target",
+      "doc": "Lookup the current navigation target of the given entity. Either a position or an entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "vec3",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "target_primary",
+      "doc": "Lookup the primary target of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "damage",
+      "doc": "Deal damage to the given entity.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "amount",
+            "mask": [
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "scale",
+      "doc": "Lookup the scale of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "debug_log",
+      "doc": "Log the given values.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "values",
+            "mask": [
+              "null",
+              "num",
+              "bool",
+              "vec3",
+              "quat",
+              "entity",
+              "str"
+            ],
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "capable",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "capability",
+            "mask": [
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "exists",
+      "doc": "Test if the given entity still exists.",
+      "sig": {
+        "ret": [
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "rotation",
+      "doc": "Lookup the rotation of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "quat"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "faction",
+      "doc": "Lookup the faction of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "str"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "spawn",
+      "doc": "Spawn a prefab.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "prefabId",
+            "mask": [
+              "str"
+            ]
+          },
+          {
+            "name": "pos",
+            "mask": [
+              "null",
+              "vec3"
+            ]
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "scale",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "faction",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "attach",
+      "doc": "Attach the given entity to another entity (optionally at a specific joint).",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "target",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "jointName",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "debug_break",
+      "doc": "Break into the debugger if there is one attached.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": []
+      }
+    },
+    {
+      "name": "attack",
+      "doc": "Instruct the given entity to attack another entity.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "target",
+            "mask": [
+              "null",
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "teleport",
+      "doc": "Teleport the given entity.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "pos",
+            "mask": [
+              "null",
+              "vec3"
+            ]
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "self",
+      "doc": "Return the entity that is executing the current script.",
+      "sig": {
+        "ret": [
+          "entity"
+        ],
+        "args": []
+      }
+    },
+    {
+      "name": "line_of_sight",
+      "doc": "Test if there is a clear line of sight between the given entities.",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "src",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "dst",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "radius",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "detach",
+      "doc": "Detach the given entity from all other entities.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "time",
+      "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "clock",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
