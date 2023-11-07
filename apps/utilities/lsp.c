@@ -1204,6 +1204,13 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
       .out          = g_file_stdout,
   };
 
+  lsp_send_info(&ctx, string_lit("Server starting up"));
+  if (scriptBinder) {
+    const u16 funcCount = script_binder_count(scriptBinder);
+    lsp_send_info(
+        &ctx, fmt_write_scratch("Server loaded script-binder ({} functions)", fmt_int(funcCount)));
+  }
+
   while (LIKELY(ctx.status == LspStatus_Running)) {
     const LspHeader header  = lsp_read_header(&ctx);
     const String    content = lsp_read_sized(&ctx, header.contentLength);
