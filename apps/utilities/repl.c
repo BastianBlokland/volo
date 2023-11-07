@@ -277,19 +277,13 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
   return script_null();
 }
 
-static const ScriptBinder* repl_bind_init() {
-  static ScriptBinder* g_binder;
-  if (!g_binder) {
-    g_binder             = script_binder_create(g_alloc_persist);
-    const String     doc = string_empty;
-    const ScriptSig* sig = null;
-    script_binder_declare(g_binder, string_lit("print"), doc, sig, &repl_bind_print);
-    script_binder_declare(g_binder, string_lit("print_bytes"), doc, sig, &repl_bind_print_bytes);
-    script_binder_declare(g_binder, string_lit("print_bits"), doc, sig, &repl_bind_print_bits);
+static void repl_bind_init(ScriptBinder* binder) {
+  const String     doc = string_empty;
+  const ScriptSig* sig = null;
 
-    script_binder_finalize(g_binder);
-  }
-  return g_binder;
+  script_binder_declare(binder, string_lit("print"), doc, sig, &repl_bind_print);
+  script_binder_declare(binder, string_lit("print_bytes"), doc, sig, &repl_bind_print_bytes);
+  script_binder_declare(binder, string_lit("print_bits"), doc, sig, &repl_bind_print_bits);
 }
 
 static void repl_exec(
@@ -651,7 +645,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 1;
   }
 
-  const ScriptBinder* binder = repl_bind_init();
+  ScriptBinder* binder = script_binder_create(g_alloc_persist);
+  repl_bind_init(binder);
+  script_binder_finalize(binder);
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {
