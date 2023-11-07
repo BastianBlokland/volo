@@ -565,6 +565,33 @@ Ret:
   return res;
 }
 
+static bool repl_read_binder_file(ScriptBinder* binder, const String path) {
+  bool       success = true;
+  File*      file;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
+    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to open binder file.\n"));
+    success = false;
+    goto Ret;
+  }
+  String fileData;
+  if ((fileRes = file_map(file, &fileData))) {
+    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to map binder file.\n"));
+    success = false;
+    goto Ret;
+  }
+  if (!script_binder_read(binder, fileData)) {
+    file_write_sync(g_file_stderr, string_lit("ERROR: Invalid binder file.\n"));
+    success = false;
+    goto Ret;
+  }
+Ret:
+  if (file) {
+    file_destroy(file);
+  }
+  return success;
+}
+
 static CliId g_optFile;
 static CliId g_binderFlag;
 static CliId g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
@@ -651,6 +678,13 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   binder = script_binder_create(g_alloc_heap);
   repl_bind_init(binder);
+  const CliParseValues binderArg = cli_parse_values(invoc, g_binderFlag);
+  if (binderArg.count) {
+    if (!repl_read_binder_file(binder, binderArg.values[0])) {
+      exitCode = 1;
+      goto Exit;
+    }
+  }
   script_binder_finalize(binder);
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
