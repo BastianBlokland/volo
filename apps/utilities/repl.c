@@ -564,6 +564,7 @@ Ret:
 }
 
 static CliId g_optFile;
+static CliId g_binderFlag;
 static CliId g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
 static CliId g_optHelp;
 
@@ -575,6 +576,10 @@ void app_cli_configure(CliApp* app) {
   g_optFile = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
   cli_register_desc(app, g_optFile, string_lit("File to execute (default: stdin)."));
   cli_register_validator(app, g_optFile, cli_validate_file_regular);
+
+  g_binderFlag = cli_register_flag(app, 'b', string_lit("binder"), CliOptionFlags_Value);
+  cli_register_desc(app, g_binderFlag, string_lit("Script binder schema to use."));
+  cli_register_validator(app, g_binderFlag, cli_validate_file_regular);
 
   g_optNoEval = cli_register_flag(app, 'n', string_lit("no-eval"), CliOptionFlags_None);
   cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
@@ -603,6 +608,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optAst);
   cli_register_exclusions(app, g_optHelp, g_optStats);
   cli_register_exclusions(app, g_optHelp, g_optSyms);
+  cli_register_exclusions(app, g_optHelp, g_binderFlag);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
