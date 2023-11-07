@@ -21,7 +21,19 @@ function getServerPaths(): string[] {
 }
 
 function getValidServerPath(): string | undefined {
-  return getServerPaths().filter(fs.existsSync).pop();
+  return getServerPaths().filter(fs.existsSync)[0];
+}
+
+function getWorkspaceBinderPaths(workspace: WorkspaceFolder): string[] {
+  return [path.join(workspace.uri.fsPath, "assets", "schemas", "script_binder.json")];
+}
+
+function getBinderPaths(): string[] {
+  return workspace.workspaceFolders.flatMap(getWorkspaceBinderPaths);
+}
+
+function getValidBinderPath(): string | undefined {
+  return getBinderPaths().filter(fs.existsSync)[0];
 }
 
 export function activate(context: ExtensionContext) {
@@ -30,10 +42,17 @@ export function activate(context: ExtensionContext) {
     throw Error("No app_lsp binary found in workspace, did you build the project?");
   }
 
+  let serverArgs: string[] = [];
+
+  const binderPath: string | undefined = getValidBinderPath();
+  if (binderPath !== undefined) {
+    serverArgs.push("--binder", binderPath);
+  }
+
   const serverOptions: ServerOptions = {
     command: serverPath,
     transport: TransportKind.stdio,
-    args: [],
+    args: serverArgs,
     options: {}
   };
 
