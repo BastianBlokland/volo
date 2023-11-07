@@ -28,6 +28,8 @@ ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
     return ScriptPanic_ArgumentOutOfRange;
   case ScriptError_EnumInvalidEntry:
     return ScriptPanic_EnumInvalidEntry;
+  case ScriptError_UnimplementedBinding:
+    return ScriptPanic_UnimplementedBinding;
   }
   diag_assert_fail("Invalid script error kind");
   UNREACHABLE

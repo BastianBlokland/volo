@@ -3,6 +3,7 @@
 #include "core_path.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -140,10 +141,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   return res;
 }
 
-AssetDataReg asset_level_datareg() {
+void asset_level_jsonschema_write(DynString* str) {
   level_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataLevelMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataLevelMeta);
 }

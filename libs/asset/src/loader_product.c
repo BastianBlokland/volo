@@ -10,6 +10,7 @@
 #include "core_time.h"
 #include "core_utf8.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -373,10 +374,7 @@ asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) 
       mem_struct(AssetProductSet, .nameHash = nameHash).ptr);
 }
 
-AssetDataReg asset_product_datareg() {
+void asset_product_jsonschema_write(DynString* str) {
   product_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataMapDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta);
 }

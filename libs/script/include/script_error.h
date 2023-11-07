@@ -12,6 +12,7 @@ typedef enum {
   ScriptError_ArgumentMissing,
   ScriptError_ArgumentOutOfRange,
   ScriptError_EnumInvalidEntry,
+  ScriptError_UnimplementedBinding,
 } ScriptErrorKind;
 
 typedef struct sScriptError {

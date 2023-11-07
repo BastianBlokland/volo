@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -179,10 +180,7 @@ Cleanup:
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_decal_datareg() {
+void asset_decal_jsonschema_write(DynString* str) {
   decal_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataDecalDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataDecalDefMeta);
 }

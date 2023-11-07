@@ -9,6 +9,7 @@
 #include "asset_mesh.h"
 #include "asset_prefab.h"
 #include "asset_product.h"
+#include "asset_script.h"
 #include "asset_texture.h"
 #include "asset_vfx.h"
 #include "asset_weapon.h"
@@ -28,32 +29,31 @@
  *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
 
-typedef AssetDataReg (*SchemaDataRegLookup)(void);
-typedef void (*SchemaWriter)(const DataReg*, DynString*, DataMeta);
+typedef void (*SchemaWriter)(DynString*);
 
 typedef struct {
-  String              pattern;
-  SchemaDataRegLookup source;
-  SchemaWriter        writer;
+  String       pattern;
+  SchemaWriter writer;
 } SchemaConfig;
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("atlas.schema.json"),    .source = asset_atlas_datareg,         .writer = data_jsonschema_write},
-    {.pattern = string_static("arraytex.schema.json"), .source = asset_texture_array_datareg, .writer = data_jsonschema_write},
-    {.pattern = string_static("bt.btschema"),          .source = asset_behavior_datareg,      .writer = data_treeschema_write},
-    {.pattern = string_static("bt.schema.json"),       .source = asset_behavior_datareg,      .writer = data_jsonschema_write},
-    {.pattern = string_static("decal.schema.json"),    .source = asset_decal_datareg,         .writer = data_jsonschema_write},
-    {.pattern = string_static("fonttex.schema.json"),  .source = asset_fonttex_datareg,       .writer = data_jsonschema_write},
-    {.pattern = string_static("graphic.schema.json"),  .source = asset_graphic_datareg,       .writer = data_jsonschema_write},
-    {.pattern = string_static("inputs.schema.json"),   .source = asset_inputmap_datareg,      .writer = data_jsonschema_write},
-    {.pattern = string_static("level.schema.json"),    .source = asset_level_datareg,         .writer = data_jsonschema_write},
-    {.pattern = string_static("prefabs.schema.json"),  .source = asset_prefab_datareg,        .writer = data_jsonschema_write},
-    {.pattern = string_static("procmesh.schema.json"), .source = asset_mesh_proc_datareg,     .writer = data_jsonschema_write},
-    {.pattern = string_static("proctex.schema.json"),  .source = asset_texture_proc_datareg,  .writer = data_jsonschema_write},
-    {.pattern = string_static("vfx.schema.json"),      .source = asset_vfx_datareg,           .writer = data_jsonschema_write},
-    {.pattern = string_static("weapons.schema.json"),  .source = asset_weapon_datareg,        .writer = data_jsonschema_write},
-    {.pattern = string_static("products.schema.json"), .source = asset_product_datareg,       .writer = data_jsonschema_write},
+    {.pattern = string_static("atlas.schema.json"),    .writer = asset_atlas_jsonschema_write,         },
+    {.pattern = string_static("arraytex.schema.json"), .writer = asset_texture_array_jsonschema_write, },
+    {.pattern = string_static("bt.btschema"),          .writer = asset_behavior_treeschema_write,      },
+    {.pattern = string_static("bt.schema.json"),       .writer = asset_behavior_jsonschema_write,      },
+    {.pattern = string_static("decal.schema.json"),    .writer = asset_decal_jsonschema_write,         },
+    {.pattern = string_static("fonttex.schema.json"),  .writer = asset_fonttex_jsonschema_write,       },
+    {.pattern = string_static("graphic.schema.json"),  .writer = asset_graphic_jsonschema_write,       },
+    {.pattern = string_static("inputs.schema.json"),   .writer = asset_inputmap_jsonschema_write,      },
+    {.pattern = string_static("level.schema.json"),    .writer = asset_level_jsonschema_write,         },
+    {.pattern = string_static("prefabs.schema.json"),  .writer = asset_prefab_jsonschema_write,        },
+    {.pattern = string_static("procmesh.schema.json"), .writer = asset_mesh_proc_jsonschema_write,     },
+    {.pattern = string_static("proctex.schema.json"),  .writer = asset_texture_proc_jsonschema_write,  },
+    {.pattern = string_static("vfx.schema.json"),      .writer = asset_vfx_jsonschema_write,           },
+    {.pattern = string_static("weapons.schema.json"),  .writer = asset_weapon_jsonschema_write,        },
+    {.pattern = string_static("products.schema.json"), .writer = asset_product_jsonschema_write,       },
+    {.pattern = string_static("script_binder.json"),   .writer = asset_script_binder_write,            },
 };
 // clang-format on
 
@@ -72,8 +72,7 @@ bool scheme_validate_path(const String input) { return scheme_for_path(input) !=
 static bool schema_write(const SchemaConfig* config, const String path) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
 
-  const AssetDataReg dataReg = config->source();
-  config->writer(dataReg.registry, &dynString, dataReg.typeMeta);
+  config->writer(&dynString);
 
   FileResult res;
   if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {

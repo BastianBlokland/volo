@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "log_logger.h"
@@ -622,10 +623,7 @@ Done:
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_mesh_proc_datareg() {
+void asset_mesh_proc_jsonschema_write(DynString* str) {
   procmesh_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataProcMeshDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataProcMeshDefMeta);
 }

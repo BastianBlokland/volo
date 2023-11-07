@@ -238,7 +238,7 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return script_arg_last_or_null(args);
+  return script_null();
 }
 
 static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptError* err) {
@@ -256,7 +256,7 @@ static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptE
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return script_arg_last_or_null(args);
+  return script_null();
 }
 
 static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptError* err) {
@@ -274,25 +274,24 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return script_arg_last_or_null(args);
+  return script_null();
 }
 
-static const ScriptBinder* repl_bind_init() {
-  static ScriptBinder* g_binder;
-  if (!g_binder) {
-    g_binder             = script_binder_create(g_alloc_persist);
-    const String     doc = string_empty;
-    const ScriptSig* sig = null;
-    script_binder_declare(g_binder, string_lit("print"), doc, sig, &repl_bind_print);
-    script_binder_declare(g_binder, string_lit("print_bytes"), doc, sig, &repl_bind_print_bytes);
-    script_binder_declare(g_binder, string_lit("print_bits"), doc, sig, &repl_bind_print_bits);
+static void repl_bind_init(ScriptBinder* binder) {
+  const String     doc = string_empty;
+  const ScriptSig* sig = null;
 
-    script_binder_finalize(g_binder);
-  }
-  return g_binder;
+  script_binder_declare(binder, string_lit("print"), doc, sig, &repl_bind_print);
+  script_binder_declare(binder, string_lit("print_bytes"), doc, sig, &repl_bind_print_bytes);
+  script_binder_declare(binder, string_lit("print_bits"), doc, sig, &repl_bind_print_bits);
 }
 
-static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input, const String id) {
+static void repl_exec(
+    const ScriptBinder* binder,
+    ScriptMem*          mem,
+    const ReplFlags     flags,
+    const String        input,
+    const String        id) {
   if (flags & ReplFlags_OutputTokens) {
     repl_output_tokens(input);
   }
@@ -303,7 +302,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_alloc_heap) : 0;
 
-  const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags, syms);
+  const ScriptExpr expr = script_read(script, binder, input, diags, syms);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -325,7 +324,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     }
     const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
     if (noErrors && !(flags & ReplFlags_NoEval)) {
-      const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
+      const ScriptEvalResult evalRes = script_eval(script, mem, expr, binder, null);
       if (script_panic_valid(&evalRes.panic)) {
         repl_output_panic(input, &evalRes.panic, id);
       } else {
@@ -342,10 +341,11 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
 }
 
 typedef struct {
-  ReplFlags  flags;
-  String     editPrevText;
-  DynString* editBuffer;
-  ScriptMem* mem;
+  const ScriptBinder* binder;
+  ReplFlags           flags;
+  String              editPrevText;
+  DynString*          editBuffer;
+  ScriptMem*          mem;
 } ReplEditor;
 
 static bool repl_edit_empty(const ReplEditor* editor) {
@@ -383,7 +383,7 @@ static void repl_edit_submit(ReplEditor* editor) {
   editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
 
   const String id = string_empty;
-  repl_exec(editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
+  repl_exec(editor->binder, editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
 
   dynstring_clear(editor->editBuffer);
 }
@@ -460,11 +460,12 @@ static bool repl_edit_update(ReplEditor* editor, TtyInputToken* input) {
   return true; // Keep running.
 }
 
-static i32 repl_run_interactive(const ReplFlags flags) {
+static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 32);
   DynString editBuffer = dynstring_create(g_alloc_heap, 128);
 
   ReplEditor editor = {
+      .binder     = binder,
       .flags      = flags,
       .editBuffer = &editBuffer,
       .mem        = script_mem_create(g_alloc_heap),
@@ -499,19 +500,20 @@ Stop:
   return 0;
 }
 
-static i32 repl_run_file(File* file, const String id, const ReplFlags flags) {
+static i32
+repl_run_file(const ScriptBinder* binder, File* file, const String id, const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
   file_read_to_end_sync(file, &readBuffer);
 
   ScriptMem* mem = script_mem_create(g_alloc_heap);
-  repl_exec(mem, flags, dynstring_view(&readBuffer), id);
+  repl_exec(binder, mem, flags, dynstring_view(&readBuffer), id);
   script_mem_destroy(mem);
 
   dynstring_destroy(&readBuffer);
   return 0;
 }
 
-static i32 repl_run_path(const String pathAbs, const ReplFlags flags) {
+static i32 repl_run_path(const ScriptBinder* binder, const String pathAbs, const ReplFlags flags) {
   diag_assert(path_is_absolute(pathAbs));
 
   File*      file;
@@ -531,12 +533,12 @@ Retry:
   }
 
   const String id     = pathAbs;
-  const i32    runRes = repl_run_file(file, id, flags);
+  const i32    runRes = repl_run_file(binder, file, id, flags);
   file_destroy(file);
   return runRes;
 }
 
-static i32 repl_run_watch(const String pathAbs, const ReplFlags flags) {
+static i32 repl_run_watch(const ScriptBinder* binder, const String pathAbs, const ReplFlags flags) {
   diag_assert(path_is_absolute(pathAbs));
   i32 res = 0;
 
@@ -554,7 +556,7 @@ static i32 repl_run_watch(const String pathAbs, const ReplFlags flags) {
 
   FileMonitorEvent evt;
   do {
-    res = repl_run_path(pathAbs, flags);
+    res = repl_run_path(binder, pathAbs, flags);
     repl_output(string_lit("--- Waiting for change ---\n"));
   } while (file_monitor_poll(mon, &evt));
 
@@ -563,7 +565,35 @@ Ret:
   return res;
 }
 
+static bool repl_read_binder_file(ScriptBinder* binder, const String path) {
+  bool       success = true;
+  File*      file;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
+    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to open binder file.\n"));
+    success = false;
+    goto Ret;
+  }
+  String fileData;
+  if ((fileRes = file_map(file, &fileData))) {
+    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to map binder file.\n"));
+    success = false;
+    goto Ret;
+  }
+  if (!script_binder_read(binder, fileData)) {
+    file_write_sync(g_file_stderr, string_lit("ERROR: Invalid binder file.\n"));
+    success = false;
+    goto Ret;
+  }
+Ret:
+  if (file) {
+    file_destroy(file);
+  }
+  return success;
+}
+
 static CliId g_optFile;
+static CliId g_binderFlag;
 static CliId g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
 static CliId g_optHelp;
 
@@ -575,6 +605,10 @@ void app_cli_configure(CliApp* app) {
   g_optFile = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
   cli_register_desc(app, g_optFile, string_lit("File to execute (default: stdin)."));
   cli_register_validator(app, g_optFile, cli_validate_file_regular);
+
+  g_binderFlag = cli_register_flag(app, 'b', string_lit("binder"), CliOptionFlags_Value);
+  cli_register_desc(app, g_binderFlag, string_lit("Script binder schema to use."));
+  cli_register_validator(app, g_binderFlag, cli_validate_file_regular);
 
   g_optNoEval = cli_register_flag(app, 'n', string_lit("no-eval"), CliOptionFlags_None);
   cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
@@ -603,12 +637,16 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optAst);
   cli_register_exclusions(app, g_optHelp, g_optStats);
   cli_register_exclusions(app, g_optHelp, g_optSyms);
+  cli_register_exclusions(app, g_optHelp, g_binderFlag);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  i32           exitCode = 0;
+  ScriptBinder* binder   = null;
+
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_file_stdout);
-    return 0;
+    goto Exit;
   }
 
   ReplFlags flags = ReplFlags_None;
@@ -634,20 +672,39 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (!tty_isatty(g_file_stdout)) {
     // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
     file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream.\n"));
-    return 1;
+    exitCode = 1;
+    goto Exit;
   }
+
+  binder = script_binder_create(g_alloc_heap);
+  repl_bind_init(binder);
+  const CliParseValues binderArg = cli_parse_values(invoc, g_binderFlag);
+  if (binderArg.count) {
+    if (!repl_read_binder_file(binder, binderArg.values[0])) {
+      exitCode = 1;
+      goto Exit;
+    }
+  }
+  script_binder_finalize(binder);
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {
     const String pathAbs = string_dup(g_alloc_persist, path_build_scratch(fileArg.values[0]));
     if (flags & ReplFlags_Watch) {
-      return repl_run_watch(pathAbs, flags);
+      exitCode = repl_run_watch(binder, pathAbs, flags);
+    } else {
+      exitCode = repl_run_path(binder, pathAbs, flags);
     }
-    return repl_run_path(pathAbs, flags);
+  } else if (tty_isatty(g_file_stdin)) {
+    exitCode = repl_run_interactive(binder, flags);
+  } else {
+    const String id = string_empty;
+    exitCode        = repl_run_file(binder, g_file_stdin, id, flags);
   }
-  if (tty_isatty(g_file_stdin)) {
-    return repl_run_interactive(flags);
+
+Exit:
+  if (binder) {
+    script_binder_destroy(binder);
   }
-  const String id = string_empty;
-  return repl_run_file(g_file_stdin, id, flags);
+  return exitCode;
 }

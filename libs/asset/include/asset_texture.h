@@ -1,7 +1,9 @@
 #pragma once
-#include "asset_data.h"
 #include "ecs_module.h"
 #include "geo_color.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 typedef struct {
   u8 r;
@@ -88,5 +90,5 @@ GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
  */
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);
 
-AssetDataReg asset_texture_proc_datareg(void);
-AssetDataReg asset_texture_array_datareg(void);
+void asset_texture_proc_jsonschema_write(DynString*);
+void asset_texture_array_jsonschema_write(DynString*);

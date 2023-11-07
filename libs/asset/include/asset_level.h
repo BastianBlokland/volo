@@ -1,8 +1,10 @@
 #pragma once
-#include "asset_data.h"
 #include "core_sentinel.h"
 #include "ecs_module.h"
 #include "geo_quat.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 // Forward declare from 'asset_manager.h'.
 ecs_comp_extern(AssetManagerComp);
@@ -39,4 +41,4 @@ ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
 bool asset_level_save(AssetManagerComp*, String id, AssetLevel);
 
-AssetDataReg asset_level_datareg(void);
+void asset_level_jsonschema_write(DynString*);

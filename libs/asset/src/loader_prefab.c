@@ -9,6 +9,7 @@
 #include "core_stringtable.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -831,10 +832,7 @@ const AssetPrefabTrait* asset_prefab_trait_get(
   return null;
 }
 
-AssetDataReg asset_prefab_datareg() {
+void asset_prefab_jsonschema_write(DynString* str) {
   prefab_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataMapDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta);
 }

@@ -1,8 +1,10 @@
 #pragma once
-#include "asset_data.h"
 #include "core_unicode.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -63,4 +65,4 @@ ecs_comp_extern_public(AssetProductMapComp) {
  */
 const AssetProductSet* asset_productset_get(const AssetProductMapComp*, StringHash nameHash);
 
-AssetDataReg asset_product_datareg(void);
+void asset_product_jsonschema_write(DynString*);

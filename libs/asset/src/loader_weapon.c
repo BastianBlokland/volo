@@ -9,6 +9,7 @@
 #include "core_stringtable.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -559,10 +560,7 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
       mem_struct(AssetWeapon, .nameHash = nameHash).ptr);
 }
 
-AssetDataReg asset_weapon_datareg() {
+void asset_weapon_jsonschema_write(DynString* str) {
   weapon_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataMapDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta);
 }

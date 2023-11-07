@@ -1,6 +1,9 @@
 #pragma once
 #include "ecs_module.h"
 
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
 // Forward declare from 'script_doc.h'.
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
@@ -13,3 +16,5 @@ ecs_comp_extern_public(AssetScriptComp) {
   const ScriptDoc* doc;
   ScriptExpr       expr;
 };
+
+void asset_script_binder_write(DynString* str);

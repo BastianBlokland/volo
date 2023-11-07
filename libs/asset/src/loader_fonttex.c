@@ -11,6 +11,7 @@
 #include "core_thread.h"
 #include "core_utf8.h"
 #include "data.h"
+#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -512,10 +513,7 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
   return &comp->characters[0];
 }
 
-AssetDataReg asset_fonttex_datareg() {
+void asset_fonttex_jsonschema_write(DynString* str) {
   fonttex_datareg_init();
-  return (AssetDataReg){
-      .registry = g_dataReg,
-      .typeMeta = g_dataFontTexDefMeta,
-  };
+  data_jsonschema_write(g_dataReg, str, g_dataFontTexDefMeta);
 }

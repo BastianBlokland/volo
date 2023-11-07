@@ -25,6 +25,7 @@ add_library(lib_script STATIC
   )
 target_include_directories(lib_script PUBLIC include)
 target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
+target_link_libraries(lib_script PRIVATE lib_json)
 
 add_executable(test_lib_script
   test/config.c

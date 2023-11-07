@@ -1,7 +1,9 @@
 #pragma once
-#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_module.h"
+
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
 
 typedef enum {
   AssetDecalAxis_LocalY,
@@ -42,4 +44,4 @@ ecs_comp_extern_public(AssetDecalComp) {
   TimeDuration     fadeInTime, fadeOutTime;
 };
 
-AssetDataReg asset_decal_datareg(void);
+void asset_decal_jsonschema_write(DynString*);

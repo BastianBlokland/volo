@@ -13,7 +13,7 @@
 
 static ScriptBinder* g_scriptBinder;
 
-static void script_bind(
+static void asset_bind(
     ScriptBinder*      binder,
     const String       name,
     const String       doc,
@@ -24,7 +24,7 @@ static void script_bind(
   script_binder_declare(binder, name, doc, sig, null);
 }
 
-static void script_binder_init() {
+static void asset_binder_init() {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_scriptBinder)) {
     return;
@@ -37,7 +37,7 @@ static void script_binder_init() {
       const String     name = string_lit("self");
       const String     doc  = string_lit("Return the entity that is executing the current script.");
       const ScriptMask ret  = script_mask_entity;
-      script_bind(binder, name, doc, ret, null, 0);
+      asset_bind(binder, name, doc, ret, null, 0);
     }
     {
       const String       name   = string_lit("exists");
@@ -46,7 +46,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("position");
@@ -55,7 +55,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("rotation");
@@ -64,7 +64,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("scale");
@@ -73,7 +73,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("name");
@@ -82,7 +82,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("faction");
@@ -91,7 +91,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("health");
@@ -100,7 +100,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("time");
@@ -109,7 +109,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("clock"), script_mask_str | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_query");
@@ -119,7 +119,7 @@ static void script_binder_init() {
           {string_lit("pos"), script_mask_vec3},
           {string_lit("query"), script_mask_str | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_target");
@@ -128,7 +128,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("line_of_sight");
@@ -139,7 +139,7 @@ static void script_binder_init() {
           {string_lit("dst"), script_mask_entity},
           {string_lit("radius"), script_mask_num | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("capable");
@@ -149,7 +149,7 @@ static void script_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("capability"), script_mask_str},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("active");
@@ -159,7 +159,7 @@ static void script_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("activity"), script_mask_str},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("target_primary");
@@ -168,7 +168,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("target_range_min");
@@ -177,7 +177,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("target_range_max");
@@ -186,7 +186,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("spawn");
@@ -199,7 +199,7 @@ static void script_binder_init() {
           {string_lit("scale"), script_mask_num | script_mask_null},
           {string_lit("faction"), script_mask_str | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("destroy");
@@ -208,7 +208,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("destroy_after");
@@ -218,7 +218,7 @@ static void script_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("delay"), script_mask_entity | script_mask_time},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("teleport");
@@ -229,7 +229,7 @@ static void script_binder_init() {
           {string_lit("pos"), script_mask_vec3 | script_mask_null},
           {string_lit("rot"), script_mask_quat | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_travel");
@@ -239,7 +239,7 @@ static void script_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity | script_mask_vec3},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("nav_stop");
@@ -248,7 +248,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("attach");
@@ -259,7 +259,7 @@ static void script_binder_init() {
           {string_lit("target"), script_mask_entity},
           {string_lit("jointName"), script_mask_str | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("detach");
@@ -268,7 +268,7 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("damage");
@@ -278,7 +278,7 @@ static void script_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("amount"), script_mask_num},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("attack");
@@ -288,7 +288,7 @@ static void script_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity | script_mask_null},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("debug_log");
@@ -297,13 +297,13 @@ static void script_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
       };
-      script_bind(binder, name, doc, ret, args, array_elems(args));
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String     name = string_lit("debug_break");
       const String     doc  = string_lit("Break into the debugger if there is one attached.");
       const ScriptMask ret  = script_mask_null;
-      script_bind(binder, name, doc, ret, null, 0);
+      asset_bind(binder, name, doc, ret, null, 0);
     }
     // clang-format on
 
@@ -338,7 +338,7 @@ ecs_system_define(ScriptUnloadAssetSys) {
 }
 
 ecs_module_init(asset_script_module) {
-  script_binder_init();
+  asset_binder_init();
 
   ecs_register_comp(AssetScriptComp, .destructor = ecs_destruct_script_comp);
 
@@ -389,4 +389,9 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+void asset_script_binder_write(DynString* str) {
+  asset_binder_init();
+  script_binder_write(str, g_scriptBinder);
 }
