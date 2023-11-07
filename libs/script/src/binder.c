@@ -7,6 +7,7 @@
 #include "json_read.h"
 #include "json_write.h"
 #include "script_binder.h"
+#include "script_error.h"
 #include "script_sig.h"
 #include "script_val.h"
 
@@ -44,7 +45,7 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
 static ScriptVal binder_func_fallback(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
-  (void)err;
+  *err = script_error(ScriptError_UnimplementedBinding);
   return script_null();
 }
 
