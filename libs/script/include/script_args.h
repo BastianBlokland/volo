@@ -49,5 +49,3 @@ EcsEntityId  script_arg_maybe_entity(ScriptArgs, u16 i, EcsEntityId def);
 StringHash   script_arg_maybe_str(ScriptArgs, u16 i, StringHash def);
 TimeDuration script_arg_maybe_time(ScriptArgs, u16 i, TimeDuration def);
 i32          script_arg_maybe_enum(ScriptArgs, u16 i, const ScriptEnum*, i32 def);
-
-ScriptVal script_arg_last_or_null(ScriptArgs);

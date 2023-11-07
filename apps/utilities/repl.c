@@ -238,7 +238,7 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return script_arg_last_or_null(args);
+  return script_null();
 }
 
 static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptError* err) {
@@ -256,7 +256,7 @@ static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptE
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return script_arg_last_or_null(args);
+  return script_null();
 }
 
 static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptError* err) {
@@ -274,7 +274,7 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return script_arg_last_or_null(args);
+  return script_null();
 }
 
 static const ScriptBinder* repl_bind_init() {

@@ -279,7 +279,3 @@ i32 script_arg_maybe_enum(const ScriptArgs args, const u16 i, const ScriptEnum* 
   }
   return def;
 }
-
-ScriptVal script_arg_last_or_null(const ScriptArgs args) {
-  return args.count ? args.values[args.count - 1] : val_null();
-}
