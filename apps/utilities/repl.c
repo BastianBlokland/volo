@@ -292,7 +292,12 @@ static const ScriptBinder* repl_bind_init() {
   return g_binder;
 }
 
-static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input, const String id) {
+static void repl_exec(
+    const ScriptBinder* binder,
+    ScriptMem*          mem,
+    const ReplFlags     flags,
+    const String        input,
+    const String        id) {
   if (flags & ReplFlags_OutputTokens) {
     repl_output_tokens(input);
   }
@@ -303,7 +308,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_alloc_heap) : 0;
 
-  const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags, syms);
+  const ScriptExpr expr = script_read(script, binder, input, diags, syms);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -325,7 +330,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     }
     const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
     if (noErrors && !(flags & ReplFlags_NoEval)) {
-      const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
+      const ScriptEvalResult evalRes = script_eval(script, mem, expr, binder, null);
       if (script_panic_valid(&evalRes.panic)) {
         repl_output_panic(input, &evalRes.panic, id);
       } else {
@@ -342,10 +347,11 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
 }
 
 typedef struct {
-  ReplFlags  flags;
-  String     editPrevText;
-  DynString* editBuffer;
-  ScriptMem* mem;
+  const ScriptBinder* binder;
+  ReplFlags           flags;
+  String              editPrevText;
+  DynString*          editBuffer;
+  ScriptMem*          mem;
 } ReplEditor;
 
 static bool repl_edit_empty(const ReplEditor* editor) {
@@ -383,7 +389,7 @@ static void repl_edit_submit(ReplEditor* editor) {
   editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
 
   const String id = string_empty;
-  repl_exec(editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
+  repl_exec(editor->binder, editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
 
   dynstring_clear(editor->editBuffer);
 }
@@ -460,11 +466,12 @@ static bool repl_edit_update(ReplEditor* editor, TtyInputToken* input) {
   return true; // Keep running.
 }
 
-static i32 repl_run_interactive(const ReplFlags flags) {
+static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 32);
   DynString editBuffer = dynstring_create(g_alloc_heap, 128);
 
   ReplEditor editor = {
+      .binder     = binder,
       .flags      = flags,
       .editBuffer = &editBuffer,
       .mem        = script_mem_create(g_alloc_heap),
@@ -499,19 +506,20 @@ Stop:
   return 0;
 }
 
-static i32 repl_run_file(File* file, const String id, const ReplFlags flags) {
+static i32
+repl_run_file(const ScriptBinder* binder, File* file, const String id, const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
   file_read_to_end_sync(file, &readBuffer);
 
   ScriptMem* mem = script_mem_create(g_alloc_heap);
-  repl_exec(mem, flags, dynstring_view(&readBuffer), id);
+  repl_exec(binder, mem, flags, dynstring_view(&readBuffer), id);
   script_mem_destroy(mem);
 
   dynstring_destroy(&readBuffer);
   return 0;
 }
 
-static i32 repl_run_path(const String pathAbs, const ReplFlags flags) {
+static i32 repl_run_path(const ScriptBinder* binder, const String pathAbs, const ReplFlags flags) {
   diag_assert(path_is_absolute(pathAbs));
 
   File*      file;
@@ -531,12 +539,12 @@ Retry:
   }
 
   const String id     = pathAbs;
-  const i32    runRes = repl_run_file(file, id, flags);
+  const i32    runRes = repl_run_file(binder, file, id, flags);
   file_destroy(file);
   return runRes;
 }
 
-static i32 repl_run_watch(const String pathAbs, const ReplFlags flags) {
+static i32 repl_run_watch(const ScriptBinder* binder, const String pathAbs, const ReplFlags flags) {
   diag_assert(path_is_absolute(pathAbs));
   i32 res = 0;
 
@@ -554,7 +562,7 @@ static i32 repl_run_watch(const String pathAbs, const ReplFlags flags) {
 
   FileMonitorEvent evt;
   do {
-    res = repl_run_path(pathAbs, flags);
+    res = repl_run_path(binder, pathAbs, flags);
     repl_output(string_lit("--- Waiting for change ---\n"));
   } while (file_monitor_poll(mon, &evt));
 
@@ -643,17 +651,19 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 1;
   }
 
+  const ScriptBinder* binder = repl_bind_init();
+
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {
     const String pathAbs = string_dup(g_alloc_persist, path_build_scratch(fileArg.values[0]));
     if (flags & ReplFlags_Watch) {
-      return repl_run_watch(pathAbs, flags);
+      return repl_run_watch(binder, pathAbs, flags);
     }
-    return repl_run_path(pathAbs, flags);
+    return repl_run_path(binder, pathAbs, flags);
   }
   if (tty_isatty(g_file_stdin)) {
-    return repl_run_interactive(flags);
+    return repl_run_interactive(binder, flags);
   }
   const String id = string_empty;
-  return repl_run_file(g_file_stdin, id, flags);
+  return repl_run_file(binder, g_file_stdin, id, flags);
 }
