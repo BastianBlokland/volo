@@ -614,9 +614,12 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  i32           exitCode = 0;
+  ScriptBinder* binder   = null;
+
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_file_stdout);
-    return 0;
+    goto Exit;
   }
 
   ReplFlags flags = ReplFlags_None;
@@ -642,10 +645,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (!tty_isatty(g_file_stdout)) {
     // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
     file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream.\n"));
-    return 1;
+    exitCode = 1;
+    goto Exit;
   }
 
-  ScriptBinder* binder = script_binder_create(g_alloc_persist);
+  binder = script_binder_create(g_alloc_heap);
   repl_bind_init(binder);
   script_binder_finalize(binder);
 
@@ -653,13 +657,20 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (fileArg.count) {
     const String pathAbs = string_dup(g_alloc_persist, path_build_scratch(fileArg.values[0]));
     if (flags & ReplFlags_Watch) {
-      return repl_run_watch(binder, pathAbs, flags);
+      exitCode = repl_run_watch(binder, pathAbs, flags);
+    } else {
+      exitCode = repl_run_path(binder, pathAbs, flags);
     }
-    return repl_run_path(binder, pathAbs, flags);
+  } else if (tty_isatty(g_file_stdin)) {
+    exitCode = repl_run_interactive(binder, flags);
+  } else {
+    const String id = string_empty;
+    exitCode        = repl_run_file(binder, g_file_stdin, id, flags);
   }
-  if (tty_isatty(g_file_stdin)) {
-    return repl_run_interactive(binder, flags);
+
+Exit:
+  if (binder) {
+    script_binder_destroy(binder);
   }
-  const String id = string_empty;
-  return repl_run_file(binder, g_file_stdin, id, flags);
+  return exitCode;
 }
