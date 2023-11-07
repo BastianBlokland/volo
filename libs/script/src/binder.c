@@ -41,6 +41,13 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
   mem_swap(mem_var(binder->sigs[a]), mem_var(binder->sigs[b]));
 }
 
+static ScriptVal binder_func_fallback(void* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)ctx;
+  (void)args;
+  (void)err;
+  return script_null();
+}
+
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
 
@@ -72,7 +79,7 @@ void script_binder_declare(
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
   binder->names[binder->count] = stringtable_add(g_stringtable, name);
-  binder->funcs[binder->count] = func;
+  binder->funcs[binder->count] = func ? func : binder_func_fallback;
   binder->docs[binder->count]  = string_maybe_dup(binder->alloc, doc);
   binder->sigs[binder->count]  = sig ? script_sig_clone(binder->alloc, sig) : null;
   ++binder->count;
