@@ -122,6 +122,15 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Type, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("mem_get");
+    const String       doc    = string_lit("Lookup a value from memory.\n\n\n\n*Note*: Identical to using `$myKey` but can be used with a dynamic key.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_MemGet, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("vec3");
     const String       doc    = string_lit("Construct a new vector.");
     const ScriptMask   ret    = script_mask_vec3;

@@ -3,6 +3,8 @@
 #include "core_diag.h"
 #include "script_mem.h"
 
+#include "val_internal.h"
+
 #define script_mem_slots_initial 32
 #define script_mem_slots_loadfactor 0.75f
 
@@ -114,7 +116,7 @@ void script_mem_set(ScriptMem* mem, const StringHash key, const ScriptVal value)
 
 void script_mem_set_null(ScriptMem* mem, const StringHash key) {
   const u32 slotIndex        = script_mem_insert(mem, key);
-  mem->slotValues[slotIndex] = script_null();
+  mem->slotValues[slotIndex] = val_null();
 }
 
 ScriptMemItr script_mem_begin(const ScriptMem* mem) {

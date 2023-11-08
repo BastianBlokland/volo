@@ -7,6 +7,7 @@
 #include "script_val.h"
 
 #include "doc_internal.h"
+#include "val_internal.h"
 
 #define script_executed_exprs_max 10000
 
@@ -77,10 +78,10 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
     ctx->signal |= ScriptEvalSignal_Continue;
-    return script_null();
+    return val_null();
   case ScriptIntrinsic_Break:
     ctx->signal |= ScriptEvalSignal_Break;
-    return script_null();
+    return val_null();
   case ScriptIntrinsic_Return: {
     const ScriptVal ret = eval(ctx, args[0]);
     ctx->signal |= ScriptEvalSignal_Return;
@@ -96,7 +97,11 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
       };
       ctx->signal |= ScriptEvalSignal_Panic;
     }
-    return script_null();
+    return val_null();
+  }
+  case ScriptIntrinsic_MemGet: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return val_type(arg0) == ScriptType_Str ? script_mem_get(ctx->m, val_as_str(arg0)) : val_null();
   }
   case ScriptIntrinsic_Select: {
     EVAL_ARG_WITH_INTERRUPT(0);
@@ -108,15 +113,15 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_LogicAnd: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(script_truthy(arg0) && script_truthy(eval(ctx, args[1])));
+    return val_bool(script_truthy(arg0) && script_truthy(eval(ctx, args[1])));
   }
   case ScriptIntrinsic_LogicOr: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
+    return val_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
   }
   case ScriptIntrinsic_Loop: {
     EVAL_ARG_WITH_INTERRUPT(0); // Setup.
-    ScriptVal ret = script_null();
+    ScriptVal ret = val_null();
     for (;;) {
       EVAL_ARG_WITH_INTERRUPT(1); // Condition.
       if (script_falsy(arg1) || UNLIKELY(ctx->signal)) {
@@ -136,27 +141,27 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_Equal: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(script_val_equal(arg0, eval(ctx, args[1])));
+    return val_bool(script_val_equal(arg0, eval(ctx, args[1])));
   }
   case ScriptIntrinsic_NotEqual: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(!script_val_equal(arg0, eval(ctx, args[1])));
+    return val_bool(!script_val_equal(arg0, eval(ctx, args[1])));
   }
   case ScriptIntrinsic_Less: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(script_val_less(arg0, eval(ctx, args[1])));
+    return val_bool(script_val_less(arg0, eval(ctx, args[1])));
   }
   case ScriptIntrinsic_LessOrEqual: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(!script_val_greater(arg0, eval(ctx, args[1])));
+    return val_bool(!script_val_greater(arg0, eval(ctx, args[1])));
   }
   case ScriptIntrinsic_Greater: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(script_val_greater(arg0, eval(ctx, args[1])));
+    return val_bool(script_val_greater(arg0, eval(ctx, args[1])));
   }
   case ScriptIntrinsic_GreaterOrEqual: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_bool(!script_val_less(arg0, eval(ctx, args[1])));
+    return val_bool(!script_val_less(arg0, eval(ctx, args[1])));
   }
   case ScriptIntrinsic_Add: {
     EVAL_ARG_WITH_INTERRUPT(0);
@@ -262,7 +267,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   for (u16 i = 0; i != data->argCount; ++i) {
     argValues[i] = eval(ctx, argExprs[i]);
     if (UNLIKELY(ctx->signal)) {
-      return script_null();
+      return val_null();
     }
   }
   const ScriptArgs args = {.values = argValues, .count = data->argCount};
@@ -286,7 +291,7 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e)
         .range = script_expr_range(ctx->doc, e),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
-    return script_null();
+    return val_null();
   }
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
