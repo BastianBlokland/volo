@@ -122,6 +122,25 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Type, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("mem_get");
+    const String       doc    = string_lit("Load a value from memory.\n\n*Note*: Identical to using `$myKey` but can be used with a dynamic key.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_MemLoadDynamic, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("mem_set");
+    const String       doc    = string_lit("Store a memory value.\n\n*Note*: Identical to using `$myKey = value` but can be used with a dynamic key.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
+        {string_lit("value"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_MemStoreDynamic, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("vec3");
     const String       doc    = string_lit("Construct a new vector.");
     const ScriptMask   ret    = script_mask_vec3;
@@ -713,6 +732,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
     return;
   case ScriptExprKind_Intrinsic: {
     switch (expr_data(doc, expr)->intrinsic.intrinsic) {
+    case ScriptIntrinsic_MemStoreDynamic:
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
     case ScriptIntrinsic_Return:
@@ -1144,6 +1164,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
+  diag_assert((u32)argCount < u8_max);
+
   const ScriptRange callRange = read_range_to_current(ctx, idRange.start);
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id);
@@ -1174,7 +1196,6 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-      diag_assert((u32)argCount < u8_max);
 
       const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
       if (sig) {
