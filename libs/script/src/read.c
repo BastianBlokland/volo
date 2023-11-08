@@ -1144,6 +1144,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
+  diag_assert((u32)argCount < u8_max);
+
   const ScriptRange callRange = read_range_to_current(ctx, idRange.start);
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id);
@@ -1174,7 +1176,6 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-      diag_assert((u32)argCount < u8_max);
 
       const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
       if (sig) {
