@@ -99,11 +99,11 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     }
     return val_null();
   }
-  case ScriptIntrinsic_MemGet: {
+  case ScriptIntrinsic_MemLoadDynamic: {
     EVAL_ARG_WITH_INTERRUPT(0);
     return val_type(arg0) == ScriptType_Str ? script_mem_get(ctx->m, val_as_str(arg0)) : val_null();
   }
-  case ScriptIntrinsic_MemSet: {
+  case ScriptIntrinsic_MemStoreDynamic: {
     EVAL_ARG_WITH_INTERRUPT(0);
     if (val_type(arg0) == ScriptType_Str) {
       EVAL_ARG_WITH_INTERRUPT(1);

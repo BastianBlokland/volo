@@ -7,8 +7,8 @@ typedef enum {
   ScriptIntrinsic_Return,            // Args: value.
   ScriptIntrinsic_Type,              // Args: value.
   ScriptIntrinsic_Assert,            // Args: condition.
-  ScriptIntrinsic_MemGet,            // Args: key.
-  ScriptIntrinsic_MemSet,            // Args: key, value.
+  ScriptIntrinsic_MemLoadDynamic,    // Args: key.
+  ScriptIntrinsic_MemStoreDynamic,   // Args: key, value.
   ScriptIntrinsic_Select,            // Args: condition, if branch, else branch.
   ScriptIntrinsic_NullCoalescing,    // Args: lhs, rhs.
   ScriptIntrinsic_LogicAnd,          // Args: lhs, rhs.

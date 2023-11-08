@@ -123,22 +123,22 @@ static void script_builtin_init() {
   }
   {
     const String       name   = string_lit("mem_get");
-    const String       doc    = string_lit("Lookup a value from memory.\n\n*Note*: Identical to using `$myKey` but can be used with a dynamic key.");
+    const String       doc    = string_lit("Load a value from memory.\n\n*Note*: Identical to using `$myKey` but can be used with a dynamic key.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
         {string_lit("key"), script_mask_str},
     };
-    script_builtin_func_add(name, ScriptIntrinsic_MemGet, doc, ret, args, array_elems(args));
+    script_builtin_func_add(name, ScriptIntrinsic_MemLoadDynamic, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("mem_set");
-    const String       doc    = string_lit("Set a memory value.\n\n*Note*: Identical to using `$myKey = value` but can be used with a dynamic key.");
+    const String       doc    = string_lit("Store a memory value.\n\n*Note*: Identical to using `$myKey = value` but can be used with a dynamic key.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
         {string_lit("key"), script_mask_str},
         {string_lit("value"), script_mask_any},
     };
-    script_builtin_func_add(name, ScriptIntrinsic_MemSet, doc, ret, args, array_elems(args));
+    script_builtin_func_add(name, ScriptIntrinsic_MemStoreDynamic, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("vec3");
@@ -732,7 +732,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
     return;
   case ScriptExprKind_Intrinsic: {
     switch (expr_data(doc, expr)->intrinsic.intrinsic) {
-    case ScriptIntrinsic_MemSet:
+    case ScriptIntrinsic_MemStoreDynamic:
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
     case ScriptIntrinsic_Return:
