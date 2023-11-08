@@ -760,9 +760,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1164,6 +1164,9 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
         args[i] = script_add_value(ctx->doc, script_range(lastPos, lastPos), script_null());
       }
       ctx->flags |= ScriptReadFlags_ProgramInvalid;
+    } else {
+      // Correct number of arguments; validate value types and emit warnings if needed.
+      read_emit_invalid_args(ctx, args, (u8)argCount, builtin->sig, callRange);
     }
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
   }
@@ -1796,13 +1799,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
