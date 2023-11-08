@@ -25,6 +25,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:
     return 1;
+  case ScriptIntrinsic_MemSet:
   case ScriptIntrinsic_Add:
   case ScriptIntrinsic_Angle:
   case ScriptIntrinsic_Distance:
@@ -82,6 +83,7 @@ bool script_intrinsic_deterministic(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Return:
   case ScriptIntrinsic_Assert:
   case ScriptIntrinsic_MemGet:
+  case ScriptIntrinsic_MemSet:
   case ScriptIntrinsic_Random:
   case ScriptIntrinsic_RandomSphere:
   case ScriptIntrinsic_RandomCircleXZ:
@@ -105,6 +107,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Type]              = string_static("type"),
       [ScriptIntrinsic_Assert]            = string_static("assert"),
       [ScriptIntrinsic_MemGet]            = string_static("mem-get"),
+      [ScriptIntrinsic_MemSet]            = string_static("mem-set"),
       [ScriptIntrinsic_Select]            = string_static("select"),
       [ScriptIntrinsic_NullCoalescing]    = string_static("null-coalescing"),
       [ScriptIntrinsic_LogicAnd]          = string_static("logic-and"),
