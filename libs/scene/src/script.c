@@ -78,6 +78,7 @@ static void eval_enum_init_activity() {
 
 typedef enum {
   ScriptActionType_Tell,
+  ScriptActionType_Ask,
   ScriptActionType_Spawn,
   ScriptActionType_Destroy,
   ScriptActionType_DestroyAfter,
@@ -95,6 +96,12 @@ typedef struct {
   StringHash  memKey;
   ScriptVal   value;
 } ScriptActionTell;
+
+typedef struct {
+  EcsEntityId entity;
+  EcsEntityId target;
+  StringHash  memKey;
+} ScriptActionAsk;
 
 typedef struct {
   EcsEntityId  entity;
@@ -155,6 +162,7 @@ typedef struct {
   ScriptActionType type;
   union {
     ScriptActionTell         data_tell;
+    ScriptActionAsk          data_ask;
     ScriptActionSpawn        data_spawn;
     ScriptActionDestroy      data_destroy;
     ScriptActionDestroyAfter data_destroyAfter;
@@ -217,6 +225,12 @@ static void action_push_tell(EvalContext* ctx, const ScriptActionTell* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Tell;
   a->data_tell    = *data;
+}
+
+static void action_push_ask(EvalContext* ctx, const ScriptActionAsk* data) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Ask;
+  a->data_ask     = *data;
 }
 
 static void action_push_spawn(EvalContext* ctx, const ScriptActionSpawn* data) {
@@ -569,6 +583,22 @@ static ScriptVal eval_tell(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_ask(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e      = script_arg_entity(args, 0, err);
+  const EcsEntityId target = script_arg_entity(args, 1, err);
+  const StringHash  key    = script_arg_str(args, 2, err);
+  if (LIKELY(e && target && key)) {
+    action_push_ask(
+        ctx,
+        &(ScriptActionAsk){
+            .entity = e,
+            .target = target,
+            .memKey = key,
+        });
+  }
+  return script_null();
+}
+
 static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const StringHash prefabId = script_arg_str(args, 0, err);
   if (UNLIKELY(!prefabId)) {
@@ -767,6 +797,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("target_range_min"),   eval_target_range_min);
     eval_bind(b, string_lit("target_range_max"),   eval_target_range_max);
     eval_bind(b, string_lit("tell"),               eval_tell);
+    eval_bind(b, string_lit("ask"),                eval_ask);
     eval_bind(b, string_lit("spawn"),              eval_spawn);
     eval_bind(b, string_lit("destroy"),            eval_destroy);
     eval_bind(b, string_lit("destroy_after"),      eval_destroy_after);
@@ -981,7 +1012,17 @@ typedef struct {
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
-    script_mem_set(scene_knowledge_memory_mut(knowledge), a->memKey, a->value);
+    scene_knowledge_set(knowledge, a->memKey, a->value);
+  }
+}
+
+static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
+  if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
+    if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
+      const SceneKnowledgeComp* target = ecs_view_read_t(ctx->knowledgeItr, SceneKnowledgeComp);
+      scene_knowledge_set(knowledge, a->memKey, scene_knowledge_get(target, a->memKey));
+    }
   }
 }
 
@@ -1108,6 +1149,9 @@ ecs_system_define(ScriptActionApplySys) {
       switch (action->type) {
       case ScriptActionType_Tell:
         action_tell(&ctx, &action->data_tell);
+        break;
+      case ScriptActionType_Ask:
+        action_ask(&ctx, &action->data_ask);
         break;
       case ScriptActionType_Spawn:
         action_spawn(&ctx, &action->data_spawn);
