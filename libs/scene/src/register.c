@@ -6,10 +6,8 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_attack_module);
   ecs_register_module(def, scene_blink_module);
   ecs_register_module(def, scene_bounds_module);
-  ecs_register_module(def, scene_brain_module);
   ecs_register_module(def, scene_camera_module);
   ecs_register_module(def, scene_collision_module);
-  ecs_register_module(def, scene_controller_module);
   ecs_register_module(def, scene_explosive_module);
   ecs_register_module(def, scene_faction_module);
   ecs_register_module(def, scene_footstep_module);
@@ -27,7 +25,6 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_renderable_module);
   ecs_register_module(def, scene_script_module);
   ecs_register_module(def, scene_selection_module);
-  ecs_register_module(def, scene_sensor_module);
   ecs_register_module(def, scene_skeleton_module);
   ecs_register_module(def, scene_sound_module);
   ecs_register_module(def, scene_status_module);

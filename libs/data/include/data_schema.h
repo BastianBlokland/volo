@@ -9,12 +9,3 @@
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
 void data_jsonschema_write(const DataReg*, DynString*, DataMeta);
-
-/**
- * Write a treeschema file for the given data-type.
- * The treeschema format is used by the 'https://www.bastian.tech/tree/' tree editor.
- * Format: https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
- *
- * Pre-condition: DataMeta definition is not modified in parallel with this call.
- */
-void data_treeschema_write(const DataReg*, DynString*, DataMeta);

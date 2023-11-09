@@ -5,8 +5,8 @@
 ecs_comp_define(SceneKnowledgeComp) { ScriptMem* memory; };
 
 static void ecs_destruct_knowledge_comp(void* data) {
-  SceneKnowledgeComp* brain = data;
-  script_mem_destroy(brain->memory);
+  SceneKnowledgeComp* k = data;
+  script_mem_destroy(k->memory);
 }
 
 static void ecs_combine_knowledge_comp(void* dataA, void* dataB) {
@@ -29,21 +29,21 @@ ecs_module_init(scene_knowledge_module) {
       .combinator = ecs_combine_knowledge_comp);
 }
 
-ScriptVal scene_knowledge_get(const SceneKnowledgeComp* brain, const StringHash key) {
-  return script_mem_get(brain->memory, key);
+ScriptVal scene_knowledge_get(const SceneKnowledgeComp* k, const StringHash key) {
+  return script_mem_get(k->memory, key);
 }
 
-void scene_knowledge_set(SceneKnowledgeComp* brain, const StringHash key, const ScriptVal value) {
-  script_mem_set(brain->memory, key, value);
+void scene_knowledge_set(SceneKnowledgeComp* k, const StringHash key, const ScriptVal value) {
+  script_mem_set(k->memory, key, value);
 }
 
-void scene_knowledge_set_null(SceneKnowledgeComp* brain, const StringHash key) {
-  script_mem_set_null(brain->memory, key);
+void scene_knowledge_set_null(SceneKnowledgeComp* k, const StringHash key) {
+  script_mem_set_null(k->memory, key);
 }
 
-const ScriptMem* scene_knowledge_memory(const SceneKnowledgeComp* brain) { return brain->memory; }
+const ScriptMem* scene_knowledge_memory(const SceneKnowledgeComp* k) { return k->memory; }
 
-ScriptMem* scene_knowledge_memory_mut(SceneKnowledgeComp* brain) { return brain->memory; }
+ScriptMem* scene_knowledge_memory_mut(SceneKnowledgeComp* k) { return k->memory; }
 
 SceneKnowledgeComp* scene_knowledge_add(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(

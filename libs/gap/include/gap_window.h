@@ -26,7 +26,7 @@ typedef enum {
 } GapWindowEvents;
 
 /**
- * Configuration flags for setting up the desired window behaviour.
+ * Configuration flags for setting up the desired window behavior.
  */
 typedef enum {
   GapWindowFlags_None             = 0,

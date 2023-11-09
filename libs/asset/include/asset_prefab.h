@@ -53,7 +53,6 @@ typedef enum {
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Script,
-  AssetPrefabTrait_Brain,
   AssetPrefabTrait_Blink,
   AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Location,
@@ -133,10 +132,6 @@ typedef struct {
 } AssetPrefabTraitScript;
 
 typedef struct {
-  EcsEntityId behaviorAsset;
-} AssetPrefabTraitBrain;
-
-typedef struct {
   f32        frequency;
   StringHash effectPrefab; // Optional: 0 to disable.
 } AssetPrefabTraitBlink;
@@ -188,7 +183,6 @@ typedef struct {
     AssetPrefabTraitAttack     data_attack;
     AssetPrefabTraitCollision  data_collision;
     AssetPrefabTraitScript     data_script;
-    AssetPrefabTraitBrain      data_brain;
     AssetPrefabTraitBlink      data_blink;
     AssetPrefabTraitTaunt      data_taunt;
     AssetPrefabTraitLocation   data_location;

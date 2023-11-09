@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "asset_atlas.h"
-#include "asset_behavior.h"
 #include "asset_decal.h"
 #include "asset_fonttex.h"
 #include "asset_graphic.h"
@@ -23,10 +22,9 @@
  * SchemaSetup - Utility to generate schema's for various asset formats used in Volo.
  *
  * Types of schemas:
- * - JsonSchema: Validation schema supported for all of the json asset types.
- *               https://json-schema.org/specification.html
- * - TreeSchema: Used by the 'https://www.bastian.tech/tree/' tree editor.
- *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
+ * - JsonSchema:   Validation schema supported for all of the json asset types.
+ *                 https://json-schema.org/specification.html
+ * - ScriptBinder: Used for script Ide support.
  */
 
 typedef void (*SchemaWriter)(DynString*);
@@ -40,8 +38,6 @@ typedef struct {
 static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("atlas.schema.json"),    .writer = asset_atlas_jsonschema_write,         },
     {.pattern = string_static("arraytex.schema.json"), .writer = asset_texture_array_jsonschema_write, },
-    {.pattern = string_static("bt.btschema"),          .writer = asset_behavior_treeschema_write,      },
-    {.pattern = string_static("bt.schema.json"),       .writer = asset_behavior_jsonschema_write,      },
     {.pattern = string_static("decal.schema.json"),    .writer = asset_decal_jsonschema_write,         },
     {.pattern = string_static("fonttex.schema.json"),  .writer = asset_fonttex_jsonschema_write,       },
     {.pattern = string_static("graphic.schema.json"),  .writer = asset_graphic_jsonschema_write,       },

@@ -14,7 +14,6 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Atlas:     { RET_LOADER(atlas);      }
   case AssetFormat_ArrayTex:  { RET_LOADER(arraytex);   }
   case AssetFormat_Bin:       { RET_LOADER(raw);        }
-  case AssetFormat_Bt:        { RET_LOADER(bt);         }
   case AssetFormat_Decal:     { RET_LOADER(decal);      }
   case AssetFormat_FontTex:   { RET_LOADER(fonttex);    }
   case AssetFormat_Gltf:      { RET_LOADER(gltf);       }

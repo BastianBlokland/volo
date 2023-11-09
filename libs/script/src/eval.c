@@ -285,8 +285,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-        .kind  = script_error_to_panic(err.kind),
-        .range = script_expr_range(ctx->doc, errExpr),
+                      .kind  = script_error_to_panic(err.kind),
+                      .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }
@@ -340,25 +340,6 @@ ScriptEvalResult script_eval(
       .m       = m,
       .binder  = binder,
       .bindCtx = bindCtx,
-  };
-
-  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
-  diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
-  diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
-
-  ScriptEvalResult res;
-  res.val           = eval(&ctx, expr);
-  res.panic         = ctx.panic;
-  res.executedExprs = ctx.executedExprs;
-  return res;
-}
-
-ScriptEvalResult
-script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr expr) {
-  diag_assert(script_expr_readonly(doc, expr));
-  ScriptEvalContext ctx = {
-      .doc = doc,
-      .m   = (ScriptMem*)m, // NOTE: Safe as long as the readonly invariant is maintained.
   };
 
   diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));

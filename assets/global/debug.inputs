@@ -168,38 +168,31 @@
       ]
     },
     {
-      "name": "DebugPanelBrain",
+      "name": "DebugPanelAsset",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DebugPanelEcs",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DebugPanelCamera",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F10" }
       ]
     },
     {
-      "name": "DebugPanelCamera",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "F11" }
-      ]
-    },
-    {
       "name": "DebugPanelRenderer",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F12" }
+        { "type": "Pressed", "key": "F11" }
       ]
     },
     {
