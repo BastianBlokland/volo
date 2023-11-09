@@ -429,27 +429,6 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
-              "const": "AssetPrefabTrait_Brain"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "behaviorId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "required": [
-            "$type",
-            "behaviorId"
-          ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": {
               "const": "AssetPrefabTrait_Blink"
             },
             "$name": {
@@ -698,10 +677,6 @@
         {
           "label": "New AssetPrefabTrait_Script",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Brain",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Brain\",\n  \"behaviorId\": \"placeholder\"\n}"
         },
         {
           "label": "New AssetPrefabTrait_Blink",
