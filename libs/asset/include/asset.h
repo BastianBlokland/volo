@@ -1,6 +1,5 @@
 #pragma once
 #include "asset_atlas.h"
-#include "asset_behavior.h"
 #include "asset_decal.h"
 #include "asset_font.h"
 #include "asset_fonttex.h"
