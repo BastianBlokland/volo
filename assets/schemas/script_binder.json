@@ -477,6 +477,35 @@
       }
     },
     {
+      "name": "ask",
+      "doc": "Ask a target entity for a knowledge value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "this",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "target",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "key",
+            "mask": [
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_break",
       "doc": "Break into the debugger if there is one attached.",
       "sig": {
@@ -612,6 +641,41 @@
             "name": "clock",
             "mask": [
               "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "tell",
+      "doc": "Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "target",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "key",
+            "mask": [
+              "str"
+            ]
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num",
+              "bool",
+              "vec3",
+              "quat",
+              "entity",
               "str"
             ]
           }

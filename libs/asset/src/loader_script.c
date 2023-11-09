@@ -189,6 +189,28 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("tell");
+      const String       doc    = string_lit("Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("target"), script_mask_entity},
+          {string_lit("key"), script_mask_str},
+          {string_lit("value"), script_mask_any},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("ask");
+      const String       doc    = string_lit("Ask a target entity for a knowledge value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("this"), script_mask_entity},
+          {string_lit("target"), script_mask_entity},
+          {string_lit("key"), script_mask_str},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("spawn");
       const String       doc    = string_lit("Spawn a prefab.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
