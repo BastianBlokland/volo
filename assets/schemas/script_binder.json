@@ -617,6 +617,41 @@
           }
         ]
       }
+    },
+    {
+      "name": "tell",
+      "doc": "Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.",
+      "sig": {
+        "ret": [
+          "null"
+        ],
+        "args": [
+          {
+            "name": "entity",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "key",
+            "mask": [
+              "str"
+            ]
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num",
+              "bool",
+              "vec3",
+              "quat",
+              "entity",
+              "str"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

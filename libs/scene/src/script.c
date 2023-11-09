@@ -77,6 +77,7 @@ static void eval_enum_init_activity() {
 }
 
 typedef enum {
+  ScriptActionType_Tell,
   ScriptActionType_Spawn,
   ScriptActionType_Destroy,
   ScriptActionType_DestroyAfter,
@@ -88,6 +89,12 @@ typedef enum {
   ScriptActionType_Damage,
   ScriptActionType_Attack,
 } ScriptActionType;
+
+typedef struct {
+  EcsEntityId entity;
+  StringHash  memKey;
+  ScriptVal   value;
+} ScriptActionTell;
 
 typedef struct {
   EcsEntityId  entity;
@@ -147,6 +154,7 @@ typedef struct {
 typedef struct {
   ScriptActionType type;
   union {
+    ScriptActionTell         data_tell;
     ScriptActionSpawn        data_spawn;
     ScriptActionDestroy      data_destroy;
     ScriptActionDestroyAfter data_destroyAfter;
@@ -204,6 +212,12 @@ typedef struct {
   String                 scriptId;
   DynArray*              actions; // ScriptAction[].
 } EvalContext;
+
+static void action_push_tell(EvalContext* ctx, const ScriptActionTell* data) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Tell;
+  a->data_tell    = *data;
+}
 
 static void action_push_spawn(EvalContext* ctx, const ScriptActionSpawn* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
@@ -453,9 +467,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -535,6 +549,22 @@ static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, 
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
     return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_tell(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e     = script_arg_entity(args, 0, err);
+  const StringHash  key   = script_arg_str(args, 1, err);
+  const ScriptVal   value = script_arg_any(args, 2, err);
+  if (LIKELY(e && key)) {
+    action_push_tell(
+        ctx,
+        &(ScriptActionTell){
+            .entity = e,
+            .memKey = key,
+            .value  = value,
+        });
   }
   return script_null();
 }
@@ -736,6 +766,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("target_primary"),     eval_target_primary);
     eval_bind(b, string_lit("target_range_min"),   eval_target_range_min);
     eval_bind(b, string_lit("target_range_max"),   eval_target_range_max);
+    eval_bind(b, string_lit("tell"),               eval_tell);
     eval_bind(b, string_lit("spawn"),              eval_spawn);
     eval_bind(b, string_lit("destroy"),            eval_destroy);
     eval_bind(b, string_lit("destroy_after"),      eval_destroy_after);
@@ -929,6 +960,7 @@ ecs_system_define(SceneScriptUpdateSys) {
   }
 }
 
+ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
 ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
@@ -938,12 +970,20 @@ ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 typedef struct {
   EcsWorld*    world;
   EcsEntityId  instigator;
+  EcsIterator* knowledgeItr;
   EcsIterator* transItr;
   EcsIterator* navAgentItr;
   EcsIterator* attachItr;
   EcsIterator* damageItr;
   EcsIterator* attackItr;
 } ActionContext;
+
+static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
+  if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
+    script_mem_set(scene_knowledge_memory_mut(knowledge), a->memKey, a->value);
+  }
+}
 
 static void action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
   const ScenePrefabSpec spec = {
@@ -1051,12 +1091,13 @@ ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_system_define(ScriptActionApplySys) {
   ActionContext ctx = {
-      .world       = world,
-      .transItr    = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
-      .navAgentItr = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
-      .attachItr   = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
-      .damageItr   = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
-      .attackItr   = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
+      .world        = world,
+      .knowledgeItr = ecs_view_itr(ecs_world_view_t(world, ActionKnowledgeView)),
+      .transItr     = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
+      .navAgentItr  = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
+      .attachItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
+      .damageItr    = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
+      .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -1065,6 +1106,9 @@ ecs_system_define(ScriptActionApplySys) {
     SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
+      case ScriptActionType_Tell:
+        action_tell(&ctx, &action->data_tell);
+        break;
       case ScriptActionType_Spawn:
         action_spawn(&ctx, &action->data_spawn);
         break;
@@ -1137,6 +1181,7 @@ ecs_module_init(scene_script_module) {
   ecs_register_system(
       ScriptActionApplySys,
       ecs_view_id(ScriptActionApplyView),
+      ecs_register_view(ActionKnowledgeView),
       ecs_register_view(ActionTransformView),
       ecs_register_view(ActionNavAgentView),
       ecs_register_view(ActionAttachmentView),
