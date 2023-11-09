@@ -659,7 +659,7 @@ INLINE_HINT static f32 nav_separate_weight(const GeoNavOccupantFlags flags) {
 
 /**
  * Compute a force to move an occupant to be at least radius away from any blockers in the region.
- * NOTE: Behaviour is undefined if the position is fully inside a blocked cell.
+ * NOTE: Behavior is undefined if the position is fully inside a blocked cell.
  */
 static GeoVector nav_separate_from_blockers(
     const GeoNavGrid*         grid,

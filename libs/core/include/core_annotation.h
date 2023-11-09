@@ -115,7 +115,7 @@ ASSERT(false, "Unsupported compiler");
 
 /**
  * Mark a structure or enum to be packed, meaning it will use as little memory as possible.
- * NOTE: Behaviour differs per compiler, MSVC does not support this on enums at all for example.
+ * NOTE: Behavior differs per compiler, MSVC does not support this on enums at all for example.
  *
  * Example usage:
  * '

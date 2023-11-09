@@ -566,7 +566,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_DPICHANGED: {
     /**
      * NOTE: We're querying the actual raw display dpi instead of window's logical dpi. Reason is
-     * that its much easier to get consistent cross-platform behaviour this way.
+     * that its much easier to get consistent cross-platform behavior this way.
      */
     const u16 newDpi = pal_query_dpi(window->id);
     pal_event_dpi_changed(window, newDpi);

@@ -45,7 +45,7 @@ void thread_pal_set_name(const String str) {
    * Under MinGW (Minimalist GNU for Windows) (GNU gcc + GNU binutils port to windows), the
    * 'SetThreadDescription' win32 api is current not supported. Seeing that 'thread_pal_set_name()'
    * is a convenience api for use during debugging / profiling we can simply stub it out without
-   * affecting the program behaviour.
+   * affecting the program behavior.
    */
   (void)str;
 }

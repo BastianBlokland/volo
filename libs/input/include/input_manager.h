@@ -9,7 +9,7 @@ typedef i64 TimeDuration;
 typedef enum eGapKey GapKey;
 
 /**
- * Controls the cursor behaviour:
+ * Controls the cursor behavior:
  * - Normal:  Cursor is visible and can be moved freely.
  * - Locked:  Cursor is hidden and kept centered, NOTE: Delta position values are still produced.
  */

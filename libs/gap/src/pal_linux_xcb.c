@@ -1002,9 +1002,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+             .alloc    = alloc,
+             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1014,7 +1014,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
     /**
      * Enable the 'detectableAutoRepeat' xkb flag.
      * By default x-server will send repeated press and release when holding a key, making it
-     * impossible to detect 'true' presses and releases. This flag disables that behaviour.
+     * impossible to detect 'true' presses and releases. This flag disables that behavior.
      */
     pal_xkb_enable_flag(pal, XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
   }
@@ -1251,8 +1251,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(
