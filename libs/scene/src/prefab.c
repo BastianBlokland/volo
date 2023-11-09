@@ -12,7 +12,6 @@
 #include "log_logger.h"
 #include "scene_attack.h"
 #include "scene_blink.h"
-#include "scene_brain.h"
 #include "scene_collision.h"
 #include "scene_explosive.h"
 #include "scene_footstep.h"
@@ -322,8 +321,9 @@ static void setup_script(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 }
 
 static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBrain* t) {
-  scene_brain_add(w, e, t->behaviorAsset);
-  scene_knowledge_add(w, e);
+  (void)w;
+  (void)e;
+  (void)t;
 }
 
 static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBlink* t) {

@@ -9,10 +9,8 @@ add_library(lib_scene STATIC
   src/attack.c
   src/blink.c
   src/bounds.c
-  src/brain.c
   src/camera.c
   src/collision.c
-  src/controller.c
   src/explosive.c
   src/faction.c
   src/footstep.c
@@ -31,7 +29,6 @@ add_library(lib_scene STATIC
   src/renderable.c
   src/script.c
   src/selection.c
-  src/sensor.c
   src/skeleton.c
   src/sound.c
   src/status.c
@@ -47,13 +44,13 @@ add_library(lib_scene STATIC
   src/weapon.c
   )
 target_include_directories(lib_scene PUBLIC include)
-target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo lib_ai)
+target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
 target_link_libraries(lib_scene PRIVATE lib_log)
 
 add_executable(test_lib_scene
   test/config.c
-  test/test_brain.c
   test/test_nav.c
+  test/test_script.c
   )
 target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)
 

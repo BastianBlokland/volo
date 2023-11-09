@@ -3,7 +3,6 @@
 #include "core_format.h"
 #include "debug_animation.h"
 #include "debug_asset.h"
-#include "debug_brain.h"
 #include "debug_camera.h"
 #include "debug_ecs.h"
 #include "debug_grid.h"
@@ -81,12 +80,6 @@ static const struct {
         .iconShape  = UiShape_Description,
         .openFunc   = debug_script_panel_open,
         .hotkeyName = string_static("DebugPanelScript"),
-    },
-    {
-        .name       = string_static("Brain"),
-        .iconShape  = UiShape_Psychology,
-        .openFunc   = debug_brain_panel_open,
-        .hotkeyName = string_static("DebugPanelBrain"),
     },
     {
         .name       = string_static("Asset"),
