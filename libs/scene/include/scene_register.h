@@ -4,11 +4,8 @@
 enum {
   SceneOrder_TimeUpdate        = -100,
   SceneOrder_NavInit           = -50,
-  SceneOrder_SensorUpdate      = -50,
   SceneOrder_ScriptUpdate      = -41,
   SceneOrder_ScriptActionApply = -40,
-  SceneOrder_BrainUpdate       = -30,
-  SceneOrder_ControllerUpdate  = -20,
   SceneOrder_AttachmentUpdate  = 25,
   SceneOrder_LocomotionUpdate  = 25,
   SceneOrder_VelocityUpdate    = 100,

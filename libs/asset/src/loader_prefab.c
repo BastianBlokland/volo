@@ -116,10 +116,6 @@ typedef struct {
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
-  String behaviorId;
-} AssetPrefabTraitBrainDef;
-
-typedef struct {
   f32    frequency;
   String effectPrefab; // Optional, empty if unused.
 } AssetPrefabTraitBlinkDef;
@@ -171,7 +167,6 @@ typedef struct {
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitScriptDef     data_script;
-    AssetPrefabTraitBrainDef      data_brain;
     AssetPrefabTraitBlinkDef      data_blink;
     AssetPrefabTraitTauntDef      data_taunt;
     AssetPrefabTraitLocationDef   data_location;
@@ -290,9 +285,6 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitScriptDef);
     data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, AssetPrefabTraitBrainDef);
-    data_reg_field_t(reg, AssetPrefabTraitBrainDef, behaviorId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-
     data_reg_struct_t(reg, AssetPrefabTraitBlinkDef);
     data_reg_field_t(reg, AssetPrefabTraitBlinkDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitBlinkDef, effectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -338,7 +330,6 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
-    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Brain, data_brain, t_AssetPrefabTraitBrainDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Blink, data_blink, t_AssetPrefabTraitBlinkDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
@@ -563,11 +554,6 @@ static void prefab_build(
     case AssetPrefabTrait_Script:
       outTrait->data_script = (AssetPrefabTraitScript){
           .scriptAsset = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
-      };
-      break;
-    case AssetPrefabTrait_Brain:
-      outTrait->data_brain = (AssetPrefabTraitBrain){
-          .behaviorAsset = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
       };
       break;
     case AssetPrefabTrait_Blink:
