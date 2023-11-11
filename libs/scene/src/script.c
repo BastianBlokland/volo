@@ -39,7 +39,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumClock,
                   g_scriptEnumNavQuery,
                   g_scriptEnumCapability,
-                  g_scriptEnumActivity;
+                  g_scriptEnumActivity,
+                  g_scriptEnumVfxParam;
 
 // clang-format on
 
@@ -75,6 +76,10 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 0);
   script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
+}
+
+static void eval_enum_init_vfx_param() {
+  script_enum_push(&g_scriptEnumActivity, string_lit("Alpha"), 0);
 }
 
 typedef enum {
@@ -497,9 +502,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -764,6 +769,20 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
+  case 0: {
+    (void)ctx;
+    return script_bool(false);
+  }
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
@@ -816,6 +835,7 @@ static void eval_binder_init() {
     eval_enum_init_nav_query();
     eval_enum_init_capability();
     eval_enum_init_activity();
+    eval_enum_init_vfx_param();
 
     // clang-format off
     eval_bind(b, string_lit("self"),               eval_self);
@@ -848,6 +868,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
     eval_bind(b, string_lit("emit"),               eval_emit);
+    eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
