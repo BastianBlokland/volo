@@ -1,11 +1,14 @@
 
-var me           = self()
-var frequency    = 0.5
-var effectPrefab = "EffectAlarm"
+var me             = self()
+var blinkFrequency = 0.5
+var effectPrefab   = "EffectAlarm"
 
-var newBlinkOn = (round_nearest((time() * frequency)) % 2) == 1.0
+var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
 if (newBlinkOn != $blinkOn) {
+
   emit(me, newBlinkOn)
+  vfx_param(me, "Alpha", newBlinkOn ? 1.0 : 0.0)
+
   if (newBlinkOn) {
     var fx = spawn(effectPrefab, position(me), rotation(me))
     destroy_after(fx, me) // Instantly destroy the effect when this entity is destroyed.
