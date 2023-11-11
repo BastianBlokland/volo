@@ -1235,7 +1235,7 @@ static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags*
 
 static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdateVfxParam* a) {
   if (ecs_view_maybe_jump(ctx->vfxSysItr, a->entity)) {
-    ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp)->alpha;
+    ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp)->alpha = a->alpha;
   }
 }
 
