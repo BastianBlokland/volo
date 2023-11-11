@@ -654,6 +654,37 @@
       }
     },
     {
+      "name": "vfx_param",
+      "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "param",
+            "mask": [
+              "str"
+            ]
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "time",
       "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
       "sig": {

@@ -23,6 +23,7 @@
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 #include "script_binder.h"
 #include "script_enum.h"
 #include "script_error.h"
@@ -79,7 +80,7 @@ static void eval_enum_init_activity() {
 }
 
 static void eval_enum_init_vfx_param() {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Alpha"), 0);
+  script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
 }
 
 typedef enum {
@@ -201,6 +202,7 @@ ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
+ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
@@ -222,6 +224,7 @@ typedef struct {
   EcsIterator* factionItr;
   EcsIterator* healthItr;
   EcsIterator* tagItr;
+  EcsIterator* vfxSysItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
   EcsIterator* attackItr;
@@ -774,11 +777,16 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
-  case 0 /* Alpha */: {
-    (void)ctx;
-    return script_bool(false);
-  }
+  if (args.count == 2) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->vfxSysItr, entity);
+    if (itr) {
+      const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(itr, SceneVfxSystemComp);
+      switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
+      case 0 /* Alpha */:
+        return script_num(vfxSysComp->alpha);
+      }
+    }
+    return script_null();
   }
   return script_null();
 }
@@ -1015,6 +1023,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
+      .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
       .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
@@ -1290,6 +1299,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
       ecs_register_view(EvalTagView),
+      ecs_register_view(EvalVfxSysView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
