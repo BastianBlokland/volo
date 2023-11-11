@@ -37,7 +37,7 @@ f64 script_arg_num_range(
     const ScriptArgs args, const u16 i, const f64 min, const f64 max, ScriptError* err) {
   if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Num)) {
     const f64 res = val_as_num(args.values[i]);
-    if (LIKELY(res >= min && res < max)) {
+    if (LIKELY(res >= min && res <= max)) {
       return res;
     }
     return *err = script_error_arg(ScriptError_ArgumentOutOfRange, i), 0.0;
@@ -121,7 +121,7 @@ f64 script_arg_opt_num_range(
   if (args.count > i) {
     if (val_type(args.values[i]) == ScriptType_Num) {
       const f64 res = val_as_num(args.values[i]);
-      if (LIKELY(res >= min && res < max)) {
+      if (LIKELY(res >= min && res <= max)) {
         return res;
       }
       return *err = script_error_arg(ScriptError_ArgumentOutOfRange, i), 0.0;
