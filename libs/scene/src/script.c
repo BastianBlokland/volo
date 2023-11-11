@@ -743,7 +743,7 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  if (!entity) {
+  if (UNLIKELY(!entity)) {
     return script_null();
   }
   if (args.count == 1) {
