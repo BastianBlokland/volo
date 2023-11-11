@@ -7,7 +7,8 @@ var newBlinkOn = (round_nearest((time() * frequency)) % 2) == 1.0
 if (newBlinkOn != $blinkOn) {
   emit(me, newBlinkOn)
   if (newBlinkOn) {
-    spawn(effectPrefab, position(me), rotation(me))
+    var fx = spawn(effectPrefab, position(me), rotation(me))
+    destroy_after(fx, me) // Instantly destroy the effect when this entity is destroyed.
   }
 }
 $blinkOn = newBlinkOn
