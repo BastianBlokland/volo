@@ -116,11 +116,6 @@ typedef struct {
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
-  f32    frequency;
-  String effectPrefab; // Optional, empty if unused.
-} AssetPrefabTraitBlinkDef;
-
-typedef struct {
   i32    priority;
   String tauntDeathPrefab;   // Optional, empty if unused.
   String tauntConfirmPrefab; // Optional, empty if unused.
@@ -167,7 +162,6 @@ typedef struct {
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitScriptDef     data_script;
-    AssetPrefabTraitBlinkDef      data_blink;
     AssetPrefabTraitTauntDef      data_taunt;
     AssetPrefabTraitLocationDef   data_location;
     AssetPrefabTraitExplosiveDef  data_explosive;
@@ -285,10 +279,6 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitScriptDef);
     data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, AssetPrefabTraitBlinkDef);
-    data_reg_field_t(reg, AssetPrefabTraitBlinkDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitBlinkDef, effectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-
     data_reg_struct_t(reg, AssetPrefabTraitTauntDef);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -330,7 +320,6 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
-    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Blink, data_blink, t_AssetPrefabTraitBlinkDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Explosive, data_explosive, t_AssetPrefabTraitExplosiveDef);
@@ -556,12 +545,6 @@ static void prefab_build(
           .scriptAsset = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
       };
       break;
-    case AssetPrefabTrait_Blink:
-      outTrait->data_blink = (AssetPrefabTraitBlink){
-          .frequency    = traitDef->data_blink.frequency,
-          .effectPrefab = string_maybe_hash(traitDef->data_blink.effectPrefab),
-      };
-      break;
     case AssetPrefabTrait_Taunt:
       outTrait->data_taunt = (AssetPrefabTraitTaunt){
           .priority           = traitDef->data_taunt.priority,
@@ -597,12 +580,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

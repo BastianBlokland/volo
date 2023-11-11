@@ -11,7 +11,6 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attack.h"
-#include "scene_blink.h"
 #include "scene_collision.h"
 #include "scene_explosive.h"
 #include "scene_footstep.h"
@@ -320,10 +319,6 @@ static void setup_script(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   scene_knowledge_add(w, e);
 }
 
-static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBlink* t) {
-  ecs_world_add_t(w, e, SceneBlinkComp, .frequency = t->frequency, .effectPrefab = t->effectPrefab);
-}
-
 static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
   ecs_world_add_t(
       w,
@@ -428,9 +423,6 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Script:
     setup_script(w, e, &t->data_script);
-    return;
-  case AssetPrefabTrait_Blink:
-    setup_blink(w, e, &t->data_blink);
     return;
   case AssetPrefabTrait_Taunt:
     setup_taunt(w, e, &t->data_taunt);
