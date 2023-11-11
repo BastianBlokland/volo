@@ -1,0 +1,10 @@
+
+var me           = self()
+var frequency    = 0.5
+var effectPrefab = "EffectAlarm"
+
+var newBlinkOn = (round_nearest((time() * frequency)) % 2) == 1.0
+if (newBlinkOn && !$blinkOn) {
+  spawn(effectPrefab, position(me), rotation(me))
+}
+$blinkOn = newBlinkOn
