@@ -19,6 +19,7 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -187,6 +188,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
@@ -207,6 +209,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* tagItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
   EcsIterator* attackItr;
@@ -725,6 +728,19 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (args.count == 1) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->tagItr, entity);
+    if (itr) {
+      const SceneTagComp* tagComp = ecs_view_read_t(itr, SceneTagComp);
+      return script_bool((tagComp->tags & SceneTags_Emit) != 0);
+    }
+    return script_null();
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
@@ -808,6 +824,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),             eval_detach);
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
+    eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
@@ -953,6 +970,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
       .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
@@ -1213,6 +1231,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalTagView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
