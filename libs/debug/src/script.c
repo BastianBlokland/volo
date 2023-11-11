@@ -433,7 +433,10 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
     const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
-    const ScriptPanic*     panic          = scene_script_panic(scriptInstance);
+    if (!scriptInstance) {
+      continue;
+    }
+    const ScriptPanic* panic = scene_script_panic(scriptInstance);
     if (panic) {
       ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
       const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);

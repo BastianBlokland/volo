@@ -429,31 +429,6 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
-              "const": "AssetPrefabTrait_Blink"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "frequency": {
-              "title": "f32",
-              "type": "number"
-            },
-            "effectPrefab": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "required": [
-            "$type",
-            "frequency"
-          ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": {
               "const": "AssetPrefabTrait_Taunt"
             },
             "$name": {
@@ -677,10 +652,6 @@
         {
           "label": "New AssetPrefabTrait_Script",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Blink",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Blink\",\n  \"frequency\": 1\n}"
         },
         {
           "label": "New AssetPrefabTrait_Taunt",

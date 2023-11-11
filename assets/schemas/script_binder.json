@@ -447,6 +447,31 @@
       }
     },
     {
+      "name": "emit",
+      "doc": "Change or query the emissivity of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "on",
+            "mask": [
+              "null",
+              "bool"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "attach",
       "doc": "Attach the given entity to another entity (optionally at a specific joint).",
       "sig": {
@@ -623,6 +648,37 @@
             "name": "v",
             "mask": [
               "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "vfx_param",
+      "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": [
+              "entity"
+            ]
+          },
+          {
+            "name": "param",
+            "mask": [
+              "str"
+            ]
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num"
             ]
           }
         ]

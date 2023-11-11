@@ -313,6 +313,27 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("emit");
+      const String       doc    = string_lit("Change or query the emissivity of the given entity.");
+      const ScriptMask   ret    = script_mask_bool | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("on"), script_mask_bool | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("vfx_param");
+      const String       doc    = string_lit("Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`");
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("param"), script_mask_str},
+          {string_lit("value"), script_mask_num | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("debug_log");
       const String       doc    = string_lit("Log the given values.");
       const ScriptMask   ret    = script_mask_null;

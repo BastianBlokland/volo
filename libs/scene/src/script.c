@@ -19,9 +19,11 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 #include "script_binder.h"
 #include "script_enum.h"
 #include "script_error.h"
@@ -38,7 +40,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumClock,
                   g_scriptEnumNavQuery,
                   g_scriptEnumCapability,
-                  g_scriptEnumActivity;
+                  g_scriptEnumActivity,
+                  g_scriptEnumVfxParam;
 
 // clang-format on
 
@@ -76,6 +79,10 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
 }
 
+static void eval_enum_init_vfx_param() {
+  script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
+}
+
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
@@ -89,6 +96,8 @@ typedef enum {
   ScriptActionType_Detach,
   ScriptActionType_Damage,
   ScriptActionType_Attack,
+  ScriptActionType_UpdateTags,
+  ScriptActionType_UpdateVfxParam,
 } ScriptActionType;
 
 typedef struct {
@@ -159,20 +168,32 @@ typedef struct {
 } ScriptActionAttack;
 
 typedef struct {
+  EcsEntityId entity;
+  SceneTags   toEnable, toDisable;
+} ScriptActionUpdateTags;
+
+typedef struct {
+  EcsEntityId entity;
+  f32         alpha;
+} ScriptActionUpdateVfxParam;
+
+typedef struct {
   ScriptActionType type;
   union {
-    ScriptActionTell         data_tell;
-    ScriptActionAsk          data_ask;
-    ScriptActionSpawn        data_spawn;
-    ScriptActionDestroy      data_destroy;
-    ScriptActionDestroyAfter data_destroyAfter;
-    ScriptActionTeleport     data_teleport;
-    ScriptActionNavTravel    data_navTravel;
-    ScriptActionNavStop      data_navStop;
-    ScriptActionAttach       data_attach;
-    ScriptActionDetach       data_detach;
-    ScriptActionDamage       data_damage;
-    ScriptActionAttack       data_attack;
+    ScriptActionTell           data_tell;
+    ScriptActionAsk            data_ask;
+    ScriptActionSpawn          data_spawn;
+    ScriptActionDestroy        data_destroy;
+    ScriptActionDestroyAfter   data_destroyAfter;
+    ScriptActionTeleport       data_teleport;
+    ScriptActionNavTravel      data_navTravel;
+    ScriptActionNavStop        data_navStop;
+    ScriptActionAttach         data_attach;
+    ScriptActionDetach         data_detach;
+    ScriptActionDamage         data_damage;
+    ScriptActionAttack         data_attack;
+    ScriptActionUpdateTags     data_updateTags;
+    ScriptActionUpdateVfxParam data_updateVfxParam;
   };
 } ScriptAction;
 
@@ -187,6 +208,8 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
+ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
@@ -207,6 +230,8 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* tagItr;
+  EcsIterator* vfxSysItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
   EcsIterator* attackItr;
@@ -293,6 +318,18 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   a->data_attack  = *data;
 }
 
+static void action_push_update_tags(EvalContext* ctx, const ScriptActionUpdateTags* data) {
+  ScriptAction* a    = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type            = ScriptActionType_UpdateTags;
+  a->data_updateTags = *data;
+}
+
+static void action_push_update_vfx_param(EvalContext* ctx, const ScriptActionUpdateVfxParam* data) {
+  ScriptAction* a        = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type                = ScriptActionType_UpdateVfxParam;
+  a->data_updateVfxParam = *data;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -355,15 +392,15 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
     return script_time(time->time);
   }
   switch (script_arg_enum(args, 0, &g_scriptEnumClock, err)) {
-  case 0:
+  case 0 /* Time */:
     return script_time(time->time);
-  case 1:
+  case 1 /* RealTime */:
     return script_time(time->realTime);
-  case 2:
+  case 2 /* Delta */:
     return script_time(time->delta);
-  case 3:
+  case 3 /* RealDelta */:
     return script_time(time->realDelta);
-  case 4:
+  case 4 /* Ticks */:
     return script_num(time->ticks);
   }
   return script_null();
@@ -381,12 +418,12 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptE
     return script_vec3(scene_nav_position(navEnv, cell));
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, err)) {
-  case 0:
+  case 0 /* ClosestCell */:
     return script_vec3(scene_nav_position(navEnv, cell));
-  case 1:
+  case 1 /* UnblockedCell */:
     scene_nav_closest_unblocked_n(navEnv, cell, cellContainer);
     return script_vec3(scene_nav_position(navEnv, cell));
-  case 2:
+  case 2 /* FreeCell */:
     scene_nav_closest_free_n(navEnv, cell, cellContainer);
     return script_vec3(scene_nav_position(navEnv, cell));
   }
@@ -481,9 +518,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -505,9 +542,9 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
     return script_bool(false);
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumCapability, err)) {
-  case 0:
+  case 0 /* NavTravel */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
-  case 1:
+  case 1 /* Attack */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
   }
   return script_null();
@@ -516,22 +553,22 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(args, 0, err);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
-  case 0: {
+  case 0 /* Moving */: {
     const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
-  case 1: {
+  case 1 /* Traveling */: {
     const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
-  case 2: {
+  case 2 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
-  case 3: {
+  case 3 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
@@ -725,6 +762,57 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  if (args.count == 1) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->tagItr, entity);
+    if (itr) {
+      const SceneTagComp* tagComp = ecs_view_read_t(itr, SceneTagComp);
+      return script_bool((tagComp->tags & SceneTags_Emit) != 0);
+    }
+    return script_null();
+  }
+  ScriptActionUpdateTags updateTags = {.entity = entity};
+  if (script_arg_bool(args, 1, err)) {
+    updateTags.toEnable |= SceneTags_Emit;
+  } else {
+    updateTags.toDisable |= SceneTags_Emit;
+  }
+  action_push_update_tags(ctx, &updateTags);
+  return script_null();
+}
+
+static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  if (args.count == 2) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->vfxSysItr, entity);
+    if (itr) {
+      const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(itr, SceneVfxSystemComp);
+      switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
+      case 0 /* Alpha */:
+        return script_num(vfxSysComp->alpha);
+      }
+    }
+    return script_null();
+  }
+  switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
+  case 0 /* Alpha */: {
+    const ScriptActionUpdateVfxParam param = {
+        .entity = entity,
+        .alpha  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
+    };
+    action_push_update_vfx_param(ctx, &param);
+  } break;
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
@@ -777,6 +865,7 @@ static void eval_binder_init() {
     eval_enum_init_nav_query();
     eval_enum_init_capability();
     eval_enum_init_activity();
+    eval_enum_init_vfx_param();
 
     // clang-format off
     eval_bind(b, string_lit("self"),               eval_self);
@@ -808,6 +897,8 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),             eval_detach);
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
+    eval_bind(b, string_lit("emit"),               eval_emit);
+    eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
@@ -953,6 +1044,8 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
+      .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
       .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
@@ -997,6 +1090,8 @@ ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
 ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
+ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
+ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 
 typedef struct {
   EcsWorld*    world;
@@ -1007,6 +1102,8 @@ typedef struct {
   EcsIterator* attachItr;
   EcsIterator* damageItr;
   EcsIterator* attackItr;
+  EcsIterator* tagItr;
+  EcsIterator* vfxSysItr;
 } ActionContext;
 
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
@@ -1128,6 +1225,20 @@ static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   }
 }
 
+static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags* a) {
+  if (ecs_view_maybe_jump(ctx->tagItr, a->entity)) {
+    SceneTagComp* tagComp = ecs_view_write_t(ctx->tagItr, SceneTagComp);
+    tagComp->tags |= a->toEnable;
+    tagComp->tags &= ~a->toDisable;
+  }
+}
+
+static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdateVfxParam* a) {
+  if (ecs_view_maybe_jump(ctx->vfxSysItr, a->entity)) {
+    ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp)->alpha = a->alpha;
+  }
+}
+
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_system_define(ScriptActionApplySys) {
@@ -1139,6 +1250,8 @@ ecs_system_define(ScriptActionApplySys) {
       .attachItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
       .damageItr    = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
       .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
+      .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
+      .vfxSysItr    = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -1183,6 +1296,12 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
         break;
+      case ScriptActionType_UpdateTags:
+        action_update_tags(&ctx, &action->data_updateTags);
+        break;
+      case ScriptActionType_UpdateVfxParam:
+        action_update_vfx_param(&ctx, &action->data_updateVfxParam);
+        break;
       }
     }
     dynarray_clear(&scriptInstance->actions);
@@ -1213,6 +1332,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalTagView),
+      ecs_register_view(EvalVfxSysView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
@@ -1230,7 +1351,9 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionNavAgentView),
       ecs_register_view(ActionAttachmentView),
       ecs_register_view(ActionDamageView),
-      ecs_register_view(ActionAttackView));
+      ecs_register_view(ActionAttackView),
+      ecs_register_view(ActionTagView),
+      ecs_register_view(ActionVfxSysView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }
