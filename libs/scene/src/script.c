@@ -90,6 +90,7 @@ typedef enum {
   ScriptActionType_Detach,
   ScriptActionType_Damage,
   ScriptActionType_Attack,
+  ScriptActionType_UpdateTags,
 } ScriptActionType;
 
 typedef struct {
@@ -160,6 +161,11 @@ typedef struct {
 } ScriptActionAttack;
 
 typedef struct {
+  EcsEntityId entity;
+  SceneTags   toEnable, toDisable;
+} ScriptActionUpdateTags;
+
+typedef struct {
   ScriptActionType type;
   union {
     ScriptActionTell         data_tell;
@@ -174,6 +180,7 @@ typedef struct {
     ScriptActionDetach       data_detach;
     ScriptActionDamage       data_damage;
     ScriptActionAttack       data_attack;
+    ScriptActionUpdateTags   data_updateTags;
   };
 } ScriptAction;
 
@@ -294,6 +301,12 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Attack;
   a->data_attack  = *data;
+}
+
+static void action_push_update_tags(EvalContext* ctx, const ScriptActionUpdateTags* data) {
+  ScriptAction* a    = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type            = ScriptActionType_UpdateTags;
+  a->data_updateTags = *data;
 }
 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -730,6 +743,9 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (!entity) {
+    return script_null();
+  }
   if (args.count == 1) {
     const EcsIterator* itr = ecs_view_maybe_jump(ctx->tagItr, entity);
     if (itr) {
@@ -738,6 +754,13 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
     }
     return script_null();
   }
+  ScriptActionUpdateTags updateTags = {.entity = entity};
+  if (script_arg_bool(args, 1, err)) {
+    updateTags.toEnable |= SceneTags_Emit;
+  } else {
+    updateTags.toDisable |= SceneTags_Emit;
+  }
+  action_push_update_tags(ctx, &updateTags);
   return script_null();
 }
 
@@ -1015,6 +1038,7 @@ ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
 ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
+ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
 
 typedef struct {
   EcsWorld*    world;
@@ -1025,6 +1049,7 @@ typedef struct {
   EcsIterator* attachItr;
   EcsIterator* damageItr;
   EcsIterator* attackItr;
+  EcsIterator* tagItr;
 } ActionContext;
 
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
@@ -1146,6 +1171,14 @@ static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   }
 }
 
+static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags* a) {
+  if (ecs_view_maybe_jump(ctx->tagItr, a->entity)) {
+    SceneTagComp* tagComp = ecs_view_write_t(ctx->tagItr, SceneTagComp);
+    tagComp->tags |= a->toEnable;
+    tagComp->tags &= ~a->toDisable;
+  }
+}
+
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_system_define(ScriptActionApplySys) {
@@ -1157,6 +1190,7 @@ ecs_system_define(ScriptActionApplySys) {
       .attachItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
       .damageItr    = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
       .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
+      .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -1200,6 +1234,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
+        break;
+      case ScriptActionType_UpdateTags:
+        action_update_tags(&ctx, &action->data_updateTags);
         break;
       }
     }
@@ -1249,7 +1286,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionNavAgentView),
       ecs_register_view(ActionAttachmentView),
       ecs_register_view(ActionDamageView),
-      ecs_register_view(ActionAttackView));
+      ecs_register_view(ActionAttackView),
+      ecs_register_view(ActionTagView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }

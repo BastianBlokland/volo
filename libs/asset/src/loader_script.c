@@ -314,10 +314,11 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("emit");
-      const String       doc    = string_lit("Test if the given entity is emissive.");
+      const String       doc    = string_lit("Change or query the emissivity of the given entity.");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
+          {string_lit("on"), script_mask_bool | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
