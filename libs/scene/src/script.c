@@ -376,15 +376,15 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
     return script_time(time->time);
   }
   switch (script_arg_enum(args, 0, &g_scriptEnumClock, err)) {
-  case 0:
+  case 0 /* Time */:
     return script_time(time->time);
-  case 1:
+  case 1 /* RealTime */:
     return script_time(time->realTime);
-  case 2:
+  case 2 /* Delta */:
     return script_time(time->delta);
-  case 3:
+  case 3 /* RealDelta */:
     return script_time(time->realDelta);
-  case 4:
+  case 4 /* Ticks */:
     return script_num(time->ticks);
   }
   return script_null();
@@ -402,12 +402,12 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptE
     return script_vec3(scene_nav_position(navEnv, cell));
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, err)) {
-  case 0:
+  case 0 /* ClosestCell */:
     return script_vec3(scene_nav_position(navEnv, cell));
-  case 1:
+  case 1 /* UnblockedCell */:
     scene_nav_closest_unblocked_n(navEnv, cell, cellContainer);
     return script_vec3(scene_nav_position(navEnv, cell));
-  case 2:
+  case 2 /* FreeCell */:
     scene_nav_closest_free_n(navEnv, cell, cellContainer);
     return script_vec3(scene_nav_position(navEnv, cell));
   }
@@ -526,9 +526,9 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
     return script_bool(false);
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumCapability, err)) {
-  case 0:
+  case 0 /* NavTravel */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
-  case 1:
+  case 1 /* Attack */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
   }
   return script_null();
@@ -537,22 +537,22 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(args, 0, err);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
-  case 0: {
+  case 0 /* Moving */: {
     const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
-  case 1: {
+  case 1 /* Traveling */: {
     const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
-  case 2: {
+  case 2 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
-  case 3: {
+  case 3 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
@@ -775,7 +775,7 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
     return script_null();
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
-  case 0: {
+  case 0 /* Alpha */: {
     (void)ctx;
     return script_bool(false);
   }
