@@ -56,6 +56,11 @@ GeoColor geo_color_get(u64 idx);
 GeoColor geo_color_add(GeoColor a, GeoColor b);
 
 /**
+ * Compute a color where each component is the result of subtracting the component of both colors.
+ */
+GeoColor geo_color_sub(GeoColor a, GeoColor b);
+
+/**
  * Compute a color where each component is the result of multiplying with the scalar.
  */
 GeoColor geo_color_mul(GeoColor, f32 scalar);
