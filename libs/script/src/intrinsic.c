@@ -21,6 +21,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RoundNearest:
   case ScriptIntrinsic_RoundUp:
   case ScriptIntrinsic_Type:
+  case ScriptIntrinsic_Hash:
   case ScriptIntrinsic_VecX:
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:
@@ -106,6 +107,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Break]             = string_static("break"),
       [ScriptIntrinsic_Return]            = string_static("return"),
       [ScriptIntrinsic_Type]              = string_static("type"),
+      [ScriptIntrinsic_Hash]              = string_static("hash"),
       [ScriptIntrinsic_Assert]            = string_static("assert"),
       [ScriptIntrinsic_MemLoadDynamic]    = string_static("mem-load-dynamic"),
       [ScriptIntrinsic_MemStoreDynamic]   = string_static("mem-store-dynamic"),

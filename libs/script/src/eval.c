@@ -89,6 +89,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_Type:
     return script_str(script_val_type_hash(script_type(eval(ctx, args[0]))));
+  case ScriptIntrinsic_Hash:
+    return script_num(script_hash(eval(ctx, args[0])));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
@@ -291,8 +293,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-                      .kind  = script_error_to_panic(err.kind),
-                      .range = script_expr_range(ctx->doc, errExpr),
+        .kind  = script_error_to_panic(err.kind),
+        .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }

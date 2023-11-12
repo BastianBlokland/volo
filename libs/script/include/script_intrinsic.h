@@ -6,6 +6,7 @@ typedef enum {
   ScriptIntrinsic_Break,             // Args: none.
   ScriptIntrinsic_Return,            // Args: value.
   ScriptIntrinsic_Type,              // Args: value.
+  ScriptIntrinsic_Hash,              // Args: value.
   ScriptIntrinsic_Assert,            // Args: condition.
   ScriptIntrinsic_MemLoadDynamic,    // Args: key.
   ScriptIntrinsic_MemStoreDynamic,   // Args: key, value.
