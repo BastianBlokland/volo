@@ -203,68 +203,52 @@ static bool memory_draw_num(UiCanvasComp* canvas, ScriptVal* value) {
   return false;
 }
 
-static bool memory_draw_vec3(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_f32_values(UiCanvasComp* canvas, f32* values, const u32 valueCount) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / 3, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / 3, 0), UiBase_Absolute, Ui_X);
-
-  GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
+  ui_layout_resize(canvas, align, ui_vector(1.0f / valueCount, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / valueCount, 0), UiBase_Absolute, Ui_X);
 
   bool dirty = false;
-  for (u8 comp = 0; comp != 3; ++comp) {
-    f64 compVal = vec3.comps[comp];
+  for (u32 i = 0; i != valueCount; ++i) {
+    f64 compVal = values[i];
     if (ui_numbox(canvas, &compVal, .min = f32_min, .max = f32_max)) {
-      vec3.comps[comp] = (f32)compVal;
-      dirty            = true;
+      values[i] = (f32)compVal;
+      dirty     = true;
     }
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
 
-  if (dirty) {
-    *value = script_vec3(vec3);
-  }
   return dirty;
 }
 
-static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
-  static const f32 g_spacing = 10.0f;
-  const UiAlign    align     = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
-
-  GeoQuat quat = script_get_quat(*value, geo_quat_ident);
-
-  for (u8 comp = 0; comp != 4; ++comp) {
-    f64 compVal = quat.comps[comp];
-    ui_numbox(canvas, &compVal);
-    ui_layout_next(canvas, Ui_Right, g_spacing);
+static bool memory_draw_vec3(UiCanvasComp* canvas, ScriptVal* value) {
+  GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
+  if (memory_draw_f32_values(canvas, vec3.comps, 3)) {
+    *value = script_vec3(vec3);
+    return true;
   }
-  ui_layout_pop(canvas);
+  return false;
+}
 
-  return false; // Does not support editing.
+static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
+  GeoQuat quat = script_get_quat(*value, geo_quat_ident);
+  if (memory_draw_f32_values(canvas, quat.comps, 4)) {
+    *value = script_quat(quat);
+    return true;
+  }
+  return false;
 }
 
 static bool memory_draw_color(UiCanvasComp* canvas, ScriptVal* value) {
-  static const f32 g_spacing = 10.0f;
-  const UiAlign    align     = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
-
   GeoColor col = script_get_color(*value, geo_color_clear);
-
-  for (u8 comp = 0; comp != 4; ++comp) {
-    f64 compVal = col.data[comp];
-    ui_numbox(canvas, &compVal);
-    ui_layout_next(canvas, Ui_Right, g_spacing);
+  if (memory_draw_f32_values(canvas, col.data, 4)) {
+    *value = script_color(col);
+    return true;
   }
-  ui_layout_pop(canvas);
-
-  return false; // Does not support editing.
+  return false;
 }
 
 static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
