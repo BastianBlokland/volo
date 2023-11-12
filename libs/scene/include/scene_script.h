@@ -1,6 +1,8 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "geo_color.h"
+#include "geo_vector.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -35,6 +37,25 @@ void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 const ScriptPanic*      scene_script_panic(const SceneScriptComp*);
 EcsEntityId             scene_script_asset(const SceneScriptComp*);
 const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
+
+typedef enum {
+  SceneScriptDebugType_Line,
+} SceneScriptDebugType;
+
+typedef struct {
+  GeoVector start, end;
+  GeoColor  color;
+} SceneScriptDebugLine;
+
+typedef struct {
+  SceneScriptDebugType type;
+  union {
+    SceneScriptDebugLine data_line;
+  };
+} SceneScriptDebug;
+
+const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp*);
+usize                   scene_script_debug_count(const SceneScriptComp*);
 
 /**
  * Add a new script to the entity.

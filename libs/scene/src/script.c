@@ -244,6 +244,7 @@ typedef struct {
   const AssetScriptComp* scriptAsset;
   String                 scriptId;
   DynArray*              actions; // ScriptAction[].
+  DynArray*              debug;   // SceneScriptDebug[].
 } EvalContext;
 
 static void action_push_tell(EvalContext* ctx, const ScriptActionTell* data) {
@@ -328,6 +329,12 @@ static void action_push_update_vfx_param(EvalContext* ctx, const ScriptActionUpd
   ScriptAction* a        = dynarray_push_t(ctx->actions, ScriptAction);
   a->type                = ScriptActionType_UpdateVfxParam;
   a->data_updateVfxParam = *data;
+}
+
+static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Line;
+  d->data_line        = *data;
 }
 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -832,6 +839,17 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugLine data;
+  data.start = script_arg_vec3(args, 0, err);
+  data.end   = script_arg_vec3(args, 1, err);
+  data.color = script_arg_opt_color(args, 2, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_line(ctx, &data);
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
@@ -900,6 +918,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
+    eval_bind(b, string_lit("debug_line"),         eval_debug_line);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 
@@ -917,10 +936,11 @@ typedef enum {
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               resVersion;
-  SceneScriptStats stats;
   EcsEntityId      scriptAsset;
+  SceneScriptStats stats;
   ScriptPanic      lastPanic;
   DynArray         actions; // ScriptAction[].
+  DynArray         debug;   // SceneScriptDebug[].
 };
 
 ecs_comp_define(SceneScriptResourceComp) {
@@ -931,6 +951,7 @@ ecs_comp_define(SceneScriptResourceComp) {
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
   dynarray_destroy(&scriptInstance->actions);
+  dynarray_destroy(&scriptInstance->debug);
 }
 
 static void ecs_combine_script_resource(void* dataA, void* dataB) {
@@ -1059,6 +1080,9 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
+    ctx.debug           = &ctx.scriptInstance->debug;
+
+    dynarray_clear(ctx.debug); // Clear the previous frame debug.
 
     // Evaluate the script if the asset is loaded.
     if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {
@@ -1380,6 +1404,12 @@ EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->s
 
 const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
 
+const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
+  return dynarray_begin_t(&script->debug, SceneScriptDebug);
+}
+
+usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
+
 SceneScriptComp*
 scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {
   diag_assert(ecs_world_exists(world, scriptAsset));
@@ -1389,5 +1419,6 @@ scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId sc
       entity,
       SceneScriptComp,
       .scriptAsset = scriptAsset,
-      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0));
+      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
+      .debug       = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 }

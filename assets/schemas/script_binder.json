@@ -30,6 +30,30 @@
       }
     },
     {
+      "name": "debug_line",
+      "doc": "Draw a 3D debug line between the two given points.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "start",
+            "mask": "vec3"
+          },
+          {
+            "name": "end",
+            "mask": "vec3"
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {
