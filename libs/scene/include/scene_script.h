@@ -2,6 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_color.h"
+#include "geo_quat.h"
 #include "geo_vector.h"
 
 // Forward declare from 'core_time.h'.
@@ -42,6 +43,7 @@ typedef enum {
   SceneScriptDebugType_Line,
   SceneScriptDebugType_Sphere,
   SceneScriptDebugType_Arrow,
+  SceneScriptDebugType_Orientation,
 } SceneScriptDebugType;
 
 typedef struct {
@@ -62,11 +64,18 @@ typedef struct {
 } SceneScriptDebugArrow;
 
 typedef struct {
+  GeoVector pos;
+  GeoQuat   rot;
+  f32       size;
+} SceneScriptDebugOrientation;
+
+typedef struct {
   SceneScriptDebugType type;
   union {
-    SceneScriptDebugLine   data_line;
-    SceneScriptDebugSphere data_sphere;
-    SceneScriptDebugArrow  data_arrow;
+    SceneScriptDebugLine        data_line;
+    SceneScriptDebugSphere      data_sphere;
+    SceneScriptDebugArrow       data_arrow;
+    SceneScriptDebugOrientation data_orientation;
   };
 } SceneScriptDebug;
 

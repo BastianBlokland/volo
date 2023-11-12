@@ -231,6 +231,30 @@
       }
     },
     {
+      "name": "debug_orientation",
+      "doc": "Draw a 3D orientation gizmos.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": "quat"
+          },
+          {
+            "name": "size",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "target_primary",
       "doc": "Lookup the primary target of the given entity.",
       "sig": {
@@ -354,7 +378,10 @@
           },
           {
             "name": "radius",
-            "mask": "num"
+            "mask": [
+              "null",
+              "num"
+            ]
           },
           {
             "name": "color",
@@ -613,7 +640,10 @@
           },
           {
             "name": "radius",
-            "mask": "num"
+            "mask": [
+              "null",
+              "num"
+            ]
           },
           {
             "name": "color",

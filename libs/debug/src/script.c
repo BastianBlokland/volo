@@ -738,6 +738,10 @@ ecs_system_define(DebugScriptDrawSys) {
         const SceneScriptDebugArrow* data = &debugData[i].data_arrow;
         debug_arrow(shape, data->start, data->end, data->radius, data->color);
       } break;
+      case SceneScriptDebugType_Orientation: {
+        const SceneScriptDebugOrientation* data = &debugData[i].data_orientation;
+        debug_orientation(shape, data->pos, data->rot, data->size);
+      } break;
       }
     }
   }
