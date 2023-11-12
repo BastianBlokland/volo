@@ -44,6 +44,7 @@ typedef enum {
   SceneScriptDebugType_Sphere,
   SceneScriptDebugType_Arrow,
   SceneScriptDebugType_Orientation,
+  SceneScriptDebugType_Text,
 } SceneScriptDebugType;
 
 typedef struct {
@@ -53,14 +54,14 @@ typedef struct {
 
 typedef struct {
   GeoVector pos;
-  f32       radius;
   GeoColor  color;
+  f32       radius;
 } SceneScriptDebugSphere;
 
 typedef struct {
   GeoVector start, end;
-  f32       radius;
   GeoColor  color;
+  f32       radius;
 } SceneScriptDebugArrow;
 
 typedef struct {
@@ -70,12 +71,20 @@ typedef struct {
 } SceneScriptDebugOrientation;
 
 typedef struct {
+  GeoVector pos;
+  GeoColor  color;
+  String    text;
+  u16       fontSize;
+} SceneScriptDebugText;
+
+typedef struct {
   SceneScriptDebugType type;
   union {
     SceneScriptDebugLine        data_line;
     SceneScriptDebugSphere      data_sphere;
     SceneScriptDebugArrow       data_arrow;
     SceneScriptDebugOrientation data_orientation;
+    SceneScriptDebugText        data_text;
   };
 } SceneScriptDebug;
 

@@ -245,6 +245,8 @@ typedef struct {
   String                 scriptId;
   DynArray*              actions; // ScriptAction[].
   DynArray*              debug;   // SceneScriptDebug[].
+
+  Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
 
 static void action_push_tell(EvalContext* ctx, const ScriptActionTell* data) {
@@ -353,6 +355,12 @@ static void debug_push_orientation(EvalContext* ctx, const SceneScriptDebugOrien
   SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
   d->type             = SceneScriptDebugType_Orientation;
   d->data_orientation = *data;
+}
+
+static void debug_push_text(EvalContext* ctx, const SceneScriptDebugText* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Text;
+  d->data_text        = *data;
 }
 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -902,6 +910,27 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args,
   return script_null();
 }
 
+static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugText data;
+  data.pos      = script_arg_vec3(args, 0, err);
+  data.color    = script_arg_color(args, 1, err);
+  data.fontSize = (u16)script_arg_num_range(args, 2, 6.0, 30.0, err);
+
+  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  for (usize i = 3; i < args.count; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_write(args.values[i], &buffer);
+  }
+  if (UNLIKELY(script_error_valid(err)) || !buffer.size) {
+    return script_null();
+  }
+  data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
+  debug_push_text(ctx, &data);
+  return script_null();
+}
+
 static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
@@ -974,6 +1003,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
     eval_bind(b, string_lit("debug_arrow"),        eval_debug_arrow);
     eval_bind(b, string_lit("debug_orientation"),  eval_debug_orientation);
+    eval_bind(b, string_lit("debug_text"),         eval_debug_text);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 
@@ -994,6 +1024,7 @@ ecs_comp_define(SceneScriptComp) {
   EcsEntityId      scriptAsset;
   SceneScriptStats stats;
   ScriptPanic      lastPanic;
+  Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
 };
@@ -1005,6 +1036,9 @@ ecs_comp_define(SceneScriptResourceComp) {
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
+  if (scriptInstance->allocTransient) {
+    alloc_chunked_destroy(scriptInstance->allocTransient);
+  }
   dynarray_destroy(&scriptInstance->actions);
   dynarray_destroy(&scriptInstance->debug);
 }
@@ -1100,6 +1134,14 @@ static void scene_script_eval(EvalContext* ctx) {
   ctx->scriptInstance->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
 }
 
+static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
+  if (!inst->allocTransient) {
+    const usize chunkSize = 4 * usize_kibibyte;
+    inst->allocTransient  = alloc_chunked_create(g_alloc_page, alloc_bump_create, chunkSize);
+  }
+  return alloc_dup(inst->allocTransient, mem, align);
+}
+
 ecs_system_define(SceneScriptUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, EvalGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -1136,8 +1178,13 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
     ctx.debug           = &ctx.scriptInstance->debug;
+    ctx.transientDup    = &scene_script_transient_dup;
 
-    dynarray_clear(ctx.debug); // Clear the previous frame debug.
+    // Clear the previous frame transient data.
+    if (ctx.scriptInstance->allocTransient) {
+      alloc_reset(ctx.scriptInstance->allocTransient);
+    }
+    dynarray_clear(ctx.debug);
 
     // Evaluate the script if the asset is loaded.
     if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {

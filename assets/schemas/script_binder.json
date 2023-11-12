@@ -522,6 +522,32 @@
       }
     },
     {
+      "name": "debug_text",
+      "doc": "Draw debug text at a position in 3D space.\n\n*Note*: Size is in UI canvas pixels.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "color",
+            "mask": "color"
+          },
+          {
+            "name": "size",
+            "mask": "num"
+          },
+          {
+            "name": "values",
+            "mask": "any",
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_break",
       "doc": "Break into the debugger if there is one attached.",
       "sig": {

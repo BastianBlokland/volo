@@ -388,6 +388,18 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("debug_text");
+      const String       doc    = string_lit("Draw debug text at a position in 3D space.\n\n*Note*: Size is in UI canvas pixels.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("color"), script_mask_color},
+          {string_lit("size"), script_mask_num},
+          {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String     name = string_lit("debug_break");
       const String     doc  = string_lit("Break into the debugger if there is one attached.");
       const ScriptMask ret  = script_mask_null;

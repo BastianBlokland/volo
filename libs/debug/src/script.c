@@ -9,6 +9,7 @@
 #include "debug_register.h"
 #include "debug_script.h"
 #include "debug_shape.h"
+#include "debug_text.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
 #include "geo_color.h"
@@ -707,7 +708,11 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   }
 }
 
-ecs_view_define(DrawGlobalView) { ecs_access_write(DebugShapeComp); }
+ecs_view_define(DrawGlobalView) {
+  ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugTextComp);
+}
+
 ecs_view_define(DrawInstanceView) { ecs_access_read(SceneScriptComp); }
 
 ecs_system_define(DebugScriptDrawSys) {
@@ -717,6 +722,7 @@ ecs_system_define(DebugScriptDrawSys) {
     return;
   }
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*  text  = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView* instanceView = ecs_world_view_t(world, DrawInstanceView);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
@@ -741,6 +747,10 @@ ecs_system_define(DebugScriptDrawSys) {
       case SceneScriptDebugType_Orientation: {
         const SceneScriptDebugOrientation* data = &debugData[i].data_orientation;
         debug_orientation(shape, data->pos, data->rot, data->size);
+      } break;
+      case SceneScriptDebugType_Text: {
+        const SceneScriptDebugText* data = &debugData[i].data_text;
+        debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
       } break;
       }
     }
