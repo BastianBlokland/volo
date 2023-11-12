@@ -74,9 +74,13 @@ bool script_truthy(const ScriptVal value) {
   case ScriptType_Bool:
     return val_as_bool(value);
   case ScriptType_Vec3:
-    return geo_vector_mag_sqr(val_as_vec3(value)) > f32_epsilon;
   case ScriptType_Quat:
-    return true; // Only unit quaternions are supported thus they are always truthy.
+    /**
+     * NOTE: At the moment vectors and quaternions are always considered to be truthy. This is
+     * arguably inconsistent with numbers where we treat 0 as falsy. However its unclear what good
+     * truthy semantics are for these types, for example is a unit-quaternion truthy or not?
+     */
+    return true;
   case ScriptType_Entity:
     return ecs_entity_valid(val_as_entity(value));
   case ScriptType_Str:

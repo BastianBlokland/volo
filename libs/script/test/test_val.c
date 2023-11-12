@@ -93,7 +93,7 @@ spec(val) {
     check(!script_truthy(script_bool(false)));
     check(script_truthy(script_bool(true)));
 
-    check(!script_truthy(script_vec3_lit(0, 0, 0)));
+    check(script_truthy(script_vec3_lit(0, 0, 0)));
     check(script_truthy(script_vec3_lit(1, 2, 0)));
 
     check(script_truthy(script_quat(geo_quat_ident)));
@@ -114,7 +114,7 @@ spec(val) {
     check(script_falsy(script_bool(false)));
     check(!script_falsy(script_bool(true)));
 
-    check(script_falsy(script_vec3_lit(0, 0, 0)));
+    check(!script_falsy(script_vec3_lit(0, 0, 0)));
     check(!script_falsy(script_vec3_lit(1, 2, 0)));
 
     check(!script_falsy(script_quat(geo_quat_ident)));
