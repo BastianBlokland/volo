@@ -865,7 +865,7 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   SceneScriptDebugSphere data;
   data.pos    = script_arg_vec3(args, 0, err);
-  data.radius = (f32)script_arg_num(args, 1, err);
+  data.radius = (f32)script_arg_num_range(args, 1, 0.01f, 10.0f, err);
   data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     debug_push_sphere(ctx, &data);
@@ -877,7 +877,7 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, Scrip
   SceneScriptDebugArrow data;
   data.start  = script_arg_vec3(args, 0, err);
   data.end    = script_arg_vec3(args, 1, err);
-  data.radius = (f32)script_arg_num(args, 2, err);
+  data.radius = (f32)script_arg_num_range(args, 2, 0.01f, 10.0f, err);
   data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     debug_push_arrow(ctx, &data);
