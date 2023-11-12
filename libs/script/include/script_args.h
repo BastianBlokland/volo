@@ -14,6 +14,7 @@ typedef union uGeoVector GeoVector;
 
 // Forward declare from 'script_val.h'.
 typedef struct sScriptVal ScriptVal;
+typedef enum eScriptType  ScriptType;
 typedef u16               ScriptMask;
 
 // Forward declare from 'script_enum.h'.
@@ -41,6 +42,7 @@ StringHash   script_arg_str(ScriptArgs, u16 i, ScriptError*);
 TimeDuration script_arg_time(ScriptArgs, u16 i, ScriptError*);
 i32          script_arg_enum(ScriptArgs, u16 i, const ScriptEnum*, ScriptError*);
 
+ScriptType   script_arg_opt_type(ScriptArgs, u16 i);
 f64          script_arg_opt_num(ScriptArgs, u16 i, f64 def, ScriptError*);
 f64          script_arg_opt_num_range(ScriptArgs, u16 i, f64 min, f64 max, f64 def, ScriptError*);
 bool         script_arg_opt_bool(ScriptArgs, u16 i, bool def, ScriptError*);

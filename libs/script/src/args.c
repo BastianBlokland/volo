@@ -105,6 +105,13 @@ i32 script_arg_enum(const ScriptArgs args, const u16 i, const ScriptEnum* e, Scr
   return *err = script_arg_err(args, i), 0;
 }
 
+ScriptType script_arg_opt_type(const ScriptArgs args, const u16 i) {
+  if (LIKELY(args.count > i)) {
+    return val_type(args.values[i]);
+  }
+  return ScriptType_Null;
+}
+
 f64 script_arg_opt_num(const ScriptArgs args, const u16 i, const f64 def, ScriptError* err) {
   if (args.count > i) {
     if (val_type(args.values[i]) == ScriptType_Num) {
