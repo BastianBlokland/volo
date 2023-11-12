@@ -217,7 +217,7 @@ void script_val_write(const ScriptVal value, DynString* str) {
     if (string_is_empty(valueString)) {
       fmt_write(str, "#{}", fmt_int(val_as_str(value), .base = 16));
     } else {
-      fmt_write(str, "\"{}\"", fmt_text(valueString));
+      dynstring_append(str, valueString);
     }
     return;
   }

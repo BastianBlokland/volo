@@ -37,7 +37,7 @@ spec(read) {
         {string_static("42.1337"), string_static("[value: 42.1337]")},
         {string_static("true"), string_static("[value: true]")},
         {string_static("$hello"), string_static("[mem-load: $3944927369]")},
-        {string_static("\"Hello World\""), string_static("[value: \"Hello World\"]")},
+        {string_static("\"Hello World\""), string_static("[value: Hello World]")},
         {string_static("pi"), string_static("[value: 3.1415927]")},
         {string_static("deg_to_rad"), string_static("[value: 0.0174533]")},
         {string_static("rad_to_deg"), string_static("[value: 57.2957802]")},
