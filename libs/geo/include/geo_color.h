@@ -81,6 +81,11 @@ GeoColor geo_color_mul(GeoColor, f32 scalar);
 GeoColor geo_color_div(GeoColor, f32 scalar);
 
 /**
+ * Calculate the magnitude of the color.
+ */
+f32 geo_color_mag(GeoColor);
+
+/**
  * Calculate the linearly interpolated color from x to y at time t.
  * NOTE: Does not clamp t (so can extrapolate too).
  */

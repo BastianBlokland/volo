@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "geo_color.h"
 
@@ -84,6 +85,21 @@ GeoColor geo_color_div(const GeoColor c, const f32 scalar) {
 #else
   const f32 scalarInv = 1.0f / scalar;
   return geo_color(c.r * scalarInv, c.g * scalarInv, c.b * scalarInv, c.a * scalarInv);
+#endif
+}
+
+f32 geo_color_mag(const GeoColor c) {
+#if geo_color_simd_enable
+  const SimdVec tmp = simd_vec_load(c.data);
+  const SimdVec dot = simd_vec_dot4(tmp, tmp);
+  return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
+#else
+  f32 sqrMag = 0;
+  sqrMag += c.r * c.r;
+  sqrMag += c.g * c.g;
+  sqrMag += c.b * c.b;
+  sqrMag += c.a * c.a;
+  return sqrMag != 0 ? intrinsic_sqrt_f32(sqrMag) : 0;
 #endif
 }
 
