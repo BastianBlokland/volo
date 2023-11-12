@@ -16,6 +16,8 @@ ScriptError script_error_arg(const ScriptErrorKind kind, const u16 argIndex) {
   };
 }
 
+bool script_error_valid(const ScriptError* error) { return error->kind != ScriptError_None; }
+
 ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
   switch (kind) {
   case ScriptError_None:
