@@ -4,15 +4,11 @@
       "name": "destroy",
       "doc": "Destroy the given entity.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -28,9 +24,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -46,9 +40,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -64,9 +56,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -82,9 +72,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -100,15 +88,11 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "activity",
-            "mask": [
-              "str"
-            ]
+            "mask": "str"
           }
         ]
       }
@@ -117,15 +101,11 @@
       "name": "nav_stop",
       "doc": "Instruct the given entity to stop traveling.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -134,15 +114,11 @@
       "name": "destroy_after",
       "doc": "Destroy the given entity after a delay.\n\n*Note*: When providing an entity it will wait until the entity no longer exists.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "delay",
@@ -165,9 +141,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -176,15 +150,11 @@
       "name": "nav_travel",
       "doc": "Instruct the given entity to travel to a target location or entity.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "target",
@@ -207,9 +177,7 @@
         "args": [
           {
             "name": "pos",
-            "mask": [
-              "vec3"
-            ]
+            "mask": "vec3"
           },
           {
             "name": "query",
@@ -233,9 +201,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -251,9 +217,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -262,21 +226,15 @@
       "name": "damage",
       "doc": "Deal damage to the given entity.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "amount",
-            "mask": [
-              "num"
-            ]
+            "mask": "num"
           }
         ]
       }
@@ -292,9 +250,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -303,9 +259,7 @@
       "name": "debug_log",
       "doc": "Log the given values.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "values",
@@ -326,15 +280,11 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "capability",
-            "mask": [
-              "str"
-            ]
+            "mask": "str"
           }
         ]
       }
@@ -343,15 +293,11 @@
       "name": "exists",
       "doc": "Test if the given entity still exists.",
       "sig": {
-        "ret": [
-          "bool"
-        ],
+        "ret": "bool",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -367,9 +313,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -385,9 +329,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -403,9 +345,7 @@
         "args": [
           {
             "name": "prefabId",
-            "mask": [
-              "str"
-            ]
+            "mask": "str"
           },
           {
             "name": "pos",
@@ -449,9 +389,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "on",
@@ -467,21 +405,15 @@
       "name": "attach",
       "doc": "Attach the given entity to another entity (optionally at a specific joint).",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "target",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "jointName",
@@ -497,27 +429,19 @@
       "name": "ask",
       "doc": "Ask a target entity for a knowledge value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "this",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "target",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "key",
-            "mask": [
-              "str"
-            ]
+            "mask": "str"
           }
         ]
       }
@@ -526,9 +450,7 @@
       "name": "debug_break",
       "doc": "Break into the debugger if there is one attached.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": []
       }
     },
@@ -536,15 +458,11 @@
       "name": "attack",
       "doc": "Instruct the given entity to attack another entity.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "target",
@@ -560,15 +478,11 @@
       "name": "teleport",
       "doc": "Teleport the given entity.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "pos",
@@ -591,9 +505,7 @@
       "name": "self",
       "doc": "Return the entity that is executing the current script.",
       "sig": {
-        "ret": [
-          "entity"
-        ],
+        "ret": "entity",
         "args": []
       }
     },
@@ -608,15 +520,11 @@
         "args": [
           {
             "name": "src",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "dst",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "radius",
@@ -632,15 +540,11 @@
       "name": "detach",
       "doc": "Detach the given entity from all other entities.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           }
         ]
       }
@@ -656,15 +560,11 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "param",
-            "mask": [
-              "str"
-            ]
+            "mask": "str"
           },
           {
             "name": "value",
@@ -699,21 +599,15 @@
       "name": "tell",
       "doc": "Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.",
       "sig": {
-        "ret": [
-          "null"
-        ],
+        "ret": "null",
         "args": [
           {
             "name": "target",
-            "mask": [
-              "entity"
-            ]
+            "mask": "entity"
           },
           {
             "name": "key",
-            "mask": [
-              "str"
-            ]
+            "mask": "str"
           },
           {
             "name": "value",

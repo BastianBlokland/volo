@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_intrinsic.h"
 #include "core_search.h"
 #include "core_sort.h"
 #include "core_stringtable.h"
@@ -170,6 +171,10 @@ static JsonVal binder_mask_to_json(JsonDoc* d, const ScriptMask mask) {
   if (mask == script_mask_any) {
     return json_add_string(d, string_lit("any"));
   }
+  if (intrinsic_popcnt_32(mask) == 1) {
+    const ScriptType type = (ScriptType)bitset_next(bitset_from_var(mask), 0);
+    return json_add_string(d, script_val_type_str(type));
+  }
   const JsonVal arr = json_add_array(d);
   bitset_for(bitset_from_var(mask), typeIndex) {
     json_add_elem(d, arr, json_add_string(d, script_val_type_str((ScriptType)typeIndex)));
@@ -251,7 +256,7 @@ static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
     if (string_eq(json_string(d, v), string_lit("any"))) {
       return script_mask_any;
     }
-    return script_mask_none;
+    return (ScriptMask)(1 << script_val_type_from_hash(string_hash(json_string(d, v))));
   }
   if (json_type(d, v) == JsonType_Array) {
     ScriptMask ret = 0;
