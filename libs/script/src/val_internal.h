@@ -1,5 +1,7 @@
 #pragma once
+#include "core_float.h"
 #include "core_intrinsic.h"
+#include "geo_color.h"
 #include "geo_quat.h"
 #include "script_val.h"
 
@@ -13,8 +15,9 @@
  * | bool    | 0 / 1         | unused        | unused     | type tag (2) |
  * | vec3    | f32 x         | f32 y         | f32 z      | type tag (3) |
  * | quat    | f32 q1        | f32 q2        | f32 q3     | type tag (4) |
- * | entity  | lower 32 bits | upper 32 bits | unused     | type tag (5) |
- * | str     | u32           | unused        | unused     | type tag (6) |
+ * | color   | r f16, g f16  | b f16, a f16  | unused     | type tag (5) |
+ * | entity  | lower 32 bits | upper 32 bits | unused     | type tag (6) |
+ * | str     | u32           | unused        | unused     | type tag (7) |
  *
  * NOTE: Only unit quaternions are supported (as the 4th component is reconstructed).
  * NOTE: Assumes little-endian byte order.
@@ -61,6 +64,17 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_quat(const GeoQuat q) {
   return result;
 }
 
+MAYBE_UNUSED INLINE_HINT static ScriptVal val_color(const GeoColor value) {
+  ScriptVal result;
+  f16* restrict resultComps = (f16*)result.bytes;
+  resultComps[0]            = float_f32_to_f16(value.r);
+  resultComps[1]            = float_f32_to_f16(value.g);
+  resultComps[2]            = float_f32_to_f16(value.b);
+  resultComps[3]            = float_f32_to_f16(value.a);
+  result.words[3]           = ScriptType_Color;
+  return result;
+}
+
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_entity(const EcsEntityId value) {
   ScriptVal result;
   *(EcsEntityId*)result.bytes = value;
@@ -95,6 +109,17 @@ MAYBE_UNUSED INLINE_HINT static GeoQuat val_as_quat(const ScriptVal value) {
   GeoQuat   result = *(GeoQuat*)value.bytes;
   const f32 sum    = result.x * result.x + result.y * result.y + result.z * result.z;
   result.w         = intrinsic_sqrt_f32(1.0f - sum);
+  return result;
+}
+
+MAYBE_UNUSED INLINE_HINT static GeoColor val_as_color(const ScriptVal value) {
+  f16* restrict comps = (f16*)value.bytes;
+
+  GeoColor result;
+  result.r = float_f16_to_f32(comps[0]);
+  result.g = float_f16_to_f32(comps[1]);
+  result.b = float_f16_to_f32(comps[2]);
+  result.a = float_f16_to_f32(comps[3]);
   return result;
 }
 

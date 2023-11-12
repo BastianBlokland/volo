@@ -10,6 +10,7 @@
 #include "debug_script.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
+#include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
 #include "log_logger.h"
@@ -247,6 +248,25 @@ static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
   return false; // Does not support editing.
 }
 
+static bool memory_draw_color(UiCanvasComp* canvas, ScriptVal* value) {
+  static const f32 g_spacing = 10.0f;
+  const UiAlign    align     = UiAlign_MiddleLeft;
+  ui_layout_push(canvas);
+  ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
+
+  GeoColor col = script_get_color(*value, geo_color_clear);
+
+  for (u8 comp = 0; comp != 4; ++comp) {
+    f64 compVal = col.data[comp];
+    ui_numbox(canvas, &compVal);
+    ui_layout_next(canvas, Ui_Right, g_spacing);
+  }
+  ui_layout_pop(canvas);
+
+  return false; // Does not support editing.
+}
+
 static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
   const EcsEntityId valEntity = script_get_entity(*value, ecs_entity_invalid);
   ui_label_entity(canvas, valEntity);
@@ -271,6 +291,8 @@ static bool memory_draw_val(UiCanvasComp* canvas, ScriptVal* value) {
     return memory_draw_vec3(canvas, value);
   case ScriptType_Quat:
     return memory_draw_quat(canvas, value);
+  case ScriptType_Color:
+    return memory_draw_color(canvas, value);
   case ScriptType_Entity:
     return memory_draw_entity(canvas, value);
   case ScriptType_Str:
