@@ -161,7 +161,7 @@ void script_val_write(const ScriptVal value, DynString* str) {
     dynstring_append(str, string_lit("null"));
     return;
   case ScriptType_Num:
-    format_write_f64(str, val_as_num(value), &format_opts_float());
+    format_write_f64(str, val_as_num(value), &format_opts_float(.expThresholdPos = 1e10));
     return;
   case ScriptType_Bool:
     format_write_bool(str, val_as_bool(value));

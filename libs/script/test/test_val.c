@@ -199,6 +199,7 @@ spec(val) {
         {script_null(), string_lit("null")},
         {script_num(42), string_lit("42")},
         {script_num(42.1), string_lit("42.1")},
+        {script_num(4294967295), string_lit("4294967295")},
         {script_bool(true), string_lit("true")},
         {script_bool(false), string_lit("false")},
         {script_vec3_lit(1, 2, 3), string_lit("1, 2, 3")},
