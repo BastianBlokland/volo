@@ -731,8 +731,8 @@ ScriptVal script_val_round_up(const ScriptVal val) {
 }
 
 ScriptVal script_val_vec3_compose(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
-  const ScriptType numType = ScriptType_Num;
-  if (val_type(x) != numType || val_type(y) != numType || val_type(z) != numType) {
+  const ScriptType nT = ScriptType_Num;
+  if (val_type(x) != nT || val_type(y) != nT || val_type(z) != nT) {
     return val_null();
   }
   return val_vec3(geo_vector((f32)val_as_num(x), (f32)val_as_num(y), (f32)val_as_num(z)));
@@ -765,4 +765,14 @@ ScriptVal script_val_quat_from_angle_axis(const ScriptVal angle, const ScriptVal
     return val_null();
   }
   return val_quat(geo_quat_angle_axis(val_as_vec3(axis), (f32)val_as_num(angle)));
+}
+
+ScriptVal script_val_color_compose(
+    const ScriptVal r, const ScriptVal g, const ScriptVal b, const ScriptVal a) {
+  const ScriptType nT = ScriptType_Num;
+  if (val_type(r) != nT || val_type(g) != nT || val_type(b) != nT || val_type(a) != nT) {
+    return val_null();
+  }
+  return val_color(
+      geo_color((f32)val_as_num(r), (f32)val_as_num(g), (f32)val_as_num(b), (f32)val_as_num(a)));
 }
