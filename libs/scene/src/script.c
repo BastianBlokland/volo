@@ -343,6 +343,12 @@ static void debug_push_sphere(EvalContext* ctx, const SceneScriptDebugSphere* da
   d->data_sphere      = *data;
 }
 
+static void debug_push_arrow(EvalContext* ctx, const SceneScriptDebugArrow* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Arrow;
+  d->data_arrow       = *data;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -867,6 +873,18 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   return script_null();
 }
 
+static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugArrow data;
+  data.start  = script_arg_vec3(args, 0, err);
+  data.end    = script_arg_vec3(args, 1, err);
+  data.radius = (f32)script_arg_num(args, 2, err);
+  data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_arrow(ctx, &data);
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
@@ -937,6 +955,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
     eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
+    eval_bind(b, string_lit("debug_arrow"),        eval_debug_arrow);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 

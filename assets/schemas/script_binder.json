@@ -598,6 +598,34 @@
       }
     },
     {
+      "name": "debug_arrow",
+      "doc": "Draw a 3D debug arrow.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "start",
+            "mask": "vec3"
+          },
+          {
+            "name": "end",
+            "mask": "vec3"
+          },
+          {
+            "name": "radius",
+            "mask": "num"
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "vfx_param",
       "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`",
       "sig": {
