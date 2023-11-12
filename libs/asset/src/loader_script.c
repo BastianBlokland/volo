@@ -359,7 +359,7 @@ static void asset_binder_init() {
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
-          {string_lit("radius"), script_mask_num},
+          {string_lit("radius"), script_mask_num | script_mask_null},
           {string_lit("color"), script_mask_color | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
@@ -371,7 +371,7 @@ static void asset_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("start"), script_mask_vec3},
           {string_lit("end"), script_mask_vec3},
-          {string_lit("radius"), script_mask_num},
+          {string_lit("radius"), script_mask_num | script_mask_null},
           {string_lit("color"), script_mask_color | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
