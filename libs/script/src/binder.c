@@ -167,6 +167,9 @@ ScriptVal script_binder_exec(
 }
 
 static JsonVal binder_mask_to_json(JsonDoc* d, const ScriptMask mask) {
+  if (mask == script_mask_any) {
+    return json_add_string(d, string_lit("any"));
+  }
   const JsonVal arr = json_add_array(d);
   bitset_for(bitset_from_var(mask), typeIndex) {
     json_add_elem(d, arr, json_add_string(d, script_val_type_str((ScriptType)typeIndex)));
@@ -241,15 +244,25 @@ static bool binder_bool_from_json(const JsonDoc* d, const JsonVal v) {
 }
 
 static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
-  ScriptMask ret = 0;
-  if (!sentinel_check(v) && json_type(d, v) == JsonType_Array) {
+  if (sentinel_check(v)) {
+    return script_mask_none;
+  }
+  if (json_type(d, v) == JsonType_String) {
+    if (string_eq(json_string(d, v), string_lit("any"))) {
+      return script_mask_any;
+    }
+    return script_mask_none;
+  }
+  if (json_type(d, v) == JsonType_Array) {
+    ScriptMask ret = 0;
     json_for_elems(d, v, t) {
       if (json_type(d, t) == JsonType_String) {
         ret |= 1 << script_val_type_from_hash(string_hash(json_string(d, t)));
       }
     }
+    return ret;
   }
-  return ret;
+  return script_mask_none;
 }
 
 static ScriptSigArg binder_arg_from_json(const JsonDoc* d, const JsonVal v) {

@@ -309,16 +309,7 @@
         "args": [
           {
             "name": "values",
-            "mask": [
-              "null",
-              "num",
-              "bool",
-              "vec3",
-              "quat",
-              "color",
-              "entity",
-              "str"
-            ],
+            "mask": "any",
             "multi": true
           }
         ]
@@ -726,16 +717,7 @@
           },
           {
             "name": "value",
-            "mask": [
-              "null",
-              "num",
-              "bool",
-              "vec3",
-              "quat",
-              "color",
-              "entity",
-              "str"
-            ]
+            "mask": "any"
           }
         ]
       }
