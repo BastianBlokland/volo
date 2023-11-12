@@ -40,6 +40,7 @@ const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
 
 typedef enum {
   SceneScriptDebugType_Line,
+  SceneScriptDebugType_Sphere,
 } SceneScriptDebugType;
 
 typedef struct {
@@ -48,9 +49,16 @@ typedef struct {
 } SceneScriptDebugLine;
 
 typedef struct {
+  GeoVector pos;
+  f32       radius;
+  GeoColor  color;
+} SceneScriptDebugSphere;
+
+typedef struct {
   SceneScriptDebugType type;
   union {
-    SceneScriptDebugLine data_line;
+    SceneScriptDebugLine   data_line;
+    SceneScriptDebugSphere data_sphere;
   };
 } SceneScriptDebug;
 

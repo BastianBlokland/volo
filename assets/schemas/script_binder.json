@@ -343,6 +343,30 @@
       }
     },
     {
+      "name": "debug_sphere",
+      "doc": "Draw a 3D debug sphere.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "radius",
+            "mask": "num"
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "faction",
       "doc": "Lookup the faction of the given entity.",
       "sig": {

@@ -354,6 +354,17 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("debug_sphere");
+      const String       doc    = string_lit("Draw a 3D debug sphere.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("radius"), script_mask_num},
+          {string_lit("color"), script_mask_color | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String     name = string_lit("debug_break");
       const String     doc  = string_lit("Break into the debugger if there is one attached.");
       const ScriptMask ret  = script_mask_null;

@@ -337,6 +337,12 @@ static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) 
   d->data_line        = *data;
 }
 
+static void debug_push_sphere(EvalContext* ctx, const SceneScriptDebugSphere* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Sphere;
+  d->data_sphere      = *data;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -850,6 +856,17 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
   return script_null();
 }
 
+static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugSphere data;
+  data.pos    = script_arg_vec3(args, 0, err);
+  data.radius = (f32)script_arg_num(args, 1, err);
+  data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_sphere(ctx, &data);
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
@@ -919,6 +936,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
+    eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 

@@ -730,6 +730,10 @@ ecs_system_define(DebugScriptDrawSys) {
         const SceneScriptDebugLine* data = &debugData[i].data_line;
         debug_line(shape, data->start, data->end, data->color);
       } break;
+      case SceneScriptDebugType_Sphere: {
+        const SceneScriptDebugSphere* data = &debugData[i].data_sphere;
+        debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
+      } break;
       }
     }
   }
