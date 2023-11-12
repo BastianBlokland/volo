@@ -51,6 +51,11 @@ ASSERT(alignof(GeoColor) == 16, "GeoColor has to be aligned to 128 bits");
 GeoColor geo_color_get(u64 idx);
 
 /**
+ * Check if the magnitude of the difference color is less then the given threshold.
+ */
+bool geo_color_equal(GeoColor a, GeoColor b, f32 threshold);
+
+/**
  * Compute the absolute value of each component.
  */
 GeoColor geo_color_abs(GeoColor);
@@ -103,7 +108,7 @@ GeoColor geo_color_linear_to_srgb(GeoColor);
 /**
  * Pack a color to 16 bit floats.
  */
-void geo_color_pack_f16(GeoColor, f16 out[4]);
+void geo_color_pack_f16(GeoColor, f16 out[PARAM_ARRAY_SIZE(4)]);
 
 /**
  * Create a formatting argument for a color.

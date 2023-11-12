@@ -31,6 +31,11 @@ GeoColor geo_color_get(const u64 idx) {
   return g_colors[idx % array_elems(g_colors)];
 }
 
+bool geo_color_equal(const GeoColor a, const GeoColor b, const f32 threshold) {
+  const GeoColor diff = geo_color_abs(geo_color_sub(a, b));
+  return diff.r <= threshold && diff.g <= threshold && diff.b <= threshold && diff.a <= threshold;
+}
+
 GeoColor geo_color_abs(const GeoColor c) {
 #if geo_color_simd_enable
   GeoColor res;
@@ -156,7 +161,7 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
 #endif
 }
 
-void geo_color_pack_f16(const GeoColor color, f16 out[4]) {
+void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
   out[0] = float_f32_to_f16(color.r);
   out[1] = float_f32_to_f16(color.g);
   out[2] = float_f32_to_f16(color.b);
