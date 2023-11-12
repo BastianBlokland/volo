@@ -66,6 +66,13 @@ GeoQuat script_arg_quat(const ScriptArgs args, const u16 i, ScriptError* err) {
   return *err = script_arg_err(args, i), geo_quat_ident;
 }
 
+GeoColor script_arg_color(const ScriptArgs args, const u16 i, ScriptError* err) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Color)) {
+    return val_as_color(args.values[i]);
+  }
+  return *err = script_arg_err(args, i), geo_color_clear;
+}
+
 EcsEntityId script_arg_entity(const ScriptArgs args, const u16 i, ScriptError* err) {
   if (LIKELY(args.count > i && val_type(args.values[i]) == ScriptType_Entity)) {
     return val_as_entity(args.values[i]);
@@ -175,6 +182,20 @@ script_arg_opt_quat(const ScriptArgs args, const u16 i, const GeoQuat def, Scrip
   return def;
 }
 
+GeoColor
+script_arg_opt_color(const ScriptArgs args, const u16 i, const GeoColor def, ScriptError* err) {
+  if (args.count > i) {
+    if (val_type(args.values[i]) == ScriptType_Color) {
+      return val_as_color(args.values[i]);
+    }
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return def;
+    }
+    return *err = script_arg_err(args, i), geo_color_clear;
+  }
+  return def;
+}
+
 EcsEntityId
 script_arg_opt_entity(const ScriptArgs args, const u16 i, const EcsEntityId def, ScriptError* err) {
   if (args.count > i) {
@@ -255,6 +276,13 @@ GeoVector script_arg_maybe_vec3(const ScriptArgs args, const u16 i, const GeoVec
 GeoQuat script_arg_maybe_quat(const ScriptArgs args, const u16 i, const GeoQuat def) {
   if (args.count > i && val_type(args.values[i]) == ScriptType_Quat) {
     return val_as_quat(args.values[i]);
+  }
+  return def;
+}
+
+GeoColor script_arg_maybe_color(const ScriptArgs args, const u16 i, const GeoColor def) {
+  if (args.count > i && val_type(args.values[i]) == ScriptType_Color) {
+    return val_as_color(args.values[i]);
   }
   return def;
 }
