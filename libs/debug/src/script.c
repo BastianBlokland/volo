@@ -8,6 +8,8 @@
 #include "core_stringtable.h"
 #include "debug_register.h"
 #include "debug_script.h"
+#include "debug_shape.h"
+#include "debug_text.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
 #include "geo_color.h"
@@ -706,6 +708,55 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   }
 }
 
+ecs_view_define(DrawGlobalView) {
+  ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugTextComp);
+}
+
+ecs_view_define(DrawInstanceView) { ecs_access_read(SceneScriptComp); }
+
+ecs_system_define(DebugScriptDrawSys) {
+  EcsView*     globalView = ecs_world_view_t(world, DrawGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*  text  = ecs_view_write_t(globalItr, DebugTextComp);
+
+  EcsView* instanceView = ecs_world_view_t(world, DrawInstanceView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
+
+    const SceneScriptDebug* debugData  = scene_script_debug_data(scriptInstance);
+    const usize             debugCount = scene_script_debug_count(scriptInstance);
+    for (usize i = 0; i != debugCount; ++i) {
+      switch (debugData[i].type) {
+      case SceneScriptDebugType_Line: {
+        const SceneScriptDebugLine* data = &debugData[i].data_line;
+        debug_line(shape, data->start, data->end, data->color);
+      } break;
+      case SceneScriptDebugType_Sphere: {
+        const SceneScriptDebugSphere* data = &debugData[i].data_sphere;
+        debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
+      } break;
+      case SceneScriptDebugType_Arrow: {
+        const SceneScriptDebugArrow* data = &debugData[i].data_arrow;
+        debug_arrow(shape, data->start, data->end, data->radius, data->color);
+      } break;
+      case SceneScriptDebugType_Orientation: {
+        const SceneScriptDebugOrientation* data = &debugData[i].data_orientation;
+        debug_orientation(shape, data->pos, data->rot, data->size);
+      } break;
+      case SceneScriptDebugType_Text: {
+        const SceneScriptDebugText* data = &debugData[i].data_text;
+        debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
+      } break;
+      }
+    }
+  }
+}
+
 ecs_module_init(debug_script_module) {
   ecs_register_comp(DebugScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
   ecs_register_comp(DebugScriptPanelComp, .destructor = ecs_destroy_script_panel);
@@ -715,6 +766,8 @@ ecs_module_init(debug_script_module) {
   ecs_register_view(SubjectView);
   ecs_register_view(AssetView);
   ecs_register_view(WindowView);
+  ecs_register_view(DrawGlobalView);
+  ecs_register_view(DrawInstanceView);
 
   ecs_register_system(
       DebugScriptUpdatePanelSys,
@@ -723,6 +776,11 @@ ecs_module_init(debug_script_module) {
       ecs_view_id(SubjectView),
       ecs_view_id(AssetView),
       ecs_view_id(WindowView));
+
+  ecs_register_system(
+      DebugScriptDrawSys, ecs_view_id(DrawGlobalView), ecs_view_id(DrawInstanceView));
+
+  ecs_order(DebugScriptDrawSys, DebugOrder_ScriptDebugDraw);
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {

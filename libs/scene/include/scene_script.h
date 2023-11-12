@@ -1,6 +1,9 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "geo_color.h"
+#include "geo_quat.h"
+#include "geo_vector.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -35,6 +38,58 @@ void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 const ScriptPanic*      scene_script_panic(const SceneScriptComp*);
 EcsEntityId             scene_script_asset(const SceneScriptComp*);
 const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
+
+typedef enum {
+  SceneScriptDebugType_Line,
+  SceneScriptDebugType_Sphere,
+  SceneScriptDebugType_Arrow,
+  SceneScriptDebugType_Orientation,
+  SceneScriptDebugType_Text,
+} SceneScriptDebugType;
+
+typedef struct {
+  GeoVector start, end;
+  GeoColor  color;
+} SceneScriptDebugLine;
+
+typedef struct {
+  GeoVector pos;
+  GeoColor  color;
+  f32       radius;
+} SceneScriptDebugSphere;
+
+typedef struct {
+  GeoVector start, end;
+  GeoColor  color;
+  f32       radius;
+} SceneScriptDebugArrow;
+
+typedef struct {
+  GeoVector pos;
+  GeoQuat   rot;
+  f32       size;
+} SceneScriptDebugOrientation;
+
+typedef struct {
+  GeoVector pos;
+  GeoColor  color;
+  String    text;
+  u16       fontSize;
+} SceneScriptDebugText;
+
+typedef struct {
+  SceneScriptDebugType type;
+  union {
+    SceneScriptDebugLine        data_line;
+    SceneScriptDebugSphere      data_sphere;
+    SceneScriptDebugArrow       data_arrow;
+    SceneScriptDebugOrientation data_orientation;
+    SceneScriptDebugText        data_text;
+  };
+} SceneScriptDebug;
+
+const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp*);
+usize                   scene_script_debug_count(const SceneScriptComp*);
 
 /**
  * Add a new script to the entity.

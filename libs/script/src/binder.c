@@ -256,13 +256,13 @@ static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
     if (string_eq(json_string(d, v), string_lit("any"))) {
       return script_mask_any;
     }
-    return (ScriptMask)(1 << script_val_type_from_hash(string_hash(json_string(d, v))));
+    return script_mask(script_val_type_from_hash(string_hash(json_string(d, v))));
   }
   if (json_type(d, v) == JsonType_Array) {
     ScriptMask ret = 0;
     json_for_elems(d, v, t) {
       if (json_type(d, t) == JsonType_String) {
-        ret |= 1 << script_val_type_from_hash(string_hash(json_string(d, t)));
+        ret |= script_mask(script_val_type_from_hash(string_hash(json_string(d, t))));
       }
     }
     return ret;

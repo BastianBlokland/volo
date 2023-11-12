@@ -21,7 +21,7 @@ typedef union uGeoVector GeoVector;
 // Forward declare from 'ecs_entity.h'.
 typedef u64 EcsEntityId;
 
-typedef enum {
+typedef enum eScriptType {
   ScriptType_Null,
   ScriptType_Num,
   ScriptType_Bool,

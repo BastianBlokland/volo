@@ -244,6 +244,9 @@ typedef struct {
   const AssetScriptComp* scriptAsset;
   String                 scriptId;
   DynArray*              actions; // ScriptAction[].
+  DynArray*              debug;   // SceneScriptDebug[].
+
+  Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
 
 static void action_push_tell(EvalContext* ctx, const ScriptActionTell* data) {
@@ -328,6 +331,36 @@ static void action_push_update_vfx_param(EvalContext* ctx, const ScriptActionUpd
   ScriptAction* a        = dynarray_push_t(ctx->actions, ScriptAction);
   a->type                = ScriptActionType_UpdateVfxParam;
   a->data_updateVfxParam = *data;
+}
+
+static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Line;
+  d->data_line        = *data;
+}
+
+static void debug_push_sphere(EvalContext* ctx, const SceneScriptDebugSphere* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Sphere;
+  d->data_sphere      = *data;
+}
+
+static void debug_push_arrow(EvalContext* ctx, const SceneScriptDebugArrow* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Arrow;
+  d->data_arrow       = *data;
+}
+
+static void debug_push_orientation(EvalContext* ctx, const SceneScriptDebugOrientation* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Orientation;
+  d->data_orientation = *data;
+}
+
+static void debug_push_text(EvalContext* ctx, const SceneScriptDebugText* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Text;
+  d->data_text        = *data;
 }
 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -832,6 +865,72 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugLine data;
+  data.start = script_arg_vec3(args, 0, err);
+  data.end   = script_arg_vec3(args, 1, err);
+  data.color = script_arg_opt_color(args, 2, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_line(ctx, &data);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugSphere data;
+  data.pos    = script_arg_vec3(args, 0, err);
+  data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 10.0f, 0.25f, err);
+  data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_sphere(ctx, &data);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugArrow data;
+  data.start  = script_arg_vec3(args, 0, err);
+  data.end    = script_arg_vec3(args, 1, err);
+  data.radius = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 0.25f, err);
+  data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_arrow(ctx, &data);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugOrientation data;
+  data.pos  = script_arg_vec3(args, 0, err);
+  data.rot  = script_arg_quat(args, 1, err);
+  data.size = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 1.0f, err);
+  if (LIKELY(!script_error_valid(err))) {
+    debug_push_orientation(ctx, &data);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugText data;
+  data.pos      = script_arg_vec3(args, 0, err);
+  data.color    = script_arg_color(args, 1, err);
+  data.fontSize = (u16)script_arg_num_range(args, 2, 6.0, 30.0, err);
+
+  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  for (usize i = 3; i < args.count; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_write(args.values[i], &buffer);
+  }
+  if (UNLIKELY(script_error_valid(err)) || !buffer.size) {
+    return script_null();
+  }
+  data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
+  debug_push_text(ctx, &data);
+  return script_null();
+}
+
 static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
@@ -900,6 +999,11 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
+    eval_bind(b, string_lit("debug_line"),         eval_debug_line);
+    eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
+    eval_bind(b, string_lit("debug_arrow"),        eval_debug_arrow);
+    eval_bind(b, string_lit("debug_orientation"),  eval_debug_orientation);
+    eval_bind(b, string_lit("debug_text"),         eval_debug_text);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 
@@ -917,10 +1021,12 @@ typedef enum {
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               resVersion;
-  SceneScriptStats stats;
   EcsEntityId      scriptAsset;
+  SceneScriptStats stats;
   ScriptPanic      lastPanic;
+  Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
+  DynArray         debug;   // SceneScriptDebug[].
 };
 
 ecs_comp_define(SceneScriptResourceComp) {
@@ -930,7 +1036,11 @@ ecs_comp_define(SceneScriptResourceComp) {
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
+  if (scriptInstance->allocTransient) {
+    alloc_chunked_destroy(scriptInstance->allocTransient);
+  }
   dynarray_destroy(&scriptInstance->actions);
+  dynarray_destroy(&scriptInstance->debug);
 }
 
 static void ecs_combine_script_resource(void* dataA, void* dataB) {
@@ -1024,6 +1134,14 @@ static void scene_script_eval(EvalContext* ctx) {
   ctx->scriptInstance->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
 }
 
+static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
+  if (!inst->allocTransient) {
+    const usize chunkSize = 4 * usize_kibibyte;
+    inst->allocTransient  = alloc_chunked_create(g_alloc_page, alloc_bump_create, chunkSize);
+  }
+  return alloc_dup(inst->allocTransient, mem, align);
+}
+
 ecs_system_define(SceneScriptUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, EvalGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -1059,6 +1177,14 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
+    ctx.debug           = &ctx.scriptInstance->debug;
+    ctx.transientDup    = &scene_script_transient_dup;
+
+    // Clear the previous frame transient data.
+    if (ctx.scriptInstance->allocTransient) {
+      alloc_reset(ctx.scriptInstance->allocTransient);
+    }
+    dynarray_clear(ctx.debug);
 
     // Evaluate the script if the asset is loaded.
     if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {
@@ -1380,6 +1506,12 @@ EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->s
 
 const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
 
+const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
+  return dynarray_begin_t(&script->debug, SceneScriptDebug);
+}
+
+usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
+
 SceneScriptComp*
 scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {
   diag_assert(ecs_world_exists(world, scriptAsset));
@@ -1389,5 +1521,6 @@ scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId sc
       entity,
       SceneScriptComp,
       .scriptAsset = scriptAsset,
-      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0));
+      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
+      .debug       = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 }

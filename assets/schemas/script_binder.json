@@ -30,6 +30,30 @@
       }
     },
     {
+      "name": "debug_line",
+      "doc": "Draw a 3D debug line between the two given points.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "start",
+            "mask": "vec3"
+          },
+          {
+            "name": "end",
+            "mask": "vec3"
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {
@@ -207,6 +231,30 @@
       }
     },
     {
+      "name": "debug_orientation",
+      "doc": "Draw a 3D orientation gizmos.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": "quat"
+          },
+          {
+            "name": "size",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "target_primary",
       "doc": "Lookup the primary target of the given entity.",
       "sig": {
@@ -314,6 +362,33 @@
           {
             "name": "v",
             "mask": "entity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "debug_sphere",
+      "doc": "Draw a 3D debug sphere.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "radius",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
           }
         ]
       }
@@ -447,6 +522,32 @@
       }
     },
     {
+      "name": "debug_text",
+      "doc": "Draw debug text at a position in 3D space.\n\n*Note*: Size is in UI canvas pixels.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "color",
+            "mask": "color"
+          },
+          {
+            "name": "size",
+            "mask": "num"
+          },
+          {
+            "name": "values",
+            "mask": "any",
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_break",
       "doc": "Break into the debugger if there is one attached.",
       "sig": {
@@ -545,6 +646,37 @@
           {
             "name": "v",
             "mask": "entity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "debug_arrow",
+      "doc": "Draw a 3D debug arrow.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "start",
+            "mask": "vec3"
+          },
+          {
+            "name": "end",
+            "mask": "vec3"
+          },
+          {
+            "name": "radius",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
           }
         ]
       }

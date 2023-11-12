@@ -7,6 +7,7 @@ enum {
   DebugOrder_AnimationDebugDraw  = 700,
   DebugOrder_InspectorDebugDraw  = 700,
   DebugOrder_CameraDebugDraw     = 700,
+  DebugOrder_ScriptDebugDraw     = 700,
   DebugOrder_GizmoRender         = 725,
   DebugOrder_TextRender          = 750,
   DebugOrder_ShapeRender         = 850,

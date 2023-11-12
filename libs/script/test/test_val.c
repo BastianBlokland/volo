@@ -212,7 +212,7 @@ spec(val) {
         {script_time(time_hour), string_lit("3600")},
         {script_time(time_milliseconds(500)), string_lit("0.5")},
         {script_time(time_milliseconds(42)), string_lit("0.042")},
-        {script_str(string_hash_lit("Hello World")), string_lit("\"Hello World\"")},
+        {script_str(string_hash_lit("Hello World")), string_lit("Hello World")},
     };
 
     // NOTE: Normally we expect the script lexer to register the strings.

@@ -22,5 +22,6 @@ typedef struct sScriptError {
 
 ScriptError script_error(ScriptErrorKind);
 ScriptError script_error_arg(ScriptErrorKind, u16 argIndex);
+bool        script_error_valid(const ScriptError*);
 
 ScriptPanicKind script_error_to_panic(ScriptErrorKind);
