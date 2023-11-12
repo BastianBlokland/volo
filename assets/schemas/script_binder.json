@@ -315,6 +315,7 @@
               "bool",
               "vec3",
               "quat",
+              "color",
               "entity",
               "str"
             ],
@@ -731,6 +732,7 @@
               "bool",
               "vec3",
               "quat",
+              "color",
               "entity",
               "str"
             ]
