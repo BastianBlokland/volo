@@ -275,7 +275,7 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Color: {
     const GeoColor colA = val_as_color(a);
     const GeoColor colB = val_as_color(b);
-    return geo_color_equal(colA, colB, 1e-6f);
+    return geo_color_equal(colA, colB, 1e-4f);
   }
   case ScriptType_Entity:
     return val_as_entity(a) == val_as_entity(b);

@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_stringtable.h"
 #include "core_time.h"
+#include "geo_color.h"
 #include "geo_quat.h"
 #include "script_val.h"
 
@@ -26,6 +27,9 @@ spec(val) {
     check_eq_float(script_get_quat(quatForwardToDown, geo_quat_ident).y, 0, 1e-6);
     check_eq_float(script_get_quat(quatForwardToDown, geo_quat_ident).z, 0, 1e-6);
     check_eq_float(script_get_quat(quatForwardToDown, geo_quat_ident).w, 0.7071068f, 1e-6);
+
+    check_eq_int(script_type(script_color(geo_color_red)), ScriptType_Color);
+    check_eq_float(script_get_color(script_color(geo_color_red), geo_color_clear).r, 1, 1e-6);
 
     check_eq_int(script_type(script_entity(0x42)), ScriptType_Entity);
     check_eq_int(script_get_entity(script_entity(0x42), 0), 0x42);
@@ -72,6 +76,13 @@ spec(val) {
         script_get_quat(script_quat(geo_quat_ident), geo_quat_forward_to_down).w, 1.0, 1e-6f);
     check_eq_float(script_get_quat(script_null(), geo_quat_forward_to_down).w, 0.7071068f, 1e-6f);
 
+    check(geo_color_equal(
+        script_get_color(script_color(geo_color_soothing_purple), geo_color_clear),
+        geo_color_soothing_purple,
+        1e-4f));
+    check(geo_color_equal(
+        script_get_color(script_null(), geo_color_maroon), geo_color_maroon, 1e-4f));
+
     check(script_get_time(script_time(time_seconds(1)), time_seconds(2)) == time_seconds(1));
     check(script_get_time(script_null(), time_seconds(2)) == time_seconds(2));
 
@@ -98,6 +109,9 @@ spec(val) {
 
     check(script_truthy(script_quat(geo_quat_ident)));
 
+    check(script_truthy(script_color(geo_color_clear)));
+    check(script_truthy(script_color(geo_color_white)));
+
     check(!script_truthy(script_entity(0x0)));
     check(script_truthy(script_entity(u64_lit(0x42) << 32)));
 
@@ -118,6 +132,9 @@ spec(val) {
     check(!script_falsy(script_vec3_lit(1, 2, 0)));
 
     check(!script_falsy(script_quat(geo_quat_ident)));
+
+    check(!script_falsy(script_color(geo_color_clear)));
+    check(!script_falsy(script_color(geo_color_white)));
 
     check(script_falsy(script_entity(0x0)));
     check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
@@ -144,6 +161,7 @@ spec(val) {
     check_eq_string(script_val_type_str(ScriptType_Bool), string_lit("bool"));
     check_eq_string(script_val_type_str(ScriptType_Vec3), string_lit("vec3"));
     check_eq_string(script_val_type_str(ScriptType_Quat), string_lit("quat"));
+    check_eq_string(script_val_type_str(ScriptType_Color), string_lit("color"));
     check_eq_string(script_val_type_str(ScriptType_Entity), string_lit("entity"));
     check_eq_string(script_val_type_str(ScriptType_Str), string_lit("str"));
   }
@@ -154,6 +172,7 @@ spec(val) {
     check_eq_int(script_val_type_hash(ScriptType_Bool), string_hash_lit("bool"));
     check_eq_int(script_val_type_hash(ScriptType_Vec3), string_hash_lit("vec3"));
     check_eq_int(script_val_type_hash(ScriptType_Quat), string_hash_lit("quat"));
+    check_eq_int(script_val_type_hash(ScriptType_Color), string_hash_lit("color"));
     check_eq_int(script_val_type_hash(ScriptType_Entity), string_hash_lit("entity"));
     check_eq_int(script_val_type_hash(ScriptType_Str), string_hash_lit("str"));
   }
@@ -164,6 +183,7 @@ spec(val) {
     check_eq_int(script_val_type_from_hash(string_hash_lit("bool")), ScriptType_Bool);
     check_eq_int(script_val_type_from_hash(string_hash_lit("vec3")), ScriptType_Vec3);
     check_eq_int(script_val_type_from_hash(string_hash_lit("quat")), ScriptType_Quat);
+    check_eq_int(script_val_type_from_hash(string_hash_lit("color")), ScriptType_Color);
     check_eq_int(script_val_type_from_hash(string_hash_lit("entity")), ScriptType_Entity);
     check_eq_int(script_val_type_from_hash(string_hash_lit("str")), ScriptType_Str);
 
@@ -184,6 +204,8 @@ spec(val) {
         {script_vec3_lit(1, 2, 3), string_lit("1, 2, 3")},
         {script_quat(geo_quat_ident), string_lit("0, 0, 0, 1")},
         {script_quat(geo_quat_forward_to_backward), string_lit("0, 1, 0, 0")},
+        {script_color(geo_color_clear), string_lit("0, 0, 0, 0")},
+        {script_color(geo_color_red), string_lit("1, 0, 0, 1")},
         {script_entity(0x1337), string_lit("1337")},
         {script_time(time_seconds(42)), string_lit("42")},
         {script_time(time_hour), string_lit("3600")},
@@ -212,6 +234,7 @@ spec(val) {
         {script_mask_bool, string_lit("bool")},
         {script_mask_vec3, string_lit("vec3")},
         {script_mask_quat, string_lit("quat")},
+        {script_mask_color, string_lit("color")},
         {script_mask_entity, string_lit("entity")},
         {script_mask_str, string_lit("str")},
         {script_mask_null | script_mask_num, string_lit("num?")},
@@ -259,6 +282,9 @@ spec(val) {
         {script_quat(geo_quat_forward_to_forward),
          script_quat(geo_quat_forward_to_backward),
          .expected = false},
+
+        {script_color(geo_color_red), script_color(geo_color_red), .expected = true},
+        {script_color(geo_color_red), script_color(geo_color_blue), .expected = false},
 
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = true},
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = false},
@@ -314,6 +340,9 @@ spec(val) {
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = false},
 
+        {script_color(geo_color_clear), script_color(geo_color_clear), .expected = false},
+        {script_color(geo_color_clear), script_color(geo_color_red), .expected = true},
+
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = true},
         {script_time(time_seconds(2)), script_time(time_seconds(1)), .expected = false},
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = false},
@@ -364,6 +393,9 @@ spec(val) {
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = false},
 
+        {script_color(geo_color_clear), script_color(geo_color_clear), .expected = false},
+        {script_color(geo_color_red), script_color(geo_color_clear), .expected = true},
+
         {script_time(time_seconds(2)), script_time(time_seconds(1)), .expected = true},
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = false},
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = false},
@@ -400,6 +432,7 @@ spec(val) {
         {script_bool(true), .expected = script_null()},
         {script_vec3_lit(1, 2, 3), .expected = script_vec3_lit(-1, -2, -3)},
         {script_quat(geo_quat_forward_to_up), .expected = script_quat(geo_quat_forward_to_down)},
+        {script_color(geo_color_red), .expected = script_color(geo_color(-1, 0, 0, -1))},
         {script_time(time_seconds(2)), .expected = script_time(time_seconds(-2))},
         {script_str(string_hash_lit("A")), .expected = script_null()},
     };
@@ -421,6 +454,7 @@ spec(val) {
         {script_bool(false), .expected = script_bool(true)},
         {script_vec3_lit(1, 2, 3), .expected = script_bool(false)},
         {script_quat(geo_quat_ident), .expected = script_bool(false)},
+        {script_color(geo_color_red), .expected = script_bool(false)},
         {script_time(time_seconds(2)), .expected = script_bool(false)},
         {script_str(string_hash_lit("A")), .expected = script_bool(false)},
     };
@@ -457,6 +491,10 @@ spec(val) {
             script_quat(geo_quat_ident),
             .expected = script_null(),
         },
+
+        {.a        = script_color(geo_color_red),
+         .b        = script_color(geo_color_white),
+         .expected = script_color(geo_color(2, 1, 1, 2))},
 
         {.a        = script_time(time_seconds(2)),
          .b        = script_time(time_seconds(3)),
@@ -505,6 +543,10 @@ spec(val) {
             script_quat(geo_quat_ident),
             .expected = script_null(),
         },
+
+        {.a        = script_color(geo_color_red),
+         .b        = script_color(geo_color_white),
+         .expected = script_color(geo_color(0, -1, -1, 0))},
 
         {.a        = script_time(time_seconds(1)),
          .b        = script_time(time_seconds(2)),
@@ -564,6 +606,10 @@ spec(val) {
          .b        = script_vec3_lit(1, 2, 3),
          .expected = script_vec3_lit(1, 2, 3)},
 
+        {.a        = script_color(geo_color_red),
+         .b        = script_num(2),
+         .expected = script_color(geo_color(2, 0, 0, 2))},
+
         {.a        = script_time(time_seconds(2)),
          .b        = script_time(time_seconds(3)),
          .expected = script_time(time_seconds(6))},
@@ -607,6 +653,10 @@ spec(val) {
         {.a = script_vec3_lit(2, 4, 8), .b = script_num(2), .expected = script_vec3_lit(1, 2, 4)},
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = script_null()},
+
+        {.a        = script_color(geo_color_red),
+         .b        = script_num(2),
+         .expected = script_color(geo_color(0.5f, 0, 0, 0.5f))},
 
         {.a        = script_time(time_seconds(10)),
          .b        = script_time(time_seconds(2)),
@@ -663,6 +713,8 @@ spec(val) {
 
         {script_quat(geo_quat_ident), script_quat(geo_quat_ident), .expected = script_null()},
 
+        {script_color(geo_color_red), script_color(geo_color_red), .expected = script_null()},
+
         {
             script_str(string_hash_lit("A")),
             script_str(string_hash_lit("B")),
@@ -708,6 +760,10 @@ spec(val) {
         {.a        = script_quat(geo_quat_ident),
          .b        = script_quat(geo_quat_ident),
          .expected = script_null()},
+
+        {.a        = script_color(geo_color_white),
+         .b        = script_color(geo_color_red),
+         .expected = script_num(1.4142135)},
 
         {.a        = script_time(time_seconds(10)),
          .b        = script_time(time_seconds(2)),
