@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_math.h"
+#include "geo_color.h"
 #include "script_binder.h"
 #include "script_eval.h"
 #include "script_mem.h"
@@ -85,6 +86,7 @@ spec(eval) {
         {string_static("right"), script_vec3(geo_right)},
         {string_static("forward"), script_vec3(geo_forward)},
         {string_static("backward"), script_vec3(geo_backward)},
+        {string_static("red"), script_color(geo_color_red)},
 
         // Type check.
         {string_static("type(null)"), script_str(string_hash_lit("null"))},
