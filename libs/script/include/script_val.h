@@ -100,6 +100,7 @@ bool      script_truthy(ScriptVal);
 bool      script_falsy(ScriptVal);
 bool      script_val_has(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
+u32       script_hash(ScriptVal);
 
 /**
  * Create a textual representation of a value.

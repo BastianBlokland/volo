@@ -106,6 +106,32 @@ ScriptVal script_val_or(const ScriptVal value, const ScriptVal fallback) {
   return val_type(value) ? value : fallback;
 }
 
+u32 script_hash(const ScriptVal value) {
+  const u32 tHash = script_val_type_hash(val_type(value));
+  switch (val_type(value)) {
+  case ScriptType_Null:
+    return tHash;
+  case ScriptType_Num:
+    return bits_hash_32_combine(tHash, bits_hash_32(mem_create(value.bytes, sizeof(f64))));
+  case ScriptType_Bool:
+    return bits_hash_32_combine(tHash, bits_hash_32(mem_create(value.bytes, sizeof(bool))));
+  case ScriptType_Vec3:
+    return bits_hash_32_combine(tHash, bits_hash_32(mem_create(value.bytes, sizeof(f32) * 3)));
+  case ScriptType_Quat:
+    return bits_hash_32_combine(tHash, bits_hash_32(mem_create(value.bytes, sizeof(f32) * 3)));
+  case ScriptType_Color:
+    return bits_hash_32_combine(tHash, bits_hash_32(mem_create(value.bytes, sizeof(f16) * 4)));
+  case ScriptType_Entity:
+    return bits_hash_32_combine(tHash, bits_hash_32(mem_create(value.bytes, sizeof(EcsEntityId))));
+  case ScriptType_Str:
+    return bits_hash_32_combine(tHash, val_as_str(value));
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 String script_val_type_str(const ScriptType type) {
   diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
   static const String g_names[] = {
