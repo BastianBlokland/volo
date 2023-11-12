@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "geo_color.h"
 
@@ -11,6 +12,7 @@
 
 GeoColor geo_color_get(const u64 idx) {
   // TODO: Consider replacing this with generating a random hue and then converting from hsv to rgb.
+  // NOTE: Important to keep this function deterministic.
   static const GeoColor g_colors[] = {
       {1.0f, 0.0f, 0.0f, 1.0f},
       {1.0f, 1.0f, 0.0f, 1.0f},
@@ -31,6 +33,21 @@ GeoColor geo_color_get(const u64 idx) {
   return g_colors[idx % array_elems(g_colors)];
 }
 
+bool geo_color_equal(const GeoColor a, const GeoColor b, const f32 threshold) {
+  const GeoColor diff = geo_color_abs(geo_color_sub(a, b));
+  return diff.r <= threshold && diff.g <= threshold && diff.b <= threshold && diff.a <= threshold;
+}
+
+GeoColor geo_color_abs(const GeoColor c) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_abs(simd_vec_load(c.data)), res.data);
+  return res;
+#else
+  return geo_color(math_abs(c.r), math_abs(c.g), math_abs(c.b), math_abs(c.a));
+#endif
+}
+
 GeoColor geo_color_add(const GeoColor a, const GeoColor b) {
 #if geo_color_simd_enable
   GeoColor res;
@@ -38,6 +55,16 @@ GeoColor geo_color_add(const GeoColor a, const GeoColor b) {
   return res;
 #else
   return geo_color(a.r + b.r, a.g + b.g, a.b + b.b, a.a + b.a);
+#endif
+}
+
+GeoColor geo_color_sub(const GeoColor a, const GeoColor b) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_sub(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
+  return res;
+#else
+  return geo_color(a.r - b.r, a.g - b.g, a.b - b.b, a.a - b.a);
 #endif
 }
 
@@ -59,6 +86,21 @@ GeoColor geo_color_div(const GeoColor c, const f32 scalar) {
 #else
   const f32 scalarInv = 1.0f / scalar;
   return geo_color(c.r * scalarInv, c.g * scalarInv, c.b * scalarInv, c.a * scalarInv);
+#endif
+}
+
+f32 geo_color_mag(const GeoColor c) {
+#if geo_color_simd_enable
+  const SimdVec tmp = simd_vec_load(c.data);
+  const SimdVec dot = simd_vec_dot4(tmp, tmp);
+  return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
+#else
+  f32 sqrMag = 0;
+  sqrMag += c.r * c.r;
+  sqrMag += c.g * c.g;
+  sqrMag += c.b * c.b;
+  sqrMag += c.a * c.a;
+  return sqrMag != 0 ? intrinsic_sqrt_f32(sqrMag) : 0;
 #endif
 }
 
@@ -136,7 +178,7 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
 #endif
 }
 
-void geo_color_pack_f16(const GeoColor color, f16 out[4]) {
+void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
   out[0] = float_f32_to_f16(color.r);
   out[1] = float_f32_to_f16(color.g);
   out[2] = float_f32_to_f16(color.b);

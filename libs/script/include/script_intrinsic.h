@@ -6,6 +6,7 @@ typedef enum {
   ScriptIntrinsic_Break,             // Args: none.
   ScriptIntrinsic_Return,            // Args: value.
   ScriptIntrinsic_Type,              // Args: value.
+  ScriptIntrinsic_Hash,              // Args: value.
   ScriptIntrinsic_Assert,            // Args: condition.
   ScriptIntrinsic_MemLoadDynamic,    // Args: key.
   ScriptIntrinsic_MemStoreDynamic,   // Args: key, value.
@@ -37,6 +38,8 @@ typedef enum {
   ScriptIntrinsic_Vec3Compose,       // Args: x, y, z.
   ScriptIntrinsic_QuatFromEuler,     // Args: x, y, z.
   ScriptIntrinsic_QuatFromAngleAxis, // Args: angle, axis.
+  ScriptIntrinsic_ColorCompose,      // Args: r, g, b, a.
+  ScriptIntrinsic_ColorFor,          // Args: value.
   ScriptIntrinsic_Random,            // Args: none.
   ScriptIntrinsic_RandomSphere,      // Args: none.
   ScriptIntrinsic_RandomCircleXZ,    // Args: none.

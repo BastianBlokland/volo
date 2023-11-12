@@ -12,6 +12,9 @@ typedef struct sDynArray DynString;
 // Forward declare from 'geo_quat.h'.
 typedef union uGeoQuat GeoQuat;
 
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
 // Forward declare from 'geo_vector.h'.
 typedef union uGeoVector GeoVector;
 
@@ -24,6 +27,7 @@ typedef enum {
   ScriptType_Bool,
   ScriptType_Vec3,
   ScriptType_Quat,
+  ScriptType_Color,
   ScriptType_Entity,
   ScriptType_Str,
 
@@ -41,6 +45,7 @@ ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 #define script_mask_bool script_mask(ScriptType_Bool)
 #define script_mask_vec3 script_mask(ScriptType_Vec3)
 #define script_mask_quat script_mask(ScriptType_Quat)
+#define script_mask_color script_mask(ScriptType_Color)
 #define script_mask_entity script_mask(ScriptType_Entity)
 #define script_mask_str script_mask(ScriptType_Str)
 #define script_mask_time script_mask(ScriptType_Num)
@@ -48,9 +53,8 @@ ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 /**
  * Type-erased script value.
  */
-typedef union uScriptVal {
+typedef struct sScriptVal {
   ALIGNAS(16) u8 bytes[16];
-  ALIGNAS(16) u32 words[4];
 } ScriptVal;
 
 ASSERT(sizeof(ScriptVal) == 16, "Expected ScriptVal's size to be 128 bits");
@@ -71,6 +75,7 @@ ScriptVal script_bool(bool);
 ScriptVal script_vec3(GeoVector);
 ScriptVal script_vec3_lit(f32 x, f32 y, f32 z);
 ScriptVal script_quat(GeoQuat);
+ScriptVal script_color(GeoColor);
 ScriptVal script_entity(EcsEntityId);
 ScriptVal script_entity_or_null(EcsEntityId);
 ScriptVal script_str(StringHash);
@@ -83,6 +88,7 @@ f64          script_get_num(ScriptVal, f64 fallback);
 bool         script_get_bool(ScriptVal, bool fallback);
 GeoVector    script_get_vec3(ScriptVal, GeoVector fallback);
 GeoQuat      script_get_quat(ScriptVal, GeoQuat fallback);
+GeoColor     script_get_color(ScriptVal, GeoColor fallback);
 EcsEntityId  script_get_entity(ScriptVal, EcsEntityId fallback);
 StringHash   script_get_str(ScriptVal, StringHash fallback);
 TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
@@ -94,6 +100,7 @@ bool      script_truthy(ScriptVal);
 bool      script_falsy(ScriptVal);
 bool      script_val_has(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
+u32       script_hash(ScriptVal);
 
 /**
  * Create a textual representation of a value.
@@ -144,6 +151,7 @@ ScriptVal script_val_vec_y(ScriptVal);
 ScriptVal script_val_vec_z(ScriptVal);
 ScriptVal script_val_quat_from_euler(ScriptVal x, ScriptVal y, ScriptVal z);
 ScriptVal script_val_quat_from_angle_axis(ScriptVal angle, ScriptVal axis);
+ScriptVal script_val_color_compose(ScriptVal r, ScriptVal g, ScriptVal b, ScriptVal a);
 
 /**
  * Create a formatting argument for a script value.

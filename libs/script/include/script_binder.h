@@ -9,7 +9,7 @@ typedef struct sAllocator Allocator;
 typedef struct sDynArray DynString;
 
 // Forward declare from 'script_val.h'.
-typedef union uScriptVal ScriptVal;
+typedef struct sScriptVal ScriptVal;
 
 // Forward declare from 'script_error.h'.
 typedef struct sScriptError ScriptError;

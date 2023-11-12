@@ -89,6 +89,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_Type:
     return script_str(script_val_type_hash(script_type(eval(ctx, args[0]))));
+  case ScriptIntrinsic_Hash:
+    return script_num(script_hash(eval(ctx, args[0])));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
@@ -228,6 +230,14 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_val_quat_from_angle_axis(arg0, eval(ctx, args[1]));
   }
+  case ScriptIntrinsic_ColorCompose: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    EVAL_ARG_WITH_INTERRUPT(1);
+    EVAL_ARG_WITH_INTERRUPT(2);
+    return script_val_color_compose(arg0, arg1, arg2, eval(ctx, args[3]));
+  }
+  case ScriptIntrinsic_ColorFor:
+    return script_color(geo_color_get(script_hash(eval(ctx, args[0]))));
   case ScriptIntrinsic_Random:
     return script_val_random();
   case ScriptIntrinsic_RandomSphere:
@@ -285,8 +295,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-                      .kind  = script_error_to_panic(err.kind),
-                      .range = script_expr_range(ctx->doc, errExpr),
+        .kind  = script_error_to_panic(err.kind),
+        .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }

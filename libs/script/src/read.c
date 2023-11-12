@@ -110,6 +110,11 @@ static void script_builtin_init() {
   script_builtin_const_add(string_lit("forward"),     script_vec3(geo_forward));
   script_builtin_const_add(string_lit("backward"),    script_vec3(geo_backward));
   script_builtin_const_add(string_lit("quat_ident"),  script_quat(geo_quat_ident));
+  script_builtin_const_add(string_lit("white"),       script_color(geo_color_white));
+  script_builtin_const_add(string_lit("black"),       script_color(geo_color_black));
+  script_builtin_const_add(string_lit("red"),         script_color(geo_color_red));
+  script_builtin_const_add(string_lit("green"),       script_color(geo_color_green));
+  script_builtin_const_add(string_lit("blue"),        script_color(geo_color_blue));
 
   // Builtin functions.
   {
@@ -120,6 +125,15 @@ static void script_builtin_init() {
         {string_lit("v"), script_mask_any},
     };
     script_builtin_func_add(name, ScriptIntrinsic_Type, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("hash");
+    const String       doc    = string_lit("Compute the hash for the given value.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Hash, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("mem_get");
@@ -198,6 +212,27 @@ static void script_builtin_init() {
         {string_lit("axis"), script_mask_vec3},
     };
     script_builtin_func_add(name, ScriptIntrinsic_QuatFromAngleAxis, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("color");
+    const String       doc    = string_lit("Construct a new color.");
+    const ScriptMask   ret    = script_mask_color;
+    const ScriptSigArg args[] = {
+        {string_lit("r"), script_mask_num},
+        {string_lit("g"), script_mask_num},
+        {string_lit("b"), script_mask_num},
+        {string_lit("a"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorCompose, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("color_for");
+    const String       doc    = string_lit("Retrieve a color for the given value.\n\n*Note*: Returns identical colors for identical values, useful for debug purposes.");
+    const ScriptMask   ret    = script_mask_color;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorFor, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("distance");

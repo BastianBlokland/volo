@@ -21,9 +21,11 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RoundNearest:
   case ScriptIntrinsic_RoundUp:
   case ScriptIntrinsic_Type:
+  case ScriptIntrinsic_Hash:
   case ScriptIntrinsic_VecX:
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:
+  case ScriptIntrinsic_ColorFor:
     return 1;
   case ScriptIntrinsic_MemStoreDynamic:
   case ScriptIntrinsic_Add:
@@ -50,6 +52,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Vec3Compose:
     return 3;
   case ScriptIntrinsic_Loop:
+  case ScriptIntrinsic_ColorCompose:
     return 4;
   case ScriptIntrinsic_Count:
     break;
@@ -105,6 +108,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Break]             = string_static("break"),
       [ScriptIntrinsic_Return]            = string_static("return"),
       [ScriptIntrinsic_Type]              = string_static("type"),
+      [ScriptIntrinsic_Hash]              = string_static("hash"),
       [ScriptIntrinsic_Assert]            = string_static("assert"),
       [ScriptIntrinsic_MemLoadDynamic]    = string_static("mem-load-dynamic"),
       [ScriptIntrinsic_MemStoreDynamic]   = string_static("mem-store-dynamic"),
@@ -136,6 +140,8 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Vec3Compose]       = string_static("vec3-compose"),
       [ScriptIntrinsic_QuatFromEuler]     = string_static("quat-from-euler"),
       [ScriptIntrinsic_QuatFromAngleAxis] = string_static("quat-from-angle-axis"),
+      [ScriptIntrinsic_ColorCompose]      = string_static("color-compose"),
+      [ScriptIntrinsic_ColorFor]          = string_static("color-for"),
       [ScriptIntrinsic_Random]            = string_static("random"),
       [ScriptIntrinsic_RandomSphere]      = string_static("random-sphere"),
       [ScriptIntrinsic_RandomCircleXZ]    = string_static("random-circle-xz"),
