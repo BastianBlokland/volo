@@ -51,6 +51,11 @@ ASSERT(alignof(GeoColor) == 16, "GeoColor has to be aligned to 128 bits");
 GeoColor geo_color_get(u64 idx);
 
 /**
+ * Compute the absolute value of each component.
+ */
+GeoColor geo_color_abs(GeoColor);
+
+/**
  * Compute a color where each component is the result of adding the components of both colors.
  */
 GeoColor geo_color_add(GeoColor a, GeoColor b);

@@ -31,6 +31,16 @@ GeoColor geo_color_get(const u64 idx) {
   return g_colors[idx % array_elems(g_colors)];
 }
 
+GeoColor geo_color_abs(const GeoColor c) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_abs(simd_vec_load(c.data)), res.data);
+  return res;
+#else
+  return geo_color(math_abs(c.r), math_abs(c.g), math_abs(c.b), math_abs(c.a));
+#endif
+}
+
 GeoColor geo_color_add(const GeoColor a, const GeoColor b) {
 #if geo_color_simd_enable
   GeoColor res;
