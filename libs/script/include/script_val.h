@@ -53,9 +53,8 @@ ASSERT(ScriptType_Count < 16, "ScriptType's have to be indexable with 16 bits");
 /**
  * Type-erased script value.
  */
-typedef union uScriptVal {
+typedef struct sScriptVal {
   ALIGNAS(16) u8 bytes[16];
-  ALIGNAS(16) u32 words[4];
 } ScriptVal;
 
 ASSERT(sizeof(ScriptVal) == 16, "Expected ScriptVal's size to be 128 bits");

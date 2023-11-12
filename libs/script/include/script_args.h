@@ -5,8 +5,8 @@
 #include "geo_quat.h"
 
 // Forward declare from 'script_val.h'.
-typedef union uScriptVal ScriptVal;
-typedef u16              ScriptMask;
+typedef struct sScriptVal ScriptVal;
+typedef u16               ScriptMask;
 
 // Forward declare from 'script_enum.h'.
 typedef struct sScriptEnum ScriptEnum;

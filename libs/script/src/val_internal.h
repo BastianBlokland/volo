@@ -23,8 +23,15 @@
  * NOTE: Assumes little-endian byte order.
  */
 
+/**
+ * Index of the type byte inside a ScriptVal.
+ * NOTE: Its debatable if we should store it in byte 12 or byte 15, reasoning for storing it in byte
+ * 12 is then its the start of the 4th word and a 32 bit load can be used if needed.
+ */
+#define val_type_byte_index 12
+
 MAYBE_UNUSED INLINE_HINT static ScriptType val_type(const ScriptVal value) {
-  return (ScriptType)value.words[3];
+  return (ScriptType)value.bytes[val_type_byte_index];
 }
 
 MAYBE_UNUSED INLINE_HINT static bool val_type_check(const ScriptVal v, const ScriptMask mask) {
@@ -38,54 +45,54 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_null() {
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_num(const f64 value) {
   ScriptVal result;
-  *(f64*)result.bytes = value;
-  result.words[3]     = ScriptType_Num;
+  *(f64*)result.bytes               = value;
+  result.bytes[val_type_byte_index] = ScriptType_Num;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_bool(const bool value) {
   ScriptVal result;
-  *(bool*)result.bytes = value;
-  result.words[3]      = ScriptType_Bool;
+  *(bool*)result.bytes              = value;
+  result.bytes[val_type_byte_index] = ScriptType_Bool;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_vec3(const GeoVector value) {
   ScriptVal result;
-  *(GeoVector*)result.bytes = value;
-  result.words[3]           = ScriptType_Vec3;
+  *(GeoVector*)result.bytes         = value;
+  result.bytes[val_type_byte_index] = ScriptType_Vec3;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_quat(const GeoQuat q) {
   ScriptVal result;
-  *(GeoQuat*)result.bytes = geo_quat_norm_or_ident(q);
-  result.words[3]         = ScriptType_Quat;
+  *(GeoQuat*)result.bytes           = geo_quat_norm_or_ident(q);
+  result.bytes[val_type_byte_index] = ScriptType_Quat;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_color(const GeoColor value) {
   ScriptVal result;
-  f16* restrict resultComps = (f16*)result.bytes;
-  resultComps[0]            = float_f32_to_f16(value.r);
-  resultComps[1]            = float_f32_to_f16(value.g);
-  resultComps[2]            = float_f32_to_f16(value.b);
-  resultComps[3]            = float_f32_to_f16(value.a);
-  result.words[3]           = ScriptType_Color;
+  f16* restrict resultComps         = (f16*)result.bytes;
+  resultComps[0]                    = float_f32_to_f16(value.r);
+  resultComps[1]                    = float_f32_to_f16(value.g);
+  resultComps[2]                    = float_f32_to_f16(value.b);
+  resultComps[3]                    = float_f32_to_f16(value.a);
+  result.bytes[val_type_byte_index] = ScriptType_Color;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_entity(const EcsEntityId value) {
   ScriptVal result;
-  *(EcsEntityId*)result.bytes = value;
-  result.words[3]             = ScriptType_Entity;
+  *(EcsEntityId*)result.bytes       = value;
+  result.bytes[val_type_byte_index] = ScriptType_Entity;
   return result;
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_str(const StringHash value) {
   ScriptVal result;
-  *(StringHash*)result.bytes = value;
-  result.words[3]            = ScriptType_Str;
+  *(StringHash*)result.bytes        = value;
+  result.bytes[val_type_byte_index] = ScriptType_Str;
   return result;
 }
 
