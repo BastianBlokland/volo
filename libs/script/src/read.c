@@ -205,6 +205,18 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_QuatFromAngleAxis, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("color");
+    const String       doc    = string_lit("Construct a new color.");
+    const ScriptMask   ret    = script_mask_color;
+    const ScriptSigArg args[] = {
+        {string_lit("r"), script_mask_num},
+        {string_lit("g"), script_mask_num},
+        {string_lit("b"), script_mask_num},
+        {string_lit("a"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorCompose, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("distance");
     const String       doc    = string_lit("Compute the distance between two values.");
     const ScriptMask   ret    = script_mask_num;

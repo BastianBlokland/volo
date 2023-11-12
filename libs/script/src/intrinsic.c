@@ -50,6 +50,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Vec3Compose:
     return 3;
   case ScriptIntrinsic_Loop:
+  case ScriptIntrinsic_ColorCompose:
     return 4;
   case ScriptIntrinsic_Count:
     break;
@@ -136,6 +137,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Vec3Compose]       = string_static("vec3-compose"),
       [ScriptIntrinsic_QuatFromEuler]     = string_static("quat-from-euler"),
       [ScriptIntrinsic_QuatFromAngleAxis] = string_static("quat-from-angle-axis"),
+      [ScriptIntrinsic_ColorCompose]      = string_static("color-compose"),
       [ScriptIntrinsic_Random]            = string_static("random"),
       [ScriptIntrinsic_RandomSphere]      = string_static("random-sphere"),
       [ScriptIntrinsic_RandomCircleXZ]    = string_static("random-circle-xz"),
