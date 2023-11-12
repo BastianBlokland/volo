@@ -25,6 +25,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_VecX:
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:
+  case ScriptIntrinsic_ColorFor:
     return 1;
   case ScriptIntrinsic_MemStoreDynamic:
   case ScriptIntrinsic_Add:
@@ -140,6 +141,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_QuatFromEuler]     = string_static("quat-from-euler"),
       [ScriptIntrinsic_QuatFromAngleAxis] = string_static("quat-from-angle-axis"),
       [ScriptIntrinsic_ColorCompose]      = string_static("color-compose"),
+      [ScriptIntrinsic_ColorFor]          = string_static("color-for"),
       [ScriptIntrinsic_Random]            = string_static("random"),
       [ScriptIntrinsic_RandomSphere]      = string_static("random-sphere"),
       [ScriptIntrinsic_RandomCircleXZ]    = string_static("random-circle-xz"),

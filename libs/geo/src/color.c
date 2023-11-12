@@ -12,6 +12,7 @@
 
 GeoColor geo_color_get(const u64 idx) {
   // TODO: Consider replacing this with generating a random hue and then converting from hsv to rgb.
+  // NOTE: Important to keep this function deterministic.
   static const GeoColor g_colors[] = {
       {1.0f, 0.0f, 0.0f, 1.0f},
       {1.0f, 1.0f, 0.0f, 1.0f},

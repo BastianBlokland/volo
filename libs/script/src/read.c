@@ -226,6 +226,15 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_ColorCompose, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("color_for");
+    const String       doc    = string_lit("Retrieve a color for the given value.\n\n*Note*: Returns identical colors for identical values, useful for debug purposes.");
+    const ScriptMask   ret    = script_mask_color;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorFor, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("distance");
     const String       doc    = string_lit("Compute the distance between two values.");
     const ScriptMask   ret    = script_mask_num;

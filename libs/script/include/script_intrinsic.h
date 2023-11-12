@@ -39,6 +39,7 @@ typedef enum {
   ScriptIntrinsic_QuatFromEuler,     // Args: x, y, z.
   ScriptIntrinsic_QuatFromAngleAxis, // Args: angle, axis.
   ScriptIntrinsic_ColorCompose,      // Args: r, g, b, a.
+  ScriptIntrinsic_ColorFor,          // Args: value.
   ScriptIntrinsic_Random,            // Args: none.
   ScriptIntrinsic_RandomSphere,      // Args: none.
   ScriptIntrinsic_RandomCircleXZ,    // Args: none.
