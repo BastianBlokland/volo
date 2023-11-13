@@ -10,16 +10,19 @@
 #include "ui.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
-#define log_tracker_max_message_size 128
+#define log_tracker_max_message_size 64
 #define log_tracker_max_age time_seconds(10)
 
+ASSERT(log_tracker_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
+
 typedef struct {
-  TimeReal  timestamp;
-  LogLevel  lvl;
-  SourceLoc srcLoc;
-  u32       counter;
-  u32       length;
-  u8        data[log_tracker_max_message_size];
+  TimeReal timestamp;
+  LogLevel lvl : 8;
+  u8       length;
+  u16      line;
+  u32      counter;
+  String   file;
+  u8       data[log_tracker_max_message_size];
 } DebugLogMessage;
 
 /**
@@ -66,11 +69,12 @@ static void debug_log_sink_write(
 
     if (!duplicate) {
       DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
-      msg->lvl             = lvl;
-      msg->srcLoc          = srcLoc;
       msg->timestamp       = timestamp;
+      msg->lvl             = lvl;
+      msg->length          = math_min((u8)message.size, log_tracker_max_message_size);
       msg->counter         = 1;
-      msg->length          = math_min((u32)message.size, log_tracker_max_message_size);
+      msg->line            = (u16)math_min(srcLoc.line, u16_max);
+      msg->file            = srcLoc.file;
       mem_cpy(mem_create(msg->data, msg->length), string_slice(message, 0, msg->length));
     }
   }
@@ -184,10 +188,7 @@ static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* 
   ui_canvas_draw_text(canvas, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(canvas);
 
-  ui_tooltip(
-      canvas,
-      bgId,
-      fmt_write_scratch("{}:{}", fmt_path(msg->srcLoc.file), fmt_int(msg->srcLoc.line)));
+  ui_tooltip(canvas, bgId, fmt_write_scratch("{}:{}", fmt_path(msg->file), fmt_int(msg->line)));
 }
 
 static void debug_log_draw_messages(
