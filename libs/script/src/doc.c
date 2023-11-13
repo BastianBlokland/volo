@@ -541,6 +541,7 @@ u32 script_expr_arg_count(const ScriptDoc* doc, const ScriptExpr expr) {
     return 0;
   }
 }
+
 u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr expr, const ScriptPos pos) {
   const ScriptExprData* data = expr_data(doc, expr);
   switch (expr_kind(doc, expr)) {
@@ -552,7 +553,7 @@ u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr expr, const Scr
         return i;
       }
     }
-    return argCount ? (argCount - 1) : sentinel_u32;
+    return sentinel_u32;
   }
   case ScriptExprKind_Extern: {
     const ScriptExpr* args = expr_set_data(doc, data->extern_.argSet);
@@ -561,7 +562,7 @@ u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr expr, const Scr
         return i;
       }
     }
-    return data->extern_.argCount ? (u32)(data->extern_.argCount - 1) : sentinel_u32;
+    return sentinel_u32;
   }
   default:
     return sentinel_u32;
