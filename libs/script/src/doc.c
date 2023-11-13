@@ -530,9 +530,20 @@ ScriptExpr script_expr_find(
   return (!pred || pred(ctx, doc, root)) ? root : script_expr_sentinel;
 }
 
-u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr root, const ScriptPos pos) {
-  const ScriptExprData* data = expr_data(doc, root);
-  switch (expr_kind(doc, root)) {
+u32 script_expr_arg_count(const ScriptDoc* doc, const ScriptExpr expr) {
+  const ScriptExprData* data = expr_data(doc, expr);
+  switch (expr_kind(doc, expr)) {
+  case ScriptExprKind_Intrinsic:
+    return script_intrinsic_arg_count(data->intrinsic.intrinsic);
+  case ScriptExprKind_Extern:
+    return data->extern_.argCount;
+  default:
+    return 0;
+  }
+}
+u32 script_expr_arg_index(const ScriptDoc* doc, const ScriptExpr expr, const ScriptPos pos) {
+  const ScriptExprData* data = expr_data(doc, expr);
+  switch (expr_kind(doc, expr)) {
   case ScriptExprKind_Intrinsic: {
     const ScriptExpr* args     = expr_set_data(doc, data->intrinsic.argSet);
     const u32         argCount = script_intrinsic_arg_count(data->intrinsic.intrinsic);
