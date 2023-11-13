@@ -66,6 +66,7 @@ static const String g_outputModeNames[] = {
 ASSERT(array_elems(g_outputModeNames) == DebugScriptOutputMode_Count, "Incorrect number of names");
 
 typedef enum {
+  DebugScriptOutputType_Trace,
   DebugScriptOutputType_Panic,
 } DebugScriptOutputType;
 
@@ -449,24 +450,40 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     if (!scriptInstance) {
       continue;
     }
+    ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
+    const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
+    const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
+    const String           scriptId   = asset_id(assetComp);
+
+    // Output panics.
     const ScriptPanic* panic = scene_script_panic(scriptInstance);
     if (panic) {
-      ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
-      const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
-      const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
-      const String           scriptId   = asset_id(assetComp);
-      const String           msg        = script_panic_kind_str(panic->kind);
-      ScriptRangeLineCol     range      = {0};
+      const String       msg   = script_panic_kind_str(panic->kind);
+      ScriptRangeLineCol range = {0};
       if (scriptComp) {
         range = script_range_to_line_col(scriptComp->sourceText, panic->range);
       }
       output_add(tracker, DebugScriptOutputType_Panic, entity, now, scriptId, msg, range);
+    }
+
+    // Output traces.
+    const SceneScriptDebug* debugData  = scene_script_debug_data(scriptInstance);
+    const usize             debugCount = scene_script_debug_count(scriptInstance);
+    for (usize i = 0; i != debugCount; ++i) {
+      if (debugData[i].type == SceneScriptDebugType_Trace) {
+        const String             msg   = debugData[i].data_trace.text;
+        const ScriptRangeLineCol range = {0}; // TODO: Collect ranges for traces.
+        output_add(tracker, DebugScriptOutputType_Trace, entity, now, scriptId, msg, range);
+        break;
+      }
     }
   }
 }
 
 static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
   switch (entry->type) {
+  case DebugScriptOutputType_Trace:
+    return ui_color(16, 64, 16, 192);
   case DebugScriptOutputType_Panic:
     return ui_color(64, 16, 16, 192);
   }
