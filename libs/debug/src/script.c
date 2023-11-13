@@ -4,6 +4,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_process.h"
 #include "core_stringtable.h"
 #include "debug_register.h"
@@ -24,6 +25,9 @@
 #include "ui.h"
 
 #define output_max_age time_seconds(60)
+#define output_max_message_size 64
+
+ASSERT(output_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
 
 static const String g_tooltipOpenScript   = string_static("Open script in external editor.");
 static const String g_tooltipSelectEntity = string_static("Select the entity.");
@@ -66,12 +70,13 @@ typedef enum {
 } DebugScriptOutputType;
 
 typedef struct {
-  DebugScriptOutputType type;
+  DebugScriptOutputType type : 8;
+  u8                    msgLength;
   TimeReal              timestamp;
   EcsEntityId           entity;
   String                scriptId; // NOTE: Has to be persistently allocated.
-  String                message;  // NOTE: Has to be persistently allocated.
   ScriptRangeLineCol    range;
+  u8                    msgData[output_max_message_size];
 } DebugScriptOutput;
 
 typedef struct {
@@ -422,14 +427,14 @@ static void output_add(
       break;
     }
   }
-  *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
-      .type      = type,
-      .entity    = entity,
-      .timestamp = time,
-      .scriptId  = scriptId,
-      .message   = message,
-      .range     = range,
-  };
+  DebugScriptOutput* entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
+  entry->type              = type;
+  entry->msgLength         = math_min((u8)message.size, output_max_message_size);
+  entry->timestamp         = time;
+  entry->entity            = entity;
+  entry->scriptId          = scriptId;
+  entry->range             = range;
+  mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
 }
 
 static void
@@ -550,7 +555,7 @@ static void output_panel_tab_draw(
     ui_layout_pop(canvas);
 
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, entry->message, .selectable = true);
+    ui_label(canvas, mem_create(entry->msgData, entry->msgLength), .selectable = true);
 
     const String locText = fmt_write_scratch(
         "{}:{}:{}-{}:{}",
