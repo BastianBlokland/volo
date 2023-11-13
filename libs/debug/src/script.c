@@ -752,6 +752,8 @@ ecs_system_define(DebugScriptDrawSys) {
         const SceneScriptDebugText* data = &debugData[i].data_text;
         debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
       } break;
+      case SceneScriptDebugType_Trace:
+        break;
       }
     }
   }

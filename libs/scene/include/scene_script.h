@@ -45,6 +45,7 @@ typedef enum {
   SceneScriptDebugType_Arrow,
   SceneScriptDebugType_Orientation,
   SceneScriptDebugType_Text,
+  SceneScriptDebugType_Trace,
 } SceneScriptDebugType;
 
 typedef struct {
@@ -78,6 +79,10 @@ typedef struct {
 } SceneScriptDebugText;
 
 typedef struct {
+  String text;
+} SceneScriptDebugTrace;
+
+typedef struct {
   SceneScriptDebugType type;
   union {
     SceneScriptDebugLine        data_line;
@@ -85,6 +90,7 @@ typedef struct {
     SceneScriptDebugArrow       data_arrow;
     SceneScriptDebugOrientation data_orientation;
     SceneScriptDebugText        data_text;
+    SceneScriptDebugTrace       data_trace;
   };
 } SceneScriptDebug;
 

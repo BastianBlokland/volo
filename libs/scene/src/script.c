@@ -363,6 +363,12 @@ static void debug_push_text(EvalContext* ctx, const SceneScriptDebugText* data) 
   d->data_text        = *data;
 }
 
+static void debug_push_trace(EvalContext* ctx, const SceneScriptDebugTrace* data) {
+  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
+  d->type             = SceneScriptDebugType_Trace;
+  d->data_trace       = *data;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -931,6 +937,23 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   return script_null();
 }
 
+static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)err;
+  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  for (usize i = 0; i < args.count; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_write(args.values[i], &buffer);
+  }
+  if (buffer.size) {
+    SceneScriptDebugTrace data;
+    data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
+    debug_push_trace(ctx, &data);
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
@@ -1004,6 +1027,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_arrow"),        eval_debug_arrow);
     eval_bind(b, string_lit("debug_orientation"),  eval_debug_orientation);
     eval_bind(b, string_lit("debug_text"),         eval_debug_text);
+    eval_bind(b, string_lit("debug_trace"),        eval_debug_trace);
     eval_bind(b, string_lit("debug_break"),        eval_debug_break);
     // clang-format on
 
