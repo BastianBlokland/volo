@@ -1046,7 +1046,7 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   if (script_sig_arg_max_count(sig.scriptSig) == u8_max) {
     // For variable argument count signatures always return the last argument when out of bounds.
-    index = math_min(index, script_sig_arg_count(sig.scriptSig) - 1);
+    index = math_min(index, (u32)(script_sig_arg_count(sig.scriptSig) - 1));
   }
   json_add_field_lit(ctx->jDoc, sigHelp, "activeParameter", json_add_number(ctx->jDoc, index));
 
