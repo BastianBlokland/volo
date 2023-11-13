@@ -1039,10 +1039,16 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   const JsonVal sigHelp = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, sigHelp, "signatures", signaturesArr);
 
-  const u32 index = script_expr_arg_index(doc->scriptDoc, callExpr, pos);
-  if (!sentinel_check(index)) {
-    json_add_field_lit(ctx->jDoc, sigHelp, "activeParameter", json_add_number(ctx->jDoc, index));
+  u32 index = 0;
+  if (script_expr_arg_count(doc->scriptDoc, callExpr)) {
+    // When providing arguments check which argument position is being hovered.
+    index = script_expr_arg_index(doc->scriptDoc, callExpr, pos);
   }
+  if (script_sig_arg_max_count(sig.scriptSig) == u8_max) {
+    // For variable argument count signatures always return the last argument when out of bounds.
+    index = math_min(index, (u32)(script_sig_arg_count(sig.scriptSig) - 1));
+  }
+  json_add_field_lit(ctx->jDoc, sigHelp, "activeParameter", json_add_number(ctx->jDoc, index));
 
   lsp_send_response_success(ctx, req, sigHelp);
   return;
