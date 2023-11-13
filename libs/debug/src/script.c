@@ -4,6 +4,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_process.h"
 #include "core_stringtable.h"
 #include "debug_register.h"
@@ -24,6 +25,9 @@
 #include "ui.h"
 
 #define output_max_age time_seconds(60)
+#define output_max_message_size 64
+
+ASSERT(output_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
 
 static const String g_tooltipOpenScript   = string_static("Open script in external editor.");
 static const String g_tooltipSelectEntity = string_static("Select the entity.");
@@ -62,16 +66,18 @@ static const String g_outputModeNames[] = {
 ASSERT(array_elems(g_outputModeNames) == DebugScriptOutputMode_Count, "Incorrect number of names");
 
 typedef enum {
+  DebugScriptOutputType_Trace,
   DebugScriptOutputType_Panic,
 } DebugScriptOutputType;
 
 typedef struct {
-  DebugScriptOutputType type;
+  DebugScriptOutputType type : 8;
+  u8                    msgLength;
   TimeReal              timestamp;
   EcsEntityId           entity;
   String                scriptId; // NOTE: Has to be persistently allocated.
-  String                message;  // NOTE: Has to be persistently allocated.
   ScriptRangeLineCol    range;
+  u8                    msgData[output_max_message_size];
 } DebugScriptOutput;
 
 typedef struct {
@@ -422,14 +428,14 @@ static void output_add(
       break;
     }
   }
-  *dynarray_push_t(&tracker->entries, DebugScriptOutput) = (DebugScriptOutput){
-      .type      = type,
-      .entity    = entity,
-      .timestamp = time,
-      .scriptId  = scriptId,
-      .message   = message,
-      .range     = range,
-  };
+  DebugScriptOutput* entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
+  entry->type              = type;
+  entry->msgLength         = math_min((u8)message.size, output_max_message_size);
+  entry->timestamp         = time;
+  entry->entity            = entity;
+  entry->scriptId          = scriptId;
+  entry->range             = range;
+  mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
 }
 
 static void
@@ -444,24 +450,40 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     if (!scriptInstance) {
       continue;
     }
+    ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
+    const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
+    const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
+    const String           scriptId   = asset_id(assetComp);
+
+    // Output panics.
     const ScriptPanic* panic = scene_script_panic(scriptInstance);
     if (panic) {
-      ecs_view_jump(assetItr, scene_script_asset(scriptInstance));
-      const AssetComp*       assetComp  = ecs_view_read_t(assetItr, AssetComp);
-      const AssetScriptComp* scriptComp = ecs_view_read_t(assetItr, AssetScriptComp);
-      const String           scriptId   = asset_id(assetComp);
-      const String           msg        = script_panic_kind_str(panic->kind);
-      ScriptRangeLineCol     range      = {0};
+      const String       msg   = script_panic_kind_str(panic->kind);
+      ScriptRangeLineCol range = {0};
       if (scriptComp) {
         range = script_range_to_line_col(scriptComp->sourceText, panic->range);
       }
       output_add(tracker, DebugScriptOutputType_Panic, entity, now, scriptId, msg, range);
+    }
+
+    // Output traces.
+    const SceneScriptDebug* debugData  = scene_script_debug_data(scriptInstance);
+    const usize             debugCount = scene_script_debug_count(scriptInstance);
+    for (usize i = 0; i != debugCount; ++i) {
+      if (debugData[i].type == SceneScriptDebugType_Trace) {
+        const String             msg   = debugData[i].data_trace.text;
+        const ScriptRangeLineCol range = {0}; // TODO: Collect ranges for traces.
+        output_add(tracker, DebugScriptOutputType_Trace, entity, now, scriptId, msg, range);
+        break;
+      }
     }
   }
 }
 
 static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
   switch (entry->type) {
+  case DebugScriptOutputType_Trace:
+    return ui_color(16, 64, 16, 192);
   case DebugScriptOutputType_Panic:
     return ui_color(64, 16, 16, 192);
   }
@@ -550,7 +572,7 @@ static void output_panel_tab_draw(
     ui_layout_pop(canvas);
 
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, entry->message, .selectable = true);
+    ui_label(canvas, mem_create(entry->msgData, entry->msgLength), .selectable = true);
 
     const String locText = fmt_write_scratch(
         "{}:{}:{}-{}:{}",
@@ -752,6 +774,8 @@ ecs_system_define(DebugScriptDrawSys) {
         const SceneScriptDebugText* data = &debugData[i].data_text;
         debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
       } break;
+      case SceneScriptDebugType_Trace:
+        break;
       }
     }
   }

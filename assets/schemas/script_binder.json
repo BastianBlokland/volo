@@ -86,6 +86,20 @@
       }
     },
     {
+      "name": "debug_trace",
+      "doc": "Emit a debug-trace for this entity with the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "values",
+            "mask": "any",
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "name",
       "doc": "Lookup the name of the given entity.",
       "sig": {
