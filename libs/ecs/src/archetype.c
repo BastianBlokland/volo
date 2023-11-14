@@ -120,6 +120,17 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
   }
 }
 
+NO_INLINE_HINT NORETURN static void ecs_archetype_report_limit_reached(EcsArchetype* archetype) {
+  diag_crash_msg(
+      "Archetype chunk count exceeds limit. "
+      "Chunks: {}, "
+      "EntitiesPerChunk: {}, "
+      "Entities: {}",
+      fmt_int(archetype->chunkCount),
+      fmt_int(archetype->entitiesPerChunk),
+      fmt_int(archetype->entityCount));
+}
+
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
@@ -176,7 +187,9 @@ usize ecs_archetype_total_size(const EcsArchetype* archetype) {
 u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {
   if (archetype->entityCount == archetype->chunkCount * archetype->entitiesPerChunk) {
     // Not a enough space left; allocate a new chunk.
-    diag_assert(archetype->chunkCount < ecs_archetype_max_chunks);
+    if (UNLIKELY(archetype->chunkCount >= ecs_archetype_max_chunks)) {
+      ecs_archetype_report_limit_reached(archetype);
+    }
     archetype->chunks[archetype->chunkCount++] = ecs_archetype_chunk_create();
   }
   // TODO: Add check to detect overflowing a u32 entity-index.
