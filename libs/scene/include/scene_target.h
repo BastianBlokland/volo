@@ -7,17 +7,17 @@
 #define scene_target_queue_size 4
 
 typedef enum {
-  SceneTarget_ConfigExcludeUnreachable = 1 << 0,
-  SceneTarget_ConfigExcludeObscured    = 1 << 1,
-  SceneTarget_ConfigTrace              = 1 << 2, // Enable diagnostic tracing.
-} SceneTargetFlags;
+  SceneTargetConfig_ExcludeUnreachable = 1 << 0,
+  SceneTargetConfig_ExcludeObscured    = 1 << 1,
+  SceneTargetConfig_Trace              = 1 << 2, // Enable diagnostic tracing.
+} SceneTargetConfig;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
-  SceneTargetFlags flags;
-  f32              rangeMin, rangeMax;
-  f32              lineOfSightRadius;
-  TimeDuration     nextRefreshTime;
-  EcsEntityId      targetQueue[scene_target_queue_size];
+  SceneTargetConfig config;
+  f32               rangeMin, rangeMax;
+  f32               lineOfSightRadius;
+  TimeDuration      nextRefreshTime;
+  EcsEntityId       targetQueue[scene_target_queue_size];
 };
 
 EcsEntityId scene_target_primary(const SceneTargetFinderComp*);

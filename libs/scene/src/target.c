@@ -178,14 +178,14 @@ static f32 target_score(
     return 0.0f; // Target too far away.
   }
 
-  const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
+  const bool excludeUnreachable = (finder->config & SceneTargetConfig_ExcludeUnreachable) != 0;
   if (excludeUnreachable && !target_reachable(nav, finderPosCenter, targetItr)) {
     return 0.0f; // Target unreachable.
   }
   const f32       dist = math_sqrt_f32(distSqr);
   const GeoVector dir  = dist > f32_epsilon ? geo_vector_div(toTarget, dist) : geo_forward;
 
-  if (finder->flags & SceneTarget_ConfigExcludeObscured) {
+  if (finder->config & SceneTargetConfig_ExcludeObscured) {
     const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
     const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
     const SceneQueryFilter           filter    = {
@@ -255,9 +255,9 @@ ecs_system_define(SceneTargetUpdateSys) {
     SceneTargetTraceComp*     trace       = ecs_view_write_t(itr, SceneTargetTraceComp);
     const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_None;
 
-    if ((finder->flags & SceneTarget_ConfigTrace) && !trace) {
+    if ((finder->config & SceneTargetConfig_Trace) && !trace) {
       target_trace_start(world, entity);
-    } else if (trace && !(finder->flags & SceneTarget_ConfigTrace)) {
+    } else if (trace && !(finder->config & SceneTargetConfig_Trace)) {
       target_trace_stop(world, entity);
     }
 
