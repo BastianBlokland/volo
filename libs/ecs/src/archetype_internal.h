@@ -9,7 +9,7 @@
 /**
  * An Archetype is a container that stores entities with a specific set of components.
  * When an Entity's layout is changed (a component added or removed) it is moved to a different
- * archtype.
+ * archetype.
  */
 
 // 64 bytes to fit in a single cacheline on x86.

@@ -86,7 +86,7 @@ typedef struct {
 } DebugEditorRequest;
 
 ecs_comp_define(DebugScriptTrackerComp) {
-  DynArray entries; // DebugScriptOutput[], sorted on timestamp.
+  DynArray entries; // DebugScriptOutput[]
   bool     autoOpenOnPanic;
 };
 
@@ -404,13 +404,11 @@ static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
 static void output_clear(DebugScriptTrackerComp* tracker) { dynarray_clear(&tracker->entries); }
 
 static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
-  usize keepIndex = 0;
-  for (; keepIndex != tracker->entries.size; ++keepIndex) {
-    if (dynarray_at_t(&tracker->entries, keepIndex, DebugScriptOutput)->timestamp >= timestamp) {
-      break;
+  for (usize i = tracker->entries.size; i-- != 0;) {
+    if (dynarray_at_t(&tracker->entries, i, DebugScriptOutput)->timestamp < timestamp) {
+      dynarray_remove_unordered(&tracker->entries, i, 1);
     }
   }
-  dynarray_remove(&tracker->entries, 0, keepIndex);
 }
 
 static void output_add(
@@ -421,20 +419,25 @@ static void output_add(
     const String                scriptId,
     const String                message,
     const ScriptRangeLineCol    range) {
+  DebugScriptOutput* entry = null;
+  // Find an existing entry of the same type for the same entity.
   for (usize i = 0; i != tracker->entries.size; ++i) {
-    const DebugScriptOutput* entry = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
-    if (entry->type == type && entry->entity == entity) {
-      dynarray_remove(&tracker->entries, i, 1);
+    DebugScriptOutput* existingEntry = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
+    if (existingEntry->type == type && existingEntry->entity == entity) {
+      entry = existingEntry;
       break;
     }
   }
-  DebugScriptOutput* entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
-  entry->type              = type;
-  entry->msgLength         = math_min((u8)message.size, output_max_message_size);
-  entry->timestamp         = time;
-  entry->entity            = entity;
-  entry->scriptId          = scriptId;
-  entry->range             = range;
+  if (!entry) {
+    // No existing entry found; add a new one.
+    entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
+  }
+  entry->type      = type;
+  entry->msgLength = math_min((u8)message.size, output_max_message_size);
+  entry->timestamp = time;
+  entry->entity    = entity;
+  entry->scriptId  = scriptId;
+  entry->range     = range;
   mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
 }
 

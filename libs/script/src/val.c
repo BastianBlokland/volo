@@ -29,9 +29,12 @@ ScriptVal script_vec3_lit(const f32 x, const f32 y, const f32 z) {
 }
 ScriptVal script_quat(const GeoQuat q) { return val_quat(q); }
 ScriptVal script_color(const GeoColor q) { return val_color(q); }
-ScriptVal script_entity(const EcsEntityId value) { return val_entity(value); }
+ScriptVal script_entity(const EcsEntityId entity) {
+  diag_assert_msg(ecs_entity_valid(entity), "Invalid entity id; use script_entity_or_null()");
+  return val_entity(entity);
+}
 ScriptVal script_entity_or_null(const EcsEntityId entity) {
-  return entity ? val_entity(entity) : val_null();
+  return ecs_entity_valid(entity) ? val_entity(entity) : val_null();
 }
 ScriptVal script_str(const StringHash str) { return val_str(str); }
 
@@ -88,7 +91,7 @@ bool script_truthy(const ScriptVal value) {
      */
     return true;
   case ScriptType_Entity:
-    return ecs_entity_valid(val_as_entity(value));
+    return true; // Only valid entities can be stored in values.
   case ScriptType_Str:
     return val_as_str(value) != 0;
   case ScriptType_Count:

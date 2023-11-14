@@ -9,7 +9,7 @@
 #include "doc_internal.h"
 #include "val_internal.h"
 
-#define script_executed_exprs_max 10000
+#define script_executed_exprs_max 25000
 
 typedef enum {
   ScriptEvalSignal_None     = 0,
@@ -295,8 +295,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-        .kind  = script_error_to_panic(err.kind),
-        .range = script_expr_range(ctx->doc, errExpr),
+                      .kind  = script_error_to_panic(err.kind),
+                      .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }

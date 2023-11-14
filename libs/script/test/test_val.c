@@ -9,6 +9,9 @@
 #include "utils_internal.h"
 
 spec(val) {
+  const EcsEntityId dummyEntity1 = (EcsEntityId)(u64_lit(0) | (u64_lit(1) << 32u));
+  const EcsEntityId dummyEntity2 = (EcsEntityId)(u64_lit(1) | (u64_lit(2) << 32u));
+
   it("can type-erase values") {
     check_eq_int(script_type(script_null()), ScriptType_Null);
 
@@ -31,8 +34,8 @@ spec(val) {
     check_eq_int(script_type(script_color(geo_color_red)), ScriptType_Color);
     check_eq_float(script_get_color(script_color(geo_color_red), geo_color_clear).r, 1, 1e-6);
 
-    check_eq_int(script_type(script_entity(0x42)), ScriptType_Entity);
-    check_eq_int(script_get_entity(script_entity(0x42), 0), 0x42);
+    check_eq_int(script_type(script_entity(dummyEntity1)), ScriptType_Entity);
+    check_eq_int(script_get_entity(script_entity(dummyEntity1), 0), dummyEntity1);
 
     check_eq_int(script_type(script_time(time_seconds(2))), ScriptType_Num);
     check_eq_float(script_get_time(script_time(time_seconds(2)), 0), time_seconds(2), 1e-6);
@@ -86,7 +89,7 @@ spec(val) {
     check(script_get_time(script_time(time_seconds(1)), time_seconds(2)) == time_seconds(1));
     check(script_get_time(script_null(), time_seconds(2)) == time_seconds(2));
 
-    check(script_get_entity(script_entity(0x1), 0x2) == 0x1);
+    check(script_get_entity(script_entity(dummyEntity1), dummyEntity1) == dummyEntity1);
     check(script_get_entity(script_null(), 0x2) == 0x2);
 
     const ScriptVal str = script_str(string_hash_lit("Hello World"));
@@ -112,8 +115,7 @@ spec(val) {
     check(script_truthy(script_color(geo_color_clear)));
     check(script_truthy(script_color(geo_color_white)));
 
-    check(!script_truthy(script_entity(0x0)));
-    check(script_truthy(script_entity(u64_lit(0x42) << 32)));
+    check(script_truthy(script_entity(dummyEntity1)));
 
     check(!script_truthy(script_str(0)));
     check(script_truthy(script_str(string_hash_lit("Hello World"))));
@@ -136,8 +138,7 @@ spec(val) {
     check(!script_falsy(script_color(geo_color_clear)));
     check(!script_falsy(script_color(geo_color_white)));
 
-    check(script_falsy(script_entity(0x0)));
-    check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
+    check(!script_falsy(script_entity(dummyEntity1)));
 
     check(script_falsy(script_str(0)));
     check(!script_falsy(script_str(string_hash_lit("Hello World"))));
@@ -207,7 +208,7 @@ spec(val) {
         {script_quat(geo_quat_forward_to_backward), string_lit("0, 1, 0, 0")},
         {script_color(geo_color_clear), string_lit("0, 0, 0, 0")},
         {script_color(geo_color_red), string_lit("1, 0, 0, 1")},
-        {script_entity(0x1337), string_lit("1337")},
+        {script_entity(dummyEntity1), string_lit("100000000")},
         {script_time(time_seconds(42)), string_lit("42")},
         {script_time(time_hour), string_lit("3600")},
         {script_time(time_milliseconds(500)), string_lit("0.5")},
@@ -290,8 +291,8 @@ spec(val) {
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = true},
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = false},
 
-        {script_entity(1), script_entity(1), .expected = true},
-        {script_entity(1), script_entity(2), .expected = false},
+        {script_entity(dummyEntity1), script_entity(dummyEntity1), .expected = true},
+        {script_entity(dummyEntity1), script_entity(dummyEntity2), .expected = false},
 
         {script_num(1), script_bool(true), .expected = false},
 
@@ -503,7 +504,9 @@ spec(val) {
 
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+        {.a        = script_entity(dummyEntity1),
+         .b        = script_entity(dummyEntity2),
+         .expected = script_null()},
 
         {
             script_str(string_hash_lit("A")),
@@ -555,7 +558,9 @@ spec(val) {
 
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+        {.a        = script_entity(dummyEntity1),
+         .b        = script_entity(dummyEntity2),
+         .expected = script_null()},
 
         {
             script_str(string_hash_lit("A")),
@@ -617,7 +622,9 @@ spec(val) {
 
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+        {.a        = script_entity(dummyEntity1),
+         .b        = script_entity(dummyEntity2),
+         .expected = script_null()},
 
         {
             script_str(string_hash_lit("A")),
@@ -665,7 +672,9 @@ spec(val) {
 
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+        {.a        = script_entity(dummyEntity1),
+         .b        = script_entity(dummyEntity2),
+         .expected = script_null()},
 
         {
             script_str(string_hash_lit("A")),
@@ -770,7 +779,9 @@ spec(val) {
          .b        = script_time(time_seconds(2)),
          .expected = script_time(time_seconds(8))},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+        {.a        = script_entity(dummyEntity1),
+         .b        = script_entity(dummyEntity2),
+         .expected = script_null()},
 
         {
             script_str(string_hash_lit("A")),
