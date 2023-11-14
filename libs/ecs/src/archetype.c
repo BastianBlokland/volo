@@ -125,10 +125,12 @@ NO_INLINE_HINT NORETURN static void ecs_archetype_report_limit_reached(EcsArchet
       "Archetype chunk count exceeds limit. "
       "Chunks: {}, "
       "EntitiesPerChunk: {}, "
-      "Entities: {}",
+      "Entities: {}, "
+      "ComponentCount: {}",
       fmt_int(archetype->chunkCount),
       fmt_int(archetype->entitiesPerChunk),
-      fmt_int(archetype->entityCount));
+      fmt_int(archetype->entityCount),
+      fmt_int(bitset_count(archetype->mask)));
 }
 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
