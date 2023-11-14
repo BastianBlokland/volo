@@ -620,7 +620,7 @@ static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args, Sc
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
-    return script_entity(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
+    return script_entity_or_null(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
   }
   return script_null();
 }
