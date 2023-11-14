@@ -177,9 +177,6 @@ static TargetLineOfSightInfo target_los_query(
 
 static bool
 target_finder_needs_refresh(const SceneTargetFinderComp* finder, const SceneTimeComp* time) {
-  if (finder->targetOverride) {
-    return false;
-  }
   return time->time >= finder->nextRefreshTime;
 }
 
@@ -270,11 +267,6 @@ static void target_queue_clear(SceneTargetFinderComp* finder) {
   mem_set(array_mem(finder->targetQueue), 0);
 }
 
-static void target_queue_set(SceneTargetFinderComp* finder, const EcsEntityId target) {
-  target_queue_clear(finder);
-  finder->targetQueue[0] = target;
-}
-
 static bool target_queue_pop(SceneTargetFinderComp* finder) {
   array_for_t(finder->targetQueue, EcsEntityId, target) {
     if (*target) {
@@ -318,13 +310,6 @@ ecs_system_define(SceneTargetUpdateSys) {
       target_trace_start(world, entity);
     } else if (trace && !(finder->flags & SceneTarget_ConfigTrace)) {
       target_trace_stop(world, entity);
-    }
-
-    if (finder->targetOverride) {
-      target_queue_set(finder, finder->targetOverride);
-      finder->flags |= SceneTarget_Overriden;
-    } else {
-      finder->flags &= ~SceneTarget_Overriden;
     }
 
     /**
@@ -393,7 +378,6 @@ ecs_system_define(SceneTargetUpdateSys) {
       finder->targetDistance                = losInfo.distance;
     } else {
       target_queue_pop(finder);
-      finder->targetOverride = 0;
     }
   }
 }
