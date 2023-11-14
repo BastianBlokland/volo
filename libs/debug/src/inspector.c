@@ -426,34 +426,10 @@ static void inspector_panel_draw_target(
   if (finder) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Target"))) {
-      u32       flags   = finder->flags;
-      GeoVector tgtPos  = finder->targetPosition;
-      f32       tgtDist = finder->targetDistance;
-
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Entity"));
       ui_table_next_column(canvas, table);
       inspector_panel_draw_value_entity(canvas, scene_target_primary(finder));
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Overriden"));
-      ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &flags, SceneTarget_Overriden, .flags = UiWidget_Disabled);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Position"));
-      ui_table_next_column(canvas, table);
-      debug_widget_editor_vec3(canvas, &tgtPos, UiWidget_Disabled);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Distance"));
-      ui_table_next_column(canvas, table);
-      debug_widget_editor_f32(canvas, &tgtDist, UiWidget_Disabled);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Line of Sight"));
-      ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &flags, SceneTarget_LineOfSight, .flags = UiWidget_Disabled);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Time until refresh"));
