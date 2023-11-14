@@ -91,7 +91,7 @@ bool script_truthy(const ScriptVal value) {
      */
     return true;
   case ScriptType_Entity:
-    return ecs_entity_valid(val_as_entity(value));
+    return true; // Only valid entities can be stored in values.
   case ScriptType_Str:
     return val_as_str(value) != 0;
   case ScriptType_Count:
