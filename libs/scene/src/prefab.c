@@ -259,18 +259,18 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   if (t->aimSoundAsset) {
     ecs_world_add_t(w, e, SceneAttackSoundComp, .aimSoundAsset = t->aimSoundAsset);
   }
-  SceneTargetFlags flags = 0;
+  SceneTargetConfig config = 0;
   if (t->targetExcludeUnreachable) {
-    flags |= SceneTarget_ConfigExcludeUnreachable;
+    config |= SceneTargetConfig_ExcludeUnreachable;
   }
   if (t->targetExcludeObscured) {
-    flags |= SceneTarget_ConfigExcludeObscured;
+    config |= SceneTargetConfig_ExcludeObscured;
   }
   ecs_world_add_t(
       w,
       e,
       SceneTargetFinderComp,
-      .flags             = flags,
+      .config            = config,
       .rangeMin          = t->targetRangeMin,
       .rangeMax          = t->targetRangeMax,
       .lineOfSightRadius = t->targetLineOfSightRadius);

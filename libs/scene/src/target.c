@@ -25,8 +25,6 @@
 #define target_score_dist 1.0f
 #define target_score_dir 0.25f
 #define target_score_random 0.1f
-#define target_los_dist_min 1.0f
-#define target_los_dist_max 50.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -126,60 +124,8 @@ static bool target_los_filter(const void* context, const EcsEntityId entity) {
   return true;
 }
 
-typedef struct {
-  bool hasLos;
-  f32  distance;
-} TargetLineOfSightInfo;
-
-static TargetLineOfSightInfo target_los_query(
-    const SceneCollisionEnvComp* collisionEnv,
-    const EcsEntityId            finderEntity,
-    const SceneTransformComp*    finderTrans,
-    const SceneScaleComp*        finderScale,
-    const SceneLocationComp*     finderLoc,
-    const f32                    radius,
-    EcsIterator*                 targetItr) {
-  const GeoVector           sourcePos = target_aim_source_pos(finderTrans, finderScale, finderLoc);
-  const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-  const SceneScaleComp*     targetScale = ecs_view_read_t(targetItr, SceneScaleComp);
-  const SceneLocationComp*  targetLoc   = ecs_view_read_t(targetItr, SceneLocationComp);
-  const GeoVector targetPos = target_aim_target_pos(sourcePos, targetTrans, targetScale, targetLoc);
-  const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
-  const f32       dist      = geo_vector_mag(toTarget);
-  if (dist <= target_los_dist_min || radius <= f32_epsilon) {
-    return (TargetLineOfSightInfo){.hasLos = true, .distance = dist};
-  }
-  if (dist > target_los_dist_max) {
-    return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
-  }
-
-  const SceneLayer targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
-  const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
-  const SceneQueryFilter           filter    = {
-                   .layerMask = SceneLayer_Environment | SceneLayer_Structure | targetLayer,
-                   .callback  = target_los_filter,
-                   .context   = &filterCtx,
-  };
-  const GeoRay ray = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
-
-  SceneRayHit hit;
-  if (scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit)) {
-    const bool hasLos = (hit.layer & targetLayer) != 0;
-    return (TargetLineOfSightInfo){
-        .hasLos   = hasLos,
-        .distance = hasLos ? hit.time : dist,
-    };
-  }
-
-  // Target not found in the collision query, can happen if its collider hasn't been registered yet.
-  return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
-}
-
 static bool
 target_finder_needs_refresh(const SceneTargetFinderComp* finder, const SceneTimeComp* time) {
-  if (finder->targetOverride) {
-    return false;
-  }
   return time->time >= finder->nextRefreshTime;
 }
 
@@ -232,14 +178,14 @@ static f32 target_score(
     return 0.0f; // Target too far away.
   }
 
-  const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
+  const bool excludeUnreachable = (finder->config & SceneTargetConfig_ExcludeUnreachable) != 0;
   if (excludeUnreachable && !target_reachable(nav, finderPosCenter, targetItr)) {
     return 0.0f; // Target unreachable.
   }
   const f32       dist = math_sqrt_f32(distSqr);
   const GeoVector dir  = dist > f32_epsilon ? geo_vector_div(toTarget, dist) : geo_forward;
 
-  if (finder->flags & SceneTarget_ConfigExcludeObscured) {
+  if (finder->config & SceneTargetConfig_ExcludeObscured) {
     const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
     const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
     const SceneQueryFilter           filter    = {
@@ -268,11 +214,6 @@ static f32 target_score(
 
 static void target_queue_clear(SceneTargetFinderComp* finder) {
   mem_set(array_mem(finder->targetQueue), 0);
-}
-
-static void target_queue_set(SceneTargetFinderComp* finder, const EcsEntityId target) {
-  target_queue_clear(finder);
-  finder->targetQueue[0] = target;
 }
 
 static bool target_queue_pop(SceneTargetFinderComp* finder) {
@@ -314,17 +255,10 @@ ecs_system_define(SceneTargetUpdateSys) {
     SceneTargetTraceComp*     trace       = ecs_view_write_t(itr, SceneTargetTraceComp);
     const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_None;
 
-    if ((finder->flags & SceneTarget_ConfigTrace) && !trace) {
+    if ((finder->config & SceneTargetConfig_Trace) && !trace) {
       target_trace_start(world, entity);
-    } else if (trace && !(finder->flags & SceneTarget_ConfigTrace)) {
+    } else if (trace && !(finder->config & SceneTargetConfig_Trace)) {
       target_trace_stop(world, entity);
-    }
-
-    if (finder->targetOverride) {
-      target_queue_set(finder, finder->targetOverride);
-      finder->flags |= SceneTarget_Overriden;
-    } else {
-      finder->flags &= ~SceneTarget_Overriden;
     }
 
     /**
@@ -372,28 +306,9 @@ ecs_system_define(SceneTargetUpdateSys) {
       --refreshesRemaining;
     }
 
-    /**
-     * Update information about our target.
-     */
-    const EcsEntityId primaryTarget = scene_target_primary(finder);
-    finder->flags &= ~SceneTarget_LineOfSight;
-    if (ecs_view_contains(targetView, primaryTarget)) {
-      ecs_view_jump(targetItr, primaryTarget);
-
-      const f32                   losRadius = finder->lineOfSightRadius;
-      const TargetLineOfSightInfo losInfo =
-          target_los_query(colEnv, entity, trans, scale, loc, losRadius, targetItr);
-
-      if (losInfo.hasLos) {
-        finder->flags |= SceneTarget_LineOfSight;
-      }
-
-      const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-      finder->targetPosition                = targetTrans->position;
-      finder->targetDistance                = losInfo.distance;
-    } else {
+    // Remove the primary target if its not longer valid.
+    if (!ecs_view_contains(targetView, scene_target_primary(finder))) {
       target_queue_pop(finder);
-      finder->targetOverride = 0;
     }
   }
 }

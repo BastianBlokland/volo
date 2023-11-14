@@ -426,34 +426,10 @@ static void inspector_panel_draw_target(
   if (finder) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Target"))) {
-      u32       flags   = finder->flags;
-      GeoVector tgtPos  = finder->targetPosition;
-      f32       tgtDist = finder->targetDistance;
-
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Entity"));
       ui_table_next_column(canvas, table);
       inspector_panel_draw_value_entity(canvas, scene_target_primary(finder));
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Overriden"));
-      ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &flags, SceneTarget_Overriden, .flags = UiWidget_Disabled);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Position"));
-      ui_table_next_column(canvas, table);
-      debug_widget_editor_vec3(canvas, &tgtPos, UiWidget_Disabled);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Distance"));
-      ui_table_next_column(canvas, table);
-      debug_widget_editor_f32(canvas, &tgtDist, UiWidget_Disabled);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Line of Sight"));
-      ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &flags, SceneTarget_LineOfSight, .flags = UiWidget_Disabled);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Time until refresh"));
@@ -1170,7 +1146,7 @@ static void inspector_vis_draw_target(
       if (itr->value <= 0) {
         color = geo_color(1, 1, 1, 0.25f);
       } else if (itr->entity == scene_target_primary(tgtFinder)) {
-        color = tgtFinder->flags & SceneTarget_LineOfSight ? geo_color_lime : geo_color_yellow;
+        color = geo_color_lime;
       } else if (scene_target_contains(tgtFinder, itr->entity)) {
         color = geo_color_fuchsia;
       } else {
@@ -1423,7 +1399,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
-        tgtFinder->flags |= SceneTarget_ConfigTrace;
+        tgtFinder->config |= SceneTargetConfig_Trace;
 
         const SceneTargetTraceComp* tgtTrace = ecs_view_read_t(subjectItr, SceneTargetTraceComp);
         if (tgtTrace) {

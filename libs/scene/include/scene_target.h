@@ -2,27 +2,21 @@
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_vector.h"
 
 #define scene_target_queue_size 4
 
 typedef enum {
-  SceneTarget_ConfigExcludeUnreachable = 1 << 0,
-  SceneTarget_ConfigExcludeObscured    = 1 << 1,
-  SceneTarget_ConfigTrace              = 1 << 2, // Enable diagnostic tracing.
-  SceneTarget_LineOfSight              = 1 << 3, // Set while we have los to target.
-  SceneTarget_Overriden                = 1 << 4, // Set while we use an overriden target.
-} SceneTargetFlags;
+  SceneTargetConfig_ExcludeUnreachable = 1 << 0,
+  SceneTargetConfig_ExcludeObscured    = 1 << 1,
+  SceneTargetConfig_Trace              = 1 << 2, // Enable diagnostic tracing.
+} SceneTargetConfig;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
-  SceneTargetFlags flags;
-  f32              rangeMin, rangeMax;
-  f32              lineOfSightRadius;
-  f32              targetDistance;
-  TimeDuration     nextRefreshTime;
-  EcsEntityId      targetOverride;
-  EcsEntityId      targetQueue[scene_target_queue_size];
-  GeoVector        targetPosition;
+  SceneTargetConfig config;
+  f32               rangeMin, rangeMax;
+  f32               lineOfSightRadius;
+  TimeDuration      nextRefreshTime;
+  EcsEntityId       targetQueue[scene_target_queue_size];
 };
 
 EcsEntityId scene_target_primary(const SceneTargetFinderComp*);
