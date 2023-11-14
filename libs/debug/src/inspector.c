@@ -1146,7 +1146,7 @@ static void inspector_vis_draw_target(
       if (itr->value <= 0) {
         color = geo_color(1, 1, 1, 0.25f);
       } else if (itr->entity == scene_target_primary(tgtFinder)) {
-        color = tgtFinder->flags & SceneTarget_LineOfSight ? geo_color_lime : geo_color_yellow;
+        color = geo_color_lime;
       } else if (scene_target_contains(tgtFinder, itr->entity)) {
         color = geo_color_fuchsia;
       } else {
