@@ -2,7 +2,6 @@
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_vector.h"
 
 #define scene_target_queue_size 4
 
