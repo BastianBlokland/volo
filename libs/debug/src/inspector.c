@@ -49,6 +49,7 @@ typedef enum {
 
 typedef enum {
   DebugInspectorVis_Icon,
+  DebugInspectorVis_Script,
   DebugInspectorVis_Origin,
   DebugInspectorVis_Name,
   DebugInspectorVis_Locomotion,
@@ -83,6 +84,7 @@ ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name"
 
 static const String g_visNames[] = {
     [DebugInspectorVis_Icon]            = string_static("Icon"),
+    [DebugInspectorVis_Script]          = string_static("Script"),
     [DebugInspectorVis_Origin]          = string_static("Origin"),
     [DebugInspectorVis_Name]            = string_static("Name"),
     [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
@@ -745,6 +747,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   }
   u32 defaultVisFlags = 0;
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
+  defaultVisFlags |= 1 << DebugInspectorVis_Script;
 
   return ecs_world_add_t(world, global, DebugInspectorSettingsComp, .visFlags = defaultVisFlags);
 }
@@ -1186,6 +1189,38 @@ static void inspector_vis_draw_location(
   }
 }
 
+static void inspector_vis_draw_script(
+    DebugShapeComp* shape, DebugTextComp* text, const SceneScriptComp* script) {
+  const SceneScriptDebug* debugData  = scene_script_debug_data(script);
+  const usize             debugCount = scene_script_debug_count(script);
+  for (usize i = 0; i != debugCount; ++i) {
+    switch (debugData[i].type) {
+    case SceneScriptDebugType_Line: {
+      const SceneScriptDebugLine* data = &debugData[i].data_line;
+      debug_line(shape, data->start, data->end, data->color);
+    } break;
+    case SceneScriptDebugType_Sphere: {
+      const SceneScriptDebugSphere* data = &debugData[i].data_sphere;
+      debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
+    } break;
+    case SceneScriptDebugType_Arrow: {
+      const SceneScriptDebugArrow* data = &debugData[i].data_arrow;
+      debug_arrow(shape, data->start, data->end, data->radius, data->color);
+    } break;
+    case SceneScriptDebugType_Orientation: {
+      const SceneScriptDebugOrientation* data = &debugData[i].data_orientation;
+      debug_orientation(shape, data->pos, data->rot, data->size);
+    } break;
+    case SceneScriptDebugType_Text: {
+      const SceneScriptDebugText* data = &debugData[i].data_text;
+      debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
+    } break;
+    case SceneScriptDebugType_Trace:
+      break;
+    }
+  }
+}
+
 static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
@@ -1204,6 +1239,7 @@ static void inspector_vis_draw_subject(
   const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
   const SceneVisionComp*     visionComp    = ecs_view_read_t(subject, SceneVisionComp);
   const SceneLocationComp*   locationComp  = ecs_view_read_t(subject, SceneLocationComp);
+  const SceneScriptComp*     scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1247,6 +1283,9 @@ static void inspector_vis_draw_subject(
   }
   if (locationComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Location)) {
     inspector_vis_draw_location(shape, locationComp, transformComp, scaleComp);
+  }
+  if (scriptComp && set->visFlags & (1 << DebugInspectorVis_Script)) {
+    inspector_vis_draw_script(shape, text, scriptComp);
   }
 }
 
