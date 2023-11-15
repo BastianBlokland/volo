@@ -72,6 +72,7 @@ typedef enum {
   DebugInspectorVisMode_All,
 
   DebugInspectorVisMode_Count,
+  DebugInspectorVisMode_Default = DebugInspectorVisMode_All,
 } DebugInspectorVisMode;
 
 static const String g_toolNames[] = {
@@ -749,7 +750,12 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
   defaultVisFlags |= 1 << DebugInspectorVis_Script;
 
-  return ecs_world_add_t(world, global, DebugInspectorSettingsComp, .visFlags = defaultVisFlags);
+  return ecs_world_add_t(
+      world,
+      global,
+      DebugInspectorSettingsComp,
+      .visFlags = defaultVisFlags,
+      .visMode  = DebugInspectorVisMode_Default);
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
