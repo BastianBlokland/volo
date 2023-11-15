@@ -73,10 +73,11 @@ static void eval_enum_init_capability() {
 }
 
 static void eval_enum_init_activity() {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Selected"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 2);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 3);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
 }
 
 static void eval_enum_init_vfx_param() {
@@ -592,22 +593,27 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(args, 0, err);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
-  case 0 /* Moving */: {
+  case 0 /* Selected */: {
+    const EcsIterator*  itr     = ecs_view_maybe_jump(ctx->tagItr, e);
+    const SceneTagComp* tagComp = itr ? ecs_view_read_t(itr, SceneTagComp) : null;
+    return script_bool(tagComp && (tagComp->tags & SceneTags_Selected) != 0);
+  }
+  case 1 /* Moving */: {
     const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
-  case 1 /* Traveling */: {
+  case 2 /* Traveling */: {
     const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
-  case 2 /* Attacking */: {
+  case 3 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
-  case 3 /* Firing */: {
+  case 4 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
