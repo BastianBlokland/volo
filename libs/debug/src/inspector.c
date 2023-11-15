@@ -49,6 +49,7 @@ typedef enum {
 
 typedef enum {
   DebugInspectorVis_Icon,
+  DebugInspectorVis_Script,
   DebugInspectorVis_Origin,
   DebugInspectorVis_Name,
   DebugInspectorVis_Locomotion,
@@ -71,6 +72,7 @@ typedef enum {
   DebugInspectorVisMode_All,
 
   DebugInspectorVisMode_Count,
+  DebugInspectorVisMode_Default = DebugInspectorVisMode_All,
 } DebugInspectorVisMode;
 
 static const String g_toolNames[] = {
@@ -83,6 +85,7 @@ ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name"
 
 static const String g_visNames[] = {
     [DebugInspectorVis_Icon]            = string_static("Icon"),
+    [DebugInspectorVis_Script]          = string_static("Script"),
     [DebugInspectorVis_Origin]          = string_static("Origin"),
     [DebugInspectorVis_Name]            = string_static("Name"),
     [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
@@ -745,8 +748,14 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   }
   u32 defaultVisFlags = 0;
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
+  defaultVisFlags |= 1 << DebugInspectorVis_Script;
 
-  return ecs_world_add_t(world, global, DebugInspectorSettingsComp, .visFlags = defaultVisFlags);
+  return ecs_world_add_t(
+      world,
+      global,
+      DebugInspectorSettingsComp,
+      .visFlags = defaultVisFlags,
+      .visMode  = DebugInspectorVisMode_Default);
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
@@ -1121,7 +1130,7 @@ static void inspector_vis_draw_health(
   const f32       healthPoints = scene_health_points(health);
   const GeoColor  color        = geo_color_lerp(geo_color_red, geo_color_lime, health->norm);
   const String    str = fmt_write_scratch("{}", fmt_float(healthPoints, .maxDecDigits = 0));
-  debug_text(text, pos, str, .color = color);
+  debug_text(text, pos, str, .color = color, .fontSize = 16);
 }
 
 static void inspector_vis_draw_target(
@@ -1186,6 +1195,38 @@ static void inspector_vis_draw_location(
   }
 }
 
+static void inspector_vis_draw_script(
+    DebugShapeComp* shape, DebugTextComp* text, const SceneScriptComp* script) {
+  const SceneScriptDebug* debugData  = scene_script_debug_data(script);
+  const usize             debugCount = scene_script_debug_count(script);
+  for (usize i = 0; i != debugCount; ++i) {
+    switch (debugData[i].type) {
+    case SceneScriptDebugType_Line: {
+      const SceneScriptDebugLine* data = &debugData[i].data_line;
+      debug_line(shape, data->start, data->end, data->color);
+    } break;
+    case SceneScriptDebugType_Sphere: {
+      const SceneScriptDebugSphere* data = &debugData[i].data_sphere;
+      debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
+    } break;
+    case SceneScriptDebugType_Arrow: {
+      const SceneScriptDebugArrow* data = &debugData[i].data_arrow;
+      debug_arrow(shape, data->start, data->end, data->radius, data->color);
+    } break;
+    case SceneScriptDebugType_Orientation: {
+      const SceneScriptDebugOrientation* data = &debugData[i].data_orientation;
+      debug_orientation(shape, data->pos, data->rot, data->size);
+    } break;
+    case SceneScriptDebugType_Text: {
+      const SceneScriptDebugText* data = &debugData[i].data_text;
+      debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
+    } break;
+    case SceneScriptDebugType_Trace:
+      break;
+    }
+  }
+}
+
 static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
@@ -1204,6 +1245,7 @@ static void inspector_vis_draw_subject(
   const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
   const SceneVisionComp*     visionComp    = ecs_view_read_t(subject, SceneVisionComp);
   const SceneLocationComp*   locationComp  = ecs_view_read_t(subject, SceneLocationComp);
+  const SceneScriptComp*     scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1247,6 +1289,9 @@ static void inspector_vis_draw_subject(
   }
   if (locationComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Location)) {
     inspector_vis_draw_location(shape, locationComp, transformComp, scaleComp);
+  }
+  if (scriptComp && set->visFlags & (1 << DebugInspectorVis_Script)) {
+    inspector_vis_draw_script(shape, text, scriptComp);
   }
 }
 
@@ -1378,6 +1423,14 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
   const bool debugLayerActive = input_layer_active(input, string_hash_lit("Debug"));
 
+  if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
+    inspector_vis_draw_navigation_grid(shape, text, nav);
+  }
+  if (set->visFlags & (1 << DebugInspectorVis_Icon) && debugLayerActive) {
+    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+      inspector_vis_draw_icon(world, text, itr);
+    }
+  }
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
@@ -1394,7 +1447,6 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   case DebugInspectorVisMode_Count:
     UNREACHABLE
   }
-
   if (set->visFlags & (1 << DebugInspectorVis_Target)) {
     if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
@@ -1406,14 +1458,6 @@ ecs_system_define(DebugInspectorVisDrawSys) {
           inspector_vis_draw_target(text, tgtFinder, tgtTrace, transformView);
         }
       }
-    }
-  }
-  if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    inspector_vis_draw_navigation_grid(shape, text, nav);
-  }
-  if (set->visFlags & (1 << DebugInspectorVis_Icon) && debugLayerActive) {
-    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_icon(world, text, itr);
     }
   }
 }
