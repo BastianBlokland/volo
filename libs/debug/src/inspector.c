@@ -1378,6 +1378,14 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
   const bool debugLayerActive = input_layer_active(input, string_hash_lit("Debug"));
 
+  if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
+    inspector_vis_draw_navigation_grid(shape, text, nav);
+  }
+  if (set->visFlags & (1 << DebugInspectorVis_Icon) && debugLayerActive) {
+    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+      inspector_vis_draw_icon(world, text, itr);
+    }
+  }
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
@@ -1394,7 +1402,6 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   case DebugInspectorVisMode_Count:
     UNREACHABLE
   }
-
   if (set->visFlags & (1 << DebugInspectorVis_Target)) {
     if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
@@ -1406,14 +1413,6 @@ ecs_system_define(DebugInspectorVisDrawSys) {
           inspector_vis_draw_target(text, tgtFinder, tgtTrace, transformView);
         }
       }
-    }
-  }
-  if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    inspector_vis_draw_navigation_grid(shape, text, nav);
-  }
-  if (set->visFlags & (1 << DebugInspectorVis_Icon) && debugLayerActive) {
-    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_icon(world, text, itr);
     }
   }
 }
