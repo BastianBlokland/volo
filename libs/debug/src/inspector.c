@@ -1121,7 +1121,7 @@ static void inspector_vis_draw_health(
   const f32       healthPoints = scene_health_points(health);
   const GeoColor  color        = geo_color_lerp(geo_color_red, geo_color_lime, health->norm);
   const String    str = fmt_write_scratch("{}", fmt_float(healthPoints, .maxDecDigits = 0));
-  debug_text(text, pos, str, .color = color);
+  debug_text(text, pos, str, .color = color, .fontSize = 16);
 }
 
 static void inspector_vis_draw_target(
