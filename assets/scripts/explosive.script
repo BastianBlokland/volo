@@ -1,0 +1,19 @@
+
+if ($exploded) {
+  return
+}
+
+var now    = time()
+var delay  = 0.1
+var radius = 4
+var damage = 75
+
+$explodeTime ??= now + delay
+if (now >= $explodeTime) {
+  var pos = position(self())
+  query_sphere(pos, radius, "Unit", "Destructible")
+  while (var target = query_next()) {
+    damage(target, damage)
+  }
+  $exploded = true
+}

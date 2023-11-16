@@ -711,12 +711,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
-        {
-          "$type": "AssetPrefabTrait_Explosive",
-          "delay": 0.1,
-          "radius": 4,
-          "damage": 75
-        },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/explosive.script" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-01.wav" ],
