@@ -843,7 +843,7 @@ static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  const f32         amount = (f32)script_arg_num_range(args, 1.0, 10000.0, 1.0, err);
+  const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     action_push_damage(
         ctx,
