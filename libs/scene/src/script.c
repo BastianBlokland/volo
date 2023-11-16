@@ -949,7 +949,7 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   SceneScriptDebugSphere data;
   data.pos    = script_arg_vec3(args, 0, err);
-  data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 10.0f, 0.25f, err);
+  data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 100.0f, 0.25f, err);
   data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     debug_push_sphere(ctx, &data);
