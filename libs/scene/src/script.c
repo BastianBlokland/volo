@@ -19,6 +19,7 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_time.h"
@@ -45,7 +46,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
                   g_scriptEnumVfxParam,
-                  g_scriptEnumLayer;
+                  g_scriptEnumLayer,
+                  g_scriptEnumStatus;
 
 // clang-format on
 
@@ -99,6 +101,12 @@ static void eval_enum_init_layer() {
   script_enum_push(&g_scriptEnumLayer, string_lit("AllIncludingDebug"), SceneLayer_AllIncludingDebug);
   script_enum_push(&g_scriptEnumLayer, string_lit("AllNonDebug"),       SceneLayer_AllNonDebug);
   // clang-format on
+}
+
+static void eval_enum_init_status() {
+  for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+    script_enum_push(&g_scriptEnumStatus, scene_status_name(type), type);
+  }
 }
 
 typedef enum {
@@ -226,6 +234,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
@@ -248,6 +257,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* statusItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
   EcsIterator* navAgentItr;
@@ -616,9 +626,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -865,6 +875,20 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
+  const EcsIterator*    itr  = ecs_view_maybe_jump(ctx->statusItr, entity);
+  if (itr) {
+    const SceneStatusComp* statusComp = ecs_view_read_t(itr, SceneStatusComp);
+    return script_bool(scene_status_active(statusComp, type));
+  }
+  return script_null();
+}
+
 static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
@@ -1053,6 +1077,7 @@ static void eval_binder_init() {
     eval_enum_init_activity();
     eval_enum_init_vfx_param();
     eval_enum_init_layer();
+    eval_enum_init_status();
 
     // clang-format off
     eval_bind(b, string_lit("self"),               eval_self);
@@ -1086,6 +1111,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),             eval_detach);
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
+    eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
@@ -1254,6 +1280,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
@@ -1551,6 +1578,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalStatusView),
       ecs_register_view(EvalTagView),
       ecs_register_view(EvalVfxSysView),
       ecs_register_view(EvalNavAgentView),

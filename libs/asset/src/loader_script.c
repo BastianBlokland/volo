@@ -320,6 +320,16 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("status");
+      const String       doc    = string_lit("Query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`");
+      const ScriptMask   ret    = script_mask_bool | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("type"), script_mask_str},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("attack");
       const String       doc    = string_lit("Instruct the given entity to attack another entity.");
       const ScriptMask   ret    = script_mask_null;

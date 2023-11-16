@@ -419,6 +419,26 @@
       }
     },
     {
+      "name": "status",
+      "doc": "Query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "type",
+            "mask": "str"
+          }
+        ]
+      }
+    },
+    {
       "name": "faction",
       "doc": "Lookup the faction of the given entity.",
       "sig": {
