@@ -321,11 +321,12 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("status");
-      const String       doc    = string_lit("Query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`");
+      const String       doc    = string_lit("Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("type"), script_mask_str},
+          {string_lit("enable"), script_mask_bool | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }

@@ -123,6 +123,7 @@ typedef enum {
   ScriptActionType_Detach,
   ScriptActionType_Damage,
   ScriptActionType_Attack,
+  ScriptActionType_UpdateStatus,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
 } ScriptActionType;
@@ -195,6 +196,12 @@ typedef struct {
 } ScriptActionAttack;
 
 typedef struct {
+  EcsEntityId     entity;
+  SceneStatusType type;
+  bool            enable;
+} ScriptActionUpdateStatus;
+
+typedef struct {
   EcsEntityId entity;
   SceneTags   toEnable, toDisable;
 } ScriptActionUpdateTags;
@@ -219,6 +226,7 @@ typedef struct {
     ScriptActionDetach         data_detach;
     ScriptActionDamage         data_damage;
     ScriptActionAttack         data_attack;
+    ScriptActionUpdateStatus   data_updateStatus;
     ScriptActionUpdateTags     data_updateTags;
     ScriptActionUpdateVfxParam data_updateVfxParam;
   };
@@ -351,6 +359,12 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Attack;
   a->data_attack  = *data;
+}
+
+static void action_push_update_status(EvalContext* ctx, const ScriptActionUpdateStatus* data) {
+  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type              = ScriptActionType_UpdateStatus;
+  a->data_updateStatus = *data;
 }
 
 static void action_push_update_tags(EvalContext* ctx, const ScriptActionUpdateTags* data) {
@@ -884,11 +898,20 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
     return script_null();
   }
   const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
-  const EcsIterator*    itr  = ecs_view_maybe_jump(ctx->statusItr, entity);
-  if (itr) {
-    const SceneStatusComp* statusComp = ecs_view_read_t(itr, SceneStatusComp);
-    return script_bool(scene_status_active(statusComp, type));
+  if (args.count < 3) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->statusItr, entity);
+    if (itr) {
+      const SceneStatusComp* statusComp = ecs_view_read_t(itr, SceneStatusComp);
+      return script_bool(scene_status_active(statusComp, type));
+    }
+    return script_null();
   }
+  const ScriptActionUpdateStatus param = {
+      .entity = entity,
+      .type   = type,
+      .enable = script_arg_bool(args, 2, err),
+  };
+  action_push_update_status(ctx, &param);
   return script_null();
 }
 
@@ -1474,6 +1497,14 @@ static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   }
 }
 
+static void action_update_status(ActionContext* ctx, const ScriptActionUpdateStatus* a) {
+  if (a->enable) {
+    scene_status_add(ctx->world, a->entity, a->type, ctx->instigator);
+  } else {
+    scene_status_remove(ctx->world, a->entity, a->type);
+  }
+}
+
 static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags* a) {
   if (ecs_view_maybe_jump(ctx->tagItr, a->entity)) {
     SceneTagComp* tagComp = ecs_view_write_t(ctx->tagItr, SceneTagComp);
@@ -1544,6 +1575,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
+        break;
+      case ScriptActionType_UpdateStatus:
+        action_update_status(&ctx, &action->data_updateStatus);
         break;
       case ScriptActionType_UpdateTags:
         action_update_tags(&ctx, &action->data_updateTags);
