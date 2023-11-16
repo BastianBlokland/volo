@@ -352,6 +352,17 @@
       }
     },
     {
+      "name": "query_next",
+      "doc": "Returns the next value in the current query, returns null when reaching the end of the query.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": []
+      }
+    },
+    {
       "name": "exists",
       "doc": "Test if the given entity still exists.",
       "sig": {
@@ -612,6 +623,31 @@
               "null",
               "quat"
             ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "query_sphere",
+      "doc": "Find all the entities that are touching the given sphere.\n\n*Note*: Use `query_next()` to retrieve the results.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "radius",
+            "mask": "num"
+          },
+          {
+            "name": "layers",
+            "mask": [
+              "null",
+              "str"
+            ],
+            "multi": true
           }
         ]
       }
