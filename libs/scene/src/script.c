@@ -19,6 +19,7 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_time.h"
@@ -45,7 +46,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
                   g_scriptEnumVfxParam,
-                  g_scriptEnumLayer;
+                  g_scriptEnumLayer,
+                  g_scriptEnumStatus;
 
 // clang-format on
 
@@ -74,6 +76,7 @@ static void eval_enum_init_nav_find() {
 static void eval_enum_init_capability() {
   script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
   script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
+  script_enum_push(&g_scriptEnumCapability, string_lit("Status"), 2);
 }
 
 static void eval_enum_init_activity() {
@@ -101,6 +104,12 @@ static void eval_enum_init_layer() {
   // clang-format on
 }
 
+static void eval_enum_init_status() {
+  for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+    script_enum_push(&g_scriptEnumStatus, scene_status_name(type), type);
+  }
+}
+
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
@@ -114,6 +123,7 @@ typedef enum {
   ScriptActionType_Detach,
   ScriptActionType_Damage,
   ScriptActionType_Attack,
+  ScriptActionType_UpdateStatus,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
 } ScriptActionType;
@@ -186,6 +196,12 @@ typedef struct {
 } ScriptActionAttack;
 
 typedef struct {
+  EcsEntityId     entity;
+  SceneStatusType type;
+  bool            enable;
+} ScriptActionUpdateStatus;
+
+typedef struct {
   EcsEntityId entity;
   SceneTags   toEnable, toDisable;
 } ScriptActionUpdateTags;
@@ -210,6 +226,7 @@ typedef struct {
     ScriptActionDetach         data_detach;
     ScriptActionDamage         data_damage;
     ScriptActionAttack         data_attack;
+    ScriptActionUpdateStatus   data_updateStatus;
     ScriptActionUpdateTags     data_updateTags;
     ScriptActionUpdateVfxParam data_updateVfxParam;
   };
@@ -226,6 +243,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
@@ -248,6 +266,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* statusItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
   EcsIterator* navAgentItr;
@@ -340,6 +359,12 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Attack;
   a->data_attack  = *data;
+}
+
+static void action_push_update_status(EvalContext* ctx, const ScriptActionUpdateStatus* data) {
+  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type              = ScriptActionType_UpdateStatus;
+  a->data_updateStatus = *data;
 }
 
 static void action_push_update_tags(EvalContext* ctx, const ScriptActionUpdateTags* data) {
@@ -616,9 +641,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -644,6 +669,8 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
     return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
   case 1 /* Attack */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
+  case 2 /* Status */:
+    return script_bool(ecs_world_has_t(ctx->world, e, SceneStatusComp));
   }
   return script_null();
 }
@@ -865,6 +892,29 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
+  if (args.count < 3) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->statusItr, entity);
+    if (itr) {
+      const SceneStatusComp* statusComp = ecs_view_read_t(itr, SceneStatusComp);
+      return script_bool(scene_status_active(statusComp, type));
+    }
+    return script_null();
+  }
+  const ScriptActionUpdateStatus param = {
+      .entity = entity,
+      .type   = type,
+      .enable = script_arg_bool(args, 2, err),
+  };
+  action_push_update_status(ctx, &param);
+  return script_null();
+}
+
 static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
@@ -1053,6 +1103,7 @@ static void eval_binder_init() {
     eval_enum_init_activity();
     eval_enum_init_vfx_param();
     eval_enum_init_layer();
+    eval_enum_init_status();
 
     // clang-format off
     eval_bind(b, string_lit("self"),               eval_self);
@@ -1086,6 +1137,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),             eval_detach);
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
+    eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
@@ -1254,6 +1306,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
@@ -1444,6 +1497,14 @@ static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   }
 }
 
+static void action_update_status(ActionContext* ctx, const ScriptActionUpdateStatus* a) {
+  if (a->enable) {
+    scene_status_add(ctx->world, a->entity, a->type, ctx->instigator);
+  } else {
+    scene_status_remove(ctx->world, a->entity, a->type);
+  }
+}
+
 static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags* a) {
   if (ecs_view_maybe_jump(ctx->tagItr, a->entity)) {
     SceneTagComp* tagComp = ecs_view_write_t(ctx->tagItr, SceneTagComp);
@@ -1515,6 +1576,9 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
         break;
+      case ScriptActionType_UpdateStatus:
+        action_update_status(&ctx, &action->data_updateStatus);
+        break;
       case ScriptActionType_UpdateTags:
         action_update_tags(&ctx, &action->data_updateTags);
         break;
@@ -1551,6 +1615,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalStatusView),
       ecs_register_view(EvalTagView),
       ecs_register_view(EvalVfxSysView),
       ecs_register_view(EvalNavAgentView),

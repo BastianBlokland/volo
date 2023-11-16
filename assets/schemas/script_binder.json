@@ -333,7 +333,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`\n\n-`Status`",
       "sig": {
         "ret": [
           "null",
@@ -413,6 +413,33 @@
             "mask": [
               "null",
               "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "type",
+            "mask": "str"
+          },
+          {
+            "name": "enable",
+            "mask": [
+              "null",
+              "bool"
             ]
           }
         ]

@@ -479,35 +479,6 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
-              "const": "AssetPrefabTrait_Explosive"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "delay": {
-              "title": "f32",
-              "type": "number"
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            },
-            "damage": {
-              "title": "f32",
-              "type": "number"
-            }
-          },
-          "required": [
-            "$type",
-            "radius",
-            "damage"
-          ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": {
               "const": "AssetPrefabTrait_Status"
             },
             "$name": {
@@ -660,10 +631,6 @@
         {
           "label": "New AssetPrefabTrait_Location",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Location\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Explosive",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Explosive\",\n  \"radius\": 1,\n  \"damage\": 1\n}"
         },
         {
           "label": "New AssetPrefabTrait_Status",
