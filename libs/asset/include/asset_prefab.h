@@ -55,7 +55,6 @@ typedef enum {
   AssetPrefabTrait_Script,
   AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Location,
-  AssetPrefabTrait_Explosive,
   AssetPrefabTrait_Status,
   AssetPrefabTrait_Vision,
   AssetPrefabTrait_Production,
@@ -141,11 +140,6 @@ typedef struct {
 } AssetPrefabTraitLocation;
 
 typedef struct {
-  TimeDuration delay;
-  f32          radius, damage;
-} AssetPrefabTraitExplosive;
-
-typedef struct {
   StringHash effectJoint;
   bool       burnable;
 } AssetPrefabTraitStatus;
@@ -179,7 +173,6 @@ typedef struct {
     AssetPrefabTraitScript     data_script;
     AssetPrefabTraitTaunt      data_taunt;
     AssetPrefabTraitLocation   data_location;
-    AssetPrefabTraitExplosive  data_explosive;
     AssetPrefabTraitStatus     data_status;
     AssetPrefabTraitVision     data_vision;
     AssetPrefabTraitProduction data_production;
