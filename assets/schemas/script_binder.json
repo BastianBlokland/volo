@@ -14,6 +14,29 @@
       }
     },
     {
+      "name": "nav_find",
+      "doc": "Find a navigation position.\n\nSupported queries:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`",
+      "sig": {
+        "ret": [
+          "null",
+          "vec3"
+        ],
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "query",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "target_range_max",
       "doc": "Lookup the maximum targeting range of the given entity.",
       "sig": {
@@ -199,29 +222,6 @@
             "mask": [
               "vec3",
               "entity"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "nav_query",
-      "doc": "Find a navigation position.\n\nSupported queries:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`",
-      "sig": {
-        "ret": [
-          "null",
-          "vec3"
-        ],
-        "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "query",
-            "mask": [
-              "null",
-              "str"
             ]
           }
         ]

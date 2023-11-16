@@ -41,7 +41,7 @@ ASSERT(scene_script_query_max >= scene_query_max_hits, "Maximum query count too 
 
 static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumClock,
-                  g_scriptEnumNavQuery,
+                  g_scriptEnumNavFind,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
                   g_scriptEnumVfxParam,
@@ -65,10 +65,10 @@ static void eval_enum_init_clock() {
   script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
 }
 
-static void eval_enum_init_nav_query() {
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
+static void eval_enum_init_nav_find() {
+  script_enum_push(&g_scriptEnumNavFind, string_lit("ClosestCell"), 0);
+  script_enum_push(&g_scriptEnumNavFind, string_lit("UnblockedCell"), 1);
+  script_enum_push(&g_scriptEnumNavFind, string_lit("FreeCell"), 2);
 }
 
 static void eval_enum_init_capability() {
@@ -504,7 +504,7 @@ static ScriptVal eval_query_next(EvalContext* ctx, const ScriptArgs args, Script
   return script_entity(ctx->queryBuffer[ctx->queryItr++]);
 }
 
-static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoVector        pos    = script_arg_vec3(args, 0, err);
   if (UNLIKELY(err->kind)) {
@@ -515,7 +515,7 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptE
   if (args.count == 1) {
     return script_vec3(scene_nav_position(navEnv, cell));
   }
-  switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, err)) {
+  switch (script_arg_enum(args, 1, &g_scriptEnumNavFind, err)) {
   case 0 /* ClosestCell */:
     return script_vec3(scene_nav_position(navEnv, cell));
   case 1 /* UnblockedCell */:
@@ -1048,7 +1048,7 @@ static void eval_binder_init() {
 
     eval_enum_init_faction();
     eval_enum_init_clock();
-    eval_enum_init_nav_query();
+    eval_enum_init_nav_find();
     eval_enum_init_capability();
     eval_enum_init_activity();
     eval_enum_init_vfx_param();
@@ -1066,7 +1066,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("time"),               eval_time);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
     eval_bind(b, string_lit("query_next"),         eval_query_next);
-    eval_bind(b, string_lit("nav_query"),          eval_nav_query);
+    eval_bind(b, string_lit("nav_find"),           eval_nav_find);
     eval_bind(b, string_lit("nav_target"),         eval_nav_target);
     eval_bind(b, string_lit("line_of_sight"),      eval_line_of_sight);
     eval_bind(b, string_lit("capable"),            eval_capable);

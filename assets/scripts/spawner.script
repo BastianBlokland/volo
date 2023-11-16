@@ -20,7 +20,7 @@ if ($nextWaveTime <= time()) {
 
   for (var i = 0; i != spawnCount; i += 1) {
     var pos          = center + random_circle_xz() * radius
-    var posUnblocked = nav_query(pos, "UnblockedCell")
+    var posUnblocked = nav_find(pos, "UnblockedCell")
     var rot          = angle_axis(random() * pi * 2, up)
 
     spawn(unitPrefab, posUnblocked, rot, scale, faction)

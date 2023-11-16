@@ -5,7 +5,7 @@
 var origin = position(self())
 
 $unit ??= {
-  var pos   = nav_query(origin, "UnblockedCell")
+  var pos   = nav_find(origin, "UnblockedCell")
   var rot   = quat_ident
   var scale = 1.0
   spawn("InfantryRifle", pos, rot, scale, "FactionA")
@@ -15,7 +15,7 @@ if (exists($target)) {
   attack($unit, $target)
 } else {
   var radius = 20
-  var pos    = nav_query(origin + random_circle_xz() * radius)
+  var pos    = nav_find(origin + random_circle_xz() * radius)
   var rot    = quat_ident
   var scale  = 1.0
   $target    = spawn("PropBarrelExplosive", pos, rot, scale, "FactionNone")
