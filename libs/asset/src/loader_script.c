@@ -160,7 +160,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("capable");
-      const String       doc    = string_lit("Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`");
+      const String       doc    = string_lit("Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`\n\n-`Status`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
