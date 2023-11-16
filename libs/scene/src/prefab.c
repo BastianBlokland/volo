@@ -12,7 +12,6 @@
 #include "log_logger.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
-#include "scene_explosive.h"
 #include "scene_footstep.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
@@ -345,11 +344,6 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
   }
 }
 
-static void setup_explosive(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitExplosive* t) {
-  ecs_world_add_t(
-      w, e, SceneExplosiveComp, .delay = t->delay, .radius = t->radius, .damage = t->damage);
-}
-
 static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
   SceneStatusMask supported = 0;
   supported |= t->burnable ? (1 << SceneStatusType_Burning) : 0;
@@ -429,9 +423,6 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Location:
     setup_location(w, e, &t->data_location);
-    return;
-  case AssetPrefabTrait_Explosive:
-    setup_explosive(w, e, &t->data_explosive);
     return;
   case AssetPrefabTrait_Status:
     setup_status(w, e, &t->data_status);

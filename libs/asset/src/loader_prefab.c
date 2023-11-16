@@ -126,11 +126,6 @@ typedef struct {
 } AssetPrefabTraitLocationDef;
 
 typedef struct {
-  f32 delay;
-  f32 radius, damage;
-} AssetPrefabTraitExplosiveDef;
-
-typedef struct {
   String effectJoint;
   bool   burnable;
 } AssetPrefabTraitStatusDef;
@@ -164,7 +159,6 @@ typedef struct {
     AssetPrefabTraitScriptDef     data_script;
     AssetPrefabTraitTauntDef      data_taunt;
     AssetPrefabTraitLocationDef   data_location;
-    AssetPrefabTraitExplosiveDef  data_explosive;
     AssetPrefabTraitStatusDef     data_status;
     AssetPrefabTraitVisionDef     data_vision;
     AssetPrefabTraitProductionDef data_production;
@@ -287,11 +281,6 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitLocationDef);
     data_reg_field_t(reg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
 
-    data_reg_struct_t(reg, AssetPrefabTraitExplosiveDef);
-    data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, delay, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-
     data_reg_struct_t(reg, AssetPrefabTraitStatusDef);
     data_reg_field_t(reg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(bool), .flags = DataFlags_Opt);
@@ -322,7 +311,6 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
-    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Explosive, data_explosive, t_AssetPrefabTraitExplosiveDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Production, data_production, t_AssetPrefabTraitProductionDef);
@@ -556,13 +544,6 @@ static void prefab_build(
       outTrait->data_location = (AssetPrefabTraitLocation){
           .aimTarget.min = prefab_build_vec3(&traitDef->data_location.aimTarget.min),
           .aimTarget.max = prefab_build_vec3(&traitDef->data_location.aimTarget.max),
-      };
-      break;
-    case AssetPrefabTrait_Explosive:
-      outTrait->data_explosive = (AssetPrefabTraitExplosive){
-          .delay  = (TimeDuration)time_seconds(traitDef->data_explosive.delay),
-          .radius = traitDef->data_explosive.radius,
-          .damage = traitDef->data_explosive.damage,
       };
       break;
     case AssetPrefabTrait_Status:

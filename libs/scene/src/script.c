@@ -33,15 +33,19 @@
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
 #define scene_script_line_of_sight_max 50.0f
+#define scene_script_query_max 512
+
+ASSERT(scene_script_query_max >= scene_query_max_hits, "Maximum query count too small")
 
 // clang-format off
 
 static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumClock,
-                  g_scriptEnumNavQuery,
+                  g_scriptEnumNavFind,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
-                  g_scriptEnumVfxParam;
+                  g_scriptEnumVfxParam,
+                  g_scriptEnumLayer;
 
 // clang-format on
 
@@ -61,10 +65,10 @@ static void eval_enum_init_clock() {
   script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
 }
 
-static void eval_enum_init_nav_query() {
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
+static void eval_enum_init_nav_find() {
+  script_enum_push(&g_scriptEnumNavFind, string_lit("ClosestCell"), 0);
+  script_enum_push(&g_scriptEnumNavFind, string_lit("UnblockedCell"), 1);
+  script_enum_push(&g_scriptEnumNavFind, string_lit("FreeCell"), 2);
 }
 
 static void eval_enum_init_capability() {
@@ -82,6 +86,19 @@ static void eval_enum_init_activity() {
 
 static void eval_enum_init_vfx_param() {
   script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
+}
+
+static void eval_enum_init_layer() {
+  // clang-format off
+  script_enum_push(&g_scriptEnumLayer, string_lit("Environment"),       SceneLayer_Environment);
+  script_enum_push(&g_scriptEnumLayer, string_lit("Destructible"),      SceneLayer_Destructible);
+  script_enum_push(&g_scriptEnumLayer, string_lit("Infantry"),          SceneLayer_Infantry);
+  script_enum_push(&g_scriptEnumLayer, string_lit("Structure"),         SceneLayer_Structure);
+  script_enum_push(&g_scriptEnumLayer, string_lit("Unit"),              SceneLayer_Unit);
+  script_enum_push(&g_scriptEnumLayer, string_lit("Debug"),             SceneLayer_Debug);
+  script_enum_push(&g_scriptEnumLayer, string_lit("AllIncludingDebug"), SceneLayer_AllIncludingDebug);
+  script_enum_push(&g_scriptEnumLayer, string_lit("AllNonDebug"),       SceneLayer_AllNonDebug);
+  // clang-format on
 }
 
 typedef enum {
@@ -246,6 +263,9 @@ typedef struct {
   String                 scriptId;
   DynArray*              actions; // ScriptAction[].
   DynArray*              debug;   // SceneScriptDebug[].
+
+  EcsEntityId* queryBuffer; // EcsEntityId[scene_script_query_max]
+  u32          queryCount, queryItr;
 
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
@@ -446,7 +466,45 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
-static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
+
+  const GeoVector pos    = script_arg_vec3(args, 0, err);
+  const f32       radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
+
+  SceneLayer layerMask;
+  if (args.count < 3) {
+    layerMask = SceneLayer_AllNonDebug;
+  } else {
+    layerMask = 0;
+    for (u8 argIndex = 2; argIndex != args.count; ++argIndex) {
+      layerMask |= (SceneLayer)script_arg_enum(args, argIndex, &g_scriptEnumLayer, err);
+    }
+  }
+
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+
+  const SceneQueryFilter filter = {.layerMask = layerMask};
+  const GeoSphere        sphere = {.point = pos, .radius = radius};
+
+  ctx->queryCount = scene_query_sphere_all(colEnv, &sphere, &filter, ctx->queryBuffer);
+  ctx->queryItr   = 0;
+
+  return script_null();
+}
+
+static ScriptVal eval_query_next(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)args;
+  (void)err;
+  if (ctx->queryItr == ctx->queryCount) {
+    return script_null();
+  }
+  return script_entity(ctx->queryBuffer[ctx->queryItr++]);
+}
+
+static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoVector        pos    = script_arg_vec3(args, 0, err);
   if (UNLIKELY(err->kind)) {
@@ -457,7 +515,7 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args, ScriptE
   if (args.count == 1) {
     return script_vec3(scene_nav_position(navEnv, cell));
   }
-  switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, err)) {
+  switch (script_arg_enum(args, 1, &g_scriptEnumNavFind, err)) {
   case 0 /* ClosestCell */:
     return script_vec3(scene_nav_position(navEnv, cell));
   case 1 /* UnblockedCell */:
@@ -558,9 +616,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -785,7 +843,7 @@ static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  const f32         amount = (f32)script_arg_num_range(args, 1.0, 10000.0, 1.0, err);
+  const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     action_push_damage(
         ctx,
@@ -891,7 +949,7 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   SceneScriptDebugSphere data;
   data.pos    = script_arg_vec3(args, 0, err);
-  data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 10.0f, 0.25f, err);
+  data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 100.0f, 0.25f, err);
   data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     debug_push_sphere(ctx, &data);
@@ -990,10 +1048,11 @@ static void eval_binder_init() {
 
     eval_enum_init_faction();
     eval_enum_init_clock();
-    eval_enum_init_nav_query();
+    eval_enum_init_nav_find();
     eval_enum_init_capability();
     eval_enum_init_activity();
     eval_enum_init_vfx_param();
+    eval_enum_init_layer();
 
     // clang-format off
     eval_bind(b, string_lit("self"),               eval_self);
@@ -1005,7 +1064,9 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("faction"),            eval_faction);
     eval_bind(b, string_lit("health"),             eval_health);
     eval_bind(b, string_lit("time"),               eval_time);
-    eval_bind(b, string_lit("nav_query"),          eval_nav_query);
+    eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
+    eval_bind(b, string_lit("query_next"),         eval_query_next);
+    eval_bind(b, string_lit("nav_find"),           eval_nav_find);
     eval_bind(b, string_lit("nav_target"),         eval_nav_target);
     eval_bind(b, string_lit("line_of_sight"),      eval_line_of_sight);
     eval_bind(b, string_lit("capable"),            eval_capable);
@@ -1184,6 +1245,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
+  EcsEntityId queryBuffer[scene_script_query_max];
   EvalContext ctx = {
       .world          = world,
       .globalItr      = globalItr,
@@ -1199,6 +1261,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
       .targetItr      = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
       .lineOfSightItr = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
+      .queryBuffer    = queryBuffer,
   };
 
   u32 startedAssetLoads = 0;

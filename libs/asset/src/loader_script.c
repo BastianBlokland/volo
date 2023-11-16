@@ -112,7 +112,24 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("nav_query");
+      const String       name   = string_lit("query_sphere");
+      const String       doc    = string_lit("Find all the entities that are touching the given sphere.\n\n*Note*: Use `query_next()` to retrieve the results.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("radius"), script_mask_num},
+          {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("query_next");
+      const String       doc    = string_lit("Returns the next value in the current query, returns null when reaching the end of the query.");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      asset_bind(binder, name, doc, ret, null, 0);
+    }
+    {
+      const String       name   = string_lit("nav_find");
       const String       doc    = string_lit("Find a navigation position.\n\nSupported queries:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
