@@ -69,7 +69,7 @@ typedef struct {
 } AssetPrefabTraitName;
 
 typedef struct {
-  StringHash sets[4];
+  StringHash sets[8];
 } AssetPrefabTraitSetMember;
 
 typedef struct {

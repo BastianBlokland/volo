@@ -2,7 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-#define scene_set_member_sets_max 4
+#define scene_set_member_sets_max 8
 
 ecs_comp_extern(SceneSetEnvComp);
 
