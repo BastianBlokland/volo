@@ -11,7 +11,7 @@ ecs_comp_extern_public(SceneSetMemberComp) { StringHash sets[scene_set_member_se
 /**
  * Check if the target entity is part of the given set.
  */
-bool scene_set_contains(const SceneSetEnvComp*, StringHash set, EcsEntityId tgt);
+bool scene_set_contains(const SceneSetEnvComp*, StringHash set, EcsEntityId);
 
 /**
  * Retrieve the members of the given set.
