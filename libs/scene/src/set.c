@@ -5,6 +5,7 @@
 #include "core_sentinel.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_register.h"
 #include "scene_set.h"
 
 #define scene_set_max 64
@@ -100,7 +101,7 @@ static void ecs_destruct_set_env_comp(void* data) {
 ecs_view_define(EnvView) { ecs_access_write(SceneSetEnvComp); }
 ecs_view_define(MemberView) { ecs_access_read(SceneSetMemberComp); }
 
-ecs_system_define(SceneSetUpdateSys) {
+ecs_system_define(SceneSetInitSys) {
   const EcsEntityId global = ecs_world_global(world);
   EcsIterator*      envItr = ecs_view_maybe_at(ecs_world_view_t(world, EnvView), global);
   if (!envItr) {
@@ -136,7 +137,9 @@ ecs_module_init(scene_set_module) {
   ecs_register_view(EnvView);
   ecs_register_view(MemberView);
 
-  ecs_register_system(SceneSetUpdateSys, ecs_view_id(EnvView), ecs_view_id(MemberView));
+  ecs_register_system(SceneSetInitSys, ecs_view_id(EnvView), ecs_view_id(MemberView));
+
+  ecs_order(SceneSetInitSys, SceneOrder_SetInit);
 }
 
 bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
