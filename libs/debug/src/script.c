@@ -742,6 +742,7 @@ ecs_module_init(debug_script_module) {
   ecs_register_view(SubjectView);
   ecs_register_view(AssetView);
   ecs_register_view(WindowView);
+
   ecs_register_system(
       DebugScriptUpdatePanelSys,
       ecs_view_id(PanelUpdateGlobalView),
