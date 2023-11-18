@@ -24,11 +24,11 @@
 #include "scene_name.h"
 #include "scene_product.h"
 #include "scene_selection.h"
+#include "scene_set.h"
 #include "scene_status.h"
 #include "scene_target.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
-#include "scene_unit.h"
 #include "scene_visibility.h"
 #include "scene_weapon.h"
 #include "ui.h"
@@ -112,7 +112,7 @@ ecs_view_define(MinimapMarkerView) {
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneHealthComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_with(SceneUnitComp);
+  ecs_access_read(SceneSetMemberComp);
 }
 
 ecs_view_define(ProductionView) {
@@ -476,17 +476,23 @@ static u32 hud_minimap_marker_collect(
     EcsView*         markerView,
     const GeoVector  areaSize,
     HudMinimapMarker out[PARAM_ARRAY_SIZE(hud_minimap_marker_max)]) {
+  const StringHash minimapSet = string_hash_lit("minimap");
+
   u32 count = 0;
   for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
     const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
     const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
     const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
     const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
+    const SceneSetMemberComp*  setMember   = ecs_view_read_t(itr, SceneSetMemberComp);
 
     if (visComp && !scene_visible(visComp, SceneFaction_A)) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
     if (health->norm < f32_epsilon) {
+      continue;
+    }
+    if (!scene_set_member_contains(setMember, minimapSet)) {
       continue;
     }
 
