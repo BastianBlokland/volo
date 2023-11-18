@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_sentinel.h"
 #include "ecs_world.h"
@@ -18,7 +19,7 @@ static SetStorage* set_storage_create(Allocator* alloc) {
 
   SetStorage* s = alloc_alloc_t(g_alloc_page, SetStorage);
   mem_set(array_mem(s->ids), 0);
-  array_for_t(s->members, DynArray, arr) { dynarray_create_t(alloc, EcsEntityId, 0); }
+  array_for_t(s->members, DynArray, arr) { *arr = dynarray_create_t(alloc, EcsEntityId, 0); }
   return s;
 }
 
@@ -33,6 +34,8 @@ static void set_storage_clear(SetStorage* s) {
 }
 
 static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntityId e) {
+  diag_assert(set);
+
   // Attempt to add it to an existing set.
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
@@ -53,6 +56,8 @@ static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntity
 }
 
 static bool set_storage_contains(const SetStorage* s, const StringHash set, const EcsEntityId e) {
+  diag_assert(set);
+
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
       return dynarray_search_binary((DynArray*)&s->members[setIdx], ecs_compare_entity, &e) != null;
@@ -62,6 +67,8 @@ static bool set_storage_contains(const SetStorage* s, const StringHash set, cons
 }
 
 const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) {
+  diag_assert(set);
+
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
       return dynarray_begin_t(&s->members[setIdx], EcsEntityId);
@@ -71,6 +78,8 @@ const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) 
 }
 
 const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash set) {
+  diag_assert(set);
+
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
       return dynarray_end_t(&s->members[setIdx], EcsEntityId);
@@ -105,10 +114,14 @@ ecs_system_define(SceneSetUpdateSys) {
   EcsView* memberView = ecs_world_view_t(world, MemberView);
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
     const EcsEntityId         entity     = ecs_view_entity(itr);
-    const SceneSetMemberComp* memberComp = ecs_view_write_t(itr, SceneSetMemberComp);
+    const SceneSetMemberComp* memberComp = ecs_view_read_t(itr, SceneSetMemberComp);
 
-    array_for_t(memberComp->sets, StringHash, set) {
-      if (UNLIKELY(!set_storage_add(env->storage, *set, entity))) {
+    array_for_t(memberComp->sets, StringHash, setPtr) {
+      const StringHash set = *setPtr;
+      if (!set) {
+        continue; // Empty slot.
+      }
+      if (UNLIKELY(!set_storage_add(env->storage, set, entity))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
         break;
       }
