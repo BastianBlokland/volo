@@ -40,14 +40,14 @@ static const struct {
     {
         .id   = string_static("flags.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
-                              "      \"name\": \"Unit\","
-                              "      \"isInfantry\": true,"
+                              "      \"name\": \"Volatile\","
+                              "      \"isVolatile\": true,"
                               "      \"traits\": []"
                               "  }"
                               "]}"),
         .prefabs =
             {
-                {.name = string_static("Unit"), .flags = AssetPrefabFlags_Infantry},
+                {.name = string_static("Volatile"), .flags = AssetPrefabFlags_Volatile},
             },
         .prefabCount = 1,
     },
