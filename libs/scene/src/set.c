@@ -67,7 +67,18 @@ static bool set_storage_contains(const SetStorage* s, const StringHash set, cons
   return false;
 }
 
-const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) {
+static u32 set_storage_count(const SetStorage* s, const StringHash set) {
+  diag_assert(set);
+
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (s->ids[setIdx] == set) {
+      return (u32)s->members[setIdx].size;
+    }
+  }
+  return 0;
+}
+
+static const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) {
   diag_assert(set);
 
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
@@ -78,7 +89,7 @@ const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) 
   return null;
 }
 
-const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash set) {
+static const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash set) {
   diag_assert(set);
 
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
@@ -142,6 +153,10 @@ ecs_module_init(scene_set_module) {
   ecs_order(SceneSetInitSys, SceneOrder_SetInit);
 }
 
+bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
+  return set_storage_contains(env->storage, set, e);
+}
+
 bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
   array_for_t(member->sets, StringHash, setPtr) {
     if (*setPtr == set) {
@@ -151,8 +166,8 @@ bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHas
   return false;
 }
 
-bool scene_set_env_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
-  return set_storage_contains(env->storage, set, e);
+u32 scene_set_count(const SceneSetEnvComp* env, const StringHash set) {
+  return set_storage_count(env->storage, set);
 }
 
 const EcsEntityId* scene_set_begin(const SceneSetEnvComp* env, const StringHash set) {
