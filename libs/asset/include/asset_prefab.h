@@ -42,6 +42,7 @@ typedef struct {
 
 typedef enum {
   AssetPrefabTrait_Name,
+  AssetPrefabTrait_SetMember,
   AssetPrefabTrait_Renderable,
   AssetPrefabTrait_Vfx,
   AssetPrefabTrait_Decal,
@@ -66,6 +67,10 @@ typedef enum {
 typedef struct {
   StringHash name;
 } AssetPrefabTraitName;
+
+typedef struct {
+  StringHash sets[4];
+} AssetPrefabTraitSetMember;
 
 typedef struct {
   EcsEntityId graphic;
@@ -160,6 +165,7 @@ typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitName       data_name;
+    AssetPrefabTraitSetMember  data_setMember;
     AssetPrefabTraitRenderable data_renderable;
     AssetPrefabTraitVfx        data_vfx;
     AssetPrefabTraitDecal      data_decal;

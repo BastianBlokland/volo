@@ -51,6 +51,13 @@ typedef struct {
 } AssetPrefabTraitNameDef;
 
 typedef struct {
+  struct {
+    String* values;
+    usize   count;
+  } sets;
+} AssetPrefabTraitSetMemberDef;
+
+typedef struct {
   String graphicId;
 } AssetPrefabTraitRenderableDef;
 
@@ -146,6 +153,7 @@ typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitNameDef       data_name;
+    AssetPrefabTraitSetMemberDef  data_setMember;
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
@@ -216,6 +224,9 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitNameDef);
     data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(reg, AssetPrefabTraitSetMemberDef);
+    data_reg_field_t(reg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitRenderableDef);
     data_reg_field_t(reg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -298,6 +309,7 @@ static void prefab_datareg_init() {
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMemberDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
@@ -343,7 +355,8 @@ typedef enum {
   PrefabError_DuplicatePrefab           = 1,
   PrefabError_DuplicateTrait            = 2,
   PrefabError_PrefabCountExceedsMax     = 3,
-  PrefabError_SoundAssetCountExceedsMax = 4,
+  PrefabError_SetCountExceedsMax        = 4,
+  PrefabError_SoundAssetCountExceedsMax = 5,
 
   PrefabError_Count,
 } PrefabError;
@@ -354,6 +367,7 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
+      string_static("Set count exceeds the maximum"),
       string_static("Sound asset count exceeds the maximum"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
@@ -440,6 +454,18 @@ static void prefab_build(
           .name = stringtable_add(g_stringtable, traitDef->data_name.name),
       };
       break;
+    case AssetPrefabTrait_SetMember: {
+      const AssetPrefabTraitSetMemberDef* setMemberDef = &traitDef->data_setMember;
+      AssetPrefabTraitSetMember*          outSetMember = &outTrait->data_setMember;
+      if (UNLIKELY(setMemberDef->sets.count > array_elems(outSetMember->sets))) {
+        *err = PrefabError_SetCountExceedsMax;
+        return;
+      }
+      *outSetMember = (AssetPrefabTraitSetMember){0};
+      for (u32 i = 0; i != setMemberDef->sets.count; ++i) {
+        outSetMember->sets[i] = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
+      }
+    } break;
     case AssetPrefabTrait_Renderable:
       outTrait->data_renderable = (AssetPrefabTraitRenderable){
           .graphic = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),

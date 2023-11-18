@@ -166,6 +166,12 @@ static void setup_name(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitName* t
   ecs_world_add_t(w, e, SceneNameComp, .name = t->name);
 }
 
+static void setup_set_member(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSetMember* t) {
+  (void)w;
+  (void)e;
+  (void)t;
+}
+
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
   ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .alpha = 1.0f);
 }
@@ -384,6 +390,9 @@ static void setup_trait(
   switch (t->type) {
   case AssetPrefabTrait_Name:
     setup_name(w, e, &t->data_name);
+    return;
+  case AssetPrefabTrait_SetMember:
+    setup_set_member(w, e, &t->data_setMember);
     return;
   case AssetPrefabTrait_Renderable:
     setup_renderable(w, e, &t->data_renderable);
