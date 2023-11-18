@@ -3,10 +3,12 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_sentinel.h"
+#include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_register.h"
 #include "scene_set.h"
+#include "scene_tag.h"
 
 #define scene_set_max 64
 
@@ -128,6 +130,44 @@ static void set_storage_update_main_members(SetStorage* s) {
   }
 }
 
+static struct {
+  String     setName;
+  StringHash set;
+  SceneTags  tags;
+} g_setBuiltinTagEntries[] = {
+    {.setName = string_static("unit"), .tags = SceneTags_Unit},
+};
+static SceneTags g_setBuiltinTags;
+
+static void set_builtin_tags_init_locked() {
+  for (u32 i = 0; i != array_elems(g_setBuiltinTagEntries); ++i) {
+    g_setBuiltinTagEntries[i].set = string_hash(g_setBuiltinTagEntries[i].setName);
+    g_setBuiltinTags |= g_setBuiltinTagEntries[i].tags;
+  }
+}
+
+static void set_builtin_tags_init() {
+  static bool           g_init;
+  static ThreadSpinLock g_initLock;
+  if (UNLIKELY(!g_init)) {
+    thread_spinlock_lock(&g_initLock);
+    if (!g_init) {
+      set_builtin_tags_init_locked();
+      g_init = true;
+    }
+    thread_spinlock_unlock(&g_initLock);
+  }
+}
+
+static SceneTags set_builtin_tags(const StringHash set) {
+  for (u32 i = 0; i != array_elems(g_setBuiltinTagEntries); ++i) {
+    if (g_setBuiltinTagEntries[i].set == set) {
+      return g_setBuiltinTagEntries[i].tags;
+    }
+  }
+  return 0;
+}
+
 ecs_comp_define(SceneSetEnvComp) { SetStorage* storage; };
 
 ecs_comp_define_public(SceneSetMemberComp);
@@ -138,7 +178,11 @@ static void ecs_destruct_set_env_comp(void* data) {
 }
 
 ecs_view_define(EnvView) { ecs_access_write(SceneSetEnvComp); }
-ecs_view_define(MemberView) { ecs_access_read(SceneSetMemberComp); }
+
+ecs_view_define(MemberView) {
+  ecs_access_read(SceneSetMemberComp);
+  ecs_access_maybe_write(SceneTagComp);
+}
 
 ecs_system_define(SceneSetInitSys) {
   const EcsEntityId global = ecs_world_global(world);
@@ -155,6 +199,11 @@ ecs_system_define(SceneSetInitSys) {
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
     const EcsEntityId         entity     = ecs_view_entity(itr);
     const SceneSetMemberComp* memberComp = ecs_view_read_t(itr, SceneSetMemberComp);
+    SceneTagComp*             tagComp    = ecs_view_write_t(itr, SceneTagComp);
+
+    if (tagComp) {
+      tagComp->tags &= ~g_setBuiltinTags;
+    }
 
     array_for_t(memberComp->sets, StringHash, setPtr) {
       const StringHash set = *setPtr;
@@ -165,12 +214,17 @@ ecs_system_define(SceneSetInitSys) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
         break;
       }
+      if (tagComp) {
+        tagComp->tags |= set_builtin_tags(set);
+      }
     }
   }
   set_storage_update_main_members(env->storage);
 }
 
 ecs_module_init(scene_set_module) {
+  set_builtin_tags_init();
+
   ecs_register_comp(SceneSetEnvComp, .destructor = ecs_destruct_set_env_comp);
   ecs_register_comp(SceneSetMemberComp);
 

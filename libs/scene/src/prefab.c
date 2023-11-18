@@ -476,11 +476,10 @@ static void setup_prefab(
   }
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
+  ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
 
-  SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
   if (prefab->flags & (AssetPrefabFlags_Infantry | AssetPrefabFlags_Structure)) {
     ecs_world_add_t(w, e, SceneVisibilityComp);
-    tagComp->tags |= SceneTags_Unit;
   }
 
   if (spec->faction != SceneFaction_None) {
