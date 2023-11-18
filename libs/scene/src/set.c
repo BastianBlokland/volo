@@ -142,7 +142,16 @@ ecs_module_init(scene_set_module) {
   ecs_order(SceneSetInitSys, SceneOrder_SetInit);
 }
 
-bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
+bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
+  array_for_t(member->sets, StringHash, setPtr) {
+    if (*setPtr == set) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool scene_set_env_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
   return set_storage_contains(env->storage, set, e);
 }
 
