@@ -112,6 +112,15 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("query_set");
+      const String       doc    = string_lit("Find all entities in the given set.\n\n*Note*: Use `query_next()` to retrieve the results.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("set"), script_mask_str},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("query_sphere");
       const String       doc    = string_lit("Find all the entities that are touching the given sphere.\n\n*Note*: Use `query_next()` to retrieve the results.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
       const ScriptMask   ret    = script_mask_null;

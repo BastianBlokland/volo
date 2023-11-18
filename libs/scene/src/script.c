@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -19,6 +20,7 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_set.h"
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -233,9 +235,10 @@ typedef struct {
 } ScriptAction;
 
 ecs_view_define(EvalGlobalView) {
-  ecs_access_read(SceneNavEnvComp);
-  ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTimeComp);
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
@@ -491,6 +494,28 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
+
+  const StringHash set = script_arg_str(args, 0, err);
+  if (UNLIKELY(!set)) {
+    ctx->queryCount = ctx->queryItr = 0;
+    return script_null();
+  }
+
+  const EcsEntityId* begin = scene_set_begin(setEnv, set);
+  const EcsEntityId* end   = scene_set_end(setEnv, set);
+
+  ctx->queryCount = math_min((u32)(end - begin), scene_query_max_hits);
+  ctx->queryItr   = 0;
+
+  mem_cpy(
+      mem_create(ctx->queryBuffer, sizeof(EcsEntityId) * scene_query_max_hits),
+      mem_create(begin, sizeof(EcsEntityId) * ctx->queryCount));
+
+  return script_null();
+}
+
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
@@ -508,6 +533,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   }
 
   if (UNLIKELY(script_error_valid(err))) {
+    ctx->queryCount = ctx->queryItr = 0;
     return script_null();
   }
 
@@ -1115,6 +1141,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("faction"),            eval_faction);
     eval_bind(b, string_lit("health"),             eval_health);
     eval_bind(b, string_lit("time"),               eval_time);
+    eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
     eval_bind(b, string_lit("query_next"),         eval_query_next);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
