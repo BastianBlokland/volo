@@ -27,6 +27,7 @@ add_library(lib_scene STATIC
   src/renderable.c
   src/script.c
   src/selection.c
+  src/set.c
   src/skeleton.c
   src/sound.c
   src/status.c
