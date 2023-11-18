@@ -19,6 +19,31 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
+static struct {
+  String           setName;
+  StringHash       set;
+  AssetPrefabFlags flags;
+} g_prefabSetFlags[] = {
+    {.setName = string_static("infantry"), .flags = AssetPrefabFlags_Infantry},
+    {.setName = string_static("structure"), .flags = AssetPrefabFlags_Structure},
+    {.setName = string_static("destructible"), .flags = AssetPrefabFlags_Destructible},
+};
+
+static void prefab_set_flags_init() {
+  for (u32 i = 0; i != array_elems(g_prefabSetFlags); ++i) {
+    g_prefabSetFlags[i].set = string_hash(g_prefabSetFlags[i].setName);
+  }
+}
+
+static AssetPrefabFlags prefab_set_flags(const StringHash set) {
+  for (u32 i = 0; i != array_elems(g_prefabSetFlags); ++i) {
+    if (g_prefabSetFlags[i].set == set) {
+      return g_prefabSetFlags[i].flags;
+    }
+  }
+  return 0;
+}
+
 typedef struct {
   f32 x, y, z;
 } AssetPrefabVec3Def;
@@ -197,6 +222,8 @@ static void prefab_datareg_init() {
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
     DataReg* reg = data_reg_create(g_alloc_persist);
+
+    prefab_set_flags_init();
 
     // clang-format off
     data_reg_struct_t(reg, AssetPrefabVec3Def);
@@ -459,15 +486,8 @@ static void prefab_build(
       }
       *outSetMember = (AssetPrefabTraitSetMember){0};
       for (u32 i = 0; i != setMemberDef->sets.count; ++i) {
-        const StringHash set = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
-        if (set == string_hash_lit("infantry")) {
-          outPrefab->flags |= AssetPrefabFlags_Infantry;
-        } else if (set == string_hash_lit("structure")) {
-          outPrefab->flags |= AssetPrefabFlags_Structure;
-        } else if (set == string_hash_lit("destructible")) {
-          outPrefab->flags |= AssetPrefabFlags_Destructible;
-        }
-        outSetMember->sets[i] = set;
+        outSetMember->sets[i] = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
+        outPrefab->flags |= prefab_set_flags(outSetMember->sets[i]);
       }
     } break;
     case AssetPrefabTrait_Renderable:
