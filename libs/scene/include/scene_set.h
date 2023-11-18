@@ -12,5 +12,6 @@ bool scene_set_contains(const SceneSetEnvComp*, StringHash set, EcsEntityId);
 bool scene_set_member_contains(const SceneSetMemberComp*, StringHash set);
 
 u32                scene_set_count(const SceneSetEnvComp*, StringHash set);
+EcsEntityId        scene_set_main(const SceneSetEnvComp*, StringHash set);
 const EcsEntityId* scene_set_begin(const SceneSetEnvComp*, StringHash set);
 const EcsEntityId* scene_set_end(const SceneSetEnvComp*, StringHash set);

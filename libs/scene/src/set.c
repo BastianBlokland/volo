@@ -11,8 +11,9 @@
 #define scene_set_max 64
 
 typedef struct {
-  StringHash ids[scene_set_max];
-  DynArray   members[scene_set_max]; // EcsEntityId[][scene_set_max], Entities sorted on their id.
+  StringHash  ids[scene_set_max];
+  DynArray    members[scene_set_max]; // EcsEntityId[][scene_set_max], Entities sorted on their id.
+  EcsEntityId mainMembers[scene_set_max];
 } SetStorage;
 
 static SetStorage* set_storage_create(Allocator* alloc) {
@@ -48,6 +49,7 @@ static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntity
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (!s->ids[setIdx]) {
       s->ids[setIdx]                                     = set;
+      s->mainMembers[setIdx]                             = e;
       *dynarray_push_t(&s->members[setIdx], EcsEntityId) = e;
       return true;
     }
@@ -78,6 +80,17 @@ static u32 set_storage_count(const SetStorage* s, const StringHash set) {
   return 0;
 }
 
+static EcsEntityId set_storage_main(const SetStorage* s, const StringHash set) {
+  diag_assert(set);
+
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (s->ids[setIdx] == set) {
+      return s->mainMembers[setIdx];
+    }
+  }
+  return 0;
+}
+
 static const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) {
   diag_assert(set);
 
@@ -98,6 +111,21 @@ static const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash 
     }
   }
   return null;
+}
+
+static void set_storage_update_main_members(SetStorage* s) {
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (!s->ids[setIdx]) {
+      continue; // Unused slot.
+    }
+    diag_assert(s->members[setIdx].size);
+    diag_assert(s->mainMembers[setIdx]);
+
+    if (!dynarray_search_binary(&s->members[setIdx], ecs_compare_entity, &s->mainMembers[setIdx])) {
+      // Main-member is no longer in the set; assign a new main-member.
+      s->mainMembers[setIdx] = *dynarray_begin_t(&s->members[setIdx], EcsEntityId);
+    }
+  }
 }
 
 ecs_comp_define(SceneSetEnvComp) { SetStorage* storage; };
@@ -139,6 +167,7 @@ ecs_system_define(SceneSetInitSys) {
       }
     }
   }
+  set_storage_update_main_members(env->storage);
 }
 
 ecs_module_init(scene_set_module) {
@@ -168,6 +197,10 @@ bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHas
 
 u32 scene_set_count(const SceneSetEnvComp* env, const StringHash set) {
   return set_storage_count(env->storage, set);
+}
+
+EcsEntityId scene_set_main(const SceneSetEnvComp* env, const StringHash set) {
+  return set_storage_main(env->storage, set);
 }
 
 const EcsEntityId* scene_set_begin(const SceneSetEnvComp* env, const StringHash set) {
