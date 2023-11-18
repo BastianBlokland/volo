@@ -37,7 +37,6 @@ add_library(lib_scene STATIC
   src/terrain.c
   src/time.c
   src/transform.c
-  src/unit.c
   src/vfx.c
   src/visibility.c
   src/weapon.c

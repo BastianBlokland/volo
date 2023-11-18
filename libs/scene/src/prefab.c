@@ -32,7 +32,6 @@
 #include "scene_taunt.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
-#include "scene_unit.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
 
@@ -480,7 +479,6 @@ static void setup_prefab(
 
   SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
   if (prefab->flags & (AssetPrefabFlags_Infantry | AssetPrefabFlags_Structure)) {
-    ecs_world_add_empty_t(w, e, SceneUnitComp);
     ecs_world_add_t(w, e, SceneVisibilityComp);
     tagComp->tags |= SceneTags_Unit;
   }
