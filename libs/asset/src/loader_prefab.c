@@ -175,7 +175,7 @@ typedef struct {
 
 typedef struct {
   String name;
-  bool   isInfantry, isStructure, isVolatile;
+  bool   isVolatile;
   struct {
     AssetPrefabTraitDef* values;
     usize                count;
@@ -330,8 +330,6 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabDef);
     data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabDef, isInfantry, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabDef, isStructure, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
@@ -413,8 +411,6 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
-  result |= def->isInfantry ? AssetPrefabFlags_Infantry : 0;
-  result |= def->isStructure ? AssetPrefabFlags_Structure : 0;
   result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
   return result;
 }
@@ -463,7 +459,13 @@ static void prefab_build(
       }
       *outSetMember = (AssetPrefabTraitSetMember){0};
       for (u32 i = 0; i != setMemberDef->sets.count; ++i) {
-        outSetMember->sets[i] = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
+        const StringHash set = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
+        if (set == string_hash_lit("infantry")) {
+          outPrefab->flags |= AssetPrefabFlags_Infantry;
+        } else if (set == string_hash_lit("structure")) {
+          outPrefab->flags |= AssetPrefabFlags_Structure;
+        }
+        outSetMember->sets[i] = set;
       }
     } break;
     case AssetPrefabTrait_Renderable:
@@ -587,12 +589,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

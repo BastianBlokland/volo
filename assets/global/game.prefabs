@@ -1,9 +1,10 @@
 {
   "prefabs": [
     {
-      "name": "InfantryRifle", "isInfantry": true,
+      "name": "InfantryRifle",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -53,9 +54,10 @@
       ]
     },
     {
-      "name": "InfantryRocket", "isInfantry": true,
+      "name": "InfantryRocket",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rocket.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -105,9 +107,10 @@
       ]
     },
     {
-      "name": "InfantryFlame", "isInfantry": true,
+      "name": "InfantryFlame",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_flame.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -157,9 +160,10 @@
       ]
     },
     {
-      "name": "InfantryEnemy", "isInfantry": true, "isVolatile": true,
+      "name": "InfantryEnemy", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_enemy.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
         {
@@ -208,9 +212,10 @@
       ]
     },
     {
-      "name": "InfantryTest", "isInfantry": true,
+      "name": "InfantryTest",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Test Infantry" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -248,9 +253,10 @@
       ]
     },
     {
-      "name": "StructureTurretGun", "isStructure": true,
+      "name": "StructureTurretGun",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_turret_gun.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
@@ -284,9 +290,10 @@
       ]
     },
     {
-      "name": "StructureTurretMissile", "isStructure": true,
+      "name": "StructureTurretMissile",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Hawk" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_turret_missile.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
@@ -319,9 +326,10 @@
       ]
     },
     {
-      "name": "StructureBarracks", "isStructure": true,
+      "name": "StructureBarracks",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "unit", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_barracks.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 20 },
         {
