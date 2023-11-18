@@ -481,11 +481,6 @@ static void setup_prefab(
   SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
   if (prefab->flags & (AssetPrefabFlags_Infantry | AssetPrefabFlags_Structure)) {
     ecs_world_add_empty_t(w, e, SceneUnitComp);
-    if (prefab->flags & AssetPrefabFlags_Infantry) {
-      ecs_world_add_empty_t(w, e, SceneUnitInfantryComp);
-    } else if (prefab->flags & AssetPrefabFlags_Structure) {
-      ecs_world_add_empty_t(w, e, SceneUnitStructureComp);
-    }
     ecs_world_add_t(w, e, SceneVisibilityComp);
     tagComp->tags |= SceneTags_Unit;
   }
