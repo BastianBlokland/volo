@@ -11,10 +11,10 @@
 #include "scene_health.h"
 #include "scene_location.h"
 #include "scene_nav.h"
+#include "scene_set.h"
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
-#include "scene_unit.h"
 #include "scene_visibility.h"
 
 #define target_max_refresh_per_task 10
@@ -60,6 +60,7 @@ ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneCollisionComp);
+  ecs_access_read(SceneSetMemberComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
 }
@@ -239,6 +240,10 @@ ecs_system_define(SceneTargetUpdateSys) {
   EcsView* finderView = ecs_world_view_t(world, TargetFinderView);
   EcsView* targetView = ecs_world_view_t(world, TargetView);
 
+  // Only target entities in the 'unit' set.
+  // TODO: Make this configurable.
+  const StringHash unitSet = string_hash_lit("unit");
+
   // Limit the amount of refreshes per-frame, to avoid spikes when a large amount of units want to
   // refresh simultaneously.
   u32 refreshesRemaining = target_max_refresh_per_task;
@@ -284,8 +289,9 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(factionComp, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
-        if (!ecs_world_has_t(world, targetEntity, SceneUnitComp)) {
-          continue; // Only auto-target units.
+        const SceneSetMemberComp* setMember = ecs_view_read_t(targetItr, SceneSetMemberComp);
+        if (!scene_set_member_contains(setMember, unitSet)) {
+          continue; // Entities is not part of the set we target.
         }
         const f32 score = target_score(
             world, colEnv, navEnv, finder, entity, srcPos, aimDir, faction, targetOld, targetItr);
