@@ -163,6 +163,36 @@ spec(set) {
     }
   }
 
+  it("updates set-members when removing from a set") {
+    EcsWorld*        w    = world;
+    const StringHash setA = string_hash_lit("testA");
+    const StringHash setB = string_hash_lit("testB");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    {
+      scene_set_add(set_env(w), setA, e1);
+      scene_set_add(set_env(w), setB, e1);
+      ecs_run_sync(runner);
+
+      check(scene_set_member_contains(set_member(world, e1), setA));
+      check(scene_set_member_contains(set_member(world, e1), setB));
+    }
+    {
+      scene_set_remove(set_env(w), setA, e1);
+      ecs_run_sync(runner);
+
+      check(!scene_set_member_contains(set_member(world, e1), setA));
+      check(scene_set_member_contains(set_member(world, e1), setB));
+    }
+    {
+      scene_set_remove(set_env(w), setB, e1);
+      ecs_run_sync(runner);
+
+      check(!scene_set_member_contains(set_member(world, e1), setA));
+      check(!scene_set_member_contains(set_member(world, e1), setB));
+    }
+  }
+
   it("can clear sets") {
     EcsWorld*         w   = world;
     const StringHash  set = string_hash_lit("test");
