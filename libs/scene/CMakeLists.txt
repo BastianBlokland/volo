@@ -48,6 +48,7 @@ add_executable(test_lib_scene
   test/config.c
   test/test_nav.c
   test/test_script.c
+  test/test_set.c
   )
 target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)
 
