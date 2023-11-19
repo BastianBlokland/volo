@@ -12,6 +12,7 @@ enum {
   SceneOrder_VelocityUpdate    = 100,
   SceneOrder_CollisionUpdate   = 100,
   SceneOrder_SelectionUpdate   = 100,
+  SceneOrder_SetUpdate         = 100,
 };
 
 /**

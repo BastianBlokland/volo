@@ -12,6 +12,11 @@
 
 #define scene_set_max 64
 
+/**
+ * TODO: Add combinator for set-member.
+ * TODO: Disallow duplicate adds
+ */
+
 typedef struct {
   StringHash  ids[scene_set_max];
   DynArray    members[scene_set_max]; // EcsEntityId[][scene_set_max], Entities sorted on their id.
@@ -32,9 +37,21 @@ static void set_storage_destroy(SetStorage* s) {
   alloc_free_t(g_alloc_page, s);
 }
 
-static void set_storage_clear(SetStorage* s) {
+static void set_storage_clear_all(SetStorage* s) {
   mem_set(array_mem(s->ids), 0);
   array_for_t(s->members, DynArray, arr) { dynarray_clear(arr); }
+}
+
+static void set_storage_clear(SetStorage* s, const StringHash set) {
+  diag_assert(set);
+
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (s->ids[setIdx] == set) {
+      s->ids[setIdx] = 0;
+      dynarray_clear(&s->members[setIdx]);
+      return;
+    }
+  }
 }
 
 static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntityId e) {
@@ -58,6 +75,23 @@ static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntity
   }
   // No more space for this set.
   return false;
+}
+
+static void set_storage_remove(SetStorage* s, const StringHash set, const EcsEntityId e) {
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (s->ids[setIdx] == set) {
+      DynArray*          members = (DynArray*)&s->members[setIdx];
+      const EcsEntityId* itr     = dynarray_search_binary(members, ecs_compare_entity, &e);
+      if (itr) {
+        const usize index = itr - dynarray_begin_t(members, EcsEntityId);
+        dynarray_remove(members, index, 1);
+      }
+      if (!members->size) {
+        s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
+      }
+      break;
+    }
+  }
 }
 
 static bool set_storage_contains(const SetStorage* s, const StringHash set, const EcsEntityId e) {
@@ -168,19 +202,65 @@ static SceneTags set_builtin_tags(const StringHash set) {
   return 0;
 }
 
-ecs_comp_define(SceneSetEnvComp) { SetStorage* storage; };
+typedef enum {
+  SetRequestType_Add,
+  SetRequestType_Remove,
+  SetRequestType_Clear,
+} SetRequestType;
+
+typedef struct {
+  SetRequestType type;
+  StringHash     set;
+  EcsEntityId    target;
+} SetRequest;
+
+ecs_comp_define(SceneSetEnvComp) {
+  SetStorage* storage;
+  DynArray    requests; // SetRequest[]
+};
 
 ecs_comp_define_public(SceneSetMemberComp);
 
 static void ecs_destruct_set_env_comp(void* data) {
   SceneSetEnvComp* env = data;
   set_storage_destroy(env->storage);
+  dynarray_destroy(&env->requests);
+}
+
+static bool set_member_add(EcsIterator* itr, const StringHash set) {
+  SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
+  if (tagComp) {
+    tagComp->tags |= set_builtin_tags(set);
+  }
+  SceneSetMemberComp* memberComp = ecs_view_write_t(itr, SceneSetMemberComp);
+  for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
+    if (!memberComp->sets[i]) {
+      memberComp->sets[i] = set;
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool set_member_remove(EcsIterator* itr, const StringHash set) {
+  SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
+  if (tagComp) {
+    tagComp->tags &= ~set_builtin_tags(set);
+  }
+  SceneSetMemberComp* memberComp = ecs_view_write_t(itr, SceneSetMemberComp);
+  for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
+    if (memberComp->sets[i] == set) {
+      memberComp->sets[i] = 0;
+      return true;
+    }
+  }
+  return false;
 }
 
 ecs_view_define(EnvView) { ecs_access_write(SceneSetEnvComp); }
 
 ecs_view_define(MemberView) {
-  ecs_access_read(SceneSetMemberComp);
+  ecs_access_write(SceneSetMemberComp);
   ecs_access_maybe_write(SceneTagComp);
 }
 
@@ -188,12 +268,17 @@ ecs_system_define(SceneSetInitSys) {
   const EcsEntityId global = ecs_world_global(world);
   EcsIterator*      envItr = ecs_view_maybe_at(ecs_world_view_t(world, EnvView), global);
   if (!envItr) {
-    ecs_world_add_t(world, global, SceneSetEnvComp, .storage = set_storage_create(g_alloc_heap));
+    ecs_world_add_t(
+        world,
+        global,
+        SceneSetEnvComp,
+        .storage  = set_storage_create(g_alloc_heap),
+        .requests = dynarray_create_t(g_alloc_heap, SetRequest, 128));
     return;
   }
 
   SceneSetEnvComp* env = ecs_view_write_t(envItr, SceneSetEnvComp);
-  set_storage_clear(env->storage);
+  set_storage_clear_all(env->storage);
 
   EcsView* memberView = ecs_world_view_t(world, MemberView);
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
@@ -222,6 +307,49 @@ ecs_system_define(SceneSetInitSys) {
   set_storage_update_main_members(env->storage);
 }
 
+ecs_system_define(SceneSetUpdateSys) {
+  const EcsEntityId global = ecs_world_global(world);
+  EcsIterator*      envItr = ecs_view_maybe_at(ecs_world_view_t(world, EnvView), global);
+  if (!envItr) {
+    return;
+  }
+
+  EcsView*     memberView = ecs_world_view_t(world, MemberView);
+  EcsIterator* itr        = ecs_view_itr(memberView);
+
+  SceneSetEnvComp* env = ecs_view_write_t(envItr, SceneSetEnvComp);
+  dynarray_for_t(&env->requests, SetRequest, req) {
+    switch (req->type) {
+    case SetRequestType_Add:
+      if (ecs_view_maybe_jump(itr, req->target)) {
+        if (UNLIKELY(!set_member_add(itr, req->set))) {
+          log_e("Set member limit reached", log_param("limit", fmt_int(scene_set_max)));
+        }
+      } else if (ecs_world_exists(world, req->target)) {
+        ecs_world_add_t(world, req->target, SceneSetMemberComp, .sets[0] = req->set);
+      }
+      if (UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
+        log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
+      }
+      continue;
+    case SetRequestType_Remove:
+      if (ecs_view_maybe_jump(itr, req->target)) {
+        set_member_remove(itr, req->set);
+      }
+      set_storage_remove(env->storage, req->set, req->target);
+      continue;
+    case SetRequestType_Clear:
+      for (ecs_view_itr_reset(itr); ecs_view_walk(itr);) {
+        set_member_remove(itr, req->set);
+      }
+      set_storage_clear(env->storage, req->set);
+      continue;
+    }
+    diag_crash_msg("Unsupported selection request type");
+  }
+  dynarray_clear(&env->requests);
+}
+
 ecs_module_init(scene_set_module) {
   set_builtin_tags_init();
 
@@ -232,8 +360,10 @@ ecs_module_init(scene_set_module) {
   ecs_register_view(MemberView);
 
   ecs_register_system(SceneSetInitSys, ecs_view_id(EnvView), ecs_view_id(MemberView));
+  ecs_register_system(SceneSetUpdateSys, ecs_view_id(EnvView), ecs_view_id(MemberView));
 
   ecs_order(SceneSetInitSys, SceneOrder_SetInit);
+  ecs_order(SceneSetUpdateSys, SceneOrder_SetUpdate);
 }
 
 bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
@@ -263,4 +393,33 @@ const EcsEntityId* scene_set_begin(const SceneSetEnvComp* env, const StringHash 
 
 const EcsEntityId* scene_set_end(const SceneSetEnvComp* env, const StringHash set) {
   return set_storage_end(env->storage, set);
+}
+
+void scene_set_add(SceneSetEnvComp* env, const StringHash set, const EcsEntityId entity) {
+  diag_assert(set);
+
+  *dynarray_push_t(&env->requests, SetRequest) = (SetRequest){
+      .type   = SetRequestType_Add,
+      .set    = set,
+      .target = entity,
+  };
+}
+
+void scene_set_remove(SceneSetEnvComp* env, const StringHash set, const EcsEntityId entity) {
+  diag_assert(set);
+
+  *dynarray_push_t(&env->requests, SetRequest) = (SetRequest){
+      .type   = SetRequestType_Remove,
+      .set    = set,
+      .target = entity,
+  };
+}
+
+void scene_set_clear(SceneSetEnvComp* env, const StringHash set) {
+  diag_assert(set);
+
+  *dynarray_push_t(&env->requests, SetRequest) = (SetRequest){
+      .type = SetRequestType_Clear,
+      .set  = set,
+  };
 }
