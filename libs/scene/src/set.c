@@ -226,7 +226,7 @@ ecs_comp_define(SceneSetEnvComp) {
 };
 
 ecs_comp_define(SceneSetMemberComp) {
-  bool       added;
+  bool       initialized;
   StringHash sets[scene_set_member_max];
 };
 
@@ -274,7 +274,9 @@ static void ecs_combine_set_member(void* dataA, void* dataB) {
 
   for (u32 i = 0; i != array_elems(compB->sets); ++i) {
     if (compB->sets[i]) {
-      if (UNLIKELY(!set_member_add(compA, compB->sets[i]))) {
+      if (LIKELY(set_member_add(compA, compB->sets[i]))) {
+        compA->initialized = false;
+      } else {
         log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(compB->sets))));
       }
     }
@@ -317,7 +319,7 @@ ecs_system_define(SceneSetInitSys) {
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
     const EcsEntityId   entity = ecs_view_entity(itr);
     SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
-    if (member->added) {
+    if (member->initialized) {
       continue;
     }
     SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
@@ -334,7 +336,7 @@ ecs_system_define(SceneSetInitSys) {
         tagComp->tags |= set_wellknown_tags(member->sets[i]);
       }
     }
-    member->added = true;
+    member->initialized = true;
   }
 }
 
