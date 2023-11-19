@@ -60,7 +60,8 @@ static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntity
   // Attempt to add it to an existing set.
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
-      *dynarray_insert_sorted_t(&s->members[setIdx], EcsEntityId, ecs_compare_entity, &e) = e;
+      DynArray* members = &s->members[setIdx];
+      *(EcsEntityId*)dynarray_find_or_insert_sorted(members, ecs_compare_entity, &e) = e;
       return true;
     }
   }
@@ -80,7 +81,7 @@ static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntity
 static void set_storage_remove(SetStorage* s, const StringHash set, const EcsEntityId e) {
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
-      DynArray*          members = (DynArray*)&s->members[setIdx];
+      DynArray*          members = &s->members[setIdx];
       const EcsEntityId* itr     = dynarray_search_binary(members, ecs_compare_entity, &e);
       if (itr) {
         const usize index = itr - dynarray_begin_t(members, EcsEntityId);
