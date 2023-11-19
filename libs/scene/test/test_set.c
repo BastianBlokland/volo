@@ -172,6 +172,27 @@ spec(set) {
     }
   }
 
+  it("can add an entity to multiple sets") {
+    EcsWorld*        w      = world;
+    const StringHash sets[] = {
+        string_hash_lit("testA"),
+        string_hash_lit("testB"),
+        string_hash_lit("testC"),
+    };
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+
+    array_for_t(sets, StringHash, setPtr) { scene_set_add(test_env(w), *setPtr, e1); }
+    ecs_run_sync(runner);
+
+    array_for_t(sets, StringHash, setPtr) {
+      check_eq_int(scene_set_count(test_env(w), *setPtr), 1);
+      check_eq_int(scene_set_main(test_env(w), *setPtr), e1);
+      check_eq_int(*scene_set_begin(test_env(w), *setPtr), e1);
+      check(scene_set_contains(test_env(w), *setPtr, e1));
+    }
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
