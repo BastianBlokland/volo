@@ -64,6 +64,48 @@ spec(set) {
     }
   }
 
+  it("can remove entities") {
+    EcsWorld*         w   = world;
+    const StringHash  set = string_hash_lit("test");
+    const EcsEntityId e1  = ecs_world_entity_create(w);
+    const EcsEntityId e2  = ecs_world_entity_create(w);
+    const EcsEntityId e3  = ecs_world_entity_create(w);
+
+    {
+      scene_set_add(test_env(w), set, e1);
+      scene_set_add(test_env(w), set, e2);
+      scene_set_add(test_env(w), set, e3);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 3);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+    }
+
+    {
+      scene_set_remove(test_env(w), set, e3);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 2);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+    }
+
+    {
+      scene_set_remove(test_env(w), set, e1);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 1);
+      check_eq_int(scene_set_main(test_env(w), set), e2);
+    }
+
+    {
+      scene_set_remove(test_env(w), set, e2);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 0);
+      check_eq_int(scene_set_main(test_env(w), set), 0);
+    }
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
