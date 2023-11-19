@@ -82,11 +82,10 @@ static void eval_enum_init_capability() {
 }
 
 static void eval_enum_init_activity() {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Selected"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 1);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 2);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 3);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 2);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 3);
 }
 
 static void eval_enum_init_vfx_param() {
@@ -494,6 +493,16 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e   = script_arg_entity(args, 0, err);
+  const StringHash  set = script_arg_str(args, 1, err);
+  if (UNLIKELY(!e || !set)) {
+    return script_null();
+  }
+  const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
+  return script_bool(scene_set_contains(setEnv, set, e));
+}
+
 static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
 
@@ -704,27 +713,22 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(args, 0, err);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
-  case 0 /* Selected */: {
-    const EcsIterator*  itr     = ecs_view_maybe_jump(ctx->tagItr, e);
-    const SceneTagComp* tagComp = itr ? ecs_view_read_t(itr, SceneTagComp) : null;
-    return script_bool(tagComp && (tagComp->tags & SceneTags_Selected) != 0);
-  }
-  case 1 /* Moving */: {
+  case 0 /* Moving */: {
     const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
-  case 2 /* Traveling */: {
+  case 1 /* Traveling */: {
     const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
-  case 3 /* Attacking */: {
+  case 2 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
-  case 4 /* Firing */: {
+  case 3 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
@@ -1141,6 +1145,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("faction"),            eval_faction);
     eval_bind(b, string_lit("health"),             eval_health);
     eval_bind(b, string_lit("time"),               eval_time);
+    eval_bind(b, string_lit("set"),                eval_set);
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
     eval_bind(b, string_lit("query_next"),         eval_query_next);

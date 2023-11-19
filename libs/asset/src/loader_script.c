@@ -112,6 +112,16 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("set");
+      const String       doc    = string_lit("Test if the target entity is contained in the given set.");
+      const ScriptMask   ret    = script_mask_bool | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("set"), script_mask_str},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("query_set");
       const String       doc    = string_lit("Find all entities in the given set.\n\n*Note*: Use `query_next()` to retrieve the results.");
       const ScriptMask   ret    = script_mask_null;
@@ -179,7 +189,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("active");
-      const String       doc    = string_lit("Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Selected`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`");
+      const String       doc    = string_lit("Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},

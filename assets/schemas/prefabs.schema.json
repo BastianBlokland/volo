@@ -33,14 +33,6 @@
           "type": "string",
           "minLength": 1
         },
-        "isInfantry": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "isStructure": {
-          "title": "bool",
-          "type": "boolean"
-        },
         "isVolatile": {
           "title": "bool",
           "type": "boolean"
