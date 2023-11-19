@@ -13,7 +13,6 @@
 #define scene_set_max 64
 
 /**
- * TODO: Add combinator for set-member.
  * TODO: Verify that set-members never contain duplicate sets.
  */
 
@@ -229,39 +228,42 @@ static void ecs_destruct_set_env_comp(void* data) {
   dynarray_destroy(&env->requests);
 }
 
-static bool set_member_add(EcsIterator* itr, const StringHash set) {
-  SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
-  if (tagComp) {
-    tagComp->tags |= set_builtin_tags(set);
-  }
-  SceneSetMemberComp* memberComp = ecs_view_write_t(itr, SceneSetMemberComp);
-  for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
-    if (memberComp->sets[i] == set) {
+static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
+  for (u32 i = 0; i != array_elems(member->sets); ++i) {
+    if (member->sets[i] == set) {
       return true; // Already was part of this set.
     }
   }
-  for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
-    if (!memberComp->sets[i]) {
-      memberComp->sets[i] = set;
+  for (u32 i = 0; i != array_elems(member->sets); ++i) {
+    if (!member->sets[i]) {
+      member->sets[i] = set;
       return true;
     }
   }
   return false;
 }
 
-static bool set_member_remove(EcsIterator* itr, const StringHash set) {
-  SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
-  if (tagComp) {
-    tagComp->tags &= ~set_builtin_tags(set);
-  }
-  SceneSetMemberComp* memberComp = ecs_view_write_t(itr, SceneSetMemberComp);
-  for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
-    if (memberComp->sets[i] == set) {
-      memberComp->sets[i] = 0;
+static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) {
+  for (u32 i = 0; i != array_elems(member->sets); ++i) {
+    if (member->sets[i] == set) {
+      member->sets[i] = 0;
       return true;
     }
   }
   return false;
+}
+
+static void ecs_combine_set_member(void* dataA, void* dataB) {
+  SceneSetMemberComp* compA = dataA;
+  SceneSetMemberComp* compB = dataB;
+
+  for (u32 i = 0; i != array_elems(compB->sets); ++i) {
+    if (compB->sets[i]) {
+      if (UNLIKELY(!set_member_add(compA, compB->sets[i]))) {
+        log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(compB->sets))));
+      }
+    }
+  }
 }
 
 ecs_view_define(EnvView) { ecs_access_write(SceneSetEnvComp); }
@@ -332,8 +334,14 @@ ecs_system_define(SceneSetUpdateSys) {
         continue;
       }
       if (ecs_view_maybe_jump(itr, req->target)) {
-        if (UNLIKELY(!set_member_add(itr, req->set))) {
-          log_e("Set member limit reached", log_param("limit", fmt_int(scene_set_max)));
+        SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
+        if (LIKELY(set_member_add(member, req->set))) {
+          SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
+          if (tagComp) {
+            tagComp->tags |= set_builtin_tags(req->set);
+          }
+        } else {
+          log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(member->sets))));
         }
       } else {
         ecs_world_add_t(world, req->target, SceneSetMemberComp, .sets[0] = req->set);
@@ -344,13 +352,25 @@ ecs_system_define(SceneSetUpdateSys) {
       continue;
     case SetRequestType_Remove:
       if (ecs_view_maybe_jump(itr, req->target)) {
-        set_member_remove(itr, req->set);
+        SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
+        if (set_member_remove(member, req->set)) {
+          SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
+          if (tagComp) {
+            tagComp->tags &= ~set_builtin_tags(req->set);
+          }
+        }
       }
       set_storage_remove(env->storage, req->set, req->target);
       continue;
     case SetRequestType_Clear:
       for (ecs_view_itr_reset(itr); ecs_view_walk(itr);) {
-        set_member_remove(itr, req->set);
+        SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
+        if (set_member_remove(member, req->set)) {
+          SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
+          if (tagComp) {
+            tagComp->tags &= ~set_builtin_tags(req->set);
+          }
+        }
       }
       set_storage_clear(env->storage, req->set);
       continue;
@@ -364,7 +384,7 @@ ecs_module_init(scene_set_module) {
   set_builtin_tags_init();
 
   ecs_register_comp(SceneSetEnvComp, .destructor = ecs_destruct_set_env_comp);
-  ecs_register_comp(SceneSetMemberComp);
+  ecs_register_comp(SceneSetMemberComp, .combinator = ecs_combine_set_member);
 
   ecs_register_view(EnvView);
   ecs_register_view(MemberView);
