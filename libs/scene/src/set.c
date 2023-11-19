@@ -85,6 +85,8 @@ static void set_storage_remove(SetStorage* s, const StringHash set, const EcsEnt
       }
       if (!members->size) {
         s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
+      } else if (e == s->mainMembers[setIdx]) {
+        s->mainMembers[setIdx] = *dynarray_begin_t(members, EcsEntityId);
       }
       break;
     }
