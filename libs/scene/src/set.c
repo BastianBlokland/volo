@@ -21,7 +21,7 @@
 #define scene_set_member_max 8
 
 typedef struct {
-  StringHash  ids[scene_set_max];
+  ALIGNAS(16) StringHash ids[scene_set_max];
   DynArray    members[scene_set_max]; // EcsEntityId[][scene_set_max], Entities sorted on their id.
   EcsEntityId mainMembers[scene_set_max];
 } SetStorage;
