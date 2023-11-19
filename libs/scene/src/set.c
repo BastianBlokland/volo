@@ -328,11 +328,14 @@ ecs_system_define(SceneSetUpdateSys) {
   dynarray_for_t(&env->requests, SetRequest, req) {
     switch (req->type) {
     case SetRequestType_Add:
+      if (!ecs_world_exists(world, req->target)) {
+        continue;
+      }
       if (ecs_view_maybe_jump(itr, req->target)) {
         if (UNLIKELY(!set_member_add(itr, req->set))) {
           log_e("Set member limit reached", log_param("limit", fmt_int(scene_set_max)));
         }
-      } else if (ecs_world_exists(world, req->target)) {
+      } else {
         ecs_world_add_t(world, req->target, SceneSetMemberComp, .sets[0] = req->set);
       }
       if (UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
