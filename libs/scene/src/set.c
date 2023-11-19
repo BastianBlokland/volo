@@ -228,11 +228,18 @@ static void ecs_destruct_set_env_comp(void* data) {
   dynarray_destroy(&env->requests);
 }
 
-static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
+static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
   for (u32 i = 0; i != array_elems(member->sets); ++i) {
     if (member->sets[i] == set) {
       return true; // Already was part of this set.
     }
+  }
+  return false;
+}
+
+static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
+  if (set_member_contains(member, set)) {
+    return true;
   }
   for (u32 i = 0; i != array_elems(member->sets); ++i) {
     if (!member->sets[i]) {
@@ -401,12 +408,7 @@ bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const 
 }
 
 bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
-  array_for_t(member->sets, StringHash, setPtr) {
-    if (*setPtr == set) {
-      return true;
-    }
-  }
-  return false;
+  return set_member_contains(member, set);
 }
 
 u32 scene_set_count(const SceneSetEnvComp* env, const StringHash set) {
