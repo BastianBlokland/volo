@@ -175,36 +175,34 @@ static struct {
   String     setName;
   StringHash set;
   SceneTags  tags;
-} g_setBuiltinTagEntries[] = {
+} g_setWellknownTagEntries[] = {
     {.setName = string_static("unit"), .tags = SceneTags_Unit},
     {.setName = string_static("selected"), .tags = SceneTags_Selected},
 };
-static SceneTags g_setBuiltinTags;
 
-static void set_builtin_tags_init_locked() {
-  for (u32 i = 0; i != array_elems(g_setBuiltinTagEntries); ++i) {
-    g_setBuiltinTagEntries[i].set = string_hash(g_setBuiltinTagEntries[i].setName);
-    g_setBuiltinTags |= g_setBuiltinTagEntries[i].tags;
+static void set_wellknown_tags_init_locked() {
+  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
+    g_setWellknownTagEntries[i].set = string_hash(g_setWellknownTagEntries[i].setName);
   }
 }
 
-static void set_builtin_tags_init() {
+static void set_wellknown_tags_init() {
   static bool           g_init;
   static ThreadSpinLock g_initLock;
   if (UNLIKELY(!g_init)) {
     thread_spinlock_lock(&g_initLock);
     if (!g_init) {
-      set_builtin_tags_init_locked();
+      set_wellknown_tags_init_locked();
       g_init = true;
     }
     thread_spinlock_unlock(&g_initLock);
   }
 }
 
-static SceneTags set_builtin_tags(const StringHash set) {
-  for (u32 i = 0; i != array_elems(g_setBuiltinTagEntries); ++i) {
-    if (g_setBuiltinTagEntries[i].set == set) {
-      return g_setBuiltinTagEntries[i].tags;
+static SceneTags set_wellknown_tags(const StringHash set) {
+  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
+    if (g_setWellknownTagEntries[i].set == set) {
+      return g_setWellknownTagEntries[i].tags;
     }
   }
   return 0;
@@ -333,7 +331,7 @@ ecs_system_define(SceneSetInitSys) {
         break;
       }
       if (tagComp) {
-        tagComp->tags |= set_builtin_tags(member->sets[i]);
+        tagComp->tags |= set_wellknown_tags(member->sets[i]);
       }
     }
     member->added = true;
@@ -362,7 +360,7 @@ ecs_system_define(SceneSetUpdateSys) {
         if (LIKELY(set_member_add(member, req->set))) {
           SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
           if (tagComp) {
-            tagComp->tags |= set_builtin_tags(req->set);
+            tagComp->tags |= set_wellknown_tags(req->set);
           }
         } else {
           log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(member->sets))));
@@ -380,7 +378,7 @@ ecs_system_define(SceneSetUpdateSys) {
         if (set_member_remove(member, req->set)) {
           SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
           if (tagComp) {
-            tagComp->tags &= ~set_builtin_tags(req->set);
+            tagComp->tags &= ~set_wellknown_tags(req->set);
           }
         }
       }
@@ -392,7 +390,7 @@ ecs_system_define(SceneSetUpdateSys) {
         if (set_member_remove(member, req->set)) {
           SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
           if (tagComp) {
-            tagComp->tags &= ~set_builtin_tags(req->set);
+            tagComp->tags &= ~set_wellknown_tags(req->set);
           }
         }
       }
@@ -405,7 +403,7 @@ ecs_system_define(SceneSetUpdateSys) {
 }
 
 ecs_module_init(scene_set_module) {
-  set_builtin_tags_init();
+  set_wellknown_tags_init();
 
   ecs_register_comp(SceneSetEnvComp, .destructor = ecs_destruct_set_env_comp);
   ecs_register_comp(SceneSetMemberComp, .combinator = ecs_combine_set_member);
