@@ -306,6 +306,22 @@ static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
 }
 
 static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) {
+#if scene_set_simd_enable
+  ASSERT(scene_set_member_max == 8, "set_member_contains only supports 8 elems at the moment")
+
+  const SimdVec setVec = simd_vec_broadcast_u32(set);
+  const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
+  const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(member->sets + 4), setVec);
+  const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
+
+  if (eqMask) {
+    const u32 eqIdx     = intrinsic_ctz_32(eqMask) / 2; // Div 2 due to 16 bit entries.
+    member->sets[eqIdx] = 0;
+    return true;
+  }
+
+  return false;
+#else
   for (u32 i = 0; i != array_elems(member->sets); ++i) {
     if (member->sets[i] == set) {
       member->sets[i] = 0;
@@ -313,6 +329,7 @@ static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) 
     }
   }
   return false;
+#endif
 }
 
 static void ecs_combine_set_member(void* dataA, void* dataB) {
