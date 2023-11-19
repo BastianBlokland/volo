@@ -33,11 +33,6 @@ static void set_storage_destroy(SetStorage* s) {
   alloc_free_t(g_alloc_page, s);
 }
 
-static void set_storage_clear_all(SetStorage* s) {
-  mem_set(array_mem(s->ids), 0);
-  array_for_t(s->members, DynArray, arr) { dynarray_clear(arr); }
-}
-
 static void set_storage_clear(SetStorage* s, const StringHash set) {
   diag_assert(set);
 
@@ -82,13 +77,41 @@ static void set_storage_remove(SetStorage* s, const StringHash set, const EcsEnt
       if (itr) {
         const usize index = itr - dynarray_begin_t(members, EcsEntityId);
         dynarray_remove(members, index, 1);
-      }
-      if (!members->size) {
-        s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
-      } else if (e == s->mainMembers[setIdx]) {
-        s->mainMembers[setIdx] = *dynarray_begin_t(members, EcsEntityId);
+
+        if (!members->size) {
+          s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
+        } else if (e == s->mainMembers[setIdx]) {
+          s->mainMembers[setIdx] = *dynarray_begin_t(members, EcsEntityId);
+        }
       }
       break;
+    }
+  }
+}
+
+typedef bool (*SetStoragePred)(EcsWorld*, EcsEntityId);
+
+static void set_storage_prune(SetStorage* s, EcsWorld* world, const SetStoragePred pred) {
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (!s->ids[setIdx]) {
+      continue; // Unused slot.
+    }
+    DynArray* members    = &s->members[setIdx];
+    bool      removedAny = false;
+    for (usize i = members->size; i-- > 0;) {
+      const EcsEntityId e = dynarray_begin_t(members, EcsEntityId)[i];
+      if (!pred(world, e)) {
+        dynarray_remove(members, i, 1);
+        removedAny = true;
+      }
+    }
+    if (removedAny) {
+      if (!members->size) {
+        s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
+      } else if (!dynarray_search_binary(members, ecs_compare_entity, &s->mainMembers[setIdx])) {
+        // Main-member is no longer in the set; assign a new main-member.
+        s->mainMembers[setIdx] = *dynarray_begin_t(&s->members[setIdx], EcsEntityId);
+      }
     }
   }
 }
@@ -146,21 +169,6 @@ static const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash 
     }
   }
   return null;
-}
-
-static void set_storage_update_main_members(SetStorage* s) {
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (!s->ids[setIdx]) {
-      continue; // Unused slot.
-    }
-    diag_assert(s->members[setIdx].size);
-    diag_assert(s->mainMembers[setIdx]);
-
-    if (!dynarray_search_binary(&s->members[setIdx], ecs_compare_entity, &s->mainMembers[setIdx])) {
-      // Main-member is no longer in the set; assign a new main-member.
-      s->mainMembers[setIdx] = *dynarray_begin_t(&s->members[setIdx], EcsEntityId);
-    }
-  }
 }
 
 static struct {
@@ -279,6 +287,10 @@ ecs_view_define(MemberView) {
   ecs_access_maybe_write(SceneTagComp);
 }
 
+static bool set_member_valid(EcsWorld* world, const EcsEntityId e) {
+  return ecs_world_exists(world, e) && ecs_world_has_t(world, e, SceneSetMemberComp);
+}
+
 ecs_system_define(SceneSetInitSys) {
   const EcsEntityId global = ecs_world_global(world);
   EcsIterator*      envItr = ecs_view_maybe_at(ecs_world_view_t(world, EnvView), global);
@@ -293,7 +305,9 @@ ecs_system_define(SceneSetInitSys) {
   }
 
   SceneSetEnvComp* env = ecs_view_write_t(envItr, SceneSetEnvComp);
-  set_storage_clear_all(env->storage);
+
+  // Prune the removed entities from all sets.
+  set_storage_prune(env->storage, world, set_member_valid);
 
   EcsView* memberView = ecs_world_view_t(world, MemberView);
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
@@ -319,7 +333,6 @@ ecs_system_define(SceneSetInitSys) {
       }
     }
   }
-  set_storage_update_main_members(env->storage);
 }
 
 ecs_system_define(SceneSetUpdateSys) {
