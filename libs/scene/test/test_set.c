@@ -50,6 +50,7 @@ spec(set) {
       check_eq_int(scene_set_count(test_env(w), set), 1);
       check_eq_int(scene_set_main(test_env(w), set), e1);
       check_eq_int(*scene_set_begin(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
     }
 
     const EcsEntityId e2 = ecs_world_entity_create(w);
@@ -61,6 +62,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 3);
       check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+      check(scene_set_contains(test_env(w), set, e2));
+      check(scene_set_contains(test_env(w), set, e3));
     }
   }
 
@@ -79,6 +83,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 3);
       check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+      check(scene_set_contains(test_env(w), set, e2));
+      check(scene_set_contains(test_env(w), set, e3));
     }
 
     {
@@ -87,6 +94,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 2);
       check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+      check(scene_set_contains(test_env(w), set, e2));
+      check(!scene_set_contains(test_env(w), set, e3));
     }
 
     {
@@ -95,6 +105,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 1);
       check_eq_int(scene_set_main(test_env(w), set), e2);
+      check(!scene_set_contains(test_env(w), set, e1));
+      check(scene_set_contains(test_env(w), set, e2));
+      check(!scene_set_contains(test_env(w), set, e3));
     }
 
     {
@@ -103,6 +116,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 0);
       check_eq_int(scene_set_main(test_env(w), set), 0);
+      check(!scene_set_contains(test_env(w), set, e1));
+      check(!scene_set_contains(test_env(w), set, e2));
+      check(!scene_set_contains(test_env(w), set, e3));
     }
   }
 
@@ -121,6 +137,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 3);
       check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+      check(scene_set_contains(test_env(w), set, e2));
+      check(scene_set_contains(test_env(w), set, e3));
     }
 
     {
@@ -129,6 +148,9 @@ spec(set) {
 
       check_eq_int(scene_set_count(test_env(w), set), 0);
       check_eq_int(scene_set_main(test_env(w), set), 0);
+      check(!scene_set_contains(test_env(w), set, e1));
+      check(!scene_set_contains(test_env(w), set, e2));
+      check(!scene_set_contains(test_env(w), set, e3));
     }
   }
 
