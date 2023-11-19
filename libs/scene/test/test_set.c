@@ -14,12 +14,15 @@ ecs_module_init(set_test_module) {
   ecs_register_view(SetMemberView);
 }
 
+static SceneSetEnvComp* test_env(EcsWorld* world) {
+  return ecs_utils_write_t(world, SetEnvView, ecs_world_global(world), SceneSetEnvComp);
+}
+
 spec(set) {
 
-  EcsDef*     def    = null;
-  EcsWorld*   world  = null;
-  EcsRunner*  runner = null;
-  EcsEntityId g      = 0;
+  EcsDef*    def    = null;
+  EcsWorld*  world  = null;
+  EcsRunner* runner = null;
 
   setup() {
     def = ecs_def_create(g_alloc_heap);
@@ -29,25 +32,36 @@ spec(set) {
 
     world  = ecs_world_create(g_alloc_heap, def);
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
-    g      = ecs_world_global(world);
 
     ecs_run_sync(runner);
   }
 
   it("can add entities") {
+    EcsWorld*        w   = world;
     const StringHash set = string_hash_lit("test");
-    SceneSetEnvComp* env = ecs_utils_write_t(world, SetEnvView, g, SceneSetEnvComp);
 
-    check_eq_int(scene_set_count(env, set), 0);
+    check_eq_int(scene_set_count(test_env(w), set), 0);
 
-    const EcsEntityId e1 = ecs_world_entity_create(world);
-    scene_set_add(env, string_hash_lit("test"), e1);
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    {
+      scene_set_add(test_env(w), set, e1);
+      ecs_run_sync(runner);
 
-    ecs_run_sync(runner);
+      check_eq_int(scene_set_count(test_env(w), set), 1);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+      check_eq_int(*scene_set_begin(test_env(w), set), e1);
+    }
 
-    check_eq_int(scene_set_count(env, set), 1);
-    check_eq_int(scene_set_main(env, set), e1);
-    check_eq_int(*scene_set_begin(env, set), e1);
+    const EcsEntityId e2 = ecs_world_entity_create(w);
+    const EcsEntityId e3 = ecs_world_entity_create(w);
+    {
+      scene_set_add(test_env(w), set, e2);
+      scene_set_add(test_env(w), set, e3);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 3);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+    }
   }
 
   teardown() {
