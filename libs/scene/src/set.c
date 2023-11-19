@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_intrinsic.h"
 #include "core_sentinel.h"
 #include "core_thread.h"
 #include "ecs_world.h"
@@ -245,15 +246,14 @@ static void ecs_destruct_set_env_comp(void* data) {
 
 static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
 #if scene_set_simd_enable
-  ASSERT((scene_set_member_max % 4) == 0, "scene_set_member_max needs to be a multiple of 4");
   ASSERT(scene_set_member_max == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
-  const SimdVec cmpA   = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
-  const SimdVec cmpB   = simd_vec_eq_u32(simd_vec_load_u32(member->sets + 4), setVec);
-  const SimdVec res    = simd_vec_pack_u32_to_u16(cmpA, cmpB);
+  const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
+  const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(member->sets + 4), setVec);
+  const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
 
-  return simd_vec_mask_u8(res) != 0;
+  return eqMask != 0;
 #else
   for (u32 i = 0; i != array_elems(member->sets); ++i) {
     if (member->sets[i] == set) {
@@ -265,6 +265,33 @@ static bool set_member_contains(const SceneSetMemberComp* member, const StringHa
 }
 
 static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
+#if scene_set_simd_enable
+  ASSERT(scene_set_member_max == 8, "set_member_add only supports 8 elems at the moment")
+
+  const SimdVec setVec      = simd_vec_broadcast_u32(set);
+  const SimdVec memberSetsA = simd_vec_load_u32(member->sets);
+  const SimdVec memberSetsB = simd_vec_load_u32(member->sets + 4);
+
+  const SimdVec eqA    = simd_vec_eq_u32(memberSetsA, setVec);
+  const SimdVec eqB    = simd_vec_eq_u32(memberSetsB, setVec);
+  const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
+
+  if (eqMask) {
+    return true; // Member already has the given set.
+  }
+
+  const SimdVec freeA    = simd_vec_eq_u32(memberSetsA, simd_vec_zero());
+  const SimdVec freeB    = simd_vec_eq_u32(memberSetsB, simd_vec_zero());
+  const u32     freeMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(freeA, freeB));
+
+  if (freeMask) {
+    const u32 freeIdx     = intrinsic_ctz_32(freeMask) / 2; // Div 2 due to 16 bit entries.
+    member->sets[freeIdx] = set;
+    return true; // Successfully added.
+  }
+
+  return false;
+#else
   if (set_member_contains(member, set)) {
     return true;
   }
@@ -275,6 +302,7 @@ static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
     }
   }
   return false;
+#endif
 }
 
 static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) {
