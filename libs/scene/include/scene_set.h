@@ -2,6 +2,15 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+/**
+ * Well-known sets.
+ */
+extern StringHash g_sceneSetUnit;
+extern StringHash g_sceneSetSelected;
+
+/**
+ * Set environment.
+ */
 ecs_comp_extern(SceneSetEnvComp);
 ecs_comp_extern(SceneSetMemberComp);
 

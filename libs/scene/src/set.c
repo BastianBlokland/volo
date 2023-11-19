@@ -171,18 +171,21 @@ static const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash 
   return null;
 }
 
+StringHash g_sceneSetUnit;
+StringHash g_sceneSetSelected;
+
 static struct {
-  String     setName;
-  StringHash set;
-  SceneTags  tags;
+  String      setName;
+  StringHash* setPtr;
+  SceneTags   tags;
 } g_setWellknownTagEntries[] = {
-    {.setName = string_static("unit"), .tags = SceneTags_Unit},
-    {.setName = string_static("selected"), .tags = SceneTags_Selected},
+    {string_static("unit"), &g_sceneSetUnit, SceneTags_Unit},
+    {string_static("selected"), &g_sceneSetSelected, SceneTags_Selected},
 };
 
 static void set_wellknown_tags_init_locked() {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    g_setWellknownTagEntries[i].set = string_hash(g_setWellknownTagEntries[i].setName);
+    *g_setWellknownTagEntries[i].setPtr = string_hash(g_setWellknownTagEntries[i].setName);
   }
 }
 
@@ -201,7 +204,7 @@ static void set_wellknown_tags_init() {
 
 static SceneTags set_wellknown_tags(const StringHash set) {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    if (g_setWellknownTagEntries[i].set == set) {
+    if (*g_setWellknownTagEntries[i].setPtr == set) {
       return g_setWellknownTagEntries[i].tags;
     }
   }
