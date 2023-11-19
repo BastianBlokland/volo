@@ -40,58 +40,66 @@ static void set_storage_destroy(SetStorage* s) {
   alloc_free_t(g_alloc_page, s);
 }
 
-static void set_storage_clear(SetStorage* s, const StringHash set) {
-  diag_assert(set);
-
+static u32 set_storage_index(const SetStorage* s, const StringHash set) {
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (s->ids[setIdx] == set) {
-      s->ids[setIdx] = 0;
-      dynarray_clear(&s->members[setIdx]);
-      return;
+      return setIdx;
     }
+  }
+  return sentinel_u32;
+}
+
+static u32 set_storage_index_free(const SetStorage* s) {
+  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
+    if (!s->ids[setIdx]) {
+      return setIdx;
+    }
+  }
+  return sentinel_u32;
+}
+
+static void set_storage_clear(SetStorage* s, const StringHash set) {
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    s->ids[setIdx] = 0;
+    dynarray_clear(&s->members[setIdx]);
   }
 }
 
 static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntityId e) {
-  diag_assert(set);
-
   // Attempt to add it to an existing set.
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      DynArray* members = &s->members[setIdx];
-      *(EcsEntityId*)dynarray_find_or_insert_sorted(members, ecs_compare_entity, &e) = e;
-      return true;
-    }
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    DynArray* members = &s->members[setIdx];
+    *(EcsEntityId*)dynarray_find_or_insert_sorted(members, ecs_compare_entity, &e) = e;
+    return true;
   }
   // Attempt to add a new set.
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (!s->ids[setIdx]) {
-      s->ids[setIdx]                                     = set;
-      s->mainMembers[setIdx]                             = e;
-      *dynarray_push_t(&s->members[setIdx], EcsEntityId) = e;
-      return true;
-    }
+  const u32 freeIdx = set_storage_index_free(s);
+  if (!sentinel_check(freeIdx)) {
+    s->ids[freeIdx]                                     = set;
+    s->mainMembers[freeIdx]                             = e;
+    *dynarray_push_t(&s->members[freeIdx], EcsEntityId) = e;
+    return true;
   }
   // No more space for this set.
   return false;
 }
 
 static void set_storage_remove(SetStorage* s, const StringHash set, const EcsEntityId e) {
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      DynArray*          members = &s->members[setIdx];
-      const EcsEntityId* itr     = dynarray_search_binary(members, ecs_compare_entity, &e);
-      if (itr) {
-        const usize index = itr - dynarray_begin_t(members, EcsEntityId);
-        dynarray_remove(members, index, 1);
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    DynArray*          members = &s->members[setIdx];
+    const EcsEntityId* itr     = dynarray_search_binary(members, ecs_compare_entity, &e);
+    if (itr) {
+      const usize index = itr - dynarray_begin_t(members, EcsEntityId);
+      dynarray_remove(members, index, 1);
 
-        if (!members->size) {
-          s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
-        } else if (e == s->mainMembers[setIdx]) {
-          s->mainMembers[setIdx] = *dynarray_begin_t(members, EcsEntityId);
-        }
+      if (!members->size) {
+        s->ids[setIdx] = 0; // Set is now empty; we can free the slot.
+      } else if (e == s->mainMembers[setIdx]) {
+        s->mainMembers[setIdx] = *dynarray_begin_t(members, EcsEntityId);
       }
-      break;
     }
   }
 }
@@ -124,56 +132,41 @@ static void set_storage_prune(SetStorage* s, EcsWorld* world, const SetStoragePr
 }
 
 static bool set_storage_contains(const SetStorage* s, const StringHash set, const EcsEntityId e) {
-  diag_assert(set);
-
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      return dynarray_search_binary((DynArray*)&s->members[setIdx], ecs_compare_entity, &e) != null;
-    }
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    return dynarray_search_binary((DynArray*)&s->members[setIdx], ecs_compare_entity, &e) != null;
   }
   return false;
 }
 
 static u32 set_storage_count(const SetStorage* s, const StringHash set) {
-  diag_assert(set);
-
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      return (u32)s->members[setIdx].size;
-    }
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    return (u32)s->members[setIdx].size;
   }
   return 0;
 }
 
 static EcsEntityId set_storage_main(const SetStorage* s, const StringHash set) {
-  diag_assert(set);
-
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      return s->mainMembers[setIdx];
-    }
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    return s->mainMembers[setIdx];
   }
   return 0;
 }
 
 static const EcsEntityId* set_storage_begin(const SetStorage* s, const StringHash set) {
-  diag_assert(set);
-
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      return dynarray_begin_t(&s->members[setIdx], EcsEntityId);
-    }
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    return dynarray_begin_t(&s->members[setIdx], EcsEntityId);
   }
   return null;
 }
 
 static const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash set) {
-  diag_assert(set);
-
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (s->ids[setIdx] == set) {
-      return dynarray_end_t(&s->members[setIdx], EcsEntityId);
-    }
+  const u32 setIdx = set_storage_index(s, set);
+  if (!sentinel_check(setIdx)) {
+    return dynarray_end_t(&s->members[setIdx], EcsEntityId);
   }
   return null;
 }
