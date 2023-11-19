@@ -37,6 +37,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u16(const u16 values[PARAM
 }
 
 /**
+ * Load 4 (128 bit aligned) u32 values into a Simd vector.
+ * Pre-condition: bits_aligned_ptr(values, 16)
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u32(const u32 values[PARAM_ARRAY_SIZE(4)]) {
+  return _mm_load_ps((const f32*)values);
+}
+
+/**
  * Store a Simd vector to 4 (128 bit aligned) float values.
  * Pre-condition: bits_aligned_ptr(values, 16)
  */
@@ -60,6 +68,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u16(const u16 value) {
   return _mm_castsi128_ps(_mm_set1_epi16(value));
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) {
+  return _mm_castsi128_ps(_mm_set1_epi32(value));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
@@ -121,8 +133,16 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater(const SimdVec a, const 
   return _mm_cmpgt_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u32(const SimdVec a, const SimdVec b) {
+  return _mm_cmpeq_epi32(a, b);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_and(const SimdVec a, const SimdVec b) {
   return _mm_and_ps(a, b);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_pack_u32_to_u16(const SimdVec a, const SimdVec b) {
+  return _mm_packs_epi32(a, b);
 }
 
 MAYBE_UNUSED INLINE_HINT static u32 simd_vec_mask_u32(const SimdVec a) {
@@ -131,22 +151,6 @@ MAYBE_UNUSED INLINE_HINT static u32 simd_vec_mask_u32(const SimdVec a) {
 
 MAYBE_UNUSED INLINE_HINT static u32 simd_vec_mask_u8(const SimdVec a) {
   return _mm_movemask_epi8(_mm_castps_si128(a));
-}
-
-MAYBE_UNUSED INLINE_HINT static bool simd_vec_any_true(const SimdVec a) {
-  return simd_vec_mask_u32(a) != 0b0000;
-}
-
-MAYBE_UNUSED INLINE_HINT static bool simd_vec_any_false(const SimdVec a) {
-  return simd_vec_mask_u32(a) != 0b1111;
-}
-
-MAYBE_UNUSED INLINE_HINT static bool simd_vec_all_true(const SimdVec a) {
-  return simd_vec_mask_u32(a) == 0b1111;
-}
-
-MAYBE_UNUSED INLINE_HINT static bool simd_vec_all_false(const SimdVec a) {
-  return simd_vec_mask_u32(a) == 0b0000;
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec
