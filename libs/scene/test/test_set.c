@@ -19,6 +19,10 @@ static SceneSetEnvComp* set_env(EcsWorld* world) {
   return ecs_utils_write_t(world, SetEnvView, ecs_world_global(world), SceneSetEnvComp);
 }
 
+static const SceneSetMemberComp* set_member(EcsWorld* world, const EcsEntityId e) {
+  return ecs_utils_read_t(world, SetMemberView, e, SceneSetMemberComp);
+}
+
 spec(set) {
 
   EcsDef*    def    = null;
@@ -84,6 +88,25 @@ spec(set) {
       check(scene_set_contains(set_env(w), set, e2));
       check(scene_set_contains(set_env(w), set, e3));
     }
+  }
+
+  it("updates set-members when adding to a set") {
+    EcsWorld*        w    = world;
+    const StringHash setA = string_hash_lit("testA");
+    const StringHash setB = string_hash_lit("testB");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    scene_set_add(set_env(w), setA, e1);
+    ecs_run_sync(runner);
+
+    check(scene_set_member_contains(set_member(world, e1), setA));
+    check(!scene_set_member_contains(set_member(world, e1), setB));
+
+    scene_set_add(set_env(w), setB, e1);
+    ecs_run_sync(runner);
+
+    check(scene_set_member_contains(set_member(world, e1), setA));
+    check(scene_set_member_contains(set_member(world, e1), setB));
   }
 
   it("can remove entities") {
