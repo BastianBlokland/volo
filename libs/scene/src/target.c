@@ -242,7 +242,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   // Only target entities in the 'unit' set.
   // TODO: Make this configurable.
-  const StringHash unitSet = string_hash_lit("unit");
+  const StringHash targetSet = g_sceneSetUnit;
 
   // Limit the amount of refreshes per-frame, to avoid spikes when a large amount of units want to
   // refresh simultaneously.
@@ -290,7 +290,7 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const SceneSetMemberComp* setMember = ecs_view_read_t(targetItr, SceneSetMemberComp);
-        if (!scene_set_member_contains(setMember, unitSet)) {
+        if (!scene_set_member_contains(setMember, targetSet)) {
           continue; // Entities is not part of the set we target.
         }
         const f32 score = target_score(

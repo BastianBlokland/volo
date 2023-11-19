@@ -67,7 +67,7 @@ spec(set) {
 
   it("sets tags when initializing a set-member to well-known sets") {
     EcsWorld*        w      = world;
-    const StringHash sets[] = {g_sceneSetSelected, string_hash_lit("unit")};
+    const StringHash sets[] = {g_sceneSetSelected, g_sceneSetUnit};
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
