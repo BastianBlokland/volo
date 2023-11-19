@@ -65,6 +65,21 @@ spec(set) {
     }
   }
 
+  it("sets tags when initializing a set-member to well-known sets") {
+    EcsWorld*        w      = world;
+    const StringHash sets[] = {string_hash_lit("selected"), string_hash_lit("unit")};
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
+    scene_set_member_create(world, e1, sets, array_elems(sets));
+
+    ecs_run_sync(runner); // 1 run to flush the components adds.
+    ecs_run_sync(runner); // 1 run to update the sets.
+
+    const SceneTags expectedTags = SceneTags_Unit | SceneTags_Selected;
+    check((set_tags(w, e1) & expectedTags) == expectedTags);
+  }
+
   it("can add entities") {
     EcsWorld*        w   = world;
     const StringHash set = string_hash_lit("test");
