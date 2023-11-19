@@ -193,6 +193,30 @@ spec(set) {
     }
   }
 
+  it("removes deleted entities from sets") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("test");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    {
+      scene_set_add(test_env(w), set, e1);
+
+      ecs_run_sync(runner);
+      check_eq_int(scene_set_count(test_env(w), set), 1);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+    }
+    {
+      ecs_world_entity_destroy(world, e1);
+      ecs_run_sync(runner); // 1 run to flush the destroy.
+      ecs_run_sync(runner); // 1 run to update the sets.
+
+      check_eq_int(scene_set_count(test_env(w), set), 0);
+      check_eq_int(scene_set_main(test_env(w), set), 0);
+      check(!scene_set_contains(test_env(w), set, e1));
+    }
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
