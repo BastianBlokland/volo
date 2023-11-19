@@ -10,8 +10,8 @@ ecs_comp_extern(SceneKnowledgeComp);
 /**
  * Query and update knowledge.
  */
-ScriptVal        scene_knowledge_get(const SceneKnowledgeComp*, StringHash key);
-void             scene_knowledge_set(SceneKnowledgeComp*, StringHash key, ScriptVal);
+ScriptVal        scene_knowledge_load(const SceneKnowledgeComp*, StringHash key);
+void             scene_knowledge_store(SceneKnowledgeComp*, StringHash key, ScriptVal);
 const ScriptMem* scene_knowledge_memory(const SceneKnowledgeComp*);
 ScriptMem*       scene_knowledge_memory_mut(SceneKnowledgeComp*);
 

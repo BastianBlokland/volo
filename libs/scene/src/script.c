@@ -1413,7 +1413,7 @@ typedef struct {
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
-    scene_knowledge_set(knowledge, a->memKey, a->value);
+    scene_knowledge_store(knowledge, a->memKey, a->value);
   }
 }
 
@@ -1422,7 +1422,7 @@ static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
     if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
       const SceneKnowledgeComp* target = ecs_view_read_t(ctx->knowledgeItr, SceneKnowledgeComp);
-      scene_knowledge_set(knowledge, a->memKey, scene_knowledge_get(target, a->memKey));
+      scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
     }
   }
 }

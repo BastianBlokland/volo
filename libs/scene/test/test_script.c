@@ -68,7 +68,7 @@ spec(script) {
 
     const SceneKnowledgeComp* know = ecs_utils_read_t(world, ScriptView, e, SceneKnowledgeComp);
 
-    const ScriptVal value = scene_knowledge_get(know, string_hash_lit("test"));
+    const ScriptVal value = scene_knowledge_load(know, string_hash_lit("test"));
     check(script_val_equal(value, script_num(42)));
   }
 

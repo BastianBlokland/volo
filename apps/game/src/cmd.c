@@ -164,8 +164,8 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
   EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdMove->object);
   if (unitItr && cmd_is_player_owned(unitItr)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
-    scene_knowledge_set(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
-    scene_knowledge_set(knowledge, g_knowledgeKeyAttackTarget, script_null());
+    scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
+    scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
 
     SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
@@ -190,8 +190,8 @@ static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
   if (unitItr && cmd_is_player_owned(unitItr)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
 
-    scene_knowledge_set(knowledge, g_knowledgeKeyStop, script_bool(true));
-    scene_knowledge_set(knowledge, g_knowledgeKeyMoveTarget, script_null());
+    scene_knowledge_store(knowledge, g_knowledgeKeyStop, script_bool(true));
+    scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
   }
 }
 
@@ -200,8 +200,8 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   if (unitItr && cmd_is_player_owned(unitItr)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
 
-    scene_knowledge_set(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
-    scene_knowledge_set(knowledge, g_knowledgeKeyMoveTarget, script_null());
+    scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
+    scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
 
     SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {

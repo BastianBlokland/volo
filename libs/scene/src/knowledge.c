@@ -29,11 +29,11 @@ ecs_module_init(scene_knowledge_module) {
       .combinator = ecs_combine_knowledge_comp);
 }
 
-ScriptVal scene_knowledge_get(const SceneKnowledgeComp* k, const StringHash key) {
+ScriptVal scene_knowledge_load(const SceneKnowledgeComp* k, const StringHash key) {
   return script_mem_load(k->memory, key);
 }
 
-void scene_knowledge_set(SceneKnowledgeComp* k, const StringHash key, const ScriptVal value) {
+void scene_knowledge_store(SceneKnowledgeComp* k, const StringHash key, const ScriptVal value) {
   script_mem_store(k->memory, key, value);
 }
 
