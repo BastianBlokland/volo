@@ -171,6 +171,7 @@ static struct {
   SceneTags  tags;
 } g_setBuiltinTagEntries[] = {
     {.setName = string_static("unit"), .tags = SceneTags_Unit},
+    {.setName = string_static("selected"), .tags = SceneTags_Selected},
 };
 static SceneTags g_setBuiltinTags;
 
