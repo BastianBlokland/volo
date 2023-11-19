@@ -6,13 +6,16 @@
 #include "ecs_utils.h"
 #include "scene_register.h"
 #include "scene_set.h"
+#include "scene_tag.h"
 
 ecs_view_define(SetEnvView) { ecs_access_write(SceneSetEnvComp); }
 ecs_view_define(SetMemberView) { ecs_access_read(SceneSetMemberComp); }
+ecs_view_define(TagView) { ecs_access_read(SceneTagComp); }
 
 ecs_module_init(set_test_module) {
   ecs_register_view(SetEnvView);
   ecs_register_view(SetMemberView);
+  ecs_register_view(TagView);
 }
 
 static SceneSetEnvComp* set_env(EcsWorld* world) {
@@ -21,6 +24,10 @@ static SceneSetEnvComp* set_env(EcsWorld* world) {
 
 static const SceneSetMemberComp* set_member(EcsWorld* world, const EcsEntityId e) {
   return ecs_utils_read_t(world, SetMemberView, e, SceneSetMemberComp);
+}
+
+static SceneTags set_tags(EcsWorld* world, const EcsEntityId e) {
+  return ecs_utils_read_t(world, TagView, e, SceneTagComp)->tags;
 }
 
 spec(set) {
@@ -109,6 +116,21 @@ spec(set) {
     check(scene_set_member_contains(set_member(w, e1), setB));
   }
 
+  it("adds tags when adding to a well-known set") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("selected");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
+    {
+      scene_set_add(set_env(w), set, e1);
+      ecs_run_sync(runner); // 1 run to flush the components adds.
+      ecs_run_sync(runner); // 1 run to update the sets.
+
+      check(set_tags(w, e1) & SceneTags_Selected);
+    }
+  }
+
   it("can remove entities") {
     EcsWorld*         w   = world;
     const StringHash  set = string_hash_lit("test");
@@ -193,6 +215,27 @@ spec(set) {
     }
   }
 
+  it("removes tags when removing from a well-known set") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("selected");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
+    {
+      scene_set_add(set_env(w), set, e1);
+      ecs_run_sync(runner); // 1 run to flush the components adds.
+      ecs_run_sync(runner); // 1 run to update the sets.
+
+      check(set_tags(w, e1) & SceneTags_Selected);
+    }
+    {
+      scene_set_remove(set_env(w), set, e1);
+      ecs_run_sync(runner);
+
+      check(!(set_tags(w, e1) & SceneTags_Selected));
+    }
+  }
+
   it("can clear sets") {
     EcsWorld*         w   = world;
     const StringHash  set = string_hash_lit("test");
@@ -241,6 +284,27 @@ spec(set) {
       ecs_run_sync(runner);
 
       check(!scene_set_member_contains(set_member(w, e1), set));
+    }
+  }
+
+  it("removes tags when clearing a well-known set") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("selected");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
+    {
+      scene_set_add(set_env(w), set, e1);
+      ecs_run_sync(runner); // 1 run to flush the components adds.
+      ecs_run_sync(runner); // 1 run to update the sets.
+
+      check(set_tags(w, e1) & SceneTags_Selected);
+    }
+    {
+      scene_set_clear(set_env(w), set);
+      ecs_run_sync(runner);
+
+      check(!(set_tags(w, e1) & SceneTags_Selected));
     }
   }
 
