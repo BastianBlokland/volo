@@ -241,6 +241,47 @@ spec(set) {
     }
   }
 
+  // TODO: At the moment this fails on the second sync as it will be re-added.
+  skip_it("does not add an entity when adding and removing in the same frame") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("test");
+
+    check_eq_int(scene_set_count(test_env(w), set), 0);
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+
+    scene_set_add(test_env(w), set, e1);
+    scene_set_remove(test_env(w), set, e1);
+
+    for (u32 i = 0; i != 3; ++i) {
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 1);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+    }
+  }
+
+  it("does add an entity when removing and adding in the same frame") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("test");
+
+    check_eq_int(scene_set_count(test_env(w), set), 0);
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+
+    scene_set_remove(test_env(w), set, e1);
+    scene_set_add(test_env(w), set, e1);
+
+    for (u32 i = 0; i != 3; ++i) {
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(test_env(w), set), 1);
+      check_eq_int(scene_set_main(test_env(w), set), e1);
+      check(scene_set_contains(test_env(w), set, e1));
+    }
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
