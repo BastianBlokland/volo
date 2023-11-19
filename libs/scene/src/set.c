@@ -10,6 +10,12 @@
 #include "scene_set.h"
 #include "scene_tag.h"
 
+#define scene_set_simd_enable 1
+
+#if scene_set_simd_enable
+#include "core_simd.h"
+#endif
+
 #define scene_set_max 64
 #define scene_set_member_max 8
 
@@ -228,7 +234,7 @@ ecs_comp_define(SceneSetEnvComp) {
   DynArray    requests; // SetRequest[]
 };
 
-ecs_comp_define(SceneSetMemberComp) { StringHash sets[scene_set_member_max]; };
+ecs_comp_define(SceneSetMemberComp) { ALIGNAS(16) StringHash sets[scene_set_member_max]; };
 ecs_comp_define(SceneSetMemberStateComp) { bool initialized; };
 
 static void ecs_destruct_set_env_comp(void* data) {
@@ -238,12 +244,24 @@ static void ecs_destruct_set_env_comp(void* data) {
 }
 
 static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
+#if scene_set_simd_enable
+  ASSERT((scene_set_member_max % 4) == 0, "scene_set_member_max needs to be a multiple of 4");
+  ASSERT(scene_set_member_max == 8, "set_member_contains only supports 8 elems at the moment")
+
+  const SimdVec setVec = simd_vec_broadcast_u32(set);
+  const SimdVec cmpA   = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
+  const SimdVec cmpB   = simd_vec_eq_u32(simd_vec_load_u32(member->sets + 4), setVec);
+  const SimdVec res    = simd_vec_pack_u32_to_u16(cmpA, cmpB);
+
+  return simd_vec_mask_u8(res) != 0;
+#else
   for (u32 i = 0; i != array_elems(member->sets); ++i) {
     if (member->sets[i] == set) {
       return true; // Already was part of this set.
     }
   }
   return false;
+#endif
 }
 
 static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
