@@ -136,7 +136,7 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Hash, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("mem_get");
+    const String       name   = string_lit("mem_load");
     const String       doc    = string_lit("Load a value from memory.\n\n*Note*: Identical to using `$myKey` but can be used with a dynamic key.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
@@ -145,7 +145,7 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_MemLoadDynamic, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("mem_set");
+    const String       name   = string_lit("mem_store");
     const String       doc    = string_lit("Store a memory value.\n\n*Note*: Identical to using `$myKey = value` but can be used with a dynamic key.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
@@ -815,9 +815,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .severity = ScriptDiagSeverity_Warning,
-          .kind     = ScriptDiag_ExprUnreachable,
-          .range    = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .kind     = ScriptDiag_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1855,13 +1855,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

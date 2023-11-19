@@ -120,11 +120,11 @@ spec(eval) {
         {string_static("$v3"), script_null()},
         {string_static("$non_existent"), script_null()},
         {string_static("$v4 = true"), script_bool(true)},
-        {string_static("mem_get(\"v1\")"), script_bool(true)},
-        {string_static("mem_get(\"v2\")"), script_num(1337)},
-        {string_static("mem_get(\"v3\")"), script_null()},
-        {string_static("mem_get(\"non_existent\")"), script_null()},
-        {string_static("mem_set(\"v4\", true)"), script_bool(true)},
+        {string_static("mem_load(\"v1\")"), script_bool(true)},
+        {string_static("mem_load(\"v2\")"), script_num(1337)},
+        {string_static("mem_load(\"v3\")"), script_null()},
+        {string_static("mem_load(\"non_existent\")"), script_null()},
+        {string_static("mem_store(\"v4\", true)"), script_bool(true)},
 
         // Arithmetic.
         {string_static("-42"), script_num(-42)},
