@@ -1,6 +1,7 @@
 #include "asset_register.h"
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "ecs.h"
 #include "ecs_utils.h"
 #include "scene_register.h"
@@ -34,6 +35,23 @@ spec(set) {
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
 
     ecs_run_sync(runner);
+  }
+
+  it("can initialize set-members") {
+    EcsWorld*        w      = world;
+    const StringHash sets[] = {string_hash_lit("testA"), string_hash_lit("testB")};
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    scene_set_member_create(world, e1, sets, array_elems(sets));
+
+    ecs_run_sync(runner); // 1 run to flush the components adds.
+    ecs_run_sync(runner); // 1 run to update the sets.
+
+    array_for_t(sets, StringHash, setPtr) {
+      check_eq_int(scene_set_count(test_env(w), *setPtr), 1);
+      check_eq_int(scene_set_main(test_env(w), *setPtr), e1);
+      check(scene_set_contains(test_env(w), *setPtr, e1));
+    }
   }
 
   it("can add entities") {
