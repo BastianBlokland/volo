@@ -25,7 +25,7 @@
 #include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "scene_sound.h"
 #include "scene_status.h"
 #include "scene_tag.h"
@@ -124,7 +124,7 @@ ecs_comp_define(DebugInspectorPanelComp) {
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 
 ecs_view_define(GlobalPanelUpdateView) {
-  ecs_access_read(SceneSelectionComp);
+  ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
@@ -136,7 +136,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(SceneSelectionComp);
+  ecs_access_write(SceneSetEnvComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -144,7 +144,7 @@ ecs_view_define(GlobalToolUpdateView) {
 
 ecs_view_define(GlobalVisDrawView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneSelectionComp);
+  ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugShapeComp);
@@ -764,13 +764,15 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const SceneTimeComp*        time      = ecs_view_read_t(globalItr, SceneTimeComp);
-  DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
-  DebugStatsGlobalComp*       stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const SceneSetEnvComp*      setEnv   = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  const SceneTimeComp*        time     = ecs_view_read_t(globalItr, SceneTimeComp);
+  DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
+  DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+
+  const StringHash selectedSet = string_hash_lit("selected");
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -799,18 +801,21 @@ debug_inspector_tool_toggle(DebugInspectorSettingsComp* set, const DebugInspecto
   }
 }
 
-static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSelectionComp* sel) {
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSetEnvComp* setEnv) {
+  const StringHash s = string_hash_lit("selected");
+  for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_world_exists(world, *e)) {
       ecs_world_entity_destroy(world, *e);
     }
   }
 }
 
-static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSelectionComp* sel) {
+static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSetEnvComp* setEnv) {
+  const StringHash s = string_hash_lit("selected");
+
   DynArray     newEntities = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
   EcsIterator* itr         = ecs_view_itr(ecs_world_view_t(world, SubjectView));
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+  for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (!ecs_view_maybe_jump(itr, *e)) {
       continue; // Selected entity is missing required components.
     }
@@ -835,14 +840,14 @@ static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSelectionComp* 
   }
 
   // Select the newly created entities.
-  scene_selection_clear(sel);
-  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_selection_add(sel, *e); }
+  scene_set_clear(setEnv, s);
+  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_set_add(setEnv, s, *e); }
   dynarray_destroy(&newEntities);
 }
 
 ecs_comp_extern(SceneCameraComp);
 
-static void debug_inspector_tool_select_all(EcsWorld* world, SceneSelectionComp* sel) {
+static void debug_inspector_tool_select_all(EcsWorld* world, SceneSetEnvComp* setEnv) {
   const u32    compCount       = ecs_def_comp_count(ecs_world_def(world));
   const BitSet ignoredCompMask = mem_stack(bits_to_bytes(compCount) + 1);
 
@@ -850,7 +855,9 @@ static void debug_inspector_tool_select_all(EcsWorld* world, SceneSelectionComp*
   bitset_clear_all(ignoredCompMask);
   bitset_set(ignoredCompMask, ecs_comp_id(SceneCameraComp));
 
-  scene_selection_clear(sel);
+  const StringHash selectedSet = string_hash_lit("selected");
+  scene_set_clear(setEnv, selectedSet);
+
   EcsView* subjectView = ecs_world_view_t(world, SubjectView);
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId    e         = ecs_view_entity(itr);
@@ -858,15 +865,16 @@ static void debug_inspector_tool_select_all(EcsWorld* world, SceneSelectionComp*
     if (bitset_any_of(ecs_world_component_mask(world, archetype), ignoredCompMask)) {
       continue;
     }
-    scene_selection_add(sel, e);
+    scene_set_add(setEnv, selectedSet, e);
   }
 }
 
-static GeoVector debug_inspector_tool_pivot(EcsWorld* world, const SceneSelectionComp* sel) {
-  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
-  GeoVector    pivot;
-  u32          count = 0;
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+static GeoVector debug_inspector_tool_pivot(EcsWorld* world, const SceneSetEnvComp* setEnv) {
+  EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  GeoVector        pivot;
+  u32              count = 0;
+  const StringHash s     = string_hash_lit("selected");
+  for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
       pivot = count ? geo_vector_add(pivot, transComp->position) : transComp->position;
@@ -879,16 +887,16 @@ static GeoVector debug_inspector_tool_pivot(EcsWorld* world, const SceneSelectio
 static void debug_inspector_tool_group_update(
     EcsWorld*                   world,
     DebugInspectorSettingsComp* set,
-    const SceneSelectionComp*   sel,
+    const SceneSetEnvComp*      setEnv,
     DebugGizmoComp*             gizmo) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
-  if (!ecs_view_maybe_jump(itr, scene_selection_main(sel))) {
+  if (!ecs_view_maybe_jump(itr, scene_set_main(setEnv, string_hash_lit("selected")))) {
     return; // No main selected entity or its missing required components.
   }
   const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
-  const GeoVector pos   = debug_inspector_tool_pivot(world, sel);
+  const GeoVector pos   = debug_inspector_tool_pivot(world, setEnv);
   const GeoQuat   rot   = mainTrans->rotation;
   const f32       scale = mainScale ? mainScale->scale : 1.0f;
 
@@ -919,10 +927,11 @@ static void debug_inspector_tool_group_update(
   }
 
   if (posDirty || rotDirty || scaleDirty) {
-    const GeoVector posDelta   = geo_vector_sub(posEdit, pos);
-    const GeoQuat   rotDelta   = geo_quat_from_to(rot, rotEdit);
-    const f32       scaleDelta = scaleEdit / scale;
-    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    const GeoVector  posDelta   = geo_vector_sub(posEdit, pos);
+    const GeoQuat    rotDelta   = geo_quat_from_to(rot, rotEdit);
+    const f32        scaleDelta = scaleEdit / scale;
+    const StringHash s          = string_hash_lit("selected");
+    for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(itr, *e)) {
         SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
         SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
@@ -943,10 +952,11 @@ static void debug_inspector_tool_group_update(
 static void debug_inspector_tool_individual_update(
     EcsWorld*                   world,
     DebugInspectorSettingsComp* set,
-    const SceneSelectionComp*   sel,
+    const SceneSetEnvComp*      setEnv,
     DebugGizmoComp*             gizmo) {
-  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+  EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  const StringHash s   = string_hash_lit("selected");
+  for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
       SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
@@ -977,11 +987,11 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const InputManagerComp*     input = ecs_view_read_t(globalItr, InputManagerComp);
-  SceneSelectionComp*         sel   = ecs_view_write_t(globalItr, SceneSelectionComp);
-  DebugGizmoComp*             gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp*     input  = ecs_view_read_t(globalItr, InputManagerComp);
+  SceneSetEnvComp*            setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DebugGizmoComp*             gizmo  = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugInspectorSettingsComp* set    = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
+  DebugStatsGlobalComp*       stats  = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
     set->tool = DebugInspectorTool_None;
@@ -999,23 +1009,23 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
-    debug_inspector_tool_destroy(world, sel);
+    debug_inspector_tool_destroy(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
   if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
-    debug_inspector_tool_duplicate(world, sel);
+    debug_inspector_tool_duplicate(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
   if (input_triggered_lit(input, "DebugInspectorSelectAll")) {
-    debug_inspector_tool_select_all(world, sel);
+    debug_inspector_tool_select_all(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
   if (set->tool != DebugInspectorTool_None) {
     if (input_modifiers(input) & InputModifier_Control) {
-      debug_inspector_tool_individual_update(world, set, sel, gizmo);
+      debug_inspector_tool_individual_update(world, set, setEnv, gizmo);
     } else {
-      debug_inspector_tool_group_update(world, set, sel, gizmo);
+      debug_inspector_tool_group_update(world, set, setEnv, gizmo);
     }
   }
 }
@@ -1412,10 +1422,10 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (!set->visFlags) {
     return;
   }
-  const SceneNavEnvComp*    nav   = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneSelectionComp* sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
-  DebugShapeComp*           shape = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*            text  = ecs_view_write_t(globalItr, DebugTextComp);
+  const SceneNavEnvComp* nav    = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneSetEnvComp* setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  DebugShapeComp*        shape  = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*         text   = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView*     transformView = ecs_world_view_t(world, TransformView);
   EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
@@ -1433,7 +1443,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
-    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    const StringHash s = string_hash_lit("selected");
+    for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
         inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
       }
@@ -1448,7 +1459,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     UNREACHABLE
   }
   if (set->visFlags & (1 << DebugInspectorVis_Target)) {
-    if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
+    const StringHash selectedSet = string_hash_lit("selected");
+    if (ecs_view_maybe_jump(subjectItr, scene_set_main(setEnv, selectedSet))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
         tgtFinder->config |= SceneTargetConfig_Trace;

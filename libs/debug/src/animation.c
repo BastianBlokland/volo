@@ -10,7 +10,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "scene_skeleton.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -396,7 +396,7 @@ static DebugAnimationSettingsComp* anim_settings_get_or_create(EcsWorld* world) 
              : ecs_world_add_t(world, ecs_world_global(world), DebugAnimationSettingsComp);
 }
 
-ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSelectionComp); }
+ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugAnimationPanelComp);
@@ -411,8 +411,9 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
   }
   DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
 
-  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const DebugAnimSubject    subject   = debug_anim_subject(world, scene_selection_main(selection));
+  const SceneSetEnvComp* setEnv      = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  const StringHash       selectedSet = string_hash_lit("selected");
+  const DebugAnimSubject subject = debug_anim_subject(world, scene_set_main(setEnv, selectedSet));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -497,7 +498,7 @@ static void debug_draw_skin_counts(
 
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(DebugAnimationSettingsComp);
-  ecs_access_read(SceneSelectionComp);
+  ecs_access_read(SceneSetEnvComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugTextComp);
 }
@@ -508,10 +509,10 @@ ecs_system_define(DebugAnimationDrawSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSelectionComp*         sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const DebugAnimationSettingsComp* set   = ecs_view_read_t(globalItr, DebugAnimationSettingsComp);
-  DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
+  const SceneSetEnvComp*            setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  const DebugAnimationSettingsComp* set    = ecs_view_read_t(globalItr, DebugAnimationSettingsComp);
+  DebugShapeComp*                   shape  = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*                    text   = ecs_view_write_t(globalItr, DebugTextComp);
 
   if (!(set->flags & DebugAnimationFlags_DrawAny)) {
     return; // Nothing requested to be drawn.
@@ -519,7 +520,8 @@ ecs_system_define(DebugAnimationDrawSys) {
 
   GeoMatrix jointMatrices[scene_skeleton_joints_max];
 
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+  const StringHash s = string_hash_lit("selected");
+  for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     const DebugAnimSubject subject = debug_anim_subject(world, *e);
     if (!subject.valid) {
       continue;

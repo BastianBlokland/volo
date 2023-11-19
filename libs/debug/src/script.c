@@ -19,7 +19,7 @@
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_script.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "script_mem.h"
 #include "script_panic.h"
 #include "ui.h"
@@ -520,7 +520,7 @@ static void output_panel_tab_draw(
     UiCanvasComp*           canvas,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
-    SceneSelectionComp*     selection,
+    SceneSetEnvComp*        setEnv,
     EcsIterator*            subjectItr) {
   output_options_draw(canvas, panelComp, tracker);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
@@ -547,6 +547,8 @@ static void output_panel_tab_draw(
     ui_label(canvas, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
   }
 
+  const StringHash selectedSet = string_hash_lit("selected");
+
   panelComp->lastRowCount = 0;
   dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
     if (panelComp->outputMode == DebugScriptOutputMode_Self) {
@@ -562,15 +564,15 @@ static void output_panel_tab_draw(
     ui_layout_push(canvas);
     ui_layout_inner(
         canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
-    const bool selected = scene_selection_main(selection) == entry->entity;
+    const bool selected = scene_set_main(setEnv, selectedSet) == entry->entity;
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
-      scene_selection_clear(selection);
-      scene_selection_add(selection, entry->entity);
+      scene_set_clear(setEnv, selectedSet);
+      scene_set_add(setEnv, selectedSet, entry->entity);
     }
     ui_layout_pop(canvas);
 
@@ -603,7 +605,7 @@ static void script_panel_draw(
     UiCanvasComp*           canvas,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
-    SceneSelectionComp*     selection,
+    SceneSetEnvComp*        setEnv,
     EcsIterator*            assetItr,
     EcsIterator*            subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
@@ -631,7 +633,7 @@ static void script_panel_draw(
     }
     break;
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker, selection, subjectItr);
+    output_panel_tab_draw(canvas, panelComp, tracker, setEnv, subjectItr);
     break;
   }
 
@@ -641,7 +643,7 @@ static void script_panel_draw(
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_write(DebugScriptTrackerComp);
   ecs_access_read(AssetManagerComp);
-  ecs_access_write(SceneSelectionComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -695,14 +697,16 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     tracker = output_tracker_create(world);
   }
 
-  SceneSelectionComp*     selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
+  SceneSetEnvComp*        setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
   const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
+  const StringHash selectedSet = string_hash_lit("selected");
+
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
 
   output_query(tracker, assetItr, subjectView);
 
@@ -720,7 +724,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(world, canvas, panelComp, tracker, selection, assetItr, subjectItr);
+    script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
 
     debug_editor_update(panelComp, assetManager);
 
