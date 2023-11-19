@@ -160,6 +160,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(SceneScriptComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
@@ -1346,7 +1347,7 @@ static void inspector_vis_draw_navigation_grid(
 
 static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
-  const SceneTagComp*       tagComp       = ecs_view_read_t(subject, SceneTagComp);
+  const SceneSetMemberComp* setMember     = ecs_view_read_t(subject, SceneSetMemberComp);
   const SceneScriptComp*    scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
   const EcsEntityId         e             = ecs_view_entity(subject);
 
@@ -1374,7 +1375,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     size  = 20;
   }
 
-  if (tagComp && (tagComp->tags & SceneTags_Selected) != 0) {
+  if (setMember && scene_set_member_contains(setMember, string_hash_lit("selected"))) {
     color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 
