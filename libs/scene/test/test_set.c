@@ -99,14 +99,14 @@ spec(set) {
     scene_set_add(set_env(w), setA, e1);
     ecs_run_sync(runner);
 
-    check(scene_set_member_contains(set_member(world, e1), setA));
-    check(!scene_set_member_contains(set_member(world, e1), setB));
+    check(scene_set_member_contains(set_member(w, e1), setA));
+    check(!scene_set_member_contains(set_member(w, e1), setB));
 
     scene_set_add(set_env(w), setB, e1);
     ecs_run_sync(runner);
 
-    check(scene_set_member_contains(set_member(world, e1), setA));
-    check(scene_set_member_contains(set_member(world, e1), setB));
+    check(scene_set_member_contains(set_member(w, e1), setA));
+    check(scene_set_member_contains(set_member(w, e1), setB));
   }
 
   it("can remove entities") {
@@ -174,22 +174,22 @@ spec(set) {
       scene_set_add(set_env(w), setB, e1);
       ecs_run_sync(runner);
 
-      check(scene_set_member_contains(set_member(world, e1), setA));
-      check(scene_set_member_contains(set_member(world, e1), setB));
+      check(scene_set_member_contains(set_member(w, e1), setA));
+      check(scene_set_member_contains(set_member(w, e1), setB));
     }
     {
       scene_set_remove(set_env(w), setA, e1);
       ecs_run_sync(runner);
 
-      check(!scene_set_member_contains(set_member(world, e1), setA));
-      check(scene_set_member_contains(set_member(world, e1), setB));
+      check(!scene_set_member_contains(set_member(w, e1), setA));
+      check(scene_set_member_contains(set_member(w, e1), setB));
     }
     {
       scene_set_remove(set_env(w), setB, e1);
       ecs_run_sync(runner);
 
-      check(!scene_set_member_contains(set_member(world, e1), setA));
-      check(!scene_set_member_contains(set_member(world, e1), setB));
+      check(!scene_set_member_contains(set_member(w, e1), setA));
+      check(!scene_set_member_contains(set_member(w, e1), setB));
     }
   }
 
@@ -222,6 +222,25 @@ spec(set) {
       check(!scene_set_contains(set_env(w), set, e1));
       check(!scene_set_contains(set_env(w), set, e2));
       check(!scene_set_contains(set_env(w), set, e3));
+    }
+  }
+
+  it("updates set-members when clearing a set") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("testA");
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    {
+      scene_set_add(set_env(w), set, e1);
+      ecs_run_sync(runner);
+
+      check(scene_set_member_contains(set_member(w, e1), set));
+    }
+    {
+      scene_set_clear(set_env(w), set);
+      ecs_run_sync(runner);
+
+      check(!scene_set_member_contains(set_member(w, e1), set));
     }
   }
 
