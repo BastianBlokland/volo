@@ -227,7 +227,10 @@ ecs_comp_define(SceneSetEnvComp) {
   DynArray    requests; // SetRequest[]
 };
 
-ecs_comp_define(SceneSetMemberComp) { StringHash sets[scene_set_member_max]; };
+ecs_comp_define(SceneSetMemberComp) {
+  bool       added;
+  StringHash sets[scene_set_member_max];
+};
 
 static void ecs_destruct_set_env_comp(void* data) {
   SceneSetEnvComp* env = data;
@@ -309,29 +312,31 @@ ecs_system_define(SceneSetInitSys) {
   // Prune the removed entities from all sets.
   set_storage_prune(env->storage, world, set_member_valid);
 
+  // TODO: When removing the SceneSetMemberComp component from an entity that was in a well-known
+  // set with tags then currently those tags are not cleared.
+
   EcsView* memberView = ecs_world_view_t(world, MemberView);
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity     = ecs_view_entity(itr);
-    const SceneSetMemberComp* memberComp = ecs_view_read_t(itr, SceneSetMemberComp);
-    SceneTagComp*             tagComp    = ecs_view_write_t(itr, SceneTagComp);
-
-    if (tagComp) {
-      tagComp->tags &= ~g_setBuiltinTags;
+    const EcsEntityId   entity = ecs_view_entity(itr);
+    SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
+    if (member->added) {
+      continue;
     }
+    SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
 
-    array_for_t(memberComp->sets, StringHash, setPtr) {
-      const StringHash set = *setPtr;
-      if (!set) {
-        continue; // Empty slot.
+    for (u32 i = 0; i != array_elems(member->sets); ++i) {
+      if (!member->sets[i]) {
+        continue; // Unused slot.
       }
-      if (UNLIKELY(!set_storage_add(env->storage, set, entity))) {
+      if (UNLIKELY(!set_storage_add(env->storage, member->sets[i], entity))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
         break;
       }
       if (tagComp) {
-        tagComp->tags |= set_builtin_tags(set);
+        tagComp->tags |= set_builtin_tags(member->sets[i]);
       }
     }
+    member->added = true;
   }
 }
 
