@@ -228,10 +228,8 @@ ecs_comp_define(SceneSetEnvComp) {
   DynArray    requests; // SetRequest[]
 };
 
-ecs_comp_define(SceneSetMemberComp) {
-  bool       initialized;
-  StringHash sets[scene_set_member_max];
-};
+ecs_comp_define(SceneSetMemberComp) { StringHash sets[scene_set_member_max]; };
+ecs_comp_define(SceneSetMemberStateComp) { bool initialized; };
 
 static void ecs_destruct_set_env_comp(void* data) {
   SceneSetEnvComp* env = data;
@@ -277,19 +275,23 @@ static void ecs_combine_set_member(void* dataA, void* dataB) {
 
   for (u32 i = 0; i != array_elems(compB->sets); ++i) {
     if (compB->sets[i]) {
-      if (LIKELY(set_member_add(compA, compB->sets[i]))) {
-        compA->initialized = false;
-      } else {
+      if (!UNLIKELY(set_member_add(compA, compB->sets[i]))) {
         log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(compB->sets))));
       }
     }
   }
 }
 
+static void ecs_combine_set_member_state(void* dataA, void* dataB) {
+  ((SceneSetMemberStateComp*)dataA)->initialized = false;
+  (void)dataB;
+}
+
 ecs_view_define(EnvView) { ecs_access_write(SceneSetEnvComp); }
 
 ecs_view_define(MemberView) {
   ecs_access_write(SceneSetMemberComp);
+  ecs_access_write(SceneSetMemberStateComp);
   ecs_access_maybe_write(SceneTagComp);
 }
 
@@ -320,12 +322,13 @@ ecs_system_define(SceneSetInitSys) {
 
   EcsView* memberView = ecs_world_view_t(world, MemberView);
   for (EcsIterator* itr = ecs_view_itr(memberView); ecs_view_walk(itr);) {
-    const EcsEntityId   entity = ecs_view_entity(itr);
-    SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
-    if (member->initialized) {
+    const EcsEntityId        entity      = ecs_view_entity(itr);
+    SceneSetMemberStateComp* memberState = ecs_view_write_t(itr, SceneSetMemberStateComp);
+    if (memberState->initialized) {
       continue;
     }
-    SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
+    SceneSetMemberComp* member  = ecs_view_write_t(itr, SceneSetMemberComp);
+    SceneTagComp*       tagComp = ecs_view_write_t(itr, SceneTagComp);
 
     for (u32 i = 0; i != array_elems(member->sets); ++i) {
       if (!member->sets[i]) {
@@ -339,7 +342,7 @@ ecs_system_define(SceneSetInitSys) {
         tagComp->tags |= set_wellknown_tags(member->sets[i]);
       }
     }
-    member->initialized = true;
+    memberState->initialized = true;
   }
 }
 
@@ -372,6 +375,7 @@ ecs_system_define(SceneSetUpdateSys) {
         }
       } else {
         ecs_world_add_t(world, req->target, SceneSetMemberComp, .sets[0] = req->set);
+        ecs_world_add_t(world, req->target, SceneSetMemberStateComp);
       }
       if (UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
@@ -412,6 +416,7 @@ ecs_module_init(scene_set_module) {
 
   ecs_register_comp(SceneSetEnvComp, .destructor = ecs_destruct_set_env_comp);
   ecs_register_comp(SceneSetMemberComp, .combinator = ecs_combine_set_member);
+  ecs_register_comp(SceneSetMemberStateComp, .combinator = ecs_combine_set_member_state);
 
   ecs_register_view(EnvView);
   ecs_register_view(MemberView);
@@ -431,6 +436,7 @@ void scene_set_member_create(
       set_member_add(member, sets[i]);
     }
   }
+  ecs_world_add_t(world, e, SceneSetMemberStateComp);
 }
 
 bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
