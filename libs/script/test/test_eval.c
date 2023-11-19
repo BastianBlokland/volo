@@ -51,9 +51,9 @@ spec(eval) {
     doc = script_create(g_alloc_heap);
     mem = script_mem_create(g_alloc_heap);
 
-    script_mem_set(mem, string_hash_lit("v1"), script_bool(true));
-    script_mem_set(mem, string_hash_lit("v2"), script_num(1337));
-    script_mem_set(mem, string_hash_lit("v3"), script_null());
+    script_mem_store(mem, string_hash_lit("v1"), script_bool(true));
+    script_mem_store(mem, string_hash_lit("v2"), script_num(1337));
+    script_mem_store(mem, string_hash_lit("v3"), script_null());
 
     binder                         = script_binder_create(g_alloc_heap);
     const String     documentation = string_empty;
@@ -307,9 +307,9 @@ spec(eval) {
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
     check(!script_panic_valid(&evalRes.panic));
-    check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_num(42));
-    check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_num(1337));
-    check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
+    check_eq_val(script_mem_load(mem, string_hash_lit("test1")), script_num(42));
+    check_eq_val(script_mem_load(mem, string_hash_lit("test2")), script_num(1337));
+    check_eq_val(script_mem_load(mem, string_hash_lit("test3")), script_bool(false));
   }
 
   it("can modify the context") {

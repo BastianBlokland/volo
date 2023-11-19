@@ -104,12 +104,12 @@ void script_mem_destroy(ScriptMem* mem) {
   alloc_free_t(mem->alloc, mem);
 }
 
-ScriptVal script_mem_get(const ScriptMem* mem, const StringHash key) {
+ScriptVal script_mem_load(const ScriptMem* mem, const StringHash key) {
   const u32 slotIndex = script_mem_slot_index(mem->slotKeys, mem->slotCount, key);
   return mem->slotValues[slotIndex];
 }
 
-void script_mem_set(ScriptMem* mem, const StringHash key, const ScriptVal value) {
+void script_mem_store(ScriptMem* mem, const StringHash key, const ScriptVal value) {
   const u32 slotIndex        = script_mem_insert(mem, key);
   mem->slotValues[slotIndex] = value;
 }

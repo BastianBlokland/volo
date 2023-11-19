@@ -342,7 +342,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideNullMemory && !script_val_has(script_mem_get(memory, itr.key))) {
+    if (panelComp->hideNullMemory && !script_val_has(script_mem_load(memory, itr.key))) {
       continue;
     }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
@@ -358,7 +358,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugMemoryEntry, entry) {
-      ScriptVal value = script_mem_get(memory, entry->key);
+      ScriptVal value = script_mem_load(memory, entry->key);
 
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
@@ -370,7 +370,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
       ui_table_next_column(canvas, &table);
 
       if (memory_draw_val(canvas, &value)) {
-        script_mem_set(memory, entry->key, value);
+        script_mem_store(memory, entry->key, value);
       }
     }
   } else {
