@@ -14,7 +14,7 @@
 
 /**
  * TODO: Add combinator for set-member.
- * TODO: Disallow duplicate adds
+ * TODO: Verify that set-members never contain duplicate sets.
  */
 
 typedef struct {
@@ -234,6 +234,11 @@ static bool set_member_add(EcsIterator* itr, const StringHash set) {
     tagComp->tags |= set_builtin_tags(set);
   }
   SceneSetMemberComp* memberComp = ecs_view_write_t(itr, SceneSetMemberComp);
+  for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
+    if (memberComp->sets[i] == set) {
+      return true; // Already was part of this set.
+    }
+  }
   for (u32 i = 0; i != array_elems(memberComp->sets); ++i) {
     if (!memberComp->sets[i]) {
       memberComp->sets[i] = set;
