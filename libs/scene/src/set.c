@@ -11,10 +11,7 @@
 #include "scene_tag.h"
 
 #define scene_set_max 64
-
-/**
- * TODO: Verify that set-members never contain duplicate sets.
- */
+#define scene_set_member_max 8
 
 typedef struct {
   StringHash  ids[scene_set_max];
@@ -220,7 +217,7 @@ ecs_comp_define(SceneSetEnvComp) {
   DynArray    requests; // SetRequest[]
 };
 
-ecs_comp_define_public(SceneSetMemberComp);
+ecs_comp_define(SceneSetMemberComp) { StringHash sets[scene_set_member_max]; };
 
 static void ecs_destruct_set_env_comp(void* data) {
   SceneSetEnvComp* env = data;
@@ -403,12 +400,22 @@ ecs_module_init(scene_set_module) {
   ecs_order(SceneSetUpdateSys, SceneOrder_SetUpdate);
 }
 
-bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
-  return set_storage_contains(env->storage, set, e);
+void scene_set_member_create(
+    EcsWorld* world, const EcsEntityId e, const StringHash* sets, const u32 setCount) {
+  SceneSetMemberComp* member = ecs_world_add_t(world, e, SceneSetMemberComp);
+  for (u32 i = 0; i != setCount; ++i) {
+    if (sets[i]) {
+      set_member_add(member, sets[i]);
+    }
+  }
 }
 
 bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
   return set_member_contains(member, set);
+}
+
+bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
+  return set_storage_contains(env->storage, set, e);
 }
 
 u32 scene_set_count(const SceneSetEnvComp* env, const StringHash set) {

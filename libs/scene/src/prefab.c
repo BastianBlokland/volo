@@ -167,10 +167,7 @@ static void setup_name(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitName* t
 }
 
 static void setup_set_member(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSetMember* t) {
-  ASSERT(array_elems(t->sets) <= scene_set_member_sets_max, "SetMember trait has too many sets");
-
-  SceneSetMemberComp* setMember = ecs_world_add_t(w, e, SceneSetMemberComp);
-  mem_cpy(array_mem(setMember->sets), array_mem(t->sets));
+  scene_set_member_create(w, e, t->sets, array_elems(t->sets));
 }
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
