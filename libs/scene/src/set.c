@@ -45,7 +45,6 @@ static u32 set_storage_index(const SetStorage* s, const StringHash set) {
   ASSERT((scene_set_max % 8) == 0, "Only multiple of 8 set counts are supported");
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
-
   for (u32 setIdx = 0; setIdx != (scene_set_max / 8); setIdx += 8) {
     const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx), setVec);
     const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx + 4), setVec);
@@ -55,7 +54,6 @@ static u32 set_storage_index(const SetStorage* s, const StringHash set) {
       return setIdx + intrinsic_ctz_32(eqMask) / 2; // Div 2 due to 16 bit entries.
     }
   }
-
   return sentinel_u32;
 #else
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
@@ -68,12 +66,27 @@ static u32 set_storage_index(const SetStorage* s, const StringHash set) {
 }
 
 static u32 set_storage_index_free(const SetStorage* s) {
+#if scene_set_simd_enable
+  ASSERT((scene_set_max % 8) == 0, "Only multiple of 8 set counts are supported");
+
+  for (u32 setIdx = 0; setIdx != (scene_set_max / 8); setIdx += 8) {
+    const SimdVec freeA = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx), simd_vec_zero());
+    const SimdVec freeB = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx + 4), simd_vec_zero());
+    const u32     freeMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(freeA, freeB));
+
+    if (freeMask) {
+      return setIdx + intrinsic_ctz_32(freeMask) / 2; // Div 2 due to 16 bit entries.
+    }
+  }
+  return sentinel_u32;
+#else
   for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
     if (!s->ids[setIdx]) {
       return setIdx;
     }
   }
   return sentinel_u32;
+#endif
 }
 
 static void set_storage_clear(SetStorage* s, const StringHash set) {
