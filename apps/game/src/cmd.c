@@ -174,8 +174,7 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
     return;
   }
 
-  const StringHash selectedSet = string_hash_lit("selected");
-  if (cmdMove->object == scene_set_main(setEnv, selectedSet)) {
+  if (cmdMove->object == scene_set_main(setEnv, g_sceneSetSelected)) {
     EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
     if (prodItr && cmd_is_player_owned(prodItr)) {
       SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
@@ -212,25 +211,24 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
 
 static void cmd_execute(
     EcsWorld* world, const CmdControllerComp* controller, SceneSetEnvComp* setEnv, const Cmd* cmd) {
-  const StringHash selectedSet = string_hash_lit("selected");
   switch (cmd->type) {
   case Cmd_Select:
     if (ecs_world_exists(world, cmd->select.object)) {
-      scene_set_add(setEnv, selectedSet, cmd->select.object);
+      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object);
     }
     break;
   case Cmd_SelectGroup:
 
-    scene_set_clear(setEnv, selectedSet);
+    scene_set_clear(setEnv, g_sceneSetSelected);
     dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
-      scene_set_add(setEnv, selectedSet, *entity);
+      scene_set_add(setEnv, g_sceneSetSelected, *entity);
     }
     break;
   case Cmd_Deselect:
-    scene_set_remove(setEnv, selectedSet, cmd->deselect.object);
+    scene_set_remove(setEnv, g_sceneSetSelected, cmd->deselect.object);
     break;
   case Cmd_DeselectAll:
-    scene_set_clear(setEnv, selectedSet);
+    scene_set_clear(setEnv, g_sceneSetSelected);
     break;
   case Cmd_Move:
     cmd_execute_move(world, setEnv, &cmd->move);

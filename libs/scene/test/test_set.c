@@ -67,7 +67,7 @@ spec(set) {
 
   it("sets tags when initializing a set-member to well-known sets") {
     EcsWorld*        w      = world;
-    const StringHash sets[] = {string_hash_lit("selected"), string_hash_lit("unit")};
+    const StringHash sets[] = {g_sceneSetSelected, string_hash_lit("unit")};
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
@@ -133,7 +133,7 @@ spec(set) {
 
   it("adds tags when adding to a well-known set") {
     EcsWorld*        w   = world;
-    const StringHash set = string_hash_lit("selected");
+    const StringHash set = g_sceneSetSelected;
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
@@ -232,7 +232,7 @@ spec(set) {
 
   it("removes tags when removing from a well-known set") {
     EcsWorld*        w   = world;
-    const StringHash set = string_hash_lit("selected");
+    const StringHash set = g_sceneSetSelected;
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
@@ -304,7 +304,7 @@ spec(set) {
 
   it("removes tags when clearing a well-known set") {
     EcsWorld*        w   = world;
-    const StringHash set = string_hash_lit("selected");
+    const StringHash set = g_sceneSetSelected;
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);

@@ -139,7 +139,7 @@ static void update_group_input(
     if (input_modifiers(input) & InputModifier_Control) {
       // Assign the current selection to this group.
       cmd_group_clear(cmdController, i);
-      const StringHash s = string_hash_lit("selected");
+      const StringHash s = g_sceneSetSelected;
       for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
         cmd_group_add(cmdController, i, *e);
       }
@@ -278,7 +278,7 @@ static bool placement_update(
     if (!scene_product_placement_active(production)) {
       continue; // No placement active.
     }
-    if (ecs_view_entity(itr) == scene_set_main(setEnv, string_hash_lit("selected"))) {
+    if (ecs_view_entity(itr) == scene_set_main(setEnv, g_sceneSetSelected)) {
       placementActive = true;
 
       // Update placement position.
@@ -410,7 +410,7 @@ static void input_order_attack(
   input_report_command(debugStats, string_lit("Attack"));
 
   // Push attack commands.
-  const StringHash s = string_hash_lit("selected");
+  const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     cmd_push_attack(cmdController, *e, target);
   }
@@ -428,10 +428,8 @@ static void input_order_move(
   input_indicator_move(world, targetPos);
   input_report_command(debugStats, string_lit("Move"));
 
-  const StringHash selectedSet = string_hash_lit("selected");
-
   // Find unblocked cells on the nav-grid to move to.
-  const u32                 selectionCount = scene_set_count(setEnv, selectedSet);
+  const u32                 selectionCount = scene_set_count(setEnv, g_sceneSetSelected);
   GeoNavCell                navCells[1024];
   const GeoNavCellContainer navCellContainer = {
       .cells    = navCells,
@@ -441,7 +439,7 @@ static void input_order_move(
   const u32 unblockedCount = scene_nav_closest_unblocked_n(nav, targetNavCell, navCellContainer);
 
   // Push the move commands.
-  const EcsEntityId* selection = scene_set_begin(setEnv, selectedSet);
+  const EcsEntityId* selection = scene_set_begin(setEnv, g_sceneSetSelected);
   for (u32 i = 0; i != selectionCount; ++i) {
     const EcsEntityId entity = selection[i];
     GeoVector         pos;
@@ -465,7 +463,7 @@ static void input_order_stop(
   input_report_command(debugStats, string_lit("Stop"));
 
   // Push the stop commands.
-  const StringHash s = string_hash_lit("selected");
+  const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     cmd_push_stop(cmdController, *e);
   }
@@ -584,7 +582,7 @@ static void update_camera_interact(
     state->hoveredEntity = 0;
   }
 
-  const bool hasSelection = scene_set_count(setEnv, string_hash_lit("selected")) != 0;
+  const bool hasSelection = scene_set_count(setEnv, g_sceneSetSelected) != 0;
   if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
     input_order(world, cmdController, collisionEnv, setEnv, terrain, nav, debugStats, &inputRay);
   }
@@ -661,8 +659,6 @@ ecs_system_define(InputUpdateSys) {
   EcsView* cameraView     = ecs_world_view_t(world, CameraView);
   EcsView* productionView = ecs_world_view_t(world, ProductionView);
 
-  const StringHash selectedSet = string_hash_lit("selected");
-
   for (EcsIterator* camItr = ecs_view_itr(cameraView); ecs_view_walk(camItr);) {
     const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
@@ -672,8 +668,8 @@ ecs_system_define(InputUpdateSys) {
       continue;
     }
 
-    if (scene_set_count(setEnv, selectedSet) != state->lastSelectionCount) {
-      state->lastSelectionCount = scene_set_count(setEnv, selectedSet);
+    if (scene_set_count(setEnv, g_sceneSetSelected) != state->lastSelectionCount) {
+      state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
       input_report_selection_count(debugStats, state->lastSelectionCount);
     }
 

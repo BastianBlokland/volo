@@ -547,8 +547,6 @@ static void output_panel_tab_draw(
     ui_label(canvas, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
   }
 
-  const StringHash selectedSet = string_hash_lit("selected");
-
   panelComp->lastRowCount = 0;
   dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
     if (panelComp->outputMode == DebugScriptOutputMode_Self) {
@@ -564,15 +562,15 @@ static void output_panel_tab_draw(
     ui_layout_push(canvas);
     ui_layout_inner(
         canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
-    const bool selected = scene_set_main(setEnv, selectedSet) == entry->entity;
+    const bool selected = scene_set_main(setEnv, g_sceneSetSelected) == entry->entity;
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
-      scene_set_clear(setEnv, selectedSet);
-      scene_set_add(setEnv, selectedSet, entry->entity);
+      scene_set_clear(setEnv, g_sceneSetSelected);
+      scene_set_add(setEnv, g_sceneSetSelected, entry->entity);
     }
     ui_layout_pop(canvas);
 
@@ -703,7 +701,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
-  const StringHash selectedSet = string_hash_lit("selected");
+  const StringHash selectedSet = g_sceneSetSelected;
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));

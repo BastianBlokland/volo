@@ -233,7 +233,7 @@ static void grid_panel_draw(
 }
 
 static f32 debug_selection_height(const SceneSetEnvComp* setEnv, EcsView* transformView) {
-  const StringHash set = string_hash_lit("selected");
+  const StringHash set = g_sceneSetSelected;
 
   EcsIterator* transformItr  = ecs_view_itr(transformView);
   f32          averageHeight = 0.0f;

@@ -412,7 +412,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
   DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
 
   const SceneSetEnvComp* setEnv      = ecs_view_read_t(globalItr, SceneSetEnvComp);
-  const StringHash       selectedSet = string_hash_lit("selected");
+  const StringHash       selectedSet = g_sceneSetSelected;
   const DebugAnimSubject subject = debug_anim_subject(world, scene_set_main(setEnv, selectedSet));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -520,7 +520,7 @@ ecs_system_define(DebugAnimationDrawSys) {
 
   GeoMatrix jointMatrices[scene_skeleton_joints_max];
 
-  const StringHash s = string_hash_lit("selected");
+  const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     const DebugAnimSubject subject = debug_anim_subject(world, *e);
     if (!subject.valid) {

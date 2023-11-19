@@ -141,10 +141,8 @@ static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash p
 static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
 
-  const StringHash selectedSet = string_hash_lit("selected");
-
   if (!(input_modifiers(ctx->input) & InputModifier_Control)) {
-    scene_set_clear(ctx->setEnv, selectedSet);
+    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
   }
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
@@ -152,7 +150,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     if (instComp->prefabId == prefabId) {
-      scene_set_add(ctx->setEnv, selectedSet, ecs_view_entity(itr));
+      scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr));
     }
   }
 }
@@ -182,11 +180,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .faction  = ctx->panelComp->createFaction,
       });
 
-  const StringHash selectedSet = string_hash_lit("selected");
-  scene_set_clear(ctx->setEnv, selectedSet);
+  scene_set_clear(ctx->setEnv, g_sceneSetSelected);
 
   if (!(input_modifiers(ctx->input) & InputModifier_Shift)) {
-    scene_set_add(ctx->setEnv, selectedSet, spawnedEntity);
+    scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
   if (!ctx->panelComp->createMultiple) {

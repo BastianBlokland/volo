@@ -948,7 +948,7 @@ ecs_system_define(HudDrawUiSys) {
     hud_groups_draw(c, cmd);
     hud_minimap_draw(c, hud, inputState, cam, camTrans, minimapMarkerView);
 
-    if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, string_hash_lit("selected")))) {
+    if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_production_draw(c, hud, input, drawItr, productionItr);
     }
 
