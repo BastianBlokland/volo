@@ -19,7 +19,7 @@ spec(mem) {
     check_eq_val(script_mem_get(m, string_hash_lit("test1")), script_num(42));
     check_eq_val(script_mem_get(m, string_hash_lit("test2")), script_null());
 
-    script_mem_set_null(m, string_hash_lit("test1"));
+    script_mem_set(m, string_hash_lit("test1"), script_null());
 
     check_eq_val(script_mem_get(m, string_hash_lit("test1")), script_null());
     check_eq_val(script_mem_get(m, string_hash_lit("test2")), script_null());
@@ -48,13 +48,13 @@ spec(mem) {
     script_mem_set(m, string_hash_lit("test"), script_num(42));
     check_eq_val(script_mem_get(m, string_hash_lit("test")), script_num(42));
 
-    script_mem_set_null(m, string_hash_lit("test"));
+    script_mem_set(m, string_hash_lit("test"), script_null());
     check_eq_val(script_mem_get(m, string_hash_lit("test")), script_null());
   }
 
   it("can update previously unset value") {
     script_mem_set(m, string_hash_lit("test"), script_num(42));
-    script_mem_set_null(m, string_hash_lit("test"));
+    script_mem_set(m, string_hash_lit("test"), script_null());
 
     check_eq_val(script_mem_get(m, string_hash_lit("test")), script_null());
 

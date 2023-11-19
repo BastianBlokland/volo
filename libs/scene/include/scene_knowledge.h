@@ -12,7 +12,6 @@ ecs_comp_extern(SceneKnowledgeComp);
  */
 ScriptVal        scene_knowledge_get(const SceneKnowledgeComp*, StringHash key);
 void             scene_knowledge_set(SceneKnowledgeComp*, StringHash key, ScriptVal);
-void             scene_knowledge_set_null(SceneKnowledgeComp*, StringHash key);
 const ScriptMem* scene_knowledge_memory(const SceneKnowledgeComp*);
 ScriptMem*       scene_knowledge_memory_mut(SceneKnowledgeComp*);
 

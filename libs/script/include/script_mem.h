@@ -26,7 +26,6 @@ void script_mem_destroy(ScriptMem*);
  */
 ScriptVal script_mem_get(const ScriptMem*, StringHash key);
 void      script_mem_set(ScriptMem*, StringHash key, ScriptVal);
-void      script_mem_set_null(ScriptMem*, StringHash key);
 
 /**
  * Iterator for iterating memory keys.

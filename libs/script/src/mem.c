@@ -114,11 +114,6 @@ void script_mem_set(ScriptMem* mem, const StringHash key, const ScriptVal value)
   mem->slotValues[slotIndex] = value;
 }
 
-void script_mem_set_null(ScriptMem* mem, const StringHash key) {
-  const u32 slotIndex        = script_mem_insert(mem, key);
-  mem->slotValues[slotIndex] = val_null();
-}
-
 ScriptMemItr script_mem_begin(const ScriptMem* mem) {
   return script_mem_next(mem, (ScriptMemItr){0});
 }

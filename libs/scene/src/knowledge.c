@@ -37,10 +37,6 @@ void scene_knowledge_set(SceneKnowledgeComp* k, const StringHash key, const Scri
   script_mem_set(k->memory, key, value);
 }
 
-void scene_knowledge_set_null(SceneKnowledgeComp* k, const StringHash key) {
-  script_mem_set_null(k->memory, key);
-}
-
 const ScriptMem* scene_knowledge_memory(const SceneKnowledgeComp* k) { return k->memory; }
 
 ScriptMem* scene_knowledge_memory_mut(SceneKnowledgeComp* k) { return k->memory; }
