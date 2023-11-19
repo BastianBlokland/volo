@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -19,6 +20,7 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_set.h"
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -80,11 +82,10 @@ static void eval_enum_init_capability() {
 }
 
 static void eval_enum_init_activity() {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Selected"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 1);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 2);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 3);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 2);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 3);
 }
 
 static void eval_enum_init_vfx_param() {
@@ -233,9 +234,10 @@ typedef struct {
 } ScriptAction;
 
 ecs_view_define(EvalGlobalView) {
-  ecs_access_read(SceneNavEnvComp);
-  ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTimeComp);
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
@@ -491,6 +493,38 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e   = script_arg_entity(args, 0, err);
+  const StringHash  set = script_arg_str(args, 1, err);
+  if (UNLIKELY(!e || !set)) {
+    return script_null();
+  }
+  const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
+  return script_bool(scene_set_contains(setEnv, set, e));
+}
+
+static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
+
+  const StringHash set = script_arg_str(args, 0, err);
+  if (UNLIKELY(!set)) {
+    ctx->queryCount = ctx->queryItr = 0;
+    return script_null();
+  }
+
+  const EcsEntityId* begin = scene_set_begin(setEnv, set);
+  const EcsEntityId* end   = scene_set_end(setEnv, set);
+
+  ctx->queryCount = math_min((u32)(end - begin), scene_query_max_hits);
+  ctx->queryItr   = 0;
+
+  mem_cpy(
+      mem_create(ctx->queryBuffer, sizeof(EcsEntityId) * scene_query_max_hits),
+      mem_create(begin, sizeof(EcsEntityId) * ctx->queryCount));
+
+  return script_null();
+}
+
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
@@ -508,6 +542,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   }
 
   if (UNLIKELY(script_error_valid(err))) {
+    ctx->queryCount = ctx->queryItr = 0;
     return script_null();
   }
 
@@ -678,27 +713,22 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(args, 0, err);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
-  case 0 /* Selected */: {
-    const EcsIterator*  itr     = ecs_view_maybe_jump(ctx->tagItr, e);
-    const SceneTagComp* tagComp = itr ? ecs_view_read_t(itr, SceneTagComp) : null;
-    return script_bool(tagComp && (tagComp->tags & SceneTags_Selected) != 0);
-  }
-  case 1 /* Moving */: {
+  case 0 /* Moving */: {
     const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
-  case 2 /* Traveling */: {
+  case 1 /* Traveling */: {
     const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
-  case 3 /* Attacking */: {
+  case 2 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
-  case 4 /* Firing */: {
+  case 3 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
@@ -1115,6 +1145,8 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("faction"),            eval_faction);
     eval_bind(b, string_lit("health"),             eval_health);
     eval_bind(b, string_lit("time"),               eval_time);
+    eval_bind(b, string_lit("set"),                eval_set);
+    eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
     eval_bind(b, string_lit("query_next"),         eval_query_next);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
@@ -1381,7 +1413,7 @@ typedef struct {
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
-    scene_knowledge_set(knowledge, a->memKey, a->value);
+    scene_knowledge_store(knowledge, a->memKey, a->value);
   }
 }
 
@@ -1390,7 +1422,7 @@ static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
     if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
       const SceneKnowledgeComp* target = ecs_view_read_t(ctx->knowledgeItr, SceneKnowledgeComp);
-      scene_knowledge_set(knowledge, a->memKey, scene_knowledge_get(target, a->memKey));
+      scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
     }
   }
 }

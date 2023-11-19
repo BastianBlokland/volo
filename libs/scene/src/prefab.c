@@ -24,6 +24,7 @@
 #include "scene_product.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
+#include "scene_set.h"
 #include "scene_sound.h"
 #include "scene_status.h"
 #include "scene_tag.h"
@@ -31,7 +32,6 @@
 #include "scene_taunt.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
-#include "scene_unit.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
 
@@ -164,6 +164,10 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
 
 static void setup_name(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitName* t) {
   ecs_world_add_t(w, e, SceneNameComp, .name = t->name);
+}
+
+static void setup_set_member(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSetMember* t) {
+  scene_set_member_create(w, e, t->sets, array_elems(t->sets));
 }
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
@@ -385,6 +389,9 @@ static void setup_trait(
   case AssetPrefabTrait_Name:
     setup_name(w, e, &t->data_name);
     return;
+  case AssetPrefabTrait_SetMember:
+    setup_set_member(w, e, &t->data_setMember);
+    return;
   case AssetPrefabTrait_Renderable:
     setup_renderable(w, e, &t->data_renderable);
     return;
@@ -466,17 +473,10 @@ static void setup_prefab(
   }
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
+  ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
 
-  SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
   if (prefab->flags & (AssetPrefabFlags_Infantry | AssetPrefabFlags_Structure)) {
-    ecs_world_add_empty_t(w, e, SceneUnitComp);
-    if (prefab->flags & AssetPrefabFlags_Infantry) {
-      ecs_world_add_empty_t(w, e, SceneUnitInfantryComp);
-    } else if (prefab->flags & AssetPrefabFlags_Structure) {
-      ecs_world_add_empty_t(w, e, SceneUnitStructureComp);
-    }
     ecs_world_add_t(w, e, SceneVisibilityComp);
-    tagComp->tags |= SceneTags_Unit;
   }
 
   if (spec->faction != SceneFaction_None) {

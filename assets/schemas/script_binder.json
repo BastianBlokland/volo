@@ -139,8 +139,21 @@
       }
     },
     {
+      "name": "query_set",
+      "doc": "Find all entities in the given set.\n\n*Note*: Use `query_next()` to retrieve the results.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "set",
+            "mask": "str"
+          }
+        ]
+      }
+    },
+    {
       "name": "active",
-      "doc": "Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Selected`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`",
+      "doc": "Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`",
       "sig": {
         "ret": [
           "null",
@@ -723,6 +736,26 @@
           {
             "name": "v",
             "mask": "entity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "set",
+      "doc": "Test if the target entity is contained in the given set.",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "set",
+            "mask": "str"
           }
         ]
       }

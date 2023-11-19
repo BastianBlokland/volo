@@ -12,7 +12,7 @@
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_prefab.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "scene_terrain.h"
 #include "ui.h"
 
@@ -57,7 +57,7 @@ typedef struct {
   const InputManagerComp*      input;
   DebugShapeComp*              shape;
   DebugStatsGlobalComp*        globalStats;
-  SceneSelectionComp*          selection;
+  SceneSetEnvComp*             setEnv;
 } PrefabPanelContext;
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
@@ -142,7 +142,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
 
   if (!(input_modifiers(ctx->input) & InputModifier_Control)) {
-    scene_selection_clear(ctx->selection);
+    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
   }
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
@@ -150,7 +150,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     if (instComp->prefabId == prefabId) {
-      scene_selection_add(ctx->selection, ecs_view_entity(itr));
+      scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr));
     }
   }
 }
@@ -180,10 +180,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .faction  = ctx->panelComp->createFaction,
       });
 
-  scene_selection_clear(ctx->selection);
+  scene_set_clear(ctx->setEnv, g_sceneSetSelected);
 
   if (!(input_modifiers(ctx->input) & InputModifier_Shift)) {
-    scene_selection_add(ctx->selection, spawnedEntity);
+    scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
   if (!ctx->panelComp->createMultiple) {
@@ -418,7 +418,7 @@ ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(InputManagerComp);
-  ecs_access_write(SceneSelectionComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -462,7 +462,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
         .input       = input,
         .shape       = ecs_view_write_t(globalItr, DebugShapeComp),
         .globalStats = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
-        .selection   = ecs_view_write_t(globalItr, SceneSelectionComp),
+        .setEnv      = ecs_view_write_t(globalItr, SceneSetEnvComp),
     };
     switch (panelComp->mode) {
     case PrefabPanelMode_Create:

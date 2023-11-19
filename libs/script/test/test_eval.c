@@ -51,9 +51,9 @@ spec(eval) {
     doc = script_create(g_alloc_heap);
     mem = script_mem_create(g_alloc_heap);
 
-    script_mem_set(mem, string_hash_lit("v1"), script_bool(true));
-    script_mem_set(mem, string_hash_lit("v2"), script_num(1337));
-    script_mem_set(mem, string_hash_lit("v3"), script_null());
+    script_mem_store(mem, string_hash_lit("v1"), script_bool(true));
+    script_mem_store(mem, string_hash_lit("v2"), script_num(1337));
+    script_mem_store(mem, string_hash_lit("v3"), script_null());
 
     binder                         = script_binder_create(g_alloc_heap);
     const String     documentation = string_empty;
@@ -120,11 +120,11 @@ spec(eval) {
         {string_static("$v3"), script_null()},
         {string_static("$non_existent"), script_null()},
         {string_static("$v4 = true"), script_bool(true)},
-        {string_static("mem_get(\"v1\")"), script_bool(true)},
-        {string_static("mem_get(\"v2\")"), script_num(1337)},
-        {string_static("mem_get(\"v3\")"), script_null()},
-        {string_static("mem_get(\"non_existent\")"), script_null()},
-        {string_static("mem_set(\"v4\", true)"), script_bool(true)},
+        {string_static("mem_load(\"v1\")"), script_bool(true)},
+        {string_static("mem_load(\"v2\")"), script_num(1337)},
+        {string_static("mem_load(\"v3\")"), script_null()},
+        {string_static("mem_load(\"non_existent\")"), script_null()},
+        {string_static("mem_store(\"v4\", true)"), script_bool(true)},
 
         // Arithmetic.
         {string_static("-42"), script_num(-42)},
@@ -307,9 +307,9 @@ spec(eval) {
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
     check(!script_panic_valid(&evalRes.panic));
-    check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_num(42));
-    check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_num(1337));
-    check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
+    check_eq_val(script_mem_load(mem, string_hash_lit("test1")), script_num(42));
+    check_eq_val(script_mem_load(mem, string_hash_lit("test2")), script_num(1337));
+    check_eq_val(script_mem_load(mem, string_hash_lit("test3")), script_bool(false));
   }
 
   it("can modify the context") {

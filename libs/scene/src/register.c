@@ -22,7 +22,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_projectile_module);
   ecs_register_module(def, scene_renderable_module);
   ecs_register_module(def, scene_script_module);
-  ecs_register_module(def, scene_selection_module);
+  ecs_register_module(def, scene_set_module);
   ecs_register_module(def, scene_skeleton_module);
   ecs_register_module(def, scene_sound_module);
   ecs_register_module(def, scene_status_module);
@@ -32,7 +32,6 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_terrain_module);
   ecs_register_module(def, scene_time_module);
   ecs_register_module(def, scene_transform_module);
-  ecs_register_module(def, scene_unit_module);
   ecs_register_module(def, scene_vfx_module);
   ecs_register_module(def, scene_visibility_module);
   ecs_register_module(def, scene_weapon_module);

@@ -19,7 +19,7 @@
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_script.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "script_mem.h"
 #include "script_panic.h"
 #include "ui.h"
@@ -342,7 +342,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideNullMemory && !script_val_has(script_mem_get(memory, itr.key))) {
+    if (panelComp->hideNullMemory && !script_val_has(script_mem_load(memory, itr.key))) {
       continue;
     }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
@@ -358,7 +358,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugMemoryEntry, entry) {
-      ScriptVal value = script_mem_get(memory, entry->key);
+      ScriptVal value = script_mem_load(memory, entry->key);
 
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
@@ -370,7 +370,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
       ui_table_next_column(canvas, &table);
 
       if (memory_draw_val(canvas, &value)) {
-        script_mem_set(memory, entry->key, value);
+        script_mem_store(memory, entry->key, value);
       }
     }
   } else {
@@ -520,7 +520,7 @@ static void output_panel_tab_draw(
     UiCanvasComp*           canvas,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
-    SceneSelectionComp*     selection,
+    SceneSetEnvComp*        setEnv,
     EcsIterator*            subjectItr) {
   output_options_draw(canvas, panelComp, tracker);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
@@ -562,15 +562,15 @@ static void output_panel_tab_draw(
     ui_layout_push(canvas);
     ui_layout_inner(
         canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
-    const bool selected = scene_selection_main(selection) == entry->entity;
+    const bool selected = scene_set_main(setEnv, g_sceneSetSelected) == entry->entity;
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
-      scene_selection_clear(selection);
-      scene_selection_add(selection, entry->entity);
+      scene_set_clear(setEnv, g_sceneSetSelected);
+      scene_set_add(setEnv, g_sceneSetSelected, entry->entity);
     }
     ui_layout_pop(canvas);
 
@@ -603,7 +603,7 @@ static void script_panel_draw(
     UiCanvasComp*           canvas,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
-    SceneSelectionComp*     selection,
+    SceneSetEnvComp*        setEnv,
     EcsIterator*            assetItr,
     EcsIterator*            subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
@@ -631,7 +631,7 @@ static void script_panel_draw(
     }
     break;
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker, selection, subjectItr);
+    output_panel_tab_draw(canvas, panelComp, tracker, setEnv, subjectItr);
     break;
   }
 
@@ -641,7 +641,7 @@ static void script_panel_draw(
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_write(DebugScriptTrackerComp);
   ecs_access_read(AssetManagerComp);
-  ecs_access_write(SceneSelectionComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -695,14 +695,16 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     tracker = output_tracker_create(world);
   }
 
-  SceneSelectionComp*     selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
+  SceneSetEnvComp*        setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
   const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
+  const StringHash selectedSet = g_sceneSetSelected;
+
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
 
   output_query(tracker, assetItr, subjectView);
 
@@ -720,7 +722,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    script_panel_draw(world, canvas, panelComp, tracker, selection, assetItr, subjectItr);
+    script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
 
     debug_editor_update(panelComp, assetManager);
 
@@ -742,6 +744,7 @@ ecs_module_init(debug_script_module) {
   ecs_register_view(SubjectView);
   ecs_register_view(AssetView);
   ecs_register_view(WindowView);
+
   ecs_register_system(
       DebugScriptUpdatePanelSys,
       ecs_view_id(PanelUpdateGlobalView),

@@ -7,7 +7,7 @@
 #include "scene_faction.h"
 #include "scene_knowledge.h"
 #include "scene_product.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "scene_taunt.h"
 #include "scene_transform.h"
 
@@ -88,7 +88,7 @@ static void ecs_destruct_controller(void* data) {
 
 ecs_view_define(GlobalUpdateView) {
   ecs_access_maybe_write(CmdControllerComp);
-  ecs_access_write(SceneSelectionComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(UnitView) {
@@ -160,12 +160,12 @@ static bool cmd_is_player_owned(EcsIterator* itr) {
 }
 
 static void
-cmd_execute_move(EcsWorld* world, const SceneSelectionComp* selection, const CmdMove* cmdMove) {
+cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* cmdMove) {
   EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdMove->object);
   if (unitItr && cmd_is_player_owned(unitItr)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
-    scene_knowledge_set(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
-    scene_knowledge_set_null(knowledge, g_knowledgeKeyAttackTarget);
+    scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
+    scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
 
     SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
@@ -174,7 +174,7 @@ cmd_execute_move(EcsWorld* world, const SceneSelectionComp* selection, const Cmd
     return;
   }
 
-  if (cmdMove->object == scene_selection_main(selection)) {
+  if (cmdMove->object == scene_set_main(setEnv, g_sceneSetSelected)) {
     EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
     if (prodItr && cmd_is_player_owned(prodItr)) {
       SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
@@ -189,8 +189,8 @@ static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
   if (unitItr && cmd_is_player_owned(unitItr)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
 
-    scene_knowledge_set(knowledge, g_knowledgeKeyStop, script_bool(true));
-    scene_knowledge_set_null(knowledge, g_knowledgeKeyMoveTarget);
+    scene_knowledge_store(knowledge, g_knowledgeKeyStop, script_bool(true));
+    scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
   }
 }
 
@@ -199,8 +199,8 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   if (unitItr && cmd_is_player_owned(unitItr)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
 
-    scene_knowledge_set(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
-    scene_knowledge_set_null(knowledge, g_knowledgeKeyMoveTarget);
+    scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
+    scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
 
     SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
@@ -210,30 +210,28 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
 }
 
 static void cmd_execute(
-    EcsWorld*                world,
-    const CmdControllerComp* controller,
-    SceneSelectionComp*      selection,
-    const Cmd*               cmd) {
+    EcsWorld* world, const CmdControllerComp* controller, SceneSetEnvComp* setEnv, const Cmd* cmd) {
   switch (cmd->type) {
   case Cmd_Select:
     if (ecs_world_exists(world, cmd->select.object)) {
-      scene_selection_add(selection, cmd->select.object);
+      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object);
     }
     break;
   case Cmd_SelectGroup:
-    scene_selection_clear(selection);
+
+    scene_set_clear(setEnv, g_sceneSetSelected);
     dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
-      scene_selection_add(selection, *entity);
+      scene_set_add(setEnv, g_sceneSetSelected, *entity);
     }
     break;
   case Cmd_Deselect:
-    scene_selection_remove(selection, cmd->deselect.object);
+    scene_set_remove(setEnv, g_sceneSetSelected, cmd->deselect.object);
     break;
   case Cmd_DeselectAll:
-    scene_selection_clear(selection);
+    scene_set_clear(setEnv, g_sceneSetSelected);
     break;
   case Cmd_Move:
-    cmd_execute_move(world, selection, &cmd->move);
+    cmd_execute_move(world, setEnv, &cmd->move);
     break;
   case Cmd_Stop:
     cmd_execute_stop(world, &cmd->stop);
@@ -250,8 +248,8 @@ ecs_system_define(CmdControllerUpdateSys) {
   if (!globalItr) {
     return;
   }
-  SceneSelectionComp* selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
-  CmdControllerComp*  controller = ecs_view_write_t(globalItr, CmdControllerComp);
+  SceneSetEnvComp*   setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  CmdControllerComp* controller = ecs_view_write_t(globalItr, CmdControllerComp);
   if (!controller) {
     controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
     controller->commands = dynarray_create_t(g_alloc_heap, Cmd, 512);
@@ -265,9 +263,7 @@ ecs_system_define(CmdControllerUpdateSys) {
   }
 
   // Execute all commands.
-  dynarray_for_t(&controller->commands, Cmd, cmd) {
-    cmd_execute(world, controller, selection, cmd);
-  }
+  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, controller, setEnv, cmd); }
   dynarray_clear(&controller->commands);
 }
 

@@ -24,9 +24,8 @@ void script_mem_destroy(ScriptMem*);
  * Query and update values.
  * Pre-condition: key != 0.
  */
-ScriptVal script_mem_get(const ScriptMem*, StringHash key);
-void      script_mem_set(ScriptMem*, StringHash key, ScriptVal);
-void      script_mem_set_null(ScriptMem*, StringHash key);
+ScriptVal script_mem_load(const ScriptMem*, StringHash key);
+void      script_mem_store(ScriptMem*, StringHash key, ScriptVal);
 
 /**
  * Iterator for iterating memory keys.

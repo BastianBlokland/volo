@@ -19,6 +19,31 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
+static struct {
+  String           setName;
+  StringHash       set;
+  AssetPrefabFlags flags;
+} g_prefabSetFlags[] = {
+    {.setName = string_static("infantry"), .flags = AssetPrefabFlags_Infantry},
+    {.setName = string_static("structure"), .flags = AssetPrefabFlags_Structure},
+    {.setName = string_static("destructible"), .flags = AssetPrefabFlags_Destructible},
+};
+
+static void prefab_set_flags_init() {
+  for (u32 i = 0; i != array_elems(g_prefabSetFlags); ++i) {
+    g_prefabSetFlags[i].set = string_hash(g_prefabSetFlags[i].setName);
+  }
+}
+
+static AssetPrefabFlags prefab_set_flags(const StringHash set) {
+  for (u32 i = 0; i != array_elems(g_prefabSetFlags); ++i) {
+    if (g_prefabSetFlags[i].set == set) {
+      return g_prefabSetFlags[i].flags;
+    }
+  }
+  return 0;
+}
+
 typedef struct {
   f32 x, y, z;
 } AssetPrefabVec3Def;
@@ -49,6 +74,13 @@ typedef struct {
 typedef struct {
   String name;
 } AssetPrefabTraitNameDef;
+
+typedef struct {
+  struct {
+    String* values;
+    usize   count;
+  } sets;
+} AssetPrefabTraitSetMemberDef;
 
 typedef struct {
   String graphicId;
@@ -146,6 +178,7 @@ typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitNameDef       data_name;
+    AssetPrefabTraitSetMemberDef  data_setMember;
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
@@ -167,7 +200,7 @@ typedef struct {
 
 typedef struct {
   String name;
-  bool   isInfantry, isStructure, isVolatile;
+  bool   isVolatile;
   struct {
     AssetPrefabTraitDef* values;
     usize                count;
@@ -189,6 +222,8 @@ static void prefab_datareg_init() {
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
     DataReg* reg = data_reg_create(g_alloc_persist);
+
+    prefab_set_flags_init();
 
     // clang-format off
     data_reg_struct_t(reg, AssetPrefabVec3Def);
@@ -216,6 +251,9 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitNameDef);
     data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(reg, AssetPrefabTraitSetMemberDef);
+    data_reg_field_t(reg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitRenderableDef);
     data_reg_field_t(reg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -298,6 +336,7 @@ static void prefab_datareg_init() {
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMemberDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
@@ -318,8 +357,6 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabDef);
     data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabDef, isInfantry, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabDef, isStructure, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
@@ -343,7 +380,8 @@ typedef enum {
   PrefabError_DuplicatePrefab           = 1,
   PrefabError_DuplicateTrait            = 2,
   PrefabError_PrefabCountExceedsMax     = 3,
-  PrefabError_SoundAssetCountExceedsMax = 4,
+  PrefabError_SetCountExceedsMax        = 4,
+  PrefabError_SoundAssetCountExceedsMax = 5,
 
   PrefabError_Count,
 } PrefabError;
@@ -354,6 +392,7 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
+      string_static("Set count exceeds the maximum"),
       string_static("Sound asset count exceeds the maximum"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
@@ -399,8 +438,6 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
-  result |= def->isInfantry ? AssetPrefabFlags_Infantry : 0;
-  result |= def->isStructure ? AssetPrefabFlags_Structure : 0;
   result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
   return result;
 }
@@ -440,6 +477,19 @@ static void prefab_build(
           .name = stringtable_add(g_stringtable, traitDef->data_name.name),
       };
       break;
+    case AssetPrefabTrait_SetMember: {
+      const AssetPrefabTraitSetMemberDef* setMemberDef = &traitDef->data_setMember;
+      AssetPrefabTraitSetMember*          outSetMember = &outTrait->data_setMember;
+      if (UNLIKELY(setMemberDef->sets.count > array_elems(outSetMember->sets))) {
+        *err = PrefabError_SetCountExceedsMax;
+        return;
+      }
+      *outSetMember = (AssetPrefabTraitSetMember){0};
+      for (u32 i = 0; i != setMemberDef->sets.count; ++i) {
+        outSetMember->sets[i] = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
+        outPrefab->flags |= prefab_set_flags(outSetMember->sets[i]);
+      }
+    } break;
     case AssetPrefabTrait_Renderable:
       outTrait->data_renderable = (AssetPrefabTraitRenderable){
           .graphic = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),
@@ -506,7 +556,6 @@ static void prefab_build(
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
           .deathEffectPrefab = string_maybe_hash(traitDef->data_health.deathEffectPrefab),
       };
-      outPrefab->flags |= AssetPrefabFlags_Destructible;
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
@@ -561,12 +610,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

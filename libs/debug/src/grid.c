@@ -9,7 +9,7 @@
 #include "input_manager.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
-#include "scene_selection.h"
+#include "scene_set.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -67,7 +67,7 @@ ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneSelectionComp);
+  ecs_access_read(SceneSetEnvComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
 
@@ -232,11 +232,13 @@ static void grid_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-static f32 debug_selection_height(const SceneSelectionComp* sel, EcsView* transformView) {
+static f32 debug_selection_height(const SceneSetEnvComp* setEnv, EcsView* transformView) {
+  const StringHash set = g_sceneSetSelected;
+
   EcsIterator* transformItr  = ecs_view_itr(transformView);
   f32          averageHeight = 0.0f;
   u32          entryCount    = 0;
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+  for (const EcsEntityId* e = scene_set_begin(setEnv, set); e != scene_set_end(setEnv, set); ++e) {
     if (ecs_view_maybe_jump(transformItr, *e)) {
       averageHeight += ecs_view_read_t(transformItr, SceneTransformComp)->position.y;
       ++entryCount;
@@ -251,9 +253,9 @@ ecs_system_define(DebugGridUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*     stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  const InputManagerComp*   input     = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+  DebugStatsGlobalComp*   stats  = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneSetEnvComp*  setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
 
   EcsView* transformView = ecs_world_view_t(world, TransformReadView);
 
@@ -262,7 +264,7 @@ ecs_system_define(DebugGridUpdateSys) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
     if (input_triggered_lit(input, "DebugGridShow")) {
       grid->show ^= 1;
-      grid->height = debug_selection_height(selection, transformView);
+      grid->height = debug_selection_height(setEnv, transformView);
       grid_notify_show(stats, grid->show);
     }
     if (input_triggered_lit(input, "DebugGridScaleUp")) {

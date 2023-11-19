@@ -26,7 +26,7 @@ add_library(lib_scene STATIC
   src/register.c
   src/renderable.c
   src/script.c
-  src/selection.c
+  src/set.c
   src/skeleton.c
   src/sound.c
   src/status.c
@@ -36,7 +36,6 @@ add_library(lib_scene STATIC
   src/terrain.c
   src/time.c
   src/transform.c
-  src/unit.c
   src/vfx.c
   src/visibility.c
   src/weapon.c
@@ -49,6 +48,7 @@ add_executable(test_lib_scene
   test/config.c
   test/test_nav.c
   test/test_script.c
+  test/test_set.c
   )
 target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)
 

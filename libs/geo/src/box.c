@@ -95,7 +95,7 @@ bool geo_box_is_inverted3(const GeoBox* b) {
   const SimdVec min = simd_vec_load(b->min.comps);
   const SimdVec max = simd_vec_load(b->max.comps);
   // NOTE: The non-simd impl doesn't take the w into account, is it worth ignoring it here also?
-  return simd_vec_any_true(simd_vec_greater(min, max));
+  return simd_vec_mask_u32(simd_vec_greater(min, max)) != 0b0000;
 #else
   return b->min.x > b->max.x || b->min.y > b->max.y || b->min.z > b->max.z;
 #endif
@@ -470,7 +470,7 @@ bool geo_box_overlap(const GeoBox* x, const GeoBox* y) {
   const SimdVec yMin = simd_vec_load(y->min.comps);
   const SimdVec yMax = simd_vec_load(y->max.comps);
   const SimdVec cmp  = simd_vec_and(simd_vec_less(xMin, yMax), simd_vec_greater(xMax, yMin));
-  return simd_vec_all_true(simd_vec_w_all_ones(cmp)); // W to all ones to ignore the w comparision.
+  return (simd_vec_mask_u32(cmp) & 0b0111) == 0b0111; // NOTE: Only check xyz.
 #else
   return x->min.x < y->max.x && x->min.y < y->max.y && x->min.z < y->max.z && x->max.x > y->min.x &&
          x->max.y > y->min.y && x->max.z > y->min.z;
@@ -487,7 +487,7 @@ bool geo_box_overlap_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4
 #if geo_box_simd_enable
   const SimdVec boxMin = simd_vec_load(box->min.comps);
   const SimdVec boxMax = simd_vec_load(box->max.comps);
-  if (simd_vec_any_true(simd_vec_greater(boxMin, boxMax))) {
+  if (simd_vec_mask_u32(simd_vec_greater(boxMin, boxMax)) != 0b0000) {
     return true; // Box is inverted.
   }
   for (usize i = 0; i != 4; ++i) {

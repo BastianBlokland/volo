@@ -53,14 +53,14 @@ INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const Script
 
 INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptExpr e) {
   const ScriptExprMemLoad* data = &expr_data(ctx->doc, e)->mem_load;
-  return script_mem_get(ctx->m, data->key);
+  return script_mem_load(ctx->m, data->key);
 }
 
 INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const ScriptExpr e) {
   const ScriptExprMemStore* data = &expr_data(ctx->doc, e)->mem_store;
   const ScriptVal           val  = eval(ctx, data->val);
   if (LIKELY(!ctx->signal)) {
-    script_mem_set(ctx->m, data->key, val);
+    script_mem_store(ctx->m, data->key, val);
   }
   return val;
 }
@@ -103,13 +103,14 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_MemLoadDynamic: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_type(arg0) == ScriptType_Str ? script_mem_get(ctx->m, val_as_str(arg0)) : val_null();
+    return val_type(arg0) == ScriptType_Str ? script_mem_load(ctx->m, val_as_str(arg0))
+                                            : val_null();
   }
   case ScriptIntrinsic_MemStoreDynamic: {
     EVAL_ARG_WITH_INTERRUPT(0);
     if (val_type(arg0) == ScriptType_Str) {
       EVAL_ARG_WITH_INTERRUPT(1);
-      script_mem_set(ctx->m, val_as_str(arg0), arg1);
+      script_mem_store(ctx->m, val_as_str(arg0), arg1);
       return arg1;
     }
     return val_null();
