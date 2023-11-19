@@ -11,7 +11,6 @@ enum {
   SceneOrder_LocomotionUpdate  = 25,
   SceneOrder_VelocityUpdate    = 100,
   SceneOrder_CollisionUpdate   = 100,
-  SceneOrder_SelectionUpdate   = 100,
   SceneOrder_SetUpdate         = 100,
 };
 
