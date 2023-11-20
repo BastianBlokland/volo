@@ -1146,9 +1146,9 @@ static ScriptBinder* g_scriptBinder;
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs, ScriptError* err);
 
 static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
-  // NOTE: Func pointer cast is needed to type-erase the context type.
   const ScriptSig* nullSig       = null;
   const String     documentation = string_empty;
+  // NOTE: Func pointer cast is needed to type-erase the context type.
   script_binder_declare(b, name, documentation, nullSig, (ScriptBinderFunc)f);
 }
 
