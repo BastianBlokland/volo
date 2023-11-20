@@ -113,11 +113,12 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("set");
-      const String       doc    = string_lit("Test if the target entity is contained in the given set.");
+      const String       doc    = string_lit("Change or query if the target entity is contained in the given set.");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("set"), script_mask_str},
+          {string_lit("add"), script_mask_bool | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }

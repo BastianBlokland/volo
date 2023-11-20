@@ -742,7 +742,7 @@
     },
     {
       "name": "set",
-      "doc": "Test if the target entity is contained in the given set.",
+      "doc": "Change or query if the target entity is contained in the given set.",
       "sig": {
         "ret": [
           "null",
@@ -756,6 +756,13 @@
           {
             "name": "set",
             "mask": "str"
+          },
+          {
+            "name": "add",
+            "mask": [
+              "null",
+              "bool"
+            ]
           }
         ]
       }
