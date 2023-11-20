@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -585,6 +586,17 @@ static ScriptVal eval_query_next(EvalContext* ctx, const ScriptArgs args, Script
     return script_null();
   }
   return script_entity(ctx->queryBuffer[ctx->queryItr++]);
+}
+
+static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)args;
+  (void)err;
+  if (ctx->queryItr == ctx->queryCount) {
+    return script_null();
+  }
+  const u32 index = (u32)rng_sample_range(g_rng, ctx->queryItr, ctx->queryCount);
+  diag_assert(index < ctx->queryCount);
+  return script_entity(ctx->queryBuffer[index]);
 }
 
 static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -1172,6 +1184,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
     eval_bind(b, string_lit("query_next"),         eval_query_next);
+    eval_bind(b, string_lit("query_random"),       eval_query_random);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
     eval_bind(b, string_lit("nav_target"),         eval_nav_target);
     eval_bind(b, string_lit("line_of_sight"),      eval_line_of_sight);

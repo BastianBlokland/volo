@@ -149,6 +149,12 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, null, 0);
     }
     {
+      const String       name   = string_lit("query_random");
+      const String       doc    = string_lit("Return a random remaining value in the current query, returns null when the current query is empty.");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      asset_bind(binder, name, doc, ret, null, 0);
+    }
+    {
       const String       name   = string_lit("nav_find");
       const String       doc    = string_lit("Find a navigation position.\n\nSupported queries:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;

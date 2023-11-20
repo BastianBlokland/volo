@@ -315,6 +315,17 @@
       }
     },
     {
+      "name": "query_random",
+      "doc": "Return a random remaining value in the current query, returns null when the current query is empty.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": []
+      }
+    },
+    {
       "name": "scale",
       "doc": "Lookup the scale of the given entity.",
       "sig": {
