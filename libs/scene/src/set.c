@@ -448,13 +448,14 @@ ecs_system_define(SceneSetUpdateSys) {
   SceneSetEnvComp* env = ecs_view_write_t(envItr, SceneSetEnvComp);
   dynarray_for_t(&env->requests, SetRequest, req) {
     switch (req->type) {
-    case SetRequestType_Add:
+    case SetRequestType_Add: {
       if (!ecs_world_exists(world, req->target)) {
         continue;
       }
-      bool success = true;
+      bool                success = true;
+      SceneSetMemberComp* member  = null;
       if (ecs_view_maybe_jump(itr, req->target)) {
-        SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
+        member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (LIKELY(set_member_add(member, req->set))) {
           SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
           if (tagComp) {
@@ -470,9 +471,13 @@ ecs_system_define(SceneSetUpdateSys) {
       }
       if (LIKELY(success) && UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
+        if (member) {
+          set_member_remove(member, req->set); // Fixup the member to stay consistent.
+        }
       }
       continue;
-    case SetRequestType_Remove:
+    }
+    case SetRequestType_Remove: {
       if (ecs_view_maybe_jump(itr, req->target)) {
         SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (set_member_remove(member, req->set)) {
@@ -484,7 +489,8 @@ ecs_system_define(SceneSetUpdateSys) {
       }
       set_storage_remove(env->storage, req->set, req->target);
       continue;
-    case SetRequestType_Clear:
+    }
+    case SetRequestType_Clear: {
       for (ecs_view_itr_reset(itr); ecs_view_walk(itr);) {
         SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (set_member_remove(member, req->set)) {
@@ -496,6 +502,7 @@ ecs_system_define(SceneSetUpdateSys) {
       }
       set_storage_clear(env->storage, req->set);
       continue;
+    }
     }
     diag_crash_msg("Unsupported selection request type");
   }
