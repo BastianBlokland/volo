@@ -363,7 +363,9 @@ static void ecs_combine_set_member(void* dataA, void* dataB) {
   for (u32 i = 0; i != array_elems(compB->sets); ++i) {
     if (compB->sets[i]) {
       if (!UNLIKELY(set_member_add(compA, compB->sets[i]))) {
-        log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(compB->sets))));
+        log_e(
+            "Set member limit reached during combine",
+            log_param("limit", fmt_int(array_elems(compB->sets))));
       }
     }
   }
