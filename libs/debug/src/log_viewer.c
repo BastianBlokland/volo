@@ -39,8 +39,7 @@ typedef struct {
 } DebugLogSink;
 
 static bool debug_log_msg_is_dup(const DebugLogMessage* msg, const String newMsgText) {
-  const u32 length = math_min((u32)newMsgText.size, log_tracker_max_message_size);
-  return mem_eq(mem_create(msg->data, length), string_slice(newMsgText, 0, length));
+  return msg->length == newMsgText.size && mem_eq(mem_create(msg->data, msg->length), newMsgText);
 }
 
 static void debug_log_sink_write(
