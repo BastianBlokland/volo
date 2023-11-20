@@ -113,11 +113,12 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("set");
-      const String       doc    = string_lit("Test if the target entity is contained in the given set.");
+      const String       doc    = string_lit("Change or query if the target entity is contained in the given set.");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("set"), script_mask_str},
+          {string_lit("add"), script_mask_bool | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
@@ -144,6 +145,12 @@ static void asset_binder_init() {
     {
       const String       name   = string_lit("query_next");
       const String       doc    = string_lit("Returns the next value in the current query, returns null when reaching the end of the query.");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      asset_bind(binder, name, doc, ret, null, 0);
+    }
+    {
+      const String       name   = string_lit("query_random");
+      const String       doc    = string_lit("Return a random remaining value in the current query, returns null when the current query is empty.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       asset_bind(binder, name, doc, ret, null, 0);
     }

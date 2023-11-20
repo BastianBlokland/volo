@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -124,6 +125,7 @@ typedef enum {
   ScriptActionType_Detach,
   ScriptActionType_Damage,
   ScriptActionType_Attack,
+  ScriptActionType_UpdateSet,
   ScriptActionType_UpdateStatus,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
@@ -197,6 +199,12 @@ typedef struct {
 } ScriptActionAttack;
 
 typedef struct {
+  EcsEntityId entity;
+  StringHash  set;
+  bool        add;
+} ScriptActionUpdateSet;
+
+typedef struct {
   EcsEntityId     entity;
   SceneStatusType type;
   bool            enable;
@@ -227,6 +235,7 @@ typedef struct {
     ScriptActionDetach         data_detach;
     ScriptActionDamage         data_damage;
     ScriptActionAttack         data_attack;
+    ScriptActionUpdateSet      data_updateSet;
     ScriptActionUpdateStatus   data_updateStatus;
     ScriptActionUpdateTags     data_updateTags;
     ScriptActionUpdateVfxParam data_updateVfxParam;
@@ -361,6 +370,12 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Attack;
   a->data_attack  = *data;
+}
+
+static void action_push_update_set(EvalContext* ctx, const ScriptActionUpdateSet* data) {
+  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type           = ScriptActionType_UpdateSet;
+  a->data_updateSet = *data;
 }
 
 static void action_push_update_status(EvalContext* ctx, const ScriptActionUpdateStatus* data) {
@@ -499,8 +514,17 @@ static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   if (UNLIKELY(!e || !set)) {
     return script_null();
   }
-  const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
-  return script_bool(scene_set_contains(setEnv, set, e));
+  if (args.count == 2) {
+    const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
+    return script_bool(scene_set_contains(setEnv, set, e));
+  }
+  const ScriptActionUpdateSet updateSet = {
+      .entity = e,
+      .set    = set,
+      .add    = script_arg_bool(args, 2, err),
+  };
+  action_push_update_set(ctx, &updateSet);
+  return script_null();
 }
 
 static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -562,6 +586,17 @@ static ScriptVal eval_query_next(EvalContext* ctx, const ScriptArgs args, Script
     return script_null();
   }
   return script_entity(ctx->queryBuffer[ctx->queryItr++]);
+}
+
+static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)args;
+  (void)err;
+  if (ctx->queryItr == ctx->queryCount) {
+    return script_null();
+  }
+  const u32 index = (u32)rng_sample_range(g_rng, ctx->queryItr, ctx->queryCount);
+  diag_assert(index < ctx->queryCount);
+  return script_entity(ctx->queryBuffer[index]);
 }
 
 static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -676,9 +711,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1111,9 +1146,9 @@ static ScriptBinder* g_scriptBinder;
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs, ScriptError* err);
 
 static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
-  // NOTE: Func pointer cast is needed to type-erase the context type.
   const ScriptSig* nullSig       = null;
   const String     documentation = string_empty;
+  // NOTE: Func pointer cast is needed to type-erase the context type.
   script_binder_declare(b, name, documentation, nullSig, (ScriptBinderFunc)f);
 }
 
@@ -1149,6 +1184,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
     eval_bind(b, string_lit("query_next"),         eval_query_next);
+    eval_bind(b, string_lit("query_random"),       eval_query_random);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
     eval_bind(b, string_lit("nav_target"),         eval_nav_target);
     eval_bind(b, string_lit("line_of_sight"),      eval_line_of_sight);
@@ -1388,6 +1424,8 @@ ecs_system_define(SceneScriptUpdateSys) {
   }
 }
 
+ecs_view_define(ActionGlobalView) { ecs_access_write(SceneSetEnvComp); }
+
 ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
 ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
@@ -1400,6 +1438,7 @@ ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 typedef struct {
   EcsWorld*    world;
   EcsEntityId  instigator;
+  EcsIterator* globalItr;
   EcsIterator* knowledgeItr;
   EcsIterator* transItr;
   EcsIterator* navAgentItr;
@@ -1529,6 +1568,15 @@ static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   }
 }
 
+static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a) {
+  SceneSetEnvComp* setEnv = ecs_view_write_t(ctx->globalItr, SceneSetEnvComp);
+  if (a->add) {
+    scene_set_add(setEnv, a->set, a->entity);
+  } else {
+    scene_set_remove(setEnv, a->set, a->entity);
+  }
+}
+
 static void action_update_status(ActionContext* ctx, const ScriptActionUpdateStatus* a) {
   if (a->enable) {
     scene_status_add(ctx->world, a->entity, a->type, ctx->instigator);
@@ -1554,8 +1602,15 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_system_define(ScriptActionApplySys) {
+  EcsView*     globalView = ecs_world_view_t(world, ActionGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependency not yet initialized.
+  }
+
   ActionContext ctx = {
       .world        = world,
+      .globalItr    = globalItr,
       .knowledgeItr = ecs_view_itr(ecs_world_view_t(world, ActionKnowledgeView)),
       .transItr     = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
       .navAgentItr  = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
@@ -1607,6 +1662,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
+        break;
+      case ScriptActionType_UpdateSet:
+        action_update_set(&ctx, &action->data_updateSet);
         break;
       case ScriptActionType_UpdateStatus:
         action_update_status(&ctx, &action->data_updateStatus);
@@ -1662,6 +1720,7 @@ ecs_module_init(scene_script_module) {
   ecs_register_system(
       ScriptActionApplySys,
       ecs_view_id(ScriptActionApplyView),
+      ecs_register_view(ActionGlobalView),
       ecs_register_view(ActionKnowledgeView),
       ecs_register_view(ActionTransformView),
       ecs_register_view(ActionNavAgentView),

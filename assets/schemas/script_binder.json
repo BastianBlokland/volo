@@ -315,6 +315,17 @@
       }
     },
     {
+      "name": "query_random",
+      "doc": "Return a random remaining value in the current query, returns null when the current query is empty.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": []
+      }
+    },
+    {
       "name": "scale",
       "doc": "Lookup the scale of the given entity.",
       "sig": {
@@ -742,7 +753,7 @@
     },
     {
       "name": "set",
-      "doc": "Test if the target entity is contained in the given set.",
+      "doc": "Change or query if the target entity is contained in the given set.",
       "sig": {
         "ret": [
           "null",
@@ -756,6 +767,13 @@
           {
             "name": "set",
             "mask": "str"
+          },
+          {
+            "name": "add",
+            "mask": [
+              "null",
+              "bool"
+            ]
           }
         ]
       }

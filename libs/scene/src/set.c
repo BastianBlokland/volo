@@ -254,9 +254,15 @@ typedef struct {
   EcsEntityId    target;
 } SetRequest;
 
+typedef struct {
+  EcsEntityId entity;
+  StringHash  set;
+} SetSpeculativeAdd;
+
 ecs_comp_define(SceneSetEnvComp) {
   SetStorage* storage;
-  DynArray    requests; // SetRequest[]
+  DynArray    requests;        // SetRequest[]
+  DynArray    speculativeAdds; // SetSpeculativeAdd[]
 };
 
 ecs_comp_define(SceneSetMemberComp) { ALIGNAS(16) StringHash sets[scene_set_member_max]; };
@@ -266,6 +272,7 @@ static void ecs_destruct_set_env_comp(void* data) {
   SceneSetEnvComp* env = data;
   set_storage_destroy(env->storage);
   dynarray_destroy(&env->requests);
+  dynarray_destroy(&env->speculativeAdds);
 }
 
 static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
@@ -363,7 +370,9 @@ static void ecs_combine_set_member(void* dataA, void* dataB) {
   for (u32 i = 0; i != array_elems(compB->sets); ++i) {
     if (compB->sets[i]) {
       if (!UNLIKELY(set_member_add(compA, compB->sets[i]))) {
-        log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(compB->sets))));
+        log_e(
+            "Set member limit reached during combine",
+            log_param("limit", fmt_int(array_elems(compB->sets))));
       }
     }
   }
@@ -394,8 +403,9 @@ ecs_system_define(SceneSetInitSys) {
         world,
         global,
         SceneSetEnvComp,
-        .storage  = set_storage_create(g_alloc_heap),
-        .requests = dynarray_create_t(g_alloc_heap, SetRequest, 128));
+        .storage         = set_storage_create(g_alloc_heap),
+        .requests        = dynarray_create_t(g_alloc_heap, SetRequest, 128),
+        .speculativeAdds = dynarray_create_t(g_alloc_heap, SetSpeculativeAdd, 128));
     return;
   }
 
@@ -422,7 +432,8 @@ ecs_system_define(SceneSetInitSys) {
         continue; // Unused slot.
       }
       if (UNLIKELY(!set_storage_add(env->storage, member->sets[i], entity))) {
-        log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
+        log_e("Set limit reached during init", log_param("limit", fmt_int(scene_set_max)));
+        set_member_remove(member, member->sets[i]);
         break;
       }
       if (tagComp) {
@@ -439,19 +450,32 @@ ecs_system_define(SceneSetUpdateSys) {
   if (!envItr) {
     return;
   }
+  SceneSetEnvComp* env = ecs_view_write_t(envItr, SceneSetEnvComp);
 
   EcsView*     memberView = ecs_world_view_t(world, MemberView);
   EcsIterator* itr        = ecs_view_itr(memberView);
 
-  SceneSetEnvComp* env = ecs_view_write_t(envItr, SceneSetEnvComp);
+  // Verify consistency of speculative adds.
+  dynarray_for_t(&env->speculativeAdds, SetSpeculativeAdd, add) {
+    if (ecs_view_maybe_jump(itr, add->entity)) {
+      if (UNLIKELY(!set_member_contains(ecs_view_read_t(itr, SceneSetMemberComp), add->set))) {
+        set_storage_remove(env->storage, add->set, add->entity);
+      }
+    }
+  }
+  dynarray_clear(&env->speculativeAdds);
+
+  // Handle requests.
   dynarray_for_t(&env->requests, SetRequest, req) {
     switch (req->type) {
-    case SetRequestType_Add:
+    case SetRequestType_Add: {
       if (!ecs_world_exists(world, req->target)) {
         continue;
       }
+      bool                success = true;
+      SceneSetMemberComp* member  = null;
       if (ecs_view_maybe_jump(itr, req->target)) {
-        SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
+        member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (LIKELY(set_member_add(member, req->set))) {
           SceneTagComp* tagComp = ecs_view_write_t(itr, SceneTagComp);
           if (tagComp) {
@@ -459,16 +483,32 @@ ecs_system_define(SceneSetUpdateSys) {
           }
         } else {
           log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(member->sets))));
+          success = false;
         }
       } else {
         ecs_world_add_t(world, req->target, SceneSetMemberComp, .sets[0] = req->set);
         ecs_world_add_t(world, req->target, SceneSetMemberStateComp);
+
+        /**
+         * Because we have a per-member limit, the member-add might fail (during component combine)
+         * and in that case we end up in an inconsistent state (where its in the storage but not the
+         * member). To avoid this we mark these speculative-adds and remove them from the storage in
+         * the next tick if the member-add failed.
+         */
+        *dynarray_push_t(&env->speculativeAdds, SetSpeculativeAdd) = (SetSpeculativeAdd){
+            .entity = req->target,
+            .set    = req->set,
+        };
       }
-      if (UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
+      if (LIKELY(success) && UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
+        if (member) {
+          set_member_remove(member, req->set); // Fixup the member to stay consistent.
+        }
       }
       continue;
-    case SetRequestType_Remove:
+    }
+    case SetRequestType_Remove: {
       if (ecs_view_maybe_jump(itr, req->target)) {
         SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (set_member_remove(member, req->set)) {
@@ -480,7 +520,8 @@ ecs_system_define(SceneSetUpdateSys) {
       }
       set_storage_remove(env->storage, req->set, req->target);
       continue;
-    case SetRequestType_Clear:
+    }
+    case SetRequestType_Clear: {
       for (ecs_view_itr_reset(itr); ecs_view_walk(itr);) {
         SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (set_member_remove(member, req->set)) {
@@ -492,6 +533,7 @@ ecs_system_define(SceneSetUpdateSys) {
       }
       set_storage_clear(env->storage, req->set);
       continue;
+    }
     }
     diag_crash_msg("Unsupported selection request type");
   }
