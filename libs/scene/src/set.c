@@ -432,7 +432,8 @@ ecs_system_define(SceneSetInitSys) {
         continue; // Unused slot.
       }
       if (UNLIKELY(!set_storage_add(env->storage, member->sets[i], entity))) {
-        log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
+        log_e("Set limit reached during init", log_param("limit", fmt_int(scene_set_max)));
+        set_member_remove(member, member->sets[i]);
         break;
       }
       if (tagComp) {
