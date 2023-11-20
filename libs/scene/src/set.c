@@ -452,6 +452,7 @@ ecs_system_define(SceneSetUpdateSys) {
       if (!ecs_world_exists(world, req->target)) {
         continue;
       }
+      bool success = true;
       if (ecs_view_maybe_jump(itr, req->target)) {
         SceneSetMemberComp* member = ecs_view_write_t(itr, SceneSetMemberComp);
         if (LIKELY(set_member_add(member, req->set))) {
@@ -461,12 +462,13 @@ ecs_system_define(SceneSetUpdateSys) {
           }
         } else {
           log_e("Set member limit reached", log_param("limit", fmt_int(array_elems(member->sets))));
+          success = false;
         }
       } else {
         ecs_world_add_t(world, req->target, SceneSetMemberComp, .sets[0] = req->set);
         ecs_world_add_t(world, req->target, SceneSetMemberStateComp);
       }
-      if (UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
+      if (LIKELY(success) && UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
       }
       continue;
