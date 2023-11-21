@@ -19,20 +19,15 @@ ScriptError script_error_arg(const ScriptErrorKind kind, const u16 argIndex) {
 bool script_error_valid(const ScriptError* error) { return error->kind != ScriptError_None; }
 
 ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
-  switch (kind) {
-  case ScriptError_None:
-    return ScriptPanic_None;
-  case ScriptError_ArgumentInvalid:
-    return ScriptPanic_ArgumentInvalid;
-  case ScriptError_ArgumentMissing:
-    return ScriptPanic_ArgumentMissing;
-  case ScriptError_ArgumentOutOfRange:
-    return ScriptPanic_ArgumentOutOfRange;
-  case ScriptError_EnumInvalidEntry:
-    return ScriptPanic_EnumInvalidEntry;
-  case ScriptError_UnimplementedBinding:
-    return ScriptPanic_UnimplementedBinding;
-  }
-  diag_assert_fail("Invalid script error kind");
-  UNREACHABLE
+  static ScriptPanicKind g_panics[ScriptErrorKind_Count] = {
+      [ScriptError_None]                        = ScriptPanic_None,
+      [ScriptError_ArgumentInvalid]             = ScriptPanic_ArgumentInvalid,
+      [ScriptError_ArgumentMissing]             = ScriptPanic_ArgumentMissing,
+      [ScriptError_ArgumentOutOfRange]          = ScriptPanic_ArgumentOutOfRange,
+      [ScriptError_ArgumentCountExceedsMaximum] = ScriptPanic_ArgumentCountExceedsMaximum,
+      [ScriptError_EnumInvalidEntry]            = ScriptPanic_EnumInvalidEntry,
+      [ScriptError_UnimplementedBinding]        = ScriptPanic_UnimplementedBinding,
+  };
+  diag_assert(kind < ScriptErrorKind_Count);
+  return g_panics[kind];
 }

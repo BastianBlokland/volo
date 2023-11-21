@@ -388,6 +388,15 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("random_of");
+      const String       doc    = string_lit("Return a random (non-null) value from the given arguments.");
+      const ScriptMask   ret    = script_mask_any;
+      const ScriptSigArg args[] = {
+          {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("debug_log");
       const String       doc    = string_lit("Log the given values.");
       const ScriptMask   ret    = script_mask_null;

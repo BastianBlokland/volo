@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "asset_script.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -1031,10 +1032,34 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)ctx;
+  /**
+   * Return a random (non-null) value from the given arguments.
+   * NOTE: This function arguably belongs in the language itself and not as an externally bound
+   * function, unfortunately the language does not support intrinsics with variable argument counts
+   * so its easier for it to live here for the time being.
+   */
+  ScriptVal choices[10];
+  u32       choiceCount = 0;
+
+  if (UNLIKELY(args.count > array_elems(choices))) {
+    *err = script_error(ScriptError_ArgumentCountExceedsMaximum);
+    return script_null();
+  }
+
+  for (u16 i = 0; i != args.count; ++i) {
+    if (script_val_has(args.values[i])) {
+      choices[choiceCount++] = args.values[i];
+    }
+  }
+  return choiceCount ? choices[(u32)(choiceCount * rng_sample_f32(g_rng))] : script_null();
+}
+
 static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
-  for (usize i = 0; i != args.count; ++i) {
+  for (u16 i = 0; i != args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
@@ -1102,7 +1127,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   data.fontSize = (u16)script_arg_num_range(args, 2, 6.0, 30.0, err);
 
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
-  for (usize i = 3; i < args.count; ++i) {
+  for (u16 i = 3; i < args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
@@ -1119,7 +1144,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
-  for (usize i = 0; i < args.count; ++i) {
+  for (u16 i = 0; i < args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
@@ -1208,6 +1233,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
+    eval_bind(b, string_lit("random_of"),          eval_random_of);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
     eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
