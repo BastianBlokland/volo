@@ -11,6 +11,7 @@ typedef enum eScriptPanicKind {
   ScriptPanic_ArgumentInvalid,
   ScriptPanic_ArgumentMissing,
   ScriptPanic_ArgumentOutOfRange,
+  ScriptPanic_ArgumentCountExceedsMaximum,
   ScriptPanic_EnumInvalidEntry,
   ScriptPanic_UnimplementedBinding,
 

@@ -356,6 +356,20 @@
       }
     },
     {
+      "name": "random_of",
+      "doc": "Return a random (non-null) value from the given arguments.",
+      "sig": {
+        "ret": "any",
+        "args": [
+          {
+            "name": "values",
+            "mask": "any",
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`\n\n-`Status`",
       "sig": {

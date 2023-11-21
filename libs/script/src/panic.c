@@ -10,6 +10,7 @@ static const String g_panicKindStrs[] = {
     string_static("Argument invalid"),
     string_static("Argument missing"),
     string_static("Argument out of range"),
+    string_static("Argument count exceeds maximum"),
     string_static("Invalid enum entry"),
     string_static("Unimplemented binding"),
 };
