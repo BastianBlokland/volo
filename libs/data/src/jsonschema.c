@@ -310,9 +310,11 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
     json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
     json_add_field_lit(ctx->doc, typeObj, "const", json_add_string(ctx->doc, choice->id.name));
 
+    if (!sentinel_check(decl->val_union.nameOffset)) {
     const JsonVal nameObj = json_add_object(ctx->doc);
     json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
     json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
+    }
 
     if (!choice->meta.type) {
       continue; // Empty choice doesn't have any data.
