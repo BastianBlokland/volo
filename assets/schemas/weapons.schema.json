@@ -100,9 +100,6 @@
             "$type": {
               "const": "AssetWeaponEffect_Projectile"
             },
-            "$name": {
-              "type": "string"
-            },
             "originJoint": {
               "title": "String",
               "type": "string",
@@ -168,9 +165,6 @@
             "$type": {
               "const": "AssetWeaponEffect_Damage"
             },
-            "$name": {
-              "type": "string"
-            },
             "continuous": {
               "title": "bool",
               "type": "boolean"
@@ -224,9 +218,6 @@
             "$type": {
               "const": "AssetWeaponEffect_Animation"
             },
-            "$name": {
-              "type": "string"
-            },
             "continuous": {
               "title": "bool",
               "type": "boolean"
@@ -266,9 +257,6 @@
           "properties": {
             "$type": {
               "const": "AssetWeaponEffect_Vfx"
-            },
-            "$name": {
-              "type": "string"
             },
             "assetId": {
               "title": "String",
@@ -311,9 +299,6 @@
           "properties": {
             "$type": {
               "const": "AssetWeaponEffect_Sound"
-            },
-            "$name": {
-              "type": "string"
             },
             "assetId": {
               "title": "String",

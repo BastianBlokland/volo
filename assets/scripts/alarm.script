@@ -1,6 +1,6 @@
 
 var me             = self()
-var blinkFrequency = 0.5
+var blinkFrequency = $frequency ?? 0.5
 var effectPrefab   = "EffectAlarm"
 
 var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
