@@ -349,7 +349,7 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
        * For other data-kinds the data is stored on a $data property.
        */
       const JsonVal dataObj = json_add_object(ctx->doc);
-      json_add_field_lit(ctx->doc, choiceObj, "$data", dataObj);
+      json_add_field_lit(ctx->doc, propObj, "$data", dataObj);
       json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$data"));
 
       schema_add_type(ctx, dataObj, choice->meta);
