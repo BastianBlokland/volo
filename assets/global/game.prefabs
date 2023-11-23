@@ -601,7 +601,8 @@
             {
               "$name": "alarmSound",
               "$type": "AssetPrefabValue_Sound",
-              "assetId": "external/sound/alarm-01.wav"
+              "assetId": "external/sound/alarm-01.wav",
+              "persistent": true
             }
           ]
         },
