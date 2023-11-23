@@ -597,6 +597,11 @@
               "$name": "frequency",
               "$type": "AssetPrefabValue_Number",
               "$data": 0.5
+            },
+            {
+              "$name": "alarmSound",
+              "$type": "AssetPrefabValue_Sound",
+              "assetId": "external/sound/alarm-01.wav"
             }
           ]
         },
@@ -898,18 +903,6 @@
           "gainMin": 0.35, "gainMax": 0.4,
           "pitchMin": 1.0, "pitchMax": 1.2,
           "looping": true
-        }
-      ]
-    },
-    {
-      "name": "EffectAlarm", "isVolatile": true,
-      "traits": [
-        { "$type": "AssetPrefabTrait_Lifetime", "duration": 3 },
-        {
-          "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/alarm-01.wav" ],
-          "gainMin": 0.05,
-          "pitchMin": 1.0
         }
       ]
     },

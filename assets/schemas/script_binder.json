@@ -484,6 +484,43 @@
       }
     },
     {
+      "name": "sound_play",
+      "doc": "Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "asset",
+            "mask": "entity"
+          },
+          {
+            "name": "gain",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "pitch",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "looping",
+            "mask": [
+              "null",
+              "bool"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "faction",
       "doc": "Lookup the faction of the given entity.",
       "sig": {

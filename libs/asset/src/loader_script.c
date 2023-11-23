@@ -388,6 +388,18 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("sound_play");
+      const String       doc    = string_lit("Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("asset"), script_mask_entity},
+          {string_lit("gain"), script_mask_num | script_mask_null},
+          {string_lit("pitch"), script_mask_num | script_mask_null},
+          {string_lit("looping"), script_mask_bool | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("random_of");
       const String       doc    = string_lit("Return a random (non-null) value from the given arguments.");
       const ScriptMask   ret    = script_mask_any;

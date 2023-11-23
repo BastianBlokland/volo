@@ -23,6 +23,7 @@
 #include "scene_register.h"
 #include "scene_script.h"
 #include "scene_set.h"
+#include "scene_sound.h"
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -130,6 +131,7 @@ typedef enum {
   ScriptActionType_UpdateStatus,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
+  ScriptActionType_SoundPlay,
 } ScriptActionType;
 
 typedef struct {
@@ -222,6 +224,13 @@ typedef struct {
 } ScriptActionUpdateVfxParam;
 
 typedef struct {
+  EcsEntityId entity;
+  EcsEntityId asset;
+  f32         gain, pitch;
+  bool        looping;
+} ScriptActionSoundPlay;
+
+typedef struct {
   ScriptActionType type;
   union {
     ScriptActionTell           data_tell;
@@ -240,6 +249,7 @@ typedef struct {
     ScriptActionUpdateStatus   data_updateStatus;
     ScriptActionUpdateTags     data_updateTags;
     ScriptActionUpdateVfxParam data_updateVfxParam;
+    ScriptActionSoundPlay      data_soundPlay;
   };
 } ScriptAction;
 
@@ -395,6 +405,12 @@ static void action_push_update_vfx_param(EvalContext* ctx, const ScriptActionUpd
   ScriptAction* a        = dynarray_push_t(ctx->actions, ScriptAction);
   a->type                = ScriptActionType_UpdateVfxParam;
   a->data_updateVfxParam = *data;
+}
+
+static void action_push_sound_play(EvalContext* ctx, const ScriptActionSoundPlay* data) {
+  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type           = ScriptActionType_SoundPlay;
+  a->data_soundPlay = *data;
 }
 
 static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) {
@@ -1032,6 +1048,27 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId asset   = script_arg_entity(args, 0, err);
+  const f32         gain    = (f32)script_arg_opt_num_range(args, 1, 0.001, 100.0, 1.0, err);
+  const f32         pitch   = (f32)script_arg_opt_num_range(args, 2, 0.001, 100.0, 1.0, err);
+  const bool        looping = script_arg_opt_bool(args, 3, false, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  action_push_sound_play(
+      ctx,
+      &(ScriptActionSoundPlay){
+          .entity  = result,
+          .asset   = asset,
+          .gain    = gain,
+          .pitch   = pitch,
+          .looping = looping,
+      });
+  return script_entity(result);
+}
+
 static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   /**
@@ -1233,6 +1270,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
+    eval_bind(b, string_lit("sound_play"),         eval_sound_play);
     eval_bind(b, string_lit("random_of"),          eval_random_of);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
@@ -1625,6 +1663,17 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
   }
 }
 
+static void action_sound_play(ActionContext* ctx, const ScriptActionSoundPlay* a) {
+  ecs_world_add_t(
+      ctx->world,
+      a->entity,
+      SceneSoundComp,
+      .asset   = a->asset,
+      .gain    = a->gain,
+      .pitch   = a->pitch,
+      .looping = a->looping);
+}
+
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_system_define(ScriptActionApplySys) {
@@ -1700,6 +1749,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_UpdateVfxParam:
         action_update_vfx_param(&ctx, &action->data_updateVfxParam);
+        break;
+      case ScriptActionType_SoundPlay:
+        action_sound_play(&ctx, &action->data_soundPlay);
         break;
       }
     }
