@@ -202,14 +202,16 @@ typedef struct {
 typedef enum {
   AssetPrefabValue_Number,
   AssetPrefabValue_Bool,
+  AssetPrefabValue_String,
 } AssetPrefabValueType;
 
 typedef struct {
   StringHash           name;
   AssetPrefabValueType type;
   union {
-    f64  data_number;
-    bool data_bool;
+    f64        data_number;
+    bool       data_bool;
+    StringHash data_string;
   };
 } AssetPrefabValue;
 

@@ -75,8 +75,9 @@ typedef struct {
   String               name;
   AssetPrefabValueType type;
   union {
-    f64  data_number;
-    bool data_bool;
+    f64    data_number;
+    bool   data_bool;
+    String data_string;
   };
 } AssetPrefabValueDef;
 
@@ -266,6 +267,7 @@ static void prefab_datareg_init() {
     data_reg_union_name_t(reg, AssetPrefabValueDef, name);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String));
 
     data_reg_struct_t(reg, AssetPrefabTraitNameDef);
     data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -467,6 +469,10 @@ static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
   case AssetPrefabValue_Bool:
     res.type      = AssetPrefabValue_Bool;
     res.data_bool = def->data_bool;
+    break;
+  case AssetPrefabValue_String:
+    res.type        = AssetPrefabValue_String;
+    res.data_string = stringtable_add(g_stringtable, def->data_string);
     break;
   default:
     diag_crash_msg("Unsupported prefab value");
