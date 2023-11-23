@@ -754,12 +754,37 @@
             "$name",
             "$data"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabValue_Bool"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "$data": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "$data"
+          ]
         }
       ],
       "defaultSnippets": [
         {
           "label": "New AssetPrefabValue_Number",
           "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Number\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Bool",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}"
         }
       ]
     },

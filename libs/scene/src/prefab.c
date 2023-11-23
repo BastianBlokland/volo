@@ -332,6 +332,9 @@ static void setup_script(
     case AssetPrefabValue_Number:
       scene_knowledge_store(knowledge, val->name, script_num(val->data_number));
       break;
+    case AssetPrefabValue_Bool:
+      scene_knowledge_store(knowledge, val->name, script_bool(val->data_bool));
+      break;
     }
   }
 }
