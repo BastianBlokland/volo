@@ -62,9 +62,6 @@
             "$type": {
               "const": "AssetProduct_Unit"
             },
-            "$name": {
-              "type": "string"
-            },
             "meta": {
               "title": "AssetProductMetaDef",
               "$ref": "#/$defs/AssetProductMetaDef"
@@ -92,9 +89,6 @@
           "properties": {
             "$type": {
               "const": "AssetProduct_Placable"
-            },
-            "$name": {
-              "type": "string"
             },
             "meta": {
               "title": "AssetProductMetaDef",

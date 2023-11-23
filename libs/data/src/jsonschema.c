@@ -45,11 +45,17 @@ static JsonVal schema_default_struct(const JsonSchemaCtx* ctx, const DataMeta me
   return obj;
 }
 
-static JsonVal schema_default_union_choice(const JsonSchemaCtx* ctx, const DataDeclChoice* choice) {
+static JsonVal schema_default_union_choice(
+    const JsonSchemaCtx* ctx, const DataDeclUnion* data, const DataDeclChoice* choice) {
   const JsonVal obj = json_add_object(ctx->doc);
 
   const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
   json_add_field_lit(ctx->doc, obj, "$type", typeStr);
+
+  if (!sentinel_check(data->nameOffset)) {
+    const JsonVal defaultName = json_add_string(ctx->doc, string_lit("MyUnion"));
+    json_add_field_lit(ctx->doc, obj, "$name", defaultName);
+  }
 
   if (choice->meta.type) {
     const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
@@ -84,7 +90,8 @@ static JsonVal schema_default_union(const JsonSchemaCtx* ctx, const DataMeta met
   if (!dynarray_size(choices)) {
     return json_add_null(ctx->doc);
   }
-  return schema_default_union_choice(ctx, dynarray_at_t(choices, 0, DataDeclChoice));
+  const DataDeclChoice* firstChoice = dynarray_at_t(choices, 0, DataDeclChoice);
+  return schema_default_union_choice(ctx, &decl->val_union, firstChoice);
 }
 
 static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta) {
@@ -194,7 +201,7 @@ scheme_snippet_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const Data
     const String labelStr = fmt_write_scratch("New {}", fmt_text(choice->id.name));
     json_add_field_lit(ctx->doc, choiceSnippetObj, "label", json_add_string(ctx->doc, labelStr));
 
-    const JsonVal defaultVal = schema_default_union_choice(ctx, choice);
+    const JsonVal defaultVal = schema_default_union_choice(ctx, &decl->val_union, choice);
     const String  snippetStr = schema_snippet_stringify_scratch(ctx, defaultVal);
     json_add_field_lit(ctx->doc, choiceSnippetObj, "body", json_add_string(ctx->doc, snippetStr));
   }
@@ -310,9 +317,12 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
     json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
     json_add_field_lit(ctx->doc, typeObj, "const", json_add_string(ctx->doc, choice->id.name));
 
-    const JsonVal nameObj = json_add_object(ctx->doc);
-    json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
-    json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
+    if (!sentinel_check(decl->val_union.nameOffset)) {
+      const JsonVal nameObj = json_add_object(ctx->doc);
+      json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
+      json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
+      json_add_elem(ctx->doc, reqArr, json_add_string(ctx->doc, string_lit("$name")));
+    }
 
     if (!choice->meta.type) {
       continue; // Empty choice doesn't have any data.
@@ -339,7 +349,7 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
        * For other data-kinds the data is stored on a $data property.
        */
       const JsonVal dataObj = json_add_object(ctx->doc);
-      json_add_field_lit(ctx->doc, choiceObj, "$data", dataObj);
+      json_add_field_lit(ctx->doc, propObj, "$data", dataObj);
       json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$data"));
 
       schema_add_type(ctx, dataObj, choice->meta);

@@ -317,9 +317,32 @@ static void setup_collision(
   }
 }
 
-static void setup_script(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScript* t) {
+static void setup_script(
+    EcsWorld*                     w,
+    const EcsEntityId             e,
+    const AssetPrefabMapComp*     m,
+    const AssetPrefabTraitScript* t) {
+
   scene_script_add(w, e, t->scriptAsset);
-  scene_knowledge_add(w, e);
+
+  SceneKnowledgeComp* knowledge = scene_knowledge_add(w, e);
+  for (u16 i = 0; i != t->knowledgeCount; ++i) {
+    const AssetPrefabValue* val = &m->values[t->knowledgeIndex + i];
+    switch (val->type) {
+    case AssetPrefabValue_Number:
+      scene_knowledge_store(knowledge, val->name, script_num(val->data_number));
+      break;
+    case AssetPrefabValue_Bool:
+      scene_knowledge_store(knowledge, val->name, script_bool(val->data_bool));
+      break;
+    case AssetPrefabValue_Vector3:
+      scene_knowledge_store(knowledge, val->name, script_vec3(val->data_vector3));
+      break;
+    case AssetPrefabValue_String:
+      scene_knowledge_store(knowledge, val->name, script_str(val->data_string));
+      break;
+    }
+  }
 }
 
 static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
@@ -380,11 +403,12 @@ static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
 }
 
 static void setup_trait(
-    EcsWorld*               w,
-    const EcsEntityId       e,
-    const ScenePrefabSpec*  s,
-    const AssetPrefab*      p,
-    const AssetPrefabTrait* t) {
+    EcsWorld*                 w,
+    const EcsEntityId         e,
+    const ScenePrefabSpec*    s,
+    const AssetPrefabMapComp* m,
+    const AssetPrefab*        p,
+    const AssetPrefabTrait*   t) {
   switch (t->type) {
   case AssetPrefabTrait_Name:
     setup_name(w, e, &t->data_name);
@@ -423,7 +447,7 @@ static void setup_trait(
     setup_collision(w, e, s, p, &t->data_collision);
     return;
   case AssetPrefabTrait_Script:
-    setup_script(w, e, &t->data_script);
+    setup_script(w, e, m, &t->data_script);
     return;
   case AssetPrefabTrait_Taunt:
     setup_taunt(w, e, &t->data_taunt);
@@ -485,7 +509,7 @@ static void setup_prefab(
 
   for (u16 i = 0; i != prefab->traitCount; ++i) {
     const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
-    setup_trait(w, e, spec, prefab, trait);
+    setup_trait(w, e, spec, map, prefab, trait);
   }
 }
 

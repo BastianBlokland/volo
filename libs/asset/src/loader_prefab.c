@@ -72,6 +72,17 @@ typedef struct {
 } AssetPrefabShapeDef;
 
 typedef struct {
+  String               name;
+  AssetPrefabValueType type;
+  union {
+    f64                data_number;
+    bool               data_bool;
+    AssetPrefabVec3Def data_vector3;
+    String             data_string;
+  };
+} AssetPrefabValueDef;
+
+typedef struct {
   String name;
 } AssetPrefabTraitNameDef;
 
@@ -145,6 +156,10 @@ typedef struct {
 
 typedef struct {
   String scriptId;
+  struct {
+    AssetPrefabValue* values;
+    usize             count;
+  } knowledge;
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
@@ -249,6 +264,13 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, t_AssetPrefabShapeBoxDef);
 
+    data_reg_union_t(reg, AssetPrefabValueDef, type);
+    data_reg_union_name_t(reg, AssetPrefabValueDef, name);
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String));
+
     data_reg_struct_t(reg, AssetPrefabTraitNameDef);
     data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
@@ -310,6 +332,7 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitScriptDef);
     data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitTauntDef);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
@@ -436,6 +459,33 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   diag_crash_msg("Unsupported prefab shape");
 }
 
+static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
+  AssetPrefabValue res;
+  res.name = stringtable_add(g_stringtable, def->name);
+
+  switch (def->type) {
+  case AssetPrefabValue_Number:
+    res.type        = AssetPrefabValue_Number;
+    res.data_number = def->data_number;
+    break;
+  case AssetPrefabValue_Bool:
+    res.type      = AssetPrefabValue_Bool;
+    res.data_bool = def->data_bool;
+    break;
+  case AssetPrefabValue_Vector3:
+    res.type         = AssetPrefabValue_Vector3;
+    res.data_vector3 = prefab_build_vec3(&def->data_vector3);
+    break;
+  case AssetPrefabValue_String:
+    res.type        = AssetPrefabValue_String;
+    res.data_string = stringtable_add(g_stringtable, def->data_string);
+    break;
+  default:
+    diag_crash_msg("Unsupported prefab value");
+  }
+  return res;
+}
+
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
   result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
@@ -446,6 +496,7 @@ static void prefab_build(
     BuildCtx*             ctx,
     const AssetPrefabDef* def,
     DynArray*             outTraits, // AssetPrefabTrait[], needs to be already initialized.
+    DynArray*             outValues, // AssetPrefabValue[], needs to be already initialized.
     AssetPrefab*          outPrefab,
     PrefabError*          err) {
 
@@ -579,8 +630,13 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Script:
       outTrait->data_script = (AssetPrefabTraitScript){
-          .scriptAsset = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
+          .scriptAsset    = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
+          .knowledgeIndex = (u16)outValues->size,
+          .knowledgeCount = (u16)traitDef->data_script.knowledge.count,
       };
+      array_ptr_for_t(traitDef->data_script.knowledge, AssetPrefabValueDef, valDef) {
+        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(valDef);
+      }
       break;
     case AssetPrefabTrait_Taunt:
       outTrait->data_taunt = (AssetPrefabTraitTaunt){
@@ -610,12 +666,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
@@ -633,11 +689,12 @@ static void prefabmap_build(
     const AssetPrefabMapDef* def,
     DynArray*                outPrefabs, // AssetPrefab[], needs to be already initialized.
     DynArray*                outTraits,  // AssetPrefabTrait[], needs to be already initialized.
+    DynArray*                outValues,  // AssetPrefabValue[], needs to be already initialized.
     PrefabError*             err) {
 
   array_ptr_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
-    prefab_build(ctx, prefabDef, outTraits, &prefab, err);
+    prefab_build(ctx, prefabDef, outTraits, outValues, &prefab, err);
     if (*err) {
       return;
     }
@@ -681,6 +738,9 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   if (comp->traits) {
     alloc_free_array_t(g_alloc_heap, comp->traits, comp->traitCount);
   }
+  if (comp->values) {
+    alloc_free_array_t(g_alloc_heap, comp->values, comp->valueCount);
+  }
 }
 
 static void ecs_destruct_prefab_load_comp(void* data) {
@@ -712,6 +772,7 @@ ecs_system_define(LoadPrefabAssetSys) {
 
     DynArray prefabs = dynarray_create_t(g_alloc_heap, AssetPrefab, 64);
     DynArray traits  = dynarray_create_t(g_alloc_heap, AssetPrefabTrait, 64);
+    DynArray values  = dynarray_create_t(g_alloc_heap, AssetPrefabValue, 32);
 
     AssetPrefabMapDef def;
     String            errMsg;
@@ -732,7 +793,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     };
 
     PrefabError buildErr;
-    prefabmap_build(&buildCtx, &def, &prefabs, &traits, &buildErr);
+    prefabmap_build(&buildCtx, &def, &prefabs, &traits, &values, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -750,7 +811,9 @@ ecs_system_define(LoadPrefabAssetSys) {
         .userIndexLookup = userIndexLookup,
         .prefabCount     = prefabs.size,
         .traits          = dynarray_copy_as_new(&traits, g_alloc_heap),
-        .traitCount      = traits.size);
+        .traitCount      = traits.size,
+        .values          = dynarray_copy_as_new(&values, g_alloc_heap),
+        .valueCount      = values.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -763,6 +826,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
+    dynarray_destroy(&values);
     ecs_world_remove_t(world, entity, AssetPrefabLoadComp);
   }
 }

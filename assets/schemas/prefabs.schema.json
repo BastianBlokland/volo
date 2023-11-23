@@ -65,9 +65,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Name"
             },
-            "$name": {
-              "type": "string"
-            },
             "name": {
               "title": "String",
               "type": "string",
@@ -85,9 +82,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_SetMember"
-            },
-            "$name": {
-              "type": "string"
             },
             "sets": {
               "type": "array",
@@ -110,9 +104,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Renderable"
             },
-            "$name": {
-              "type": "string"
-            },
             "graphicId": {
               "title": "String",
               "type": "string",
@@ -130,9 +121,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Vfx"
-            },
-            "$name": {
-              "type": "string"
             },
             "assetId": {
               "title": "String",
@@ -152,9 +140,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Decal"
             },
-            "$name": {
-              "type": "string"
-            },
             "assetId": {
               "title": "String",
               "type": "string",
@@ -172,9 +157,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Sound"
-            },
-            "$name": {
-              "type": "string"
             },
             "assetIds": {
               "type": "array",
@@ -221,9 +203,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Lifetime"
             },
-            "$name": {
-              "type": "string"
-            },
             "duration": {
               "title": "f32",
               "type": "number"
@@ -240,9 +219,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Movement"
-            },
-            "$name": {
-              "type": "string"
             },
             "speed": {
               "title": "f32",
@@ -275,9 +251,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Footstep"
-            },
-            "$name": {
-              "type": "string"
             },
             "jointA": {
               "title": "String",
@@ -315,9 +288,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Health"
             },
-            "$name": {
-              "type": "string"
-            },
             "amount": {
               "title": "f32",
               "type": "number"
@@ -344,9 +314,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Attack"
-            },
-            "$name": {
-              "type": "string"
             },
             "weaponId": {
               "title": "String",
@@ -401,9 +368,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Collision"
             },
-            "$name": {
-              "type": "string"
-            },
             "navBlocker": {
               "title": "bool",
               "type": "boolean"
@@ -426,13 +390,17 @@
             "$type": {
               "const": "AssetPrefabTrait_Script"
             },
-            "$name": {
-              "type": "string"
-            },
             "scriptId": {
               "title": "String",
               "type": "string",
               "minLength": 1
+            },
+            "knowledge": {
+              "type": "array",
+              "items": {
+                "title": "AssetPrefabValueDef",
+                "$ref": "#/$defs/AssetPrefabValueDef"
+              }
             }
           },
           "required": [
@@ -446,9 +414,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Taunt"
-            },
-            "$name": {
-              "type": "string"
             },
             "priority": {
               "title": "i32",
@@ -478,9 +443,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Location"
             },
-            "$name": {
-              "type": "string"
-            },
             "aimTarget": {
               "title": "AssetPrefabShapeBoxDef",
               "$ref": "#/$defs/AssetPrefabShapeBoxDef"
@@ -496,9 +458,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Status"
-            },
-            "$name": {
-              "type": "string"
             },
             "effectJoint": {
               "title": "String",
@@ -521,9 +480,6 @@
             "$type": {
               "const": "AssetPrefabTrait_Vision"
             },
-            "$name": {
-              "type": "string"
-            },
             "radius": {
               "title": "f32",
               "type": "number"
@@ -540,9 +496,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Production"
-            },
-            "$name": {
-              "type": "string"
             },
             "spawnPos": {
               "title": "AssetPrefabVec3Def",
@@ -581,9 +534,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabTrait_Scalable"
-            },
-            "$name": {
-              "type": "string"
             }
           },
           "required": [
@@ -679,9 +629,6 @@
             "$type": {
               "const": "AssetPrefabShape_Sphere"
             },
-            "$name": {
-              "type": "string"
-            },
             "offset": {
               "title": "AssetPrefabVec3Def",
               "$ref": "#/$defs/AssetPrefabVec3Def"
@@ -702,9 +649,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabShape_Capsule"
-            },
-            "$name": {
-              "type": "string"
             },
             "offset": {
               "title": "AssetPrefabVec3Def",
@@ -731,9 +675,6 @@
           "properties": {
             "$type": {
               "const": "AssetPrefabShape_Box"
-            },
-            "$name": {
-              "type": "string"
             },
             "min": {
               "title": "AssetPrefabVec3Def",
@@ -788,6 +729,119 @@
         {
           "label": "New",
           "body": "^{}"
+        }
+      ]
+    },
+    "AssetPrefabValueDef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabValue_Number"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "$data": {
+              "title": "f64",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "$data"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabValue_Bool"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "$data": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "$data"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabValue_Vector3"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "x": {
+              "title": "f32",
+              "type": "number"
+            },
+            "y": {
+              "title": "f32",
+              "type": "number"
+            },
+            "z": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "$name"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabValue_String"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "$data": {
+              "title": "String",
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "$data"
+          ]
+        }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetPrefabValue_Number",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Number\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Bool",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Vector3",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_String",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}"
         }
       ]
     },

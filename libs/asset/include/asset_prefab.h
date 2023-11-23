@@ -132,6 +132,7 @@ typedef struct {
 
 typedef struct {
   EcsEntityId scriptAsset;
+  u16         knowledgeIndex, knowledgeCount; // Stored in the values array.
 } AssetPrefabTraitScript;
 
 typedef struct {
@@ -198,12 +199,32 @@ typedef struct {
   u16              traitIndex, traitCount; // Stored in the traits array.
 } AssetPrefab;
 
+typedef enum {
+  AssetPrefabValue_Number,
+  AssetPrefabValue_Bool,
+  AssetPrefabValue_Vector3,
+  AssetPrefabValue_String,
+} AssetPrefabValueType;
+
+typedef struct {
+  StringHash           name;
+  AssetPrefabValueType type;
+  union {
+    f64        data_number;
+    bool       data_bool;
+    GeoVector  data_vector3;
+    StringHash data_string;
+  };
+} AssetPrefabValue;
+
 ecs_comp_extern_public(AssetPrefabMapComp) {
   AssetPrefab*      prefabs;         // AssetPrefab[prefabCount]. Sorted on the nameHash.
   u16*              userIndexLookup; // u16[prefabCount], lookup from user-index to prefab-index.
   usize             prefabCount;
   AssetPrefabTrait* traits; // AssetPrefabTrait[traitCount];
   usize             traitCount;
+  AssetPrefabValue* values;
+  usize             valueCount;
 };
 
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
