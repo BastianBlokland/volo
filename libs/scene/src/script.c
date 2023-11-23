@@ -449,6 +449,17 @@ static void debug_push_trace(EvalContext* ctx, const SceneScriptDebugTrace* data
   d->data_trace       = *data;
 }
 
+static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, ScriptError* err) {
+  const EcsEntityId e = script_arg_entity(a, i, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return e;
+  }
+  if (UNLIKELY(!ecs_world_exists(ctx->world, e) || !ecs_world_has_t(ctx->world, e, AssetComp))) {
+    *err = script_error_arg(ScriptError_ArgumentInvalid, i);
+  }
+  return e;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -728,9 +739,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1049,7 +1060,7 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
 }
 
 static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset   = script_arg_entity(args, 0, err);
+  const EcsEntityId asset   = arg_asset(ctx, args, 0, err);
   const f32         gain    = (f32)script_arg_opt_num_range(args, 1, 0.001, 100.0, 1.0, err);
   const f32         pitch   = (f32)script_arg_opt_num_range(args, 2, 0.001, 100.0, 1.0, err);
   const bool        looping = script_arg_opt_bool(args, 3, false, err);
