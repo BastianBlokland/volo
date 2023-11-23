@@ -266,6 +266,10 @@ ecs_system_define(SndMixerUpdateSys) {
         log_e("Failed to acquire sound asset");
         obj->phase = SndObjectPhase_Cleanup;
         // Fallthrough.
+      } else if (UNLIKELY(ecs_world_has_t(world, m->objectAssets[i], AssetLoadedComp))) {
+        log_e("Acquired asset was not a sound");
+        obj->phase = SndObjectPhase_Cleanup;
+        // Fallthrough.
       } else {
         continue; // Wait for the asset to load (or to fail).
       }
