@@ -536,10 +536,24 @@ static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static bool eval_set_allowed(EvalContext* ctx, const EcsEntityId e) {
+  if (UNLIKELY(ecs_world_exists(ctx->world, e) && ecs_world_has_t(ctx->world, e, AssetComp))) {
+    return false; // Adding assets to sets is not allowed (because set entries can be destroyed).
+  }
+  return true;
+}
+
 static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e   = script_arg_entity(args, 0, err);
-  const StringHash  set = script_arg_str(args, 1, err);
-  if (UNLIKELY(!e || !set)) {
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!e)) {
+    return script_null();
+  }
+  if (UNLIKELY(!eval_set_allowed(ctx, e))) {
+    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    return script_null();
+  }
+  const StringHash set = script_arg_str(args, 1, err);
+  if (UNLIKELY(!set)) {
     return script_null();
   }
   if (args.count == 2) {
