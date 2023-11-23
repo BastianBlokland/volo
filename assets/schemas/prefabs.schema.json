@@ -824,6 +824,32 @@
             "$name",
             "$data"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabValue_Sound"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "assetId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "persistent": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "assetId"
+          ]
         }
       ],
       "defaultSnippets": [
@@ -842,6 +868,10 @@
         {
           "label": "New AssetPrefabValue_String",
           "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Sound",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}"
         }
       ]
     },
