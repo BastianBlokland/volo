@@ -878,26 +878,45 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
   return script_entity(result);
 }
 
+static bool eval_destroy_allowed(EvalContext* ctx, const EcsEntityId e) {
+  if (UNLIKELY(ecs_world_exists(ctx->world, e) && ecs_world_has_t(ctx->world, e, AssetComp))) {
+    return false; // Destroying assets is not allowed.
+  }
+  return true;
+}
+
 static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
-  if (LIKELY(entity)) {
-    action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
+  if (UNLIKELY(!entity)) {
+    return script_null();
   }
+  if (UNLIKELY(!eval_destroy_allowed(ctx, entity))) {
+    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    return script_null();
+  }
+  action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
   return script_null();
 }
 
 static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity     = script_arg_entity(args, 0, err);
-  const ScriptMask  targetMask = script_mask_entity | script_mask_time;
-  if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
-    action_push_destroy_after(
-        ctx,
-        &(ScriptActionDestroyAfter){
-            .entity = entity,
-            .owner  = script_arg_maybe_entity(args, 1, 0),
-            .delay  = script_arg_maybe_time(args, 1, 0),
-        });
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
   }
+  if (UNLIKELY(!eval_destroy_allowed(ctx, entity))) {
+    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    return script_null();
+  }
+  if (UNLIKELY(!script_arg_check(args, 1, script_mask_entity | script_mask_time, err))) {
+    return script_null();
+  }
+  action_push_destroy_after(
+      ctx,
+      &(ScriptActionDestroyAfter){
+          .entity = entity,
+          .owner  = script_arg_maybe_entity(args, 1, 0),
+          .delay  = script_arg_maybe_time(args, 1, 0),
+      });
   return script_null();
 }
 
