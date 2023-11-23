@@ -255,7 +255,7 @@ ecs_system_define(SndMixerUpdateSys) {
 
         continue; // Ready for playback.
       } else if (ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp)) {
-        log_e("Failed to sound resource");
+        log_e("Failed to acquire sound resource");
         obj->phase = SndObjectPhase_Cleanup;
         // Fallthrough.
       } else {
