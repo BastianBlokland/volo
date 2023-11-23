@@ -781,6 +781,34 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabValue_Vector3"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "x": {
+              "title": "f32",
+              "type": "number"
+            },
+            "y": {
+              "title": "f32",
+              "type": "number"
+            },
+            "z": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "$name"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabValue_String"
             },
             "$name": {
@@ -806,6 +834,10 @@
         {
           "label": "New AssetPrefabValue_Bool",
           "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Vector3",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}"
         },
         {
           "label": "New AssetPrefabValue_String",

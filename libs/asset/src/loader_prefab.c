@@ -75,9 +75,10 @@ typedef struct {
   String               name;
   AssetPrefabValueType type;
   union {
-    f64    data_number;
-    bool   data_bool;
-    String data_string;
+    f64                data_number;
+    bool               data_bool;
+    AssetPrefabVec3Def data_vector3;
+    String             data_string;
   };
 } AssetPrefabValueDef;
 
@@ -267,6 +268,7 @@ static void prefab_datareg_init() {
     data_reg_union_name_t(reg, AssetPrefabValueDef, name);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String));
 
     data_reg_struct_t(reg, AssetPrefabTraitNameDef);
@@ -469,6 +471,10 @@ static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
   case AssetPrefabValue_Bool:
     res.type      = AssetPrefabValue_Bool;
     res.data_bool = def->data_bool;
+    break;
+  case AssetPrefabValue_Vector3:
+    res.type         = AssetPrefabValue_Vector3;
+    res.data_vector3 = prefab_build_vec3(&def->data_vector3);
     break;
   case AssetPrefabValue_String:
     res.type        = AssetPrefabValue_String;

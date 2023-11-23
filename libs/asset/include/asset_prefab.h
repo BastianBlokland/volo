@@ -202,6 +202,7 @@ typedef struct {
 typedef enum {
   AssetPrefabValue_Number,
   AssetPrefabValue_Bool,
+  AssetPrefabValue_Vector3,
   AssetPrefabValue_String,
 } AssetPrefabValueType;
 
@@ -211,6 +212,7 @@ typedef struct {
   union {
     f64        data_number;
     bool       data_bool;
+    GeoVector  data_vector3;
     StringHash data_string;
   };
 } AssetPrefabValue;
