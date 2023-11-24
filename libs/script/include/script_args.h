@@ -29,6 +29,7 @@ typedef struct {
 } ScriptArgs;
 
 bool script_arg_check(ScriptArgs, u16 i, ScriptMask, ScriptError*);
+bool script_arg_has(ScriptArgs, u16 i);
 
 ScriptVal    script_arg_any(ScriptArgs, u16 i, ScriptError*);
 f64          script_arg_num(ScriptArgs, u16 i, ScriptError*);

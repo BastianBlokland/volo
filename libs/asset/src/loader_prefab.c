@@ -72,13 +72,19 @@ typedef struct {
 } AssetPrefabShapeDef;
 
 typedef struct {
+  String assetId;
+  bool   persistent;
+} AssetPrefabValueSoundDef;
+
+typedef struct {
   String               name;
   AssetPrefabValueType type;
   union {
-    f64                data_number;
-    bool               data_bool;
-    AssetPrefabVec3Def data_vector3;
-    String             data_string;
+    f64                      data_number;
+    bool                     data_bool;
+    AssetPrefabVec3Def       data_vector3;
+    String                   data_string;
+    AssetPrefabValueSoundDef data_sound;
   };
 } AssetPrefabValueDef;
 
@@ -264,12 +270,17 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, t_AssetPrefabShapeBoxDef);
 
+    data_reg_struct_t(reg, AssetPrefabValueSoundDef);
+    data_reg_field_t(reg, AssetPrefabValueSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabValueSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
+
     data_reg_union_t(reg, AssetPrefabValueDef, type);
     data_reg_union_name_t(reg, AssetPrefabValueDef, name);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String));
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
 
     data_reg_struct_t(reg, AssetPrefabTraitNameDef);
     data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -459,7 +470,7 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   diag_crash_msg("Unsupported prefab shape");
 }
 
-static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
+static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValueDef* def) {
   AssetPrefabValue res;
   res.name = stringtable_add(g_stringtable, def->name);
 
@@ -479,6 +490,11 @@ static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
   case AssetPrefabValue_String:
     res.type        = AssetPrefabValue_String;
     res.data_string = stringtable_add(g_stringtable, def->data_string);
+    break;
+  case AssetPrefabValue_Sound:
+    res.type             = AssetPrefabValue_Sound;
+    res.data_sound.asset = asset_lookup(ctx->world, ctx->assetManager, def->data_sound.assetId);
+    res.data_sound.persistent = def->data_sound.persistent;
     break;
   default:
     diag_crash_msg("Unsupported prefab value");
@@ -635,7 +651,7 @@ static void prefab_build(
           .knowledgeCount = (u16)traitDef->data_script.knowledge.count,
       };
       array_ptr_for_t(traitDef->data_script.knowledge, AssetPrefabValueDef, valDef) {
-        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(valDef);
+        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(ctx, valDef);
       }
       break;
     case AssetPrefabTrait_Taunt:

@@ -5169,6 +5169,23 @@
       "scale": 1
     },
     {
+      "id": 960286383,
+      "prefab": "Ambiance",
+      "faction": "A",
+      "position": {
+        "x": 3.6528,
+        "y": 0.5512,
+        "z": -3.5348
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 963299818,
       "prefab": "PropBarrel",
       "faction": "A",

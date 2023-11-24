@@ -181,6 +181,10 @@ ecs_view_define(AssetView) {
 
 ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
 
+INLINE_HINT static bool snd_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 ecs_system_define(SndMixerUpdateSys) {
   EcsView*     mixerView = ecs_world_view_t(world, MixerView);
   EcsIterator* mixerItr  = ecs_view_maybe_at(mixerView, ecs_world_global(world));
@@ -210,9 +214,13 @@ ecs_system_define(SndMixerUpdateSys) {
     case SndObjectPhase_Playing:
       continue;
     case SndObjectPhase_Setup:
-      if (m->objectAssets[i]) {
+      if (LIKELY(m->objectAssets[i] && snd_asset_valid(world, m->objectAssets[i]))) {
         asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
+      } else {
+        log_e("Invalid sound asset entity");
+        obj->phase = SndObjectPhase_Cleanup;
+        continue;
       }
       /**
        * An 'asset_acquire()' takes one tick to take effect as it requires the ecs to be flushed
@@ -254,15 +262,21 @@ ecs_system_define(SndMixerUpdateSys) {
         }
 
         continue; // Ready for playback.
-      } else if (ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp)) {
-        log_e("Failed to sound resource");
+      } else if (UNLIKELY(ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp))) {
+        log_e("Failed to acquire sound asset");
+        obj->phase = SndObjectPhase_Cleanup;
+        // Fallthrough.
+      } else if (UNLIKELY(ecs_world_has_t(world, m->objectAssets[i], AssetLoadedComp))) {
+        log_e("Acquired asset was not a sound");
         obj->phase = SndObjectPhase_Cleanup;
         // Fallthrough.
       } else {
         continue; // Wait for the asset to load (or to fail).
       }
     case SndObjectPhase_Cleanup:
-      asset_release(world, m->objectAssets[i]);
+      if (LIKELY(m->objectAssets[i] && snd_asset_valid(world, m->objectAssets[i]))) {
+        asset_release(world, m->objectAssets[i]);
+      }
       snd_object_release(m, obj);
       *obj                 = (SndObject){.generation = obj->generation};
       m->objectNames[i]    = string_empty;
