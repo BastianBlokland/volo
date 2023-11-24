@@ -1033,9 +1033,20 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static bool eval_status_allowed(EvalContext* ctx, const EcsEntityId e) {
+  if (UNLIKELY(ecs_world_exists(ctx->world, e) && ecs_world_has_t(ctx->world, e, AssetComp))) {
+    return false; // Assets are not allowed to have status effects
+  }
+  return true;
+}
+
 static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  if (UNLIKELY(!eval_status_allowed(ctx, entity))) {
+    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
   const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
