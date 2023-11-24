@@ -723,6 +723,20 @@
       ]
     },
     {
+      "name": "Ambiance",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/ambiance.script",
+          "knowledge": [
+            {
+              "$name": "soundAsset",
+              "$type": "AssetPrefabValue_Sound",
+              "assetId": "external/sound/ambiance-01.wav"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "ScriptTest",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test.script" }
