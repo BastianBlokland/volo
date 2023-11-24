@@ -51,6 +51,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
                   g_scriptEnumVfxParam,
+                  g_scriptEnumSoundParam,
                   g_scriptEnumLayer,
                   g_scriptEnumStatus;
 
@@ -93,6 +94,11 @@ static void eval_enum_init_activity() {
 
 static void eval_enum_init_vfx_param() {
   script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
+}
+
+static void eval_enum_init_sound_param() {
+  script_enum_push(&g_scriptEnumSoundParam, string_lit("Gain"), 0);
+  script_enum_push(&g_scriptEnumSoundParam, string_lit("Pitch"), 1);
 }
 
 static void eval_enum_init_layer() {
@@ -268,6 +274,7 @@ ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
+ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
@@ -291,6 +298,7 @@ typedef struct {
   EcsIterator* statusItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
+  EcsIterator* soundItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
   EcsIterator* attackItr;
@@ -753,9 +761,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1149,6 +1157,24 @@ static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, Script
   return script_entity(result);
 }
 
+static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->soundItr, entity);
+  if (itr) {
+    const SceneSoundComp* soundComp = ecs_view_read_t(itr, SceneSoundComp);
+    switch (script_arg_enum(args, 1, &g_scriptEnumSoundParam, err)) {
+    case 0 /* Gain */:
+      return script_num(soundComp->gain);
+    case 1 /* Pitch */:
+      return script_num(soundComp->pitch);
+    }
+  }
+  return script_null();
+}
+
 static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   /**
@@ -1309,6 +1335,7 @@ static void eval_binder_init() {
     eval_enum_init_capability();
     eval_enum_init_activity();
     eval_enum_init_vfx_param();
+    eval_enum_init_sound_param();
     eval_enum_init_layer();
     eval_enum_init_status();
 
@@ -1351,6 +1378,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("sound_play"),         eval_sound_play);
+    eval_bind(b, string_lit("sound_param"),        eval_sound_param);
     eval_bind(b, string_lit("random_of"),          eval_random_of);
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
@@ -1521,6 +1549,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
+      .soundItr       = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
       .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
@@ -1866,6 +1895,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalTagView),
       ecs_register_view(EvalVfxSysView),
+      ecs_register_view(EvalSoundView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),

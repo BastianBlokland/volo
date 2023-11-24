@@ -414,6 +414,26 @@
       }
     },
     {
+      "name": "sound_param",
+      "doc": "Change or query a sound parameter on the given entity.\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          }
+        ]
+      }
+    },
+    {
       "name": "rotation",
       "doc": "Lookup the rotation of the given entity.",
       "sig": {
@@ -485,7 +505,7 @@
     },
     {
       "name": "sound_play",
-      "doc": "Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "doc": "Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.",
       "sig": {
         "ret": [
           "null",
