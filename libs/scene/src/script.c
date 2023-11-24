@@ -138,6 +138,7 @@ typedef enum {
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
   ScriptActionType_SoundPlay,
+  ScriptActionType_UpdateSoundParam,
 } ScriptActionType;
 
 typedef struct {
@@ -226,7 +227,8 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
-  f32         alpha;
+  i32         param;
+  f32         value;
 } ScriptActionUpdateVfxParam;
 
 typedef struct {
@@ -237,25 +239,32 @@ typedef struct {
 } ScriptActionSoundPlay;
 
 typedef struct {
+  EcsEntityId entity;
+  i32         param;
+  f32         value;
+} ScriptActionUpdateSoundParam;
+
+typedef struct {
   ScriptActionType type;
   union {
-    ScriptActionTell           data_tell;
-    ScriptActionAsk            data_ask;
-    ScriptActionSpawn          data_spawn;
-    ScriptActionDestroy        data_destroy;
-    ScriptActionDestroyAfter   data_destroyAfter;
-    ScriptActionTeleport       data_teleport;
-    ScriptActionNavTravel      data_navTravel;
-    ScriptActionNavStop        data_navStop;
-    ScriptActionAttach         data_attach;
-    ScriptActionDetach         data_detach;
-    ScriptActionDamage         data_damage;
-    ScriptActionAttack         data_attack;
-    ScriptActionUpdateSet      data_updateSet;
-    ScriptActionUpdateStatus   data_updateStatus;
-    ScriptActionUpdateTags     data_updateTags;
-    ScriptActionUpdateVfxParam data_updateVfxParam;
-    ScriptActionSoundPlay      data_soundPlay;
+    ScriptActionTell             data_tell;
+    ScriptActionAsk              data_ask;
+    ScriptActionSpawn            data_spawn;
+    ScriptActionDestroy          data_destroy;
+    ScriptActionDestroyAfter     data_destroyAfter;
+    ScriptActionTeleport         data_teleport;
+    ScriptActionNavTravel        data_navTravel;
+    ScriptActionNavStop          data_navStop;
+    ScriptActionAttach           data_attach;
+    ScriptActionDetach           data_detach;
+    ScriptActionDamage           data_damage;
+    ScriptActionAttack           data_attack;
+    ScriptActionUpdateSet        data_updateSet;
+    ScriptActionUpdateStatus     data_updateStatus;
+    ScriptActionUpdateTags       data_updateTags;
+    ScriptActionUpdateVfxParam   data_updateVfxParam;
+    ScriptActionSoundPlay        data_soundPlay;
+    ScriptActionUpdateSoundParam data_updateSoundParam;
   };
 } ScriptAction;
 
@@ -419,6 +428,13 @@ static void action_push_sound_play(EvalContext* ctx, const ScriptActionSoundPlay
   ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
   a->type           = ScriptActionType_SoundPlay;
   a->data_soundPlay = *data;
+}
+
+static void
+action_push_update_sound_param(EvalContext* ctx, const ScriptActionUpdateSoundParam* data) {
+  ScriptAction* a          = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type                  = ScriptActionType_UpdateSoundParam;
+  a->data_updateSoundParam = *data;
 }
 
 static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) {
@@ -1103,26 +1119,24 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   if (UNLIKELY(!entity)) {
     return script_null();
   }
+  const i32 param = script_arg_enum(args, 1, &g_scriptEnumVfxParam, err);
   if (args.count == 2) {
     const EcsIterator* itr = ecs_view_maybe_jump(ctx->vfxSysItr, entity);
     if (itr) {
       const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(itr, SceneVfxSystemComp);
-      switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
+      switch (param) {
       case 0 /* Alpha */:
         return script_num(vfxSysComp->alpha);
       }
     }
     return script_null();
   }
-  switch (script_arg_enum(args, 1, &g_scriptEnumVfxParam, err)) {
-  case 0 /* Alpha */: {
-    const ScriptActionUpdateVfxParam param = {
-        .entity = entity,
-        .alpha  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
-    };
-    action_push_update_vfx_param(ctx, &param);
-  } break;
-  }
+  const ScriptActionUpdateVfxParam update = {
+      .entity = entity,
+      .param  = param,
+      .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
+  };
+  action_push_update_vfx_param(ctx, &update);
   return script_null();
 }
 
@@ -1162,16 +1176,26 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->soundItr, entity);
-  if (itr) {
-    const SceneSoundComp* soundComp = ecs_view_read_t(itr, SceneSoundComp);
-    switch (script_arg_enum(args, 1, &g_scriptEnumSoundParam, err)) {
-    case 0 /* Gain */:
-      return script_num(soundComp->gain);
-    case 1 /* Pitch */:
-      return script_num(soundComp->pitch);
+  const i32 param = script_arg_enum(args, 1, &g_scriptEnumSoundParam, err);
+  if (args.count == 2) {
+    const EcsIterator* itr = ecs_view_maybe_jump(ctx->soundItr, entity);
+    if (itr) {
+      const SceneSoundComp* soundComp = ecs_view_read_t(itr, SceneSoundComp);
+      switch (param) {
+      case 0 /* Gain */:
+        return script_num(soundComp->gain);
+      case 1 /* Pitch */:
+        return script_num(soundComp->pitch);
+      }
     }
+    return script_null();
   }
+  const ScriptActionUpdateSoundParam update = {
+      .entity = entity,
+      .param  = param,
+      .value  = (f32)script_arg_num_range(args, 2, 0.01, 10.0, err),
+  };
+  action_push_update_sound_param(ctx, &update);
   return script_null();
 }
 
@@ -1607,6 +1631,7 @@ ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
+ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
 
 typedef struct {
   EcsWorld*    world;
@@ -1620,6 +1645,7 @@ typedef struct {
   EcsIterator* attackItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
+  EcsIterator* soundItr;
 } ActionContext;
 
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
@@ -1768,7 +1794,12 @@ static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags*
 
 static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdateVfxParam* a) {
   if (ecs_view_maybe_jump(ctx->vfxSysItr, a->entity)) {
-    ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp)->alpha = a->alpha;
+    SceneVfxSystemComp* vfxSysComp = ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp);
+    switch (a->param) {
+    case 0 /* Alpha */:
+      vfxSysComp->alpha = a->value;
+      break;
+    }
   }
 }
 
@@ -1781,6 +1812,20 @@ static void action_sound_play(ActionContext* ctx, const ScriptActionSoundPlay* a
       .gain    = a->gain,
       .pitch   = a->pitch,
       .looping = a->looping);
+}
+
+static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
+  if (ecs_view_maybe_jump(ctx->soundItr, a->entity)) {
+    SceneSoundComp* soundComp = ecs_view_write_t(ctx->soundItr, SceneSoundComp);
+    switch (a->param) {
+    case 0 /* Gain */:
+      soundComp->gain = a->value;
+      break;
+    case 1 /* Pitch */:
+      soundComp->pitch = a->value;
+      break;
+    }
+  }
 }
 
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
@@ -1803,6 +1848,7 @@ ecs_system_define(ScriptActionApplySys) {
       .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
       .vfxSysItr    = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
+      .soundItr     = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -1862,6 +1908,9 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_SoundPlay:
         action_sound_play(&ctx, &action->data_soundPlay);
         break;
+      case ScriptActionType_UpdateSoundParam:
+        action_update_sound_param(&ctx, &action->data_updateSoundParam);
+        break;
       }
     }
     dynarray_clear(&scriptInstance->actions);
@@ -1916,7 +1965,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionDamageView),
       ecs_register_view(ActionAttackView),
       ecs_register_view(ActionTagView),
-      ecs_register_view(ActionVfxSysView));
+      ecs_register_view(ActionVfxSysView),
+      ecs_register_view(ActionSoundView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }

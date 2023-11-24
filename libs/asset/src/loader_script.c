@@ -407,6 +407,7 @@ static void asset_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("param"), script_mask_str},
+          {string_lit("value"), script_mask_num | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
