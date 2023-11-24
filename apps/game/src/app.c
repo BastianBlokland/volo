@@ -50,17 +50,6 @@ ecs_comp_define(AppWindowComp) {
   EcsEntityId debugLogViewer;
 };
 
-static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
-  ecs_world_add_t(
-      world,
-      ecs_world_entity_create(world),
-      SceneSoundComp,
-      .asset   = asset_lookup(world, assets, string_lit("external/sound/ambiance-01.wav")),
-      .pitch   = 1.0f,
-      .gain    = 0.4f,
-      .looping = true);
-}
-
 static EcsEntityId app_window_create(
     EcsWorld*         world,
     AssetManagerComp* assets,
@@ -619,8 +608,6 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
   ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = win);
-
-  app_ambiance_create(world, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
