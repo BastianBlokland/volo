@@ -19,6 +19,13 @@ bool script_arg_check(const ScriptArgs args, const u16 i, const ScriptMask mask,
   return *err = script_arg_err(args, i), false;
 }
 
+bool script_arg_has(const ScriptArgs args, const u16 i) {
+  if (LIKELY(args.count > i && val_type(args.values[i]) != ScriptType_Null)) {
+    return true;
+  }
+  return false;
+}
+
 ScriptVal script_arg_any(const ScriptArgs args, const u16 i, ScriptError* err) {
   if (LIKELY(args.count > i)) {
     return args.values[i];
