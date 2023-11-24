@@ -1119,14 +1119,24 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
 }
 
 static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset   = arg_asset(ctx, args, 0, err);
-  const f32         gain    = (f32)script_arg_opt_num_range(args, 1, 0.001, 100.0, 1.0, err);
-  const f32         pitch   = (f32)script_arg_opt_num_range(args, 2, 0.001, 100.0, 1.0, err);
-  const bool        looping = script_arg_opt_bool(args, 3, false, err);
+  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
+  GeoVector         pos;
+  const bool        is3d = script_arg_has(args, 1);
+  if (is3d) {
+    pos = script_arg_vec3(args, 1, err);
+  }
+  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.001, 100.0, 1.0, err);
+  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.001, 100.0, 1.0, err);
+  const bool looping = script_arg_opt_bool(args, 4, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  if (is3d) {
+    // TODO: Should we add this in the action instead?
+    ecs_world_add_t(
+        ctx->world, result, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+  }
   action_push_sound_play(
       ctx,
       &(ScriptActionSoundPlay){
