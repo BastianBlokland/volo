@@ -34,7 +34,6 @@
 #include "script_enum.h"
 #include "script_error.h"
 #include "script_eval.h"
-#include "script_mem.h"
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
@@ -123,9 +122,6 @@ static void eval_enum_init_status() {
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
-  ScriptActionType_Spawn,
-  ScriptActionType_Destroy,
-  ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
   ScriptActionType_NavTravel,
   ScriptActionType_NavStop,
@@ -134,10 +130,8 @@ typedef enum {
   ScriptActionType_Damage,
   ScriptActionType_Attack,
   ScriptActionType_UpdateSet,
-  ScriptActionType_UpdateStatus,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
-  ScriptActionType_SoundPlay,
   ScriptActionType_UpdateSoundParam,
 } ScriptActionType;
 
@@ -152,25 +146,6 @@ typedef struct {
   EcsEntityId target;
   StringHash  memKey;
 } ScriptActionAsk;
-
-typedef struct {
-  EcsEntityId  entity;
-  StringHash   prefabId;
-  f32          scale;
-  SceneFaction faction;
-  GeoVector    position;
-  GeoQuat      rotation;
-} ScriptActionSpawn;
-
-typedef struct {
-  EcsEntityId entity;
-} ScriptActionDestroy;
-
-typedef struct {
-  EcsEntityId  entity;
-  EcsEntityId  owner; // If zero: The delay is used instead.
-  TimeDuration delay;
-} ScriptActionDestroyAfter;
 
 typedef struct {
   EcsEntityId entity;
@@ -215,12 +190,6 @@ typedef struct {
 } ScriptActionUpdateSet;
 
 typedef struct {
-  EcsEntityId     entity;
-  SceneStatusType type;
-  bool            enable;
-} ScriptActionUpdateStatus;
-
-typedef struct {
   EcsEntityId entity;
   SceneTags   toEnable, toDisable;
 } ScriptActionUpdateTags;
@@ -233,13 +202,6 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
-  EcsEntityId asset;
-  f32         gain, pitch;
-  bool        looping;
-} ScriptActionSoundPlay;
-
-typedef struct {
-  EcsEntityId entity;
   i32         param;
   f32         value;
 } ScriptActionUpdateSoundParam;
@@ -249,9 +211,6 @@ typedef struct {
   union {
     ScriptActionTell             data_tell;
     ScriptActionAsk              data_ask;
-    ScriptActionSpawn            data_spawn;
-    ScriptActionDestroy          data_destroy;
-    ScriptActionDestroyAfter     data_destroyAfter;
     ScriptActionTeleport         data_teleport;
     ScriptActionNavTravel        data_navTravel;
     ScriptActionNavStop          data_navStop;
@@ -260,10 +219,8 @@ typedef struct {
     ScriptActionDamage           data_damage;
     ScriptActionAttack           data_attack;
     ScriptActionUpdateSet        data_updateSet;
-    ScriptActionUpdateStatus     data_updateStatus;
     ScriptActionUpdateTags       data_updateTags;
     ScriptActionUpdateVfxParam   data_updateVfxParam;
-    ScriptActionSoundPlay        data_soundPlay;
     ScriptActionUpdateSoundParam data_updateSoundParam;
   };
 } ScriptAction;
@@ -314,7 +271,7 @@ typedef struct {
   EcsIterator* targetItr;
   EcsIterator* lineOfSightItr;
 
-  EcsEntityId            entity;
+  EcsEntityId            instigator;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
   const AssetScriptComp* scriptAsset;
@@ -327,151 +284,6 @@ typedef struct {
 
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
-
-static void action_push_tell(EvalContext* ctx, const ScriptActionTell* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Tell;
-  a->data_tell    = *data;
-}
-
-static void action_push_ask(EvalContext* ctx, const ScriptActionAsk* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Ask;
-  a->data_ask     = *data;
-}
-
-static void action_push_spawn(EvalContext* ctx, const ScriptActionSpawn* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Spawn;
-  a->data_spawn   = *data;
-}
-
-static void action_push_destroy(EvalContext* ctx, const ScriptActionDestroy* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Destroy;
-  a->data_destroy = *data;
-}
-
-static void action_push_destroy_after(EvalContext* ctx, const ScriptActionDestroyAfter* data) {
-  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type              = ScriptActionType_DestroyAfter;
-  a->data_destroyAfter = *data;
-}
-
-static void action_push_teleport(EvalContext* ctx, const ScriptActionTeleport* data) {
-  ScriptAction* a  = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type          = ScriptActionType_Teleport;
-  a->data_teleport = *data;
-}
-
-static void action_push_nav_travel(EvalContext* ctx, const ScriptActionNavTravel* data) {
-  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type           = ScriptActionType_NavTravel;
-  a->data_navTravel = *data;
-}
-
-static void action_push_nav_stop(EvalContext* ctx, const ScriptActionNavStop* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_NavStop;
-  a->data_navStop = *data;
-}
-
-static void action_push_attach(EvalContext* ctx, const ScriptActionAttach* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Attach;
-  a->data_attach  = *data;
-}
-
-static void action_push_detach(EvalContext* ctx, const ScriptActionDetach* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Detach;
-  a->data_detach  = *data;
-}
-
-static void action_push_damage(EvalContext* ctx, const ScriptActionDamage* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Damage;
-  a->data_damage  = *data;
-}
-
-static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Attack;
-  a->data_attack  = *data;
-}
-
-static void action_push_update_set(EvalContext* ctx, const ScriptActionUpdateSet* data) {
-  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type           = ScriptActionType_UpdateSet;
-  a->data_updateSet = *data;
-}
-
-static void action_push_update_status(EvalContext* ctx, const ScriptActionUpdateStatus* data) {
-  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type              = ScriptActionType_UpdateStatus;
-  a->data_updateStatus = *data;
-}
-
-static void action_push_update_tags(EvalContext* ctx, const ScriptActionUpdateTags* data) {
-  ScriptAction* a    = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type            = ScriptActionType_UpdateTags;
-  a->data_updateTags = *data;
-}
-
-static void action_push_update_vfx_param(EvalContext* ctx, const ScriptActionUpdateVfxParam* data) {
-  ScriptAction* a        = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type                = ScriptActionType_UpdateVfxParam;
-  a->data_updateVfxParam = *data;
-}
-
-static void action_push_sound_play(EvalContext* ctx, const ScriptActionSoundPlay* data) {
-  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type           = ScriptActionType_SoundPlay;
-  a->data_soundPlay = *data;
-}
-
-static void
-action_push_update_sound_param(EvalContext* ctx, const ScriptActionUpdateSoundParam* data) {
-  ScriptAction* a          = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type                  = ScriptActionType_UpdateSoundParam;
-  a->data_updateSoundParam = *data;
-}
-
-static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Line;
-  d->data_line        = *data;
-}
-
-static void debug_push_sphere(EvalContext* ctx, const SceneScriptDebugSphere* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Sphere;
-  d->data_sphere      = *data;
-}
-
-static void debug_push_arrow(EvalContext* ctx, const SceneScriptDebugArrow* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Arrow;
-  d->data_arrow       = *data;
-}
-
-static void debug_push_orientation(EvalContext* ctx, const SceneScriptDebugOrientation* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Orientation;
-  d->data_orientation = *data;
-}
-
-static void debug_push_text(EvalContext* ctx, const SceneScriptDebugText* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Text;
-  d->data_text        = *data;
-}
-
-static void debug_push_trace(EvalContext* ctx, const SceneScriptDebugTrace* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Trace;
-  d->data_trace       = *data;
-}
 
 static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(a, i, err);
@@ -487,7 +299,7 @@ static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
-  return script_entity(ctx->entity);
+  return script_entity(ctx->instigator);
 }
 
 static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -584,12 +396,10 @@ static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* 
     const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
     return script_bool(scene_set_contains(setEnv, set, e));
   }
-  const ScriptActionUpdateSet updateSet = {
-      .entity = e,
-      .set    = set,
-      .add    = script_arg_bool(args, 2, err),
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type           = ScriptActionType_UpdateSet,
+      .data_updateSet = {.entity = e, .set = set, .add = script_arg_bool(args, 2, err)},
   };
-  action_push_update_set(ctx, &updateSet);
   return script_null();
 }
 
@@ -777,9 +587,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -870,13 +680,10 @@ static ScriptVal eval_tell(EvalContext* ctx, const ScriptArgs args, ScriptError*
   const StringHash  key   = script_arg_str(args, 1, err);
   const ScriptVal   value = script_arg_any(args, 2, err);
   if (LIKELY(e && key)) {
-    action_push_tell(
-        ctx,
-        &(ScriptActionTell){
-            .entity = e,
-            .memKey = key,
-            .value  = value,
-        });
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type      = ScriptActionType_Tell,
+        .data_tell = {.entity = e, .memKey = key, .value = value},
+    };
   }
   return script_null();
 }
@@ -886,13 +693,10 @@ static ScriptVal eval_ask(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   const EcsEntityId target = script_arg_entity(args, 1, err);
   const StringHash  key    = script_arg_str(args, 2, err);
   if (LIKELY(e && target && key)) {
-    action_push_ask(
-        ctx,
-        &(ScriptActionAsk){
-            .entity = e,
-            .target = target,
-            .memKey = key,
-        });
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type     = ScriptActionType_Ask,
+        .data_ask = {.entity = e, .target = target, .memKey = key},
+    };
   }
   return script_null();
 }
@@ -902,18 +706,14 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
-  const EcsEntityId result = ecs_world_entity_create(ctx->world);
-  action_push_spawn(
-      ctx,
-      &(ScriptActionSpawn){
-          .entity   = result,
-          .prefabId = prefabId,
-          .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-          .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-          .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
-          .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
-      });
-  return script_entity(result);
+  const ScenePrefabSpec spec = {
+      .prefabId = prefabId,
+      .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
+      .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
+      .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
+      .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
+  };
+  return script_entity(scene_prefab_spawn(ctx->world, &spec));
 }
 
 static bool eval_destroy_allowed(EvalContext* ctx, const EcsEntityId e) {
@@ -932,7 +732,9 @@ static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptErr
     *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
-  action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
+  if (ecs_world_exists(ctx->world, entity)) {
+    ecs_world_entity_destroy(ctx->world, entity);
+  }
   return script_null();
 }
 
@@ -948,26 +750,30 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, Scr
   if (UNLIKELY(!script_arg_check(args, 1, script_mask_entity | script_mask_time, err))) {
     return script_null();
   }
-  action_push_destroy_after(
-      ctx,
-      &(ScriptActionDestroyAfter){
-          .entity = entity,
-          .owner  = script_arg_maybe_entity(args, 1, 0),
-          .delay  = script_arg_maybe_time(args, 1, 0),
-      });
+  const EcsEntityId  owner = script_arg_maybe_entity(args, 1, 0);
+  const TimeDuration delay = script_arg_maybe_time(args, 1, 0);
+  if (ecs_world_exists(ctx->world, entity)) {
+    if (owner) {
+      ecs_world_add_t(ctx->world, entity, SceneLifetimeOwnerComp, .owners[0] = owner);
+    } else {
+      ecs_world_add_t(ctx->world, entity, SceneLifetimeDurationComp, .duration = delay);
+    }
+  }
   return script_null();
 }
 
 static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
-    action_push_teleport(
-        ctx,
-        &(ScriptActionTeleport){
-            .entity   = entity,
-            .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-            .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-        });
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type = ScriptActionType_Teleport,
+        .data_teleport =
+            {
+                .entity   = entity,
+                .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
+                .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
+            },
+    };
   }
   return script_null();
 }
@@ -976,13 +782,15 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
   const EcsEntityId entity     = script_arg_entity(args, 0, err);
   const ScriptMask  targetMask = script_mask_entity | script_mask_vec3;
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
-    action_push_nav_travel(
-        ctx,
-        &(ScriptActionNavTravel){
-            .entity         = entity,
-            .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
-            .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
-        });
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type = ScriptActionType_NavTravel,
+        .data_navTravel =
+            {
+                .entity         = entity,
+                .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
+                .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
+            },
+    };
   }
   return script_null();
 }
@@ -990,7 +798,10 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
-    action_push_nav_stop(ctx, &(ScriptActionNavStop){.entity = entity});
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type         = ScriptActionType_NavStop,
+        .data_navStop = {.entity = entity},
+    };
   }
   return script_null();
 }
@@ -1015,20 +826,25 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptErro
   if (UNLIKELY(!target)) {
     return script_null();
   }
-  action_push_attach(
-      ctx,
-      &(ScriptActionAttach){
-          .entity    = entity,
-          .target    = target,
-          .jointName = script_arg_opt_str(args, 2, 0, err),
-      });
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_Attach,
+      .data_attach =
+          {
+              .entity    = entity,
+              .target    = target,
+              .jointName = script_arg_opt_str(args, 2, 0, err),
+          },
+  };
   return script_null();
 }
 
 static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
-    action_push_detach(ctx, &(ScriptActionDetach){.entity = entity});
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type        = ScriptActionType_Detach,
+        .data_detach = {.entity = entity},
+    };
   }
   return script_null();
 }
@@ -1037,12 +853,10 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
-    action_push_damage(
-        ctx,
-        &(ScriptActionDamage){
-            .entity = entity,
-            .amount = amount,
-        });
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type        = ScriptActionType_Damage,
+        .data_damage = {.entity = entity, .amount = amount},
+    };
   }
   return script_null();
 }
@@ -1052,7 +866,10 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const ScriptMask  targetMask = script_mask_entity | script_mask_null;
   const EcsEntityId target     = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
-    action_push_attack(ctx, &(ScriptActionAttack){.entity = entity, .target = target});
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type        = ScriptActionType_Attack,
+        .data_attack = {.entity = entity, .target = target},
+    };
   }
   return script_null();
 }
@@ -1082,12 +899,11 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
     }
     return script_null();
   }
-  const ScriptActionUpdateStatus param = {
-      .entity = entity,
-      .type   = type,
-      .enable = script_arg_bool(args, 2, err),
-  };
-  action_push_update_status(ctx, &param);
+  if (script_arg_bool(args, 2, err)) {
+    scene_status_add(ctx->world, entity, type, ctx->instigator);
+  } else {
+    scene_status_remove(ctx->world, entity, type);
+  }
   return script_null();
 }
 
@@ -1104,13 +920,16 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
     }
     return script_null();
   }
-  ScriptActionUpdateTags updateTags = {.entity = entity};
+  SceneTags toEnable = 0, toDisable = 0;
   if (script_arg_bool(args, 1, err)) {
-    updateTags.toEnable |= SceneTags_Emit;
+    toEnable |= SceneTags_Emit;
   } else {
-    updateTags.toDisable |= SceneTags_Emit;
+    toDisable |= SceneTags_Emit;
   }
-  action_push_update_tags(ctx, &updateTags);
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type            = ScriptActionType_UpdateTags,
+      .data_updateTags = {.entity = entity, .toEnable = toEnable, .toDisable = toDisable},
+  };
   return script_null();
 }
 
@@ -1131,12 +950,15 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
     }
     return script_null();
   }
-  const ScriptActionUpdateVfxParam update = {
-      .entity = entity,
-      .param  = param,
-      .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_UpdateVfxParam,
+      .data_updateVfxParam =
+          {
+              .entity = entity,
+              .param  = param,
+              .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
+          },
   };
-  action_push_update_vfx_param(ctx, &update);
   return script_null();
 }
 
@@ -1155,19 +977,17 @@ static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, Script
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   if (is3d) {
-    // TODO: Should we add this in the action instead?
     ecs_world_add_t(
         ctx->world, result, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   }
-  action_push_sound_play(
-      ctx,
-      &(ScriptActionSoundPlay){
-          .entity  = result,
-          .asset   = asset,
-          .gain    = gain,
-          .pitch   = pitch,
-          .looping = looping,
-      });
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneSoundComp,
+      .asset   = asset,
+      .gain    = gain,
+      .pitch   = pitch,
+      .looping = looping);
   return script_entity(result);
 }
 
@@ -1190,12 +1010,15 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
     }
     return script_null();
   }
-  const ScriptActionUpdateSoundParam update = {
-      .entity = entity,
-      .param  = param,
-      .value  = (f32)script_arg_num_range(args, 2, 0.01, 10.0, err),
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_UpdateSoundParam,
+      .data_updateSoundParam =
+          {
+              .entity = entity,
+              .param  = param,
+              .value  = (f32)script_arg_num_range(args, 2, 0.01, 10.0, err),
+          },
   };
-  action_push_update_sound_param(ctx, &update);
   return script_null();
 }
 
@@ -1236,7 +1059,7 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
   log_i(
       "script: {}",
       log_param("message", fmt_text(dynstring_view(&buffer))),
-      log_param("entity", fmt_int(ctx->entity, .base = 16)),
+      log_param("entity", fmt_int(ctx->instigator, .base = 16)),
       log_param("script", fmt_text(ctx->scriptId)));
 
   return script_null();
@@ -1248,7 +1071,10 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
   data.end   = script_arg_vec3(args, 1, err);
   data.color = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_line(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type      = SceneScriptDebugType_Line,
+        .data_line = data,
+    };
   }
   return script_null();
 }
@@ -1259,7 +1085,10 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 100.0f, 0.25f, err);
   data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_sphere(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type        = SceneScriptDebugType_Sphere,
+        .data_sphere = data,
+    };
   }
   return script_null();
 }
@@ -1271,7 +1100,10 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, Scrip
   data.radius = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 0.25f, err);
   data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_arrow(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type       = SceneScriptDebugType_Arrow,
+        .data_arrow = data,
+    };
   }
   return script_null();
 }
@@ -1282,7 +1114,10 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args,
   data.rot  = script_arg_quat(args, 1, err);
   data.size = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 1.0f, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_orientation(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type             = SceneScriptDebugType_Orientation,
+        .data_orientation = data,
+    };
   }
   return script_null();
 }
@@ -1304,7 +1139,10 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
     return script_null();
   }
   data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
-  debug_push_text(ctx, &data);
+  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+      .type      = SceneScriptDebugType_Text,
+      .data_text = data,
+  };
   return script_null();
 }
 
@@ -1318,9 +1156,10 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, Scrip
     script_val_write(args.values[i], &buffer);
   }
   if (buffer.size) {
-    SceneScriptDebugTrace data;
-    data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
-    debug_push_trace(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type            = SceneScriptDebugType_Trace,
+        .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
+    };
   }
   return script_null();
 }
@@ -1528,7 +1367,7 @@ static void scene_script_eval(EvalContext* ctx) {
         "Script panic",
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
-        log_param("entity", fmt_int(ctx->entity, .base = 16)));
+        log_param("entity", fmt_int(ctx->instigator, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
     ctx->scriptInstance->lastPanic = evalRes.panic;
@@ -1584,7 +1423,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    ctx.entity          = ecs_view_entity(itr);
+    ctx.instigator      = ecs_view_entity(itr);
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
@@ -1661,33 +1500,6 @@ static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
     if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
       const SceneKnowledgeComp* target = ecs_view_read_t(ctx->knowledgeItr, SceneKnowledgeComp);
       scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
-    }
-  }
-}
-
-static void action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
-  const ScenePrefabSpec spec = {
-      .prefabId = a->prefabId,
-      .faction  = a->faction,
-      .position = a->position,
-      .rotation = a->rotation,
-      .scale    = a->scale,
-  };
-  scene_prefab_spawn_onto(ctx->world, &spec, a->entity);
-}
-
-static void action_destroy(ActionContext* ctx, const ScriptActionDestroy* a) {
-  if (ecs_world_exists(ctx->world, a->entity)) {
-    ecs_world_entity_destroy(ctx->world, a->entity);
-  }
-}
-
-static void action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* a) {
-  if (ecs_world_exists(ctx->world, a->entity)) {
-    if (a->owner) {
-      ecs_world_add_t(ctx->world, a->entity, SceneLifetimeOwnerComp, .owners[0] = a->owner);
-    } else {
-      ecs_world_add_t(ctx->world, a->entity, SceneLifetimeDurationComp, .duration = a->delay);
     }
   }
 }
@@ -1776,14 +1588,6 @@ static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a
   }
 }
 
-static void action_update_status(ActionContext* ctx, const ScriptActionUpdateStatus* a) {
-  if (a->enable) {
-    scene_status_add(ctx->world, a->entity, a->type, ctx->instigator);
-  } else {
-    scene_status_remove(ctx->world, a->entity, a->type);
-  }
-}
-
 static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags* a) {
   if (ecs_view_maybe_jump(ctx->tagItr, a->entity)) {
     SceneTagComp* tagComp = ecs_view_write_t(ctx->tagItr, SceneTagComp);
@@ -1801,17 +1605,6 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
       break;
     }
   }
-}
-
-static void action_sound_play(ActionContext* ctx, const ScriptActionSoundPlay* a) {
-  ecs_world_add_t(
-      ctx->world,
-      a->entity,
-      SceneSoundComp,
-      .asset   = a->asset,
-      .gain    = a->gain,
-      .pitch   = a->pitch,
-      .looping = a->looping);
 }
 
 static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
@@ -1863,15 +1656,6 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_Ask:
         action_ask(&ctx, &action->data_ask);
         break;
-      case ScriptActionType_Spawn:
-        action_spawn(&ctx, &action->data_spawn);
-        break;
-      case ScriptActionType_Destroy:
-        action_destroy(&ctx, &action->data_destroy);
-        break;
-      case ScriptActionType_DestroyAfter:
-        action_destroy_after(&ctx, &action->data_destroyAfter);
-        break;
       case ScriptActionType_Teleport:
         action_teleport(&ctx, &action->data_teleport);
         break;
@@ -1896,17 +1680,11 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_UpdateSet:
         action_update_set(&ctx, &action->data_updateSet);
         break;
-      case ScriptActionType_UpdateStatus:
-        action_update_status(&ctx, &action->data_updateStatus);
-        break;
       case ScriptActionType_UpdateTags:
         action_update_tags(&ctx, &action->data_updateTags);
         break;
       case ScriptActionType_UpdateVfxParam:
         action_update_vfx_param(&ctx, &action->data_updateVfxParam);
-        break;
-      case ScriptActionType_SoundPlay:
-        action_sound_play(&ctx, &action->data_soundPlay);
         break;
       case ScriptActionType_UpdateSoundParam:
         action_update_sound_param(&ctx, &action->data_updateSoundParam);
