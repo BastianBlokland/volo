@@ -345,10 +345,9 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
 }
 
 static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->healthItr, e);
-  if (itr) {
-    const SceneHealthComp* healthComp = ecs_view_read_t(itr, SceneHealthComp);
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->healthItr, e)) {
+    const SceneHealthComp* healthComp = ecs_view_read_t(ctx->healthItr, SceneHealthComp);
     return script_num(scene_health_points(healthComp));
   }
   return script_null();
@@ -651,28 +650,28 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptErro
 }
 
 static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
-  if (itr) {
-    return script_entity_or_null(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    return script_entity_or_null(scene_target_primary(finder));
   }
   return script_null();
 }
 
 static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
-  if (itr) {
-    return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMin);
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    return script_num(finder->rangeMin);
   }
   return script_null();
 }
 
 static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
-  if (itr) {
-    return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    return script_num(finder->rangeMax);
   }
   return script_null();
 }
@@ -894,9 +893,8 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
   }
   const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
   if (args.count < 3) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->statusItr, entity);
-    if (itr) {
-      const SceneStatusComp* statusComp = ecs_view_read_t(itr, SceneStatusComp);
+    if (ecs_view_maybe_jump(ctx->statusItr, entity)) {
+      const SceneStatusComp* statusComp = ecs_view_read_t(ctx->statusItr, SceneStatusComp);
       return script_bool(scene_status_active(statusComp, type));
     }
     return script_null();
@@ -915,9 +913,8 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
     return script_null();
   }
   if (args.count == 1) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->tagItr, entity);
-    if (itr) {
-      const SceneTagComp* tagComp = ecs_view_read_t(itr, SceneTagComp);
+    if (ecs_view_maybe_jump(ctx->tagItr, entity)) {
+      const SceneTagComp* tagComp = ecs_view_read_t(ctx->tagItr, SceneTagComp);
       return script_bool((tagComp->tags & SceneTags_Emit) != 0);
     }
     return script_null();
@@ -1020,9 +1017,8 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
   }
   const i32 param = script_arg_enum(args, 1, &g_scriptEnumSoundParam, err);
   if (args.count == 2) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->soundItr, entity);
-    if (itr) {
-      const SceneSoundComp* soundComp = ecs_view_read_t(itr, SceneSoundComp);
+    if (ecs_view_maybe_jump(ctx->soundItr, entity)) {
+      const SceneSoundComp* soundComp = ecs_view_read_t(ctx->soundItr, SceneSoundComp);
       switch (param) {
       case 0 /* Gain */:
         return script_num(soundComp->gain);
