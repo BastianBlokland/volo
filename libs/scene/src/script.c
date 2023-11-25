@@ -123,8 +123,6 @@ static void eval_enum_init_status() {
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
-  ScriptActionType_Destroy,
-  ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
   ScriptActionType_NavTravel,
   ScriptActionType_NavStop,
@@ -151,16 +149,6 @@ typedef struct {
   EcsEntityId target;
   StringHash  memKey;
 } ScriptActionAsk;
-
-typedef struct {
-  EcsEntityId entity;
-} ScriptActionDestroy;
-
-typedef struct {
-  EcsEntityId  entity;
-  EcsEntityId  owner; // If zero: The delay is used instead.
-  TimeDuration delay;
-} ScriptActionDestroyAfter;
 
 typedef struct {
   EcsEntityId entity;
@@ -239,8 +227,6 @@ typedef struct {
   union {
     ScriptActionTell             data_tell;
     ScriptActionAsk              data_ask;
-    ScriptActionDestroy          data_destroy;
-    ScriptActionDestroyAfter     data_destroyAfter;
     ScriptActionTeleport         data_teleport;
     ScriptActionNavTravel        data_navTravel;
     ScriptActionNavStop          data_navStop;
@@ -327,18 +313,6 @@ static void action_push_ask(EvalContext* ctx, const ScriptActionAsk* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Ask;
   a->data_ask     = *data;
-}
-
-static void action_push_destroy(EvalContext* ctx, const ScriptActionDestroy* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Destroy;
-  a->data_destroy = *data;
-}
-
-static void action_push_destroy_after(EvalContext* ctx, const ScriptActionDestroyAfter* data) {
-  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type              = ScriptActionType_DestroyAfter;
-  a->data_destroyAfter = *data;
 }
 
 static void action_push_teleport(EvalContext* ctx, const ScriptActionTeleport* data) {
@@ -911,7 +885,9 @@ static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptErr
     *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
-  action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
+  if (ecs_world_exists(ctx->world, entity)) {
+    ecs_world_entity_destroy(ctx->world, entity);
+  }
   return script_null();
 }
 
@@ -927,13 +903,15 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, Scr
   if (UNLIKELY(!script_arg_check(args, 1, script_mask_entity | script_mask_time, err))) {
     return script_null();
   }
-  action_push_destroy_after(
-      ctx,
-      &(ScriptActionDestroyAfter){
-          .entity = entity,
-          .owner  = script_arg_maybe_entity(args, 1, 0),
-          .delay  = script_arg_maybe_time(args, 1, 0),
-      });
+  const EcsEntityId  owner = script_arg_maybe_entity(args, 1, 0);
+  const TimeDuration delay = script_arg_maybe_time(args, 1, 0);
+  if (ecs_world_exists(ctx->world, entity)) {
+    if (owner) {
+      ecs_world_add_t(ctx->world, entity, SceneLifetimeOwnerComp, .owners[0] = owner);
+    } else {
+      ecs_world_add_t(ctx->world, entity, SceneLifetimeDurationComp, .duration = delay);
+    }
+  }
   return script_null();
 }
 
@@ -1644,22 +1622,6 @@ static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
   }
 }
 
-static void action_destroy(ActionContext* ctx, const ScriptActionDestroy* a) {
-  if (ecs_world_exists(ctx->world, a->entity)) {
-    ecs_world_entity_destroy(ctx->world, a->entity);
-  }
-}
-
-static void action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* a) {
-  if (ecs_world_exists(ctx->world, a->entity)) {
-    if (a->owner) {
-      ecs_world_add_t(ctx->world, a->entity, SceneLifetimeOwnerComp, .owners[0] = a->owner);
-    } else {
-      ecs_world_add_t(ctx->world, a->entity, SceneLifetimeDurationComp, .duration = a->delay);
-    }
-  }
-}
-
 static void action_teleport(ActionContext* ctx, const ScriptActionTeleport* a) {
   if (ecs_view_maybe_jump(ctx->transItr, a->entity)) {
     SceneTransformComp* trans = ecs_view_write_t(ctx->transItr, SceneTransformComp);
@@ -1830,12 +1792,6 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Ask:
         action_ask(&ctx, &action->data_ask);
-        break;
-      case ScriptActionType_Destroy:
-        action_destroy(&ctx, &action->data_destroy);
-        break;
-      case ScriptActionType_DestroyAfter:
-        action_destroy_after(&ctx, &action->data_destroyAfter);
         break;
       case ScriptActionType_Teleport:
         action_teleport(&ctx, &action->data_teleport);
