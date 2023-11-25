@@ -830,6 +830,27 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabValue_Asset"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "$data": {
+              "title": "String",
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "$data"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabValue_Sound"
             },
             "$name": {
@@ -868,6 +889,10 @@
         {
           "label": "New AssetPrefabValue_String",
           "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Asset",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}"
         },
         {
           "label": "New AssetPrefabValue_Sound",
