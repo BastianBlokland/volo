@@ -240,6 +240,7 @@ ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
+ecs_view_define(EvalVfxDecalView) { ecs_access_read(SceneVfxDecalComp); }
 ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
@@ -264,6 +265,7 @@ typedef struct {
   EcsIterator* statusItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
+  EcsIterator* vfxDecalItr;
   EcsIterator* soundItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
@@ -954,12 +956,18 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   }
   const i32 param = script_arg_enum(args, 1, &g_scriptEnumVfxParam, err);
   if (args.count == 2) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->vfxSysItr, entity);
-    if (itr) {
-      const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(itr, SceneVfxSystemComp);
+    if (ecs_view_maybe_jump(ctx->vfxSysItr, entity)) {
+      const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(ctx->vfxSysItr, SceneVfxSystemComp);
       switch (param) {
       case 0 /* Alpha */:
         return script_num(vfxSysComp->alpha);
+      }
+    }
+    if (ecs_view_maybe_jump(ctx->vfxDecalItr, entity)) {
+      const SceneVfxDecalComp* vfxDecalComp = ecs_view_read_t(ctx->vfxDecalItr, SceneVfxDecalComp);
+      switch (param) {
+      case 0 /* Alpha */:
+        return script_num(vfxDecalComp->alpha);
       }
     }
     return script_null();
@@ -1427,6 +1435,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
+      .vfxDecalItr    = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
       .soundItr       = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
@@ -1485,6 +1494,7 @@ ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
+ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
 ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
 
 typedef struct {
@@ -1499,6 +1509,7 @@ typedef struct {
   EcsIterator* attackItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
+  EcsIterator* vfxDecalItr;
   EcsIterator* soundItr;
 } ActionContext;
 
@@ -1620,6 +1631,14 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
       break;
     }
   }
+  if (ecs_view_maybe_jump(ctx->vfxDecalItr, a->entity)) {
+    SceneVfxDecalComp* vfxDecalComp = ecs_view_write_t(ctx->vfxDecalItr, SceneVfxDecalComp);
+    switch (a->param) {
+    case 0 /* Alpha */:
+      vfxDecalComp->alpha = a->value;
+      break;
+    }
+  }
 }
 
 static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
@@ -1656,6 +1675,7 @@ ecs_system_define(ScriptActionApplySys) {
       .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
       .vfxSysItr    = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
+      .vfxDecalItr  = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
       .soundItr     = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
   };
 
@@ -1737,6 +1757,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalTagView),
       ecs_register_view(EvalVfxSysView),
+      ecs_register_view(EvalVfxDecalView),
       ecs_register_view(EvalSoundView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
@@ -1759,6 +1780,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionAttackView),
       ecs_register_view(ActionTagView),
       ecs_register_view(ActionVfxSysView),
+      ecs_register_view(ActionVfxDecalView),
       ecs_register_view(ActionSoundView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
