@@ -131,7 +131,6 @@ typedef enum {
   ScriptActionType_Damage,
   ScriptActionType_Attack,
   ScriptActionType_UpdateSet,
-  ScriptActionType_UpdateStatus,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
   ScriptActionType_SoundPlay,
@@ -193,12 +192,6 @@ typedef struct {
 } ScriptActionUpdateSet;
 
 typedef struct {
-  EcsEntityId     entity;
-  SceneStatusType type;
-  bool            enable;
-} ScriptActionUpdateStatus;
-
-typedef struct {
   EcsEntityId entity;
   SceneTags   toEnable, toDisable;
 } ScriptActionUpdateTags;
@@ -235,7 +228,6 @@ typedef struct {
     ScriptActionDamage           data_damage;
     ScriptActionAttack           data_attack;
     ScriptActionUpdateSet        data_updateSet;
-    ScriptActionUpdateStatus     data_updateStatus;
     ScriptActionUpdateTags       data_updateTags;
     ScriptActionUpdateVfxParam   data_updateVfxParam;
     ScriptActionSoundPlay        data_soundPlay;
@@ -289,7 +281,7 @@ typedef struct {
   EcsIterator* targetItr;
   EcsIterator* lineOfSightItr;
 
-  EcsEntityId            entity;
+  EcsEntityId            instigator;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
   const AssetScriptComp* scriptAsset;
@@ -361,12 +353,6 @@ static void action_push_update_set(EvalContext* ctx, const ScriptActionUpdateSet
   ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
   a->type           = ScriptActionType_UpdateSet;
   a->data_updateSet = *data;
-}
-
-static void action_push_update_status(EvalContext* ctx, const ScriptActionUpdateStatus* data) {
-  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type              = ScriptActionType_UpdateStatus;
-  a->data_updateStatus = *data;
 }
 
 static void action_push_update_tags(EvalContext* ctx, const ScriptActionUpdateTags* data) {
@@ -444,7 +430,7 @@ static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
-  return script_entity(ctx->entity);
+  return script_entity(ctx->instigator);
 }
 
 static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -1039,12 +1025,11 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
     }
     return script_null();
   }
-  const ScriptActionUpdateStatus param = {
-      .entity = entity,
-      .type   = type,
-      .enable = script_arg_bool(args, 2, err),
-  };
-  action_push_update_status(ctx, &param);
+  if (script_arg_bool(args, 2, err)) {
+    scene_status_add(ctx->world, entity, type, ctx->instigator);
+  } else {
+    scene_status_remove(ctx->world, entity, type);
+  }
   return script_null();
 }
 
@@ -1193,7 +1178,7 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
   log_i(
       "script: {}",
       log_param("message", fmt_text(dynstring_view(&buffer))),
-      log_param("entity", fmt_int(ctx->entity, .base = 16)),
+      log_param("entity", fmt_int(ctx->instigator, .base = 16)),
       log_param("script", fmt_text(ctx->scriptId)));
 
   return script_null();
@@ -1485,7 +1470,7 @@ static void scene_script_eval(EvalContext* ctx) {
         "Script panic",
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
-        log_param("entity", fmt_int(ctx->entity, .base = 16)));
+        log_param("entity", fmt_int(ctx->instigator, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
     ctx->scriptInstance->lastPanic = evalRes.panic;
@@ -1541,7 +1526,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    ctx.entity          = ecs_view_entity(itr);
+    ctx.instigator      = ecs_view_entity(itr);
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
@@ -1706,14 +1691,6 @@ static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a
   }
 }
 
-static void action_update_status(ActionContext* ctx, const ScriptActionUpdateStatus* a) {
-  if (a->enable) {
-    scene_status_add(ctx->world, a->entity, a->type, ctx->instigator);
-  } else {
-    scene_status_remove(ctx->world, a->entity, a->type);
-  }
-}
-
 static void action_update_tags(ActionContext* ctx, const ScriptActionUpdateTags* a) {
   if (ecs_view_maybe_jump(ctx->tagItr, a->entity)) {
     SceneTagComp* tagComp = ecs_view_write_t(ctx->tagItr, SceneTagComp);
@@ -1816,9 +1793,6 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_UpdateSet:
         action_update_set(&ctx, &action->data_updateSet);
-        break;
-      case ScriptActionType_UpdateStatus:
-        action_update_status(&ctx, &action->data_updateStatus);
         break;
       case ScriptActionType_UpdateTags:
         action_update_tags(&ctx, &action->data_updateTags);
