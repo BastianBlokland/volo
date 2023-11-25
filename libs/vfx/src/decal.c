@@ -256,6 +256,12 @@ ecs_system_define(VfxDecalInitSys) {
       if (UNLIKELY(!vfx_decal_asset_valid(world, decal->asset))) {
         log_e("Invalid decal asset entity");
         continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, decal->asset, AssetFailedComp))) {
+        log_e("Failed to acquire decal asset");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, decal->asset, AssetLoadedComp))) {
+        log_e("Acquired asset was not a decal");
+        continue;
       }
       if (++numAssetRequests < vfx_decal_max_asset_requests) {
         vfx_decal_asset_request(world, decal->asset);
