@@ -286,42 +286,6 @@ typedef struct {
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
 
-static void debug_push_line(EvalContext* ctx, const SceneScriptDebugLine* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Line;
-  d->data_line        = *data;
-}
-
-static void debug_push_sphere(EvalContext* ctx, const SceneScriptDebugSphere* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Sphere;
-  d->data_sphere      = *data;
-}
-
-static void debug_push_arrow(EvalContext* ctx, const SceneScriptDebugArrow* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Arrow;
-  d->data_arrow       = *data;
-}
-
-static void debug_push_orientation(EvalContext* ctx, const SceneScriptDebugOrientation* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Orientation;
-  d->data_orientation = *data;
-}
-
-static void debug_push_text(EvalContext* ctx, const SceneScriptDebugText* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Text;
-  d->data_text        = *data;
-}
-
-static void debug_push_trace(EvalContext* ctx, const SceneScriptDebugTrace* data) {
-  SceneScriptDebug* d = dynarray_push_t(ctx->debug, SceneScriptDebug);
-  d->type             = SceneScriptDebugType_Trace;
-  d->data_trace       = *data;
-}
-
 static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(a, i, err);
   if (UNLIKELY(script_error_valid(err))) {
@@ -1108,7 +1072,10 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
   data.end   = script_arg_vec3(args, 1, err);
   data.color = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_line(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type      = SceneScriptDebugType_Line,
+        .data_line = data,
+    };
   }
   return script_null();
 }
@@ -1119,7 +1086,10 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 100.0f, 0.25f, err);
   data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_sphere(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type        = SceneScriptDebugType_Sphere,
+        .data_sphere = data,
+    };
   }
   return script_null();
 }
@@ -1131,7 +1101,10 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, Scrip
   data.radius = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 0.25f, err);
   data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_arrow(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type       = SceneScriptDebugType_Arrow,
+        .data_arrow = data,
+    };
   }
   return script_null();
 }
@@ -1142,7 +1115,10 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args,
   data.rot  = script_arg_quat(args, 1, err);
   data.size = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 1.0f, err);
   if (LIKELY(!script_error_valid(err))) {
-    debug_push_orientation(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type             = SceneScriptDebugType_Orientation,
+        .data_orientation = data,
+    };
   }
   return script_null();
 }
@@ -1164,7 +1140,10 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
     return script_null();
   }
   data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
-  debug_push_text(ctx, &data);
+  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+      .type      = SceneScriptDebugType_Text,
+      .data_text = data,
+  };
   return script_null();
 }
 
@@ -1178,9 +1157,10 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, Scrip
     script_val_write(args.values[i], &buffer);
   }
   if (buffer.size) {
-    SceneScriptDebugTrace data;
-    data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
-    debug_push_trace(ctx, &data);
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type            = SceneScriptDebugType_Trace,
+        .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
+    };
   }
   return script_null();
 }
