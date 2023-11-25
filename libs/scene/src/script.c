@@ -969,8 +969,8 @@ static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, Script
   if (is3d) {
     pos = script_arg_vec3(args, 1, err);
   }
-  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.001, 100.0, 1.0, err);
-  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.001, 100.0, 1.0, err);
+  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
+  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
   const bool looping = script_arg_opt_bool(args, 4, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -1016,7 +1016,7 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
           {
               .entity = entity,
               .param  = param,
-              .value  = (f32)script_arg_num_range(args, 2, 0.01, 10.0, err),
+              .value  = (f32)script_arg_num_range(args, 2, 0.0, 10.0, err),
           },
   };
   return script_null();
