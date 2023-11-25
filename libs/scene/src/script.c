@@ -123,7 +123,6 @@ static void eval_enum_init_status() {
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
-  ScriptActionType_Spawn,
   ScriptActionType_Destroy,
   ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
@@ -152,15 +151,6 @@ typedef struct {
   EcsEntityId target;
   StringHash  memKey;
 } ScriptActionAsk;
-
-typedef struct {
-  EcsEntityId  entity;
-  StringHash   prefabId;
-  f32          scale;
-  SceneFaction faction;
-  GeoVector    position;
-  GeoQuat      rotation;
-} ScriptActionSpawn;
 
 typedef struct {
   EcsEntityId entity;
@@ -249,7 +239,6 @@ typedef struct {
   union {
     ScriptActionTell             data_tell;
     ScriptActionAsk              data_ask;
-    ScriptActionSpawn            data_spawn;
     ScriptActionDestroy          data_destroy;
     ScriptActionDestroyAfter     data_destroyAfter;
     ScriptActionTeleport         data_teleport;
@@ -338,12 +327,6 @@ static void action_push_ask(EvalContext* ctx, const ScriptActionAsk* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Ask;
   a->data_ask     = *data;
-}
-
-static void action_push_spawn(EvalContext* ctx, const ScriptActionSpawn* data) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_Spawn;
-  a->data_spawn   = *data;
 }
 
 static void action_push_destroy(EvalContext* ctx, const ScriptActionDestroy* data) {
@@ -777,9 +760,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -902,18 +885,14 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
-  const EcsEntityId result = ecs_world_entity_create(ctx->world);
-  action_push_spawn(
-      ctx,
-      &(ScriptActionSpawn){
-          .entity   = result,
-          .prefabId = prefabId,
-          .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-          .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-          .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
-          .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
-      });
-  return script_entity(result);
+  const ScenePrefabSpec spec = {
+      .prefabId = prefabId,
+      .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
+      .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
+      .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
+      .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
+  };
+  return script_entity(scene_prefab_spawn(ctx->world, &spec));
 }
 
 static bool eval_destroy_allowed(EvalContext* ctx, const EcsEntityId e) {
@@ -1665,17 +1644,6 @@ static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
   }
 }
 
-static void action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
-  const ScenePrefabSpec spec = {
-      .prefabId = a->prefabId,
-      .faction  = a->faction,
-      .position = a->position,
-      .rotation = a->rotation,
-      .scale    = a->scale,
-  };
-  scene_prefab_spawn_onto(ctx->world, &spec, a->entity);
-}
-
 static void action_destroy(ActionContext* ctx, const ScriptActionDestroy* a) {
   if (ecs_world_exists(ctx->world, a->entity)) {
     ecs_world_entity_destroy(ctx->world, a->entity);
@@ -1862,9 +1830,6 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Ask:
         action_ask(&ctx, &action->data_ask);
-        break;
-      case ScriptActionType_Spawn:
-        action_spawn(&ctx, &action->data_spawn);
         break;
       case ScriptActionType_Destroy:
         action_destroy(&ctx, &action->data_destroy);
