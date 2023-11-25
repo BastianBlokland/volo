@@ -133,7 +133,6 @@ typedef enum {
   ScriptActionType_UpdateSet,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
-  ScriptActionType_SoundPlay,
   ScriptActionType_UpdateSoundParam,
 } ScriptActionType;
 
@@ -204,13 +203,6 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
-  EcsEntityId asset;
-  f32         gain, pitch;
-  bool        looping;
-} ScriptActionSoundPlay;
-
-typedef struct {
-  EcsEntityId entity;
   i32         param;
   f32         value;
 } ScriptActionUpdateSoundParam;
@@ -230,7 +222,6 @@ typedef struct {
     ScriptActionUpdateSet        data_updateSet;
     ScriptActionUpdateTags       data_updateTags;
     ScriptActionUpdateVfxParam   data_updateVfxParam;
-    ScriptActionSoundPlay        data_soundPlay;
     ScriptActionUpdateSoundParam data_updateSoundParam;
   };
 } ScriptAction;
@@ -365,12 +356,6 @@ static void action_push_update_vfx_param(EvalContext* ctx, const ScriptActionUpd
   ScriptAction* a        = dynarray_push_t(ctx->actions, ScriptAction);
   a->type                = ScriptActionType_UpdateVfxParam;
   a->data_updateVfxParam = *data;
-}
-
-static void action_push_sound_play(EvalContext* ctx, const ScriptActionSoundPlay* data) {
-  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type           = ScriptActionType_SoundPlay;
-  a->data_soundPlay = *data;
 }
 
 static void
@@ -1097,19 +1082,17 @@ static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, Script
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   if (is3d) {
-    // TODO: Should we add this in the action instead?
     ecs_world_add_t(
         ctx->world, result, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   }
-  action_push_sound_play(
-      ctx,
-      &(ScriptActionSoundPlay){
-          .entity  = result,
-          .asset   = asset,
-          .gain    = gain,
-          .pitch   = pitch,
-          .looping = looping,
-      });
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneSoundComp,
+      .asset   = asset,
+      .gain    = gain,
+      .pitch   = pitch,
+      .looping = looping);
   return script_entity(result);
 }
 
@@ -1710,17 +1693,6 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
   }
 }
 
-static void action_sound_play(ActionContext* ctx, const ScriptActionSoundPlay* a) {
-  ecs_world_add_t(
-      ctx->world,
-      a->entity,
-      SceneSoundComp,
-      .asset   = a->asset,
-      .gain    = a->gain,
-      .pitch   = a->pitch,
-      .looping = a->looping);
-}
-
 static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
   if (ecs_view_maybe_jump(ctx->soundItr, a->entity)) {
     SceneSoundComp* soundComp = ecs_view_write_t(ctx->soundItr, SceneSoundComp);
@@ -1799,9 +1771,6 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_UpdateVfxParam:
         action_update_vfx_param(&ctx, &action->data_updateVfxParam);
-        break;
-      case ScriptActionType_SoundPlay:
-        action_sound_play(&ctx, &action->data_soundPlay);
         break;
       case ScriptActionType_UpdateSoundParam:
         action_update_sound_param(&ctx, &action->data_updateSoundParam);
