@@ -148,6 +148,10 @@ ecs_system_define(VfxDecalLoadSys) {
   }
 }
 
+static bool vfx_decal_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
   if (!ecs_world_has_t(world, assetEntity, VfxDecalAssetComp)) {
     ecs_world_add_t(world, assetEntity, VfxDecalAssetComp);
@@ -248,8 +252,11 @@ ecs_system_define(VfxDecalInitSys) {
     const EcsEntityId        e     = ecs_view_entity(itr);
     const SceneVfxDecalComp* decal = ecs_view_read_t(itr, SceneVfxDecalComp);
 
-    diag_assert_msg(ecs_entity_valid(decal->asset), "Vfx decal is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, decal->asset)) {
+      if (UNLIKELY(!vfx_decal_asset_valid(world, decal->asset))) {
+        log_e("Invalid decal asset entity");
+        continue;
+      }
       if (++numAssetRequests < vfx_decal_max_asset_requests) {
         vfx_decal_asset_request(world, decal->asset);
       }
