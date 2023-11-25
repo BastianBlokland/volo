@@ -34,7 +34,6 @@
 #include "script_enum.h"
 #include "script_error.h"
 #include "script_eval.h"
-#include "script_mem.h"
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
