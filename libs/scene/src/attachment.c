@@ -37,18 +37,13 @@ ecs_system_define(SceneAttachmentSys) {
     }
 
     const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-    if (sentinel_check(attach->jointIndex) && !attach->jointName) {
+    const SceneSkeletonComp*  tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
+    if ((sentinel_check(attach->jointIndex) && !attach->jointName) || !tgtSkel) {
       trans->position = tgtTrans->position;
       trans->rotation = tgtTrans->rotation;
       continue;
     }
-
-    const SceneScaleComp*    tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
-    const SceneSkeletonComp* tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
-    if (UNLIKELY(!tgtSkel)) {
-      log_e("Attachment target does not have a skeleton");
-      continue;
-    }
+    const SceneScaleComp* tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
 
     if (UNLIKELY(sentinel_check(attach->jointIndex))) {
       // Joint index not known yet, attempt to query it from the skeleton template by name.
