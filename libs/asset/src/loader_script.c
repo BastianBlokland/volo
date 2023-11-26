@@ -112,6 +112,16 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("visible");
+      const String       doc    = string_lit("Check if the given position is visible for this faction.");
+      const ScriptMask   ret    = script_mask_bool;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("faction"), script_mask_str | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("time");
       const String       doc    = string_lit("Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
       const ScriptMask   ret    = script_mask_num | script_mask_null;

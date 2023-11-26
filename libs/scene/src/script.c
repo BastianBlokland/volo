@@ -31,6 +31,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 #include "script_binder.h"
 #include "script_enum.h"
 #include "script_error.h"
@@ -231,6 +232,7 @@ ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneVisibilityEnvComp);
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
@@ -360,6 +362,17 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
     return script_num(scene_health_points(healthComp));
   }
   return script_null();
+}
+
+static ScriptVal eval_visible(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const GeoVector    pos        = script_arg_vec3(args, 0, err);
+  const SceneFaction factionDef = SceneFaction_A;
+  const SceneFaction faction = script_arg_opt_enum(args, 1, &g_scriptEnumFaction, factionDef, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const SceneVisibilityEnvComp* env = ecs_view_read_t(ctx->globalItr, SceneVisibilityEnvComp);
+  return script_bool(scene_visible_pos(env, faction, pos));
 }
 
 static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -1257,6 +1270,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("name"),               eval_name);
     eval_bind(b, string_lit("faction"),            eval_faction);
     eval_bind(b, string_lit("health"),             eval_health);
+    eval_bind(b, string_lit("visible"),            eval_visible);
     eval_bind(b, string_lit("time"),               eval_time);
     eval_bind(b, string_lit("set"),                eval_set);
     eval_bind(b, string_lit("query_set"),          eval_query_set);
