@@ -22,6 +22,7 @@ ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
   static ScriptPanicKind g_panics[ScriptErrorKind_Count] = {
       [ScriptError_None]                        = ScriptPanic_None,
       [ScriptError_ArgumentInvalid]             = ScriptPanic_ArgumentInvalid,
+      [ScriptError_ArgumentNull]                = ScriptPanic_ArgumentNull,
       [ScriptError_ArgumentMissing]             = ScriptPanic_ArgumentMissing,
       [ScriptError_ArgumentOutOfRange]          = ScriptPanic_ArgumentOutOfRange,
       [ScriptError_ArgumentCountExceedsMaximum] = ScriptPanic_ArgumentCountExceedsMaximum,

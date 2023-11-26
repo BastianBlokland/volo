@@ -9,6 +9,7 @@ typedef enum eScriptPanicKind {
   ScriptPanic_AssertionFailed,
   ScriptPanic_ExecutionLimitExceeded,
   ScriptPanic_ArgumentInvalid,
+  ScriptPanic_ArgumentNull,
   ScriptPanic_ArgumentMissing,
   ScriptPanic_ArgumentOutOfRange,
   ScriptPanic_ArgumentCountExceedsMaximum,

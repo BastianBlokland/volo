@@ -7,6 +7,9 @@
 
 NO_INLINE_HINT static ScriptError script_arg_err(const ScriptArgs args, const u16 i) {
   if (args.count > i) {
+    if (val_type(args.values[i]) == ScriptType_Null) {
+      return script_error_arg(ScriptError_ArgumentNull, i);
+    }
     return script_error_arg(ScriptError_ArgumentInvalid, i);
   }
   return script_error_arg(ScriptError_ArgumentMissing, i);
