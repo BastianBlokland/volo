@@ -2,12 +2,9 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
-#include "core_math.h"
 #include "core_rng.h"
-#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attack.h"
@@ -15,6 +12,7 @@
 #include "scene_footstep.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -502,6 +500,7 @@ static void setup_prefab(
   if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
     scene_terrain_snap(terrain, &spawnPos);
   }
+  ecs_world_add_empty_t(w, e, SceneLevelInstanceComp);
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
   ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
