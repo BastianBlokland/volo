@@ -50,6 +50,7 @@ static EcsEntityId status_effect_create(
   const EcsEntityId result = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = string_hash(g_sceneStatusEffectPrefabs[type]), // TODO: Cache hashed name.
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident,

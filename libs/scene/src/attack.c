@@ -56,6 +56,7 @@ attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWe
   const EcsEntityId result = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = weapon->attachmentPrefab,
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident,
@@ -317,6 +318,7 @@ static EffectResult effect_update_proj(
   const EcsEntityId projectileEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = def->projectilePrefab,
           .faction  = ctx->factionId,
           .position = orgPos,
@@ -420,6 +422,7 @@ static EffectResult effect_update_dmg(
       scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
+              .flags    = ScenePrefabFlags_Volatile,
               .prefabId = def->impactPrefab,
               .faction  = SceneFaction_None,
               .position = geo_vector_lerp(impactPoint, orgPos, 0.5f),

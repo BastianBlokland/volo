@@ -106,6 +106,7 @@ static void taunt_spawn(EcsWorld* world, SceneTauntEvent* tauntEvent) {
   const EcsEntityId tauntEntity = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = tauntEvent->prefab,
           .faction  = SceneFaction_None,
           .position = tauntEvent->position,

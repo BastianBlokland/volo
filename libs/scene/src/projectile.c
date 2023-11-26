@@ -105,6 +105,7 @@ static void projectile_impact_spawn(
   scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = projectile->impactPrefab,
           .faction  = SceneFaction_None,
           .position = pos,
@@ -204,9 +205,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-           .context   = &filterCtx,
-           .callback  = &projectile_query_filter,
-           .layerMask = projectile_query_layer_mask(faction),
+        .context   = &filterCtx,
+        .callback  = &projectile_query_filter,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.
