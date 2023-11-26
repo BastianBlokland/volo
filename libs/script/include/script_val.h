@@ -141,6 +141,7 @@ ScriptVal script_val_random_between(ScriptVal, ScriptVal);
 ScriptVal script_val_round_down(ScriptVal);
 ScriptVal script_val_round_nearest(ScriptVal);
 ScriptVal script_val_round_up(ScriptVal);
+ScriptVal script_val_clamp(ScriptVal, ScriptVal min, ScriptVal max);
 
 /**
  * Value conversions.
