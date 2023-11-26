@@ -96,6 +96,10 @@ static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasM
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
+static bool vfx_system_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 static bool vfx_system_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
   if (!ecs_world_has_t(world, assetEntity, VfxSystemAssetComp)) {
     ecs_world_add_t(world, assetEntity, VfxSystemAssetComp);
@@ -546,6 +550,16 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     diag_assert_msg(ecs_entity_valid(vfxSys->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfxSys->asset)) {
+      if (UNLIKELY(!vfx_system_asset_valid(world, vfxSys->asset))) {
+        log_e("Invalid vfx-system asset entity");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, vfxSys->asset, AssetFailedComp))) {
+        log_e("Failed to acquire vfx-system asset");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, vfxSys->asset, AssetLoadedComp))) {
+        log_e("Acquired asset was not a vfx-system");
+        continue;
+      }
       if (vfxSys->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
         vfx_system_asset_request(world, vfxSys->asset);
       }
