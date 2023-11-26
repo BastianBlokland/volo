@@ -47,6 +47,7 @@ typedef enum {
   ScriptIntrinsic_RoundDown,         // Args: value.
   ScriptIntrinsic_RoundNearest,      // Args: value.
   ScriptIntrinsic_RoundUp,           // Args: value.
+  ScriptIntrinsic_Clamp,             // Args: value, min, max.
 
   ScriptIntrinsic_Count,
 } ScriptIntrinsic;

@@ -162,6 +162,7 @@ spec(eval) {
         {string_static("round_up(1.1)"), script_num(2.0)},
         {string_static("round_nearest(1.1)"), script_num(1.0)},
         {string_static("round_nearest(1.5)"), script_num(2.0)},
+        {string_static("clamp(1.5, -1, 1.25)"), script_num(1.25)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},
