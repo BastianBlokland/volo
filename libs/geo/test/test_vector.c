@@ -237,6 +237,13 @@ spec(vector) {
     check_eq_vector(geo_vector_clamp(geo_vector(0, 0, 0), 0), geo_vector(0, 0, 0));
   }
 
+  it("can clamp components") {
+    const GeoVector v    = {.x = -1, .y = 0, .z = 1, .w = 2};
+    const GeoVector vMin = {.x = 2, .y = -1, .z = 3, .w = 1};
+    const GeoVector vMax = {.x = 3, .y = 1, .z = 4, .w = 1};
+    check_eq_vector(geo_vector_clamp_comps(v, vMin, vMax), geo_vector(2, 0, 3, 1));
+  }
+
   it("can round to nearest") {
     check_eq_vector(
         geo_vector_round_nearest(geo_vector(0.1f, 0.51f, 42.1f, 42)), geo_vector(0, 1, 42, 42));

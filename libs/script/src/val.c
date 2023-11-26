@@ -759,6 +759,67 @@ ScriptVal script_val_round_up(const ScriptVal val) {
   UNREACHABLE
 }
 
+ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptVal max) {
+  switch (val_type(v)) {
+  case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Vec3: {
+    if (val_type(max) == ScriptType_Num) {
+      // TODO: 'min' value is not used in vector clamping with a scalar.
+      const f32 maxV = (f32)val_as_num(max);
+      if (UNLIKELY(maxV <= 0.0f)) {
+        return val_null();
+      }
+      return val_vec3(geo_vector_clamp(val_as_vec3(v), maxV));
+    }
+    if (val_type(min) == ScriptType_Vec3 && val_type(max) == ScriptType_Vec3) {
+      return val_vec3(geo_vector_clamp_comps(val_as_vec3(v), val_as_vec3(min), val_as_vec3(max)));
+    }
+    return val_null();
+  }
+  case ScriptType_Quat: {
+    if (val_type(max) == ScriptType_Num) {
+      // TODO: 'min' value is not used in quaternion clamping with a scalar.
+      const f32 maxV = (f32)val_as_num(max);
+      if (UNLIKELY(maxV <= 0.0f)) {
+        return val_null();
+      }
+      GeoQuat q = val_as_quat(v);
+      return geo_quat_clamp(&q, maxV) ? val_quat(q) : v;
+    }
+    return val_null();
+  }
+  case ScriptType_Color: {
+    if (val_type(max) == ScriptType_Num) {
+      // TODO: 'min' value is not used in color clamping with a scalar.
+      const f32 maxV = (f32)val_as_num(max);
+      if (UNLIKELY(maxV <= 0.0f)) {
+        return val_null();
+      }
+      return val_color(geo_color_clamp(val_as_color(v), maxV));
+    }
+    if (val_type(min) == ScriptType_Color && val_type(max) == ScriptType_Color) {
+      return val_color(
+          geo_color_clamp_comps(val_as_color(v), val_as_color(min), val_as_color(max)));
+    }
+    return val_null();
+  }
+  case ScriptType_Entity:
+  case ScriptType_Str:
+    return val_null();
+  case ScriptType_Num: {
+    if (val_type(min) == ScriptType_Num && val_type(max) == ScriptType_Num) {
+      return val_num(math_clamp_f64(val_as_num(v), val_as_num(min), val_as_num(max)));
+    }
+    return val_null();
+  }
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_vec3_compose(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   const ScriptType nT = ScriptType_Num;
   if (val_type(x) != nT || val_type(y) != nT || val_type(z) != nT) {

@@ -101,6 +101,7 @@ static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
   scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = string_hash_lit("EffectIndicatorMove"),
           .faction  = SceneFaction_None,
           .position = pos,
@@ -111,6 +112,7 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
   const EcsEntityId effectEntity = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = string_hash_lit("EffectIndicatorAttack"),
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident});

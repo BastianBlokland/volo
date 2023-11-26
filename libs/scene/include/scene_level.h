@@ -4,6 +4,11 @@
 
 ecs_comp_extern(SceneLevelManagerComp);
 
+/**
+ * Component to mark entities that are part of the level (will be destroyed on level unload).
+ */
+ecs_comp_extern_public(SceneLevelInstanceComp);
+
 bool        scene_level_is_loading(const SceneLevelManagerComp*);
 EcsEntityId scene_level_current(const SceneLevelManagerComp*);
 void        scene_level_load(EcsWorld*, EcsEntityId levelAsset);

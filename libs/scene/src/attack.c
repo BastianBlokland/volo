@@ -11,6 +11,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -56,19 +57,14 @@ attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWe
   const EcsEntityId result = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = weapon->attachmentPrefab,
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident,
       });
   ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(
-      world,
-      result,
-      SceneAttachmentComp,
-      .target     = owner,
-      .jointIndex = sentinel_u32,
-      .jointName  = weapon->attachmentJoint);
   ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
+  scene_attach_to_joint_name(world, result, owner, weapon->attachmentJoint);
   return result;
 }
 
@@ -323,6 +319,7 @@ static EffectResult effect_update_proj(
   const EcsEntityId projectileEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = def->projectilePrefab,
           .faction  = ctx->factionId,
           .position = orgPos,
@@ -426,6 +423,7 @@ static EffectResult effect_update_dmg(
       scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
+              .flags    = ScenePrefabFlags_Volatile,
               .prefabId = def->impactPrefab,
               .faction  = SceneFaction_None,
               .position = geo_vector_lerp(impactPoint, orgPos, 0.5f),
@@ -510,13 +508,14 @@ static EffectResult effect_update_vfx(
   }
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, e, SceneLevelInstanceComp);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   if (math_abs(def->scale - 1.0f) > 1e-3f) {
     ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxSystemComp, .asset = def->asset, .alpha = 1.0f);
-  ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
+  scene_attach_to_joint(ctx->world, e, inst, jointOriginIdx);
 
   return EffectResult_Done;
 }
@@ -546,6 +545,7 @@ static EffectResult effect_update_sound(
   const f32       pitch = rng_sample_range(g_rng, def->pitchMin, def->pitchMax);
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, e, SceneLevelInstanceComp);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneSoundComp, .asset = def->asset, .gain = gain, .pitch = pitch);
@@ -748,10 +748,11 @@ ecs_view_define(SoundUpdateView) {
 static EcsEntityId
 attack_sound_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
   const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_empty_t(world, e, SceneLevelInstanceComp);
   ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(world, e, SceneAttachmentComp, .target = owner);
+  scene_attach_to_entity(world, e, owner);
   return e;
 }
 

@@ -12,7 +12,7 @@
 #include "rend_draw.h"
 #include "rend_instance.h"
 #include "scene_lifetime.h"
-#include "scene_tag.h"
+#include "scene_set.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -148,6 +148,10 @@ ecs_system_define(VfxDecalLoadSys) {
   }
 }
 
+static bool vfx_decal_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
   if (!ecs_world_has_t(world, assetEntity, VfxDecalAssetComp)) {
     ecs_world_add_t(world, assetEntity, VfxDecalAssetComp);
@@ -248,8 +252,17 @@ ecs_system_define(VfxDecalInitSys) {
     const EcsEntityId        e     = ecs_view_entity(itr);
     const SceneVfxDecalComp* decal = ecs_view_read_t(itr, SceneVfxDecalComp);
 
-    diag_assert_msg(ecs_entity_valid(decal->asset), "Vfx decal is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, decal->asset)) {
+      if (UNLIKELY(!vfx_decal_asset_valid(world, decal->asset))) {
+        log_e("Invalid decal asset entity");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, decal->asset, AssetFailedComp))) {
+        log_e("Failed to acquire decal asset");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, decal->asset, AssetLoadedComp))) {
+        log_e("Acquired asset was not a decal");
+        continue;
+      }
       if (++numAssetRequests < vfx_decal_max_asset_requests) {
         vfx_decal_asset_request(world, decal->asset);
       }
@@ -297,7 +310,7 @@ ecs_system_define(VfxDecalDeinitSys) {
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneTagComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneVfxDecalComp);
@@ -376,12 +389,12 @@ ecs_system_define(VfxDecalUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
-    const SceneTransformComp*        transComp = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
-    const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
-    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+    const VfxDecalInstanceComp*      instance      = ecs_view_read_t(itr, VfxDecalInstanceComp);
+    const SceneTransformComp*        transComp     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*            scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneSetMemberComp*        setMemberComp = ecs_view_read_t(itr, SceneSetMemberComp);
+    const SceneVfxDecalComp*         decal         = ecs_view_read_t(itr, SceneVfxDecalComp);
+    const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
     if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
@@ -417,7 +430,7 @@ ecs_system_define(VfxDecalUpdateSys) {
     }
     vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);
 
-    if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
+    if (UNLIKELY(setMemberComp && scene_set_member_contains(setMemberComp, g_sceneSetSelected))) {
       vfx_decal_draw_output(drawDebug, instance, transPos, rot, transScale, alpha);
     }
   }

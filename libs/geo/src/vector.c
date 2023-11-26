@@ -267,6 +267,24 @@ GeoVector geo_vector_clamp(const GeoVector v, const f32 maxMagnitude) {
   return v;
 }
 
+GeoVector geo_vector_clamp_comps(const GeoVector v, const GeoVector min, const GeoVector max) {
+#if geo_vec_simd_enable
+  SimdVec vec = simd_vec_load(v.comps);
+  vec         = simd_vec_max(vec, simd_vec_load(min.comps));
+  vec         = simd_vec_min(vec, simd_vec_load(max.comps));
+  GeoVector res;
+  simd_vec_store(vec, res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = math_clamp_f32(v.x, min.x, max.x),
+      .y = math_clamp_f32(v.y, min.y, max.y),
+      .z = math_clamp_f32(v.z, min.z, max.z),
+      .w = math_clamp_f32(v.w, min.w, max.w),
+  };
+#endif
+}
+
 GeoVector geo_vector_round_nearest(const GeoVector v) {
 #if geo_vec_simd_enable
   GeoVector res;

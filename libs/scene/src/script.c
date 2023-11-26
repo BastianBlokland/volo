@@ -14,6 +14,7 @@
 #include "scene_collision.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -240,6 +241,7 @@ ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
+ecs_view_define(EvalVfxDecalView) { ecs_access_read(SceneVfxDecalComp); }
 ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
@@ -264,6 +266,7 @@ typedef struct {
   EcsIterator* statusItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
+  EcsIterator* vfxDecalItr;
   EcsIterator* soundItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
@@ -343,10 +346,9 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
 }
 
 static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->healthItr, e);
-  if (itr) {
-    const SceneHealthComp* healthComp = ecs_view_read_t(itr, SceneHealthComp);
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->healthItr, e)) {
+    const SceneHealthComp* healthComp = ecs_view_read_t(ctx->healthItr, SceneHealthComp);
     return script_num(scene_health_points(healthComp));
   }
   return script_null();
@@ -649,28 +651,28 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptErro
 }
 
 static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
-  if (itr) {
-    return script_entity_or_null(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    return script_entity_or_null(scene_target_primary(finder));
   }
   return script_null();
 }
 
 static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
-  if (itr) {
-    return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMin);
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    return script_num(finder->rangeMin);
   }
   return script_null();
 }
 
 static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
-  if (itr) {
-    return script_num(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    return script_num(finder->rangeMax);
   }
   return script_null();
 }
@@ -707,6 +709,7 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
     return script_null(); // Invalid prefab-id.
   }
   const ScenePrefabSpec spec = {
+      .flags    = ScenePrefabFlags_Volatile, // Do not persist script-spawned prefabs.
       .prefabId = prefabId,
       .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
       .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
@@ -892,9 +895,8 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
   }
   const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
   if (args.count < 3) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->statusItr, entity);
-    if (itr) {
-      const SceneStatusComp* statusComp = ecs_view_read_t(itr, SceneStatusComp);
+    if (ecs_view_maybe_jump(ctx->statusItr, entity)) {
+      const SceneStatusComp* statusComp = ecs_view_read_t(ctx->statusItr, SceneStatusComp);
       return script_bool(scene_status_active(statusComp, type));
     }
     return script_null();
@@ -913,9 +915,8 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
     return script_null();
   }
   if (args.count == 1) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->tagItr, entity);
-    if (itr) {
-      const SceneTagComp* tagComp = ecs_view_read_t(itr, SceneTagComp);
+    if (ecs_view_maybe_jump(ctx->tagItr, entity)) {
+      const SceneTagComp* tagComp = ecs_view_read_t(ctx->tagItr, SceneTagComp);
       return script_bool((tagComp->tags & SceneTags_Emit) != 0);
     }
     return script_null();
@@ -933,6 +934,36 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_vfx_system(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos   = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot   = script_arg_quat(args, 2, err);
+  const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(ctx->world, result, SceneVfxSystemComp, .asset = asset, .alpha = alpha);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
+static ScriptVal eval_vfx_decal(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos   = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot   = script_arg_quat(args, 2, err);
+  const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(ctx->world, result, SceneVfxDecalComp, .asset = asset, .alpha = alpha);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
 static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
@@ -940,12 +971,18 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   }
   const i32 param = script_arg_enum(args, 1, &g_scriptEnumVfxParam, err);
   if (args.count == 2) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->vfxSysItr, entity);
-    if (itr) {
-      const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(itr, SceneVfxSystemComp);
+    if (ecs_view_maybe_jump(ctx->vfxSysItr, entity)) {
+      const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(ctx->vfxSysItr, SceneVfxSystemComp);
       switch (param) {
       case 0 /* Alpha */:
         return script_num(vfxSysComp->alpha);
+      }
+    }
+    if (ecs_view_maybe_jump(ctx->vfxDecalItr, entity)) {
+      const SceneVfxDecalComp* vfxDecalComp = ecs_view_read_t(ctx->vfxDecalItr, SceneVfxDecalComp);
+      switch (param) {
+      case 0 /* Alpha */:
+        return script_num(vfxDecalComp->alpha);
       }
     }
     return script_null();
@@ -969,13 +1006,14 @@ static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, Script
   if (is3d) {
     pos = script_arg_vec3(args, 1, err);
   }
-  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.001, 100.0, 1.0, err);
-  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.001, 100.0, 1.0, err);
+  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
+  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
   const bool looping = script_arg_opt_bool(args, 4, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   if (is3d) {
     ecs_world_add_t(
         ctx->world, result, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
@@ -998,9 +1036,8 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
   }
   const i32 param = script_arg_enum(args, 1, &g_scriptEnumSoundParam, err);
   if (args.count == 2) {
-    const EcsIterator* itr = ecs_view_maybe_jump(ctx->soundItr, entity);
-    if (itr) {
-      const SceneSoundComp* soundComp = ecs_view_read_t(itr, SceneSoundComp);
+    if (ecs_view_maybe_jump(ctx->soundItr, entity)) {
+      const SceneSoundComp* soundComp = ecs_view_read_t(ctx->soundItr, SceneSoundComp);
       switch (param) {
       case 0 /* Gain */:
         return script_num(soundComp->gain);
@@ -1016,7 +1053,7 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
           {
               .entity = entity,
               .param  = param,
-              .value  = (f32)script_arg_num_range(args, 2, 0.01, 10.0, err),
+              .value  = (f32)script_arg_num_range(args, 2, 0.0, 10.0, err),
           },
   };
   return script_null();
@@ -1239,6 +1276,8 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("attack"),             eval_attack);
     eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
+    eval_bind(b, string_lit("vfx_system"),         eval_vfx_system);
+    eval_bind(b, string_lit("vfx_decal"),          eval_vfx_decal);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("sound_play"),         eval_sound_play);
     eval_bind(b, string_lit("sound_param"),        eval_sound_param);
@@ -1412,6 +1451,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
+      .vfxDecalItr    = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
       .soundItr       = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
@@ -1470,6 +1510,7 @@ ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
+ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
 ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
 
 typedef struct {
@@ -1484,6 +1525,7 @@ typedef struct {
   EcsIterator* attackItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
+  EcsIterator* vfxDecalItr;
   EcsIterator* soundItr;
 } ActionContext;
 
@@ -1542,12 +1584,10 @@ static void action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
       return; // Entity does not exist.
     }
   }
-  attach->target = a->target;
+  attach->target     = a->target;
+  attach->jointIndex = sentinel_u32;
   if (a->jointName) {
-    attach->jointName  = a->jointName;
-    attach->jointIndex = sentinel_u32;
-  } else {
-    attach->jointIndex = 0;
+    attach->jointName = a->jointName;
   }
 }
 
@@ -1605,6 +1645,14 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
       break;
     }
   }
+  if (ecs_view_maybe_jump(ctx->vfxDecalItr, a->entity)) {
+    SceneVfxDecalComp* vfxDecalComp = ecs_view_write_t(ctx->vfxDecalItr, SceneVfxDecalComp);
+    switch (a->param) {
+    case 0 /* Alpha */:
+      vfxDecalComp->alpha = a->value;
+      break;
+    }
+  }
 }
 
 static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
@@ -1641,6 +1689,7 @@ ecs_system_define(ScriptActionApplySys) {
       .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
       .vfxSysItr    = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
+      .vfxDecalItr  = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
       .soundItr     = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
   };
 
@@ -1722,6 +1771,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalTagView),
       ecs_register_view(EvalVfxSysView),
+      ecs_register_view(EvalVfxDecalView),
       ecs_register_view(EvalSoundView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
@@ -1744,6 +1794,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionAttackView),
       ecs_register_view(ActionTagView),
       ecs_register_view(ActionVfxSysView),
+      ecs_register_view(ActionVfxDecalView),
       ecs_register_view(ActionSoundView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);

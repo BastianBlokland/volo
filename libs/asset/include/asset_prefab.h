@@ -204,6 +204,7 @@ typedef enum {
   AssetPrefabValue_Bool,
   AssetPrefabValue_Vector3,
   AssetPrefabValue_String,
+  AssetPrefabValue_Asset,
   AssetPrefabValue_Sound,
 } AssetPrefabValueType;
 
@@ -220,6 +221,7 @@ typedef struct {
     bool                  data_bool;
     GeoVector             data_vector3;
     StringHash            data_string;
+    EcsEntityId           data_asset;
     AssetPrefabValueSound data_sound;
   };
 } AssetPrefabValue;

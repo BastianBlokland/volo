@@ -262,6 +262,7 @@ ecs_system_define(SceneHealthUpdateSys) {
         scene_prefab_spawn(
             world,
             &(ScenePrefabSpec){
+                .flags    = ScenePrefabFlags_Volatile,
                 .prefabId = health->deathEffectPrefab,
                 .faction  = SceneFaction_None,
                 .position = trans->position,

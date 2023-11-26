@@ -33,6 +33,7 @@ typedef enum {
 
 typedef struct {
   u8        emitter;
+  u8        alpha; // Normalized.
   u16       spriteAtlasBaseIndex;
   f32       lifetimeSec, ageSec;
   f32       scale;
@@ -40,6 +41,8 @@ typedef struct {
   GeoQuat   rot;
   GeoVector velo;
 } VfxSystemInstance;
+
+ASSERT(sizeof(VfxSystemInstance) <= 64, "Instance should fit in a single cacheline on x86");
 
 typedef struct {
   u32 spawnCount;
@@ -91,6 +94,10 @@ static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasM
   const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Particle);
   EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
+}
+
+static bool vfx_system_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
 }
 
 static bool vfx_system_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
@@ -172,6 +179,11 @@ ecs_view_define(UpdateView) {
   ecs_access_write(VfxSystemStateComp);
 }
 
+INLINE_HINT static f32 vfx_instance_alpha(const VfxSystemInstance* instance) {
+  static const f32 g_u8MaxInv = 1.0f / u8_max;
+  return (f32)instance->alpha * g_u8MaxInv;
+}
+
 static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
   return geo_quat_rotate(cone->rotation, geo_vector_rand_in_cone3(g_rng, cone->angle));
 }
@@ -248,7 +260,8 @@ static void vfx_system_spawn(
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
     const u8              emitter,
-    const VfxTrans*       sysTrans) {
+    const VfxTrans*       sysTrans,
+    const f32             sysAlpha) {
 
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
@@ -279,16 +292,19 @@ static void vfx_system_spawn(
   GeoVector spawnDir    = vfx_random_dir_in_cone(&emitterAsset->cone);
   f32       spawnScale  = vfx_sample_range_scalar(&emitterAsset->scale);
   f32       spawnSpeed  = vfx_sample_range_scalar(&emitterAsset->speed);
+  f32       spawnAlpha  = 1.0f;
   if (emitterAsset->space == AssetVfxSpace_World) {
     spawnPos = vfx_world_pos(sysTrans, spawnPos);
     spawnRadius *= sysTrans->scale;
     spawnDir = vfx_world_dir(sysTrans, spawnDir);
     spawnScale *= sysTrans->scale;
     spawnSpeed *= sysTrans->scale;
+    spawnAlpha *= sysAlpha;
   }
 
   *dynarray_push_t(&state->instances, VfxSystemInstance) = (VfxSystemInstance){
       .emitter              = emitter,
+      .alpha                = (u8)(math_clamp_f32(spawnAlpha, 0.0f, 1.0f) * u8_max),
       .spriteAtlasBaseIndex = spriteAtlasEntryIndex,
       .lifetimeSec          = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
       .scale                = spawnScale,
@@ -333,7 +349,8 @@ static void vfx_system_simulate(
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time,
     const SceneTags       tags,
-    const VfxTrans*       sysTrans) {
+    const VfxTrans*       sysTrans,
+    const f32             sysAlpha) {
 
   const f32 deltaSec = scene_delta_seconds(time);
 
@@ -350,7 +367,7 @@ static void vfx_system_simulate(
 
     const u32 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
-      vfx_system_spawn(state, asset, atlas, emitter, sysTrans);
+      vfx_system_spawn(state, asset, atlas, emitter, sysTrans, sysAlpha);
     }
   }
 
@@ -411,6 +428,7 @@ static void vfx_instance_output_sprite(
 
   GeoVector pos   = instance->pos;
   GeoColor  color = sprite->color;
+  color.a *= vfx_instance_alpha(instance);
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
     color.a *= sysAlpha;
@@ -462,8 +480,9 @@ static void vfx_instance_output_light(
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
   GeoColor             radiance = light->radiance;
+  radiance.a *= vfx_instance_alpha(instance);
   if (radiance.a <= f32_epsilon) {
-    return; // Lights are optional.
+    return;
   }
   const TimeDuration  instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
   const TimeDuration  instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
@@ -531,6 +550,16 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     diag_assert_msg(ecs_entity_valid(vfxSys->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfxSys->asset)) {
+      if (UNLIKELY(!vfx_system_asset_valid(world, vfxSys->asset))) {
+        log_e("Invalid vfx-system asset entity");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, vfxSys->asset, AssetFailedComp))) {
+        log_e("Failed to acquire vfx-system asset");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, vfxSys->asset, AssetLoadedComp))) {
+        log_e("Acquired asset was not a vfx-system");
+        continue;
+      }
       if (vfxSys->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
         vfx_system_asset_request(world, vfxSys->asset);
       }
@@ -558,7 +587,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, particleAtlas, time, tags, &sysTrans);
+    vfx_system_simulate(state, asset, particleAtlas, time, tags, &sysTrans, sysAlpha);
 
     dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
       vfx_instance_output_sprite(instance, draws, asset, &sysTrans, sysTimeRem, sysAlpha);

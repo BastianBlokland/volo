@@ -8,6 +8,7 @@ static const String g_panicKindStrs[] = {
     string_static("Assertion failed"),
     string_static("Execution limit exceeded"),
     string_static("Argument invalid"),
+    string_static("Argument is null"),
     string_static("Argument missing"),
     string_static("Argument out of range"),
     string_static("Argument count exceeds maximum"),

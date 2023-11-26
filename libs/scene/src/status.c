@@ -50,18 +50,13 @@ static EcsEntityId status_effect_create(
   const EcsEntityId result = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
           .prefabId = string_hash(g_sceneStatusEffectPrefabs[type]), // TODO: Cache hashed name.
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident,
       });
   ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(
-      world,
-      result,
-      SceneAttachmentComp,
-      .target     = owner,
-      .jointIndex = sentinel_u32,
-      .jointName  = status->effectJoint);
+  scene_attach_to_joint_name(world, result, owner, status->effectJoint);
   return result;
 }
 

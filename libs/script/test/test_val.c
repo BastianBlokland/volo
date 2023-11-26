@@ -796,6 +796,51 @@ spec(val) {
     }
   }
 
+  it("can clamp values") {
+    const struct {
+      ScriptVal v, min, max;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), script_null(), script_null(), .expected = script_null()},
+        {script_bool(true), script_bool(false), script_bool(false), .expected = script_null()},
+        {
+            .v        = script_vec3_lit(0, 0, 3.0f),
+            .min      = script_null(),
+            .max      = script_num(1.25f),
+            .expected = script_vec3_lit(0, 0, 1.25f),
+        },
+        {
+            .v        = script_vec3_lit(-1, 0, 1),
+            .min      = script_vec3_lit(2, -1, 3),
+            .max      = script_vec3_lit(3, 1, 4),
+            .expected = script_vec3_lit(2, 0, 3),
+        },
+        {
+            .v        = script_color(geo_color(0, 0, 3.0f, 0)),
+            .min      = script_null(),
+            .max      = script_num(1.25f),
+            .expected = script_color(geo_color(0, 0, 1.25f, 0)),
+        },
+        {
+            .v        = script_color(geo_color(-1, 0, 1, 0)),
+            .min      = script_color(geo_color(2, -1, 3, 0)),
+            .max      = script_color(geo_color(3, 1, 4, 0)),
+            .expected = script_color(geo_color(2, 0, 3, 0)),
+        },
+        {
+            .v        = script_num(1.25f),
+            .min      = script_num(1.5f),
+            .max      = script_num(2.0f),
+            .expected = script_num(1.5f),
+        },
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_clamp(testData[i].v, testData[i].min, testData[i].max);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
   it("can compose a vector3") {
     const struct {
       ScriptVal a, b, c;

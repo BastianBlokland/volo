@@ -255,6 +255,11 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_round_nearest(eval(ctx, args[0]));
   case ScriptIntrinsic_RoundUp:
     return script_val_round_up(eval(ctx, args[0]));
+  case ScriptIntrinsic_Clamp: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    EVAL_ARG_WITH_INTERRUPT(1);
+    return script_val_clamp(arg0, arg1, eval(ctx, args[2]));
+  }
   case ScriptIntrinsic_Count:
     break;
   }
@@ -296,8 +301,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-                      .kind  = script_error_to_panic(err.kind),
-                      .range = script_expr_range(ctx->doc, errExpr),
+        .kind  = script_error_to_panic(err.kind),
+        .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }

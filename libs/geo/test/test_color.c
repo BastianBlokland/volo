@@ -46,6 +46,20 @@ spec(color) {
     check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 1, 0.5), geo_color(9, 10, 11, 12));
   }
 
+  it("can clamp its magnitude") {
+    check_eq_color(geo_color_clamp(geo_color(1, 2, 3, 0), 10), geo_color(1, 2, 3, 0));
+    check_eq_color(geo_color_clamp(geo_color(34, 0, 0, 0), 2), geo_color(2, 0, 0, 0));
+    check_eq_color(geo_color_clamp(geo_color(1, 2, 3, 0), 0), geo_color(0, 0, 0, 0));
+    check_eq_color(geo_color_clamp(geo_color(0, 0, 0, 0), 0), geo_color(0, 0, 0, 0));
+  }
+
+  it("can clamp components") {
+    const GeoColor c    = {.r = -1, .g = 0, .b = 1, .a = 2};
+    const GeoColor cMin = {.r = 2, .g = -1, .b = 3, .a = 1};
+    const GeoColor cMax = {.r = 3, .g = 1, .b = 4, .a = 1};
+    check_eq_color(geo_color_clamp_comps(c, cMin, cMax), geo_color(2, 0, 3, 1));
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_color_fmt(geo_color_white)), string_lit("1, 1, 1, 1"));

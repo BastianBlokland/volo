@@ -40,7 +40,8 @@ u32 scene_prefab_map_version(const ScenePrefabResourceComp*);
  */
 
 typedef enum {
-  ScenePrefabFlags_SnapToTerrain = 1 << 0,
+  ScenePrefabFlags_Volatile      = 1 << 0, // Prefab should not be persisted.
+  ScenePrefabFlags_SnapToTerrain = 1 << 1,
 } ScenePrefabFlags;
 
 typedef struct {

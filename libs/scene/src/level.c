@@ -28,6 +28,8 @@ ecs_comp_define(SceneLevelManagerComp) {
   EcsEntityId loadedLevelAsset;
 };
 
+ecs_comp_define_public(SceneLevelInstanceComp);
+
 ecs_comp_define(SceneLevelRequestLoadComp) {
   EcsEntityId    levelAsset; // 0 indicates reloading the current level.
   LevelLoadState state;
@@ -41,10 +43,11 @@ static i8 level_compare_object_id(const void* a, const void* b) {
 }
 
 ecs_view_define(InstanceView) {
+  ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(ScenePrefabInstanceComp);
 }
 
 static void scene_level_process_unload(EcsWorld* world, EcsView* instView) {
@@ -194,6 +197,9 @@ static void scene_level_object_push(
     EcsIterator* instanceItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
+  if (!prefabInst) {
+    return; // Only prefab instances are persisted.
+  }
   if (prefabInst->isVolatile) {
     return; // Volatile prefabs should not be persisted.
   }
@@ -281,6 +287,7 @@ ecs_system_define(SceneLevelSaveSys) {
 
 ecs_module_init(scene_level_module) {
   ecs_register_comp(SceneLevelManagerComp);
+  ecs_register_comp_empty(SceneLevelInstanceComp);
   ecs_register_comp(SceneLevelRequestLoadComp);
   ecs_register_comp_empty(SceneLevelRequestUnloadComp);
   ecs_register_comp(SceneLevelRequestSaveComp);

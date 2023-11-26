@@ -328,6 +328,17 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_RoundUp, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("clamp");
+    const String       doc    = string_lit("Clamp given value between a minimum and a maximum.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_any},
+        {string_lit("min"), script_mask_any},
+        {string_lit("max"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Clamp, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("assert");
     const String       doc    = string_lit("Assert that the given value is truthy.");
     const ScriptMask   ret    = script_mask_null;
@@ -815,9 +826,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1855,13 +1866,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

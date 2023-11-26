@@ -37,12 +37,16 @@ ecs_system_define(SceneAttachmentSys) {
     }
 
     const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-    const SceneScaleComp*     tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
-    const SceneSkeletonComp*  tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
-
-    if (!tgtSkel || !tgtSkel->jointCount) {
+    if (sentinel_check(attach->jointIndex) && !attach->jointName) {
       trans->position = tgtTrans->position;
       trans->rotation = tgtTrans->rotation;
+      continue;
+    }
+
+    const SceneScaleComp*    tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
+    const SceneSkeletonComp* tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
+    if (UNLIKELY(!tgtSkel)) {
+      log_e("Attachment target does not have a skeleton");
       continue;
     }
 
@@ -94,7 +98,13 @@ ecs_module_init(scene_attachment_module) {
 }
 
 void scene_attach_to_entity(EcsWorld* world, const EcsEntityId entity, const EcsEntityId target) {
-  ecs_world_add_t(world, entity, SceneAttachmentComp, .target = target);
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneAttachmentComp,
+      .target     = target,
+      .jointName  = 0,
+      .jointIndex = sentinel_u32);
 }
 
 void scene_attach_to_joint(
