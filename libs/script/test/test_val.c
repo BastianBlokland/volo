@@ -810,6 +810,12 @@ spec(val) {
             .expected = script_vec3_lit(0, 0, 1.25f),
         },
         {
+            .v        = script_vec3_lit(-1, 0, 1),
+            .min      = script_vec3_lit(2, -1, 3),
+            .max      = script_vec3_lit(3, 1, 4),
+            .expected = script_vec3_lit(2, 0, 3),
+        },
+        {
             .v        = script_num(1.25f),
             .min      = script_num(1.5f),
             .max      = script_num(2.0f),

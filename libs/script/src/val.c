@@ -772,6 +772,9 @@ ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptV
       }
       return val_vec3(geo_vector_clamp(val_as_vec3(v), maxV));
     }
+    if (val_type(min) == ScriptType_Vec3 && val_type(max) == ScriptType_Vec3) {
+      return val_vec3(geo_vector_clamp_comps(val_as_vec3(v), val_as_vec3(min), val_as_vec3(max)));
+    }
     return val_null();
   }
   case ScriptType_Quat: {
