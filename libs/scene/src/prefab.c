@@ -495,8 +495,9 @@ static void setup_prefab(
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
     return;
   }
-  instanceComp->isVolatile = (prefab->flags & AssetPrefabFlags_Volatile) != 0;
-
+  if ((spec->flags & ScenePrefabFlags_Volatile) || (prefab->flags & AssetPrefabFlags_Volatile)) {
+    instanceComp->isVolatile = true;
+  }
   GeoVector spawnPos = spec->position;
   if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
     scene_terrain_snap(terrain, &spawnPos);
