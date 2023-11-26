@@ -556,6 +556,26 @@
       }
     },
     {
+      "name": "visible",
+      "doc": "Check if the given position is visible for this faction.",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "faction",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "status",
       "doc": "Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
       "sig": {
