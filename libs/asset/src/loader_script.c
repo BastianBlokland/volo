@@ -377,6 +377,18 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("vfx_system");
+      const String       doc    = string_lit("Place a vfx system.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.");
+      const ScriptMask   ret    = script_mask_entity;
+      const ScriptSigArg args[] = {
+          {string_lit("asset"), script_mask_entity},
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("rot"), script_mask_quat},
+          {string_lit("alpha"), script_mask_num | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("vfx_decal");
       const String       doc    = string_lit("Place a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.");
       const ScriptMask   ret    = script_mask_entity;

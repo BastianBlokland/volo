@@ -589,9 +589,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -934,6 +934,21 @@ static ScriptVal eval_emit(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
+static ScriptVal eval_vfx_system(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos   = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot   = script_arg_quat(args, 2, err);
+  const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(ctx->world, result, SceneVfxSystemComp, .asset = asset, .alpha = alpha);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
 static ScriptVal eval_vfx_decal(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId asset = arg_asset(ctx, args, 0, err);
   const GeoVector   pos   = script_arg_vec3(args, 1, err);
@@ -1261,6 +1276,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("attack"),             eval_attack);
     eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
+    eval_bind(b, string_lit("vfx_system"),         eval_vfx_system);
     eval_bind(b, string_lit("vfx_decal"),          eval_vfx_decal);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
     eval_bind(b, string_lit("sound_play"),         eval_sound_play);

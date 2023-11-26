@@ -77,6 +77,34 @@
       }
     },
     {
+      "name": "vfx_system",
+      "doc": "Place a vfx system.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "asset",
+            "mask": "entity"
+          },
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": "quat"
+          },
+          {
+            "name": "alpha",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {
