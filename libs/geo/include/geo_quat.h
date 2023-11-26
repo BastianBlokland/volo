@@ -119,6 +119,7 @@ GeoVector geo_quat_to_angle_axis(GeoQuat);
 /**
  * Clamp the quaternion so that the angle does not exceed 'maxAngle'.
  * NOTE: Returns 'true' if clamping applied otherwise 'false'.
+ * Pre-condition: maxAngle >= 0
  */
 bool geo_quat_clamp(GeoQuat*, f32 maxAngle);
 

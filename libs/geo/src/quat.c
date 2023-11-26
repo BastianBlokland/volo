@@ -280,6 +280,8 @@ GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
 }
 
 bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
+  diag_assert_msg(maxAngle >= 0.0f, "maximum angle cannot be negative");
+
   const GeoVector angleAxis = geo_quat_to_angle_axis(*q);
   const f32       angleSqr  = geo_vector_mag_sqr(angleAxis);
   if (angleSqr <= (maxAngle * maxAngle)) {
