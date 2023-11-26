@@ -789,7 +789,21 @@ ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptV
     }
     return val_null();
   }
-  case ScriptType_Color:
+  case ScriptType_Color: {
+    if (val_type(max) == ScriptType_Num) {
+      // TODO: 'min' value is not used in color clamping with a scalar.
+      const f32 maxV = (f32)val_as_num(max);
+      if (UNLIKELY(maxV <= 0.0f)) {
+        return val_null();
+      }
+      return val_color(geo_color_clamp(val_as_color(v), maxV));
+    }
+    if (val_type(min) == ScriptType_Color && val_type(max) == ScriptType_Color) {
+      return val_color(
+          geo_color_clamp_comps(val_as_color(v), val_as_color(min), val_as_color(max)));
+    }
+    return val_null();
+  }
   case ScriptType_Entity:
   case ScriptType_Str:
     return val_null();

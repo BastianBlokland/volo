@@ -816,6 +816,18 @@ spec(val) {
             .expected = script_vec3_lit(2, 0, 3),
         },
         {
+            .v        = script_color(geo_color(0, 0, 3.0f, 0)),
+            .min      = script_null(),
+            .max      = script_num(1.25f),
+            .expected = script_color(geo_color(0, 0, 1.25f, 0)),
+        },
+        {
+            .v        = script_color(geo_color(-1, 0, 1, 0)),
+            .min      = script_color(geo_color(2, -1, 3, 0)),
+            .max      = script_color(geo_color(3, 1, 4, 0)),
+            .expected = script_color(geo_color(2, 0, 3, 0)),
+        },
+        {
             .v        = script_num(1.25f),
             .min      = script_num(1.5f),
             .max      = script_num(2.0f),
