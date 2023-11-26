@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_intrinsic.h"
 #include "core_math.h"
@@ -142,6 +143,35 @@ GeoColor geo_color_bilerp(
   return res;
 #else
   return geo_color_lerp(geo_color_lerp(c1, c2, tX), geo_color_lerp(c3, c4, tX), tY);
+#endif
+}
+
+GeoColor geo_color_clamp(const GeoColor c, const f32 maxMagnitude) {
+  diag_assert_msg(maxMagnitude >= 0.0f, "maximum magnitude cannot be negative");
+
+  const f32 mag = geo_color_mag(c); // TODO: We can use a square-magnitude for the condition.
+  if (mag > maxMagnitude) {
+    const GeoColor norm = geo_color_div(c, mag);
+    return geo_color_mul(norm, maxMagnitude);
+  }
+  return c;
+}
+
+GeoColor geo_color_clamp_comps(const GeoColor c, const GeoColor min, const GeoColor max) {
+#if geo_color_simd_enable
+  SimdVec vec = simd_vec_load(c.data);
+  vec         = simd_vec_max(vec, simd_vec_load(min.data));
+  vec         = simd_vec_min(vec, simd_vec_load(max.data));
+  GeoColor res;
+  simd_vec_store(vec, res.data);
+  return res;
+#else
+  return (GeoColor){
+      .r = math_clamp_f32(c.r, min.r, max.r),
+      .g = math_clamp_f32(c.g, min.g, max.g),
+      .b = math_clamp_f32(c.b, min.b, max.b),
+      .a = math_clamp_f32(c.a, min.a, max.a),
+  };
 #endif
 }
 

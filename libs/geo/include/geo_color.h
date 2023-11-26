@@ -99,6 +99,14 @@ GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 GeoColor geo_color_bilerp(GeoColor v1, GeoColor v2, GeoColor v3, GeoColor v4, f32 tX, f32 tY);
 
 /**
+ * Clamp a color so its magnitude does not exceed the given value.
+ *
+ * Pre-condition: maxMagnitude >= 0
+ */
+GeoColor geo_color_clamp(GeoColor, f32 maxMagnitude);
+GeoColor geo_color_clamp_comps(GeoColor, GeoColor min, GeoColor max);
+
+/**
  * Replace the alpha value for the given color.
  */
 GeoColor geo_color_with_alpha(GeoColor, f32 alpha);
