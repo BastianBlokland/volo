@@ -234,6 +234,7 @@ ecs_view_define(EvalGlobalView) {
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(EvalVelocityView) { ecs_access_read(SceneVelocityComp); }
 ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
@@ -259,6 +260,7 @@ typedef struct {
   EcsWorld*    world;
   EcsIterator* globalItr;
   EcsIterator* transformItr;
+  EcsIterator* veloItr;
   EcsIterator* scaleItr;
   EcsIterator* nameItr;
   EcsIterator* factionItr;
@@ -314,6 +316,12 @@ static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args, ScriptEr
   const EcsEntityId  e   = script_arg_entity(args, 0, err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_vec3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
+}
+
+static ScriptVal eval_velocity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId  e   = script_arg_entity(args, 0, err);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->veloItr, e);
+  return itr ? script_vec3(ecs_view_read_t(itr, SceneVelocityComp)->velocityAvg) : script_null();
 }
 
 static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -589,9 +597,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1243,6 +1251,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("self"),               eval_self);
     eval_bind(b, string_lit("exists"),             eval_exists);
     eval_bind(b, string_lit("position"),           eval_position);
+    eval_bind(b, string_lit("velocity"),           eval_velocity);
     eval_bind(b, string_lit("rotation"),           eval_rotation);
     eval_bind(b, string_lit("scale"),              eval_scale);
     eval_bind(b, string_lit("name"),               eval_name);
@@ -1444,6 +1453,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .world          = world,
       .globalItr      = globalItr,
       .transformItr   = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
+      .veloItr        = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
       .scaleItr       = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
       .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
@@ -1764,6 +1774,7 @@ ecs_module_init(scene_script_module) {
       ecs_view_id(ResourceAssetView),
       ecs_register_view(EvalGlobalView),
       ecs_register_view(EvalTransformView),
+      ecs_register_view(EvalVelocityView),
       ecs_register_view(EvalScaleView),
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
