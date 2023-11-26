@@ -56,7 +56,11 @@ static EcsEntityId status_effect_create(
           .rotation = geo_quat_ident,
       });
   ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  scene_attach_to_joint_name(world, result, owner, status->effectJoint);
+  if (status->effectJoint) {
+    scene_attach_to_joint_name(world, result, owner, status->effectJoint);
+  } else {
+    scene_attach_to_entity(world, result, owner);
+  }
   return result;
 }
 
