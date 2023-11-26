@@ -766,15 +766,23 @@ ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptV
   case ScriptType_Vec3: {
     if (val_type(max) == ScriptType_Num) {
       // TODO: 'min' value is not used in vector clamping with a scalar.
-      return val_vec3(geo_vector_clamp(val_as_vec3(v), (f32)val_as_num(max)));
+      const f32 maxV = (f32)val_as_num(max);
+      if (UNLIKELY(maxV <= 0.0f)) {
+        return val_null();
+      }
+      return val_vec3(geo_vector_clamp(val_as_vec3(v), maxV));
     }
     return val_null();
   }
   case ScriptType_Quat: {
     if (val_type(max) == ScriptType_Num) {
       // TODO: 'min' value is not used in quaternion clamping with a scalar.
+      const f32 maxV = (f32)val_as_num(max);
+      if (UNLIKELY(maxV <= 0.0f)) {
+        return val_null();
+      }
       GeoQuat q = val_as_quat(v);
-      return geo_quat_clamp(&q, (f32)val_as_num(max)) ? val_quat(q) : v;
+      return geo_quat_clamp(&q, maxV) ? val_quat(q) : v;
     }
     return val_null();
   }
