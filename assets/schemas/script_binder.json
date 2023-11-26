@@ -418,6 +418,22 @@
       }
     },
     {
+      "name": "velocity",
+      "doc": "Lookup the velocity of the given entity.",
+      "sig": {
+        "ret": [
+          "null",
+          "vec3"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          }
+        ]
+      }
+    },
+    {
       "name": "vfx_decal",
       "doc": "Place a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
       "sig": {

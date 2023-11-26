@@ -58,6 +58,15 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("velocity");
+      const String       doc    = string_lit("Lookup the velocity of the given entity.");
+      const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("rotation");
       const String       doc    = string_lit("Lookup the rotation of the given entity.");
       const ScriptMask   ret    = script_mask_quat | script_mask_null;
