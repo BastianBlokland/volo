@@ -61,14 +61,8 @@ attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWe
           .rotation = geo_quat_ident,
       });
   ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(
-      world,
-      result,
-      SceneAttachmentComp,
-      .target     = owner,
-      .jointIndex = sentinel_u32,
-      .jointName  = weapon->attachmentJoint);
   ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
+  scene_attach_to_joint_name(world, result, owner, weapon->attachmentJoint);
   return result;
 }
 
@@ -516,7 +510,7 @@ static EffectResult effect_update_vfx(
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxSystemComp, .asset = def->asset, .alpha = 1.0f);
-  ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
+  scene_attach_to_joint(ctx->world, e, inst, jointOriginIdx);
 
   return EffectResult_Done;
 }
@@ -751,7 +745,7 @@ attack_sound_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId 
   ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(world, e, SceneAttachmentComp, .target = owner);
+  scene_attach_to_entity(world, e, owner);
   return e;
 }
 

@@ -1564,12 +1564,10 @@ static void action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
       return; // Entity does not exist.
     }
   }
-  attach->target = a->target;
+  attach->target     = a->target;
+  attach->jointIndex = sentinel_u32;
   if (a->jointName) {
-    attach->jointName  = a->jointName;
-    attach->jointIndex = sentinel_u32;
-  } else {
-    attach->jointIndex = 0;
+    attach->jointName = a->jointName;
   }
 }
 
