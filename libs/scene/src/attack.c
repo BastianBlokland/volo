@@ -11,6 +11,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -507,6 +508,7 @@ static EffectResult effect_update_vfx(
   }
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, e, SceneLevelInstanceComp);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   if (math_abs(def->scale - 1.0f) > 1e-3f) {
     ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
@@ -543,6 +545,7 @@ static EffectResult effect_update_sound(
   const f32       pitch = rng_sample_range(g_rng, def->pitchMin, def->pitchMax);
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, e, SceneLevelInstanceComp);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneSoundComp, .asset = def->asset, .gain = gain, .pitch = pitch);
@@ -745,6 +748,7 @@ ecs_view_define(SoundUpdateView) {
 static EcsEntityId
 attack_sound_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
   const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_empty_t(world, e, SceneLevelInstanceComp);
   ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = owner);

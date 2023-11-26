@@ -4,6 +4,7 @@
 #include "geo_matrix.h"
 #include "log_logger.h"
 #include "scene_footstep.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
@@ -92,6 +93,7 @@ static void footstep_decal_spawn(
     const EcsEntityId         decalAsset) {
 
   const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_empty_t(world, e, SceneLevelInstanceComp);
   ecs_world_add_t(world, e, SceneTransformComp, .position = footPos, .rotation = trans->rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = scene_footstep_decal_lifetime);
   ecs_world_add_t(world, e, SceneVfxDecalComp, .asset = decalAsset, .alpha = 1.0f);
