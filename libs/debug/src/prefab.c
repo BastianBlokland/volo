@@ -414,7 +414,7 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_read(SceneCollisionEnvComp);
   ecs_access_maybe_read(SceneTerrainComp);
-  ecs_access_read(ScenePrefabResourceComp);
+  ecs_access_read(ScenePrefabEnvComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(InputManagerComp);
@@ -432,13 +432,13 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
-  const SceneCollisionEnvComp*   collision = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
-  InputManagerComp*              input     = ecs_view_write_t(globalItr, InputManagerComp);
+  const ScenePrefabEnvComp*    prefabEnv = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
+  const SceneCollisionEnvComp* collision = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTerrainComp*      terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
+  InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
   EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
-  EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabRes));
+  EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabEnv));
   if (!mapItr) {
     return;
   }

@@ -145,7 +145,7 @@ static void snd_source_update_spatial(
 }
 
 ecs_view_define(UpdateGlobalView) {
-  ecs_access_maybe_read(ScenePrefabResourceComp);
+  ecs_access_maybe_read(ScenePrefabEnvComp);
   ecs_access_maybe_write(SndEventMapComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneTimeSettingsComp);
@@ -210,13 +210,13 @@ ecs_system_define(SndSourceUpdateSys) {
     eventMap = snd_event_map_init(world);
   }
 
-  const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
-  if (prefabRes && scene_prefab_map_version(prefabRes) != eventMap->prefabMapVersion) {
+  const ScenePrefabEnvComp* prefabEnv = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
+  if (prefabEnv && scene_prefab_map_version(prefabEnv) != eventMap->prefabMapVersion) {
     EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
-    EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabRes));
+    EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabEnv));
     if (mapItr) {
       snd_source_preload_prefabs(m, ecs_view_read_t(mapItr, AssetPrefabMapComp));
-      eventMap->prefabMapVersion = scene_prefab_map_version(prefabRes);
+      eventMap->prefabMapVersion = scene_prefab_map_version(prefabEnv);
 
       log_d(
           "Preloading prefab-map sounds",

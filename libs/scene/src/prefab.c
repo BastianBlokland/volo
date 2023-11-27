@@ -38,7 +38,7 @@ typedef enum {
   PrefabResource_MapUnloading = 1 << 1,
 } PrefabResourceFlags;
 
-ecs_comp_define(ScenePrefabResourceComp) {
+ecs_comp_define(ScenePrefabEnvComp) {
   PrefabResourceFlags flags;
   String              mapId;
   EcsEntityId         mapEntity;
@@ -49,18 +49,18 @@ ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
 ecs_comp_define_public(ScenePrefabInstanceComp);
 
 static void ecs_destruct_prefab_resource(void* data) {
-  ScenePrefabResourceComp* comp = data;
+  ScenePrefabEnvComp* comp = data;
   string_free(g_alloc_heap, comp->mapId);
 }
 
 ecs_view_define(GlobalResourceUpdateView) {
-  ecs_access_write(ScenePrefabResourceComp);
+  ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(GlobalSpawnView) {
   ecs_access_maybe_read(SceneTerrainComp);
-  ecs_access_read(ScenePrefabResourceComp);
+  ecs_access_read(ScenePrefabEnvComp);
 }
 
 ecs_view_define(PrefabMapAssetView) { ecs_access_read(AssetPrefabMapComp); }
@@ -72,22 +72,22 @@ ecs_system_define(ScenePrefabResourceInitSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*        assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  ScenePrefabResourceComp* resource = ecs_view_write_t(globalItr, ScenePrefabResourceComp);
+  AssetManagerComp*   assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  ScenePrefabEnvComp* env    = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
 
-  if (!resource->mapEntity) {
-    resource->mapEntity = asset_lookup(world, assets, resource->mapId);
+  if (!env->mapEntity) {
+    env->mapEntity = asset_lookup(world, assets, env->mapId);
   }
 
-  if (!(resource->flags & (PrefabResource_MapAcquired | PrefabResource_MapUnloading))) {
-    asset_acquire(world, resource->mapEntity);
-    resource->flags |= PrefabResource_MapAcquired;
-    ++resource->mapVersion;
+  if (!(env->flags & (PrefabResource_MapAcquired | PrefabResource_MapUnloading))) {
+    asset_acquire(world, env->mapEntity);
+    env->flags |= PrefabResource_MapAcquired;
+    ++env->mapVersion;
 
     log_i(
         "Acquiring prefab-map",
-        log_param("id", fmt_text(resource->mapId)),
-        log_param("version", fmt_int(resource->mapVersion)));
+        log_param("id", fmt_text(env->mapId)),
+        log_param("version", fmt_int(env->mapVersion)));
   }
 }
 
@@ -97,27 +97,27 @@ ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
   if (!globalItr) {
     return;
   }
-  ScenePrefabResourceComp* resource = ecs_view_write_t(globalItr, ScenePrefabResourceComp);
-  if (!resource->mapEntity) {
+  ScenePrefabEnvComp* env = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+  if (!env->mapEntity) {
     return;
   }
 
-  const bool isLoaded   = ecs_world_has_t(world, resource->mapEntity, AssetLoadedComp);
-  const bool isFailed   = ecs_world_has_t(world, resource->mapEntity, AssetFailedComp);
-  const bool hasChanged = ecs_world_has_t(world, resource->mapEntity, AssetChangedComp);
+  const bool isLoaded   = ecs_world_has_t(world, env->mapEntity, AssetLoadedComp);
+  const bool isFailed   = ecs_world_has_t(world, env->mapEntity, AssetFailedComp);
+  const bool hasChanged = ecs_world_has_t(world, env->mapEntity, AssetChangedComp);
 
-  if (resource->flags & PrefabResource_MapAcquired && (isLoaded || isFailed) && hasChanged) {
+  if (env->flags & PrefabResource_MapAcquired && (isLoaded || isFailed) && hasChanged) {
     log_i(
         "Unloading prefab-map",
-        log_param("id", fmt_text(resource->mapId)),
+        log_param("id", fmt_text(env->mapId)),
         log_param("reason", fmt_text_lit("Asset changed")));
 
-    asset_release(world, resource->mapEntity);
-    resource->flags &= ~PrefabResource_MapAcquired;
-    resource->flags |= PrefabResource_MapUnloading;
+    asset_release(world, env->mapEntity);
+    env->flags &= ~PrefabResource_MapAcquired;
+    env->flags |= PrefabResource_MapUnloading;
   }
-  if (resource->flags & PrefabResource_MapUnloading && !isLoaded) {
-    resource->flags &= ~PrefabResource_MapUnloading;
+  if (env->flags & PrefabResource_MapUnloading && !isLoaded) {
+    env->flags &= ~PrefabResource_MapUnloading;
   }
 }
 
@@ -525,11 +525,11 @@ ecs_system_define(ScenePrefabSpawnSys) {
   if (!globalItr) {
     return;
   }
-  const ScenePrefabResourceComp* resource = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
-  const SceneTerrainComp*        terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const ScenePrefabEnvComp* env     = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
+  const SceneTerrainComp*   terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
 
   EcsView*     mapAssetView = ecs_world_view_t(world, PrefabMapAssetView);
-  EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, resource->mapEntity);
+  EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, env->mapEntity);
   if (!mapAssetItr) {
     return;
   }
@@ -550,7 +550,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
 }
 
 ecs_module_init(scene_prefab_module) {
-  ecs_register_comp(ScenePrefabResourceComp, .destructor = ecs_destruct_prefab_resource);
+  ecs_register_comp(ScenePrefabEnvComp, .destructor = ecs_destruct_prefab_resource);
   ecs_register_comp(ScenePrefabRequestComp);
   ecs_register_comp(ScenePrefabInstanceComp);
 
@@ -576,17 +576,13 @@ void scene_prefab_init(EcsWorld* world, const String prefabMapId) {
   ecs_world_add_t(
       world,
       ecs_world_global(world),
-      ScenePrefabResourceComp,
+      ScenePrefabEnvComp,
       .mapId = string_dup(g_alloc_heap, prefabMapId));
 }
 
-EcsEntityId scene_prefab_map(const ScenePrefabResourceComp* resource) {
-  return resource->mapEntity;
-}
+EcsEntityId scene_prefab_map(const ScenePrefabEnvComp* env) { return env->mapEntity; }
 
-u32 scene_prefab_map_version(const ScenePrefabResourceComp* resource) {
-  return resource->mapVersion;
-}
+u32 scene_prefab_map_version(const ScenePrefabEnvComp* env) { return env->mapVersion; }
 
 EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
