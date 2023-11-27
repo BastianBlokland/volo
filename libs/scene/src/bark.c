@@ -66,10 +66,10 @@ static void registry_report(
     const SceneTimeComp*    time,
     const GeoVector         pos) {
   diag_assert(g_tauntEventDuration[type]);
-  if (taunt->tauntPrefabs[type]) {
+  if (taunt->barkPrefabs[type]) {
     *dynarray_push_t(&reg->events, SceneTauntEvent) = (SceneTauntEvent){
         .priority        = taunt->priority,
-        .prefab          = taunt->tauntPrefabs[type],
+        .prefab          = taunt->barkPrefabs[type],
         .expireTimestamp = time->time + g_tauntEventDuration[type],
         .instigator      = instigator,
         .position        = pos,

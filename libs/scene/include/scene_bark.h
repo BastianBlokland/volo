@@ -11,7 +11,7 @@ typedef enum {
 ecs_comp_extern_public(SceneBarkComp) {
   u32        requests;
   i32        priority;
-  StringHash tauntPrefabs[SceneBarkType_Count];
+  StringHash barkPrefabs[SceneBarkType_Count];
 };
 
 void scene_bark_request(SceneBarkComp*, SceneBarkType);
