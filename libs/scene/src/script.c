@@ -321,8 +321,11 @@ static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError*
 }
 
 static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
-  return script_bool(e && ecs_world_exists(ctx->world, e));
+  if (script_arg_check(args, 0, script_mask_entity | script_mask_null, err)) {
+    const EcsEntityId e = script_get_entity(args.values[0], ecs_entity_invalid);
+    return script_bool(e && ecs_world_exists(ctx->world, e));
+  }
+  return script_bool(false);
 }
 
 static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -621,9 +624,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);

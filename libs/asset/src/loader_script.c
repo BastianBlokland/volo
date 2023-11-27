@@ -41,10 +41,10 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("exists");
-      const String       doc    = string_lit("Test if the given entity still exists.");
+      const String       doc    = string_lit("Test if the given entity still exists.\n\n*Note*: Returns false if input value is null.");
       const ScriptMask   ret    = script_mask_bool;
       const ScriptSigArg args[] = {
-          {string_lit("v"), script_mask_entity},
+          {string_lit("v"), script_mask_entity | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
