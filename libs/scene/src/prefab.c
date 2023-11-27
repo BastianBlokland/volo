@@ -38,19 +38,32 @@ typedef enum {
   PrefabResource_MapUnloading = 1 << 1,
 } PrefabResourceFlags;
 
+/**
+ * Two kinds of different spawn requests are supported:
+ * - 'scene_prefab_spawn()': Does not require a global write but will be processed next frame.
+ * - 'scene_prefab_spawn_onto()': Requires a global write but can be processed this frame.
+ */
+
+typedef struct {
+  ScenePrefabSpec spec;
+  EcsEntityId     entity;
+} ScenePrefabRequest;
+
 ecs_comp_define(ScenePrefabEnvComp) {
   PrefabResourceFlags flags;
   String              mapId;
   EcsEntityId         mapEntity;
   u32                 mapVersion;
+  DynArray            requests; // ScenePrefabRequest[]
 };
 
 ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
 ecs_comp_define_public(ScenePrefabInstanceComp);
 
-static void ecs_destruct_prefab_resource(void* data) {
+static void ecs_destruct_prefab_env(void* data) {
   ScenePrefabEnvComp* comp = data;
   string_free(g_alloc_heap, comp->mapId);
+  dynarray_destroy(&comp->requests);
 }
 
 ecs_view_define(GlobalResourceUpdateView) {
@@ -60,7 +73,7 @@ ecs_view_define(GlobalResourceUpdateView) {
 
 ecs_view_define(GlobalSpawnView) {
   ecs_access_maybe_read(SceneTerrainComp);
-  ecs_access_read(ScenePrefabEnvComp);
+  ecs_access_write(ScenePrefabEnvComp);
 }
 
 ecs_view_define(PrefabMapAssetView) { ecs_access_read(AssetPrefabMapComp); }
@@ -477,12 +490,16 @@ static void setup_trait(
   diag_crash_msg("Unsupported prefab trait: '{}'", fmt_int(t->type));
 }
 
-static void setup_prefab(
+static bool setup_prefab(
     EcsWorld*                 w,
     const SceneTerrainComp*   terrain,
     const EcsEntityId         e,
     const ScenePrefabSpec*    spec,
     const AssetPrefabMapComp* map) {
+
+  if ((spec->flags & ScenePrefabFlags_SnapToTerrain) && !scene_terrain_loaded(terrain)) {
+    return false; // Wait until the terrain is loaded.
+  }
 
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
   ScenePrefabInstanceComp* instanceComp =
@@ -491,7 +508,7 @@ static void setup_prefab(
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
-    return;
+    return true; // No point in retrying; mark the prefab as done.
   }
   if ((spec->flags & ScenePrefabFlags_Volatile) || (prefab->flags & AssetPrefabFlags_Volatile)) {
     instanceComp->isVolatile = true;
@@ -517,6 +534,8 @@ static void setup_prefab(
     const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
     setup_trait(w, e, spec, map, prefab, trait);
   }
+
+  return true; // Prefab done processing.
 }
 
 ecs_system_define(ScenePrefabSpawnSys) {
@@ -525,8 +544,8 @@ ecs_system_define(ScenePrefabSpawnSys) {
   if (!globalItr) {
     return;
   }
-  const ScenePrefabEnvComp* env     = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
-  const SceneTerrainComp*   terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
+  ScenePrefabEnvComp*     env     = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+  const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
 
   EcsView*     mapAssetView = ecs_world_view_t(world, PrefabMapAssetView);
   EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, env->mapEntity);
@@ -535,22 +554,28 @@ ecs_system_define(ScenePrefabSpawnSys) {
   }
   const AssetPrefabMapComp* map = ecs_view_read_t(mapAssetItr, AssetPrefabMapComp);
 
+  // Process global requests.
+  for (usize i = env->requests.size; i-- != 0;) {
+    const ScenePrefabRequest* req = dynarray_at_t(&env->requests, i, ScenePrefabRequest);
+    if (setup_prefab(world, terrain, req->entity, &req->spec, map)) {
+      dynarray_remove_unordered(&env->requests, i, 1);
+    }
+  }
+
+  // Process entity requests.
   EcsView* spawnView = ecs_world_view_t(world, PrefabSpawnView);
   for (EcsIterator* itr = ecs_view_itr(spawnView); ecs_view_walk(itr);) {
     const EcsEntityId             entity  = ecs_view_entity(itr);
     const ScenePrefabRequestComp* request = ecs_view_read_t(itr, ScenePrefabRequestComp);
 
-    if (!scene_terrain_loaded(terrain) && (request->spec.flags & ScenePrefabFlags_SnapToTerrain)) {
-      continue; // Wait until the terrain is loaded.
+    if (setup_prefab(world, terrain, entity, &request->spec, map)) {
+      ecs_world_remove_t(world, entity, ScenePrefabRequestComp);
     }
-
-    setup_prefab(world, terrain, entity, &request->spec, map);
-    ecs_world_remove_t(world, entity, ScenePrefabRequestComp);
   }
 }
 
 ecs_module_init(scene_prefab_module) {
-  ecs_register_comp(ScenePrefabEnvComp, .destructor = ecs_destruct_prefab_resource);
+  ecs_register_comp(ScenePrefabEnvComp, .destructor = ecs_destruct_prefab_env);
   ecs_register_comp(ScenePrefabRequestComp);
   ecs_register_comp(ScenePrefabInstanceComp);
 
@@ -577,7 +602,8 @@ void scene_prefab_init(EcsWorld* world, const String prefabMapId) {
       world,
       ecs_world_global(world),
       ScenePrefabEnvComp,
-      .mapId = string_dup(g_alloc_heap, prefabMapId));
+      .mapId    = string_dup(g_alloc_heap, prefabMapId),
+      .requests = dynarray_create_t(g_alloc_heap, ScenePrefabRequest, 32));
 }
 
 EcsEntityId scene_prefab_map(const ScenePrefabEnvComp* env) { return env->mapEntity; }
@@ -592,8 +618,12 @@ EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
   return e;
 }
 
-void scene_prefab_spawn_onto(EcsWorld* world, const ScenePrefabSpec* spec, const EcsEntityId e) {
+void scene_prefab_spawn_onto(
+    ScenePrefabEnvComp* env, const ScenePrefabSpec* spec, const EcsEntityId e) {
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
 
-  ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
+  *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
+      .spec   = *spec,
+      .entity = e,
+  };
 }
