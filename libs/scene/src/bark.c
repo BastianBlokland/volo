@@ -12,14 +12,14 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-static const TimeDuration g_tauntEventDuration[SceneBarkType_Count] = {
+static const TimeDuration g_barkEventDuration[SceneBarkType_Count] = {
     [SceneBarkType_Death]   = time_milliseconds(500),
     [SceneBarkType_Confirm] = time_milliseconds(750),
 };
 
-#define scene_taunt_cooldown_min time_seconds(2)
-#define scene_taunt_cooldown_max time_seconds(3)
-#define scene_taunt_distance_max 100.0f
+#define scene_bark_cooldown_min time_seconds(2)
+#define scene_bark_cooldown_max time_seconds(3)
+#define scene_bark_distance_max 100.0f
 
 typedef struct {
   i32          priority;
@@ -27,31 +27,31 @@ typedef struct {
   TimeDuration expireTimestamp;
   EcsEntityId  instigator;
   GeoVector    position;
-} SceneTauntEvent;
+} SceneBarkEvent;
 
-ecs_comp_define(SceneTauntRegistryComp) {
-  DynArray     events; // SceneTauntEvent[]
-  TimeDuration nextTauntTime;
+ecs_comp_define(SceneBarkRegistryComp) {
+  DynArray     events; // SceneBarkEvent[]
+  TimeDuration nextBarkTime;
 };
 
 ecs_comp_define_public(SceneBarkComp);
 
 static void ecs_destruct_registry_comp(void* data) {
-  SceneTauntRegistryComp* registry = data;
+  SceneBarkRegistryComp* registry = data;
   dynarray_destroy(&registry->events);
 }
 
-static SceneTauntRegistryComp* registry_init(EcsWorld* world) {
+static SceneBarkRegistryComp* registry_init(EcsWorld* world) {
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
-      SceneTauntRegistryComp,
-      .events = dynarray_create_t(g_alloc_heap, SceneTauntEvent, 64));
+      SceneBarkRegistryComp,
+      .events = dynarray_create_t(g_alloc_heap, SceneBarkEvent, 64));
 }
 
-static void registry_prune(SceneTauntRegistryComp* reg, const TimeDuration timestamp) {
+static void registry_prune(SceneBarkRegistryComp* reg, const TimeDuration timestamp) {
   for (usize i = reg->events.size; i-- != 0;) {
-    const SceneTauntEvent* evt = dynarray_at_t(&reg->events, i, SceneTauntEvent);
+    const SceneBarkEvent* evt = dynarray_at_t(&reg->events, i, SceneBarkEvent);
     if (timestamp > evt->expireTimestamp) {
       dynarray_remove_unordered(&reg->events, i, 1);
     }
@@ -59,33 +59,33 @@ static void registry_prune(SceneTauntRegistryComp* reg, const TimeDuration times
 }
 
 static void registry_report(
-    SceneTauntRegistryComp* reg,
-    const EcsEntityId       instigator,
-    const SceneBarkType     type,
-    const SceneBarkComp*    taunt,
-    const SceneTimeComp*    time,
-    const GeoVector         pos) {
-  diag_assert(g_tauntEventDuration[type]);
-  if (taunt->barkPrefabs[type]) {
-    *dynarray_push_t(&reg->events, SceneTauntEvent) = (SceneTauntEvent){
-        .priority        = taunt->priority,
-        .prefab          = taunt->barkPrefabs[type],
-        .expireTimestamp = time->time + g_tauntEventDuration[type],
+    SceneBarkRegistryComp* reg,
+    const EcsEntityId      instigator,
+    const SceneBarkType    type,
+    const SceneBarkComp*   bark,
+    const SceneTimeComp*   time,
+    const GeoVector        pos) {
+  diag_assert(g_barkEventDuration[type]);
+  if (bark->barkPrefabs[type]) {
+    *dynarray_push_t(&reg->events, SceneBarkEvent) = (SceneBarkEvent){
+        .priority        = bark->priority,
+        .prefab          = bark->barkPrefabs[type],
+        .expireTimestamp = time->time + g_barkEventDuration[type],
         .instigator      = instigator,
         .position        = pos,
     };
   }
 }
 
-static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, SceneTauntEvent* out) {
+static bool registry_pop(SceneBarkRegistryComp* reg, const GeoVector pos, SceneBarkEvent* out) {
   usize bestIndex = sentinel_usize;
   i32   bestPriority;
   f32   bestDistSqr;
   for (usize i = 0; i != reg->events.size; ++i) {
-    const SceneTauntEvent* evt      = dynarray_at_t(&reg->events, i, SceneTauntEvent);
-    const GeoVector        posDelta = geo_vector_sub(evt->position, pos);
-    const f32              distSqr  = geo_vector_mag_sqr(posDelta);
-    if (distSqr > (scene_taunt_distance_max * scene_taunt_distance_max)) {
+    const SceneBarkEvent* evt      = dynarray_at_t(&reg->events, i, SceneBarkEvent);
+    const GeoVector       posDelta = geo_vector_sub(evt->position, pos);
+    const f32             distSqr  = geo_vector_mag_sqr(posDelta);
+    if (distSqr > (scene_bark_distance_max * scene_bark_distance_max)) {
       continue;
     }
     if (sentinel_check(bestIndex) || evt->priority > bestPriority || distSqr < bestDistSqr) {
@@ -95,35 +95,35 @@ static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, Scene
     }
   }
   if (!sentinel_check(bestIndex)) {
-    *out = *dynarray_at_t(&reg->events, bestIndex, SceneTauntEvent);
+    *out = *dynarray_at_t(&reg->events, bestIndex, SceneBarkEvent);
     dynarray_remove_unordered(&reg->events, bestIndex, 1);
     return true;
   }
   return false;
 }
 
-static void taunt_spawn(EcsWorld* world, SceneTauntEvent* tauntEvent) {
-  const EcsEntityId tauntEntity = scene_prefab_spawn(
+static void bark_spawn(EcsWorld* world, SceneBarkEvent* barkEvent) {
+  const EcsEntityId barkEntity = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = tauntEvent->prefab,
+          .prefabId = barkEvent->prefab,
           .faction  = SceneFaction_None,
-          .position = tauntEvent->position,
+          .position = barkEvent->position,
           .rotation = geo_quat_ident});
-  ecs_world_add_t(world, tauntEntity, SceneLifetimeOwnerComp, .owners[0] = tauntEvent->instigator);
-  scene_attach_to_entity(world, tauntEntity, tauntEvent->instigator);
+  ecs_world_add_t(world, barkEntity, SceneLifetimeOwnerComp, .owners[0] = barkEvent->instigator);
+  scene_attach_to_entity(world, barkEntity, barkEvent->instigator);
 }
 
-static TimeDuration taunt_next_time(const TimeDuration timeNow) {
+static TimeDuration bark_next_time(const TimeDuration timeNow) {
   TimeDuration next = timeNow;
-  next += (TimeDuration)rng_sample_range(g_rng, scene_taunt_cooldown_min, scene_taunt_cooldown_max);
+  next += (TimeDuration)rng_sample_range(g_rng, scene_bark_cooldown_min, scene_bark_cooldown_max);
   return next;
 }
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
-  ecs_access_maybe_write(SceneTauntRegistryComp);
+  ecs_access_maybe_write(SceneBarkRegistryComp);
 }
 
 ecs_view_define(UpdateView) {
@@ -136,13 +136,13 @@ ecs_view_define(ListenerView) {
   ecs_access_read(SceneTransformComp);
 }
 
-static GeoVector taunt_listener_position(EcsWorld* world) {
+static GeoVector bark_listener_position(EcsWorld* world) {
   EcsView*     listenerView = ecs_world_view_t(world, ListenerView);
   EcsIterator* listenerItr  = ecs_view_first(listenerView);
   return listenerItr ? ecs_view_read_t(listenerItr, SceneTransformComp)->position : geo_vector(0);
 }
 
-ecs_system_define(SceneTauntUpdateSys) {
+ecs_system_define(SceneBarkUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -150,49 +150,49 @@ ecs_system_define(SceneTauntUpdateSys) {
   }
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  SceneTauntRegistryComp* reg = ecs_view_write_t(globalItr, SceneTauntRegistryComp);
+  SceneBarkRegistryComp* reg = ecs_view_write_t(globalItr, SceneBarkRegistryComp);
   if (reg) {
     registry_prune(reg, time->time);
   } else {
     reg = registry_init(world);
   }
 
-  // Generate taunt events.
+  // Generate bark events.
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    SceneBarkComp* taunt = ecs_view_write_t(itr, SceneBarkComp);
-    if (!taunt->requests) {
+    SceneBarkComp* bark = ecs_view_write_t(itr, SceneBarkComp);
+    if (!bark->requests) {
       continue;
     }
     const EcsEntityId         instigator = ecs_view_entity(itr);
     const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
     const GeoVector           pos        = trans ? trans->position : geo_vector(0);
-    bitset_for(bitset_from_var(taunt->requests), tauntTypeIndex) {
-      registry_report(reg, instigator, (SceneBarkType)tauntTypeIndex, taunt, time, pos);
+    bitset_for(bitset_from_var(bark->requests), barkTypeIndex) {
+      registry_report(reg, instigator, (SceneBarkType)barkTypeIndex, bark, time, pos);
     }
-    taunt->requests = 0;
+    bark->requests = 0;
   }
 
-  // Activate taunt.
-  SceneTauntEvent tauntEvent;
-  const GeoVector listenerPos = taunt_listener_position(world);
-  if (time->time >= reg->nextTauntTime && registry_pop(reg, listenerPos, &tauntEvent)) {
-    taunt_spawn(world, &tauntEvent);
-    reg->nextTauntTime = taunt_next_time(time->time);
+  // Activate bark.
+  SceneBarkEvent  barkEvent;
+  const GeoVector listenerPos = bark_listener_position(world);
+  if (time->time >= reg->nextBarkTime && registry_pop(reg, listenerPos, &barkEvent)) {
+    bark_spawn(world, &barkEvent);
+    reg->nextBarkTime = bark_next_time(time->time);
   }
 }
 
-ecs_module_init(scene_taunt_module) {
-  ecs_register_comp(SceneTauntRegistryComp, .destructor = ecs_destruct_registry_comp);
+ecs_module_init(scene_bark_module) {
+  ecs_register_comp(SceneBarkRegistryComp, .destructor = ecs_destruct_registry_comp);
   ecs_register_comp(SceneBarkComp);
 
   ecs_register_system(
-      SceneTauntUpdateSys,
+      SceneBarkUpdateSys,
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView),
       ecs_register_view(ListenerView));
 }
 
-void scene_bark_request(SceneBarkComp* taunt, const SceneBarkType type) {
-  taunt->requests |= 1 << type;
+void scene_bark_request(SceneBarkComp* bark, const SceneBarkType type) {
+  bark->requests |= 1 << type;
 }

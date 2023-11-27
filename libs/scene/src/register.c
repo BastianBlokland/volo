@@ -4,6 +4,7 @@
 void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_attachment_module);
   ecs_register_module(def, scene_attack_module);
+  ecs_register_module(def, scene_bark_module);
   ecs_register_module(def, scene_bounds_module);
   ecs_register_module(def, scene_camera_module);
   ecs_register_module(def, scene_collision_module);
@@ -28,7 +29,6 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_status_module);
   ecs_register_module(def, scene_tag_module);
   ecs_register_module(def, scene_target_module);
-  ecs_register_module(def, scene_taunt_module);
   ecs_register_module(def, scene_terrain_module);
   ecs_register_module(def, scene_time_module);
   ecs_register_module(def, scene_transform_module);
