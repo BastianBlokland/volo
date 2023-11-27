@@ -4,11 +4,11 @@
 #include "core_dynarray.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "scene_bark.h"
 #include "scene_faction.h"
 #include "scene_knowledge.h"
 #include "scene_product.h"
 #include "scene_set.h"
-#include "scene_taunt.h"
 #include "scene_transform.h"
 
 #include "cmd_internal.h"

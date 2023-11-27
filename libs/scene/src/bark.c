@@ -5,10 +5,10 @@
 #include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
+#include "scene_bark.h"
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
 #include "scene_sound.h"
-#include "scene_taunt.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 

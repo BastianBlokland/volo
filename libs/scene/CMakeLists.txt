@@ -7,6 +7,7 @@ message(STATUS "> library: scene")
 add_library(lib_scene STATIC
   src/attachment.c
   src/attack.c
+  src/bark.c
   src/bounds.c
   src/camera.c
   src/collision.c
@@ -32,7 +33,6 @@ add_library(lib_scene STATIC
   src/status.c
   src/tag.c
   src/target.c
-  src/taunt.c
   src/terrain.c
   src/time.c
   src/transform.c
