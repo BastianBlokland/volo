@@ -171,9 +171,9 @@ typedef struct {
 
 typedef struct {
   i32    priority;
-  String tauntDeathPrefab;   // Optional, empty if unused.
-  String tauntConfirmPrefab; // Optional, empty if unused.
-} AssetPrefabTraitTauntDef;
+  String barkDeathPrefab;   // Optional, empty if unused.
+  String barkConfirmPrefab; // Optional, empty if unused.
+} AssetPrefabTraitBarkDef;
 
 typedef struct {
   AssetPrefabShapeBoxDef aimTarget;
@@ -212,7 +212,7 @@ typedef struct {
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitScriptDef     data_script;
-    AssetPrefabTraitTauntDef      data_taunt;
+    AssetPrefabTraitBarkDef       data_bark;
     AssetPrefabTraitLocationDef   data_location;
     AssetPrefabTraitStatusDef     data_status;
     AssetPrefabTraitVisionDef     data_vision;
@@ -347,10 +347,10 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
-    data_reg_struct_t(reg, AssetPrefabTraitTauntDef);
-    data_reg_field_t(reg, AssetPrefabTraitTauntDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_struct_t(reg, AssetPrefabTraitBarkDef);
+    data_reg_field_t(reg, AssetPrefabTraitBarkDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitBarkDef, barkDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitLocationDef);
     data_reg_field_t(reg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
@@ -384,7 +384,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
-    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBarkDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
@@ -660,11 +660,11 @@ static void prefab_build(
         *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(ctx, valDef);
       }
       break;
-    case AssetPrefabTrait_Taunt:
-      outTrait->data_taunt = (AssetPrefabTraitTaunt){
-          .priority           = traitDef->data_taunt.priority,
-          .tauntDeathPrefab   = string_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
-          .tauntConfirmPrefab = string_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
+    case AssetPrefabTrait_Bark:
+      outTrait->data_bark = (AssetPrefabTraitBark){
+          .priority          = traitDef->data_bark.priority,
+          .barkDeathPrefab   = string_maybe_hash(traitDef->data_bark.barkDeathPrefab),
+          .barkConfirmPrefab = string_maybe_hash(traitDef->data_bark.barkConfirmPrefab),
       };
       break;
     case AssetPrefabTrait_Location:

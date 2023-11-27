@@ -54,7 +54,7 @@ typedef enum {
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Script,
-  AssetPrefabTrait_Taunt,
+  AssetPrefabTrait_Bark,
   AssetPrefabTrait_Location,
   AssetPrefabTrait_Status,
   AssetPrefabTrait_Vision,
@@ -137,9 +137,9 @@ typedef struct {
 
 typedef struct {
   i32        priority;
-  StringHash tauntDeathPrefab;   // Optional: 0 to disable.
-  StringHash tauntConfirmPrefab; // Optional: 0 to disable.
-} AssetPrefabTraitTaunt;
+  StringHash barkDeathPrefab;   // Optional: 0 to disable.
+  StringHash barkConfirmPrefab; // Optional: 0 to disable.
+} AssetPrefabTraitBark;
 
 typedef struct {
   AssetPrefabShapeBox aimTarget;
@@ -178,7 +178,7 @@ typedef struct {
     AssetPrefabTraitAttack     data_attack;
     AssetPrefabTraitCollision  data_collision;
     AssetPrefabTraitScript     data_script;
-    AssetPrefabTraitTaunt      data_taunt;
+    AssetPrefabTraitBark       data_bark;
     AssetPrefabTraitLocation   data_location;
     AssetPrefabTraitStatus     data_status;
     AssetPrefabTraitVision     data_vision;

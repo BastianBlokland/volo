@@ -413,7 +413,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
-              "const": "AssetPrefabTrait_Taunt"
+              "const": "AssetPrefabTrait_Bark"
             },
             "priority": {
               "title": "i32",
@@ -421,12 +421,12 @@
               "minimum": -2147483648,
               "maximum": 2147483647
             },
-            "tauntDeathPrefab": {
+            "barkDeathPrefab": {
               "title": "String",
               "type": "string",
               "minLength": 1
             },
-            "tauntConfirmPrefab": {
+            "barkConfirmPrefab": {
               "title": "String",
               "type": "string",
               "minLength": 1
@@ -595,8 +595,8 @@
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptId\": \"placeholder\"\n}"
         },
         {
-          "label": "New AssetPrefabTrait_Taunt",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Taunt\"\n}"
+          "label": "New AssetPrefabTrait_Bark",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Bark\"\n}"
         },
         {
           "label": "New AssetPrefabTrait_Location",

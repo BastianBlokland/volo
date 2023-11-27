@@ -4,11 +4,11 @@
 #include "core_dynarray.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "scene_bark.h"
 #include "scene_faction.h"
 #include "scene_knowledge.h"
 #include "scene_product.h"
 #include "scene_set.h"
-#include "scene_taunt.h"
 #include "scene_transform.h"
 
 #include "cmd_internal.h"
@@ -94,7 +94,7 @@ ecs_view_define(GlobalUpdateView) {
 ecs_view_define(UnitView) {
   ecs_access_read(SceneFactionComp);
   ecs_access_write(SceneKnowledgeComp);
-  ecs_access_maybe_write(SceneTauntComp);
+  ecs_access_maybe_write(SceneBarkComp);
 }
 
 ecs_view_define(ProdView) {
@@ -167,9 +167,9 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
     scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
 
-    SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
-    if (taunt) {
-      scene_taunt_request(taunt, SceneTauntType_Confirm);
+    SceneBarkComp* bark = ecs_view_write_t(unitItr, SceneBarkComp);
+    if (bark) {
+      scene_bark_request(bark, SceneBarkType_Confirm);
     }
     return;
   }
@@ -202,9 +202,9 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
     scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
 
-    SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
-    if (taunt) {
-      scene_taunt_request(taunt, SceneTauntType_Confirm);
+    SceneBarkComp* bark = ecs_view_write_t(unitItr, SceneBarkComp);
+    if (bark) {
+      scene_bark_request(bark, SceneBarkType_Confirm);
     }
   }
 }

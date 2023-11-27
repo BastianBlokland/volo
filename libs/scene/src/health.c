@@ -6,13 +6,13 @@
 #include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "scene_bark.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_tag.h"
-#include "scene_taunt.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -186,7 +186,7 @@ ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_maybe_write(SceneTauntComp);
+  ecs_access_maybe_write(SceneBarkComp);
   ecs_access_write(SceneDamageComp);
   ecs_access_write(SceneHealthComp);
 }
@@ -214,7 +214,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
     SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
     SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
-    SceneTauntComp*            taunt      = ecs_view_write_t(itr, SceneTauntComp);
+    SceneBarkComp*             bark       = ecs_view_write_t(itr, SceneBarkComp);
 
     const bool isDead            = (health->flags & SceneHealthFlags_Dead) != 0;
     f32        totalDamageAmount = 0;
@@ -268,8 +268,8 @@ ecs_system_define(SceneHealthUpdateSys) {
                 .position = trans->position,
                 .rotation = geo_quat_ident});
       }
-      if (taunt) {
-        scene_taunt_request(taunt, SceneTauntType_Death);
+      if (bark) {
+        scene_bark_request(bark, SceneBarkType_Death);
       }
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);

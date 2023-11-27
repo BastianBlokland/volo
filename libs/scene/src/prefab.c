@@ -8,6 +8,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attack.h"
+#include "scene_bark.h"
 #include "scene_collision.h"
 #include "scene_footstep.h"
 #include "scene_health.h"
@@ -27,7 +28,6 @@
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
-#include "scene_taunt.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -362,14 +362,14 @@ static void setup_script(
   }
 }
 
-static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
+static void setup_bark(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBark* t) {
   ecs_world_add_t(
       w,
       e,
-      SceneTauntComp,
-      .priority                             = t->priority,
-      .tauntPrefabs[SceneTauntType_Death]   = t->tauntDeathPrefab,
-      .tauntPrefabs[SceneTauntType_Confirm] = t->tauntConfirmPrefab);
+      SceneBarkComp,
+      .priority                           = t->priority,
+      .barkPrefabs[SceneBarkType_Death]   = t->barkDeathPrefab,
+      .barkPrefabs[SceneBarkType_Confirm] = t->barkConfirmPrefab);
 }
 
 static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLocation* t) {
@@ -466,8 +466,8 @@ static void setup_trait(
   case AssetPrefabTrait_Script:
     setup_script(w, e, m, &t->data_script);
     return;
-  case AssetPrefabTrait_Taunt:
-    setup_taunt(w, e, &t->data_taunt);
+  case AssetPrefabTrait_Bark:
+    setup_bark(w, e, &t->data_bark);
     return;
   case AssetPrefabTrait_Location:
     setup_location(w, e, &t->data_location);
