@@ -362,14 +362,14 @@ static void setup_script(
   }
 }
 
-static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
+static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBark* t) {
   ecs_world_add_t(
       w,
       e,
       SceneBarkComp,
       .priority                           = t->priority,
-      .barkPrefabs[SceneBarkType_Death]   = t->tauntDeathPrefab,
-      .barkPrefabs[SceneBarkType_Confirm] = t->tauntConfirmPrefab);
+      .barkPrefabs[SceneBarkType_Death]   = t->barkDeathPrefab,
+      .barkPrefabs[SceneBarkType_Confirm] = t->barkConfirmPrefab);
 }
 
 static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLocation* t) {
@@ -466,8 +466,8 @@ static void setup_trait(
   case AssetPrefabTrait_Script:
     setup_script(w, e, m, &t->data_script);
     return;
-  case AssetPrefabTrait_Taunt:
-    setup_taunt(w, e, &t->data_taunt);
+  case AssetPrefabTrait_Bark:
+    setup_taunt(w, e, &t->data_bark);
     return;
   case AssetPrefabTrait_Location:
     setup_location(w, e, &t->data_location);
