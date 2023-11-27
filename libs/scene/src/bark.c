@@ -12,9 +12,9 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-static const TimeDuration g_tauntEventDuration[SceneTauntType_Count] = {
-    [SceneTauntType_Death]   = time_milliseconds(500),
-    [SceneTauntType_Confirm] = time_milliseconds(750),
+static const TimeDuration g_tauntEventDuration[SceneBarkType_Count] = {
+    [SceneBarkType_Death]   = time_milliseconds(500),
+    [SceneBarkType_Confirm] = time_milliseconds(750),
 };
 
 #define scene_taunt_cooldown_min time_seconds(2)
@@ -61,7 +61,7 @@ static void registry_prune(SceneTauntRegistryComp* reg, const TimeDuration times
 static void registry_report(
     SceneTauntRegistryComp* reg,
     const EcsEntityId       instigator,
-    const SceneTauntType    type,
+    const SceneBarkType     type,
     const SceneTauntComp*   taunt,
     const SceneTimeComp*    time,
     const GeoVector         pos) {
@@ -168,7 +168,7 @@ ecs_system_define(SceneTauntUpdateSys) {
     const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
     const GeoVector           pos        = trans ? trans->position : geo_vector(0);
     bitset_for(bitset_from_var(taunt->requests), tauntTypeIndex) {
-      registry_report(reg, instigator, (SceneTauntType)tauntTypeIndex, taunt, time, pos);
+      registry_report(reg, instigator, (SceneBarkType)tauntTypeIndex, taunt, time, pos);
     }
     taunt->requests = 0;
   }
@@ -193,6 +193,6 @@ ecs_module_init(scene_taunt_module) {
       ecs_register_view(ListenerView));
 }
 
-void scene_taunt_request(SceneTauntComp* taunt, const SceneTauntType type) {
+void scene_taunt_request(SceneTauntComp* taunt, const SceneBarkType type) {
   taunt->requests |= 1 << type;
 }

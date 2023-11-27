@@ -2,16 +2,16 @@
 #include "ecs_module.h"
 
 typedef enum {
-  SceneTauntType_Death,
-  SceneTauntType_Confirm,
+  SceneBarkType_Death,
+  SceneBarkType_Confirm,
 
-  SceneTauntType_Count,
-} SceneTauntType;
+  SceneBarkType_Count,
+} SceneBarkType;
 
 ecs_comp_extern_public(SceneTauntComp) {
   u32        requests;
   i32        priority;
-  StringHash tauntPrefabs[SceneTauntType_Count];
+  StringHash tauntPrefabs[SceneBarkType_Count];
 };
 
-void scene_taunt_request(SceneTauntComp*, SceneTauntType);
+void scene_taunt_request(SceneTauntComp*, SceneBarkType);

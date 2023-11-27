@@ -269,7 +269,7 @@ ecs_system_define(SceneHealthUpdateSys) {
                 .rotation = geo_quat_ident});
       }
       if (taunt) {
-        scene_taunt_request(taunt, SceneTauntType_Death);
+        scene_taunt_request(taunt, SceneBarkType_Death);
       }
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
