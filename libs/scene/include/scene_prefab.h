@@ -7,7 +7,7 @@
 /**
  * Global prefab resources.
  */
-ecs_comp_extern(ScenePrefabResourceComp);
+ecs_comp_extern(ScenePrefabEnvComp);
 
 /**
  * Component on a prefab instance.
@@ -26,13 +26,13 @@ void scene_prefab_init(EcsWorld*, String prefabMapId);
 /**
  * Retrieve the asset entity of the global prefab map.
  */
-EcsEntityId scene_prefab_map(const ScenePrefabResourceComp*);
+EcsEntityId scene_prefab_map(const ScenePrefabEnvComp*);
 
 /**
  * Retrieve the prefab-map's version number.
  * Version is incremented when the map is updated and can be used to invalidate cached data.
  */
-u32 scene_prefab_map_version(const ScenePrefabResourceComp*);
+u32 scene_prefab_map_version(const ScenePrefabEnvComp*);
 
 /**
  * Spawn an instance of the given prefab.
@@ -55,4 +55,4 @@ typedef struct {
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);
-void        scene_prefab_spawn_onto(EcsWorld*, const ScenePrefabSpec*, EcsEntityId);
+void        scene_prefab_spawn_onto(ScenePrefabEnvComp*, const ScenePrefabSpec*, EcsEntityId);
