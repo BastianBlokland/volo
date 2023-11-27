@@ -474,13 +474,16 @@
     },
     {
       "name": "exists",
-      "doc": "Test if the given entity still exists.",
+      "doc": "Test if the given entity still exists.\n\n*Note*: Returns false if input value is null.",
       "sig": {
         "ret": "bool",
         "args": [
           {
             "name": "v",
-            "mask": "entity"
+            "mask": [
+              "null",
+              "entity"
+            ]
           }
         ]
       }
