@@ -193,6 +193,6 @@ ecs_module_init(scene_taunt_module) {
       ecs_register_view(ListenerView));
 }
 
-void scene_taunt_request(SceneTauntComp* taunt, const SceneBarkType type) {
+void scene_bark_request(SceneTauntComp* taunt, const SceneBarkType type) {
   taunt->requests |= 1 << type;
 }

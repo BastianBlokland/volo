@@ -14,4 +14,4 @@ ecs_comp_extern_public(SceneTauntComp) {
   StringHash tauntPrefabs[SceneBarkType_Count];
 };
 
-void scene_taunt_request(SceneTauntComp*, SceneBarkType);
+void scene_bark_request(SceneTauntComp*, SceneBarkType);

@@ -169,7 +169,7 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
 
     SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
-      scene_taunt_request(taunt, SceneBarkType_Confirm);
+      scene_bark_request(taunt, SceneBarkType_Confirm);
     }
     return;
   }
@@ -204,7 +204,7 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
 
     SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
-      scene_taunt_request(taunt, SceneBarkType_Confirm);
+      scene_bark_request(taunt, SceneBarkType_Confirm);
     }
   }
 }
