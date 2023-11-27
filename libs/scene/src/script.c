@@ -124,6 +124,7 @@ static void eval_enum_init_status() {
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
+  ScriptActionType_Spawn,
   ScriptActionType_Teleport,
   ScriptActionType_NavTravel,
   ScriptActionType_NavStop,
@@ -148,6 +149,15 @@ typedef struct {
   EcsEntityId target;
   StringHash  memKey;
 } ScriptActionAsk;
+
+typedef struct {
+  EcsEntityId  entity;
+  StringHash   prefabId;
+  f32          scale;
+  SceneFaction faction;
+  GeoVector    position;
+  GeoQuat      rotation;
+} ScriptActionSpawn;
 
 typedef struct {
   EcsEntityId entity;
@@ -213,6 +223,7 @@ typedef struct {
   union {
     ScriptActionTell             data_tell;
     ScriptActionAsk              data_ask;
+    ScriptActionSpawn            data_spawn;
     ScriptActionTeleport         data_teleport;
     ScriptActionNavTravel        data_navTravel;
     ScriptActionNavStop          data_navStop;
@@ -610,9 +621,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -729,15 +740,21 @@ static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
-  const ScenePrefabSpec spec = {
-      .flags    = ScenePrefabFlags_Volatile, // Do not persist script-spawned prefabs.
-      .prefabId = prefabId,
-      .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
-      .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-      .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-      .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
+  const EcsEntityId result                     = ecs_world_entity_create(ctx->world);
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_Spawn,
+      .data_spawn =
+          {
+              .entity   = result,
+              .prefabId = prefabId,
+              .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
+              .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
+              .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
+              .faction = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
+
+          },
   };
-  return script_entity(scene_prefab_spawn(ctx->world, &spec));
+  return script_entity(result);
 }
 
 static bool eval_destroy_allowed(EvalContext* ctx, const EcsEntityId e) {
@@ -1524,7 +1541,10 @@ ecs_system_define(SceneScriptUpdateSys) {
   }
 }
 
-ecs_view_define(ActionGlobalView) { ecs_access_write(SceneSetEnvComp); }
+ecs_view_define(ActionGlobalView) {
+  ecs_access_write(ScenePrefabEnvComp);
+  ecs_access_write(SceneSetEnvComp);
+}
 
 ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
 ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
@@ -1568,6 +1588,20 @@ static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
       scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
     }
   }
+}
+
+static void action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
+  ScenePrefabEnvComp* prefabEnv = ecs_view_write_t(ctx->globalItr, ScenePrefabEnvComp);
+
+  const ScenePrefabSpec spec = {
+      .flags    = ScenePrefabFlags_Volatile, // Do not persist script-spawned prefabs.
+      .prefabId = a->prefabId,
+      .faction  = a->faction,
+      .position = a->position,
+      .rotation = a->rotation,
+      .scale    = a->scale,
+  };
+  scene_prefab_spawn_onto(prefabEnv, &spec, a->entity);
 }
 
 static void action_teleport(ActionContext* ctx, const ScriptActionTeleport* a) {
@@ -1728,6 +1762,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Ask:
         action_ask(&ctx, &action->data_ask);
+        break;
+      case ScriptActionType_Spawn:
+        action_spawn(&ctx, &action->data_spawn);
         break;
       case ScriptActionType_Teleport:
         action_teleport(&ctx, &action->data_teleport);
