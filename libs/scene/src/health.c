@@ -186,7 +186,7 @@ ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_maybe_write(SceneTauntComp);
+  ecs_access_maybe_write(SceneBarkComp);
   ecs_access_write(SceneDamageComp);
   ecs_access_write(SceneHealthComp);
 }
@@ -214,7 +214,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
     SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
     SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
-    SceneTauntComp*            taunt      = ecs_view_write_t(itr, SceneTauntComp);
+    SceneBarkComp*             taunt      = ecs_view_write_t(itr, SceneBarkComp);
 
     const bool isDead            = (health->flags & SceneHealthFlags_Dead) != 0;
     f32        totalDamageAmount = 0;

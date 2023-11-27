@@ -8,10 +8,10 @@ typedef enum {
   SceneBarkType_Count,
 } SceneBarkType;
 
-ecs_comp_extern_public(SceneTauntComp) {
+ecs_comp_extern_public(SceneBarkComp) {
   u32        requests;
   i32        priority;
   StringHash tauntPrefabs[SceneBarkType_Count];
 };
 
-void scene_bark_request(SceneTauntComp*, SceneBarkType);
+void scene_bark_request(SceneBarkComp*, SceneBarkType);

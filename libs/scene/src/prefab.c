@@ -366,7 +366,7 @@ static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
   ecs_world_add_t(
       w,
       e,
-      SceneTauntComp,
+      SceneBarkComp,
       .priority                            = t->priority,
       .tauntPrefabs[SceneBarkType_Death]   = t->tauntDeathPrefab,
       .tauntPrefabs[SceneBarkType_Confirm] = t->tauntConfirmPrefab);

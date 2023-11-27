@@ -34,7 +34,7 @@ ecs_comp_define(SceneTauntRegistryComp) {
   TimeDuration nextTauntTime;
 };
 
-ecs_comp_define_public(SceneTauntComp);
+ecs_comp_define_public(SceneBarkComp);
 
 static void ecs_destruct_registry_comp(void* data) {
   SceneTauntRegistryComp* registry = data;
@@ -62,7 +62,7 @@ static void registry_report(
     SceneTauntRegistryComp* reg,
     const EcsEntityId       instigator,
     const SceneBarkType     type,
-    const SceneTauntComp*   taunt,
+    const SceneBarkComp*    taunt,
     const SceneTimeComp*    time,
     const GeoVector         pos) {
   diag_assert(g_tauntEventDuration[type]);
@@ -127,7 +127,7 @@ ecs_view_define(UpdateGlobalView) {
 }
 
 ecs_view_define(UpdateView) {
-  ecs_access_write(SceneTauntComp);
+  ecs_access_write(SceneBarkComp);
   ecs_access_maybe_read(SceneTransformComp);
 }
 
@@ -160,7 +160,7 @@ ecs_system_define(SceneTauntUpdateSys) {
   // Generate taunt events.
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    SceneTauntComp* taunt = ecs_view_write_t(itr, SceneTauntComp);
+    SceneBarkComp* taunt = ecs_view_write_t(itr, SceneBarkComp);
     if (!taunt->requests) {
       continue;
     }
@@ -184,7 +184,7 @@ ecs_system_define(SceneTauntUpdateSys) {
 
 ecs_module_init(scene_taunt_module) {
   ecs_register_comp(SceneTauntRegistryComp, .destructor = ecs_destruct_registry_comp);
-  ecs_register_comp(SceneTauntComp);
+  ecs_register_comp(SceneBarkComp);
 
   ecs_register_system(
       SceneTauntUpdateSys,
@@ -193,6 +193,6 @@ ecs_module_init(scene_taunt_module) {
       ecs_register_view(ListenerView));
 }
 
-void scene_bark_request(SceneTauntComp* taunt, const SceneBarkType type) {
+void scene_bark_request(SceneBarkComp* taunt, const SceneBarkType type) {
   taunt->requests |= 1 << type;
 }
