@@ -362,7 +362,7 @@ static void setup_script(
   }
 }
 
-static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBark* t) {
+static void setup_bark(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBark* t) {
   ecs_world_add_t(
       w,
       e,
@@ -467,7 +467,7 @@ static void setup_trait(
     setup_script(w, e, m, &t->data_script);
     return;
   case AssetPrefabTrait_Bark:
-    setup_taunt(w, e, &t->data_bark);
+    setup_bark(w, e, &t->data_bark);
     return;
   case AssetPrefabTrait_Location:
     setup_location(w, e, &t->data_location);

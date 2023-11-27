@@ -167,9 +167,9 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
     scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
 
-    SceneBarkComp* taunt = ecs_view_write_t(unitItr, SceneBarkComp);
-    if (taunt) {
-      scene_bark_request(taunt, SceneBarkType_Confirm);
+    SceneBarkComp* bark = ecs_view_write_t(unitItr, SceneBarkComp);
+    if (bark) {
+      scene_bark_request(bark, SceneBarkType_Confirm);
     }
     return;
   }
@@ -202,9 +202,9 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
     scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
 
-    SceneBarkComp* taunt = ecs_view_write_t(unitItr, SceneBarkComp);
-    if (taunt) {
-      scene_bark_request(taunt, SceneBarkType_Confirm);
+    SceneBarkComp* bark = ecs_view_write_t(unitItr, SceneBarkComp);
+    if (bark) {
+      scene_bark_request(bark, SceneBarkType_Confirm);
     }
   }
 }

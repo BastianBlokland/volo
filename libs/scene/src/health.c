@@ -214,7 +214,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
     SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
     SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
-    SceneBarkComp*             taunt      = ecs_view_write_t(itr, SceneBarkComp);
+    SceneBarkComp*             bark       = ecs_view_write_t(itr, SceneBarkComp);
 
     const bool isDead            = (health->flags & SceneHealthFlags_Dead) != 0;
     f32        totalDamageAmount = 0;
@@ -268,8 +268,8 @@ ecs_system_define(SceneHealthUpdateSys) {
                 .position = trans->position,
                 .rotation = geo_quat_ident});
       }
-      if (taunt) {
-        scene_bark_request(taunt, SceneBarkType_Death);
+      if (bark) {
+        scene_bark_request(bark, SceneBarkType_Death);
       }
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
