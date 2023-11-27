@@ -19,7 +19,7 @@ if ($user_move_target) {
   return
 }
 
-if ($user_attack_target && !exists($user_attack_target)) {
+if (!exists($user_attack_target)) {
   $user_attack_target = null
 }
 

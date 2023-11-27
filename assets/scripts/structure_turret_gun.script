@@ -1,7 +1,7 @@
 
 var me = self()
 
-if ($user_attack_target && !exists($user_attack_target)) {
+if (!exists($user_attack_target)) {
   $user_attack_target = null
 }
 

@@ -11,7 +11,7 @@ $unit ??= {
   spawn("InfantryRifle", pos, rot, scale, "FactionA")
 }
 
-if ($target && exists($target)) {
+if (exists($target)) {
   attack($unit, $target)
 } else {
   var radius = 20
