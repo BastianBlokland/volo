@@ -21,8 +21,14 @@ if ($user_move_target) {
   return
 }
 
-if (!exists($user_attack_target)) {
-  $user_attack_target = null
+if (exists($user_attack_target)) {
+  if ($user_attack_target != $user_last_attack_target) {
+    bark(me, "Confirm")
+    $user_last_attack_target = $user_attack_target
+  }
+} else {
+  $user_attack_target      = null
+  $user_last_attack_target = null
 }
 
 var target = $user_attack_target ?? target_primary(me)
