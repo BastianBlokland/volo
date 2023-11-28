@@ -6,6 +6,7 @@ if ($user_stop) {
   $user_stop          = null
   $user_move_target   = null
   $user_attack_target = null
+  bark(me, "Confirm")
   return
 }
 
@@ -15,6 +16,7 @@ if ($user_move_target) {
   } else {
     nav_travel(me, $user_move_target)
     attack(me, null)
+    bark(me, "Confirm")
   }
   return
 }
