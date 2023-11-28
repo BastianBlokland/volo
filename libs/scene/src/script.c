@@ -11,6 +11,7 @@
 #include "log_logger.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
+#include "scene_bark.h"
 #include "scene_collision.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
@@ -54,7 +55,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumVfxParam,
                   g_scriptEnumSoundParam,
                   g_scriptEnumLayer,
-                  g_scriptEnumStatus;
+                  g_scriptEnumStatus,
+                  g_scriptEnumBark;
 
 // clang-format on
 
@@ -121,6 +123,11 @@ static void eval_enum_init_status() {
   }
 }
 
+static void eval_enum_init_bark() {
+  script_enum_push(&g_scriptEnumBark, string_lit("Death"), SceneBarkType_Death);
+  script_enum_push(&g_scriptEnumBark, string_lit("Confirm"), SceneBarkType_Confirm);
+}
+
 typedef enum {
   ScriptActionType_Tell,
   ScriptActionType_Ask,
@@ -132,6 +139,7 @@ typedef enum {
   ScriptActionType_Detach,
   ScriptActionType_Damage,
   ScriptActionType_Attack,
+  ScriptActionType_Bark,
   ScriptActionType_UpdateSet,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
@@ -196,6 +204,11 @@ typedef struct {
 } ScriptActionAttack;
 
 typedef struct {
+  EcsEntityId   entity;
+  SceneBarkType type;
+} ScriptActionBark;
+
+typedef struct {
   EcsEntityId entity;
   StringHash  set;
   bool        add;
@@ -231,6 +244,7 @@ typedef struct {
     ScriptActionDetach           data_detach;
     ScriptActionDamage           data_damage;
     ScriptActionAttack           data_attack;
+    ScriptActionBark             data_bark;
     ScriptActionUpdateSet        data_updateSet;
     ScriptActionUpdateTags       data_updateTags;
     ScriptActionUpdateVfxParam   data_updateVfxParam;
@@ -918,6 +932,18 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_bark(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId   entity = script_arg_entity(args, 0, err);
+  const SceneBarkType type   = (SceneBarkType)script_arg_enum(args, 1, &g_scriptEnumBark, err);
+  if (LIKELY(!script_error_valid(err))) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type      = ScriptActionType_Bark,
+        .data_bark = {.entity = entity, .type = type},
+    };
+  }
+  return script_null();
+}
+
 static bool eval_status_allowed(EvalContext* ctx, const EcsEntityId e) {
   if (UNLIKELY(ecs_world_exists(ctx->world, e) && ecs_world_has_t(ctx->world, e, AssetComp))) {
     return false; // Assets are not allowed to have status effects
@@ -1279,6 +1305,7 @@ static void eval_binder_init() {
     eval_enum_init_sound_param();
     eval_enum_init_layer();
     eval_enum_init_status();
+    eval_enum_init_bark();
 
     // clang-format off
     eval_bind(b, string_lit("self"),               eval_self);
@@ -1317,6 +1344,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),             eval_detach);
     eval_bind(b, string_lit("damage"),             eval_damage);
     eval_bind(b, string_lit("attack"),             eval_attack);
+    eval_bind(b, string_lit("bark"),               eval_bark);
     eval_bind(b, string_lit("status"),             eval_status);
     eval_bind(b, string_lit("emit"),               eval_emit);
     eval_bind(b, string_lit("vfx_system"),         eval_vfx_system);
@@ -1555,6 +1583,7 @@ ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
 ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
+ecs_view_define(ActionBarkView) { ecs_access_write(SceneBarkComp); }
 ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
@@ -1570,6 +1599,7 @@ typedef struct {
   EcsIterator* attachItr;
   EcsIterator* damageItr;
   EcsIterator* attackItr;
+  EcsIterator* barkItr;
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
@@ -1680,6 +1710,13 @@ static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   }
 }
 
+static void action_bark(ActionContext* ctx, const ScriptActionBark* a) {
+  if (ecs_view_maybe_jump(ctx->barkItr, a->entity)) {
+    SceneBarkComp* barkComp = ecs_view_write_t(ctx->barkItr, SceneBarkComp);
+    scene_bark_request(barkComp, a->type);
+  }
+}
+
 static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a) {
   SceneSetEnvComp* setEnv = ecs_view_write_t(ctx->globalItr, SceneSetEnvComp);
   if (a->add) {
@@ -1748,6 +1785,7 @@ ecs_system_define(ScriptActionApplySys) {
       .attachItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
       .damageItr    = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
       .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
+      .barkItr      = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
       .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
       .vfxSysItr    = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
       .vfxDecalItr  = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
@@ -1789,6 +1827,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
+        break;
+      case ScriptActionType_Bark:
+        action_bark(&ctx, &action->data_bark);
         break;
       case ScriptActionType_UpdateSet:
         action_update_set(&ctx, &action->data_updateSet);
@@ -1857,6 +1898,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionAttachmentView),
       ecs_register_view(ActionDamageView),
       ecs_register_view(ActionAttackView),
+      ecs_register_view(ActionBarkView),
       ecs_register_view(ActionTagView),
       ecs_register_view(ActionVfxSysView),
       ecs_register_view(ActionVfxDecalView),

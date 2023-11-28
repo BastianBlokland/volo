@@ -919,6 +919,23 @@
       }
     },
     {
+      "name": "bark",
+      "doc": "Request a bark to be played.\n\nSupported types:\n\n-`Death`\n\n-`Confirm`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "type",
+            "mask": "str"
+          }
+        ]
+      }
+    },
+    {
       "name": "detach",
       "doc": "Detach the given entity from all other entities.",
       "sig": {
