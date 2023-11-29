@@ -41,9 +41,7 @@
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
 #define scene_script_line_of_sight_max 50.0f
-#define scene_script_query_max 512
-
-ASSERT(scene_script_query_max >= scene_query_max_hits, "Maximum query count too small")
+#define scene_script_query_values_max 512
 
 // clang-format off
 
@@ -311,7 +309,7 @@ typedef struct {
   DynArray*              actions; // ScriptAction[].
   DynArray*              debug;   // SceneScriptDebug[].
 
-  EcsEntityId* queryBuffer; // EcsEntityId[scene_script_query_max]
+  EcsEntityId* queryBuffer; // EcsEntityId[scene_script_query_values_max]
   u32          queryCount, queryItr;
 
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
@@ -497,6 +495,8 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
     return script_null();
   }
 
+  ASSERT(scene_script_query_values_max >= scene_query_max_hits, "Maximum query count too small")
+
   const SceneQueryFilter filter = {.layerMask = layerMask};
   const GeoSphere        sphere = {.point = pos, .radius = radius};
 
@@ -638,9 +638,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1510,7 +1510,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
-  EcsEntityId queryBuffer[scene_script_query_max];
+  EcsEntityId queryBuffer[scene_script_query_values_max];
   EvalContext ctx = {
       .world          = world,
       .globalItr      = globalItr,
