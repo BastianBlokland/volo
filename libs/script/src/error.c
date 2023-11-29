@@ -28,6 +28,8 @@ ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
       [ScriptError_ArgumentCountExceedsMaximum] = ScriptPanic_ArgumentCountExceedsMaximum,
       [ScriptError_EnumInvalidEntry]            = ScriptPanic_EnumInvalidEntry,
       [ScriptError_UnimplementedBinding]        = ScriptPanic_UnimplementedBinding,
+      [ScriptError_QueryLimitExceeded]          = ScriptPanic_QueryLimitExceeded,
+      [ScriptError_QueryInvalid]                = ScriptPanic_QueryInvalid,
   };
   diag_assert(kind < ScriptErrorKind_Count);
   return g_panics[kind];

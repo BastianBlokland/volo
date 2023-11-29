@@ -14,6 +14,8 @@ static const String g_panicKindStrs[] = {
     string_static("Argument count exceeds maximum"),
     string_static("Invalid enum entry"),
     string_static("Unimplemented binding"),
+    string_static("Query limit exceeded"),
+    string_static("Query invalid"),
 };
 ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 

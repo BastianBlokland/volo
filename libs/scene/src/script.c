@@ -41,9 +41,8 @@
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
 #define scene_script_line_of_sight_max 50.0f
-#define scene_script_query_max 512
-
-ASSERT(scene_script_query_max >= scene_query_max_hits, "Maximum query count too small")
+#define scene_script_query_values_max 512
+#define scene_script_query_max 10
 
 // clang-format off
 
@@ -284,6 +283,11 @@ ecs_view_define(EvalLineOfSightView) {
 }
 
 typedef struct {
+  EcsEntityId values[scene_script_query_values_max];
+  u32         count, itr;
+} EvalQuery;
+
+typedef struct {
   EcsWorld*    world;
   EcsIterator* globalItr;
   EcsIterator* transformItr;
@@ -311,11 +315,23 @@ typedef struct {
   DynArray*              actions; // ScriptAction[].
   DynArray*              debug;   // SceneScriptDebug[].
 
-  EcsEntityId* queryBuffer; // EcsEntityId[scene_script_query_max]
-  u32          queryCount, queryItr;
+  EvalQuery* queries; // EvalQuery[scene_script_query_max]
+  u32        usedQueries;
 
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
+
+static EvalQuery* context_query_alloc(EvalContext* ctx) {
+  return ctx->usedQueries < scene_script_query_max ? &ctx->queries[ctx->usedQueries++] : null;
+}
+
+static u32 context_query_id(EvalContext* ctx, const EvalQuery* query) {
+  return (u32)(query - ctx->queries);
+}
+
+static EvalQuery* context_query_get(EvalContext* ctx, const u32 id) {
+  return id < ctx->usedQueries ? &ctx->queries[id] : null;
+}
 
 static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(a, i, err);
@@ -459,21 +475,26 @@ static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptE
 
   const StringHash set = script_arg_str(args, 0, err);
   if (UNLIKELY(!set)) {
-    ctx->queryCount = ctx->queryItr = 0;
+    return script_null();
+  }
+
+  EvalQuery* query = context_query_alloc(ctx);
+  if (UNLIKELY(!query)) {
+    *err = script_error(ScriptError_QueryLimitExceeded);
     return script_null();
   }
 
   const EcsEntityId* begin = scene_set_begin(setEnv, set);
   const EcsEntityId* end   = scene_set_end(setEnv, set);
 
-  ctx->queryCount = math_min((u32)(end - begin), scene_query_max_hits);
-  ctx->queryItr   = 0;
+  query->count = math_min((u32)(end - begin), scene_query_max_hits);
+  query->itr   = 0;
 
   mem_cpy(
-      mem_create(ctx->queryBuffer, sizeof(EcsEntityId) * scene_query_max_hits),
-      mem_create(begin, sizeof(EcsEntityId) * ctx->queryCount));
+      mem_create(query->values, sizeof(EcsEntityId) * scene_query_max_hits),
+      mem_create(begin, sizeof(EcsEntityId) * query->count));
 
-  return script_null();
+  return script_num(context_query_id(ctx, query));
 }
 
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -493,37 +514,58 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   }
 
   if (UNLIKELY(script_error_valid(err))) {
-    ctx->queryCount = ctx->queryItr = 0;
     return script_null();
   }
+
+  EvalQuery* query = context_query_alloc(ctx);
+  if (UNLIKELY(!query)) {
+    *err = script_error(ScriptError_QueryLimitExceeded);
+    return script_null();
+  }
+
+  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
 
   const SceneQueryFilter filter = {.layerMask = layerMask};
   const GeoSphere        sphere = {.point = pos, .radius = radius};
 
-  ctx->queryCount = scene_query_sphere_all(colEnv, &sphere, &filter, ctx->queryBuffer);
-  ctx->queryItr   = 0;
+  query->count = scene_query_sphere_all(colEnv, &sphere, &filter, query->values);
+  query->itr   = 0;
 
-  return script_null();
+  return script_num(context_query_id(ctx, query));
 }
 
-static ScriptVal eval_query_next(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
-  if (ctx->queryItr == ctx->queryCount) {
+static ScriptVal eval_query_pop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const u32 queryId = (u32)script_arg_num(args, 0, err);
+  if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
-  return script_entity(ctx->queryBuffer[ctx->queryItr++]);
+  EvalQuery* query = context_query_get(ctx, queryId);
+  if (UNLIKELY(!query)) {
+    *err = script_error_arg(ScriptError_QueryInvalid, 0);
+    return script_null();
+  }
+  if (query->itr == query->count) {
+    return script_null();
+  }
+  return script_entity(query->values[query->itr++]);
 }
 
 static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
-  if (ctx->queryItr == ctx->queryCount) {
+  const u32 queryId = (u32)script_arg_num(args, 0, err);
+  if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
-  const u32 index = (u32)rng_sample_range(g_rng, ctx->queryItr, ctx->queryCount);
-  diag_assert(index < ctx->queryCount);
-  return script_entity(ctx->queryBuffer[index]);
+  EvalQuery* query = context_query_get(ctx, queryId);
+  if (UNLIKELY(!query)) {
+    *err = script_error_arg(ScriptError_QueryInvalid, 0);
+    return script_null();
+  }
+  if (query->itr == query->count) {
+    return script_null();
+  }
+  const u32 index = (u32)rng_sample_range(g_rng, query->itr, query->count);
+  diag_assert(index < query->count);
+  return script_entity(query->values[index]);
 }
 
 static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -638,9 +680,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1322,7 +1364,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("set"),                eval_set);
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
-    eval_bind(b, string_lit("query_next"),         eval_query_next);
+    eval_bind(b, string_lit("query_pop"),          eval_query_pop);
     eval_bind(b, string_lit("query_random"),       eval_query_random);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
     eval_bind(b, string_lit("nav_target"),         eval_nav_target);
@@ -1510,7 +1552,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
-  EcsEntityId queryBuffer[scene_script_query_max];
+  EvalQuery   queries[scene_script_query_max];
   EvalContext ctx = {
       .world          = world,
       .globalItr      = globalItr,
@@ -1530,7 +1572,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
       .targetItr      = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
       .lineOfSightItr = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
-      .queryBuffer    = queryBuffer,
+      .queries        = queries,
   };
 
   u32 startedAssetLoads = 0;
@@ -1541,6 +1583,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.actions         = &ctx.scriptInstance->actions;
     ctx.debug           = &ctx.scriptInstance->debug;
     ctx.transientDup    = &scene_script_transient_dup;
+    ctx.usedQueries     = 0;
 
     // Clear the previous frame transient data.
     if (ctx.scriptInstance->allocTransient) {
