@@ -540,7 +540,7 @@ static ScriptVal eval_query_pop(EvalContext* ctx, const ScriptArgs args, ScriptE
     return script_null();
   }
   EvalQuery* query = context_query_get(ctx, queryId);
-  if (UNLIKELY(query)) {
+  if (UNLIKELY(!query)) {
     *err = script_error_arg(ScriptError_QueryInvalid, 0);
     return script_null();
   }
@@ -556,7 +556,7 @@ static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, Scri
     return script_null();
   }
   EvalQuery* query = context_query_get(ctx, queryId);
-  if (UNLIKELY(query)) {
+  if (UNLIKELY(!query)) {
     *err = script_error_arg(ScriptError_QueryInvalid, 0);
     return script_null();
   }
