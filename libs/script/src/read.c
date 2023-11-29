@@ -546,7 +546,8 @@ static ScriptRange read_range_dummy(ScriptReadContext* ctx) {
 }
 
 static ScriptRange read_range_to_current(ScriptReadContext* ctx, const ScriptPos start) {
-  return script_range(start, read_pos_current(ctx));
+  const ScriptPos cur = read_pos_current(ctx);
+  return script_range(start, math_max(cur, start));
 }
 
 static ScriptRange read_range_to_next(ScriptReadContext* ctx, const ScriptPos start) {
