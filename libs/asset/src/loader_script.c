@@ -162,8 +162,8 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("query_next");
-      const String       doc    = string_lit("Returns the next value in the given query, returns null when reaching the end of the query.");
+      const String       name   = string_lit("query_pop");
+      const String       doc    = string_lit("Pops the first query value, returns null when reaching the end of the query.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("query"), script_mask_num},

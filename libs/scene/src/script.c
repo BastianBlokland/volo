@@ -534,7 +534,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   return script_num(context_query_id(ctx, query));
 }
 
-static ScriptVal eval_query_next(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_query_pop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const u32 queryId = (u32)script_arg_num(args, 0, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -1364,7 +1364,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("set"),                eval_set);
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
-    eval_bind(b, string_lit("query_next"),         eval_query_next);
+    eval_bind(b, string_lit("query_pop"),          eval_query_pop);
     eval_bind(b, string_lit("query_random"),       eval_query_random);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
     eval_bind(b, string_lit("nav_target"),         eval_nav_target);

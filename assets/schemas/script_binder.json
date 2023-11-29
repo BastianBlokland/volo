@@ -313,6 +313,22 @@
       }
     },
     {
+      "name": "query_pop",
+      "doc": "Pops the first query value, returns null when reaching the end of the query.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "query",
+            "mask": "num"
+          }
+        ]
+      }
+    },
+    {
       "name": "target_primary",
       "doc": "Lookup the primary target of the given entity.",
       "sig": {
@@ -465,22 +481,6 @@
               "null",
               "num"
             ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "query_next",
-      "doc": "Returns the next value in the given query, returns null when reaching the end of the query.",
-      "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
-        "args": [
-          {
-            "name": "query",
-            "mask": "num"
           }
         ]
       }
