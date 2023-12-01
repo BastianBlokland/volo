@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_intrinsic.h"
@@ -11,27 +12,14 @@
 #include "core_simd.h"
 #endif
 
-GeoColor geo_color_get(const u64 idx) {
-  // TODO: Consider replacing this with generating a random hue and then converting from hsv to rgb.
-  // NOTE: Important to keep this function deterministic.
-  static const GeoColor g_colors[] = {
-      {1.0f, 0.0f, 0.0f, 1.0f},
-      {1.0f, 1.0f, 0.0f, 1.0f},
-      {0.5f, 0.5f, 0.0f, 1.0f},
-      {0.75f, 0.75f, 0.75f, 1.0f},
-      {0.0f, 1.0f, 1.0f, 1.0f},
-      {0.0f, 1.0f, 0.0f, 1.0f},
-      {0.5f, 0.0f, 0.0f, 1.0f},
-      {0.0f, 0.0f, 1.0f, 1.0f},
-      {0.0f, 0.5f, 0.5f, 1.0f},
-      {0.0f, 0.0f, 0.5f, 1.0f},
-      {1.0f, 0.0f, 1.0f, 1.0f},
-      {0.0f, 0.5f, 0.0f, 1.0f},
-      {0.5f, 0.5f, 0.5f, 1.0f},
-      {0.5f, 0.0f, 0.5f, 1.0f},
-      {1.0f, 0.5f, 0.0f, 1.0f},
-  };
-  return g_colors[idx % array_elems(g_colors)];
+GeoColor geo_color_for(const u64 idx) {
+  const u32 hash = bits_hash_32(mem_var(idx));
+  return geo_color_for_hash(hash);
+}
+
+GeoColor geo_color_for_hash(const u32 hash) {
+  static const f32 g_u32MaxInv = 1.0f / u32_max;
+  return geo_color_from_hsv((f32)hash * g_u32MaxInv, 1.0f, 1.0f);
 }
 
 bool geo_color_equal(const GeoColor a, const GeoColor b, const f32 threshold) {

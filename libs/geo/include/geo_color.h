@@ -45,10 +45,11 @@ ASSERT(alignof(GeoColor) == 16, "GeoColor has to be aligned to 128 bits");
 // clang-format on
 
 /**
- * Get a color from an index.
+ * Get a (deterministic) color for an index or hash.
  * Useful for generating debug colors.
  */
-GeoColor geo_color_get(u64 idx);
+GeoColor geo_color_for(u64 idx);
+GeoColor geo_color_for_hash(u32 hash);
 
 /**
  * Check if the magnitude of the difference color is less then the given threshold.
