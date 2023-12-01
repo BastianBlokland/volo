@@ -208,6 +208,49 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
 #endif
 }
 
+GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value) {
+  diag_assert(hue >= 0.0f && hue <= 1.0f);
+  diag_assert(saturation >= 0.0f && saturation <= 1.0f);
+  diag_assert(value >= 0.0f && value <= 1.0f);
+
+  /**
+   * hsv to rgb, implementation based on:
+   * http://ilab.usc.edu/wiki/index.php/HSV_And_H2SV_Color_Space#HSV_Transformation_C_.2F_C.2B.2B_Code_2
+   */
+  if (value == 0.0f) {
+    return geo_color(0, 0, 0, 1);
+  }
+  if (saturation == 0.0f) {
+    return geo_color(value, value, value, 1);
+  }
+  const static f32 g_hueSegInv = 1.0f / (60.0f / 360.0f);
+  const f32        hueSeg      = hue * g_hueSegInv;
+  const i32        hueIndex    = (i32)intrinsic_round_down_f32(hueSeg);
+  const f32        hueFrac     = hueSeg - (f32)hueIndex;
+  const f32        pV          = value * (1.0f - saturation);
+  const f32        qV          = value * (1.0f - saturation * hueFrac);
+  const f32        tV          = value * (1.0f - saturation * (1.0f - hueFrac));
+  switch (hueIndex) {
+  case -1: // NOTE: We can get here due to imprecision.
+    return geo_color(value, pV, qV, 1.0f);
+  case 0: // Dominant color is red.
+    return geo_color(value, tV, pV, 1.0f);
+  case 1: // Dominant color is green.
+    return geo_color(qV, value, pV, 1.0f);
+  case 2: // Dominant color is green.
+    return geo_color(pV, value, tV, 1.0f);
+  case 3: // Dominant color is blue.
+    return geo_color(pV, qV, value, 1.0f);
+  case 4: // Dominant color is blue.
+    return geo_color(tV, pV, value, 1.0f);
+  case 5: // Dominant color is red.
+    return geo_color(value, pV, qV, 1.0f);
+  case 6: // NOTE: We can get here due to imprecision.
+    return geo_color(value, tV, pV, 1.0f);
+  }
+  diag_crash_msg("hsv to rgb failed: Invalid hue");
+}
+
 void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
   out[0] = float_f32_to_f16(color.r);
   out[1] = float_f32_to_f16(color.g);

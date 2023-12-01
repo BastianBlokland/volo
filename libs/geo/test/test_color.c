@@ -69,4 +69,21 @@ spec(color) {
         fmt_write_scratch("{}", geo_color_fmt(geo_color(42, 1337, 1, 0.42f))),
         string_lit("42, 1337, 1, 0.42"));
   }
+
+  it("can create a color from hsv") {
+    check_eq_color(geo_color_from_hsv(0.0f, 0.0f, 0.0f), geo_color_black);
+    check_eq_color(geo_color_from_hsv(0.0f, 0.0f, 1.0f), geo_color_white);
+    check_eq_color(geo_color_from_hsv(0.0f, 0.0f, 0.5f), geo_color(0.5f, 0.5f, 0.5f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.0f, 1.0f, 1.0f), geo_color(1.0f, 0.0f, 0.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.0f, 1.0f, 1.0f), geo_color(1.0f, 0.0f, 0.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(1.0f, 1.0f, 1.0f), geo_color(1.0f, 0.0f, 0.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.5f, 1.0f, 1.0f), geo_color(0.0f, 1.0f, 1.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.25f, 1.0f, 1.0f), geo_color(0.5f, 1.0f, 0.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.75f, 1.0f, 1.0f), geo_color(0.5f, 0.0f, 1.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.0f, 0.5f, 1.0f), geo_color(1.0f, 0.5f, 0.5f, 1.0f));
+    check_eq_color(geo_color_from_hsv(1.0f, 0.5f, 1.0f), geo_color(1.0f, 0.5f, 0.5f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.5f, 0.5f, 1.0f), geo_color(0.5f, 1.0f, 1.0f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.25f, 0.5f, 1.0f), geo_color(0.75f, 1.0f, 0.5f, 1.0f));
+    check_eq_color(geo_color_from_hsv(0.75f, 0.5f, 1.0f), geo_color(0.75f, 0.5f, 1.0f, 1.0f));
+  }
 }
