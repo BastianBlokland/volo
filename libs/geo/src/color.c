@@ -214,7 +214,7 @@ GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value
   if (saturation == 0.0f) {
     return geo_color(value, value, value, alpha);
   }
-  const static f32 g_hueSegInv = 1.0f / (60.0f / 360.0f);
+  static const f32 g_hueSegInv = 1.0f / (60.0f / 360.0f);
   const f32        hueSeg      = hue * g_hueSegInv;
   const i32        hueIndex    = (i32)intrinsic_round_down_f32(hueSeg);
   const f32        hueFrac     = hueSeg - (f32)hueIndex;
