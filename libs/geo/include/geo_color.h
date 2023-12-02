@@ -123,7 +123,7 @@ GeoColor geo_color_linear_to_srgb(GeoColor);
  * Construct a color from HueSaturationValue.
  * NOTE: All inputs are normalized (in the 0-1 range).
  */
-GeoColor geo_color_from_hsv(f32 hue, f32 saturation, f32 value);
+GeoColor geo_color_from_hsv(f32 hue, f32 saturation, f32 value, f32 alpha);
 
 /**
  * Pack a color to 16 bit floats.
