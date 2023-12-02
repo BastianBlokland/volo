@@ -869,35 +869,14 @@ ScriptVal script_val_color_compose(
 
 ScriptVal script_val_color_compose_hsv(
     const ScriptVal h, const ScriptVal s, const ScriptVal v, const ScriptVal a) {
-  // Hue.
-  if (val_type(h) != ScriptType_Num) {
-    return script_null();
+  const ScriptType nT = ScriptType_Num;
+  if (val_type(h) != nT || val_type(s) != nT || val_type(v) != nT || val_type(a) != nT) {
+    return val_null();
   }
-  const f32 hue = (f32)val_as_num(h);
-  if (hue < 0.0f || hue > 1.0f) {
-    return script_null();
-  }
-
-  // Saturation.
-  if (val_type(s) != ScriptType_Num) {
-    return script_null();
-  }
-  const f32 saturation = (f32)val_as_num(s);
-  if (saturation < 0.0f || saturation > 1.0f) {
-    return script_null();
-  }
-
-  // Value.
-  if (val_type(v) != ScriptType_Num) {
-    return script_null();
-  }
-  const f32 value = (f32)val_as_num(v);
-
-  // Alpha.
-  if (val_type(a) != ScriptType_Num) {
-    return script_null();
-  }
-  const f32 alpha = (f32)val_as_num(a);
+  const f32 hue        = math_mod_f32(math_abs((f32)val_as_num(h)), 1.0f);
+  const f32 saturation = math_clamp_f32((f32)val_as_num(s), 0.0f, 1.0f);
+  const f32 value      = (f32)val_as_num(v);
+  const f32 alpha      = (f32)val_as_num(a);
 
   return val_color(geo_color_from_hsv(hue, saturation, value, alpha));
 }
