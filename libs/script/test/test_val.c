@@ -928,4 +928,54 @@ spec(val) {
       check_eq_val(actual, testData[i].expected);
     }
   }
+
+  it("can compose a color from hsv") {
+    const struct {
+      ScriptVal a, b, c, d;
+      ScriptVal expected;
+    } testData[] = {
+        {
+            script_num(0.25f),
+            script_num(0.5f),
+            script_num(1),
+            script_num(1),
+            .expected = script_color(geo_color(0.75f, 1.0f, 0.5f, 1.0f)),
+        },
+        {
+            script_null(),
+            script_num(1),
+            script_num(1),
+            script_num(1),
+            .expected = script_null(),
+        },
+        {
+            script_num(1),
+            script_null(),
+            script_num(1),
+            script_num(1),
+            .expected = script_null(),
+        },
+        {
+            script_num(1),
+            script_num(1),
+            script_null(),
+            script_num(1),
+            .expected = script_null(),
+        },
+        {
+            script_num(1),
+            script_num(1),
+            script_num(1),
+            script_null(),
+            .expected = script_null(),
+        },
+        {script_null(), script_null(), script_null(), script_null(), .expected = script_null()},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual =
+          script_val_color_compose_hsv(testData[i].a, testData[i].b, testData[i].c, testData[i].d);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
 }

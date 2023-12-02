@@ -203,7 +203,6 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
 GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value, const f32 alpha) {
   diag_assert(hue >= 0.0f && hue <= 1.0f);
   diag_assert(saturation >= 0.0f && saturation <= 1.0f);
-  diag_assert(value >= 0.0f && value <= 1.0f);
 
   /**
    * hsv to rgb, implementation based on:

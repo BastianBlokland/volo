@@ -153,6 +153,7 @@ ScriptVal script_val_vec_z(ScriptVal);
 ScriptVal script_val_quat_from_euler(ScriptVal x, ScriptVal y, ScriptVal z);
 ScriptVal script_val_quat_from_angle_axis(ScriptVal angle, ScriptVal axis);
 ScriptVal script_val_color_compose(ScriptVal r, ScriptVal g, ScriptVal b, ScriptVal a);
+ScriptVal script_val_color_compose_hsv(ScriptVal h, ScriptVal s, ScriptVal v, ScriptVal a);
 
 /**
  * Create a formatting argument for a script value.
