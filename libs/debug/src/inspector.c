@@ -1199,7 +1199,7 @@ static void inspector_vis_draw_location(
     const GeoBoxRotated volume = scene_location(location, transform, scale, type);
     const GeoVector     center = geo_box_center(&volume.box);
     const GeoVector     size   = geo_box_size(&volume.box);
-    const GeoColor      color  = geo_color_get(type);
+    const GeoColor      color  = geo_color_for(type);
     debug_box(shape, center, volume.rotation, size, color, DebugShape_Wire);
     debug_sphere(shape, center, 0.1f, color, DebugShape_Overlay);
   }

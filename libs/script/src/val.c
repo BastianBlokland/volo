@@ -866,3 +866,17 @@ ScriptVal script_val_color_compose(
   return val_color(
       geo_color((f32)val_as_num(r), (f32)val_as_num(g), (f32)val_as_num(b), (f32)val_as_num(a)));
 }
+
+ScriptVal script_val_color_compose_hsv(
+    const ScriptVal h, const ScriptVal s, const ScriptVal v, const ScriptVal a) {
+  const ScriptType nT = ScriptType_Num;
+  if (val_type(h) != nT || val_type(s) != nT || val_type(v) != nT || val_type(a) != nT) {
+    return val_null();
+  }
+  const f32 hue        = math_mod_f32(math_abs((f32)val_as_num(h)), 1.0f);
+  const f32 saturation = math_clamp_f32((f32)val_as_num(s), 0.0f, 1.0f);
+  const f32 value      = (f32)val_as_num(v);
+  const f32 alpha      = (f32)val_as_num(a);
+
+  return val_color(geo_color_from_hsv(hue, saturation, value, alpha));
+}

@@ -45,10 +45,11 @@ ASSERT(alignof(GeoColor) == 16, "GeoColor has to be aligned to 128 bits");
 // clang-format on
 
 /**
- * Get a color from an index.
+ * Get a (deterministic) color for an index or hash.
  * Useful for generating debug colors.
  */
-GeoColor geo_color_get(u64 idx);
+GeoColor geo_color_for(u64 idx);
+GeoColor geo_color_for_hash(u32 hash);
 
 /**
  * Check if the magnitude of the difference color is less then the given threshold.
@@ -117,6 +118,12 @@ GeoColor geo_color_with_alpha(GeoColor, f32 alpha);
  * NOTE: Only defined for values within the 0 - 1 range.
  */
 GeoColor geo_color_linear_to_srgb(GeoColor);
+
+/**
+ * Construct a color from HueSaturationValue.
+ * NOTE: Both hue and saturation are normalized (in the 0-1 range).
+ */
+GeoColor geo_color_from_hsv(f32 hue, f32 saturation, f32 value, f32 alpha);
 
 /**
  * Pack a color to 16 bit floats.
