@@ -880,6 +880,54 @@ ScriptVal script_val_lerp(const ScriptVal x, const ScriptVal y, const ScriptVal 
   UNREACHABLE
 }
 
+ScriptVal script_val_min(const ScriptVal x, const ScriptVal y) {
+  if (val_type(x) != val_type(y)) {
+    return val_null();
+  }
+  switch (val_type(x)) {
+  case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+  case ScriptType_Quat:
+    return script_null();
+  case ScriptType_Num:
+    return val_num(math_min(val_as_num(x), val_as_num(y)));
+  case ScriptType_Vec3:
+    return val_vec3(geo_vector_min(val_as_vec3(x), val_as_vec3(y)));
+  case ScriptType_Color:
+    return val_color(geo_color_min(val_as_color(x), val_as_color(y)));
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_max(const ScriptVal x, const ScriptVal y) {
+  if (val_type(x) != val_type(y)) {
+    return val_null();
+  }
+  switch (val_type(x)) {
+  case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+  case ScriptType_Quat:
+    return script_null();
+  case ScriptType_Num:
+    return val_num(math_max(val_as_num(x), val_as_num(y)));
+  case ScriptType_Vec3:
+    return val_vec3(geo_vector_max(val_as_vec3(x), val_as_vec3(y)));
+  case ScriptType_Color:
+    return val_color(geo_color_max(val_as_color(x), val_as_color(y)));
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_vec3_compose(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   const ScriptType nT = ScriptType_Num;
   if (val_type(x) != nT || val_type(y) != nT || val_type(z) != nT) {
