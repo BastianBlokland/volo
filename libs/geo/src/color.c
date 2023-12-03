@@ -158,6 +158,36 @@ GeoColor geo_color_bilerp(
 #endif
 }
 
+GeoColor geo_color_min(const GeoColor x, const GeoColor y) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_min(simd_vec_load(x.data), simd_vec_load(y.data)), res.data);
+  return res;
+#else
+  return (GeoColor){
+      .r = math_min(x.r, y.r),
+      .g = math_min(x.g, y.g),
+      .b = math_min(x.b, y.b),
+      .a = math_min(x.a, y.a),
+  };
+#endif
+}
+
+GeoColor geo_color_max(const GeoColor x, const GeoColor y) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_max(simd_vec_load(x.data), simd_vec_load(y.data)), res.data);
+  return res;
+#else
+  return (GeoColor){
+      .r = math_max(x.r, y.r),
+      .g = math_max(x.g, y.g),
+      .b = math_max(x.b, y.b),
+      .a = math_max(x.a, y.a),
+  };
+#endif
+}
+
 GeoColor geo_color_clamp(const GeoColor c, const f32 maxMagnitude) {
   diag_assert_msg(maxMagnitude >= 0.0f, "maximum magnitude cannot be negative");
 

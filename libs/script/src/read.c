@@ -371,6 +371,26 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Lerp, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("min");
+    const String       doc    = string_lit("Return the minimum value.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("x"), script_mask_any},
+        {string_lit("y"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Min, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("max");
+    const String       doc    = string_lit("Return the maximum value.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("x"), script_mask_any},
+        {string_lit("y"), script_mask_any},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Max, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("assert");
     const String       doc    = string_lit("Assert that the given value is truthy.");
     const ScriptMask   ret    = script_mask_null;
