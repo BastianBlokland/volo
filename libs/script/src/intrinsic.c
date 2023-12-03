@@ -47,6 +47,8 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_QuatFromAngleAxis:
   case ScriptIntrinsic_RandomBetween:
   case ScriptIntrinsic_Sub:
+  case ScriptIntrinsic_Min:
+  case ScriptIntrinsic_Max:
     return 2;
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_Select:
@@ -157,6 +159,8 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_RoundUp]           = string_static("round-up"),
       [ScriptIntrinsic_Clamp]             = string_static("clamp"),
       [ScriptIntrinsic_Lerp]              = string_static("lerp"),
+      [ScriptIntrinsic_Min]               = string_static("min"),
+      [ScriptIntrinsic_Max]               = string_static("max"),
   };
   ASSERT(array_elems(g_names) == ScriptIntrinsic_Count, "Incorrect number of names");
   return g_names[i];

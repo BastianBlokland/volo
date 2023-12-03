@@ -273,6 +273,14 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     EVAL_ARG_WITH_INTERRUPT(1);
     return script_val_lerp(arg0, arg1, eval(ctx, args[2]));
   }
+  case ScriptIntrinsic_Min: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_min(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Max: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_max(arg0, eval(ctx, args[1]));
+  }
   case ScriptIntrinsic_Count:
     break;
   }
