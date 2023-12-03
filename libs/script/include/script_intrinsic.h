@@ -48,6 +48,7 @@ typedef enum {
   ScriptIntrinsic_RoundNearest,      // Args: value.
   ScriptIntrinsic_RoundUp,           // Args: value.
   ScriptIntrinsic_Clamp,             // Args: value, min, max.
+  ScriptIntrinsic_Lerp,              // Args: x, y, t.
 
   ScriptIntrinsic_Count,
 } ScriptIntrinsic;
