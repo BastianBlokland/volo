@@ -28,6 +28,12 @@ spec(color) {
     check_eq_color(geo_color_div(geo_color(1, 2, 3, 1), -2), geo_color(-.5, -1, -1.5, -0.5f));
   }
 
+  it("multiplies each component when dividing component-wise") {
+    const GeoColor v1 = {.r = 20, .g = 60, .b = 10, .a = 2};
+    const GeoColor v2 = {.r = 2, .g = 3, .b = -4, .a = 1};
+    check_eq_color(geo_color_div_comps(v1, v2), geo_color(10, 20, -2.5f, 2));
+  }
+
   it("can linearly interpolate colors") {
     const GeoColor c1 = geo_color(10, 20, 10, 1);
     const GeoColor c2 = geo_color(20, 40, 20, 1);
