@@ -763,6 +763,9 @@ ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptV
   switch (val_type(v)) {
   case ScriptType_Null:
   case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+    return val_null();
   case ScriptType_Vec3: {
     if (val_type(max) == ScriptType_Num) {
       // TODO: 'min' value is not used in vector clamping with a scalar.
@@ -804,15 +807,41 @@ ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptV
     }
     return val_null();
   }
-  case ScriptType_Entity:
-  case ScriptType_Str:
-    return val_null();
   case ScriptType_Num: {
     if (val_type(min) == ScriptType_Num && val_type(max) == ScriptType_Num) {
       return val_num(math_clamp_f64(val_as_num(v), val_as_num(min), val_as_num(max)));
     }
     return val_null();
   }
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_lerp(const ScriptVal x, const ScriptVal y, const ScriptVal t) {
+  if (val_type(t) != ScriptType_Num) {
+    return script_null();
+  }
+  const f32 tFrac = (f32)val_as_num(t);
+  if (val_type(x) != val_type(y)) {
+    return val_null();
+  }
+  switch (val_type(x)) {
+  case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+    return script_null();
+  case ScriptType_Num:
+    return val_num(math_lerp(val_as_num(x), val_as_num(y), tFrac));
+  case ScriptType_Vec3:
+    return val_vec3(geo_vector_lerp(val_as_vec3(x), val_as_vec3(y), tFrac));
+  case ScriptType_Quat:
+    return val_quat(geo_quat_slerp(val_as_quat(x), val_as_quat(y), tFrac));
+  case ScriptType_Color:
+    return val_color(geo_color_lerp(val_as_color(x), val_as_color(y), tFrac));
   case ScriptType_Count:
     break;
   }
