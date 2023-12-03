@@ -497,6 +497,11 @@ ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
       const GeoColor c = val_as_color(a);
       return val_color(geo_color_mul(c, (f32)val_as_num(b)));
     }
+    if (val_type(b) == ScriptType_Color) {
+      const GeoColor colA = val_as_color(a);
+      const GeoColor colB = val_as_color(b);
+      return val_color(geo_color_mul_comps(colA, colB));
+    }
     return val_null();
   }
   case ScriptType_Count:
