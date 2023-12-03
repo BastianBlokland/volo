@@ -339,6 +339,17 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Clamp, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("lerp");
+    const String       doc    = string_lit("Compute the linearly interpolated value from x to y at time t.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("x"), script_mask_any},
+        {string_lit("y"), script_mask_any},
+        {string_lit("t"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Lerp, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("assert");
     const String       doc    = string_lit("Assert that the given value is truthy.");
     const ScriptMask   ret    = script_mask_null;
