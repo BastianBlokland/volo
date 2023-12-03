@@ -102,6 +102,12 @@ GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 GeoColor geo_color_bilerp(GeoColor v1, GeoColor v2, GeoColor v3, GeoColor v4, f32 tX, f32 tY);
 
 /**
+ * Calculate the minimum / maximum value per component.
+ */
+GeoColor geo_color_min(GeoColor x, GeoColor y);
+GeoColor geo_color_max(GeoColor x, GeoColor y);
+
+/**
  * Clamp a color so its magnitude does not exceed the given value.
  *
  * Pre-condition: maxMagnitude >= 0

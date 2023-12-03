@@ -58,6 +58,18 @@ spec(color) {
     check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 1, 0.5), geo_color(9, 10, 11, 12));
   }
 
+  it("can compute the minimum value of each component") {
+    const GeoColor c1 = {.r = 2, .g = 6, .b = -5, .a = 5};
+    const GeoColor c2 = {.r = 4, .g = -2, .b = 6, .a = 5};
+    check_eq_color(geo_color_min(c1, c2), geo_color(2, -2, -5, 5));
+  }
+
+  it("can compute the maximum value of each component") {
+    const GeoColor c1 = {.r = 2, .g = 6, .b = -5, .a = 5};
+    const GeoColor v2 = {.r = 4, .g = -2, .b = 6, .a = 5};
+    check_eq_color(geo_color_max(c1, v2), geo_color(4, 6, 6, 5));
+  }
+
   it("can clamp its magnitude") {
     check_eq_color(geo_color_clamp(geo_color(1, 2, 3, 0), 10), geo_color(1, 2, 3, 0));
     check_eq_color(geo_color_clamp(geo_color(34, 0, 0, 0), 2), geo_color(2, 0, 0, 0));
