@@ -32,6 +32,7 @@ typedef enum {
   ScriptIntrinsic_Angle,             // Args: lhs, rhs.
   ScriptIntrinsic_Normalize,         // Args: value.
   ScriptIntrinsic_Magnitude,         // Args: value.
+  ScriptIntrinsic_Absolute,          // Args: value.
   ScriptIntrinsic_VecX,              // Args: value.
   ScriptIntrinsic_VecY,              // Args: value.
   ScriptIntrinsic_VecZ,              // Args: value.

@@ -497,6 +497,11 @@ ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
       const GeoColor c = val_as_color(a);
       return val_color(geo_color_mul(c, (f32)val_as_num(b)));
     }
+    if (val_type(b) == ScriptType_Color) {
+      const GeoColor colA = val_as_color(a);
+      const GeoColor colB = val_as_color(b);
+      return val_color(geo_color_mul_comps(colA, colB));
+    }
     return val_null();
   }
   case ScriptType_Count:
@@ -532,6 +537,11 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
     if (val_type(b) == ScriptType_Num) {
       const GeoColor c = val_as_color(a);
       return val_color(geo_color_div(c, (f32)val_as_num(b)));
+    }
+    if (val_type(b) == ScriptType_Color) {
+      const GeoColor colA = val_as_color(a);
+      const GeoColor colB = val_as_color(b);
+      return val_color(geo_color_div_comps(colA, colB));
     }
     return val_null();
   }
@@ -635,6 +645,27 @@ ScriptVal script_val_mag(const ScriptVal val) {
     return val_num(geo_vector_mag(val_as_vec3(val)));
   case ScriptType_Color:
     return val_num(geo_color_mag(val_as_color(val)));
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_abs(const ScriptVal val) {
+  switch (val_type(val)) {
+  case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+  case ScriptType_Quat:
+    return val_null();
+  case ScriptType_Num:
+    return val_num(math_abs(val_as_num(val)));
+  case ScriptType_Vec3:
+    return val_vec3(geo_vector_abs(val_as_vec3(val)));
+  case ScriptType_Color:
+    return val_color(geo_color_abs(val_as_color(val)));
   case ScriptType_Count:
     break;
   }

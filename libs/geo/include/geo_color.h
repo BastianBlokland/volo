@@ -75,11 +75,13 @@ GeoColor geo_color_sub(GeoColor a, GeoColor b);
  * Compute a color where each component is the result of multiplying with the scalar.
  */
 GeoColor geo_color_mul(GeoColor, f32 scalar);
+GeoColor geo_color_mul_comps(GeoColor, GeoColor);
 
 /**
  * Compute a color where each component is the result of dividing with the scalar.
  */
 GeoColor geo_color_div(GeoColor, f32 scalar);
+GeoColor geo_color_div_comps(GeoColor, GeoColor);
 
 /**
  * Calculate the magnitude of the color.
