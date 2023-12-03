@@ -841,6 +841,39 @@ spec(val) {
     }
   }
 
+  it("can lerp values") {
+    const struct {
+      ScriptVal x, y, t;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), script_null(), script_null(), .expected = script_null()},
+        {script_bool(true), script_bool(false), script_num(0.0f), .expected = script_null()},
+        {
+            .x        = script_num(0.1f),
+            .y        = script_num(0.9f),
+            .t        = script_num(0.5f),
+            .expected = script_num(0.5f),
+        },
+        {
+            .x        = script_vec3_lit(1.0f, 2.0f, 3.0f),
+            .y        = script_vec3_lit(4.0f, 5.0f, 6.0f),
+            .t        = script_num(0.5f),
+            .expected = script_vec3_lit(2.5f, 3.5, 4.5f),
+        },
+        {
+            .x        = script_color(geo_color(1, 0, 1, 1)),
+            .y        = script_color(geo_color(2, 1, 3, 1)),
+            .t        = script_num(0.25f),
+            .expected = script_color(geo_color(1.25f, 0.25f, 1.5f, 1)),
+        },
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_lerp(testData[i].x, testData[i].y, testData[i].t);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
   it("can compose a vector3") {
     const struct {
       ScriptVal a, b, c;

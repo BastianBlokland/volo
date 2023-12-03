@@ -51,6 +51,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Select:
   case ScriptIntrinsic_Vec3Compose:
   case ScriptIntrinsic_Clamp:
+  case ScriptIntrinsic_Lerp:
     return 3;
   case ScriptIntrinsic_Loop:
   case ScriptIntrinsic_ColorCompose:
@@ -153,6 +154,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_RoundNearest]      = string_static("round-nearest"),
       [ScriptIntrinsic_RoundUp]           = string_static("round-up"),
       [ScriptIntrinsic_Clamp]             = string_static("clamp"),
+      [ScriptIntrinsic_Lerp]              = string_static("lerp"),
   };
   ASSERT(array_elems(g_names) == ScriptIntrinsic_Count, "Incorrect number of names");
   return g_names[i];
