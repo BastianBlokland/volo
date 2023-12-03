@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_intrinsic.h"
@@ -11,27 +12,18 @@
 #include "core_simd.h"
 #endif
 
-GeoColor geo_color_get(const u64 idx) {
-  // TODO: Consider replacing this with generating a random hue and then converting from hsv to rgb.
-  // NOTE: Important to keep this function deterministic.
-  static const GeoColor g_colors[] = {
-      {1.0f, 0.0f, 0.0f, 1.0f},
-      {1.0f, 1.0f, 0.0f, 1.0f},
-      {0.5f, 0.5f, 0.0f, 1.0f},
-      {0.75f, 0.75f, 0.75f, 1.0f},
-      {0.0f, 1.0f, 1.0f, 1.0f},
-      {0.0f, 1.0f, 0.0f, 1.0f},
-      {0.5f, 0.0f, 0.0f, 1.0f},
-      {0.0f, 0.0f, 1.0f, 1.0f},
-      {0.0f, 0.5f, 0.5f, 1.0f},
-      {0.0f, 0.0f, 0.5f, 1.0f},
-      {1.0f, 0.0f, 1.0f, 1.0f},
-      {0.0f, 0.5f, 0.0f, 1.0f},
-      {0.5f, 0.5f, 0.5f, 1.0f},
-      {0.5f, 0.0f, 0.5f, 1.0f},
-      {1.0f, 0.5f, 0.0f, 1.0f},
-  };
-  return g_colors[idx % array_elems(g_colors)];
+GeoColor geo_color_for(const u64 idx) {
+  const u32 hash = bits_hash_32(mem_var(idx));
+  return geo_color_for_hash(hash);
+}
+
+GeoColor geo_color_for_hash(const u32 hash) {
+  static const f32 g_u32MaxInv = 1.0f / u32_max;
+  const f32        hue         = (f32)hash * g_u32MaxInv;
+  const f32        saturation  = 1.0f;
+  const f32        value       = 1.0f;
+  const f32        alpha       = 1.0f;
+  return geo_color_from_hsv(hue, saturation, value, alpha);
 }
 
 bool geo_color_equal(const GeoColor a, const GeoColor b, const f32 threshold) {
@@ -206,6 +198,48 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
       .a = linear.a,
   };
 #endif
+}
+
+GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value, const f32 alpha) {
+  diag_assert(hue >= 0.0f && hue <= 1.0f);
+  diag_assert(saturation >= 0.0f && saturation <= 1.0f);
+
+  /**
+   * hsv to rgb, implementation based on:
+   * http://ilab.usc.edu/wiki/index.php/HSV_And_H2SV_Color_Space#HSV_Transformation_C_.2F_C.2B.2B_Code_2
+   */
+  if (value == 0.0f) {
+    return geo_color(0, 0, 0, alpha);
+  }
+  if (saturation == 0.0f) {
+    return geo_color(value, value, value, alpha);
+  }
+  static const f32 g_hueSegInv = 1.0f / (60.0f / 360.0f);
+  const f32        hueSeg      = hue * g_hueSegInv;
+  const i32        hueIndex    = (i32)intrinsic_round_down_f32(hueSeg);
+  const f32        hueFrac     = hueSeg - (f32)hueIndex;
+  const f32        pV          = value * (1.0f - saturation);
+  const f32        qV          = value * (1.0f - saturation * hueFrac);
+  const f32        tV          = value * (1.0f - saturation * (1.0f - hueFrac));
+  switch (hueIndex) {
+  case -1: // NOTE: We can get here due to imprecision.
+    return geo_color(value, pV, qV, alpha);
+  case 0: // Dominant color is red.
+    return geo_color(value, tV, pV, alpha);
+  case 1: // Dominant color is green.
+    return geo_color(qV, value, pV, alpha);
+  case 2: // Dominant color is green.
+    return geo_color(pV, value, tV, alpha);
+  case 3: // Dominant color is blue.
+    return geo_color(pV, qV, value, alpha);
+  case 4: // Dominant color is blue.
+    return geo_color(tV, pV, value, alpha);
+  case 5: // Dominant color is red.
+    return geo_color(value, pV, qV, alpha);
+  case 6: // NOTE: We can get here due to imprecision.
+    return geo_color(value, tV, pV, alpha);
+  }
+  diag_crash_msg("hsv to rgb failed: Invalid hue");
 }
 
 void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {

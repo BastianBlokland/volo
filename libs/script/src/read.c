@@ -226,6 +226,18 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_ColorCompose, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("color_hsv");
+    const String       doc    = string_lit("Construct a new color from hue-saturation-value numbers.");
+    const ScriptMask   ret    = script_mask_color;
+    const ScriptSigArg args[] = {
+        {string_lit("h"), script_mask_num},
+        {string_lit("s"), script_mask_num},
+        {string_lit("v"), script_mask_num},
+        {string_lit("a"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorComposeHsv, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("color_for");
     const String       doc    = string_lit("Retrieve a color for the given value.\n\n*Note*: Returns identical colors for identical values, useful for debug purposes.");
     const ScriptMask   ret    = script_mask_color;
