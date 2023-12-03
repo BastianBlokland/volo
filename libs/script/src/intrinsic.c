@@ -15,6 +15,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_MemLoadDynamic:
   case ScriptIntrinsic_Invert:
   case ScriptIntrinsic_Magnitude:
+  case ScriptIntrinsic_Absolute:
   case ScriptIntrinsic_Negate:
   case ScriptIntrinsic_Normalize:
   case ScriptIntrinsic_RoundDown:
@@ -137,6 +138,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Angle]             = string_static("angle"),
       [ScriptIntrinsic_Normalize]         = string_static("normalize"),
       [ScriptIntrinsic_Magnitude]         = string_static("magnitude"),
+      [ScriptIntrinsic_Absolute]          = string_static("absolute"),
       [ScriptIntrinsic_VecX]              = string_static("vec-x"),
       [ScriptIntrinsic_VecY]              = string_static("vec-y"),
       [ScriptIntrinsic_VecZ]              = string_static("vec-z"),
