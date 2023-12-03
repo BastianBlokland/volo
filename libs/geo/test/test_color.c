@@ -17,6 +17,12 @@ spec(color) {
     check_eq_color(geo_color_mul(geo_color(1, 2, 3, 0), -2), geo_color(-2, -4, -6, 0));
   }
 
+  it("multiplies each component when multiplying component-wise") {
+    const GeoColor v1 = {.r = 10, .g = 20, .b = 10, .a = 2};
+    const GeoColor v2 = {.r = 2, .g = 3, .b = -4, .a = 0};
+    check_eq_color(geo_color_mul_comps(v1, v2), geo_color(20, 60, -40, 0));
+  }
+
   it("divides each component by the scalar when dividing") {
     check_eq_color(geo_color_div(geo_color(5, -2.1f, 6, 8), 2), geo_color(2.5, -1.05f, 3, 4));
     check_eq_color(geo_color_div(geo_color(1, 2, 3, 1), -2), geo_color(-.5, -1, -1.5, -0.5f));

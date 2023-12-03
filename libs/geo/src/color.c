@@ -71,6 +71,16 @@ GeoColor geo_color_mul(const GeoColor c, const f32 scalar) {
 #endif
 }
 
+GeoColor geo_color_mul_comps(const GeoColor a, const GeoColor b) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
+  return res;
+#else
+  return geo_color(a.r * b.r, a.g * b.g, a.b * b.b, a.a * b.a);
+#endif
+}
+
 GeoColor geo_color_div(const GeoColor c, const f32 scalar) {
 #if geo_color_simd_enable
   GeoColor res;
