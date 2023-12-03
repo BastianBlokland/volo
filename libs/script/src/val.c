@@ -642,6 +642,27 @@ ScriptVal script_val_mag(const ScriptVal val) {
   UNREACHABLE
 }
 
+ScriptVal script_val_abs(const ScriptVal val) {
+  switch (val_type(val)) {
+  case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+  case ScriptType_Quat:
+    return val_null();
+  case ScriptType_Num:
+    return val_num(math_abs(val_as_num(val)));
+  case ScriptType_Vec3:
+    return val_vec3(geo_vector_abs(val_as_vec3(val)));
+  case ScriptType_Color:
+    return val_color(geo_color_abs(val_as_color(val)));
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
   if (val_type(a) == ScriptType_Vec3 && val_type(b) == ScriptType_Vec3) {
     return val_num(geo_vector_angle(val_as_vec3(a), val_as_vec3(b)));
