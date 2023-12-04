@@ -217,10 +217,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_rsqrt(const SimdVec v) {
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
   const SimdVec t1  = simd_vec_permute(a, 3, 0, 2, 1);  // = (a.y, a.z, a.x, a.w)
   const SimdVec t2  = simd_vec_permute(b, 3, 1, 0, 2);  // = (b.z, b.x, b.y, b.w)
-  SimdVec       res = _mm_mul_ps(t1, t2);               // Perform the left operation
+  SimdVec       res = simd_vec_mul(t1, t2);             // Perform the left operation
   const SimdVec t3  = simd_vec_permute(t1, 3, 0, 2, 1); // = (a.z, a.x, a.y, a.w)
   const SimdVec t4  = simd_vec_permute(t2, 3, 1, 0, 2); // = (b.y, b.z, b.x, b.w)
-  return _mm_sub_ps(res, _mm_mul_ps(t3, t4));           // Perform the right operation
+  return simd_vec_sub(res, simd_vec_mul(t3, t4));       // Perform the right operation
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const SimdVec abcd) {
@@ -238,9 +238,9 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const 
    */
 
   // = (xb - ya, zb - wa, wd - zc, yd - xc)
-  const SimdVec ZnXWY = _mm_hsub_ps(_mm_mul_ps(xyzw, baba), _mm_mul_ps(wzyx, dcdc));
+  const SimdVec ZnXWY = _mm_hsub_ps(simd_vec_mul(xyzw, baba), simd_vec_mul(wzyx, dcdc));
   // = (xd + yc, zd + wc, wb + za, yb + xa)
-  const SimdVec XZYnW = _mm_hadd_ps(_mm_mul_ps(xyzw, dcdc), _mm_mul_ps(wzyx, baba));
+  const SimdVec XZYnW = _mm_hadd_ps(simd_vec_mul(xyzw, dcdc), simd_vec_mul(wzyx, baba));
   // = (xd + yc, zd + wc, wd - zc, yd - xc)
   const SimdVec t1 = simd_vec_shuffle(XZYnW, ZnXWY, 3, 2, 1, 0);
   // = (zb - wa, xb - ya, yb + xa, wb + za)
