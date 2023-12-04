@@ -266,7 +266,7 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Magnitude, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("absolute");
+    const String       name   = string_lit("abs");
     const String       doc    = string_lit("Compute the absolute of the given value.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {

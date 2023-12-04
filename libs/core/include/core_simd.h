@@ -117,6 +117,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_div(const SimdVec a, const Simd
   return _mm_div_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_xor(const SimdVec a, const SimdVec b) {
+  return _mm_xor_ps(a, b);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min(const SimdVec a, const SimdVec b) {
   return _mm_min_ps(a, b);
 }
@@ -162,6 +166,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec vec) {
   return _mm_andnot_ps(simd_vec_sign_mask(), vec);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign(const SimdVec vec) {
+  return _mm_and_ps(vec, simd_vec_sign_mask());
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_neg(const SimdVec vec) {
   return _mm_xor_ps(vec, simd_vec_sign_mask());
 }
@@ -183,27 +191,36 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_round_up(const SimdVec a) {
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
-  const SimdVec mul = _mm_mul_ps(a, b);
-  const SimdVec t1  = _mm_hadd_ps(mul, mul);
-  return _mm_hadd_ps(t1, t1);
+  return _mm_dp_ps(a, b, 0b11111111);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_dot3(const SimdVec a, const SimdVec b) {
-  const SimdVec mul = _mm_mul_ps(a, b);
-  const SimdVec t1  = simd_vec_clear_w(mul);
-  const SimdVec t2  = _mm_hadd_ps(t1, t1);
-  return _mm_hadd_ps(t2, t2);
+  return _mm_dp_ps(a, b, 0b01111111);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sqrt(const SimdVec a) { return _mm_sqrt_ps(a); }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_rsqrt(const SimdVec v) {
+  /**
+   * Compute the reciprocal square root (1.0 / simd_vec_sqrt(v)).
+   * Use a single Newton-Raphson step to increase accuracy from 12 to 23 bits.
+   * Source:
+   *  https://stackoverflow.com/questions/14752399/newton-raphson-with-sse2-can-someone-explain-me-these-3-lines
+   */
+  const SimdVec half  = simd_vec_broadcast(0.5f);
+  const SimdVec three = simd_vec_broadcast(3.0f);
+  const SimdVec rcp   = _mm_rsqrt_ps(v);
+  const SimdVec mul   = simd_vec_mul(simd_vec_mul(v, rcp), rcp);
+  return simd_vec_mul(simd_vec_mul(half, rcp), simd_vec_sub(three, mul));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
   const SimdVec t1  = simd_vec_permute(a, 3, 0, 2, 1);  // = (a.y, a.z, a.x, a.w)
   const SimdVec t2  = simd_vec_permute(b, 3, 1, 0, 2);  // = (b.z, b.x, b.y, b.w)
-  SimdVec       res = _mm_mul_ps(t1, t2);               // Perform the left operation
+  SimdVec       res = simd_vec_mul(t1, t2);             // Perform the left operation
   const SimdVec t3  = simd_vec_permute(t1, 3, 0, 2, 1); // = (a.z, a.x, a.y, a.w)
   const SimdVec t4  = simd_vec_permute(t2, 3, 1, 0, 2); // = (b.y, b.z, b.x, b.w)
-  return _mm_sub_ps(res, _mm_mul_ps(t3, t4));           // Perform the right operation
+  return simd_vec_sub(res, simd_vec_mul(t3, t4));       // Perform the right operation
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const SimdVec abcd) {
@@ -221,9 +238,9 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const 
    */
 
   // = (xb - ya, zb - wa, wd - zc, yd - xc)
-  const SimdVec ZnXWY = _mm_hsub_ps(_mm_mul_ps(xyzw, baba), _mm_mul_ps(wzyx, dcdc));
+  const SimdVec ZnXWY = _mm_hsub_ps(simd_vec_mul(xyzw, baba), simd_vec_mul(wzyx, dcdc));
   // = (xd + yc, zd + wc, wb + za, yb + xa)
-  const SimdVec XZYnW = _mm_hadd_ps(_mm_mul_ps(xyzw, dcdc), _mm_mul_ps(wzyx, baba));
+  const SimdVec XZYnW = _mm_hadd_ps(simd_vec_mul(xyzw, dcdc), simd_vec_mul(wzyx, baba));
   // = (xd + yc, zd + wc, wd - zc, yd - xc)
   const SimdVec t1 = simd_vec_shuffle(XZYnW, ZnXWY, 3, 2, 1, 0);
   // = (zb - wa, xb - ya, yb + xa, wb + za)
@@ -248,11 +265,5 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_conjugate(const SimdVec quat) 
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_norm(const SimdVec quat) {
   const SimdVec sqrMag = simd_vec_dot4(quat, quat);
-  const SimdVec mag    = simd_vec_sqrt(sqrMag);
-  return simd_vec_div(quat, mag);
-}
-
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_norm_approx(const SimdVec quat) {
-  const SimdVec sqrMag = simd_vec_dot4(quat, quat);
-  return simd_vec_mul(quat, _mm_rsqrt_ps(sqrMag));
+  return simd_vec_mul(quat, simd_vec_rsqrt(sqrMag));
 }

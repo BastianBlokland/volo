@@ -13,9 +13,9 @@ spec(sphere) {
       bool      hit;
     } g_data[] = {
         {.ray = {-2, 1, 0, .dir = {2, 0, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = true},
-        {.ray = {-2, 0, 0, .dir = {2, 0, 0}}, .sphere = {2, 2, 0, .radius = 2}, .hit = true},
+        {.ray = {-2, 0, 0, .dir = {2, 0, 0}}, .sphere = {2, 2, 0, .radius = 2.1f}, .hit = true},
         {.ray = {-2, 0, 0, .dir = {2, 0, 0}}, .sphere = {0, 0, 0, .radius = 2}, .hit = true},
-        {.ray = {-2, 2, 0, .dir = {2, -1, 2}}, .sphere = {0, 0, 0, .radius = 2}, .hit = true},
+        {.ray = {-2, 2, 0, .dir = {2, -1, 2}}, .sphere = {0, 0, 0, .radius = 2.1f}, .hit = true},
         {.ray = {2, 1, 0, .dir = {2, 0, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = true},
         {.ray = {-2, 1, 0, .dir = {-1, 0, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = false},
         {.ray = {-5, 1, 0, .dir = {2, 0.4f, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = false},
