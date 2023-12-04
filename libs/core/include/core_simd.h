@@ -117,6 +117,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_div(const SimdVec a, const Simd
   return _mm_div_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_xor(const SimdVec a, const SimdVec b) {
+  return _mm_xor_ps(a, b);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min(const SimdVec a, const SimdVec b) {
   return _mm_min_ps(a, b);
 }
