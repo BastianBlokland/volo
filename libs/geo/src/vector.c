@@ -95,8 +95,8 @@ GeoVector geo_vector_div_comps(const GeoVector a, const GeoVector b) {
 
 f32 geo_vector_mag_sqr(const GeoVector v) {
 #if geo_vec_simd_enable
-  const SimdVec tmp = simd_vec_load(v.comps);
-  return simd_vec_x(simd_vec_dot4(tmp, tmp));
+  const SimdVec vec = simd_vec_load(v.comps);
+  return simd_vec_x(simd_vec_dot4(vec, vec));
 #else
   return geo_vector_dot(v, v);
 #endif
@@ -104,8 +104,8 @@ f32 geo_vector_mag_sqr(const GeoVector v) {
 
 f32 geo_vector_mag(const GeoVector v) {
 #if geo_vec_simd_enable
-  const SimdVec tmp = simd_vec_load(v.comps);
-  const SimdVec dot = simd_vec_dot4(tmp, tmp);
+  const SimdVec vec = simd_vec_load(v.comps);
+  const SimdVec dot = simd_vec_dot4(vec, vec);
   return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
 #else
   const f32 sqrMag = geo_vector_mag_sqr(v);
@@ -114,9 +114,20 @@ f32 geo_vector_mag(const GeoVector v) {
 }
 
 GeoVector geo_vector_norm(const GeoVector v) {
+#if geo_vec_simd_enable
+  const SimdVec vec    = simd_vec_load(v.comps);
+  const SimdVec sqrMag = simd_vec_dot4(vec, vec);
+
+  diag_assert(simd_vec_x(sqrMag) != 0);
+
+  GeoVector res;
+  simd_vec_store(simd_vec_mul(vec, simd_vec_rsqrt(sqrMag)), res.comps);
+  return res;
+#else
   const f32 mag = geo_vector_mag(v);
   diag_assert(mag != 0);
   return geo_vector_div(v, mag);
+#endif
 }
 
 f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
