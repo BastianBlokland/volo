@@ -162,6 +162,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec vec) {
   return _mm_andnot_ps(simd_vec_sign_mask(), vec);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign(const SimdVec vec) {
+  return _mm_and_ps(vec, simd_vec_sign_mask());
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_neg(const SimdVec vec) {
   return _mm_xor_ps(vec, simd_vec_sign_mask());
 }
