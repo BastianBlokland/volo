@@ -218,7 +218,7 @@ static void scene_level_object_push(
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
       .prefab   = prefabName,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
-      .rotation = geo_quat_norm(maybeTrans ? maybeTrans->rotation : geo_quat_ident),
+      .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
       .scale    = maybeScale ? maybeScale->scale : 1.0f,
       .faction  = (AssetLevelFaction)(maybeFaction ? maybeFaction->id : SceneFaction_None),
   };
