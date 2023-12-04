@@ -172,17 +172,50 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
    *
    * Implementation based on:
    * https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp
+   * https://zeux.io/2016/05/05/optimizing-slerp/
    */
 
 #if geo_quat_simd_enable
-  const SimdVec aVec = simd_vec_load(a.comps);
-  const SimdVec bVec = simd_vec_load(b.comps);
-  const f32     dot  = simd_vec_x(simd_vec_dot4(aVec, bVec));
+  // Implementation of Zeux's onlerp.
+  const SimdVec l          = simd_vec_load(a.comps);
+  const SimdVec r          = simd_vec_load(b.comps);
+  const SimdVec vT         = simd_vec_broadcast(t);
+  const SimdVec tMinusOne  = simd_vec_sub(vT, simd_vec_broadcast(1.0f));
+  const SimdVec tMinusHalf = simd_vec_sub(vT, simd_vec_broadcast(0.5f));
+
+  const SimdVec dot  = simd_vec_dot4(l, r);
+  const SimdVec sign = simd_vec_sign(dot);
+  const SimdVec d    = simd_vec_xor(dot, sign);
+
+  const SimdVec c0 = simd_vec_broadcast(1.0904f);
+  const SimdVec c1 = simd_vec_broadcast(-3.2452f);
+  const SimdVec c2 = simd_vec_broadcast(3.55645f);
+  const SimdVec c3 = simd_vec_broadcast(1.43519f);
+  const SimdVec c4 = simd_vec_broadcast(0.848013f);
+  const SimdVec c5 = simd_vec_broadcast(-1.06021f);
+  const SimdVec c6 = simd_vec_broadcast(0.215638f);
+
+  const SimdVec vA0 = simd_vec_add(c1, simd_vec_mul(d, simd_vec_sub(c2, simd_vec_mul(d, c3))));
+  const SimdVec vA  = simd_vec_add(c0, simd_vec_mul(d, vA0));
+
+  const SimdVec vB0 = simd_vec_add(c5, simd_vec_mul(d, c6));
+  const SimdVec vB  = simd_vec_add(c4, simd_vec_mul(d, vB0));
+
+  const SimdVec vK = simd_vec_add(simd_vec_mul(vA, simd_vec_mul(tMinusHalf, tMinusHalf)), vB);
+
+  const SimdVec vOT0 = simd_vec_mul(vT, simd_vec_mul(tMinusHalf, tMinusOne));
+  const SimdVec vOT  = simd_vec_add(vT, simd_vec_mul(vOT0, vK));
+
+  const SimdVec rScaled = simd_vec_mul(simd_vec_xor(vOT, sign), r);
+  const SimdVec lScaled = simd_vec_mul(vOT, l);
+  const SimdVec vInterp = simd_vec_add(rScaled, simd_vec_sub(l, lScaled));
+
+  GeoQuat res;
+  simd_vec_store(simd_quat_norm(vInterp), res.comps);
+  return res;
 #else
   const f32 dot = geo_quat_dot(a, b);
-#endif
-
-  f32 tA, tB;
+  f32       tA, tB;
   if (math_abs(dot) < 0.99999f) {
     const f32 x = intrinsic_acos_f32(dot);
     const f32 y = 1.0f / intrinsic_sin_f32(x);
@@ -193,15 +226,6 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
     tA = 1.0f - t;
     tB = t;
   }
-
-#if geo_quat_simd_enable
-  const SimdVec tAVec = simd_vec_broadcast(tA);
-  const SimdVec tBVec = simd_vec_broadcast(tB);
-
-  GeoQuat res;
-  simd_vec_store(simd_vec_add(simd_vec_mul(aVec, tAVec), simd_vec_mul(bVec, tBVec)), res.comps);
-  return res;
-#else
   return (GeoQuat){
       a.x * tA + b.x * tB,
       a.y * tA + b.y * tB,
