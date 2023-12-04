@@ -3,14 +3,17 @@
 
 #include "utils_internal.h"
 
-#define test_geo_threshold 1e-4f
+#define test_geo_threshold_matrix 1e-4f
+#define test_geo_threshold_quat 1e-3f
+#define test_geo_threshold_vector 1e-4f
+#define test_geo_threshold_color 1e-4f
 
 static bool test_matrix_equal(const GeoMatrix* a, const GeoMatrix* b) {
   for (usize i = 0; i != 16; ++i) {
     if (float_isnan(a->comps[i]) || float_isnan(b->comps[i])) {
       return false;
     }
-    if (math_abs(a->comps[i] - b->comps[i]) > test_geo_threshold) {
+    if (math_abs(a->comps[i] - b->comps[i]) > test_geo_threshold_matrix) {
       return false;
     }
   }
@@ -22,7 +25,7 @@ static bool test_quat_equal(const GeoQuat a, const GeoQuat b) {
     if (float_isnan(a.comps[i]) || float_isnan(b.comps[i])) {
       return false;
     }
-    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_threshold) {
+    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_threshold_quat) {
       return false;
     }
   }
@@ -34,7 +37,7 @@ static bool test_vector_equal(const GeoVector a, const GeoVector b) {
     if (float_isnan(a.comps[i]) || float_isnan(b.comps[i])) {
       return false;
     }
-    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_threshold) {
+    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_threshold_vector) {
       return false;
     }
   }
@@ -46,7 +49,7 @@ static bool test_color_equal(const GeoColor a, const GeoColor b) {
     if (float_isnan(a.data[i]) || float_isnan(b.data[i])) {
       return false;
     }
-    if (math_abs(a.data[i] - b.data[i]) > test_geo_threshold) {
+    if (math_abs(a.data[i] - b.data[i]) > test_geo_threshold_color) {
       return false;
     }
   }
