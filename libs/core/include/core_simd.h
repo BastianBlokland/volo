@@ -191,16 +191,11 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_round_up(const SimdVec a) {
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
-  const SimdVec mul = _mm_mul_ps(a, b);
-  const SimdVec t1  = _mm_hadd_ps(mul, mul);
-  return _mm_hadd_ps(t1, t1);
+  return _mm_dp_ps(a, b, 0b11111111);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_dot3(const SimdVec a, const SimdVec b) {
-  const SimdVec mul = _mm_mul_ps(a, b);
-  const SimdVec t1  = simd_vec_clear_w(mul);
-  const SimdVec t2  = _mm_hadd_ps(t1, t1);
-  return _mm_hadd_ps(t2, t2);
+  return _mm_dp_ps(a, b, 0b01111111);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sqrt(const SimdVec a) { return _mm_sqrt_ps(a); }
