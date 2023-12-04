@@ -259,8 +259,3 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_norm(const SimdVec quat) {
   const SimdVec mag    = simd_vec_sqrt(sqrMag);
   return simd_vec_div(quat, mag);
 }
-
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_norm_approx(const SimdVec quat) {
-  const SimdVec sqrMag = simd_vec_dot4(quat, quat);
-  return simd_vec_mul(quat, _mm_rsqrt_ps(sqrMag));
-}
