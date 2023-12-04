@@ -200,6 +200,20 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_dot3(const SimdVec a, const Sim
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sqrt(const SimdVec a) { return _mm_sqrt_ps(a); }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_rsqrt(const SimdVec v) {
+  /**
+   * Compute the reciprocal square root (1.0 / simd_vec_sqrt(v)).
+   * Use a single Newton-Raphson step to increase accuracy from 12 to 23 bits.
+   * Source:
+   *  https://stackoverflow.com/questions/14752399/newton-raphson-with-sse2-can-someone-explain-me-these-3-lines
+   */
+  const SimdVec half  = simd_vec_broadcast(0.5f);
+  const SimdVec three = simd_vec_broadcast(3.0f);
+  const SimdVec rcp   = _mm_rsqrt_ps(v);
+  const SimdVec mul   = simd_vec_mul(simd_vec_mul(v, rcp), rcp);
+  return simd_vec_mul(simd_vec_mul(half, rcp), simd_vec_sub(three, mul));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
   const SimdVec t1  = simd_vec_permute(a, 3, 0, 2, 1);  // = (a.y, a.z, a.x, a.w)
   const SimdVec t2  = simd_vec_permute(b, 3, 1, 0, 2);  // = (b.z, b.x, b.y, b.w)
@@ -251,6 +265,5 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_conjugate(const SimdVec quat) 
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_norm(const SimdVec quat) {
   const SimdVec sqrMag = simd_vec_dot4(quat, quat);
-  const SimdVec mag    = simd_vec_sqrt(sqrMag);
-  return simd_vec_div(quat, mag);
+  return simd_vec_mul(quat, simd_vec_rsqrt(sqrMag));
 }
