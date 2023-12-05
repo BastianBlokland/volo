@@ -116,6 +116,24 @@ GeoVector geo_matrix_transform3_point(const GeoMatrix* m, const GeoVector vec) {
 }
 
 GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
+#if geo_matrix_simd_enable
+  const SimdVec col0 = simd_vec_load(m->columns[0].comps);
+  const SimdVec col1 = simd_vec_load(m->columns[1].comps);
+  const SimdVec col2 = simd_vec_load(m->columns[2].comps);
+  const SimdVec col3 = simd_vec_load(m->columns[3].comps);
+
+  const SimdVec tmp0 = simd_vec_shuffle(col0, col1, 1, 0, 1, 0);
+  const SimdVec tmp2 = simd_vec_shuffle(col0, col1, 3, 2, 3, 2);
+  const SimdVec tmp1 = simd_vec_shuffle(col2, col3, 1, 0, 1, 0);
+  const SimdVec tmp3 = simd_vec_shuffle(col2, col3, 3, 2, 3, 2);
+
+  GeoMatrix res;
+  simd_vec_store(simd_vec_shuffle(tmp0, tmp1, 2, 0, 2, 0), res.columns[0].comps);
+  simd_vec_store(simd_vec_shuffle(tmp0, tmp1, 3, 1, 3, 1), res.columns[1].comps);
+  simd_vec_store(simd_vec_shuffle(tmp2, tmp3, 2, 0, 2, 0), res.columns[2].comps);
+  simd_vec_store(simd_vec_shuffle(tmp2, tmp3, 3, 1, 3, 1), res.columns[3].comps);
+  return res;
+#else
   return (GeoMatrix){
       .columns = {
           geo_matrix_row(m, 0),
@@ -123,6 +141,7 @@ GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
           geo_matrix_row(m, 2),
           geo_matrix_row(m, 3),
       }};
+#endif
 }
 
 GeoMatrix geo_matrix_inverse(const GeoMatrix* m) {
