@@ -75,7 +75,7 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) 
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
-  return simd_vec_set(-0.0f, -0.0f, -0.0f, -0.0f);
+  return simd_vec_broadcast(-0.0f);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask3(void) {
