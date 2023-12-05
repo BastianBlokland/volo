@@ -962,7 +962,13 @@ ScriptVal script_val_quat_from_angle_axis(const ScriptVal angle, const ScriptVal
   if (val_type(angle) != ScriptType_Num || val_type(axis) != ScriptType_Vec3) {
     return val_null();
   }
-  return val_quat(geo_quat_angle_axis(val_as_vec3(axis), (f32)val_as_num(angle)));
+  const GeoVector axisVec = val_as_vec3(axis);
+  const f32       axisMag = geo_vector_mag(axisVec);
+  if (axisMag <= f32_epsilon) {
+    return val_null();
+  }
+  const GeoVector axisNorm = geo_vector_div(axisVec, axisMag);
+  return val_quat(geo_quat_angle_axis(axisNorm, (f32)val_as_num(angle)));
 }
 
 ScriptVal script_val_color_compose(
