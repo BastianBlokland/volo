@@ -558,15 +558,17 @@ GeoMatrix geo_matrix_trs(const GeoVector t, const GeoQuat r, const GeoVector s) 
   q1 = simd_vec_shuffle(r0, v0, 1, 0, 3, 0);
   q1 = simd_vec_permute(q1, 1, 3, 2, 0);
 
+  const SimdVec sVec = simd_vec_load(s.comps);
+
   GeoMatrix res;
-  simd_vec_store(simd_vec_mul(q1, simd_vec_broadcast(s.x)), res.columns[0].comps);
+  simd_vec_store(simd_vec_mul(q1, simd_vec_splat(sVec, 0)), res.columns[0].comps);
 
   q1 = simd_vec_shuffle(r0, v0, 3, 2, 3, 1);
   q1 = simd_vec_permute(q1, 1, 3, 0, 2);
-  simd_vec_store(simd_vec_mul(q1, simd_vec_broadcast(s.y)), res.columns[1].comps);
+  simd_vec_store(simd_vec_mul(q1, simd_vec_splat(sVec, 1)), res.columns[1].comps);
 
   q1 = simd_vec_shuffle(v1, r0, 3, 2, 1, 0);
-  simd_vec_store(simd_vec_mul(q1, simd_vec_broadcast(s.z)), res.columns[2].comps);
+  simd_vec_store(simd_vec_mul(q1, simd_vec_splat(sVec, 2)), res.columns[2].comps);
   simd_vec_store(simd_vec_w_one(simd_vec_load(t.comps)), res.columns[3].comps);
   return res;
 #else
