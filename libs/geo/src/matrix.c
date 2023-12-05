@@ -56,21 +56,41 @@ GeoVector geo_matrix_row(const GeoMatrix* m, const usize index) {
 
 GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b) {
 #if geo_matrix_simd_enable
-  GeoMatrix     res;
-  const SimdVec col0 = simd_vec_load(a->columns[0].comps);
-  const SimdVec col1 = simd_vec_load(a->columns[1].comps);
-  const SimdVec col2 = simd_vec_load(a->columns[2].comps);
-  const SimdVec col3 = simd_vec_load(a->columns[3].comps);
-  for (usize i = 0; i != 4; ++i) {
-    const SimdVec rowX   = simd_vec_broadcast(b->columns[i].x);
-    const SimdVec rowY   = simd_vec_broadcast(b->columns[i].y);
-    const SimdVec rowZ   = simd_vec_broadcast(b->columns[i].z);
-    const SimdVec rowW   = simd_vec_broadcast(b->columns[i].w);
-    const SimdVec resCol = simd_vec_add(
-        simd_vec_add(simd_vec_mul(rowX, col0), simd_vec_mul(rowY, col1)),
-        simd_vec_add(simd_vec_mul(rowZ, col2), simd_vec_mul(rowW, col3)));
-    simd_vec_store(resCol, res.columns[i].comps);
-  }
+  GeoMatrix res;
+
+  const SimdVec aCol0 = simd_vec_load(a->columns[0].comps);
+  const SimdVec aCol1 = simd_vec_load(a->columns[1].comps);
+  const SimdVec aCol2 = simd_vec_load(a->columns[2].comps);
+  const SimdVec aCol3 = simd_vec_load(a->columns[3].comps);
+
+  SimdVec tmp0, tmp1, tmp2, tmp3;
+
+  tmp0 = simd_vec_load(b->columns[0].comps);
+  tmp1 = simd_vec_load(b->columns[1].comps);
+  tmp2 = simd_vec_mul(aCol0, simd_vec_splat(tmp0, 0));
+  tmp3 = simd_vec_mul(aCol0, simd_vec_splat(tmp1, 0));
+  tmp2 = simd_vec_add(simd_vec_mul(aCol1, simd_vec_shuffle(tmp0, tmp0, 1, 1, 1, 1)), tmp2);
+  tmp3 = simd_vec_add(simd_vec_mul(aCol1, simd_vec_shuffle(tmp1, tmp1, 1, 1, 1, 1)), tmp3);
+  tmp2 = simd_vec_add(simd_vec_mul(aCol2, simd_vec_shuffle(tmp0, tmp0, 2, 2, 2, 2)), tmp2);
+  tmp3 = simd_vec_add(simd_vec_mul(aCol2, simd_vec_shuffle(tmp1, tmp1, 2, 2, 2, 2)), tmp3);
+  tmp2 = simd_vec_add(simd_vec_mul(aCol3, simd_vec_shuffle(tmp0, tmp0, 3, 3, 3, 3)), tmp2);
+  tmp3 = simd_vec_add(simd_vec_mul(aCol3, simd_vec_shuffle(tmp1, tmp1, 3, 3, 3, 3)), tmp3);
+  simd_vec_store(tmp2, res.columns[0].comps);
+  simd_vec_store(tmp3, res.columns[1].comps);
+
+  tmp0 = simd_vec_load(b->columns[2].comps);
+  tmp1 = simd_vec_load(b->columns[3].comps);
+  tmp2 = simd_vec_mul(aCol0, simd_vec_splat(tmp0, 0));
+  tmp3 = simd_vec_mul(aCol0, simd_vec_splat(tmp1, 0));
+  tmp2 = simd_vec_add(simd_vec_mul(aCol1, simd_vec_shuffle(tmp0, tmp0, 1, 1, 1, 1)), tmp2);
+  tmp3 = simd_vec_add(simd_vec_mul(aCol1, simd_vec_shuffle(tmp1, tmp1, 1, 1, 1, 1)), tmp3);
+  tmp2 = simd_vec_add(simd_vec_mul(aCol2, simd_vec_shuffle(tmp0, tmp0, 2, 2, 2, 2)), tmp2);
+  tmp3 = simd_vec_add(simd_vec_mul(aCol2, simd_vec_shuffle(tmp1, tmp1, 2, 2, 2, 2)), tmp3);
+  tmp2 = simd_vec_add(simd_vec_mul(aCol3, simd_vec_shuffle(tmp0, tmp0, 3, 3, 3, 3)), tmp2);
+  tmp3 = simd_vec_add(simd_vec_mul(aCol3, simd_vec_shuffle(tmp1, tmp1, 3, 3, 3, 3)), tmp3);
+  simd_vec_store(tmp2, res.columns[2].comps);
+  simd_vec_store(tmp3, res.columns[3].comps);
+
   return res;
 #else
   GeoMatrix res;
