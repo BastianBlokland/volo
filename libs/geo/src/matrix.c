@@ -10,17 +10,18 @@
 #include "core_simd.h"
 #endif
 
-static void assert_normalized(const GeoVector v) {
+MAYBE_UNUSED static void assert_normalized(const GeoVector v) {
   MAYBE_UNUSED const f32 sqrMag = geo_vector_mag_sqr(v);
   diag_assert_msg(math_abs(sqrMag - 1) < 1e-4, "Given vector is not normalized");
 }
 
-static void assert_orthogonal(const GeoVector a, const GeoVector b) {
+MAYBE_UNUSED static void assert_orthogonal(const GeoVector a, const GeoVector b) {
   MAYBE_UNUSED const f32 dot = geo_vector_dot(a, b);
   diag_assert_msg(math_abs(dot) < 1e-4, "Given vectors are not orthogonal to eachother");
 }
 
-static void assert_orthonormal(const GeoVector right, const GeoVector up, const GeoVector fwd) {
+MAYBE_UNUSED static void
+assert_orthonormal(const GeoVector right, const GeoVector up, const GeoVector fwd) {
   assert_normalized(right);
   assert_normalized(up);
   assert_normalized(fwd);
@@ -312,7 +313,9 @@ GeoMatrix geo_matrix_rotate_z(const f32 angle) {
 }
 
 GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const GeoVector fwd) {
+#ifndef VOLO_FAST
   assert_orthonormal(right, up, fwd);
+#endif
 
   /**
    * [ right.x,   up.x,   fwd.x,  0 ]
