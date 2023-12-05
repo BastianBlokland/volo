@@ -95,11 +95,6 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_w_one(const SimdVec vec) {
   return simd_vec_copy_w(vec, simd_vec_broadcast(1.0f));
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_w_all_ones(const SimdVec vec) {
-  ALIGNAS(16) static const u32 g_mask[4] = {0, 0, 0, ~u32_lit(0)};
-  return simd_vec_copy_w(vec, simd_vec_load((f32*)g_mask));
-}
-
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {
   return _mm_add_ps(a, b);
 }
