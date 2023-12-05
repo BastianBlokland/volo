@@ -11,6 +11,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "rend_fog.h"
 #include "rend_instance.h"
 #include "rend_light.h"
 #include "scene_lifetime.h"
@@ -81,6 +82,7 @@ ecs_view_define(ParticleDrawView) {
    */
   ecs_access_without(VfxDrawDecalComp);
   ecs_access_without(RendInstanceDrawComp);
+  ecs_access_without(RendFogDrawComp);
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }

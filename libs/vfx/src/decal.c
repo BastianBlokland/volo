@@ -10,6 +10,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
+#include "rend_fog.h"
 #include "rend_instance.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
@@ -96,6 +97,7 @@ ecs_view_define(DecalDrawView) {
    */
   ecs_access_without(VfxDrawParticleComp);
   ecs_access_without(RendInstanceDrawComp);
+  ecs_access_without(RendFogDrawComp);
 }
 
 ecs_view_define(DecalInstanceView) { ecs_access_read(VfxDecalInstanceComp); }
