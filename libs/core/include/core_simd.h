@@ -83,9 +83,8 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask3(void) {
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
-  ALIGNAS(16) static const u32 g_mask[4] = {~u32_lit(0), ~u32_lit(0), ~u32_lit(0), 0};
-  // NOTE: Can we do this without a memory load?
-  return _mm_and_ps(vec, simd_vec_load((f32*)g_mask));
+  // Use a 4 byte shift to clear the w component.
+  return _mm_castsi128_ps(_mm_srli_si128(_mm_slli_si128(_mm_castps_si128(vec), 4), 4));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_copy_w(const SimdVec dst, const SimdVec src) {
