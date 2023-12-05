@@ -1,8 +1,7 @@
 #pragma once
 #include "core_annotation.h"
+#include "core_intrinsic.h"
 #include "core_types.h"
-
-#include <immintrin.h>
 
 /**
  * SIMD vector utilities using SSE, SSE2 and SSE3, SSE4 and SSE4.1 instructions.
@@ -209,7 +208,13 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_rsqrt(const SimdVec v) {
 }
 
 MAYBE_UNUSED INLINE_HINT static void simd_vec_sincos(const SimdVec v, SimdVec* sin, SimdVec* cos) {
+  // TODO: Implement a sse sincos, something along the lines of http://gruntthepeon.free.fr/ssemath/
+#if defined(VOLO_MSVC)
   *sin = _mm_sincos_ps(cos, v);
+#else
+  *sin = simd_vec_broadcast(intrinsic_sin_f32(simd_vec_x(v)));
+  *cos = simd_vec_broadcast(intrinsic_cos_f32(simd_vec_x(v)));
+#endif
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
