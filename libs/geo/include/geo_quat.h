@@ -36,6 +36,7 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
 /**
  * Compute a quaternion that rotates around an axis.
  * NOTE: Angle is in radians.
+ * Pre-condition: axis is normalized.
  */
 GeoQuat geo_quat_angle_axis(GeoVector axis, f32 angle);
 

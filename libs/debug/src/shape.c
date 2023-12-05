@@ -9,6 +9,7 @@
 #include "debug_shape.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
+#include "rend_fog.h"
 #include "rend_instance.h"
 
 typedef enum {
@@ -157,6 +158,7 @@ ecs_view_define(DrawView) {
    * allows the scheduler to run the shape draw filling and the instance draw filling in parallel.
    */
   ecs_access_without(RendInstanceDrawComp);
+  ecs_access_without(RendFogDrawComp);
 }
 
 static AssetManagerComp* debug_asset_manager(EcsWorld* world) {

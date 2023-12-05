@@ -483,7 +483,7 @@ static bool gizmo_update_interaction_rotation(
 
   GeoVector axis = geo_quat_rotate(data->baseRot, g_gizmoRotationRings[section].normal);
   if (geo_vector_dot(ray->dir, axis) > 0) {
-    axis = geo_vector_mul(axis, -1.0f); // Axis is pointing await from the camera; flip.
+    axis = geo_vector_mul(axis, -1.0f); // Axis is pointing away from the camera; flip.
   }
   const GeoPlane plane   = geo_plane_at(axis, data->basePos);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);

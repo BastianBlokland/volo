@@ -3,6 +3,7 @@
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "rend_draw.h"
+#include "rend_fog.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_faction.h"
@@ -15,6 +16,8 @@
 static const String g_fogVisionGraphic = string_static("graphics/fog_vision.graphic");
 static const f32    g_worldHeight      = 100.0f;
 
+ecs_comp_define(RendFogDrawComp);
+
 ecs_comp_define(RendFogComp) {
   EcsEntityId drawEntity;
   GeoMatrix   transMatrix, projMatrix;
@@ -26,7 +29,11 @@ ecs_view_define(GlobalView) {
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_write(AssetManagerComp);
 }
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
+ecs_view_define(DrawView) {
+  ecs_access_with(RendFogDrawComp);
+  ecs_access_write(RendDrawComp);
+}
 
 ecs_view_define(VisionEntityView) {
   ecs_access_read(SceneFactionComp);
@@ -56,11 +63,15 @@ static void rend_fog_update_proj(RendFogComp* fog, const SceneTerrainComp* terra
 
 static void rend_fog_create(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId global = ecs_world_global(world);
+
+  const EcsEntityId drawEntity = rend_fog_draw_create(world, assets);
+  ecs_world_add_empty_t(world, drawEntity, RendFogDrawComp);
+
   ecs_world_add_t(
       world,
       global,
       RendFogComp,
-      .drawEntity  = rend_fog_draw_create(world, assets),
+      .drawEntity  = drawEntity,
       .transMatrix = geo_matrix_rotate_x(math_pi_f32 * 0.5f));
 }
 
@@ -113,6 +124,7 @@ ecs_system_define(RendFogRenderSys) {
 }
 
 ecs_module_init(rend_fog_module) {
+  ecs_register_comp_empty(RendFogDrawComp);
   ecs_register_comp(RendFogComp);
 
   ecs_register_view(GlobalView);

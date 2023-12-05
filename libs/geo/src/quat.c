@@ -12,33 +12,30 @@
 #include "core_simd.h"
 #endif
 
+MAYBE_UNUSED static void assert_normalized(const GeoVector v) {
+  MAYBE_UNUSED const f32 sqrMag = geo_vector_mag_sqr(v);
+  diag_assert_msg(math_abs(sqrMag - 1) < 1e-4, "Given vector is not normalized");
+}
+
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
-  /**
-   * TODO: Should we add the pre-condition that the axis should be a unit vector?
-   */
+#ifndef VOLO_FAST
+  assert_normalized(axis);
+#endif
+
 #if geo_quat_simd_enable
-  const SimdVec axisVec    = simd_vec_load(axis.comps);
-  const SimdVec axisSqrMag = simd_vec_dot4(axisVec, axisVec);
-  if (simd_vec_x(axisSqrMag) <= f32_epsilon) {
-    return geo_quat_ident;
-  }
-  const SimdVec axisMag      = simd_vec_sqrt(axisSqrMag);
-  const SimdVec axisUnit     = simd_vec_div(axisVec, axisMag);
-  const f32     halfHandle   = angle * 0.5f;
-  const f32     sinHalfAngle = intrinsic_sin_f32(halfHandle);
-  const f32     cosHalfAngle = intrinsic_cos_f32(halfHandle);
-  GeoQuat       res;
-  simd_vec_store(simd_vec_mul(axisUnit, simd_vec_broadcast(sinHalfAngle)), res.comps);
-  res.w = cosHalfAngle;
+  const SimdVec angleVec     = simd_vec_broadcast(angle);
+  const SimdVec angleHalfVec = simd_vec_mul(angleVec, simd_vec_broadcast(0.5f));
+
+  SimdVec sinVec, cosVec;
+  simd_vec_sincos(angleHalfVec, &sinVec, &cosVec);
+
+  const SimdVec sinAxisVec = simd_vec_mul(sinVec, simd_vec_load(axis.comps));
+
+  GeoQuat res;
+  simd_vec_store(simd_vec_copy_w(sinAxisVec, cosVec), res.comps);
   return res;
 #else
-  const f32 axisMagSqr = geo_vector_mag_sqr(axis);
-  if (axisMagSqr <= f32_epsilon) {
-    return geo_quat_ident;
-  }
-  const f32       axisMag     = intrinsic_sqrt_f32(axisMagSqr);
-  const GeoVector unitVecAxis = geo_vector_div(axis, axisMag);
-  const GeoVector vec         = geo_vector_mul(unitVecAxis, intrinsic_sin_f32(angle * .5f));
+  const GeoVector vec = geo_vector_mul(axis, intrinsic_sin_f32(angle * .5f));
   return (GeoQuat){vec.x, vec.y, vec.z, intrinsic_cos_f32(angle * .5f)};
 #endif
 }

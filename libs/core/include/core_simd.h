@@ -1,8 +1,7 @@
 #pragma once
 #include "core_annotation.h"
+#include "core_intrinsic.h"
 #include "core_types.h"
-
-#include <immintrin.h>
 
 /**
  * SIMD vector utilities using SSE, SSE2 and SSE3, SSE4 and SSE4.1 instructions.
@@ -75,7 +74,7 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) 
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
-  return simd_vec_set(-0.0f, -0.0f, -0.0f, -0.0f);
+  return simd_vec_broadcast(-0.0f);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask3(void) {
@@ -83,9 +82,8 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask3(void) {
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
-  ALIGNAS(16) static const u32 g_mask[4] = {~u32_lit(0), ~u32_lit(0), ~u32_lit(0), 0};
-  // NOTE: Can we do this without a memory load?
-  return _mm_and_ps(vec, simd_vec_load((f32*)g_mask));
+  // Use a 4 byte shift to clear the w component.
+  return _mm_castsi128_ps(_mm_srli_si128(_mm_slli_si128(_mm_castps_si128(vec), 4), 4));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_copy_w(const SimdVec dst, const SimdVec src) {
@@ -94,11 +92,6 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_copy_w(const SimdVec dst, const
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_w_one(const SimdVec vec) {
   return simd_vec_copy_w(vec, simd_vec_broadcast(1.0f));
-}
-
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_w_all_ones(const SimdVec vec) {
-  ALIGNAS(16) static const u32 g_mask[4] = {0, 0, 0, ~u32_lit(0)};
-  return simd_vec_copy_w(vec, simd_vec_load((f32*)g_mask));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {
@@ -212,6 +205,16 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_rsqrt(const SimdVec v) {
   const SimdVec rcp   = _mm_rsqrt_ps(v);
   const SimdVec mul   = simd_vec_mul(simd_vec_mul(v, rcp), rcp);
   return simd_vec_mul(simd_vec_mul(half, rcp), simd_vec_sub(three, mul));
+}
+
+MAYBE_UNUSED INLINE_HINT static void simd_vec_sincos(const SimdVec v, SimdVec* sin, SimdVec* cos) {
+  // TODO: Implement a sse sincos, something along the lines of http://gruntthepeon.free.fr/ssemath/
+#if defined(VOLO_MSVC)
+  *sin = _mm_sincos_ps(cos, v);
+#else
+  *sin = simd_vec_broadcast(intrinsic_sin_f32(simd_vec_x(v)));
+  *cos = simd_vec_broadcast(intrinsic_cos_f32(simd_vec_x(v)));
+#endif
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
