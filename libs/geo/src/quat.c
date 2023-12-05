@@ -12,7 +12,14 @@
 #include "core_simd.h"
 #endif
 
+static void assert_normalized(const GeoVector v) {
+  MAYBE_UNUSED const f32 sqrMag = geo_vector_mag_sqr(v);
+  diag_assert_msg(math_abs(sqrMag - 1) < 1e-4, "Given vector is not normalized");
+}
+
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
+  assert_normalized(axis);
+
 #if geo_quat_simd_enable
   const SimdVec angleVec     = simd_vec_broadcast(angle);
   const SimdVec angleHalfVec = simd_vec_mul(angleVec, simd_vec_broadcast(0.5f));
