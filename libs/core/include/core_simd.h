@@ -208,6 +208,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_rsqrt(const SimdVec v) {
   return simd_vec_mul(simd_vec_mul(half, rcp), simd_vec_sub(three, mul));
 }
 
+MAYBE_UNUSED INLINE_HINT static void simd_vec_sincos(const SimdVec v, SimdVec* sin, SimdVec* cos) {
+  *sin = _mm_sincos_ps(cos, v);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
   const SimdVec t1  = simd_vec_permute(a, 3, 0, 2, 1);  // = (a.y, a.z, a.x, a.w)
   const SimdVec t2  = simd_vec_permute(b, 3, 1, 0, 2);  // = (b.z, b.x, b.y, b.w)
