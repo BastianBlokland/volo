@@ -6,3 +6,8 @@ ecs_comp_extern_public(SceneLightPointComp) {
   GeoColor radiance;
   f32      radius;
 };
+
+ecs_comp_extern_public(SceneLightDirComp) {
+  GeoColor radiance;
+  bool     shadows, coverage;
+};
