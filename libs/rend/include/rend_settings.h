@@ -111,23 +111,19 @@ ecs_comp_extern_public(RendSettingsComp) {
 };
 
 typedef enum {
-  RendGlobalFlags_SunShadows  = 1 << 0,
-  RendGlobalFlags_SunCoverage = 1 << 1,
-  RendGlobalFlags_Validation  = 1 << 2,
-  RendGlobalFlags_Verbose     = 1 << 3,
-  RendGlobalFlags_DebugGpu    = 1 << 4,
-  RendGlobalFlags_DebugLight  = 1 << 5,
+  RendGlobalFlags_Validation = 1 << 0,
+  RendGlobalFlags_Verbose    = 1 << 1,
+  RendGlobalFlags_DebugGpu   = 1 << 2,
+  RendGlobalFlags_DebugLight = 1 << 3,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendSettingsGlobalComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
 
-  f32      lightAmbient;
-  GeoColor lightSunRadiance;
-  GeoQuat  lightSunRotation;
-  f32      shadowFilterSize; // In world space.
-  f32      fogDilation;
+  f32 lightAmbient;
+  f32 shadowFilterSize; // In world space.
+  f32 fogDilation;
 };
 
 RendSettingsGlobalComp* rend_settings_global_init(EcsWorld*);

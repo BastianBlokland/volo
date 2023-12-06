@@ -213,26 +213,6 @@ ecs_system_define(RendLightPushSys) {
   }
 }
 
-ecs_system_define(RendLightSunSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return; // Global dependencies not yet available.
-  }
-  const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
-  RendLightComp*                light    = ecs_view_write_t(globalItr, RendLightComp);
-  if (light) {
-    RendLightFlags flags = RendLightFlags_None;
-    if (settings->flags & RendGlobalFlags_SunShadows) {
-      flags |= RendLightFlags_Shadow;
-    }
-    if (settings->flags & RendGlobalFlags_SunCoverage) {
-      flags |= RendLightFlags_CoverageMask;
-    }
-    rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance, flags);
-  }
-}
-
 static void rend_clip_frustum_far_dist(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const f32 maxDist) {
   for (u32 i = 0; i != 4; ++i) {
     const u32       idxNear = i;
@@ -469,7 +449,6 @@ ecs_module_init(rend_light_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(LightPointInstView),
       ecs_view_id(LightDirInstView));
-  ecs_register_system(RendLightSunSys, ecs_view_id(GlobalView));
 
   ecs_register_system(
       RendLightRenderSys,

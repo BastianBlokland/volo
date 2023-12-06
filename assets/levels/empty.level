@@ -7532,6 +7532,23 @@
       "scale": 1
     },
     {
+      "id": 1993375876,
+      "prefab": "Sun",
+      "faction": "None",
+      "position": {
+        "x": 15.2253,
+        "y": 14.6287,
+        "z": -16.042
+      },
+      "rotation": {
+        "x": 0.2475,
+        "y": 0.2317,
+        "z": -0.0485,
+        "w": 0.9395
+      },
+      "scale": 1
+    },
+    {
       "id": 1998873012,
       "prefab": "PropRock",
       "faction": "None",
