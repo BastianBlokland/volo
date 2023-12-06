@@ -107,6 +107,12 @@ ecs_view_define(LightPointInstView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
+ecs_view_define(LightDirInstView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneLightDirComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
   return (u32)type + (u32)variation;
 }
@@ -168,6 +174,7 @@ ecs_system_define(RendLightPushSys) {
     return; // Global light component not created yet.
   }
 
+  // Push all point-lights.
   EcsView* pointLights = ecs_world_view_t(world, LightPointInstView);
   for (EcsIterator* itr = ecs_view_itr(pointLights); ecs_view_walk(itr);) {
     const SceneTransformComp*  transformComp = ecs_view_read_t(itr, SceneTransformComp);
@@ -182,6 +189,27 @@ ecs_system_define(RendLightPushSys) {
     }
     const RendLightFlags flags = RendLightFlags_None;
     rend_light_point(light, transformComp->position, radiance, radius, flags);
+  }
+
+  // Push all directional lights.
+  EcsView* dirLights = ecs_world_view_t(world, LightDirInstView);
+  for (EcsIterator* itr = ecs_view_itr(dirLights); ecs_view_walk(itr);) {
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightDirComp*  dirComp       = ecs_view_read_t(itr, SceneLightDirComp);
+
+    GeoColor radiance = dirComp->radiance;
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+    }
+    RendLightFlags flags = RendLightFlags_None;
+    if (dirComp->shadows) {
+      flags |= RendLightFlags_Shadow;
+    }
+    if (dirComp->coverage) {
+      flags |= RendLightFlags_CoverageMask;
+    }
+    rend_light_directional(light, transformComp->rotation, radiance, flags);
   }
 }
 
@@ -434,8 +462,13 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(DrawView);
   ecs_register_view(CameraView);
   ecs_register_view(LightPointInstView);
+  ecs_register_view(LightDirInstView);
 
-  ecs_register_system(RendLightPushSys, ecs_view_id(GlobalView), ecs_view_id(LightPointInstView));
+  ecs_register_system(
+      RendLightPushSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(LightPointInstView),
+      ecs_view_id(LightDirInstView));
   ecs_register_system(RendLightSunSys, ecs_view_id(GlobalView));
 
   ecs_register_system(
