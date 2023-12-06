@@ -745,7 +745,7 @@
     {
       "name": "LightTest",
       "traits": [
-        { "$type": "AssetPrefabTrait_LightPoint", "radiance": { "r": 1, "g": 1, "b": 1, "a": 1 }, "radius": 10 }
+        { "$type": "AssetPrefabTrait_LightPoint", "radiance": { "r": 1, "g": 0.1, "b": 0.1, "a": 1000 }, "radius": 15 }
       ]
     },
     {
