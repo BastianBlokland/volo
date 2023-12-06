@@ -368,6 +368,10 @@ ecs_system_define(RendLightRenderSys) {
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
     RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
     dynarray_for_t(&light->entries, RendLight, entry) {
+      if (entry->type == RendLightType_Ambient) {
+        renderer->ambientIntensity += entry->data_ambient.intensity;
+        continue;
+      }
       const u32 drawIndex = rend_draw_index(entry->type, var);
       if (!renderer->drawEntities[drawIndex]) {
         continue;
@@ -450,10 +454,6 @@ ecs_system_define(RendLightRenderSys) {
             .radianceAndRadiusInv.b = radiance.b,
             .radianceAndRadiusInv.a = 1.0f / radius,
         };
-        break;
-      }
-      case RendLightType_Ambient: {
-        renderer->ambientIntensity += entry->data_ambient.intensity;
         break;
       }
       default:
