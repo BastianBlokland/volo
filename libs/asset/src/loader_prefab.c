@@ -133,6 +133,11 @@ typedef struct {
 } AssetPrefabTraitLightPointDef;
 
 typedef struct {
+  AssetPrefabColorDef radiance;
+  bool                shadows, coverage;
+} AssetPrefabTraitLightDirDef;
+
+typedef struct {
   f32 duration;
 } AssetPrefabTraitLifetimeDef;
 
@@ -215,6 +220,7 @@ typedef struct {
     AssetPrefabTraitDecalDef      data_decal;
     AssetPrefabTraitSoundDef      data_sound;
     AssetPrefabTraitLightPointDef data_lightPoint;
+    AssetPrefabTraitLightDirDef   data_lightDir;
     AssetPrefabTraitLifetimeDef   data_lifetime;
     AssetPrefabTraitMovementDef   data_movement;
     AssetPrefabTraitFootstepDef   data_footstep;
@@ -328,6 +334,11 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitLightPointDef, radiance, t_AssetPrefabColorDef, .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitLightPointDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitLightDirDef);
+    data_reg_field_t(reg, AssetPrefabTraitLightDirDef, radiance, t_AssetPrefabColorDef, .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitLightDirDef, shadows, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitLightDirDef, coverage, data_prim_t(bool), .flags = DataFlags_Opt);
+
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
@@ -398,6 +409,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSoundDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_LightPoint, data_lightPoint, t_AssetPrefabTraitLightPointDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_LightDir, data_lightDir, t_AssetPrefabTraitLightDirDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetimeDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
@@ -629,6 +641,13 @@ static void prefab_build(
       outTrait->data_lightPoint = (AssetPrefabTraitLightPoint){
           .radiance = prefab_build_color(&traitDef->data_lightPoint.radiance),
           .radius   = math_max(0.01f, traitDef->data_lightPoint.radius),
+      };
+      break;
+    case AssetPrefabTrait_LightDir:
+      outTrait->data_lightDir = (AssetPrefabTraitLightDir){
+          .radiance = prefab_build_color(&traitDef->data_lightDir.radiance),
+          .shadows  = traitDef->data_lightDir.shadows,
+          .coverage = traitDef->data_lightDir.coverage,
       };
       break;
     case AssetPrefabTrait_Lifetime:
