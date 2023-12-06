@@ -170,6 +170,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
+  ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -348,6 +349,34 @@ static void inspector_panel_draw_transform(
     if (debug_widget_editor_f32(canvas, &scale->scale, UiWidget_Default)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
+    }
+  }
+}
+
+static void inspector_panel_draw_light(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneLightPointComp* point = subject ? ecs_view_write_t(subject, SceneLightPointComp) : null;
+  if (!point) {
+    return;
+  }
+  inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, string_lit("Light"))) {
+    if (point) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radiance"));
+      ui_table_next_column(canvas, table);
+      debug_widget_editor_color(canvas, &point->radiance, UiWidget_Default);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radius"));
+      ui_table_next_column(canvas, table);
+      if (debug_widget_editor_f32(canvas, &point->radius, UiWidget_Default)) {
+        // Clamp the radius to a sane value.
+        point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
+      }
     }
   }
 }
@@ -702,6 +731,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_light(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_health(canvas, panelComp, &table, subject);
