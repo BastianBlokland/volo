@@ -885,6 +885,23 @@
       "scale": 1
     },
     {
+      "id": 232662279,
+      "prefab": "Moon",
+      "faction": "None",
+      "position": {
+        "x": -6.0993,
+        "y": 4.2789,
+        "z": -0.9183
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 244694503,
       "prefab": "PropWreck",
       "faction": "None",
