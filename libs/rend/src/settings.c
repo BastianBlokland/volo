@@ -38,6 +38,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling       |
              RendFlags_AmbientOcclusion     |
              RendFlags_AmbientOcclusionBlur |
+             RendFlags_Shadows              |
              RendFlags_Bloom                |
              RendFlags_Fog                  |
              RendFlags_Distortion           |

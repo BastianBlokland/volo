@@ -53,7 +53,7 @@ static const String g_tooltipDefaults         = string_static("Reset all setting
 static const String g_tooltipReset            = string_static("Re-initialize the renderer.");
 static const String g_tooltipFreeze           = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipResourceFilter   = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
-static const String g_tooltipSunShadows       = string_static("Use a directional shadow map to allow geometry to occlude the sun radiance.");
+static const String g_tooltipShadows          = string_static("Enable shadow-map rendering to allow geometry to occlude the light radiance.");
 static const String g_tooltipSunCoverage      = string_static("Use a panning coverage mask to simulate clouds absorbing some of the sun radiance.");
 static const String g_tooltipShadowFilterSize = string_static("Shadow filter size (in meters).\nControls the size of the soft shadow edge.");
 static const String g_tooltipAmbient          = string_static("Global ambient lighting brightness.");
@@ -835,13 +835,9 @@ static void rend_light_tab_draw(
   }
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Sun shadows"));
+  ui_label(canvas, string_lit("Shadows"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&settingsGlobal->flags,
-      RendGlobalFlags_SunShadows,
-      .tooltip = g_tooltipSunShadows);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Shadows, .tooltip = g_tooltipShadows);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun coverage"));

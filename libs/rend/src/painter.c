@@ -828,12 +828,12 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  const RvkSize shadowSize = rend_light_has_shadow(light)
-                                 ? (RvkSize){set->shadowResolution, set->shadowResolution}
-                                 : (RvkSize){1, 1};
-  RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
+  const bool    shadowsActive = set->flags & RendFlags_Shadows && rend_light_has_shadow(light);
+  const RvkSize shadowSize =
+      shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
+  RvkPass*  shadowPass  = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
-  if (rend_light_has_shadow(light)) {
+  if (shadowsActive) {
     const GeoMatrix*     shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix*     shadProj   = rend_light_shadow_proj(light);
     const SceneTagFilter shadFilter = {
