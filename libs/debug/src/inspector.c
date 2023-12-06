@@ -60,6 +60,7 @@ typedef enum {
   DebugInspectorVis_BoundsGlobal,
   DebugInspectorVis_NavigationPath,
   DebugInspectorVis_NavigationGrid,
+  DebugInspectorVis_Light,
   DebugInspectorVis_Health,
   DebugInspectorVis_Target,
   DebugInspectorVis_Vision,
@@ -96,6 +97,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
     [DebugInspectorVis_NavigationPath]  = string_static("NavigationPath"),
     [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
+    [DebugInspectorVis_Light]           = string_static("Light"),
     [DebugInspectorVis_Health]          = string_static("Health"),
     [DebugInspectorVis_Target]          = string_static("Target"),
     [DebugInspectorVis_Vision]          = string_static("Vision"),
@@ -783,6 +785,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   u32 defaultVisFlags = 0;
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
   defaultVisFlags |= 1 << DebugInspectorVis_Script;
+  defaultVisFlags |= 1 << DebugInspectorVis_Light;
 
   return ecs_world_add_t(
       world,
@@ -1167,6 +1170,15 @@ static void inspector_vis_draw_navigation_path(
   }
 }
 
+static void inspector_vis_draw_light_point(
+    DebugShapeComp*            shape,
+    const SceneLightPointComp* lightPoint,
+    const SceneTransformComp*  transform) {
+  const GeoVector pos    = transform ? transform->position : geo_vector(0);
+  const f32       radius = lightPoint->radius;
+  debug_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
+}
+
 static void inspector_vis_draw_health(
     DebugTextComp* text, const SceneHealthComp* health, const SceneTransformComp* transform) {
   const GeoVector pos          = transform ? transform->position : geo_vector(0);
@@ -1275,20 +1287,22 @@ static void inspector_vis_draw_subject(
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
     const SceneNavEnvComp*            nav,
-    EcsIterator*                      subject) {
-  const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
-  const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
-  const SceneHealthComp*     healthComp    = ecs_view_read_t(subject, SceneHealthComp);
-  const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
-  const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
-  const SceneNavAgentComp*   navAgentComp  = ecs_view_read_t(subject, SceneNavAgentComp);
-  const SceneNavPathComp*    navPathComp   = ecs_view_read_t(subject, SceneNavPathComp);
-  const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
-  const SceneTransformComp*  transformComp = ecs_view_read_t(subject, SceneTransformComp);
-  const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
-  const SceneVisionComp*     visionComp    = ecs_view_read_t(subject, SceneVisionComp);
-  const SceneLocationComp*   locationComp  = ecs_view_read_t(subject, SceneLocationComp);
-  const SceneScriptComp*     scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
+    EcsIterator*                      subject,
+    const bool                        debugLayerActive) {
+  const SceneBoundsComp*     boundsComp     = ecs_view_read_t(subject, SceneBoundsComp);
+  const SceneCollisionComp*  collisionComp  = ecs_view_read_t(subject, SceneCollisionComp);
+  const SceneHealthComp*     healthComp     = ecs_view_read_t(subject, SceneHealthComp);
+  const SceneLightPointComp* lightPointComp = ecs_view_read_t(subject, SceneLightPointComp);
+  const SceneLocationComp*   locationComp   = ecs_view_read_t(subject, SceneLocationComp);
+  const SceneLocomotionComp* locoComp       = ecs_view_read_t(subject, SceneLocomotionComp);
+  const SceneNameComp*       nameComp       = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavAgentComp*   navAgentComp   = ecs_view_read_t(subject, SceneNavAgentComp);
+  const SceneNavPathComp*    navPathComp    = ecs_view_read_t(subject, SceneNavPathComp);
+  const SceneScaleComp*      scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneScriptComp*     scriptComp     = ecs_view_read_t(subject, SceneScriptComp);
+  const SceneTransformComp*  transformComp  = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneVelocityComp*   veloComp       = ecs_view_read_t(subject, SceneVelocityComp);
+  const SceneVisionComp*     visionComp     = ecs_view_read_t(subject, SceneVisionComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1323,6 +1337,9 @@ static void inspector_vis_draw_subject(
   }
   if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
+  }
+  if (debugLayerActive && lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+    inspector_vis_draw_light_point(shape, lightPointComp, transformComp);
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
@@ -1481,13 +1498,13 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     const StringHash s = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
-        inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+        inspector_vis_draw_subject(shape, text, set, nav, subjectItr, debugLayerActive);
       }
     }
   } break;
   case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_subject(shape, text, set, nav, itr);
+      inspector_vis_draw_subject(shape, text, set, nav, itr, debugLayerActive);
     }
   } break;
   case DebugInspectorVisMode_Count:
