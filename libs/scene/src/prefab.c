@@ -227,6 +227,10 @@ static void setup_light_dir(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLi
       .coverage = t->coverage);
 }
 
+static void setup_light_ambient(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLightAmbient* t) {
+  ecs_world_add_t(w, e, SceneLightAmbientComp, .intensity = t->intensity);
+}
+
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
   ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
 }
@@ -465,6 +469,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_LightDir:
     setup_light_dir(w, e, &t->data_lightDir);
+    return;
+  case AssetPrefabTrait_LightAmbient:
+    setup_light_ambient(w, e, &t->data_lightAmbient);
     return;
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);

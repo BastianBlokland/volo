@@ -50,6 +50,7 @@ typedef enum {
   AssetPrefabTrait_Sound,
   AssetPrefabTrait_LightPoint,
   AssetPrefabTrait_LightDir,
+  AssetPrefabTrait_LightAmbient,
   AssetPrefabTrait_Lifetime,
   AssetPrefabTrait_Movement,
   AssetPrefabTrait_Footstep,
@@ -104,6 +105,10 @@ typedef struct {
   GeoColor radiance;
   bool     shadows, coverage;
 } AssetPrefabTraitLightDir;
+
+typedef struct {
+  f32 intensity;
+} AssetPrefabTraitLightAmbient;
 
 typedef struct {
   TimeDuration duration;
@@ -178,26 +183,27 @@ typedef struct {
 typedef struct {
   AssetPrefabTraitType type;
   union {
-    AssetPrefabTraitName       data_name;
-    AssetPrefabTraitSetMember  data_setMember;
-    AssetPrefabTraitRenderable data_renderable;
-    AssetPrefabTraitVfx        data_vfx;
-    AssetPrefabTraitDecal      data_decal;
-    AssetPrefabTraitSound      data_sound;
-    AssetPrefabTraitLightPoint data_lightPoint;
-    AssetPrefabTraitLightDir   data_lightDir;
-    AssetPrefabTraitLifetime   data_lifetime;
-    AssetPrefabTraitMovement   data_movement;
-    AssetPrefabTraitFootstep   data_footstep;
-    AssetPrefabTraitHealth     data_health;
-    AssetPrefabTraitAttack     data_attack;
-    AssetPrefabTraitCollision  data_collision;
-    AssetPrefabTraitScript     data_script;
-    AssetPrefabTraitBark       data_bark;
-    AssetPrefabTraitLocation   data_location;
-    AssetPrefabTraitStatus     data_status;
-    AssetPrefabTraitVision     data_vision;
-    AssetPrefabTraitProduction data_production;
+    AssetPrefabTraitName         data_name;
+    AssetPrefabTraitSetMember    data_setMember;
+    AssetPrefabTraitRenderable   data_renderable;
+    AssetPrefabTraitVfx          data_vfx;
+    AssetPrefabTraitDecal        data_decal;
+    AssetPrefabTraitSound        data_sound;
+    AssetPrefabTraitLightPoint   data_lightPoint;
+    AssetPrefabTraitLightDir     data_lightDir;
+    AssetPrefabTraitLightAmbient data_lightAmbient;
+    AssetPrefabTraitLifetime     data_lifetime;
+    AssetPrefabTraitMovement     data_movement;
+    AssetPrefabTraitFootstep     data_footstep;
+    AssetPrefabTraitHealth       data_health;
+    AssetPrefabTraitAttack       data_attack;
+    AssetPrefabTraitCollision    data_collision;
+    AssetPrefabTraitScript       data_script;
+    AssetPrefabTraitBark         data_bark;
+    AssetPrefabTraitLocation     data_location;
+    AssetPrefabTraitStatus       data_status;
+    AssetPrefabTraitVision       data_vision;
+    AssetPrefabTraitProduction   data_production;
   };
 } AssetPrefabTrait;
 

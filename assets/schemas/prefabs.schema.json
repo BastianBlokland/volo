@@ -248,6 +248,23 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabTrait_LightAmbient"
+            },
+            "intensity": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "intensity"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabTrait_Lifetime"
             },
             "duration": {
@@ -620,6 +637,10 @@
         {
           "label": "New AssetPrefabTrait_LightDir",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}"
+        },
+        {
+          "label": "New AssetPrefabTrait_LightAmbient",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}"
         },
         {
           "label": "New AssetPrefabTrait_Lifetime",
