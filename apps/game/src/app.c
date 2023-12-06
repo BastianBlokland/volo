@@ -106,23 +106,22 @@ static void app_quality_apply(
   } else {
     rendSetGlobal->limiterFreq = 0;
   }
-  static const RendFlags g_rendOptionalFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
-                                                  RendFlags_Distortion | RendFlags_ParticleShadows;
+  static const RendFlags g_rendLowFeatures    = RendFlags_Shadows;
+  static const RendFlags g_rendMediumFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
+                                                RendFlags_Distortion | RendFlags_ParticleShadows;
   switch (prefs->quality) {
   case GameQuality_VeryLow:
-    rendSetGlobal->flags &= ~RendGlobalFlags_SunShadows;
-    rendSetWin->flags &= ~g_rendOptionalFeatures;
+    rendSetWin->flags &= ~(g_rendLowFeatures | g_rendMediumFeatures);
     rendSetWin->resolutionScale = 0.75f;
     break;
   case GameQuality_Low:
-    rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
-    rendSetWin->flags &= ~g_rendOptionalFeatures;
+    rendSetWin->flags |= g_rendLowFeatures;
+    rendSetWin->flags &= ~g_rendMediumFeatures;
     rendSetWin->resolutionScale  = 0.75f;
     rendSetWin->shadowResolution = 1024;
     break;
   case GameQuality_Medium:
-    rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
-    rendSetWin->flags |= g_rendOptionalFeatures;
+    rendSetWin->flags |= g_rendLowFeatures | g_rendMediumFeatures;
     rendSetWin->resolutionScale           = 1.0f;
     rendSetWin->aoResolutionScale         = 0.75f;
     rendSetWin->shadowResolution          = 2048;
@@ -130,8 +129,7 @@ static void app_quality_apply(
     rendSetWin->distortionResolutionScale = 0.25f;
     break;
   case GameQuality_High:
-    rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
-    rendSetWin->flags |= g_rendOptionalFeatures;
+    rendSetWin->flags |= g_rendLowFeatures | g_rendMediumFeatures;
     rendSetWin->resolutionScale           = 1.0f;
     rendSetWin->aoResolutionScale         = 1.0f;
     rendSetWin->shadowResolution          = 4096;
