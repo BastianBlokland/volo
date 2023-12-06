@@ -2,6 +2,7 @@
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "geo_color.h"
 #include "geo_vector.h"
 
 // Forward declare from 'core_dynstring.h'.
@@ -47,6 +48,7 @@ typedef enum {
   AssetPrefabTrait_Vfx,
   AssetPrefabTrait_Decal,
   AssetPrefabTrait_Sound,
+  AssetPrefabTrait_LightPoint,
   AssetPrefabTrait_Lifetime,
   AssetPrefabTrait_Movement,
   AssetPrefabTrait_Footstep,
@@ -91,6 +93,11 @@ typedef struct {
   bool        looping;
   bool        persistent; // Pre-load the asset and keep it in memory.
 } AssetPrefabTraitSound;
+
+typedef struct {
+  GeoColor radiance;
+  f32      radius;
+} AssetPrefabTraitLightPoint;
 
 typedef struct {
   TimeDuration duration;
@@ -171,6 +178,7 @@ typedef struct {
     AssetPrefabTraitVfx        data_vfx;
     AssetPrefabTraitDecal      data_decal;
     AssetPrefabTraitSound      data_sound;
+    AssetPrefabTraitLightPoint data_lightPoint;
     AssetPrefabTraitLifetime   data_lifetime;
     AssetPrefabTraitMovement   data_movement;
     AssetPrefabTraitFootstep   data_footstep;
