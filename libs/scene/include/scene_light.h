@@ -11,3 +11,5 @@ ecs_comp_extern_public(SceneLightDirComp) {
   GeoColor radiance;
   bool     shadows, coverage;
 };
+
+ecs_comp_extern_public(SceneLightAmbientComp) { f32 ambientIntensity; };
