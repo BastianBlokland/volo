@@ -174,6 +174,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneHealthComp);
   ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneLightDirComp);
+  ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -361,9 +362,10 @@ static void inspector_panel_draw_light(
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
     EcsIterator*             subject) {
-  SceneLightPointComp* point = subject ? ecs_view_write_t(subject, SceneLightPointComp) : null;
-  SceneLightDirComp*   dir   = subject ? ecs_view_write_t(subject, SceneLightDirComp) : null;
-  if (!point && !dir) {
+  SceneLightPointComp*   point = subject ? ecs_view_write_t(subject, SceneLightPointComp) : null;
+  SceneLightDirComp*     dir   = subject ? ecs_view_write_t(subject, SceneLightDirComp) : null;
+  SceneLightAmbientComp* amb   = subject ? ecs_view_write_t(subject, SceneLightAmbientComp) : null;
+  if (!point && !dir && !amb) {
     return;
   }
   inspector_panel_next(canvas, panelComp, table);
@@ -397,6 +399,15 @@ static void inspector_panel_draw_light(
       ui_label(canvas, string_lit("Coverage"));
       ui_table_next_column(canvas, table);
       ui_toggle(canvas, &dir->coverage);
+    }
+    if (amb) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Ambient"));
+      ui_table_next_column(canvas, table);
+      if (debug_widget_editor_f32(canvas, &amb->intensity, UiWidget_Default)) {
+        // Clamp the ambient intensity to a sane value.
+        amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
+      }
     }
   }
 }
