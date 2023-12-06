@@ -1418,6 +1418,8 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = UiShape_Grain;
     } else if (ecs_world_has_t(world, e, SceneLightPointComp)) {
       icon = UiShape_Light;
+    } else if (ecs_world_has_t(world, e, SceneLightDirComp)) {
+      icon = UiShape_Light;
     } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
       icon = UiShape_MusicNote;
     } else {
