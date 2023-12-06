@@ -223,6 +223,31 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabTrait_LightDir"
+            },
+            "radiance": {
+              "title": "AssetPrefabColorDef",
+              "$ref": "#/$defs/AssetPrefabColorDef"
+            },
+            "shadows": {
+              "title": "bool",
+              "type": "boolean"
+            },
+            "coverage": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "radiance"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabTrait_Lifetime"
             },
             "duration": {
@@ -591,6 +616,10 @@
         {
           "label": "New AssetPrefabTrait_LightPoint",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  },\n  \"radius\": 1\n}"
+        },
+        {
+          "label": "New AssetPrefabTrait_LightDir",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}"
         },
         {
           "label": "New AssetPrefabTrait_Lifetime",

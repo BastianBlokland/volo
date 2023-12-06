@@ -737,6 +737,17 @@
       ]
     },
     {
+      "name": "Sun",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_LightDir",
+          "radiance": { "r": 1, "g": 0.8, "b": 0.3, "a": 5 },
+          "shadows": false,
+          "coverage": false
+        }
+      ]
+    },
+    {
       "name": "ScriptTest",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test.script" }
