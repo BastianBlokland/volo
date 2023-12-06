@@ -528,7 +528,7 @@ static void output_panel_tab_draw(
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 160);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
