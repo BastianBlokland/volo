@@ -18,6 +18,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
@@ -1365,6 +1366,8 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = UiShape_Image;
     } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
       icon = UiShape_Grain;
+    } else if (ecs_world_has_t(world, e, SceneLightPointComp)) {
+      icon = UiShape_Light;
     } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
       icon = UiShape_MusicNote;
     } else {
