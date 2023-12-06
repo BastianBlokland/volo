@@ -104,6 +104,7 @@ ecs_view_define(CameraView) {
 ecs_view_define(LightPointInstView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneLightPointComp);
+  ecs_access_maybe_read(SceneScaleComp);
 }
 
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
@@ -170,9 +171,17 @@ ecs_system_define(RendLightPushSys) {
   EcsView* pointLights = ecs_world_view_t(world, LightPointInstView);
   for (EcsIterator* itr = ecs_view_itr(pointLights); ecs_view_walk(itr);) {
     const SceneTransformComp*  transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*      scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
     const SceneLightPointComp* pointComp     = ecs_view_read_t(itr, SceneLightPointComp);
-    const RendLightFlags       flags         = RendLightFlags_None;
-    rend_light_point(light, transformComp->position, pointComp->radiance, pointComp->radius, flags);
+
+    GeoColor radiance = pointComp->radiance;
+    f32      radius   = pointComp->radius;
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+      radius *= scaleComp->scale;
+    }
+    const RendLightFlags flags = RendLightFlags_None;
+    rend_light_point(light, transformComp->position, radiance, radius, flags);
   }
 }
 

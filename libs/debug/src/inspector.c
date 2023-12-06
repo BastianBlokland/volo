@@ -1173,9 +1173,10 @@ static void inspector_vis_draw_navigation_path(
 static void inspector_vis_draw_light_point(
     DebugShapeComp*            shape,
     const SceneLightPointComp* lightPoint,
-    const SceneTransformComp*  transform) {
+    const SceneTransformComp*  transform,
+    const SceneScaleComp*      scaleComp) {
   const GeoVector pos    = transform ? transform->position : geo_vector(0);
-  const f32       radius = lightPoint->radius;
+  const f32       radius = scaleComp ? lightPoint->radius * scaleComp->scale : lightPoint->radius;
   debug_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
 }
 
@@ -1339,7 +1340,7 @@ static void inspector_vis_draw_subject(
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
   }
   if (debugLayerActive && lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
-    inspector_vis_draw_light_point(shape, lightPointComp, transformComp);
+    inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
