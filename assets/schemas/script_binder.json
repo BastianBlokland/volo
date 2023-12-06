@@ -791,6 +791,33 @@
       }
     },
     {
+      "name": "light_param",
+      "doc": "Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_text",
       "doc": "Draw debug text at a position in 3D space.\n\n*Note*: Size is in UI canvas pixels.",
       "sig": {

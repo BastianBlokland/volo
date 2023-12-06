@@ -447,6 +447,17 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("light_param");
+      const String       doc    = string_lit("Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`");
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("param"), script_mask_str},
+          {string_lit("value"), script_mask_color | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("sound_play");
       const String       doc    = string_lit("Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
