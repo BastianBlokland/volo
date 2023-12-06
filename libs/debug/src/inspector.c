@@ -173,6 +173,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
   ecs_access_maybe_write(SceneLightPointComp);
+  ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -361,7 +362,8 @@ static void inspector_panel_draw_light(
     UiTable*                 table,
     EcsIterator*             subject) {
   SceneLightPointComp* point = subject ? ecs_view_write_t(subject, SceneLightPointComp) : null;
-  if (!point) {
+  SceneLightDirComp*   dir   = subject ? ecs_view_write_t(subject, SceneLightDirComp) : null;
+  if (!point && !dir) {
     return;
   }
   inspector_panel_next(canvas, panelComp, table);
@@ -379,6 +381,22 @@ static void inspector_panel_draw_light(
         // Clamp the radius to a sane value.
         point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
       }
+    }
+    if (dir) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radiance"));
+      ui_table_next_column(canvas, table);
+      debug_widget_editor_color(canvas, &dir->radiance, UiWidget_Default);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Shadows"));
+      ui_table_next_column(canvas, table);
+      ui_toggle(canvas, &dir->shadows);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Coverage"));
+      ui_table_next_column(canvas, table);
+      ui_toggle(canvas, &dir->coverage);
     }
   }
 }
