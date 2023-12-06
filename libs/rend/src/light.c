@@ -121,6 +121,11 @@ ecs_view_define(LightDirInstView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
+ecs_view_define(LightAmbientInstView) {
+  ecs_access_read(SceneLightAmbientComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
   return (u32)type + (u32)variation;
 }
@@ -218,6 +223,19 @@ ecs_system_define(RendLightPushSys) {
       flags |= RendLightFlags_CoverageMask;
     }
     rend_light_directional(light, transformComp->rotation, radiance, flags);
+  }
+
+  // Push all ambient lights.
+  EcsView* ambientLights = ecs_world_view_t(world, LightAmbientInstView);
+  for (EcsIterator* itr = ecs_view_itr(ambientLights); ecs_view_walk(itr);) {
+    const SceneScaleComp*        scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightAmbientComp* ambientComp = ecs_view_read_t(itr, SceneLightAmbientComp);
+
+    f32 intensity = ambientComp->intensity;
+    if (scaleComp) {
+      intensity *= scaleComp->scale;
+    }
+    rend_light_ambient(light, intensity);
   }
 }
 
@@ -436,6 +454,7 @@ ecs_system_define(RendLightRenderSys) {
       }
       case RendLightType_Ambient: {
         renderer->ambientIntensity += entry->data_ambient.intensity;
+        break;
       }
       default:
         diag_crash();
@@ -455,12 +474,14 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(CameraView);
   ecs_register_view(LightPointInstView);
   ecs_register_view(LightDirInstView);
+  ecs_register_view(LightAmbientInstView);
 
   ecs_register_system(
       RendLightPushSys,
       ecs_view_id(GlobalView),
       ecs_view_id(LightPointInstView),
-      ecs_view_id(LightDirInstView));
+      ecs_view_id(LightDirInstView),
+      ecs_view_id(LightAmbientInstView));
 
   ecs_register_system(
       RendLightRenderSys,
