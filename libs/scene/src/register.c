@@ -14,6 +14,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_knowledge_module);
   ecs_register_module(def, scene_level_module);
   ecs_register_module(def, scene_lifetime_module);
+  ecs_register_module(def, scene_light_module);
   ecs_register_module(def, scene_location_module);
   ecs_register_module(def, scene_locomotion_module);
   ecs_register_module(def, scene_name_module);
