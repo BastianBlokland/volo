@@ -590,7 +590,7 @@
         },
         {
           "label": "New AssetPrefabTrait_LightPoint",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {},\n  \"radius\": 1\n}"
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  },\n  \"radius\": 1\n}"
         },
         {
           "label": "New AssetPrefabTrait_Lifetime",
@@ -667,11 +667,16 @@
           "type": "number"
         }
       },
-      "required": [],
+      "required": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ],
       "defaultSnippets": [
         {
           "label": "New",
-          "body": "^{}"
+          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
         }
       ]
     },
