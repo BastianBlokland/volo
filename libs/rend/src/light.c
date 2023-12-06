@@ -15,7 +15,9 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
+#include "scene_light.h"
 #include "scene_terrain.h"
+#include "scene_transform.h"
 
 #include "light_internal.h"
 
@@ -99,6 +101,11 @@ ecs_view_define(CameraView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
+ecs_view_define(LightPointInstView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneLightPointComp);
+}
+
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
   return (u32)type + (u32)variation;
 }
@@ -147,6 +154,26 @@ static GeoColor rend_radiance_resolve(const GeoColor radiance) {
 
 static f32 rend_light_brightness(const GeoColor radiance) {
   return math_max(math_max(radiance.r, radiance.g), radiance.b);
+}
+
+ecs_system_define(RendLightPushSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not yet available.
+  }
+  RendLightComp* light = ecs_view_write_t(globalItr, RendLightComp);
+  if (!light) {
+    return; // Global light component not created yet.
+  }
+
+  EcsView* pointLights = ecs_world_view_t(world, LightPointInstView);
+  for (EcsIterator* itr = ecs_view_itr(pointLights); ecs_view_walk(itr);) {
+    const SceneTransformComp*  transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLightPointComp* pointComp     = ecs_view_read_t(itr, SceneLightPointComp);
+    const RendLightFlags       flags         = RendLightFlags_None;
+    rend_light_point(light, transformComp->position, pointComp->radiance, pointComp->radius, flags);
+  }
 }
 
 ecs_system_define(RendLightSunSys) {
@@ -397,7 +424,9 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(LightView);
   ecs_register_view(DrawView);
   ecs_register_view(CameraView);
+  ecs_register_view(LightPointInstView);
 
+  ecs_register_system(RendLightPushSys, ecs_view_id(GlobalView), ecs_view_id(LightPointInstView));
   ecs_register_system(RendLightSunSys, ecs_view_id(GlobalView));
 
   ecs_register_system(
