@@ -28,6 +28,7 @@ static const f32 g_worldHeight            = 10.0f;
 typedef enum {
   RendLightType_Directional,
   RendLightType_Point,
+  RendLightType_Ambient,
 
   RendLightType_Count,
 } RendLightType;
@@ -55,10 +56,15 @@ typedef struct {
 } RendLightPoint;
 
 typedef struct {
+  f32 intensity;
+} RendLightAmbient;
+
+typedef struct {
   RendLightType type;
   union {
     RendLightDirectional data_directional;
     RendLightPoint       data_point;
+    RendLightAmbient     data_ambient;
   };
 } RendLight;
 
@@ -72,6 +78,7 @@ static const String g_lightGraphics[RendLightDraw_Count] = {
 
 ecs_comp_define(RendLightRendererComp) {
   EcsEntityId drawEntities[RendLightDraw_Count];
+  f32         ambientIntensity;
   bool        hasShadow;
   GeoMatrix   shadowTransMatrix, shadowProjMatrix;
 };
@@ -322,7 +329,8 @@ ecs_system_define(RendLightRenderSys) {
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
 
-  renderer->hasShadow = false;
+  renderer->hasShadow        = false;
+  renderer->ambientIntensity = 0.0f;
 
   EcsIterator* camItr = ecs_view_first(ecs_world_view_t(world, CameraView));
   if (!camItr) {
@@ -425,6 +433,9 @@ ecs_system_define(RendLightRenderSys) {
         };
         break;
       }
+      case RendLightType_Ambient: {
+        renderer->ambientIntensity += entry->data_ambient.intensity;
+      }
       default:
         diag_crash();
       }
@@ -503,6 +514,19 @@ void rend_light_point(
                   .flags    = flags,
               },
       });
+}
+
+void rend_light_ambient(RendLightComp* comp, const f32 intensity) {
+  rend_light_add(
+      comp,
+      (RendLight){
+          .type         = RendLightType_Ambient,
+          .data_ambient = {.intensity = intensity},
+      });
+}
+
+f32 rend_light_ambient_intensity(const RendLightRendererComp* renderer) {
+  return renderer->ambientIntensity;
 }
 
 bool rend_light_has_shadow(const RendLightRendererComp* renderer) { return renderer->hasShadow; }

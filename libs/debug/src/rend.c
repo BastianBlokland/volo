@@ -55,7 +55,6 @@ static const String g_tooltipFreeze           = string_static("Freeze the data s
 static const String g_tooltipResourceFilter   = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 static const String g_tooltipShadows          = string_static("Enable shadow-map rendering to allow geometry to occlude the light radiance.");
 static const String g_tooltipShadowFilterSize = string_static("Shadow filter size (in meters).\nControls the size of the soft shadow edge.");
-static const String g_tooltipAmbient          = string_static("Global ambient lighting brightness.");
 static const String g_tooltipAmbientOcclusion = string_static("\a.b[SSAO]\ar Sample the geometry depth-buffer to compute a occlusion factor (how exposed it is to ambient lighting) for each fragment.");
 static const String g_tooltipAoBlur           = string_static("\a.b[SSAO]\ar Take multiple samples from the occlusion buffer and average the results, reduces the noise that is present in the raw occlusion buffer.");
 static const String g_tooltipAoAngle          = string_static("\a.b[SSAO]\ar Angle (in degrees) of the sample kernel cone.\nA wider angle will include more of the surrounding geometry.");
@@ -838,11 +837,6 @@ static void rend_light_tab_draw(
   ui_label(canvas, string_lit("Particle shadows"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_ParticleShadows);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Ambient"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 5.0f, .tooltip = g_tooltipAmbient);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient occlusion"));

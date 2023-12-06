@@ -22,3 +22,4 @@ RendLightComp* rend_light_create(EcsWorld*, EcsEntityId entity);
  */
 void rend_light_directional(RendLightComp*, GeoQuat rot, GeoColor radiance, RendLightFlags);
 void rend_light_point(RendLightComp*, GeoVector pos, GeoColor radiance, f32 radius, RendLightFlags);
+void rend_light_ambient(RendLightComp*, f32 intensity);

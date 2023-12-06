@@ -120,10 +120,8 @@ typedef enum {
 ecs_comp_extern_public(RendSettingsGlobalComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
-
-  f32 lightAmbient;
-  f32 shadowFilterSize; // In world space.
-  f32 fogDilation;
+  f32             shadowFilterSize; // In world space.
+  f32             fogDilation;
 };
 
 RendSettingsGlobalComp* rend_settings_global_init(EcsWorld*);
