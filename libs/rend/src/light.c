@@ -21,6 +21,7 @@
 
 #include "light_internal.h"
 
+static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
 static const f32 g_lightDirShadowStepSize = 10.0f;
 static const f32 g_worldHeight            = 10.0f;
@@ -526,7 +527,7 @@ void rend_light_ambient(RendLightComp* comp, const f32 intensity) {
 }
 
 f32 rend_light_ambient_intensity(const RendLightRendererComp* renderer) {
-  return renderer->ambientIntensity;
+  return math_max(renderer->ambientIntensity, g_lightMinAmbient);
 }
 
 bool rend_light_has_shadow(const RendLightRendererComp* renderer) { return renderer->hasShadow; }
