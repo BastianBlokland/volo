@@ -1198,6 +1198,16 @@ static void inspector_vis_draw_light_point(
   debug_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
 }
 
+static void inspector_vis_draw_light_dir(
+    DebugShapeComp* shape, const SceneLightDirComp* lightDir, const SceneTransformComp* transform) {
+  (void)lightDir;
+  const GeoVector pos      = transform ? transform->position : geo_vector(0);
+  const GeoQuat   rot      = transform ? transform->rotation : geo_quat_ident;
+  const GeoVector dir      = geo_quat_rotate(rot, geo_forward);
+  const GeoVector arrowEnd = geo_vector_add(pos, geo_vector_mul(dir, 5));
+  debug_arrow(shape, pos, arrowEnd, 0.75f, geo_color(1, 1, 1, 0.5f));
+}
+
 static void inspector_vis_draw_health(
     DebugTextComp* text, const SceneHealthComp* health, const SceneTransformComp* transform) {
   const GeoVector pos          = transform ? transform->position : geo_vector(0);
@@ -1312,6 +1322,7 @@ static void inspector_vis_draw_subject(
   const SceneCollisionComp*  collisionComp  = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneHealthComp*     healthComp     = ecs_view_read_t(subject, SceneHealthComp);
   const SceneLightPointComp* lightPointComp = ecs_view_read_t(subject, SceneLightPointComp);
+  const SceneLightDirComp*   lightDirComp   = ecs_view_read_t(subject, SceneLightDirComp);
   const SceneLocationComp*   locationComp   = ecs_view_read_t(subject, SceneLocationComp);
   const SceneLocomotionComp* locoComp       = ecs_view_read_t(subject, SceneLocomotionComp);
   const SceneNameComp*       nameComp       = ecs_view_read_t(subject, SceneNameComp);
@@ -1359,6 +1370,9 @@ static void inspector_vis_draw_subject(
   }
   if (debugLayerActive && lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
     inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
+  }
+  if (debugLayerActive && lightDirComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+    inspector_vis_draw_light_dir(shape, lightDirComp, transformComp);
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
