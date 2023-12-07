@@ -447,6 +447,17 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("light_point");
+      const String       doc    = string_lit("Place a point light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.");
+      const ScriptMask   ret    = script_mask_entity;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("radiance"), script_mask_color},
+          {string_lit("radius"), script_mask_num},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("light_param");
       const String       doc    = string_lit("Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`");
       const ScriptMask   ret    = script_mask_num | script_mask_null;

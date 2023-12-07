@@ -1126,6 +1126,21 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_light_point(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const GeoVector pos      = script_arg_vec3(args, 0, err);
+  const GeoQuat   rot      = geo_quat_ident;
+  const GeoColor  radiance = script_arg_color(args, 1, err);
+  const f32       radius   = (f32)script_arg_num_range(args, 2, 1e-3f, 1e+3f, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(ctx->world, result, SceneLightPointComp, .radiance = radiance, .radius = radius);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
 static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
@@ -1446,6 +1461,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("vfx_system"),         eval_vfx_system);
     eval_bind(b, string_lit("vfx_decal"),          eval_vfx_decal);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
+    eval_bind(b, string_lit("light_point"),        eval_light_point);
     eval_bind(b, string_lit("light_param"),        eval_light_param);
     eval_bind(b, string_lit("sound_play"),         eval_sound_play);
     eval_bind(b, string_lit("sound_param"),        eval_sound_param);
