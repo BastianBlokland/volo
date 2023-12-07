@@ -17,6 +17,8 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Magnitude:
   case ScriptIntrinsic_Absolute:
   case ScriptIntrinsic_Negate:
+  case ScriptIntrinsic_Sin:
+  case ScriptIntrinsic_Cos:
   case ScriptIntrinsic_Normalize:
   case ScriptIntrinsic_RoundDown:
   case ScriptIntrinsic_RoundNearest:
@@ -138,6 +140,8 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Invert]            = string_static("invert"),
       [ScriptIntrinsic_Distance]          = string_static("distance"),
       [ScriptIntrinsic_Angle]             = string_static("angle"),
+      [ScriptIntrinsic_Sin]               = string_static("sin"),
+      [ScriptIntrinsic_Cos]               = string_static("cos"),
       [ScriptIntrinsic_Normalize]         = string_static("normalize"),
       [ScriptIntrinsic_Magnitude]         = string_static("magnitude"),
       [ScriptIntrinsic_Absolute]          = string_static("absolute"),

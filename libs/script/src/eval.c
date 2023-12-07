@@ -207,6 +207,10 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_val_angle(arg0, eval(ctx, args[1]));
   }
+  case ScriptIntrinsic_Sin:
+    return script_val_sin(eval(ctx, args[0]));
+  case ScriptIntrinsic_Cos:
+    return script_val_cos(eval(ctx, args[0]));
   case ScriptIntrinsic_Normalize:
     return script_val_norm(eval(ctx, args[0]));
   case ScriptIntrinsic_Magnitude:
@@ -322,8 +326,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-                      .kind  = script_error_to_panic(err.kind),
-                      .range = script_expr_range(ctx->doc, errExpr),
+        .kind  = script_error_to_panic(err.kind),
+        .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }
