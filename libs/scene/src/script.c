@@ -698,9 +698,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1091,41 +1091,6 @@ static ScriptVal eval_vfx_decal(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_entity(result);
 }
 
-static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
-  if (UNLIKELY(!entity)) {
-    return script_null();
-  }
-  const i32 param = script_arg_enum(args, 1, &g_scriptEnumLightParam, err);
-  if (args.count == 2) {
-    if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
-      const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
-      switch (param) {
-      case 0 /* Radiance */:
-        return script_color(point->radiance);
-      }
-    }
-    if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
-      const SceneLightDirComp* dir = ecs_view_read_t(ctx->lightDirItr, SceneLightDirComp);
-      switch (param) {
-      case 0 /* Radiance */:
-        return script_color(dir->radiance);
-      }
-    }
-    return script_null();
-  }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateLightParam,
-      .data_updateLightParam =
-          {
-              .entity = entity,
-              .param  = param,
-              .value  = script_arg_color(args, 2, err),
-          },
-  };
-  return script_null();
-}
-
 static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
@@ -1156,6 +1121,41 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
               .entity = entity,
               .param  = param,
               .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
+          },
+  };
+  return script_null();
+}
+
+static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  const i32 param = script_arg_enum(args, 1, &g_scriptEnumLightParam, err);
+  if (args.count == 2) {
+    if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
+      const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
+      switch (param) {
+      case 0 /* Radiance */:
+        return script_color(point->radiance);
+      }
+    }
+    if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
+      const SceneLightDirComp* dir = ecs_view_read_t(ctx->lightDirItr, SceneLightDirComp);
+      switch (param) {
+      case 0 /* Radiance */:
+        return script_color(dir->radiance);
+      }
+    }
+    return script_null();
+  }
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_UpdateLightParam,
+      .data_updateLightParam =
+          {
+              .entity = entity,
+              .param  = param,
+              .value  = script_arg_color(args, 2, err),
           },
   };
   return script_null();
