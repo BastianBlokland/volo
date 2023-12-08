@@ -4,6 +4,7 @@
 #include "core_float.h"
 #include "core_intrinsic.h"
 #include "core_math.h"
+#include "core_noise.h"
 #include "core_rng.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
@@ -940,6 +941,14 @@ ScriptVal script_val_max(const ScriptVal x, const ScriptVal y) {
   }
   diag_assert_fail("Invalid script value");
   UNREACHABLE
+}
+
+ScriptVal script_val_perlin3(const ScriptVal val) {
+  if (val_type(val) != ScriptType_Vec3) {
+    return val_null();
+  }
+  const GeoVector pos = val_as_vec3(val);
+  return val_num(noise_perlin3(pos.x, pos.y, pos.z));
 }
 
 ScriptVal script_val_vec3_compose(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
