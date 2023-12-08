@@ -285,6 +285,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_val_max(arg0, eval(ctx, args[1]));
   }
+  case ScriptIntrinsic_Perlin3:
+    return script_val_perlin3(eval(ctx, args[0]));
   case ScriptIntrinsic_Count:
     break;
   }
@@ -326,8 +328,8 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   if (UNLIKELY(err.kind)) {
     const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
     ctx->panic               = (ScriptPanic){
-        .kind  = script_error_to_panic(err.kind),
-        .range = script_expr_range(ctx->doc, errExpr),
+                      .kind  = script_error_to_panic(err.kind),
+                      .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
   }

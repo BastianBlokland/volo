@@ -29,6 +29,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:
   case ScriptIntrinsic_ColorFor:
+  case ScriptIntrinsic_Perlin3:
     return 1;
   case ScriptIntrinsic_MemStoreDynamic:
   case ScriptIntrinsic_Add:
@@ -165,6 +166,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Lerp]              = string_static("lerp"),
       [ScriptIntrinsic_Min]               = string_static("min"),
       [ScriptIntrinsic_Max]               = string_static("max"),
+      [ScriptIntrinsic_Perlin3]           = string_static("perlin3"),
   };
   ASSERT(array_elems(g_names) == ScriptIntrinsic_Count, "Incorrect number of names");
   return g_names[i];
