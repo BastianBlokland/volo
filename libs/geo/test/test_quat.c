@@ -194,6 +194,17 @@ spec(quat) {
         fmt_write_scratch("{}", geo_quat_fmt(((GeoQuat){1, 2, 3, 4}))), string_lit("1, 2, 3, 4"));
   }
 
+  it("can be created from an angle-axis representation") {
+    {
+      const GeoQuat q = geo_quat_angle_axis(geo_up, 0.25f * math_pi_f32 * 2.0f);
+      check_eq_quat(q, ((GeoQuat){.x = 0.0f, .y = 0.7071068f, .z = 0.0f, .w = 0.7071068f}));
+    }
+    {
+      const GeoQuat q = geo_quat_angle_axis(geo_up, 0.75f * math_pi_f32 * 2.0f);
+      check_eq_quat(q, ((GeoQuat){.x = 0.0f, .y = 0.7071068f, .z = 0.0f, .w = -0.7071068f}));
+    }
+  }
+
   it("can be created from euler angles") {
     check_eq_quat(geo_quat_from_euler(geo_vector(0, 0, 0)), geo_quat_ident);
     check_eq_quat(
