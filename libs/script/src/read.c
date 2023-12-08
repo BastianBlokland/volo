@@ -19,7 +19,7 @@
 #define script_block_size_max 128
 #define script_args_max 10
 #define script_builtin_consts_max 32
-#define script_builtin_funcs_max 32
+#define script_builtin_funcs_max 48
 #define script_tracked_mem_keys_max 32
 
 typedef struct {
