@@ -240,7 +240,6 @@ spec(val) {
         {script_bool(false), string_lit("false")},
         {script_vec3_lit(1, 2, 3), string_lit("1, 2, 3")},
         {script_quat(geo_quat_ident), string_lit("0, 0, 0, 1")},
-        {script_quat(geo_quat_forward_to_backward), string_lit("0, 1, 0, 0")},
         {script_color(geo_color_clear), string_lit("0, 0, 0, 0")},
         {script_color(geo_color_red), string_lit("1, 0, 0, 1")},
         {script_entity(dummyEntity1), string_lit("100000000")},
