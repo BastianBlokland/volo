@@ -132,12 +132,6 @@ f64 math_pow_f64(f64 base, f64 exp);
 f32 math_exp_f32(f32 exp);
 
 /**
- * Compute the integer part of the given value (removes the fractional part).
- */
-f32 math_trunc_f32(f32);
-f64 math_trunc_f64(f64);
-
-/**
  * Round the given value to an integer value.
  */
 f32 math_round_nearest_f32(f32);

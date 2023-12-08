@@ -69,14 +69,6 @@ spec(math) {
     check_eq_float(math_unlerp(x, y, val), t, 1e-12);
   }
 
-  it("can truncate the fractional part of floats") {
-    check_eq_float(math_trunc_f64(1.42), 1.0, 1e-24);
-    check_eq_float(math_trunc_f64(42.1337), 42.0, 1e-24);
-    check_eq_float(math_trunc_f64(-1.42), -1.0, 1e-24);
-    check_eq_float(math_trunc_f64(-42.1337), -42.0, 1e-24);
-    check_eq_float(math_trunc_f64(-.34), 0.0, 1e-24);
-  }
-
   it("can round floats to nearest") {
     check_eq_float(math_round_nearest_f64(1.0), 1.0, 1e-24);
     check_eq_float(math_round_nearest_f64(.0), 0.0, 1e-24);
