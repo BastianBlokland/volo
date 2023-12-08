@@ -687,6 +687,20 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
   return val_null();
 }
 
+ScriptVal script_val_sin(const ScriptVal val) {
+  if (val_type(val) == ScriptType_Num) {
+    return val_num(intrinsic_sin_f64(val_as_num(val)));
+  }
+  return val_null();
+}
+
+ScriptVal script_val_cos(const ScriptVal val) {
+  if (val_type(val) == ScriptType_Num) {
+    return val_num(intrinsic_cos_f64(val_as_num(val)));
+  }
+  return val_null();
+}
+
 ScriptVal script_val_random() { return val_num(rng_sample_f32(g_rng)); }
 
 ScriptVal script_val_random_sphere() { return val_vec3(geo_vector_rand_in_sphere3(g_rng)); }
@@ -853,7 +867,7 @@ ScriptVal script_val_clamp(const ScriptVal v, const ScriptVal min, const ScriptV
 
 ScriptVal script_val_lerp(const ScriptVal x, const ScriptVal y, const ScriptVal t) {
   if (val_type(t) != ScriptType_Num) {
-    return script_null();
+    return val_null();
   }
   const f32 tFrac = (f32)val_as_num(t);
   if (val_type(x) != val_type(y)) {
@@ -864,7 +878,7 @@ ScriptVal script_val_lerp(const ScriptVal x, const ScriptVal y, const ScriptVal 
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_Str:
-    return script_null();
+    return val_null();
   case ScriptType_Num:
     return val_num(math_lerp(val_as_num(x), val_as_num(y), tFrac));
   case ScriptType_Vec3:
@@ -890,7 +904,7 @@ ScriptVal script_val_min(const ScriptVal x, const ScriptVal y) {
   case ScriptType_Entity:
   case ScriptType_Str:
   case ScriptType_Quat:
-    return script_null();
+    return val_null();
   case ScriptType_Num:
     return val_num(math_min(val_as_num(x), val_as_num(y)));
   case ScriptType_Vec3:
@@ -914,7 +928,7 @@ ScriptVal script_val_max(const ScriptVal x, const ScriptVal y) {
   case ScriptType_Entity:
   case ScriptType_Str:
   case ScriptType_Quat:
-    return script_null();
+    return val_null();
   case ScriptType_Num:
     return val_num(math_max(val_as_num(x), val_as_num(y)));
   case ScriptType_Vec3:

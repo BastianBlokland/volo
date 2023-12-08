@@ -201,6 +201,70 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabTrait_LightPoint"
+            },
+            "radiance": {
+              "title": "AssetPrefabColorDef",
+              "$ref": "#/$defs/AssetPrefabColorDef"
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "radiance",
+            "radius"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_LightDir"
+            },
+            "radiance": {
+              "title": "AssetPrefabColorDef",
+              "$ref": "#/$defs/AssetPrefabColorDef"
+            },
+            "shadows": {
+              "title": "bool",
+              "type": "boolean"
+            },
+            "coverage": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "radiance"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_LightAmbient"
+            },
+            "intensity": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "intensity"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabTrait_Lifetime"
             },
             "duration": {
@@ -567,6 +631,18 @@
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}"
         },
         {
+          "label": "New AssetPrefabTrait_LightPoint",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  },\n  \"radius\": 1\n}"
+        },
+        {
+          "label": "New AssetPrefabTrait_LightDir",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}"
+        },
+        {
+          "label": "New AssetPrefabTrait_LightAmbient",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}"
+        },
+        {
           "label": "New AssetPrefabTrait_Lifetime",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Lifetime\",\n  \"duration\": 1\n}"
         },
@@ -617,6 +693,40 @@
         {
           "label": "New AssetPrefabTrait_Scalable",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}"
+        }
+      ]
+    },
+    "AssetPrefabColorDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "r": {
+          "title": "f32",
+          "type": "number"
+        },
+        "g": {
+          "title": "f32",
+          "type": "number"
+        },
+        "b": {
+          "title": "f32",
+          "type": "number"
+        },
+        "a": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
         }
       ]
     },

@@ -38,6 +38,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling       |
              RendFlags_AmbientOcclusion     |
              RendFlags_AmbientOcclusionBlur |
+             RendFlags_Shadows              |
              RendFlags_Bloom                |
              RendFlags_Fog                  |
              RendFlags_Distortion           |
@@ -69,16 +70,13 @@ void rend_settings_to_default(RendSettingsComp* s) {
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
-  s->flags       = RendGlobalFlags_SunShadows | RendGlobalFlags_SunCoverage;
+  s->flags       = 0;
   s->limiterFreq = 0;
 
 #if VOLO_REND_GPU_DEBUG
   s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu;
 #endif
 
-  s->lightSunRadiance = geo_color(1.0f, 0.8f, 0.4f, 5.0f);
-  s->lightSunRotation = geo_quat_from_euler(geo_vector_mul(geo_vector(55, 90, 0), math_deg_to_rad));
-  s->lightAmbient     = 0.9f;
   s->shadowFilterSize = 0.125f;
   s->fogDilation      = -3.0f;
 }

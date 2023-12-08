@@ -15,10 +15,13 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
+#include "scene_light.h"
 #include "scene_terrain.h"
+#include "scene_transform.h"
 
 #include "light_internal.h"
 
+static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
 static const f32 g_lightDirShadowStepSize = 10.0f;
 static const f32 g_worldHeight            = 10.0f;
@@ -26,6 +29,7 @@ static const f32 g_worldHeight            = 10.0f;
 typedef enum {
   RendLightType_Directional,
   RendLightType_Point,
+  RendLightType_Ambient,
 
   RendLightType_Count,
 } RendLightType;
@@ -53,10 +57,15 @@ typedef struct {
 } RendLightPoint;
 
 typedef struct {
+  f32 intensity;
+} RendLightAmbient;
+
+typedef struct {
   RendLightType type;
   union {
     RendLightDirectional data_directional;
     RendLightPoint       data_point;
+    RendLightAmbient     data_ambient;
   };
 } RendLight;
 
@@ -70,6 +79,7 @@ static const String g_lightGraphics[RendLightDraw_Count] = {
 
 ecs_comp_define(RendLightRendererComp) {
   EcsEntityId drawEntities[RendLightDraw_Count];
+  f32         ambientIntensity;
   bool        hasShadow;
   GeoMatrix   shadowTransMatrix, shadowProjMatrix;
 };
@@ -97,6 +107,23 @@ ecs_view_define(CameraView) {
   ecs_access_read(GapWindowComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_maybe_read(SceneTransformComp);
+}
+
+ecs_view_define(LightPointInstView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneLightPointComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
+ecs_view_define(LightDirInstView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneLightDirComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
+ecs_view_define(LightAmbientInstView) {
+  ecs_access_read(SceneLightAmbientComp);
+  ecs_access_maybe_read(SceneScaleComp);
 }
 
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
@@ -149,23 +176,66 @@ static f32 rend_light_brightness(const GeoColor radiance) {
   return math_max(math_max(radiance.r, radiance.g), radiance.b);
 }
 
-ecs_system_define(RendLightSunSys) {
+ecs_system_define(RendLightPushSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return; // Global dependencies not yet available.
   }
-  const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
-  RendLightComp*                light    = ecs_view_write_t(globalItr, RendLightComp);
-  if (light) {
+  RendLightComp* light = ecs_view_write_t(globalItr, RendLightComp);
+  if (!light) {
+    return; // Global light component not created yet.
+  }
+
+  // Push all point-lights.
+  EcsView* pointLights = ecs_world_view_t(world, LightPointInstView);
+  for (EcsIterator* itr = ecs_view_itr(pointLights); ecs_view_walk(itr);) {
+    const SceneTransformComp*  transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*      scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightPointComp* pointComp     = ecs_view_read_t(itr, SceneLightPointComp);
+
+    GeoColor radiance = pointComp->radiance;
+    f32      radius   = pointComp->radius;
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+      radius *= scaleComp->scale;
+    }
+    const RendLightFlags flags = RendLightFlags_None;
+    rend_light_point(light, transformComp->position, radiance, radius, flags);
+  }
+
+  // Push all directional lights.
+  EcsView* dirLights = ecs_world_view_t(world, LightDirInstView);
+  for (EcsIterator* itr = ecs_view_itr(dirLights); ecs_view_walk(itr);) {
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightDirComp*  dirComp       = ecs_view_read_t(itr, SceneLightDirComp);
+
+    GeoColor radiance = dirComp->radiance;
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+    }
     RendLightFlags flags = RendLightFlags_None;
-    if (settings->flags & RendGlobalFlags_SunShadows) {
+    if (dirComp->shadows) {
       flags |= RendLightFlags_Shadow;
     }
-    if (settings->flags & RendGlobalFlags_SunCoverage) {
+    if (dirComp->coverage) {
       flags |= RendLightFlags_CoverageMask;
     }
-    rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance, flags);
+    rend_light_directional(light, transformComp->rotation, radiance, flags);
+  }
+
+  // Push all ambient lights.
+  EcsView* ambientLights = ecs_world_view_t(world, LightAmbientInstView);
+  for (EcsIterator* itr = ecs_view_itr(ambientLights); ecs_view_walk(itr);) {
+    const SceneScaleComp*        scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightAmbientComp* ambientComp = ecs_view_read_t(itr, SceneLightAmbientComp);
+
+    f32 intensity = ambientComp->intensity;
+    if (scaleComp) {
+      intensity *= scaleComp->scale;
+    }
+    rend_light_ambient(light, intensity);
   }
 }
 
@@ -278,7 +348,8 @@ ecs_system_define(RendLightRenderSys) {
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
 
-  renderer->hasShadow = false;
+  renderer->hasShadow        = false;
+  renderer->ambientIntensity = 0.0f;
 
   EcsIterator* camItr = ecs_view_first(ecs_world_view_t(world, CameraView));
   if (!camItr) {
@@ -297,6 +368,10 @@ ecs_system_define(RendLightRenderSys) {
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
     RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
     dynarray_for_t(&light->entries, RendLight, entry) {
+      if (entry->type == RendLightType_Ambient) {
+        renderer->ambientIntensity += entry->data_ambient.intensity;
+        continue;
+      }
       const u32 drawIndex = rend_draw_index(entry->type, var);
       if (!renderer->drawEntities[drawIndex]) {
         continue;
@@ -397,8 +472,16 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(LightView);
   ecs_register_view(DrawView);
   ecs_register_view(CameraView);
+  ecs_register_view(LightPointInstView);
+  ecs_register_view(LightDirInstView);
+  ecs_register_view(LightAmbientInstView);
 
-  ecs_register_system(RendLightSunSys, ecs_view_id(GlobalView));
+  ecs_register_system(
+      RendLightPushSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(LightPointInstView),
+      ecs_view_id(LightDirInstView),
+      ecs_view_id(LightAmbientInstView));
 
   ecs_register_system(
       RendLightRenderSys,
@@ -453,6 +536,19 @@ void rend_light_point(
                   .flags    = flags,
               },
       });
+}
+
+void rend_light_ambient(RendLightComp* comp, const f32 intensity) {
+  rend_light_add(
+      comp,
+      (RendLight){
+          .type         = RendLightType_Ambient,
+          .data_ambient = {.intensity = intensity},
+      });
+}
+
+f32 rend_light_ambient_intensity(const RendLightRendererComp* renderer) {
+  return math_max(renderer->ambientIntensity, g_lightMinAmbient);
 }
 
 bool rend_light_has_shadow(const RendLightRendererComp* renderer) { return renderer->hasShadow; }

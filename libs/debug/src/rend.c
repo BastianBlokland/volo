@@ -53,10 +53,8 @@ static const String g_tooltipDefaults         = string_static("Reset all setting
 static const String g_tooltipReset            = string_static("Re-initialize the renderer.");
 static const String g_tooltipFreeze           = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipResourceFilter   = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
-static const String g_tooltipSunShadows       = string_static("Use a directional shadow map to allow geometry to occlude the sun radiance.");
-static const String g_tooltipSunCoverage      = string_static("Use a panning coverage mask to simulate clouds absorbing some of the sun radiance.");
+static const String g_tooltipShadows          = string_static("Enable shadow-map rendering to allow geometry to occlude the light radiance.");
 static const String g_tooltipShadowFilterSize = string_static("Shadow filter size (in meters).\nControls the size of the soft shadow edge.");
-static const String g_tooltipAmbient          = string_static("Global ambient lighting brightness.");
 static const String g_tooltipAmbientOcclusion = string_static("\a.b[SSAO]\ar Sample the geometry depth-buffer to compute a occlusion factor (how exposed it is to ambient lighting) for each fragment.");
 static const String g_tooltipAoBlur           = string_static("\a.b[SSAO]\ar Take multiple samples from the occlusion buffer and average the results, reduces the noise that is present in the raw occlusion buffer.");
 static const String g_tooltipAoAngle          = string_static("\a.b[SSAO]\ar Angle (in degrees) of the sample kernel cone.\nA wider angle will include more of the surrounding geometry.");
@@ -213,9 +211,8 @@ ecs_comp_define(DebugRendPanelComp) {
   DynString         nameFilter;
   DebugRendDrawSort drawSortMode;
   DebugRendResSort  resSortMode;
-  DynArray          draws;          // DebugDrawInfo[]
-  DynArray          resources;      // DebugResourceInfo[]
-  GeoVector         sunRotEulerDeg; // Copy of rotation as euler angles to use while editing.
+  DynArray          draws;     // DebugDrawInfo[]
+  DynArray          resources; // DebugResourceInfo[]
   bool              freeze;
   bool              hideEmptyDraws;
 };
@@ -810,47 +807,14 @@ static void rend_resource_tab_draw(
 }
 
 static void rend_light_tab_draw(
-    UiCanvasComp*           canvas,
-    DebugRendPanelComp*     panelComp,
-    RendSettingsComp*       settings,
-    RendSettingsGlobalComp* settingsGlobal) {
+    UiCanvasComp* canvas, RendSettingsComp* settings, RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
-
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Sun light"));
+  ui_label(canvas, string_lit("Shadows"));
   ui_table_next_column(canvas, &table);
-  debug_widget_editor_color(canvas, &settingsGlobal->lightSunRadiance, UiWidget_Default);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Sun rotation"));
-  ui_table_next_column(canvas, &table);
-  if (debug_widget_editor_vec3(canvas, &panelComp->sunRotEulerDeg, UiWidget_DirtyWhileEditing)) {
-    const GeoVector eulerRad         = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
-    settingsGlobal->lightSunRotation = geo_quat_from_euler(eulerRad);
-  } else {
-    const GeoVector eulerRad  = geo_quat_to_euler(settingsGlobal->lightSunRotation);
-    panelComp->sunRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
-  }
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Sun shadows"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&settingsGlobal->flags,
-      RendGlobalFlags_SunShadows,
-      .tooltip = g_tooltipSunShadows);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Sun coverage"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&settingsGlobal->flags,
-      RendGlobalFlags_SunCoverage,
-      .tooltip = g_tooltipSunCoverage);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Shadows, .tooltip = g_tooltipShadows);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadow resolution"));
@@ -873,11 +837,6 @@ static void rend_light_tab_draw(
   ui_label(canvas, string_lit("Particle shadows"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_ParticleShadows);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Ambient"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 5.0f, .tooltip = g_tooltipAmbient);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient occlusion"));
@@ -1073,7 +1032,7 @@ static void rend_panel_draw(
     rend_resource_tab_draw(canvas, panelComp, settings);
     break;
   case DebugRendTab_Light:
-    rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
+    rend_light_tab_draw(canvas, settings, settingsGlobal);
     break;
   case DebugRendTab_Post:
     rend_post_tab_draw(canvas, settings, settingsGlobal);

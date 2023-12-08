@@ -17,6 +17,7 @@ add_library(lib_scene STATIC
   src/knowledge.c
   src/level.c
   src/lifetime.c
+  src/light.c
   src/location.c
   src/locomotion.c
   src/name.c

@@ -10,18 +10,19 @@ typedef enum {
   RendFlags_FrustumCulling       = 1 << 0,
   RendFlags_AmbientOcclusion     = 1 << 1,
   RendFlags_AmbientOcclusionBlur = 1 << 2,
-  RendFlags_Bloom                = 1 << 3,
-  RendFlags_Fog                  = 1 << 4,
-  RendFlags_Minimap              = 1 << 5,
-  RendFlags_Distortion           = 1 << 6,
-  RendFlags_Decals               = 1 << 7,
-  RendFlags_ParticleShadows      = 1 << 8,
-  RendFlags_DebugWireframe       = 1 << 9,
-  RendFlags_DebugCamera          = 1 << 10,
-  RendFlags_DebugSkinning        = 1 << 11,
-  RendFlags_DebugFog             = 1 << 12,
-  RendFlags_DebugShadow          = 1 << 13,
-  RendFlags_DebugDistortion      = 1 << 14,
+  RendFlags_Shadows              = 1 << 3,
+  RendFlags_Bloom                = 1 << 4,
+  RendFlags_Fog                  = 1 << 5,
+  RendFlags_Minimap              = 1 << 6,
+  RendFlags_Distortion           = 1 << 7,
+  RendFlags_Decals               = 1 << 8,
+  RendFlags_ParticleShadows      = 1 << 9,
+  RendFlags_DebugWireframe       = 1 << 10,
+  RendFlags_DebugCamera          = 1 << 11,
+  RendFlags_DebugSkinning        = 1 << 12,
+  RendFlags_DebugFog             = 1 << 13,
+  RendFlags_DebugShadow          = 1 << 14,
+  RendFlags_DebugDistortion      = 1 << 15,
 
   RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
@@ -110,23 +111,17 @@ ecs_comp_extern_public(RendSettingsComp) {
 };
 
 typedef enum {
-  RendGlobalFlags_SunShadows  = 1 << 0,
-  RendGlobalFlags_SunCoverage = 1 << 1,
-  RendGlobalFlags_Validation  = 1 << 2,
-  RendGlobalFlags_Verbose     = 1 << 3,
-  RendGlobalFlags_DebugGpu    = 1 << 4,
-  RendGlobalFlags_DebugLight  = 1 << 5,
+  RendGlobalFlags_Validation = 1 << 0,
+  RendGlobalFlags_Verbose    = 1 << 1,
+  RendGlobalFlags_DebugGpu   = 1 << 2,
+  RendGlobalFlags_DebugLight = 1 << 3,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendSettingsGlobalComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
-
-  f32      lightAmbient;
-  GeoColor lightSunRadiance;
-  GeoQuat  lightSunRotation;
-  f32      shadowFilterSize; // In world space.
-  f32      fogDilation;
+  f32             shadowFilterSize; // In world space.
+  f32             fogDilation;
 };
 
 RendSettingsGlobalComp* rend_settings_global_init(EcsWorld*);

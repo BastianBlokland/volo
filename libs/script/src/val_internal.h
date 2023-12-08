@@ -65,8 +65,18 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_vec3(const GeoVector value) {
 }
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_quat(const GeoQuat q) {
+  GeoQuat qNorm = geo_quat_norm_or_ident(q);
+  if (qNorm.w < 0.0f) {
+    /**
+     * Due to having to store the type-tag we cannot use the full 128 bits for the quaternion,
+     * luckily for unit quaternions we can reconstruct the magnitude of the W component from the
+     * other components. Because we cannot reconstruct the sign of the W component we make sure the
+     * W component is always positive.
+     */
+    qNorm = geo_quat_flip(qNorm);
+  }
   ScriptVal result;
-  *(GeoQuat*)result.bytes           = geo_quat_norm_or_ident(q);
+  *(GeoQuat*)result.bytes           = qNorm;
   result.bytes[val_type_byte_index] = ScriptType_Quat;
   return result;
 }

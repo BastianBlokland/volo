@@ -9249,6 +9249,23 @@
       "scale": 1
     },
     {
+      "id": 1819838348,
+      "prefab": "Sun",
+      "faction": "None",
+      "position": {
+        "x": 22.9905,
+        "y": 14.7639,
+        "z": -7.7122
+      },
+      "rotation": {
+        "x": 0.3811,
+        "y": -0.1257,
+        "z": -0.0524,
+        "w": 0.9145
+      },
+      "scale": 1
+    },
+    {
       "id": 1823884254,
       "prefab": "PropPlant",
       "faction": "None",

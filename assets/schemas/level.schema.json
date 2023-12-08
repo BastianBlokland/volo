@@ -65,7 +65,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": "^{\n  \"prefab\": \"placeholder\",\n  \"faction\": \"A\",\n  \"position\": {},\n  \"rotation\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0,\n    \"w\": 1\n  }\n}"
+          "body": "^{\n  \"prefab\": \"placeholder\",\n  \"faction\": \"A\",\n  \"position\": {},\n  \"rotation\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0,\n    \"w\": 0\n  }\n}"
         }
       ]
     },
@@ -133,7 +133,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": "^{\n  \"x\": 0,\n  \"y\": 0,\n  \"z\": 0,\n  \"w\": 1\n}"
+          "body": "^{\n  \"x\": 0,\n  \"y\": 0,\n  \"z\": 0,\n  \"w\": 0\n}"
         }
       ]
     }

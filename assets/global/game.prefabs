@@ -737,9 +737,33 @@
       ]
     },
     {
+      "name": "Sun",
+      "traits": [
+        { "$type": "AssetPrefabTrait_LightAmbient", "intensity": 1.0 },
+        {
+          "$type": "AssetPrefabTrait_LightDir",
+          "radiance": { "r": 1, "g": 0.8, "b": 0.4, "a": 5 },
+          "shadows": true,
+          "coverage": true
+        }
+      ]
+    },
+    {
+      "name": "Moon",
+      "traits": [
+        { "$type": "AssetPrefabTrait_LightAmbient", "intensity": 0.05 }
+      ]
+    },
+    {
       "name": "ScriptTest",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test.script" }
+      ]
+    },
+    {
+      "name": "LightTest",
+      "traits": [
+        { "$type": "AssetPrefabTrait_LightPoint", "radiance": { "r": 1, "g": 0.1, "b": 0.1, "a": 1000 }, "radius": 15 }
       ]
     },
     {

@@ -15,6 +15,7 @@
 #include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_lifetime.h"
+#include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
@@ -210,6 +211,24 @@ static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound*
         .pitch   = rng_sample_range(g_rng, t->pitchMin, t->pitchMax),
         .looping = t->looping);
   }
+}
+
+static void setup_light_point(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLightPoint* t) {
+  ecs_world_add_t(w, e, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
+}
+
+static void setup_light_dir(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLightDir* t) {
+  ecs_world_add_t(
+      w,
+      e,
+      SceneLightDirComp,
+      .radiance = t->radiance,
+      .shadows  = t->shadows,
+      .coverage = t->coverage);
+}
+
+static void setup_light_ambient(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLightAmbient* t) {
+  ecs_world_add_t(w, e, SceneLightAmbientComp, .intensity = t->intensity);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
@@ -444,6 +463,15 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Sound:
     setup_sound(w, e, &t->data_sound);
+    return;
+  case AssetPrefabTrait_LightPoint:
+    setup_light_point(w, e, &t->data_lightPoint);
+    return;
+  case AssetPrefabTrait_LightDir:
+    setup_light_dir(w, e, &t->data_lightDir);
+    return;
+  case AssetPrefabTrait_LightAmbient:
+    setup_light_ambient(w, e, &t->data_lightAmbient);
     return;
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);

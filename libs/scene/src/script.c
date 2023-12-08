@@ -17,6 +17,7 @@
 #include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_lifetime.h"
+#include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
@@ -52,6 +53,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
                   g_scriptEnumVfxParam,
+                  g_scriptEnumLightParam,
                   g_scriptEnumSoundParam,
                   g_scriptEnumLayer,
                   g_scriptEnumStatus,
@@ -98,6 +100,10 @@ static void eval_enum_init_vfx_param() {
   script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
 }
 
+static void eval_enum_init_light_param() {
+  script_enum_push(&g_scriptEnumLightParam, string_lit("Radiance"), 0);
+}
+
 static void eval_enum_init_sound_param() {
   script_enum_push(&g_scriptEnumSoundParam, string_lit("Gain"), 0);
   script_enum_push(&g_scriptEnumSoundParam, string_lit("Pitch"), 1);
@@ -142,6 +148,7 @@ typedef enum {
   ScriptActionType_UpdateSet,
   ScriptActionType_UpdateTags,
   ScriptActionType_UpdateVfxParam,
+  ScriptActionType_UpdateLightParam,
   ScriptActionType_UpdateSoundParam,
 } ScriptActionType;
 
@@ -227,6 +234,12 @@ typedef struct {
 typedef struct {
   EcsEntityId entity;
   i32         param;
+  GeoColor    value;
+} ScriptActionUpdateLightParam;
+
+typedef struct {
+  EcsEntityId entity;
+  i32         param;
   f32         value;
 } ScriptActionUpdateSoundParam;
 
@@ -247,6 +260,7 @@ typedef struct {
     ScriptActionUpdateSet        data_updateSet;
     ScriptActionUpdateTags       data_updateTags;
     ScriptActionUpdateVfxParam   data_updateVfxParam;
+    ScriptActionUpdateLightParam data_updateLightParam;
     ScriptActionUpdateSoundParam data_updateSoundParam;
   };
 } ScriptAction;
@@ -269,6 +283,8 @@ ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTagView) { ecs_access_read(SceneTagComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
 ecs_view_define(EvalVfxDecalView) { ecs_access_read(SceneVfxDecalComp); }
+ecs_view_define(EvalLightPointView) { ecs_access_read(SceneLightPointComp); }
+ecs_view_define(EvalLightDirView) { ecs_access_read(SceneLightDirComp); }
 ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
@@ -300,6 +316,8 @@ typedef struct {
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
+  EcsIterator* lightPointItr;
+  EcsIterator* lightDirItr;
   EcsIterator* soundItr;
   EcsIterator* navAgentItr;
   EcsIterator* locoItr;
@@ -1108,6 +1126,56 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_light_point(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const GeoVector pos      = script_arg_vec3(args, 0, err);
+  const GeoQuat   rot      = geo_quat_ident;
+  const GeoColor  radiance = script_arg_color(args, 1, err);
+  const f32       radius   = (f32)script_arg_num_range(args, 2, 1e-3f, 1e+3f, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(ctx->world, result, SceneLightPointComp, .radiance = radiance, .radius = radius);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
+static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  if (UNLIKELY(!entity)) {
+    return script_null();
+  }
+  const i32 param = script_arg_enum(args, 1, &g_scriptEnumLightParam, err);
+  if (args.count == 2) {
+    if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
+      const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
+      switch (param) {
+      case 0 /* Radiance */:
+        return script_color(point->radiance);
+      }
+    }
+    if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
+      const SceneLightDirComp* dir = ecs_view_read_t(ctx->lightDirItr, SceneLightDirComp);
+      switch (param) {
+      case 0 /* Radiance */:
+        return script_color(dir->radiance);
+      }
+    }
+    return script_null();
+  }
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_UpdateLightParam,
+      .data_updateLightParam =
+          {
+              .entity = entity,
+              .param  = param,
+              .value  = script_arg_color(args, 2, err),
+          },
+  };
+  return script_null();
+}
+
 static ScriptVal eval_sound_play(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId asset = arg_asset(ctx, args, 0, err);
   GeoVector         pos;
@@ -1344,6 +1412,7 @@ static void eval_binder_init() {
     eval_enum_init_capability();
     eval_enum_init_activity();
     eval_enum_init_vfx_param();
+    eval_enum_init_light_param();
     eval_enum_init_sound_param();
     eval_enum_init_layer();
     eval_enum_init_status();
@@ -1392,6 +1461,8 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("vfx_system"),         eval_vfx_system);
     eval_bind(b, string_lit("vfx_decal"),          eval_vfx_decal);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
+    eval_bind(b, string_lit("light_point"),        eval_light_point);
+    eval_bind(b, string_lit("light_param"),        eval_light_param);
     eval_bind(b, string_lit("sound_play"),         eval_sound_play);
     eval_bind(b, string_lit("sound_param"),        eval_sound_param);
     eval_bind(b, string_lit("random_of"),          eval_random_of);
@@ -1566,6 +1637,8 @@ ecs_system_define(SceneScriptUpdateSys) {
       .tagItr         = ecs_view_itr(ecs_world_view_t(world, EvalTagView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
       .vfxDecalItr    = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
+      .lightPointItr  = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
+      .lightDirItr    = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
       .soundItr       = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
       .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
       .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
@@ -1630,6 +1703,8 @@ ecs_view_define(ActionBarkView) { ecs_access_write(SceneBarkComp); }
 ecs_view_define(ActionTagView) { ecs_access_write(SceneTagComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
+ecs_view_define(ActionLightPointView) { ecs_access_write(SceneLightPointComp); }
+ecs_view_define(ActionLightDirView) { ecs_access_write(SceneLightDirComp); }
 ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
 
 typedef struct {
@@ -1646,6 +1721,8 @@ typedef struct {
   EcsIterator* tagItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
+  EcsIterator* lightPointItr;
+  EcsIterator* lightDirItr;
   EcsIterator* soundItr;
 } ActionContext;
 
@@ -1796,6 +1873,25 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
   }
 }
 
+static void action_update_light_param(ActionContext* ctx, const ScriptActionUpdateLightParam* a) {
+  if (ecs_view_maybe_jump(ctx->lightPointItr, a->entity)) {
+    SceneLightPointComp* pointComp = ecs_view_write_t(ctx->lightPointItr, SceneLightPointComp);
+    switch (a->param) {
+    case 0 /* Radiance */:
+      pointComp->radiance = a->value;
+      break;
+    }
+  }
+  if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
+    SceneLightDirComp* dirComp = ecs_view_write_t(ctx->lightDirItr, SceneLightDirComp);
+    switch (a->param) {
+    case 0 /* Radiance */:
+      dirComp->radiance = a->value;
+      break;
+    }
+  }
+}
+
 static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
   if (ecs_view_maybe_jump(ctx->soundItr, a->entity)) {
     SceneSoundComp* soundComp = ecs_view_write_t(ctx->soundItr, SceneSoundComp);
@@ -1820,19 +1916,21 @@ ecs_system_define(ScriptActionApplySys) {
   }
 
   ActionContext ctx = {
-      .world        = world,
-      .globalItr    = globalItr,
-      .knowledgeItr = ecs_view_itr(ecs_world_view_t(world, ActionKnowledgeView)),
-      .transItr     = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
-      .navAgentItr  = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
-      .attachItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
-      .damageItr    = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
-      .attackItr    = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
-      .barkItr      = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
-      .tagItr       = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
-      .vfxSysItr    = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
-      .vfxDecalItr  = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
-      .soundItr     = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
+      .world         = world,
+      .globalItr     = globalItr,
+      .knowledgeItr  = ecs_view_itr(ecs_world_view_t(world, ActionKnowledgeView)),
+      .transItr      = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
+      .navAgentItr   = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
+      .attachItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
+      .damageItr     = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
+      .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
+      .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
+      .tagItr        = ecs_view_itr(ecs_world_view_t(world, ActionTagView)),
+      .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
+      .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
+      .lightPointItr = ecs_view_itr(ecs_world_view_t(world, ActionLightPointView)),
+      .lightDirItr   = ecs_view_itr(ecs_world_view_t(world, ActionLightDirView)),
+      .soundItr      = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -1883,6 +1981,9 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_UpdateVfxParam:
         action_update_vfx_param(&ctx, &action->data_updateVfxParam);
         break;
+      case ScriptActionType_UpdateLightParam:
+        action_update_light_param(&ctx, &action->data_updateLightParam);
+        break;
       case ScriptActionType_UpdateSoundParam:
         action_update_sound_param(&ctx, &action->data_updateSoundParam);
         break;
@@ -1921,6 +2022,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalTagView),
       ecs_register_view(EvalVfxSysView),
       ecs_register_view(EvalVfxDecalView),
+      ecs_register_view(EvalLightPointView),
+      ecs_register_view(EvalLightDirView),
       ecs_register_view(EvalSoundView),
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
@@ -1945,6 +2048,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionTagView),
       ecs_register_view(ActionVfxSysView),
       ecs_register_view(ActionVfxDecalView),
+      ecs_register_view(ActionLightPointView),
+      ecs_register_view(ActionLightDirView),
       ecs_register_view(ActionSoundView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);

@@ -412,7 +412,7 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
   }
 }
 
-static void painter_push_ambient(RendPaintContext* ctx) {
+static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
   typedef enum {
     AmbientFlags_AmbientOcclusion     = 1 << 0,
     AmbientFlags_AmbientOcclusionBlur = 1 << 1,
@@ -433,7 +433,7 @@ static void painter_push_ambient(RendPaintContext* ctx) {
   }
 
   AmbientData* data = alloc_alloc_t(g_alloc_scratch, AmbientData);
-  data->packed.x    = ctx->settingsGlobal->lightAmbient;
+  data->packed.x    = intensity;
   data->packed.y    = bits_u32_as_f32(mode);
   data->packed.z    = bits_u32_as_f32(flags);
 
@@ -828,12 +828,12 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  const RvkSize shadowSize = rend_light_has_shadow(light)
-                                 ? (RvkSize){set->shadowResolution, set->shadowResolution}
-                                 : (RvkSize){1, 1};
-  RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
+  const bool    shadowsActive = set->flags & RendFlags_Shadows && rend_light_has_shadow(light);
+  const RvkSize shadowSize =
+      shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
+  RvkPass*  shadowPass  = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
-  if (rend_light_has_shadow(light)) {
+  if (shadowsActive) {
     const GeoMatrix*     shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix*     shadProj   = rend_light_shadow_proj(light);
     const SceneTagFilter shadFilter = {
@@ -885,7 +885,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_stage_attach_depth(fwdPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    painter_push_ambient(&ctx);
+    painter_push_ambient(&ctx, rend_light_ambient_intensity(light));
     switch ((u32)set->skyMode) {
     case RendSkyMode_Gradient:
       painter_push_simple(&ctx, RvkRepositoryId_SkyGradientGraphic, mem_empty);

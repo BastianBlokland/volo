@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_array.h"
+#include "core_float.h"
 #include "core_stringtable.h"
 #include "core_time.h"
 #include "geo_color.h"
@@ -7,6 +8,25 @@
 #include "script_val.h"
 
 #include "utils_internal.h"
+
+static void test_eq_quat(CheckTestContext* ctx, GeoQuat a, const GeoQuat b) {
+  if (geo_quat_dot(a, b) < 0) {
+    // Compensate for quaternion double-cover (two quaternions representing the same rot).
+    a = geo_quat_flip(a);
+  }
+  for (usize i = 0; i != 4; ++i) {
+    if (float_isnan(a.comps[i]) || float_isnan(b.comps[i])) {
+      goto Fail;
+    }
+    if (math_abs(a.comps[i] - b.comps[i]) > 1e-3f) {
+      goto Fail;
+    }
+  }
+  return;
+Fail:
+  check_report_error(
+      ctx, fmt_write_scratch("{} == {}", geo_quat_fmt(a), geo_quat_fmt(b)), source_location());
+}
 
 spec(val) {
   const EcsEntityId dummyEntity1 = (EcsEntityId)(u64_lit(0) | (u64_lit(1) << 32u));
@@ -51,6 +71,21 @@ spec(val) {
     check_eq_float(script_get_vec3(val, geo_vector(0)).y, 2, 1e-6f);
     check_eq_float(script_get_vec3(val, geo_vector(0)).z, 3, 1e-6f);
     check_eq_float(script_get_vec3(val, geo_vector(0)).w, 0, 1e-6f);
+  }
+
+  it("can store quaternions") {
+    const GeoQuat testData[] = {
+        geo_quat_angle_axis(geo_up, 0.0f * math_pi_f32 * 2.0f),
+        geo_quat_angle_axis(geo_up, 0.25f * math_pi_f32 * 2.0f),
+        geo_quat_angle_axis(geo_up, 0.5f * math_pi_f32 * 2.0f),
+        geo_quat_angle_axis(geo_up, 0.75f * math_pi_f32 * 2.0f),
+        geo_quat_angle_axis(geo_up, 1.0f * math_pi_f32 * 2.0f),
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal val = script_quat(testData[i]);
+      test_eq_quat(_testCtx, script_get_quat(val, geo_quat_ident), testData[i]);
+    }
   }
 
   it("normalizes incoming quaternions") {
@@ -205,7 +240,6 @@ spec(val) {
         {script_bool(false), string_lit("false")},
         {script_vec3_lit(1, 2, 3), string_lit("1, 2, 3")},
         {script_quat(geo_quat_ident), string_lit("0, 0, 0, 1")},
-        {script_quat(geo_quat_forward_to_backward), string_lit("0, 1, 0, 0")},
         {script_color(geo_color_clear), string_lit("0, 0, 0, 0")},
         {script_color(geo_color_red), string_lit("1, 0, 0, 1")},
         {script_entity(dummyEntity1), string_lit("100000000")},

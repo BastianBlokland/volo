@@ -18,6 +18,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
@@ -59,6 +60,7 @@ typedef enum {
   DebugInspectorVis_BoundsGlobal,
   DebugInspectorVis_NavigationPath,
   DebugInspectorVis_NavigationGrid,
+  DebugInspectorVis_Light,
   DebugInspectorVis_Health,
   DebugInspectorVis_Target,
   DebugInspectorVis_Vision,
@@ -95,6 +97,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
     [DebugInspectorVis_NavigationPath]  = string_static("NavigationPath"),
     [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
+    [DebugInspectorVis_Light]           = string_static("Light"),
     [DebugInspectorVis_Health]          = string_static("Health"),
     [DebugInspectorVis_Target]          = string_static("Target"),
     [DebugInspectorVis_Vision]          = string_static("Vision"),
@@ -169,6 +172,9 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
+  ecs_access_maybe_write(SceneLightPointComp);
+  ecs_access_maybe_write(SceneLightDirComp);
+  ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -347,6 +353,61 @@ static void inspector_panel_draw_transform(
     if (debug_widget_editor_f32(canvas, &scale->scale, UiWidget_Default)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
+    }
+  }
+}
+
+static void inspector_panel_draw_light(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneLightPointComp*   point = subject ? ecs_view_write_t(subject, SceneLightPointComp) : null;
+  SceneLightDirComp*     dir   = subject ? ecs_view_write_t(subject, SceneLightDirComp) : null;
+  SceneLightAmbientComp* amb   = subject ? ecs_view_write_t(subject, SceneLightAmbientComp) : null;
+  if (!point && !dir && !amb) {
+    return;
+  }
+  inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, string_lit("Light"))) {
+    if (point) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radiance"));
+      ui_table_next_column(canvas, table);
+      debug_widget_editor_color(canvas, &point->radiance, UiWidget_Default);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radius"));
+      ui_table_next_column(canvas, table);
+      if (debug_widget_editor_f32(canvas, &point->radius, UiWidget_Default)) {
+        // Clamp the radius to a sane value.
+        point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
+      }
+    }
+    if (dir) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radiance"));
+      ui_table_next_column(canvas, table);
+      debug_widget_editor_color(canvas, &dir->radiance, UiWidget_Default);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Shadows"));
+      ui_table_next_column(canvas, table);
+      ui_toggle(canvas, &dir->shadows);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Coverage"));
+      ui_table_next_column(canvas, table);
+      ui_toggle(canvas, &dir->coverage);
+    }
+    if (amb) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Ambient"));
+      ui_table_next_column(canvas, table);
+      if (debug_widget_editor_f32(canvas, &amb->intensity, UiWidget_Default)) {
+        // Clamp the ambient intensity to a sane value.
+        amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
+      }
     }
   }
 }
@@ -703,6 +764,9 @@ static void inspector_panel_draw(
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
+  inspector_panel_draw_light(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
   inspector_panel_draw_health(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
@@ -750,6 +814,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   u32 defaultVisFlags = 0;
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
   defaultVisFlags |= 1 << DebugInspectorVis_Script;
+  defaultVisFlags |= 1 << DebugInspectorVis_Light;
 
   return ecs_world_add_t(
       world,
@@ -1134,6 +1199,26 @@ static void inspector_vis_draw_navigation_path(
   }
 }
 
+static void inspector_vis_draw_light_point(
+    DebugShapeComp*            shape,
+    const SceneLightPointComp* lightPoint,
+    const SceneTransformComp*  transform,
+    const SceneScaleComp*      scaleComp) {
+  const GeoVector pos    = transform ? transform->position : geo_vector(0);
+  const f32       radius = scaleComp ? lightPoint->radius * scaleComp->scale : lightPoint->radius;
+  debug_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
+}
+
+static void inspector_vis_draw_light_dir(
+    DebugShapeComp* shape, const SceneLightDirComp* lightDir, const SceneTransformComp* transform) {
+  (void)lightDir;
+  const GeoVector pos      = transform ? transform->position : geo_vector(0);
+  const GeoQuat   rot      = transform ? transform->rotation : geo_quat_ident;
+  const GeoVector dir      = geo_quat_rotate(rot, geo_forward);
+  const GeoVector arrowEnd = geo_vector_add(pos, geo_vector_mul(dir, 5));
+  debug_arrow(shape, pos, arrowEnd, 0.75f, geo_color(1, 1, 1, 0.5f));
+}
+
 static void inspector_vis_draw_health(
     DebugTextComp* text, const SceneHealthComp* health, const SceneTransformComp* transform) {
   const GeoVector pos          = transform ? transform->position : geo_vector(0);
@@ -1242,20 +1327,23 @@ static void inspector_vis_draw_subject(
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
     const SceneNavEnvComp*            nav,
-    EcsIterator*                      subject) {
-  const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
-  const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
-  const SceneHealthComp*     healthComp    = ecs_view_read_t(subject, SceneHealthComp);
-  const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
-  const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
-  const SceneNavAgentComp*   navAgentComp  = ecs_view_read_t(subject, SceneNavAgentComp);
-  const SceneNavPathComp*    navPathComp   = ecs_view_read_t(subject, SceneNavPathComp);
-  const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
-  const SceneTransformComp*  transformComp = ecs_view_read_t(subject, SceneTransformComp);
-  const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
-  const SceneVisionComp*     visionComp    = ecs_view_read_t(subject, SceneVisionComp);
-  const SceneLocationComp*   locationComp  = ecs_view_read_t(subject, SceneLocationComp);
-  const SceneScriptComp*     scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
+    EcsIterator*                      subject,
+    const bool                        debugLayerActive) {
+  const SceneBoundsComp*     boundsComp     = ecs_view_read_t(subject, SceneBoundsComp);
+  const SceneCollisionComp*  collisionComp  = ecs_view_read_t(subject, SceneCollisionComp);
+  const SceneHealthComp*     healthComp     = ecs_view_read_t(subject, SceneHealthComp);
+  const SceneLightPointComp* lightPointComp = ecs_view_read_t(subject, SceneLightPointComp);
+  const SceneLightDirComp*   lightDirComp   = ecs_view_read_t(subject, SceneLightDirComp);
+  const SceneLocationComp*   locationComp   = ecs_view_read_t(subject, SceneLocationComp);
+  const SceneLocomotionComp* locoComp       = ecs_view_read_t(subject, SceneLocomotionComp);
+  const SceneNameComp*       nameComp       = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavAgentComp*   navAgentComp   = ecs_view_read_t(subject, SceneNavAgentComp);
+  const SceneNavPathComp*    navPathComp    = ecs_view_read_t(subject, SceneNavPathComp);
+  const SceneScaleComp*      scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneScriptComp*     scriptComp     = ecs_view_read_t(subject, SceneScriptComp);
+  const SceneTransformComp*  transformComp  = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneVelocityComp*   veloComp       = ecs_view_read_t(subject, SceneVelocityComp);
+  const SceneVisionComp*     visionComp     = ecs_view_read_t(subject, SceneVisionComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1290,6 +1378,12 @@ static void inspector_vis_draw_subject(
   }
   if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
+  }
+  if (debugLayerActive && lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+    inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
+  }
+  if (debugLayerActive && lightDirComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+    inspector_vis_draw_light_dir(shape, lightDirComp, transformComp);
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
@@ -1365,6 +1459,12 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = UiShape_Image;
     } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
       icon = UiShape_Grain;
+    } else if (ecs_world_has_t(world, e, SceneLightPointComp)) {
+      icon = UiShape_Light;
+    } else if (ecs_world_has_t(world, e, SceneLightDirComp)) {
+      icon = UiShape_Light;
+    } else if (ecs_world_has_t(world, e, SceneLightAmbientComp)) {
+      icon = UiShape_Light;
     } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
       icon = UiShape_MusicNote;
     } else {
@@ -1446,13 +1546,13 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     const StringHash s = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
-        inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+        inspector_vis_draw_subject(shape, text, set, nav, subjectItr, debugLayerActive);
       }
     }
   } break;
   case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_subject(shape, text, set, nav, itr);
+      inspector_vis_draw_subject(shape, text, set, nav, itr, debugLayerActive);
     }
   } break;
   case DebugInspectorVisMode_Count:

@@ -151,6 +151,27 @@
       }
     },
     {
+      "name": "light_point",
+      "doc": "Place a point light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "radiance",
+            "mask": "color"
+          },
+          {
+            "name": "radius",
+            "mask": "num"
+          }
+        ]
+      }
+    },
+    {
       "name": "name",
       "doc": "Lookup the name of the given entity.",
       "sig": {
@@ -786,6 +807,33 @@
           {
             "name": "key",
             "mask": "str"
+          }
+        ]
+      }
+    },
+    {
+      "name": "light_param",
+      "doc": "Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "color"
+            ]
           }
         ]
       }

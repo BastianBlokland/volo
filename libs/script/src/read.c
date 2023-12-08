@@ -275,6 +275,24 @@ static void script_builtin_init() {
     script_builtin_func_add(name, ScriptIntrinsic_Absolute, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("sin");
+    const String       doc    = string_lit("Evaluate the sine function.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Sin, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("cos");
+    const String       doc    = string_lit("Evaluate the cosine function.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Cos, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("normalize");
     const String       doc    = string_lit("Normalize the given value.");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_quat;
@@ -879,9 +897,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1919,13 +1937,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
