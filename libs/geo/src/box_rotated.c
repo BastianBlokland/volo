@@ -303,9 +303,9 @@ bool geo_box_rotated_overlap_box_rotated(const GeoBoxRotated* a, const GeoBoxRot
       geo_quat_rotate(a->rotation, geo_forward),
   };
   const GeoVector axesB[] = {
-      geo_quat_rotate(a->rotation, geo_right),
-      geo_quat_rotate(a->rotation, geo_up),
-      geo_quat_rotate(a->rotation, geo_forward),
+      geo_quat_rotate(b->rotation, geo_right),
+      geo_quat_rotate(b->rotation, geo_up),
+      geo_quat_rotate(b->rotation, geo_forward),
   };
 
   // Check the local axes of a.
