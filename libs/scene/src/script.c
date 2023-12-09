@@ -554,6 +554,38 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   return script_num(context_query_id(ctx, query));
 }
 
+static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
+
+  const GeoVector  pos       = script_arg_vec3(args, 0, err);
+  const GeoVector  size      = script_arg_vec3(args, 1, err);
+  const GeoQuat    rot       = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const SceneLayer layerMask = arg_layer_mask(args, 3, err);
+
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+
+  EvalQuery* query = context_query_alloc(ctx);
+  if (UNLIKELY(!query)) {
+    *err = script_error(ScriptError_QueryLimitExceeded);
+    return script_null();
+  }
+
+  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
+
+  const SceneQueryFilter filter = {.layerMask = layerMask};
+
+  GeoBoxRotated boxRotated;
+  boxRotated.box      = geo_box_from_center(pos, size);
+  boxRotated.rotation = rot;
+
+  query->count = scene_query_box_all(colEnv, &boxRotated, &filter, query->values);
+  query->itr   = 0;
+
+  return script_num(context_query_id(ctx, query));
+}
+
 static ScriptVal eval_query_pop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const u32 queryId = (u32)script_arg_num(args, 0, err);
   if (UNLIKELY(script_error_valid(err))) {
@@ -1450,6 +1482,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("set"),                eval_set);
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
+    eval_bind(b, string_lit("query_box"),          eval_query_box);
     eval_bind(b, string_lit("query_pop"),          eval_query_pop);
     eval_bind(b, string_lit("query_random"),       eval_query_random);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
