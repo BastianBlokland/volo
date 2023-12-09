@@ -1763,14 +1763,14 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   default:
     /**
      * If we encounter an argument end token (comma or close-paren) inside an arg expression we can
-     * reasonably assume that this was meant to end the expression and the actually expression is
+     * reasonably assume that this was meant to end the argument and the actual expression is
      * missing. This has the advantage of turning it into a semantic error where we can keep parsing
      * the rest of the script.
      */
     if (ctx->section & ScriptSection_InsideArg && read_is_arg_end(token.kind)) {
       ctx->input = prevInput; // Un-consume the token.
       read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range);
-      return read_fail_semantic(ctx, read_range_dummy(ctx));
+      return read_fail_semantic(ctx, range);
     }
 
     // Unexpected token; we have to treat it as a structural failure.
