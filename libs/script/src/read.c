@@ -19,7 +19,7 @@
 #define script_block_size_max 128
 #define script_args_max 10
 #define script_builtin_consts_max 32
-#define script_builtin_funcs_max 32
+#define script_builtin_funcs_max 48
 #define script_tracked_mem_keys_max 32
 
 typedef struct {
@@ -407,6 +407,15 @@ static void script_builtin_init() {
         {string_lit("y"), script_mask_any},
     };
     script_builtin_func_add(name, ScriptIntrinsic_Max, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("perlin3");
+    const String       doc    = string_lit("Evaluate the perlin gradient noise at the given position.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("pos"), script_mask_vec3},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Perlin3, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("assert");
@@ -897,9 +906,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .severity = ScriptDiagSeverity_Warning,
-          .kind     = ScriptDiag_ExprUnreachable,
-          .range    = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .kind     = ScriptDiag_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1937,13 +1946,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

@@ -55,6 +55,7 @@ typedef enum {
   ScriptIntrinsic_Lerp,              // Args: x, y, t.
   ScriptIntrinsic_Min,               // Args: x, y.
   ScriptIntrinsic_Max,               // Args: x, y.
+  ScriptIntrinsic_Perlin3,           // Args: position
 
   ScriptIntrinsic_Count,
 } ScriptIntrinsic;

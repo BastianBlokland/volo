@@ -63,9 +63,6 @@ f64 math_pow_f64(const f64 base, const f64 exp) { return intrinsic_pow_f64(base,
 
 f32 math_exp_f32(const f32 exp) { return intrinsic_exp_f32(exp); }
 
-f32 math_trunc_f32(const f32 val) { return (i32)val; }
-f64 math_trunc_f64(const f64 val) { return (i64)val; }
-
 f32 math_round_nearest_f32(const f32 val) { return intrinsic_round_nearest_f32(val); }
 f64 math_round_nearest_f64(const f64 val) { return intrinsic_round_nearest_f64(val); }
 

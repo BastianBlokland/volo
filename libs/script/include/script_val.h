@@ -148,6 +148,7 @@ ScriptVal script_val_clamp(ScriptVal, ScriptVal min, ScriptVal max);
 ScriptVal script_val_lerp(ScriptVal x, ScriptVal y, ScriptVal t);
 ScriptVal script_val_min(ScriptVal, ScriptVal);
 ScriptVal script_val_max(ScriptVal, ScriptVal);
+ScriptVal script_val_perlin3(ScriptVal pos);
 
 /**
  * Value conversions.
