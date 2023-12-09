@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/pressure_plate/pressure_plate_color_rough.tga",
+      "textureId": "external/pressure_plate/pressure_plate_color_rough_2.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x2"
