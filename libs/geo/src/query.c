@@ -185,6 +185,29 @@ geo_prim_overlap_sphere(const GeoQueryPrim* prim, const u32 entryIdx, const GeoS
   UNREACHABLE
 }
 
+static bool geo_prim_overlap_box_rotated(
+    const GeoQueryPrim* prim, const u32 entryIdx, const GeoBoxRotated* shape) {
+  switch (prim->type) {
+  case GeoQueryPrim_Sphere: {
+    const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
+    return geo_box_rotated_overlap_sphere(shape, sphere);
+  }
+  case GeoQueryPrim_Capsule: {
+    const GeoCapsule* cap = &((const GeoCapsule*)prim->shapes)[entryIdx];
+    // TODO: Implement capsule <-> rotated-box overlap instead of converting capsules to boxes.
+    const GeoBoxRotated box = geo_box_rotated_from_capsule(cap->line.a, cap->line.b, cap->radius);
+    return geo_box_rotated_overlap_box_rotated(&box, shape);
+  }
+  case GeoQueryPrim_BoxRotated: {
+    const GeoBoxRotated* box = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
+    return geo_box_rotated_overlap_box_rotated(box, shape);
+  }
+  case GeoQueryPrim_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static bool geo_prim_overlap_frustum(
     const GeoQueryPrim* prim, const u32 entryIdx, const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
   switch (prim->type) {
@@ -448,6 +471,45 @@ u32 geo_query_sphere_all(
         continue; // Bounds do not intersect; no need to test against the shape.
       }
       if (!geo_prim_overlap_sphere(prim, i, sphere)) {
+        continue; // Miss.
+      }
+      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+        continue; // Filtered out by the filter's callback.
+      }
+
+      // Output hit.
+      out[count++] = prim->ids[i];
+      if (UNLIKELY(count == geo_query_max_hits)) {
+        goto MaxCountReached;
+      }
+    }
+  }
+
+MaxCountReached:
+  return count;
+}
+
+u32 geo_query_box_all(
+    const GeoQueryEnv*    env,
+    const GeoBoxRotated*  boxRotated,
+    const GeoQueryFilter* filter,
+    u64                   out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
+
+  geo_query_stat_add(env, GeoQueryStat_QueryBoxAllCount, 1);
+
+  const GeoBox queryBounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
+
+  u32 count = 0;
+  for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
+    const GeoQueryPrim* prim = &env->prims[primIdx];
+    for (u32 i = 0; i != prim->count; ++i) {
+      if (!geo_query_filter_layer(filter, prim->layers[i])) {
+        continue; // Layer not included in filter.
+      }
+      if (!geo_box_overlap(&prim->bounds[i], &queryBounds)) {
+        continue; // Bounds do not intersect; no need to test against the shape.
+      }
+      if (!geo_prim_overlap_box_rotated(prim, i, boxRotated)) {
         continue; // Miss.
       }
       if (!geo_query_filter_callback(filter, prim->ids[i])) {

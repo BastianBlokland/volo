@@ -94,6 +94,16 @@ u32 geo_query_sphere_all(
     u64 out[PARAM_ARRAY_SIZE(geo_query_max_hits)]);
 
 /**
+ * Query for all objects that are contained in the given box.
+ * NOTE: Returns the number of hit objects.
+ */
+u32 geo_query_box_all(
+    const GeoQueryEnv*,
+    const GeoBoxRotated*,
+    const GeoQueryFilter*,
+    u64 out[PARAM_ARRAY_SIZE(geo_query_max_hits)]);
+
+/**
  * Query for all objects that are contained in the frustum formed by the given 8 corner points.
  * NOTE: Returns the number of hit objects.
  */
@@ -114,6 +124,7 @@ typedef enum {
   GeoQueryStat_QueryRayCount,
   GeoQueryStat_QueryRayFatCount,
   GeoQueryStat_QuerySphereAllCount,
+  GeoQueryStat_QueryBoxAllCount,
   GeoQueryStat_QueryFrustumAllCount,
 
   GeoQueryStat_Count,
