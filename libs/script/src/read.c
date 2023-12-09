@@ -1770,7 +1770,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     if (ctx->section & ScriptSection_InsideArg && read_is_arg_end(token.kind)) {
       ctx->input = prevInput; // Un-consume the token.
       read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range);
-      return read_fail_semantic(ctx, range);
+      return read_fail_semantic(ctx, read_range_to_current(ctx, start));
     }
 
     // Unexpected token; we have to treat it as a structural failure.
