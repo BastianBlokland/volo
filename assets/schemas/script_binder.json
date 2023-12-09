@@ -566,6 +566,37 @@
       }
     },
     {
+      "name": "debug_box",
+      "doc": "Draw a 3D debug box.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "size",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_sphere",
       "doc": "Draw a 3D debug sphere.",
       "sig": {

@@ -533,6 +533,18 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("debug_box");
+      const String       doc    = string_lit("Draw a 3D debug box.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("size"), script_mask_vec3},
+          {string_lit("rot"), script_mask_quat | script_mask_null},
+          {string_lit("color"), script_mask_color | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("debug_arrow");
       const String       doc    = string_lit("Draw a 3D debug arrow.");
       const ScriptMask   ret    = script_mask_null;

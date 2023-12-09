@@ -698,9 +698,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1307,6 +1307,21 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   return script_null();
 }
 
+static ScriptVal eval_debug_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugBox data;
+  data.pos   = script_arg_vec3(args, 0, err);
+  data.size  = script_arg_vec3(args, 1, err);
+  data.rot   = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  data.color = script_arg_opt_color(args, 3, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type     = SceneScriptDebugType_Box,
+        .data_box = data,
+    };
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   SceneScriptDebugArrow data;
   data.start  = script_arg_vec3(args, 0, err);
@@ -1469,6 +1484,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
     eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
+    eval_bind(b, string_lit("debug_box"),          eval_debug_box);
     eval_bind(b, string_lit("debug_arrow"),        eval_debug_arrow);
     eval_bind(b, string_lit("debug_orientation"),  eval_debug_orientation);
     eval_bind(b, string_lit("debug_text"),         eval_debug_text);

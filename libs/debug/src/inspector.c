@@ -1304,6 +1304,10 @@ static void inspector_vis_draw_script(
       const SceneScriptDebugSphere* data = &debugData[i].data_sphere;
       debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
     } break;
+    case SceneScriptDebugType_Box: {
+      const SceneScriptDebugBox* data = &debugData[i].data_box;
+      debug_box(shape, data->pos, data->rot, data->size, data->color, DebugShape_Overlay);
+    } break;
     case SceneScriptDebugType_Arrow: {
       const SceneScriptDebugArrow* data = &debugData[i].data_arrow;
       debug_arrow(shape, data->start, data->end, data->radius, data->color);
