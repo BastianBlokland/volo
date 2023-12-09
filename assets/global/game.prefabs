@@ -435,6 +435,12 @@
       ]
     },
     {
+      "name": "PropPressurePlate",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" }
+      ]
+    },
+    {
       "name": "PropTree",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tree.graphic" },
