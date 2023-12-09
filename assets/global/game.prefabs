@@ -757,7 +757,7 @@
     {
       "name": "ScriptTest",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test/barrel_attack.script" }
       ]
     },
     {
