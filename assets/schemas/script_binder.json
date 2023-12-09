@@ -172,6 +172,41 @@
       }
     },
     {
+      "name": "query_box",
+      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "size",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "layers",
+            "mask": [
+              "null",
+              "str"
+            ],
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "name",
       "doc": "Lookup the name of the given entity.",
       "sig": {
@@ -561,6 +596,37 @@
           {
             "name": "v",
             "mask": "entity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "debug_box",
+      "doc": "Draw a 3D debug box.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "size",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
           }
         ]
       }

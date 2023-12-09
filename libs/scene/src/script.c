@@ -362,6 +362,17 @@ static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, 
   return e;
 }
 
+static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* err) {
+  if (a.count <= i) {
+    return SceneLayer_AllNonDebug;
+  }
+  SceneLayer layerMask = 0;
+  for (u8 argIndex = i; argIndex != a.count; ++argIndex) {
+    layerMask |= (SceneLayer)script_arg_enum(a, argIndex, &g_scriptEnumLayer, err);
+  }
+  return layerMask;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -518,18 +529,9 @@ static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptE
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector pos    = script_arg_vec3(args, 0, err);
-  const f32       radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
-
-  SceneLayer layerMask;
-  if (args.count < 3) {
-    layerMask = SceneLayer_AllNonDebug;
-  } else {
-    layerMask = 0;
-    for (u8 argIndex = 2; argIndex != args.count; ++argIndex) {
-      layerMask |= (SceneLayer)script_arg_enum(args, argIndex, &g_scriptEnumLayer, err);
-    }
-  }
+  const GeoVector  pos       = script_arg_vec3(args, 0, err);
+  const f32        radius    = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
+  const SceneLayer layerMask = arg_layer_mask(args, 2, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -547,6 +549,38 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   const GeoSphere        sphere = {.point = pos, .radius = radius};
 
   query->count = scene_query_sphere_all(colEnv, &sphere, &filter, query->values);
+  query->itr   = 0;
+
+  return script_num(context_query_id(ctx, query));
+}
+
+static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
+
+  const GeoVector  pos       = script_arg_vec3(args, 0, err);
+  const GeoVector  size      = script_arg_vec3(args, 1, err);
+  const GeoQuat    rot       = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const SceneLayer layerMask = arg_layer_mask(args, 3, err);
+
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+
+  EvalQuery* query = context_query_alloc(ctx);
+  if (UNLIKELY(!query)) {
+    *err = script_error(ScriptError_QueryLimitExceeded);
+    return script_null();
+  }
+
+  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
+
+  const SceneQueryFilter filter = {.layerMask = layerMask};
+
+  GeoBoxRotated boxRotated;
+  boxRotated.box      = geo_box_from_center(pos, size);
+  boxRotated.rotation = rot;
+
+  query->count = scene_query_box_all(colEnv, &boxRotated, &filter, query->values);
   query->itr   = 0;
 
   return script_num(context_query_id(ctx, query));
@@ -698,9 +732,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1307,6 +1341,21 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   return script_null();
 }
 
+static ScriptVal eval_debug_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  SceneScriptDebugBox data;
+  data.pos   = script_arg_vec3(args, 0, err);
+  data.size  = script_arg_vec3(args, 1, err);
+  data.rot   = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  data.color = script_arg_opt_color(args, 3, geo_color_white, err);
+  if (LIKELY(!script_error_valid(err))) {
+    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
+        .type     = SceneScriptDebugType_Box,
+        .data_box = data,
+    };
+  }
+  return script_null();
+}
+
 static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   SceneScriptDebugArrow data;
   data.start  = script_arg_vec3(args, 0, err);
@@ -1433,6 +1482,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("set"),                eval_set);
     eval_bind(b, string_lit("query_set"),          eval_query_set);
     eval_bind(b, string_lit("query_sphere"),       eval_query_sphere);
+    eval_bind(b, string_lit("query_box"),          eval_query_box);
     eval_bind(b, string_lit("query_pop"),          eval_query_pop);
     eval_bind(b, string_lit("query_random"),       eval_query_random);
     eval_bind(b, string_lit("nav_find"),           eval_nav_find);
@@ -1469,6 +1519,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     eval_bind(b, string_lit("debug_line"),         eval_debug_line);
     eval_bind(b, string_lit("debug_sphere"),       eval_debug_sphere);
+    eval_bind(b, string_lit("debug_box"),          eval_debug_box);
     eval_bind(b, string_lit("debug_arrow"),        eval_debug_arrow);
     eval_bind(b, string_lit("debug_orientation"),  eval_debug_orientation);
     eval_bind(b, string_lit("debug_text"),         eval_debug_text);

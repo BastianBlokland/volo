@@ -15,7 +15,7 @@ ecs_comp_extern(SceneScaleComp);
  */
 #define scene_query_max_hits 512
 
-#define scene_query_stat_count 7
+#define scene_query_stat_count 8
 
 typedef enum {
   SceneLayer_Debug                = 1 << 0,
@@ -175,6 +175,16 @@ bool scene_query_ray_fat(
 u32 scene_query_sphere_all(
     const SceneCollisionEnvComp*,
     const GeoSphere*,
+    const SceneQueryFilter*,
+    EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
+
+/**
+ * Query for all objects that are contained in the given sphere.
+ * NOTE: Returns the number of hit entities.
+ */
+u32 scene_query_box_all(
+    const SceneCollisionEnvComp*,
+    const GeoBoxRotated*,
     const SceneQueryFilter*,
     EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 

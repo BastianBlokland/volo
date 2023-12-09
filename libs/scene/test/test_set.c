@@ -392,7 +392,9 @@ spec(set) {
     }
   }
 
-  // TODO: At the moment this fails on the second sync as it will be re-added.
+  /**
+   * TODO: At the moment this fails on the second sync as it will be re-added.
+   */
   skip_it("does not add an entity when adding and removing in the same frame") {
     EcsWorld*        w   = world;
     const StringHash set = string_hash_lit("test");

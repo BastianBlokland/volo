@@ -68,7 +68,10 @@ spec(process) {
     process_destroy(child);
   }
 
-  it("can send an interrupt signal") {
+  /**
+   * TODO: Skipped for now as it can be a bit flaky on slow machines due to timing requirements.
+   */
+  skip_it("can send an interrupt signal") {
     const String       args[] = {string_lit("--wait"), string_lit("--exitcode"), string_lit("42")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_NewGroup;

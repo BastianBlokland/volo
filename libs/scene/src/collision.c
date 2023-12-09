@@ -348,6 +348,21 @@ u32 scene_query_sphere_all(
   return geo_query_sphere_all(env->queryEnv, sphere, &geoFilter, (u64*)out);
 }
 
+u32 scene_query_box_all(
+    const SceneCollisionEnvComp* env,
+    const GeoBoxRotated*         box,
+    const SceneQueryFilter*      filter,
+    EcsEntityId                  out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
+  diag_assert(filter);
+
+  const GeoQueryFilter geoFilter = {
+      .context   = filter->context,
+      .callback  = filter->callback,
+      .layerMask = (GeoQueryLayer)filter->layerMask,
+  };
+  return geo_query_box_all(env->queryEnv, box, &geoFilter, (u64*)out);
+}
+
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp* env,
     const GeoVector              frustum[PARAM_ARRAY_SIZE(8)],

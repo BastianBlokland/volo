@@ -162,6 +162,18 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("query_box");
+      const String       doc    = string_lit("Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("size"), script_mask_vec3},
+          {string_lit("rot"), script_mask_quat | script_mask_null},
+          {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("query_pop");
       const String       doc    = string_lit("Pops the first query value, returns null when reaching the end of the query.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
@@ -528,6 +540,18 @@ static void asset_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
           {string_lit("radius"), script_mask_num | script_mask_null},
+          {string_lit("color"), script_mask_color | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("debug_box");
+      const String       doc    = string_lit("Draw a 3D debug box.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("size"), script_mask_vec3},
+          {string_lit("rot"), script_mask_quat | script_mask_null},
           {string_lit("color"), script_mask_color | script_mask_null},
       };
       asset_bind(binder, name, doc, ret, args, array_elems(args));

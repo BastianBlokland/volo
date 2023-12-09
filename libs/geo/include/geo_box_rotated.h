@@ -46,5 +46,6 @@ GeoVector geo_box_rotated_closest_point(const GeoBoxRotated*, GeoVector point);
  * Overlap tests.
  */
 bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);
+bool geo_box_rotated_overlap_box_rotated(const GeoBoxRotated*, const GeoBoxRotated*);
 bool geo_box_rotated_overlap_sphere(const GeoBoxRotated*, const GeoSphere*);
 bool geo_box_rotated_overlap_frustum(const GeoBoxRotated*, const GeoVector[PARAM_ARRAY_SIZE(8)]);
