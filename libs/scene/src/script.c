@@ -362,6 +362,17 @@ static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, 
   return e;
 }
 
+static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* err) {
+  if (a.count <= i) {
+    return SceneLayer_AllNonDebug;
+  }
+  SceneLayer layerMask = 0;
+  for (u8 argIndex = i; argIndex != a.count; ++argIndex) {
+    layerMask |= (SceneLayer)script_arg_enum(a, argIndex, &g_scriptEnumLayer, err);
+  }
+  return layerMask;
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -518,18 +529,9 @@ static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptE
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector pos    = script_arg_vec3(args, 0, err);
-  const f32       radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
-
-  SceneLayer layerMask;
-  if (args.count < 3) {
-    layerMask = SceneLayer_AllNonDebug;
-  } else {
-    layerMask = 0;
-    for (u8 argIndex = 2; argIndex != args.count; ++argIndex) {
-      layerMask |= (SceneLayer)script_arg_enum(args, argIndex, &g_scriptEnumLayer, err);
-    }
-  }
+  const GeoVector  pos       = script_arg_vec3(args, 0, err);
+  const f32        radius    = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
+  const SceneLayer layerMask = arg_layer_mask(args, 2, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
