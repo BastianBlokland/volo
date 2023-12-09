@@ -286,6 +286,54 @@ bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
   return true; // No separating axis found; boxes are overlapping.
 }
 
+bool geo_box_rotated_overlap_box_rotated(const GeoBoxRotated* a, const GeoBoxRotated* b) {
+  /**
+   * Check if two rotated boxes are overlapping using the Separating Axis Theorem:
+   * If there is any axis where they are not overlapping (in 1 dimension) then they are not
+   * overlapping at all.
+   */
+
+  GeoVector pointsA[8], pointsB[8];
+  geo_box_rotated_corners(a, pointsA);
+  geo_box_rotated_corners(b, pointsB);
+
+  const GeoVector axesA[] = {
+      geo_quat_rotate(a->rotation, geo_right),
+      geo_quat_rotate(a->rotation, geo_up),
+      geo_quat_rotate(a->rotation, geo_forward),
+  };
+  const GeoVector axesB[] = {
+      geo_quat_rotate(a->rotation, geo_right),
+      geo_quat_rotate(a->rotation, geo_up),
+      geo_quat_rotate(a->rotation, geo_forward),
+  };
+
+  // Check the local axes of a.
+  array_for_t(axesA, GeoVector, axisA) {
+    if (!geo_sat_overlapping3(*axisA, pointsA, pointsB)) {
+      return false;
+    }
+  }
+
+  // Check the local axes of b.
+  array_for_t(axesB, GeoVector, axisB) {
+    if (!geo_sat_overlapping3(*axisB, pointsA, pointsB)) {
+      return false;
+    }
+  }
+
+  // Check the derived axes.
+  array_for_t(axesA, GeoVector, axisA) {
+    array_for_t(axesB, GeoVector, axisB) {
+      if (!geo_sat_overlapping3(geo_vector_cross3(*axisA, *axisB), pointsA, pointsB)) {
+        return false;
+      }
+    }
+  }
+
+  return true; // No separating axis found; boxes are overlapping.
+}
+
 bool geo_box_rotated_overlap_sphere(const GeoBoxRotated* boxRotated, const GeoSphere* sphere) {
   const GeoVector localSphereCenter = geo_box_rotated_local_point(boxRotated, sphere->point);
   const GeoVector localClosest      = geo_box_closest_point(&boxRotated->box, localSphereCenter);
