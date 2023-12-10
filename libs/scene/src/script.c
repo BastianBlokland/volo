@@ -1120,7 +1120,7 @@ static ScriptVal eval_rend_param(EvalContext* ctx, const ScriptArgs args, Script
           {
               .entity = entity,
               .param  = param,
-              .value  = (f32)script_arg_num_range(args, 2, 0.0, 10.0, err),
+              .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
           },
   };
   return script_null();

@@ -5,7 +5,7 @@ var blinkFrequency = $frequency ?? 0.5
 var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
 if (newBlinkOn != $blinkOn) {
 
-  rend_param(me, "Emissive", newBlinkOn ? 1.0 : 0.0)
+  rend_param(me, "Emissive", newBlinkOn ? 0.25 : 0.0)
   vfx_param(me, "Alpha", newBlinkOn ? 1.0 : 0.0)
 
   if (newBlinkOn && $alarmSound) {
