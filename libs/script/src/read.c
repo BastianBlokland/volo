@@ -1583,7 +1583,7 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
     return read_fail_structural(ctx);
   }
 
-  const ScriptRange range      = read_range_to_current(ctx, start);
+  const ScriptRange range      = script_range(start, script_expr_range(ctx->doc, b2).end);
   const ScriptExpr  intrArgs[] = {condition, b1, b2};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Select, intrArgs);
 }
