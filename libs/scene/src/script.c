@@ -1296,7 +1296,7 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
-  if (args.count == 2) {
+  if (args.count == 3) {
     if (ecs_view_maybe_jump(ctx->animItr, entity)) {
       const SceneAnimationComp* animComp = ecs_view_read_t(ctx->animItr, SceneAnimationComp);
       const SceneAnimLayer*     layer    = scene_animation_layer(animComp, layerName);
@@ -1320,7 +1320,7 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
               .entity    = entity,
               .layerName = layerName,
               .param     = param,
-              .value     = (f32)script_arg_num_range(args, 2, 0.0, 1000.0, err),
+              .value     = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err),
           },
   };
   return script_null();
