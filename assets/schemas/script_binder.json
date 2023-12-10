@@ -856,6 +856,13 @@
               "null",
               "str"
             ]
+          },
+          {
+            "name": "offset",
+            "mask": [
+              "null",
+              "vec3"
+            ]
           }
         ]
       }
