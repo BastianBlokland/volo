@@ -18,7 +18,8 @@ typedef struct {
   GeoQuat   rot;
   u32       tags;
   f32       alpha;
-  u32       padding[2];
+  f32       emissive;
+  u32       padding[1];
 } RendInstanceData;
 
 ASSERT(sizeof(RendInstanceData) == 48, "Size needs to match the size defined in glsl");
@@ -38,7 +39,8 @@ typedef struct {
   GeoQuat    rot;
   u32        tags;
   f32        alpha;
-  u32        padding[2];
+  f32        emissive;
+  u32        padding[1];
   RendMat3x4 jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
 
@@ -150,6 +152,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         data->rot         = rotation;
         data->tags        = (u32)tags;
         data->alpha       = renderable->alpha;
+        data->emissive    = renderable->emissive;
         for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
           data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
         }
@@ -160,6 +163,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       data->rot              = rotation;
       data->tags             = (u32)tags;
       data->alpha            = renderable->alpha;
+      data->emissive         = renderable->emissive;
     }
   }
 }

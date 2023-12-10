@@ -6,7 +6,7 @@
 
 const f32 c_alphaDitherMax = 0.99;
 
-bind_internal(1) in flat f32v4 in_data;
+bind_internal(1) in flat f32v4 in_data; // x tag bits, y alpha, z emissive
 
 void main() {
   const f32 alpha = in_data.y;

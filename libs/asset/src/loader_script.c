@@ -414,12 +414,13 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("emit");
-      const String       doc    = string_lit("Change or query the emissivity of the given entity.");
+      const String       name   = string_lit("rend_param");
+      const String       doc    = string_lit("Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`Emissive`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
-          {string_lit("on"), script_mask_bool | script_mask_null},
+          {string_lit("param"), script_mask_str},
+          {string_lit("value"), script_mask_num | script_mask_null},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

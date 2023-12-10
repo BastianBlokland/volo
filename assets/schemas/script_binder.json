@@ -514,6 +514,33 @@
       }
     },
     {
+      "name": "rend_param",
+      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`Emissive`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "vfx_decal",
       "doc": "Place a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
       "sig": {
@@ -804,29 +831,6 @@
             "mask": [
               "null",
               "str"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "emit",
-      "doc": "Change or query the emissivity of the given entity.",
-      "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
-        "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "on",
-            "mask": [
-              "null",
-              "bool"
             ]
           }
         ]

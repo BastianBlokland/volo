@@ -15,7 +15,8 @@
  */
 ecs_comp_extern_public(SceneRenderableComp) {
   EcsEntityId graphic;
-  f32         alpha;
+  f32         alpha;    // Normalized.
+  f32         emissive; // Normalized.
 };
 
 ecs_comp_extern_public(SceneRenderableFadeinComp) { TimeDuration duration, elapsed; };
