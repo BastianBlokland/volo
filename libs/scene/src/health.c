@@ -127,7 +127,7 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
 
 static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnimComp* healthAnim) {
   SceneAnimLayer* hitAnimLayer;
-  if ((hitAnimLayer = scene_animation_layer(anim, g_healthHitAnimHash))) {
+  if ((hitAnimLayer = scene_animation_layer_mut(anim, g_healthHitAnimHash))) {
     hitAnimLayer->weight = 0.5f; // TODO: Weight should be defined in content.
     hitAnimLayer->speed  = 2.0f; // TODO: Speed should be defined in content.
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
@@ -146,7 +146,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
 
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
-  if ((deathAnimLayer = scene_animation_layer(anim, g_healthDeathAnimHash))) {
+  if ((deathAnimLayer = scene_animation_layer_mut(anim, g_healthDeathAnimHash))) {
     deathAnimLayer->time   = 0;
     deathAnimLayer->weight = 1.0f;
     deathAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.

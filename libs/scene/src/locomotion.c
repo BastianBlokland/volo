@@ -105,14 +105,14 @@ ecs_system_define(SceneLocomotionMoveSys) {
       }
     }
 
-    SceneAnimLayer* animLayerMove = anim ? scene_animation_layer(anim, loco->moveAnimation) : null;
-    if (animLayerMove) {
-      if (animLayerMove->weight < f32_epsilon) {
+    SceneAnimLayer* layerMove = anim ? scene_animation_layer_mut(anim, loco->moveAnimation) : null;
+    if (layerMove) {
+      if (layerMove->weight < f32_epsilon) {
         scene_animation_set_time(anim, loco->moveAnimation, 0);
       }
       const f32 maxSpeedThisTick = loco->maxSpeed * scale * dt;
       const f32 speedNorm        = math_min(posDeltaMag / maxSpeedThisTick, 1);
-      math_towards_f32(&animLayerMove->weight, speedNorm, loco_anim_weight_ease_speed * dt);
+      math_towards_f32(&layerMove->weight, speedNorm, loco_anim_weight_ease_speed * dt);
     }
   }
 }

@@ -148,6 +148,9 @@ if(${EXTERNAL_ASSETS})
       plant_fern/plant_fern_normal.tga
       plant_fern/plant_fern.bin
       plant_fern/plant_fern.gltf
+      pressure_plate/pressure_plate_color_rough_2.tga
+      pressure_plate/pressure_plate.bin
+      pressure_plate/pressure_plate.gltf
       rock/rock_color_rough.tga
       rock/rock_normal.tga
       rock/rock.bin

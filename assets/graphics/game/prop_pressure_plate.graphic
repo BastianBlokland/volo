@@ -1,0 +1,24 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard_skinned.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/pressure_plate/pressure_plate_color_rough_2.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    }
+  ],
+  "meshId": "external/pressure_plate/pressure_plate.gltf",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}

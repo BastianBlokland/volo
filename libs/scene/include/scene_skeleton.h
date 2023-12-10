@@ -56,9 +56,10 @@ ecs_comp_extern_public(SceneAnimationComp) {
   u32             layerCount;
 };
 
-SceneAnimLayer* scene_animation_layer(SceneAnimationComp*, StringHash layer);
-bool            scene_animation_set_time(SceneAnimationComp*, StringHash layer, f32 time);
-bool            scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
+const SceneAnimLayer* scene_animation_layer(const SceneAnimationComp*, StringHash layer);
+SceneAnimLayer*       scene_animation_layer_mut(SceneAnimationComp*, StringHash layer);
+bool                  scene_animation_set_time(SceneAnimationComp*, StringHash layer, f32 time);
+bool                  scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
 
 /**
  * Transformation to apply to the given joint post animation sampling.
