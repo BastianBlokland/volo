@@ -444,7 +444,8 @@
     {
       "name": "PropFloorLight",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" }
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/light.script" }
       ]
     },
     {
