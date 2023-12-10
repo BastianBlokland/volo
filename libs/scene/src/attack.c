@@ -448,7 +448,7 @@ static EffectResult effect_update_anim(
     return interrupt ? EffectResult_Done : EffectResult_Running; // Waiting to execute.
   }
 
-  SceneAnimLayer* animLayer = scene_animation_layer(ctx->anim, def->layer);
+  SceneAnimLayer* animLayer = scene_animation_layer_mut(ctx->anim, def->layer);
   if (UNLIKELY(!animLayer)) {
     log_e("Weapon animation not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
     return EffectResult_Done;

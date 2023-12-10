@@ -579,17 +579,21 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
 
-SceneAnimLayer* scene_animation_layer(SceneAnimationComp* anim, const StringHash layer) {
-  for (u32 i = 0; i != anim->layerCount; ++i) {
-    if (anim->layers[i].nameHash == layer) {
-      return &anim->layers[i];
+const SceneAnimLayer* scene_animation_layer(const SceneAnimationComp* a, const StringHash layer) {
+  for (u32 i = 0; i != a->layerCount; ++i) {
+    if (a->layers[i].nameHash == layer) {
+      return &a->layers[i];
     }
   }
   return null;
 }
 
-bool scene_animation_set_time(SceneAnimationComp* anim, const StringHash layer, const f32 time) {
-  SceneAnimLayer* state = scene_animation_layer(anim, layer);
+SceneAnimLayer* scene_animation_layer_mut(SceneAnimationComp* a, const StringHash layer) {
+  return (SceneAnimLayer*)scene_animation_layer(a, layer);
+}
+
+bool scene_animation_set_time(SceneAnimationComp* a, const StringHash layer, const f32 time) {
+  SceneAnimLayer* state = scene_animation_layer_mut(a, layer);
   if (state) {
     state->time = time;
     return true;
@@ -597,9 +601,8 @@ bool scene_animation_set_time(SceneAnimationComp* anim, const StringHash layer, 
   return false;
 }
 
-bool scene_animation_set_weight(
-    SceneAnimationComp* anim, const StringHash layer, const f32 weight) {
-  SceneAnimLayer* state = scene_animation_layer(anim, layer);
+bool scene_animation_set_weight(SceneAnimationComp* a, const StringHash layer, const f32 weight) {
+  SceneAnimLayer* state = scene_animation_layer_mut(a, layer);
   if (state) {
     state->weight = weight;
     return true;
