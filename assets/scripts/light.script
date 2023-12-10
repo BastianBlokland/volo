@@ -13,5 +13,6 @@ if ($light) {
 } else {
   var e = light_point(vec3(0, 0, 0), black, lightRadius)
   attach(e, fixture, null, lightOffset)
+  destroy_after(e, fixture)
   $light = e
 }
