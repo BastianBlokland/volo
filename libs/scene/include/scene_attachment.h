@@ -1,11 +1,13 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "geo_vector.h"
 
 ecs_comp_extern_public(SceneAttachmentComp) {
   EcsEntityId target;
   StringHash  jointName;
   u32         jointIndex;
+  GeoVector   offset;
 };
 
 void scene_attach_to_entity(EcsWorld*, EcsEntityId, EcsEntityId target);
