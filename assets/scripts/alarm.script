@@ -1,12 +1,22 @@
 
 var me             = self()
 var blinkFrequency = $frequency ?? 0.5
+var lightOffset    = vec3(0.1, 3.8, 0.1)
+var lightRadiance  = color(1, 0.1, 0.05, 75)
+var lightRadius    = 10
+
+$light ??= {
+  var e = light_point(vec3(0, 0, 0), black, lightRadius)
+  attach(e, me, null, lightOffset)
+  destroy_after(e, me)
+  e
+}
 
 var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
 if (newBlinkOn != $blinkOn) {
 
   rend_param(me, "Emissive", newBlinkOn ? 0.25 : 0.0)
-  vfx_param(me, "Alpha", newBlinkOn ? 1.0 : 0.0)
+  light_param($light, "Radiance", newBlinkOn ? lightRadiance : black)
 
   if (newBlinkOn && $alarmSound) {
     var soundPos      = position(me)

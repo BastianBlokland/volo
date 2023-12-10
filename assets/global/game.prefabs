@@ -621,8 +621,7 @@
               "persistent": true
             }
           ]
-        },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/alarm_light.vfx" }
+        }
       ]
     },
     {
