@@ -368,6 +368,9 @@ static void setup_script(
     case AssetPrefabValue_Vector3:
       scene_knowledge_store(knowledge, val->name, script_vec3(val->data_vector3));
       break;
+    case AssetPrefabValue_Color:
+      scene_knowledge_store(knowledge, val->name, script_color(val->data_color));
+      break;
     case AssetPrefabValue_String:
       scene_knowledge_store(knowledge, val->name, script_str(val->data_string));
       break;

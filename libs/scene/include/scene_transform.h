@@ -23,6 +23,8 @@ ecs_comp_extern_public(SceneVelocityComp) {
   GeoVector velocityAvg;
 };
 
+GeoVector scene_transform_to_world(const SceneTransformComp*, const SceneScaleComp*, GeoVector pos);
+
 void scene_transform_rotate_around(SceneTransformComp*, GeoVector pivot, GeoQuat);
 void scene_transform_scale_around(
     SceneTransformComp*, SceneScaleComp*, GeoVector pivot, f32 scaleDelta);

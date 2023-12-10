@@ -360,6 +360,7 @@ static void asset_binder_init() {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity},
           {string_lit("jointName"), script_mask_str | script_mask_null},
+          {string_lit("offset"), script_mask_vec3 | script_mask_null},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

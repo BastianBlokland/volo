@@ -919,6 +919,42 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabValue_Color"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "r": {
+              "title": "f32",
+              "type": "number"
+            },
+            "g": {
+              "title": "f32",
+              "type": "number"
+            },
+            "b": {
+              "title": "f32",
+              "type": "number"
+            },
+            "a": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "$name",
+            "r",
+            "g",
+            "b",
+            "a"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabValue_String"
             },
             "$name": {
@@ -995,6 +1031,10 @@
         {
           "label": "New AssetPrefabValue_Vector3",
           "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}"
+        },
+        {
+          "label": "New AssetPrefabValue_Color",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\",\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
         },
         {
           "label": "New AssetPrefabValue_String",

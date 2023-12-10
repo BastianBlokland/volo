@@ -38,12 +38,12 @@ ecs_system_define(SceneAttachmentSys) {
 
     const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
     const SceneSkeletonComp*  tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
+    const SceneScaleComp*     tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
     if ((sentinel_check(attach->jointIndex) && !attach->jointName) || !tgtSkel) {
-      trans->position = tgtTrans->position;
+      trans->position = scene_transform_to_world(tgtTrans, tgtScale, attach->offset);
       trans->rotation = tgtTrans->rotation;
       continue;
     }
-    const SceneScaleComp* tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
 
     if (UNLIKELY(sentinel_check(attach->jointIndex))) {
       // Joint index not known yet, attempt to query it from the skeleton template by name.
@@ -67,7 +67,7 @@ ecs_system_define(SceneAttachmentSys) {
     const GeoMatrix tgtMatrix =
         scene_skeleton_joint_world(tgtTrans, tgtScale, tgtSkel, attach->jointIndex);
 
-    const GeoVector pos = geo_matrix_to_translation(&tgtMatrix);
+    const GeoVector pos = geo_matrix_transform3_point(&tgtMatrix, attach->offset);
     const GeoVector fwd = geo_matrix_transform3(&tgtMatrix, geo_forward);
     const GeoVector up  = geo_matrix_transform3(&tgtMatrix, geo_up);
 

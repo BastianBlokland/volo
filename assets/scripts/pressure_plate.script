@@ -9,4 +9,6 @@ var triggered          = query_pop(triggeringEntities) != null
 
 anim_param(me, "pressed", "Weight", triggered ? 1 : 0)
 
+$triggered = triggered
+
 // debug_box(detectionCenter, detectionSize, detectionRot, (triggered ? green : red) * 0.5)

@@ -87,6 +87,7 @@ typedef struct {
     f64                      data_number;
     bool                     data_bool;
     AssetPrefabVec3Def       data_vector3;
+    AssetPrefabColorDef      data_color;
     String                   data_string;
     String                   data_asset;
     AssetPrefabValueSoundDef data_sound;
@@ -307,6 +308,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, t_AssetPrefabColorDef);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
@@ -535,6 +537,10 @@ static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValue
     res.type         = AssetPrefabValue_Vector3;
     res.data_vector3 = prefab_build_vec3(&def->data_vector3);
     break;
+  case AssetPrefabValue_Color:
+    res.type       = AssetPrefabValue_Color;
+    res.data_color = prefab_build_color(&def->data_color);
+    break;
   case AssetPrefabValue_String:
     res.type        = AssetPrefabValue_String;
     res.data_string = stringtable_add(g_stringtable, def->data_string);
@@ -752,12 +758,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

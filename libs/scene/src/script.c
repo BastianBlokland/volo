@@ -209,6 +209,7 @@ typedef struct {
   EcsEntityId entity;
   EcsEntityId target;
   StringHash  jointName;
+  GeoVector   offset;
 } ScriptActionAttach;
 
 typedef struct {
@@ -1015,6 +1016,7 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptErro
               .entity    = entity,
               .target    = target,
               .jointName = script_arg_opt_str(args, 2, 0, err),
+              .offset    = script_arg_opt_vec3(args, 3, geo_vector(0), err),
           },
   };
   return script_null();
@@ -1938,6 +1940,7 @@ static void action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
   if (a->jointName) {
     attach->jointName = a->jointName;
   }
+  attach->offset = a->offset;
 }
 
 static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {

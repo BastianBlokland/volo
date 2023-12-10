@@ -1840,7 +1840,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
       if (UNLIKELY(sentinel_check(rhs))) {
         return read_fail_structural(ctx);
       }
-      const ScriptRange range      = read_range_to_current(ctx, start);
+      const ScriptRange range      = script_range(start, script_expr_range(ctx->doc, rhs).end);
       const ScriptExpr  intrArgs[] = {res, rhs};
       res                          = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
     } break;
