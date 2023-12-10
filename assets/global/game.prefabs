@@ -438,6 +438,7 @@
       "name": "PropPressurePlate",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "switch" ] },
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/pressure_plate.script" }
       ]
     },
@@ -445,6 +446,7 @@
       "name": "PropFloorLight",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "light" ] },
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/light.script" }
       ]
     },
