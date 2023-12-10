@@ -1,0 +1,6 @@
+
+var switch = query_pop(query_set("switch"))
+var light  = query_pop(query_set("light"))
+
+ask(self(), switch, "triggered")
+tell(light, "color", $triggered ? green : null)
