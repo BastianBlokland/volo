@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "color.glsl"
 #include "geometry.glsl"
 #include "rand.glsl"
 #include "tag.glsl"
@@ -20,7 +21,7 @@ bind_graphic_img(2) uniform sampler2D u_texAlpha;
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
 bind_internal(2) in f32v2 in_texcoord;
-bind_internal(3) in flat f32v4 in_data; // x tag bits, y alpha, z emissive
+bind_internal(3) in flat f32v4 in_data; // x tag bits, y alpha, z emissive, w color
 
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
@@ -42,9 +43,10 @@ void main() {
   geo.emissive = in_data.z;
 
   // Output color and roughness.
-  const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
-  geo.color              = colorRough.rgb;
-  geo.roughness          = colorRough.a;
+  const f32v4 colorRough    = texture(u_texColorRough, in_texcoord);
+  const f32v3 instanceColor = color3_from_u32(floatBitsToUint(in_data.w));
+  geo.color                 = colorRough.rgb * instanceColor;
+  geo.roughness             = colorRough.a;
 
   // Output world normal (and optionally sample the emissive-map).
   if (s_normalMap) {

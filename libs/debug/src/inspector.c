@@ -527,6 +527,11 @@ static void inspector_panel_draw_renderable(
       ui_label(canvas, string_lit("Emissive"));
       ui_table_next_column(canvas, table);
       ui_slider(canvas, &renderable->emissive);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Color"));
+      ui_table_next_column(canvas, table);
+      debug_widget_editor_color(canvas, &renderable->color, UiWidget_Default);
     }
   }
 }

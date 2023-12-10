@@ -9,13 +9,13 @@ const u32 c_maxJoints    = 75; // Needs to match the maximum in rend_instance.c
 struct InstanceData {
   f32v4 posAndScale; // x, y, z position, w scale
   f32v4 rot;         // x, y, z, w rotation quaternion
-  f32v4 data;        // x tag bits, y alpha, z emissive
+  f32v4 data;        // x tag bits, y alpha, z emissive, w color
 };
 
 struct InstanceSkinnedData {
   f32v4 posAndScale; // x, y, z position, w scale
   f32v4 rot;         // x, y, z, w rotation quaternion
-  f32v4 data;        // x tag bits, y alpha, z emissive
+  f32v4 data;        // x tag bits, y alpha, z emissive, w color
 
   // Transformation matrices relative to the bind pose.
   // NOTE: Transposed to 3x4 to save bandwidth.

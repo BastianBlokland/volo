@@ -11,7 +11,7 @@ const f32 c_alphaDitherMax        = 0.99;
 bind_dynamic_img(0) uniform sampler2D u_texAlpha;
 
 bind_internal(0) in f32v2 in_texcoord;
-bind_internal(1) in flat f32v4 in_data; // x tag bits, y alpha, z emissive
+bind_internal(1) in flat f32v4 in_data; // x tag bits, y alpha, z emissive, w color
 
 void main() {
   f32 alpha = in_data.y;

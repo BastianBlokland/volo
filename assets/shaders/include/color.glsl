@@ -37,6 +37,16 @@ f32v4 color_from_u32(const u32 val) {
 }
 
 /**
+ * Create a color from 8 bit rgb values.
+ */
+f32v3 color3_from_u32(const u32 val) {
+  return f32v3(
+      f32((val >> 0) & 0xFF) / 255.0,
+      f32((val >> 8) & 0xFF) / 255.0,
+      f32((val >> 16) & 0xFF) / 255.0);
+}
+
+/**
  * Create a color from 'Hue', 'Saturation', 'Value' components.
  * Implementation based on: http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
  */

@@ -19,7 +19,7 @@ typedef struct {
   u32       tags;
   f32       alpha;
   f32       emissive;
-  u32       padding[1];
+  u32       color;
 } RendInstanceData;
 
 ASSERT(sizeof(RendInstanceData) == 48, "Size needs to match the size defined in glsl");
@@ -40,7 +40,7 @@ typedef struct {
   u32        tags;
   f32        alpha;
   f32        emissive;
-  u32        padding[1];
+  u32        color;
   RendMat3x4 jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
 
@@ -60,6 +60,13 @@ static RendMat3x4 rend_transpose_to_3x4(const GeoMatrix* m) {
     res.comps[i * 4 + 3] = m->comps[3 * 4 + i];
   }
   return res;
+}
+
+static u32 rend_color3_pack(const GeoColor color) {
+  const u32 r = (u8)(color.r * 255.999f);
+  const u32 g = (u8)(color.g * 255.999f);
+  const u32 b = (u8)(color.b * 255.999f);
+  return r | (g << 8) | (b << 16);
 }
 
 ecs_comp_define(RendInstanceDrawComp);
@@ -153,6 +160,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         data->tags        = (u32)tags;
         data->alpha       = renderable->alpha;
         data->emissive    = renderable->emissive;
+        data->color       = rend_color3_pack(renderable->color);
         for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
           data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
         }
@@ -164,6 +172,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       data->tags             = (u32)tags;
       data->alpha            = renderable->alpha;
       data->emissive         = renderable->emissive;
+      data->color            = rend_color3_pack(renderable->color);
     }
   }
 }
