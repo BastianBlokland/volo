@@ -45,7 +45,7 @@ void main() {
   geo.color              = colorRough.rgb;
   geo.roughness          = colorRough.a;
 
-  // Output world normal.
+  // Output world normal and emissive.
   if (s_normalMap) {
     const f32v4 normalEmissiveSample = texture(u_texNormalEmissive, in_texcoord);
     if (s_emissive && tag_is_set(geo.tags, tag_emit_bit)) {
