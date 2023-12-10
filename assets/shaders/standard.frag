@@ -3,6 +3,7 @@
 
 #include "binding.glsl"
 #include "geometry.glsl"
+#include "instance.glsl"
 #include "rand.glsl"
 #include "tag.glsl"
 
@@ -20,20 +21,20 @@ bind_graphic_img(2) uniform sampler2D u_texAlpha;
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
 bind_internal(2) in f32v2 in_texcoord;
-bind_internal(3) in flat f32v4 in_data; // x tag bits, y alpha, z emissive
+bind_internal(3) in flat f32v4 in_data; // x tag bits, y color, z emissive
 
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
 
 void main() {
-  f32 alpha = in_data.y;
+  f32v4 color = instance_color(in_data);
   if (s_alphaMap) {
     if (texture(u_texAlpha, in_texcoord).r < c_alphaTextureThreshold) {
-      alpha = 0.0;
+      color.a = 0.0;
     }
   }
   // Dithered transparency.
-  if (alpha < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > alpha) {
+  if (color.a < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > color.a) {
     discard;
   }
 
@@ -43,7 +44,7 @@ void main() {
 
   // Output color and roughness.
   const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
-  geo.color              = colorRough.rgb;
+  geo.color              = colorRough.rgb * color.rgb;
   geo.roughness          = colorRough.a;
 
   // Output world normal (and optionally sample the emissive-map).

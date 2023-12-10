@@ -29,12 +29,12 @@ ecs_system_define(SceneRenderableFadeinSys) {
     SceneRenderableFadeinComp* fadein     = ecs_view_write_t(itr, SceneRenderableFadeinComp);
     SceneRenderableComp*       renderable = ecs_view_write_t(itr, SceneRenderableComp);
     if (fadein->elapsed > fadein->duration) {
-      renderable->alpha = 1.0f;
+      renderable->color.a = 1.0f;
       ecs_world_remove_t(world, ecs_view_entity(itr), SceneRenderableFadeinComp);
       continue;
     }
-    const f64 frac    = (f64)fadein->elapsed / (f64)fadein->duration;
-    renderable->alpha = math_clamp_f32((f32)frac, 0.0f, 1.0f);
+    const f64 frac      = (f64)fadein->elapsed / (f64)fadein->duration;
+    renderable->color.a = math_clamp_f32((f32)frac, 0.0f, 1.0f);
     fadein->elapsed += time->delta;
   }
 }
@@ -55,8 +55,8 @@ ecs_system_define(SceneRenderableFadeoutSys) {
 
     diag_assert(fadeout->duration > time_microsecond);
 
-    const f64 frac    = (f64)lifetime->duration / (f64)fadeout->duration;
-    renderable->alpha = math_clamp_f32((f32)frac, 0.0f, 1.0f);
+    const f64 frac      = (f64)lifetime->duration / (f64)fadeout->duration;
+    renderable->color.a = math_clamp_f32((f32)frac, 0.0f, 1.0f);
   }
 }
 

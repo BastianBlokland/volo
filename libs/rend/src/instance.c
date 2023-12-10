@@ -17,7 +17,7 @@ typedef struct {
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
   u32       tags;
-  f32       alpha;
+  u32       color; // u8 r, u8 g, u8 b, u8 a
   f32       emissive;
   u32       padding[1];
 } RendInstanceData;
@@ -38,7 +38,7 @@ typedef struct {
   GeoVector  posAndScale; // xyz: position, w: scale.
   GeoQuat    rot;
   u32        tags;
-  f32        alpha;
+  u32        color; // u8 r, u8 g, u8 b, u8 a
   f32        emissive;
   u32        padding[1];
   RendMat3x4 jointDelta[scene_skeleton_joints_max];
@@ -60,6 +60,14 @@ static RendMat3x4 rend_transpose_to_3x4(const GeoMatrix* m) {
     res.comps[i * 4 + 3] = m->comps[3 * 4 + i];
   }
   return res;
+}
+
+static u32 rend_color_pack(const GeoColor color) {
+  const u32 r = (u8)(color.r * 255.999f);
+  const u32 g = (u8)(color.g * 255.999f);
+  const u32 b = (u8)(color.b * 255.999f);
+  const u32 a = (u8)(color.a * 255.999f);
+  return r | (g << 8) | (b << 16) | (a << 24);
 }
 
 ecs_comp_define(RendInstanceDrawComp);
@@ -100,7 +108,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    if (renderable->alpha <= f32_epsilon) {
+    if (renderable->color.a <= f32_epsilon) {
       continue;
     }
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
@@ -116,7 +124,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const bool                isSkinned     = skeletonComp->jointCount != 0;
 
     SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
-    if (renderable->alpha < 1.0f) {
+    if (renderable->color.a < 1.0f) {
       tags |= SceneTags_Transparent;
     }
 
@@ -151,7 +159,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         data->posAndScale = geo_vector(position.x, position.y, position.z, scale);
         data->rot         = rotation;
         data->tags        = (u32)tags;
-        data->alpha       = renderable->alpha;
+        data->color       = rend_color_pack(renderable->color);
         data->emissive    = renderable->emissive;
         for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
           data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
@@ -162,7 +170,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       data->posAndScale      = geo_vector(position.x, position.y, position.z, scale);
       data->rot              = rotation;
       data->tags             = (u32)tags;
-      data->alpha            = renderable->alpha;
+      data->color            = rend_color_pack(renderable->color);
       data->emissive         = renderable->emissive;
     }
   }

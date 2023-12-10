@@ -341,7 +341,8 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
         asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Renderable);
     if (renderableTrait) {
       const EcsEntityId graphic = renderableTrait->data_renderable.graphic;
-      ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .alpha = 0.5f);
+      const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
+      ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
     }
   }
   return e;

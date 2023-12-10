@@ -183,7 +183,7 @@ static void setup_set_member(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitS
 }
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
-  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .alpha = 1.0f);
+  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .color = geo_color_white);
 }
 
 static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {

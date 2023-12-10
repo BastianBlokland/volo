@@ -2,6 +2,7 @@
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "geo_color.h"
 
 /**
  * Indicates that the entity should be rendered with the given graphic.
@@ -15,8 +16,8 @@
  */
 ecs_comp_extern_public(SceneRenderableComp) {
   EcsEntityId graphic;
-  f32         alpha;    // Normalized.
   f32         emissive; // Normalized.
+  GeoColor    color;    // Normalized.
 };
 
 ecs_comp_extern_public(SceneRenderableFadeinComp) { TimeDuration duration, elapsed; };
