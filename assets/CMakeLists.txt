@@ -135,6 +135,11 @@ if(${EXTERNAL_ASSETS})
       fire_2/fire_7.tga
       fire_2/fire_8.tga
       fire_2/fire_9.tga
+      floor_light/floor_light_color_rough.tga
+      floor_light/floor_light_mask.tga
+      floor_light/floor_light_normal_emissive.tga
+      floor_light/floor_light.bin
+      floor_light/floor_light.gltf
       gas_tank/gas_tank_color_rough.tga
       gas_tank/gas_tank_normal.tga
       gas_tank/gas_tank.bin

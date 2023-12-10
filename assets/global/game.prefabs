@@ -442,6 +442,12 @@
       ]
     },
     {
+      "name": "PropFloorLight",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" }
+      ]
+    },
+    {
       "name": "PropTree",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tree.graphic" },
