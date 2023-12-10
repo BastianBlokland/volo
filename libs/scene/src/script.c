@@ -100,8 +100,9 @@ static void eval_enum_init_activity() {
 }
 
 static void eval_enum_init_rend_param() {
-  script_enum_push(&g_scriptEnumRendParam, string_lit("Alpha"), 0);
-  script_enum_push(&g_scriptEnumRendParam, string_lit("Emissive"), 1);
+  script_enum_push(&g_scriptEnumRendParam, string_lit("Color"), 0);
+  script_enum_push(&g_scriptEnumRendParam, string_lit("Alpha"), 1);
+  script_enum_push(&g_scriptEnumRendParam, string_lit("Emissive"), 2);
 }
 
 static void eval_enum_init_vfx_param() {
@@ -238,7 +239,10 @@ typedef struct {
 typedef struct {
   EcsEntityId entity;
   i32         param;
-  f32         value;
+  union {
+    f32      value_num;
+    GeoColor value_color;
+  };
 } ScriptActionUpdateRendParam;
 
 typedef struct {
@@ -1106,22 +1110,31 @@ static ScriptVal eval_rend_param(EvalContext* ctx, const ScriptArgs args, Script
     if (ecs_view_maybe_jump(ctx->rendItr, entity)) {
       const SceneRenderableComp* rendComp = ecs_view_read_t(ctx->rendItr, SceneRenderableComp);
       switch (param) {
-      case 0 /* Alpha */:
+      case 0 /* Color */:
+        return script_color(rendComp->color);
+      case 1 /* Alpha */:
         return script_num(rendComp->color.a);
-      case 1 /* Emissive */:
+      case 2 /* Emissive */:
         return script_num(rendComp->emissive);
       }
     }
     return script_null();
   }
+  ScriptActionUpdateRendParam update;
+  update.entity = entity;
+  update.param  = param;
+  switch (param) {
+  case 0 /* Color */:
+    update.value_color = script_arg_color(args, 2, err);
+    break;
+  case 1 /* Alpha */:
+  case 2 /* Emissive */:
+    update.value_num = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err);
+    break;
+  }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateRendParam,
-      .data_updateSoundParam =
-          {
-              .entity = entity,
-              .param  = param,
-              .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
-          },
+      .type                 = ScriptActionType_UpdateRendParam,
+      .data_updateRendParam = update,
   };
   return script_null();
 }
@@ -1975,11 +1988,14 @@ static void action_update_rend_param(ActionContext* ctx, const ScriptActionUpdat
   if (ecs_view_maybe_jump(ctx->rendItr, a->entity)) {
     SceneRenderableComp* rendComp = ecs_view_write_t(ctx->rendItr, SceneRenderableComp);
     switch (a->param) {
-    case 0 /* Alpha */:
-      rendComp->color.a = a->value;
+    case 0 /* Color */:
+      rendComp->color = a->value_color;
       break;
-    case 1 /* Emissive */:
-      rendComp->emissive = a->value;
+    case 1 /* Alpha */:
+      rendComp->color.a = a->value_num;
+      break;
+    case 2 /* Emissive */:
+      rendComp->emissive = a->value_num;
       break;
     }
   }
