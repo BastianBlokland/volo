@@ -13,10 +13,12 @@ const f32 c_alphaDitherMax        = 0.99;
 bind_spec(0) const bool s_normalMap   = false;
 bind_spec(1) const bool s_alphaMap    = false;
 bind_spec(2) const bool s_emissiveMap = false;
+bind_spec(3) const bool s_maskMap     = false;
 
 bind_graphic_img(0) uniform sampler2D u_texColorRough;
 bind_graphic_img(1) uniform sampler2D u_texNormalEmissive;
 bind_graphic_img(2) uniform sampler2D u_texAlpha;
+bind_graphic_img(3) uniform sampler2D u_texMask;
 
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
@@ -44,8 +46,13 @@ void main() {
 
   // Output color and roughness.
   const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
-  geo.color              = colorRough.rgb * color.rgb;
-  geo.roughness          = colorRough.a;
+  if (s_maskMap) {
+    const f32 mask = texture(u_texMask, in_texcoord).r;
+    geo.color      = colorRough.rgb * mix(f32v3(1, 1, 1), color.rgb, mask);
+  } else {
+    geo.color = colorRough.rgb * color.rgb;
+  }
+  geo.roughness = colorRough.a;
 
   // Output world normal (and optionally sample the emissive-map).
   if (s_normalMap) {
