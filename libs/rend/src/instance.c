@@ -108,7 +108,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    if (renderable->alpha <= f32_epsilon) {
+    if (renderable->color.a <= f32_epsilon) {
       continue;
     }
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
@@ -124,7 +124,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const bool                isSkinned     = skeletonComp->jointCount != 0;
 
     SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
-    if (renderable->alpha < 1.0f) {
+    if (renderable->color.a < 1.0f) {
       tags |= SceneTags_Transparent;
     }
 
@@ -159,8 +159,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         data->posAndScale = geo_vector(position.x, position.y, position.z, scale);
         data->rot         = rotation;
         data->tags        = (u32)tags;
-        data->color = rend_color_pack(geo_color_with_alpha(renderable->color, renderable->alpha));
-        data->emissive = renderable->emissive;
+        data->color       = rend_color_pack(renderable->color);
+        data->emissive    = renderable->emissive;
         for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
           data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
         }
@@ -170,8 +170,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       data->posAndScale      = geo_vector(position.x, position.y, position.z, scale);
       data->rot              = rotation;
       data->tags             = (u32)tags;
-      data->color    = rend_color_pack(geo_color_with_alpha(renderable->color, renderable->alpha));
-      data->emissive = renderable->emissive;
+      data->color            = rend_color_pack(renderable->color);
+      data->emissive         = renderable->emissive;
     }
   }
 }

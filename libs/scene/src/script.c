@@ -1107,7 +1107,7 @@ static ScriptVal eval_rend_param(EvalContext* ctx, const ScriptArgs args, Script
       const SceneRenderableComp* rendComp = ecs_view_read_t(ctx->rendItr, SceneRenderableComp);
       switch (param) {
       case 0 /* Alpha */:
-        return script_num(rendComp->alpha);
+        return script_num(rendComp->color.a);
       case 1 /* Emissive */:
         return script_num(rendComp->emissive);
       }
@@ -1976,7 +1976,7 @@ static void action_update_rend_param(ActionContext* ctx, const ScriptActionUpdat
     SceneRenderableComp* rendComp = ecs_view_write_t(ctx->rendItr, SceneRenderableComp);
     switch (a->param) {
     case 0 /* Alpha */:
-      rendComp->alpha = a->value;
+      rendComp->color.a = a->value;
       break;
     case 1 /* Emissive */:
       rendComp->emissive = a->value;
