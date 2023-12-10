@@ -1164,6 +1164,37 @@
       }
     },
     {
+      "name": "anim_param",
+      "doc": "Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`Speed`\n\n-`Weight`",
+      "sig": {
+        "ret": [
+          "null",
+          "num"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "layer",
+            "mask": "str"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "time",
       "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
       "sig": {

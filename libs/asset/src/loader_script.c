@@ -505,6 +505,18 @@ static void asset_binder_init() {
       asset_bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("anim_param");
+      const String       doc    = string_lit("Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`Speed`\n\n-`Weight`");
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("layer"), script_mask_str},
+          {string_lit("param"), script_mask_str},
+          {string_lit("value"), script_mask_num | script_mask_null},
+      };
+      asset_bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("random_of");
       const String       doc    = string_lit("Return a random (non-null) value from the given arguments.");
       const ScriptMask   ret    = script_mask_any;
