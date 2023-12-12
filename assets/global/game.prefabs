@@ -435,6 +435,14 @@
       ]
     },
     {
+      "name": "PropGate",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gate_base.graphic" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/gate.script" }
+      ]
+    },
+    {
       "name": "PropPressurePlate",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" },
