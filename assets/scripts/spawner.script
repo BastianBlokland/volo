@@ -23,6 +23,6 @@ if ($nextWaveTime <= time()) {
     var posUnblocked = nav_find(pos, "UnblockedCell")
     var rot          = angle_axis(random() * pi * 2, up)
 
-    spawn(unitPrefab, posUnblocked, rot, scale, faction)
+    prefab_spawn(unitPrefab, posUnblocked, rot, scale, faction)
   }
 }

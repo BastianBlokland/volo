@@ -8,7 +8,7 @@ $unit ??= {
   var pos   = nav_find(origin, "UnblockedCell")
   var rot   = quat_ident
   var scale = 1.0
-  spawn("InfantryRifle", pos, rot, scale, "FactionA")
+  prefab_spawn("InfantryRifle", pos, rot, scale, "FactionA")
 }
 
 if (exists($target)) {
@@ -18,5 +18,5 @@ if (exists($target)) {
   var pos    = nav_find(origin + random_circle_xz() * radius)
   var rot    = quat_ident
   var scale  = 1.0
-  $target    = spawn("PropBarrelExplosive", pos, rot, scale, "FactionNone")
+  $target    = prefab_spawn("PropBarrelExplosive", pos, rot, scale, "FactionNone")
 }

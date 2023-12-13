@@ -291,8 +291,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("spawn");
-      const String       doc    = string_lit("Spawn a prefab.");
+      const String       name   = string_lit("prefab_spawn");
+      const String       doc    = string_lit("Spawn a prefab.\n\n*Note*: Resulting entity is not automatically destroyed.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("prefabId"), script_mask_str},

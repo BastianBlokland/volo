@@ -884,7 +884,7 @@ static ScriptVal eval_ask(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   return script_null();
 }
 
-static ScriptVal eval_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_prefab_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const StringHash prefabId = script_arg_str(args, 0, err);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
@@ -1613,7 +1613,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("target_range_max"),   eval_target_range_max);
     eval_bind(b, string_lit("tell"),               eval_tell);
     eval_bind(b, string_lit("ask"),                eval_ask);
-    eval_bind(b, string_lit("spawn"),              eval_spawn);
+    eval_bind(b, string_lit("prefab_spawn"),       eval_prefab_spawn);
     eval_bind(b, string_lit("destroy"),            eval_destroy);
     eval_bind(b, string_lit("destroy_after"),      eval_destroy_after);
     eval_bind(b, string_lit("teleport"),           eval_teleport);

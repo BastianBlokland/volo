@@ -478,6 +478,50 @@
       }
     },
     {
+      "name": "prefab_spawn",
+      "doc": "Spawn a prefab.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "prefabId",
+            "mask": "str"
+          },
+          {
+            "name": "pos",
+            "mask": [
+              "null",
+              "vec3"
+            ]
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "scale",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "faction",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`\n\n-`Status`",
       "sig": {
@@ -788,50 +832,6 @@
           {
             "name": "v",
             "mask": "entity"
-          }
-        ]
-      }
-    },
-    {
-      "name": "spawn",
-      "doc": "Spawn a prefab.",
-      "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
-        "args": [
-          {
-            "name": "prefabId",
-            "mask": "str"
-          },
-          {
-            "name": "pos",
-            "mask": [
-              "null",
-              "vec3"
-            ]
-          },
-          {
-            "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
-          },
-          {
-            "name": "scale",
-            "mask": [
-              "null",
-              "num"
-            ]
-          },
-          {
-            "name": "faction",
-            "mask": [
-              "null",
-              "str"
-            ]
           }
         ]
       }
