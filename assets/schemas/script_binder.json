@@ -1117,6 +1117,44 @@
       }
     },
     {
+      "name": "collision_box",
+      "doc": "Create a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "size",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "layer",
+            "mask": [
+              "null",
+              "str"
+            ]
+          },
+          {
+            "name": "navBlocker",
+            "mask": [
+              "null",
+              "bool"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_arrow",
       "doc": "Draw a 3D debug arrow.",
       "sig": {
