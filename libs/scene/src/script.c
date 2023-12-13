@@ -393,6 +393,13 @@ static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, 
   return e;
 }
 
+static SceneLayer arg_layer(const ScriptArgs a, const u16 i, ScriptError* err) {
+  if (a.count <= i) {
+    return SceneLayer_Environment;
+  }
+  return (SceneLayer)script_arg_enum(a, i, &g_scriptEnumLayer, err);
+}
+
 static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* err) {
   if (a.count <= i) {
     return SceneLayer_AllNonDebug;
@@ -1206,6 +1213,32 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
+static ScriptVal eval_collision_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const GeoVector  pos        = script_arg_vec3(args, 0, err);
+  const GeoVector  size       = script_arg_vec3(args, 1, err);
+  const GeoQuat    rot        = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const SceneLayer layer      = arg_layer(args, 3, err);
+  const bool       navBlocker = script_arg_opt_bool(args, 4, false, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+
+  const SceneCollisionBox box = {
+      .min = geo_vector_mul(size, -0.5f),
+      .max = geo_vector_mul(size, 0.5f),
+  };
+  scene_collision_add_box(ctx->world, result, box, layer);
+
+  if (navBlocker) {
+    scene_nav_add_blocker(ctx->world, result);
+  }
+
+  return script_entity(result);
+}
+
 static ScriptVal eval_light_point(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const GeoVector pos      = script_arg_vec3(args, 0, err);
   const GeoQuat   rot      = geo_quat_ident;
@@ -1596,6 +1629,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("vfx_system"),         eval_vfx_system);
     eval_bind(b, string_lit("vfx_decal"),          eval_vfx_decal);
     eval_bind(b, string_lit("vfx_param"),          eval_vfx_param);
+    eval_bind(b, string_lit("collision_box"),      eval_collision_box);
     eval_bind(b, string_lit("light_point"),        eval_light_point);
     eval_bind(b, string_lit("light_param"),        eval_light_param);
     eval_bind(b, string_lit("sound_play"),         eval_sound_play);

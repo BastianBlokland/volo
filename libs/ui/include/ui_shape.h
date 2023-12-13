@@ -40,6 +40,7 @@
   X(0xE80B, Globe)                                                                                 \
   X(0xE80E, Whatshot)                                                                              \
   X(0xE868, Bug)                                                                                   \
+  X(0xE871, Dashboard)                                                                             \
   X(0xE873, Description)                                                                           \
   X(0xE87B, Extension)                                                                             \
   X(0xE89E, OpenInNew)                                                                             \
