@@ -1476,6 +1476,8 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = UiShape_Light;
     } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
       icon = UiShape_MusicNote;
+    } else if (ecs_world_has_t(world, e, SceneCollisionComp)) {
+      icon = UiShape_Dashboard;
     } else {
       icon = 0;
     }
