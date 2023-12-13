@@ -770,9 +770,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1226,10 +1226,9 @@ static ScriptVal eval_collision_box(EvalContext* ctx, const ScriptArgs args, Scr
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
 
-  const GeoVector         halfSize = geo_vector_mul(size, 0.5f);
-  const SceneCollisionBox box      = {
-      .min = geo_vector_sub(pos, halfSize),
-      .max = geo_vector_add(pos, halfSize),
+  const SceneCollisionBox box = {
+      .min = geo_vector_mul(size, -0.5f),
+      .max = geo_vector_mul(size, 0.5f),
   };
   scene_collision_add_box(ctx->world, result, box, layer);
 
