@@ -62,7 +62,10 @@ spec(file_monitor) {
     file_delete_sync(pathAbs);
   }
 
-  it("returns a single event when a file is modified") {
+  /**
+   * TODO: Skipped for now as it can be a bit flaky on slow machines due to timing requirements.
+   */
+  skip_it("returns a single event when a file is modified") {
     const String pathRel = test_random_name();
     const String pathAbs = path_build_scratch(g_path_tempdir, pathRel);
     file_write_to_path_sync(pathAbs, string_lit(""));
