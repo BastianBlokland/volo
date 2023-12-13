@@ -9,7 +9,7 @@ var speed       = 1.5
 
 if (!$spawned) {
   for (var i = 0; i != count; i += 1) {
-    set(light_point(origin, white, pointRadius), lightSet, true)
+    set(light_point_spawn(origin, white, pointRadius), lightSet, true)
   }
   $spawned = true
   return
