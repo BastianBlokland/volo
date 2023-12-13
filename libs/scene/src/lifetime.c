@@ -8,25 +8,42 @@
 ecs_comp_define_public(SceneLifetimeOwnerComp);
 ecs_comp_define_public(SceneLifetimeDurationComp);
 
+static bool lifetime_has_owner(SceneLifetimeOwnerComp* comp, const EcsEntityId owner) {
+  for (u32 ownerIndex = 0; ownerIndex != scene_lifetime_owners_max; ++ownerIndex) {
+    if (comp->owners[ownerIndex] == owner) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool lifetime_add_owner(SceneLifetimeOwnerComp* comp, const EcsEntityId owner) {
+  for (u32 ownerIndex = 0; ownerIndex != scene_lifetime_owners_max; ++ownerIndex) {
+    if (comp->owners[ownerIndex]) {
+      continue; // Slot already full.
+    }
+    comp->owners[ownerIndex] = owner;
+    return true;
+  }
+  return false;
+}
+
 static void ecs_combine_lifetime_owner(void* dataA, void* dataB) {
   SceneLifetimeOwnerComp* compA = dataA;
   SceneLifetimeOwnerComp* compB = dataB;
 
-  for (u32 otherOwnerIndex = 0; otherOwnerIndex != scene_lifetime_owners_max; ++otherOwnerIndex) {
-    const EcsEntityId otherOwner = compB->owners[otherOwnerIndex];
-    if (!otherOwner) {
-      continue; // Owner unassigned.
+  // Add all owners from B to A.
+  for (u32 bOwnerIndex = 0; bOwnerIndex != scene_lifetime_owners_max; ++bOwnerIndex) {
+    const EcsEntityId ownerToAdd = compB->owners[bOwnerIndex];
+    if (!ownerToAdd) {
+      continue;
     }
-    for (u32 ownerIndex = 0; ownerIndex != scene_lifetime_owners_max; ++ownerIndex) {
-      if (compA->owners[ownerIndex]) {
-        continue; // Slot already full.
-      }
-      compA->owners[ownerIndex] = otherOwner;
-      goto OwnerAssigned;
+    if (lifetime_has_owner(compA, ownerToAdd)) {
+      continue;
     }
-    diag_crash_msg("SceneLifetimeOwner's cannot be combined, total owner count exceeds maximum ");
-
-  OwnerAssigned:;
+    if (UNLIKELY(!lifetime_add_owner(compA, ownerToAdd))) {
+      diag_crash_msg("SceneLifetimeOwner's cannot be combined, total owner count exceeds maximum ");
+    }
   }
 }
 
