@@ -18,7 +18,7 @@ if ($init) {
   for (var i = 0; i != spawnCount; i += 1) {
     var pos      = origin + random_circle_xz() * spawnRadius
     var radiance = color_hsv(random(), 1, 1, 1) * intensity
-    var light    = light_point(pos, radiance, lightRadius)
+    var light    = light_point_spawn(pos, radiance, lightRadius)
     set(light, "myLights", true)
   }
   $init = true

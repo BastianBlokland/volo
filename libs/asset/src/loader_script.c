@@ -291,8 +291,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("spawn");
-      const String       doc    = string_lit("Spawn a prefab.");
+      const String       name   = string_lit("prefab_spawn");
+      const String       doc    = string_lit("Spawn a prefab.\n\n*Note*: Resulting entity is not automatically destroyed.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("prefabId"), script_mask_str},
@@ -426,8 +426,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("vfx_system");
-      const String       doc    = string_lit("Place a vfx system.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.");
+      const String       name   = string_lit("vfx_system_spawn");
+      const String       doc    = string_lit("Spawn a vfx system.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.");
       const ScriptMask   ret    = script_mask_entity;
       const ScriptSigArg args[] = {
           {string_lit("asset"), script_mask_entity},
@@ -438,8 +438,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("vfx_decal");
-      const String       doc    = string_lit("Place a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.");
+      const String       name   = string_lit("vfx_decal_spawn");
+      const String       doc    = string_lit("Spawn a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.");
       const ScriptMask   ret    = script_mask_entity;
       const ScriptSigArg args[] = {
           {string_lit("asset"), script_mask_entity},
@@ -461,8 +461,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("collision_box");
-      const String       doc    = string_lit("Create a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.");
+      const String       name   = string_lit("collision_box_spawn");
+      const String       doc    = string_lit("Spawn a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.");
       const ScriptMask   ret    = script_mask_entity;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
@@ -474,8 +474,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("light_point");
-      const String       doc    = string_lit("Place a point light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.");
+      const String       name   = string_lit("light_point_spawn");
+      const String       doc    = string_lit("Spawn a point light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.");
       const ScriptMask   ret    = script_mask_entity;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
@@ -496,8 +496,8 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("sound_play");
-      const String       doc    = string_lit("Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.");
+      const String       name   = string_lit("sound_spawn");
+      const String       doc    = string_lit("Spawn a sound instance.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.");
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("asset"), script_mask_entity},

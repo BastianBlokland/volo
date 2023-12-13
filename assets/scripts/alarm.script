@@ -6,7 +6,7 @@ var lightRadiance  = color(1, 0.1, 0.05, 75)
 var lightRadius    = 10
 
 $light ??= {
-  var e = light_point(vec3(0, 0, 0), black, lightRadius)
+  var e = light_point_spawn(vec3(0, 0, 0), black, lightRadius)
   attach(e, me, null, lightOffset)
   destroy_after(e, me)
   e
@@ -21,7 +21,7 @@ if (newBlinkOn != $blinkOn) {
   if (newBlinkOn && $alarmSound) {
     var soundPos      = position(me)
     var soundGain     = 0.05
-    var soundInstance = sound_play($alarmSound, soundPos, soundGain)
+    var soundInstance = sound_spawn($alarmSound, soundPos, soundGain)
     destroy_after(soundInstance, me)
     destroy_after(soundInstance, 3.0)
   }

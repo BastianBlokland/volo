@@ -11,7 +11,7 @@ rend_param(fixture, "Color", $color ?? white)
 if ($light) {
   light_param($light, "Radiance", ($color ?? black) * lightIntensity)
 } else {
-  var e = light_point(vec3(0, 0, 0), black, lightRadius)
+  var e = light_point_spawn(vec3(0, 0, 0), black, lightRadius)
   attach(e, fixture, null, lightOffset)
   destroy_after(e, fixture)
   $light = e

@@ -77,34 +77,6 @@
       }
     },
     {
-      "name": "vfx_system",
-      "doc": "Place a vfx system.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
-      "sig": {
-        "ret": "entity",
-        "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
-          {
-            "name": "alpha",
-            "mask": [
-              "null",
-              "num"
-            ]
-          }
-        ]
-      }
-    },
-    {
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {
@@ -116,6 +88,27 @@
           {
             "name": "v",
             "mask": "entity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "light_point_spawn",
+      "doc": "Spawn a point light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "radiance",
+            "mask": "color"
+          },
+          {
+            "name": "radius",
+            "mask": "num"
           }
         ]
       }
@@ -146,27 +139,6 @@
             "name": "values",
             "mask": "any",
             "multi": true
-          }
-        ]
-      }
-    },
-    {
-      "name": "light_point",
-      "doc": "Place a point light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.",
-      "sig": {
-        "ret": "entity",
-        "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radiance",
-            "mask": "color"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
           }
         ]
       }
@@ -385,6 +357,50 @@
       }
     },
     {
+      "name": "sound_spawn",
+      "doc": "Spawn a sound instance.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "asset",
+            "mask": "entity"
+          },
+          {
+            "name": "pos",
+            "mask": [
+              "null",
+              "vec3"
+            ]
+          },
+          {
+            "name": "gain",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "pitch",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "looping",
+            "mask": [
+              "null",
+              "bool"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "target_primary",
       "doc": "Lookup the primary target of the given entity.",
       "sig": {
@@ -478,6 +494,50 @@
       }
     },
     {
+      "name": "prefab_spawn",
+      "doc": "Spawn a prefab.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "sig": {
+        "ret": [
+          "null",
+          "entity"
+        ],
+        "args": [
+          {
+            "name": "prefabId",
+            "mask": "str"
+          },
+          {
+            "name": "pos",
+            "mask": [
+              "null",
+              "vec3"
+            ]
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "scale",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "faction",
+            "mask": [
+              "null",
+              "str"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`\n\n-`Status`",
       "sig": {
@@ -532,34 +592,6 @@
           },
           {
             "name": "value",
-            "mask": [
-              "null",
-              "num"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "vfx_decal",
-      "doc": "Place a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
-      "sig": {
-        "ret": "entity",
-        "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
-          {
-            "name": "alpha",
             "mask": [
               "null",
               "num"
@@ -659,6 +691,44 @@
       }
     },
     {
+      "name": "collision_box_spawn",
+      "doc": "Spawn a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "size",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "layer",
+            "mask": [
+              "null",
+              "str"
+            ]
+          },
+          {
+            "name": "navBlocker",
+            "mask": [
+              "null",
+              "bool"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_sphere",
       "doc": "Draw a 3D debug sphere.",
       "sig": {
@@ -706,6 +776,34 @@
       }
     },
     {
+      "name": "vfx_system_spawn",
+      "doc": "Spawn a vfx system.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "asset",
+            "mask": "entity"
+          },
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": "quat"
+          },
+          {
+            "name": "alpha",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "status",
       "doc": "Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
       "sig": {
@@ -733,50 +831,6 @@
       }
     },
     {
-      "name": "sound_play",
-      "doc": "Start playing a sound.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.",
-      "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
-        "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": [
-              "null",
-              "vec3"
-            ]
-          },
-          {
-            "name": "gain",
-            "mask": [
-              "null",
-              "num"
-            ]
-          },
-          {
-            "name": "pitch",
-            "mask": [
-              "null",
-              "num"
-            ]
-          },
-          {
-            "name": "looping",
-            "mask": [
-              "null",
-              "bool"
-            ]
-          }
-        ]
-      }
-    },
-    {
       "name": "faction",
       "doc": "Lookup the faction of the given entity.",
       "sig": {
@@ -788,50 +842,6 @@
           {
             "name": "v",
             "mask": "entity"
-          }
-        ]
-      }
-    },
-    {
-      "name": "spawn",
-      "doc": "Spawn a prefab.",
-      "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
-        "args": [
-          {
-            "name": "prefabId",
-            "mask": "str"
-          },
-          {
-            "name": "pos",
-            "mask": [
-              "null",
-              "vec3"
-            ]
-          },
-          {
-            "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
-          },
-          {
-            "name": "scale",
-            "mask": [
-              "null",
-              "num"
-            ]
-          },
-          {
-            "name": "faction",
-            "mask": [
-              "null",
-              "str"
-            ]
           }
         ]
       }
@@ -1117,38 +1127,28 @@
       }
     },
     {
-      "name": "collision_box",
-      "doc": "Create a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "name": "vfx_decal_spawn",
+      "doc": "Spawn a decal.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'vfx_param()' api.",
       "sig": {
         "ret": "entity",
         "args": [
+          {
+            "name": "asset",
+            "mask": "entity"
+          },
           {
             "name": "pos",
             "mask": "vec3"
           },
           {
-            "name": "size",
-            "mask": "vec3"
-          },
-          {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": "quat"
           },
           {
-            "name": "layer",
+            "name": "alpha",
             "mask": [
               "null",
-              "str"
-            ]
-          },
-          {
-            "name": "navBlocker",
-            "mask": [
-              "null",
-              "bool"
+              "num"
             ]
           }
         ]

@@ -4,6 +4,6 @@ if ($soundAsset && !$soundInstance) {
   var soundGain    = 0.4
   var soundPitch   = 1.0
   var soundLooping = true
-  $soundInstance   = sound_play($soundAsset, soundPos, soundGain, soundPitch, soundLooping)
+  $soundInstance   = sound_spawn($soundAsset, soundPos, soundGain, soundPitch, soundLooping)
   destroy_after($soundInstance, self())
 }
