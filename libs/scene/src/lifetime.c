@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "scene_lifetime.h"
 #include "scene_time.h"
 
@@ -42,7 +43,10 @@ static void ecs_combine_lifetime_owner(void* dataA, void* dataB) {
       continue;
     }
     if (UNLIKELY(!lifetime_add_owner(compA, ownerToAdd))) {
-      diag_crash_msg("SceneLifetimeOwner's cannot be combined, total owner count exceeds maximum ");
+      log_e(
+          "SceneLifetimeOwner's cannot be combined",
+          log_param("reason", fmt_text_lit("Total owner count exceeds maximum")),
+          log_param("entity-to-add", fmt_int(ownerToAdd, .base = 16)));
     }
   }
 }
