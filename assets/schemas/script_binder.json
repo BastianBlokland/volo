@@ -77,6 +77,37 @@
       }
     },
     {
+      "name": "collision_sphere_spawn",
+      "doc": "Spawn a collision sphere.\n\n*Note*: Resulting entity is not automatically destroyed.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "radius",
+            "mask": "num"
+          },
+          {
+            "name": "layer",
+            "mask": [
+              "null",
+              "str"
+            ]
+          },
+          {
+            "name": "navBlocker",
+            "mask": [
+              "null",
+              "bool"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {
