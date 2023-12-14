@@ -1476,10 +1476,12 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = UiShape_Light;
     } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
       icon = UiShape_MusicNote;
+    } else if (ecs_world_has_t(world, e, SceneRenderableComp)) {
+      icon = UiShape_WebAsset;
     } else if (ecs_world_has_t(world, e, SceneCollisionComp)) {
       icon = UiShape_Dashboard;
     } else {
-      icon = 0;
+      icon = '?';
     }
     color = geo_color(0.85f, 0.85f, 0.85f, 0.6f);
     size  = 20;
