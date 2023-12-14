@@ -1240,6 +1240,30 @@ eval_collision_box_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* e
   return script_entity(result);
 }
 
+static ScriptVal
+eval_collision_sphere_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const GeoVector  pos        = script_arg_vec3(args, 0, err);
+  const f32        radius     = (f32)script_arg_num(args, 1, err);
+  const SceneLayer layer      = arg_layer(args, 2, err);
+  const bool       navBlocker = script_arg_opt_bool(args, 3, false, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const GeoQuat     rot    = geo_quat_ident;
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+
+  const SceneCollisionSphere sphere = {.radius = radius};
+  scene_collision_add_sphere(ctx->world, result, sphere, layer);
+
+  if (navBlocker) {
+    scene_nav_add_blocker(ctx->world, result);
+  }
+
+  return script_entity(result);
+}
+
 static ScriptVal eval_light_point_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const GeoVector pos      = script_arg_vec3(args, 0, err);
   const GeoQuat   rot      = geo_quat_ident;
@@ -1587,65 +1611,66 @@ static void eval_binder_init() {
     eval_enum_init_bark();
 
     // clang-format off
-    eval_bind(b, string_lit("self"),                eval_self);
-    eval_bind(b, string_lit("exists"),              eval_exists);
-    eval_bind(b, string_lit("position"),            eval_position);
-    eval_bind(b, string_lit("velocity"),            eval_velocity);
-    eval_bind(b, string_lit("rotation"),            eval_rotation);
-    eval_bind(b, string_lit("scale"),               eval_scale);
-    eval_bind(b, string_lit("name"),                eval_name);
-    eval_bind(b, string_lit("faction"),             eval_faction);
-    eval_bind(b, string_lit("health"),              eval_health);
-    eval_bind(b, string_lit("visible"),             eval_visible);
-    eval_bind(b, string_lit("time"),                eval_time);
-    eval_bind(b, string_lit("set"),                 eval_set);
-    eval_bind(b, string_lit("query_set"),           eval_query_set);
-    eval_bind(b, string_lit("query_sphere"),        eval_query_sphere);
-    eval_bind(b, string_lit("query_box"),           eval_query_box);
-    eval_bind(b, string_lit("query_pop"),           eval_query_pop);
-    eval_bind(b, string_lit("query_random"),        eval_query_random);
-    eval_bind(b, string_lit("nav_find"),            eval_nav_find);
-    eval_bind(b, string_lit("nav_target"),          eval_nav_target);
-    eval_bind(b, string_lit("line_of_sight"),       eval_line_of_sight);
-    eval_bind(b, string_lit("capable"),             eval_capable);
-    eval_bind(b, string_lit("active"),              eval_active);
-    eval_bind(b, string_lit("target_primary"),      eval_target_primary);
-    eval_bind(b, string_lit("target_range_min"),    eval_target_range_min);
-    eval_bind(b, string_lit("target_range_max"),    eval_target_range_max);
-    eval_bind(b, string_lit("tell"),                eval_tell);
-    eval_bind(b, string_lit("ask"),                 eval_ask);
-    eval_bind(b, string_lit("prefab_spawn"),        eval_prefab_spawn);
-    eval_bind(b, string_lit("destroy"),             eval_destroy);
-    eval_bind(b, string_lit("destroy_after"),       eval_destroy_after);
-    eval_bind(b, string_lit("teleport"),            eval_teleport);
-    eval_bind(b, string_lit("nav_travel"),          eval_nav_travel);
-    eval_bind(b, string_lit("nav_stop"),            eval_nav_stop);
-    eval_bind(b, string_lit("attach"),              eval_attach);
-    eval_bind(b, string_lit("detach"),              eval_detach);
-    eval_bind(b, string_lit("damage"),              eval_damage);
-    eval_bind(b, string_lit("attack"),              eval_attack);
-    eval_bind(b, string_lit("bark"),                eval_bark);
-    eval_bind(b, string_lit("status"),              eval_status);
-    eval_bind(b, string_lit("rend_param"),          eval_rend_param);
-    eval_bind(b, string_lit("vfx_system_spawn"),    eval_vfx_system_spawn);
-    eval_bind(b, string_lit("vfx_decal_spawn"),     eval_vfx_decal_spawn);
-    eval_bind(b, string_lit("vfx_param"),           eval_vfx_param);
-    eval_bind(b, string_lit("collision_box_spawn"), eval_collision_box_spawn);
-    eval_bind(b, string_lit("light_point_spawn"),   eval_light_point_spawn);
-    eval_bind(b, string_lit("light_param"),         eval_light_param);
-    eval_bind(b, string_lit("sound_spawn"),         eval_sound_spawn);
-    eval_bind(b, string_lit("sound_param"),         eval_sound_param);
-    eval_bind(b, string_lit("anim_param"),          eval_anim_param);
-    eval_bind(b, string_lit("random_of"),           eval_random_of);
-    eval_bind(b, string_lit("debug_log"),           eval_debug_log);
-    eval_bind(b, string_lit("debug_line"),          eval_debug_line);
-    eval_bind(b, string_lit("debug_sphere"),        eval_debug_sphere);
-    eval_bind(b, string_lit("debug_box"),           eval_debug_box);
-    eval_bind(b, string_lit("debug_arrow"),         eval_debug_arrow);
-    eval_bind(b, string_lit("debug_orientation"),   eval_debug_orientation);
-    eval_bind(b, string_lit("debug_text"),          eval_debug_text);
-    eval_bind(b, string_lit("debug_trace"),         eval_debug_trace);
-    eval_bind(b, string_lit("debug_break"),         eval_debug_break);
+    eval_bind(b, string_lit("self"),                   eval_self);
+    eval_bind(b, string_lit("exists"),                 eval_exists);
+    eval_bind(b, string_lit("position"),               eval_position);
+    eval_bind(b, string_lit("velocity"),               eval_velocity);
+    eval_bind(b, string_lit("rotation"),               eval_rotation);
+    eval_bind(b, string_lit("scale"),                  eval_scale);
+    eval_bind(b, string_lit("name"),                   eval_name);
+    eval_bind(b, string_lit("faction"),                eval_faction);
+    eval_bind(b, string_lit("health"),                 eval_health);
+    eval_bind(b, string_lit("visible"),                eval_visible);
+    eval_bind(b, string_lit("time"),                   eval_time);
+    eval_bind(b, string_lit("set"),                    eval_set);
+    eval_bind(b, string_lit("query_set"),              eval_query_set);
+    eval_bind(b, string_lit("query_sphere"),           eval_query_sphere);
+    eval_bind(b, string_lit("query_box"),              eval_query_box);
+    eval_bind(b, string_lit("query_pop"),              eval_query_pop);
+    eval_bind(b, string_lit("query_random"),           eval_query_random);
+    eval_bind(b, string_lit("nav_find"),               eval_nav_find);
+    eval_bind(b, string_lit("nav_target"),             eval_nav_target);
+    eval_bind(b, string_lit("line_of_sight"),          eval_line_of_sight);
+    eval_bind(b, string_lit("capable"),                eval_capable);
+    eval_bind(b, string_lit("active"),                 eval_active);
+    eval_bind(b, string_lit("target_primary"),         eval_target_primary);
+    eval_bind(b, string_lit("target_range_min"),       eval_target_range_min);
+    eval_bind(b, string_lit("target_range_max"),       eval_target_range_max);
+    eval_bind(b, string_lit("tell"),                   eval_tell);
+    eval_bind(b, string_lit("ask"),                    eval_ask);
+    eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);
+    eval_bind(b, string_lit("destroy"),                eval_destroy);
+    eval_bind(b, string_lit("destroy_after"),          eval_destroy_after);
+    eval_bind(b, string_lit("teleport"),               eval_teleport);
+    eval_bind(b, string_lit("nav_travel"),             eval_nav_travel);
+    eval_bind(b, string_lit("nav_stop"),               eval_nav_stop);
+    eval_bind(b, string_lit("attach"),                 eval_attach);
+    eval_bind(b, string_lit("detach"),                 eval_detach);
+    eval_bind(b, string_lit("damage"),                 eval_damage);
+    eval_bind(b, string_lit("attack"),                 eval_attack);
+    eval_bind(b, string_lit("bark"),                   eval_bark);
+    eval_bind(b, string_lit("status"),                 eval_status);
+    eval_bind(b, string_lit("rend_param"),             eval_rend_param);
+    eval_bind(b, string_lit("vfx_system_spawn"),       eval_vfx_system_spawn);
+    eval_bind(b, string_lit("vfx_decal_spawn"),        eval_vfx_decal_spawn);
+    eval_bind(b, string_lit("vfx_param"),              eval_vfx_param);
+    eval_bind(b, string_lit("collision_box_spawn"),    eval_collision_box_spawn);
+    eval_bind(b, string_lit("collision_sphere_spawn"), eval_collision_sphere_spawn);
+    eval_bind(b, string_lit("light_point_spawn"),      eval_light_point_spawn);
+    eval_bind(b, string_lit("light_param"),            eval_light_param);
+    eval_bind(b, string_lit("sound_spawn"),            eval_sound_spawn);
+    eval_bind(b, string_lit("sound_param"),            eval_sound_param);
+    eval_bind(b, string_lit("anim_param"),             eval_anim_param);
+    eval_bind(b, string_lit("random_of"),              eval_random_of);
+    eval_bind(b, string_lit("debug_log"),              eval_debug_log);
+    eval_bind(b, string_lit("debug_line"),             eval_debug_line);
+    eval_bind(b, string_lit("debug_sphere"),           eval_debug_sphere);
+    eval_bind(b, string_lit("debug_box"),              eval_debug_box);
+    eval_bind(b, string_lit("debug_arrow"),            eval_debug_arrow);
+    eval_bind(b, string_lit("debug_orientation"),      eval_debug_orientation);
+    eval_bind(b, string_lit("debug_text"),             eval_debug_text);
+    eval_bind(b, string_lit("debug_trace"),            eval_debug_trace);
+    eval_bind(b, string_lit("debug_break"),            eval_debug_break);
     // clang-format on
 
     script_binder_finalize(b);
