@@ -115,6 +115,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorTool    tool;
   DebugInspectorVisMode visMode;
   u32                   visFlags;
+  bool                  drawVisInGame;
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
@@ -718,6 +719,11 @@ static void inspector_panel_draw_settings(
     if (ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
       debug_stats_notify(stats, string_lit("Tool"), g_toolNames[settings->tool]);
     }
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Visualize In Game"));
+    ui_table_next_column(canvas, table);
+    ui_toggle(canvas, &settings->drawVisInGame);
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Visualize Mode"));
@@ -1510,7 +1516,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
   DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
-  if (!input_layer_active(input, string_hash_lit("Debug"))) {
+  if (!set->drawVisInGame && !input_layer_active(input, string_hash_lit("Debug"))) {
     return;
   }
 
