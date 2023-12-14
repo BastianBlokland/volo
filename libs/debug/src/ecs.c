@@ -67,6 +67,7 @@ typedef enum {
   DebugCompSortMode_Id,
   DebugCompSortMode_Name,
   DebugCompSortMode_Size,
+  DebugCompSortMode_SizeTotal,
   DebugCompSortMode_Archetypes,
   DebugCompSortMode_Entities,
 
@@ -77,6 +78,7 @@ static const String g_compSortModeNames[] = {
     string_static("Id"),
     string_static("Name"),
     string_static("Size"),
+    string_static("SizeTotal"),
     string_static("Archetypes"),
     string_static("Entities"),
 };
@@ -146,6 +148,15 @@ static i8 comp_compare_info_name(const void* a, const void* b) {
 static i8 comp_compare_info_size(const void* a, const void* b) {
   return compare_u32_reverse(
       field_ptr(a, DebugEcsCompInfo, size), field_ptr(b, DebugEcsCompInfo, size));
+}
+
+static i8 comp_compare_info_size_total(const void* a, const void* b) {
+  const DebugEcsCompInfo* aInfo = a;
+  const DebugEcsCompInfo* bInfo = b;
+
+  const usize totalA = aInfo->numEntities * aInfo->size;
+  const usize totalB = bInfo->numEntities * bInfo->size;
+  return compare_u32_reverse(&totalA, &totalB);
 }
 
 static i8 comp_compare_info_archetypes(const void* a, const void* b) {
@@ -231,6 +242,9 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
     break;
   case DebugCompSortMode_Size:
     dynarray_sort(&panelComp->components, comp_compare_info_size);
+    break;
+  case DebugCompSortMode_SizeTotal:
+    dynarray_sort(&panelComp->components, comp_compare_info_size_total);
     break;
   case DebugCompSortMode_Archetypes:
     dynarray_sort(&panelComp->components, comp_compare_info_archetypes);
