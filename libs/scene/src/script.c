@@ -53,7 +53,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumNavFind,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
-                  g_scriptEnumRendParam,
+                  g_scriptEnumRenderableParam,
                   g_scriptEnumVfxParam,
                   g_scriptEnumLightParam,
                   g_scriptEnumSoundParam,
@@ -99,10 +99,10 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 3);
 }
 
-static void eval_enum_init_rend_param() {
-  script_enum_push(&g_scriptEnumRendParam, string_lit("Color"), 0);
-  script_enum_push(&g_scriptEnumRendParam, string_lit("Alpha"), 1);
-  script_enum_push(&g_scriptEnumRendParam, string_lit("Emissive"), 2);
+static void eval_enum_init_renderable_param() {
+  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Color"), 0);
+  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Alpha"), 1);
+  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Emissive"), 2);
 }
 
 static void eval_enum_init_vfx_param() {
@@ -161,7 +161,7 @@ typedef enum {
   ScriptActionType_Attack,
   ScriptActionType_Bark,
   ScriptActionType_UpdateSet,
-  ScriptActionType_UpdateRendParam,
+  ScriptActionType_UpdateRenderableParam,
   ScriptActionType_UpdateVfxParam,
   ScriptActionType_UpdateLightParam,
   ScriptActionType_UpdateSoundParam,
@@ -244,7 +244,7 @@ typedef struct {
     f32      value_num;
     GeoColor value_color;
   };
-} ScriptActionUpdateRendParam;
+} ScriptActionUpdateRenderableParam;
 
 typedef struct {
   EcsEntityId entity;
@@ -274,23 +274,23 @@ typedef struct {
 typedef struct {
   ScriptActionType type;
   union {
-    ScriptActionTell             data_tell;
-    ScriptActionAsk              data_ask;
-    ScriptActionSpawn            data_spawn;
-    ScriptActionTeleport         data_teleport;
-    ScriptActionNavTravel        data_navTravel;
-    ScriptActionNavStop          data_navStop;
-    ScriptActionAttach           data_attach;
-    ScriptActionDetach           data_detach;
-    ScriptActionDamage           data_damage;
-    ScriptActionAttack           data_attack;
-    ScriptActionBark             data_bark;
-    ScriptActionUpdateSet        data_updateSet;
-    ScriptActionUpdateRendParam  data_updateRendParam;
-    ScriptActionUpdateVfxParam   data_updateVfxParam;
-    ScriptActionUpdateLightParam data_updateLightParam;
-    ScriptActionUpdateSoundParam data_updateSoundParam;
-    ScriptActionUpdateAnimParam  data_updateAnimParam;
+    ScriptActionTell                  data_tell;
+    ScriptActionAsk                   data_ask;
+    ScriptActionSpawn                 data_spawn;
+    ScriptActionTeleport              data_teleport;
+    ScriptActionNavTravel             data_navTravel;
+    ScriptActionNavStop               data_navStop;
+    ScriptActionAttach                data_attach;
+    ScriptActionDetach                data_detach;
+    ScriptActionDamage                data_damage;
+    ScriptActionAttack                data_attack;
+    ScriptActionBark                  data_bark;
+    ScriptActionUpdateSet             data_updateSet;
+    ScriptActionUpdateRenderableParam data_updateRenderableParam;
+    ScriptActionUpdateVfxParam        data_updateVfxParam;
+    ScriptActionUpdateLightParam      data_updateLightParam;
+    ScriptActionUpdateSoundParam      data_updateSoundParam;
+    ScriptActionUpdateAnimParam       data_updateAnimParam;
   };
 } ScriptAction;
 
@@ -343,7 +343,7 @@ typedef struct {
   EcsIterator* factionItr;
   EcsIterator* healthItr;
   EcsIterator* statusItr;
-  EcsIterator* rendItr;
+  EcsIterator* renderableItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
   EcsIterator* lightPointItr;
@@ -1109,27 +1109,53 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_rend_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId asset    = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos      = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot      = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const f32         scale    = (f32)script_arg_opt_num_range(args, 3, 0.0001, 10000, 1.0, err);
+  const GeoColor    color    = script_arg_opt_color(args, 4, geo_color_white, err);
+  const f32         emissive = (f32)script_arg_opt_num_range(args, 5, 0.0, 1.0, 0.0, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  if (scale < 0.999f || scale > 1.001f) {
+    ecs_world_add_t(ctx->world, result, SceneScaleComp, .scale = scale);
+  }
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneRenderableComp,
+      .graphic  = asset,
+      .emissive = emissive,
+      .color    = color);
+  return script_entity(result);
+}
+
+static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  const i32 param = script_arg_enum(args, 1, &g_scriptEnumRendParam, err);
+  const i32 param = script_arg_enum(args, 1, &g_scriptEnumRenderableParam, err);
   if (args.count == 2) {
-    if (ecs_view_maybe_jump(ctx->rendItr, entity)) {
-      const SceneRenderableComp* rendComp = ecs_view_read_t(ctx->rendItr, SceneRenderableComp);
+    if (ecs_view_maybe_jump(ctx->renderableItr, entity)) {
+      const SceneRenderableComp* r = ecs_view_read_t(ctx->renderableItr, SceneRenderableComp);
       switch (param) {
       case 0 /* Color */:
-        return script_color(rendComp->color);
+        return script_color(r->color);
       case 1 /* Alpha */:
-        return script_num(rendComp->color.a);
+        return script_num(r->color.a);
       case 2 /* Emissive */:
-        return script_num(rendComp->emissive);
+        return script_num(r->emissive);
       }
     }
     return script_null();
   }
-  ScriptActionUpdateRendParam update;
+  ScriptActionUpdateRenderableParam update;
   update.entity = entity;
   update.param  = param;
   switch (param) {
@@ -1142,8 +1168,8 @@ static ScriptVal eval_rend_param(EvalContext* ctx, const ScriptArgs args, Script
     break;
   }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type                 = ScriptActionType_UpdateRendParam,
-      .data_updateRendParam = update,
+      .type                       = ScriptActionType_UpdateRenderableParam,
+      .data_updateRenderableParam = update,
   };
   return script_null();
 }
@@ -1601,7 +1627,7 @@ static void eval_binder_init() {
     eval_enum_init_nav_find();
     eval_enum_init_capability();
     eval_enum_init_activity();
-    eval_enum_init_rend_param();
+    eval_enum_init_renderable_param();
     eval_enum_init_vfx_param();
     eval_enum_init_light_param();
     eval_enum_init_sound_param();
@@ -1650,7 +1676,8 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("attack"),                 eval_attack);
     eval_bind(b, string_lit("bark"),                   eval_bark);
     eval_bind(b, string_lit("status"),                 eval_status);
-    eval_bind(b, string_lit("rend_param"),             eval_rend_param);
+    eval_bind(b, string_lit("renderable_spawn"),       eval_renderable_spawn);
+    eval_bind(b, string_lit("renderable_param"),       eval_renderable_param);
     eval_bind(b, string_lit("vfx_system_spawn"),       eval_vfx_system_spawn);
     eval_bind(b, string_lit("vfx_decal_spawn"),        eval_vfx_decal_spawn);
     eval_bind(b, string_lit("vfx_param"),              eval_vfx_param);
@@ -1831,7 +1858,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
       .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
-      .rendItr        = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
+      .renderableItr  = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
       .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
       .vfxDecalItr    = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
       .lightPointItr  = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
@@ -1917,7 +1944,7 @@ typedef struct {
   EcsIterator* damageItr;
   EcsIterator* attackItr;
   EcsIterator* barkItr;
-  EcsIterator* rendItr;
+  EcsIterator* renderableItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
   EcsIterator* lightPointItr;
@@ -2047,9 +2074,10 @@ static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a
   }
 }
 
-static void action_update_rend_param(ActionContext* ctx, const ScriptActionUpdateRendParam* a) {
-  if (ecs_view_maybe_jump(ctx->rendItr, a->entity)) {
-    SceneRenderableComp* rendComp = ecs_view_write_t(ctx->rendItr, SceneRenderableComp);
+static void
+action_update_renderable_param(ActionContext* ctx, const ScriptActionUpdateRenderableParam* a) {
+  if (ecs_view_maybe_jump(ctx->renderableItr, a->entity)) {
+    SceneRenderableComp* rendComp = ecs_view_write_t(ctx->renderableItr, SceneRenderableComp);
     switch (a->param) {
     case 0 /* Color */:
       rendComp->color = a->value_color;
@@ -2152,7 +2180,7 @@ ecs_system_define(ScriptActionApplySys) {
       .damageItr     = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
       .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
-      .rendItr       = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
+      .renderableItr = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
       .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
       .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
       .lightPointItr = ecs_view_itr(ecs_world_view_t(world, ActionLightPointView)),
@@ -2203,8 +2231,8 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_UpdateSet:
         action_update_set(&ctx, &action->data_updateSet);
         break;
-      case ScriptActionType_UpdateRendParam:
-        action_update_rend_param(&ctx, &action->data_updateRendParam);
+      case ScriptActionType_UpdateRenderableParam:
+        action_update_renderable_param(&ctx, &action->data_updateRenderableParam);
         break;
       case ScriptActionType_UpdateVfxParam:
         action_update_vfx_param(&ctx, &action->data_updateVfxParam);

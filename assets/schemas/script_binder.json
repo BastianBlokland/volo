@@ -145,6 +145,33 @@
       }
     },
     {
+      "name": "renderable_param",
+      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "target_range_min",
       "doc": "Lookup the minimum targeting range of the given entity.",
       "sig": {
@@ -325,6 +352,54 @@
             "mask": [
               "vec3",
               "entity"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "renderable_spawn",
+      "doc": "Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "asset",
+            "mask": "entity"
+          },
+          {
+            "name": "pos",
+            "mask": "vec3"
+          },
+          {
+            "name": "rot",
+            "mask": [
+              "null",
+              "quat"
+            ]
+          },
+          {
+            "name": "scale",
+            "mask": [
+              "null",
+              "num"
+            ]
+          },
+          {
+            "name": "color",
+            "mask": [
+              "null",
+              "color"
+            ]
+          },
+          {
+            "name": "emissive",
+            "mask": [
+              "null",
+              "num"
             ]
           }
         ]
@@ -600,33 +675,6 @@
           {
             "name": "v",
             "mask": "entity"
-          }
-        ]
-      }
-    },
-    {
-      "name": "rend_param",
-      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
-      "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
-        "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
-          {
-            "name": "value",
-            "mask": [
-              "null",
-              "num"
-            ]
           }
         ]
       }

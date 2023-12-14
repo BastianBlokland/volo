@@ -415,7 +415,21 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
-      const String       name   = string_lit("rend_param");
+      const String       name   = string_lit("renderable_spawn");
+      const String       doc    = string_lit("Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.");
+      const ScriptMask   ret    = script_mask_bool | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("asset"), script_mask_entity},
+          {string_lit("pos"), script_mask_vec3},
+          {string_lit("rot"), script_mask_quat | script_mask_null},
+          {string_lit("scale"), script_mask_num | script_mask_null},
+          {string_lit("color"), script_mask_color | script_mask_null},
+          {string_lit("emissive"), script_mask_num | script_mask_null},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("renderable_param");
       const String       doc    = string_lit("Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {

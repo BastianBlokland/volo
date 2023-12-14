@@ -15,7 +15,7 @@ $light ??= {
 var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
 if (newBlinkOn != $blinkOn) {
 
-  rend_param(me, "Emissive", newBlinkOn ? 0.25 : 0.0)
+  renderable_param(me, "Emissive", newBlinkOn ? 0.25 : 0.0)
   light_param($light, "Radiance", newBlinkOn ? lightRadiance : black)
 
   if (newBlinkOn && $alarmSound) {
