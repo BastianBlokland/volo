@@ -145,6 +145,33 @@
       }
     },
     {
+      "name": "renderable_param",
+      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
+      "sig": {
+        "ret": [
+          "null",
+          "bool"
+        ],
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "param",
+            "mask": "str"
+          },
+          {
+            "name": "value",
+            "mask": [
+              "null",
+              "num"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "target_range_min",
       "doc": "Lookup the minimum targeting range of the given entity.",
       "sig": {
@@ -600,33 +627,6 @@
           {
             "name": "v",
             "mask": "entity"
-          }
-        ]
-      }
-    },
-    {
-      "name": "rend_param",
-      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
-      "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
-        "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
-          {
-            "name": "value",
-            "mask": [
-              "null",
-              "num"
-            ]
           }
         ]
       }
