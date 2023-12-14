@@ -74,7 +74,7 @@ typedef enum {
   DebugInspectorVisMode_All,
 
   DebugInspectorVisMode_Count,
-  DebugInspectorVisMode_Default = DebugInspectorVisMode_All,
+  DebugInspectorVisMode_Default = DebugInspectorVisMode_SelectedOnly,
 } DebugInspectorVisMode;
 
 static const String g_toolNames[] = {
@@ -820,6 +820,9 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
   defaultVisFlags |= 1 << DebugInspectorVis_Script;
   defaultVisFlags |= 1 << DebugInspectorVis_Light;
+  defaultVisFlags |= 1 << DebugInspectorVis_Collision;
+  defaultVisFlags |= 1 << DebugInspectorVis_Locomotion;
+  defaultVisFlags |= 1 << DebugInspectorVis_NavigationPath;
 
   return ecs_world_add_t(
       world,
@@ -1336,8 +1339,7 @@ static void inspector_vis_draw_subject(
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
     const SceneNavEnvComp*            nav,
-    EcsIterator*                      subject,
-    const bool                        debugLayerActive) {
+    EcsIterator*                      subject) {
   const SceneBoundsComp*     boundsComp     = ecs_view_read_t(subject, SceneBoundsComp);
   const SceneCollisionComp*  collisionComp  = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneHealthComp*     healthComp     = ecs_view_read_t(subject, SceneHealthComp);
@@ -1388,10 +1390,10 @@ static void inspector_vis_draw_subject(
   if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
   }
-  if (debugLayerActive && lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+  if (lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
     inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
   }
-  if (debugLayerActive && lightDirComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+  if (lightDirComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
     inspector_vis_draw_light_dir(shape, lightDirComp, transformComp);
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
@@ -1491,13 +1493,11 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 
-  if (icon && transformComp) {
-    DynString textBuffer = dynstring_create_over(mem_stack(4));
-    utf8_cp_write(&textBuffer, icon);
+  DynString textBuffer = dynstring_create_over(mem_stack(4));
+  utf8_cp_write(&textBuffer, icon);
 
-    const String str = dynstring_view(&textBuffer);
-    debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
-  }
+  const String str = dynstring_view(&textBuffer);
+  debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
 }
 
 ecs_system_define(DebugInspectorVisDrawSys) {
@@ -1509,6 +1509,10 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   const InputManagerComp*     input = ecs_view_read_t(globalItr, InputManagerComp);
   DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
   DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+
+  if (!input_layer_active(input, string_hash_lit("Debug"))) {
+    return;
+  }
 
   static const String g_drawHotkeys[DebugInspectorVis_Count] = {
       [DebugInspectorVis_Collision]      = string_static("DebugInspectorVisCollision"),
@@ -1544,14 +1548,20 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
-  const bool debugLayerActive = input_layer_active(input, string_hash_lit("Debug"));
-
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
     inspector_vis_draw_navigation_grid(shape, text, nav);
   }
-  if (set->visFlags & (1 << DebugInspectorVis_Icon) && debugLayerActive) {
+  if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_icon(world, text, itr);
+    }
+  }
+  if (set->visFlags & (1 << DebugInspectorVis_Script)) {
+    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+      const SceneScriptComp* scriptComp = ecs_view_read_t(itr, SceneScriptComp);
+      if (scriptComp) {
+        inspector_vis_draw_script(shape, text, scriptComp);
+      }
     }
   }
   switch (set->visMode) {
@@ -1559,13 +1569,13 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     const StringHash s = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
-        inspector_vis_draw_subject(shape, text, set, nav, subjectItr, debugLayerActive);
+        inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
       }
     }
   } break;
   case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_subject(shape, text, set, nav, itr, debugLayerActive);
+      inspector_vis_draw_subject(shape, text, set, nav, itr);
     }
   } break;
   case DebugInspectorVisMode_Count:
