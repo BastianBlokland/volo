@@ -1,8 +1,10 @@
+#include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_sort.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "rend_register.h"
 
 #include "draw_internal.h"
@@ -128,6 +130,10 @@ rend_draw_copy_to_output(const RendDrawComp* draw, const u32 instIndex, const u3
   intrinsic_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
 }
 
+static bool rend_graphic_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 /**
  * Request the given graphic entity to be loaded.
  */
@@ -141,8 +147,13 @@ static void rend_draw_request_graphic(
     rend_res_mark_used(ecs_view_write_t(graphicItr, RendResComp));
     return;
   }
+
   if (++*numRequests < rend_max_res_requests) {
-    rend_res_request(world, entity);
+    if (LIKELY(rend_graphic_asset_valid(world, entity))) {
+      rend_res_request(world, entity);
+    } else {
+      log_e("Invalid draw graphic asset entity");
+    }
   }
 }
 
