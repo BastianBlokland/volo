@@ -1109,6 +1109,32 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId asset    = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos      = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot      = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const f32         scale    = (f32)script_arg_opt_num_range(args, 3, 0.0001, 10000, 1.0, err);
+  const GeoColor    color    = script_arg_opt_color(args, 4, geo_color_white, err);
+  const f32         emissive = (f32)script_arg_opt_num_range(args, 5, 0.0, 1.0, 0.0, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  if (scale < 0.999f || scale > 1.001f) {
+    ecs_world_add_t(ctx->world, result, SceneScaleComp, .scale = scale);
+  }
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneRenderableComp,
+      .graphic  = asset,
+      .emissive = emissive,
+      .color    = color);
+  return script_entity(result);
+}
+
 static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (UNLIKELY(!entity)) {
@@ -1650,6 +1676,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("attack"),                 eval_attack);
     eval_bind(b, string_lit("bark"),                   eval_bark);
     eval_bind(b, string_lit("status"),                 eval_status);
+    eval_bind(b, string_lit("renderable_spawn"),       eval_renderable_spawn);
     eval_bind(b, string_lit("renderable_param"),       eval_renderable_param);
     eval_bind(b, string_lit("vfx_system_spawn"),       eval_vfx_system_spawn);
     eval_bind(b, string_lit("vfx_decal_spawn"),        eval_vfx_decal_spawn);
