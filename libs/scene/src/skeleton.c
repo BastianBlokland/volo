@@ -158,6 +158,10 @@ static void scene_skeleton_init_from_templ(
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
 
+static bool scene_graphic_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 ecs_system_define(SceneSkeletonInitSys) {
   EcsView*     initView = ecs_world_view_t(world, SkeletonInitView);
   EcsIterator* templItr = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplView));
@@ -168,7 +172,7 @@ ecs_system_define(SceneSkeletonInitSys) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const EcsEntityId          graphic    = renderable->graphic;
-    if (!graphic) {
+    if (UNLIKELY(!graphic || !scene_graphic_asset_valid(world, graphic))) {
       scene_skeleton_init_empty(world, entity);
       continue;
     }

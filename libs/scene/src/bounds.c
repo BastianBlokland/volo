@@ -49,6 +49,10 @@ ecs_view_define(BoundsInitView) {
 
 ecs_view_define(BoundsTemplView) { ecs_access_read(SceneBoundsTemplComp); }
 
+static bool scene_graphic_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+  return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
+}
+
 ecs_system_define(SceneBoundsInitSys) {
   EcsView*     initView    = ecs_world_view_t(world, BoundsInitView);
   EcsIterator* templateItr = ecs_view_itr(ecs_world_view_t(world, BoundsTemplView));
@@ -59,7 +63,7 @@ ecs_system_define(SceneBoundsInitSys) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const EcsEntityId          graphic    = renderable->graphic;
-    if (!graphic) {
+    if (UNLIKELY(!graphic || !scene_graphic_asset_valid(world, graphic))) {
       ecs_world_add_t(world, entity, SceneBoundsComp, .local = geo_box_inverted3());
       continue;
     }
