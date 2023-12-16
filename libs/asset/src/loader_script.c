@@ -547,13 +547,13 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("anim_param");
-      const String       doc    = string_lit("Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop`\n\n-`Duration`");
-      const ScriptMask   ret    = script_mask_num | script_mask_bool | script_mask_null;
+      const String       doc    = string_lit("Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop``\n\n-`FadeIn``\n\n-`FadeOut`\n\n-`Duration`");
+      const ScriptMask   ret    = script_mask_any;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("layer"), script_mask_str},
           {string_lit("param"), script_mask_str},
-          {string_lit("value"), script_mask_num | script_mask_bool | script_mask_null},
+          {string_lit("value"), script_mask_any},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

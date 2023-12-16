@@ -125,7 +125,9 @@ static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 3);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Loop"), 4);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 5);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeIn"), 5);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeOut"), 6);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 7);
 }
 
 static void eval_enum_init_layer() {
@@ -1432,7 +1434,11 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
           return script_num(layer->weight);
         case 4 /* Loop */:
           return script_bool((layer->flags & SceneAnimFlags_Loop) != 0);
-        case 5 /* Duration */:
+        case 5 /* FadeIn */:
+          return script_bool((layer->flags & SceneAnimFlags_AutoFadeIn) != 0);
+        case 6 /* FadeOut */:
+          return script_bool((layer->flags & SceneAnimFlags_AutoFadeOut) != 0);
+        case 7 /* Duration */:
           return script_num(layer->duration);
         }
       }
@@ -1457,9 +1463,11 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
     update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
     break;
   case 4 /* Loop */:
+  case 5 /* FadeIn */:
+  case 6 /* FadeOut */:
     update.value_bool = script_arg_bool(args, 3, err);
     break;
-  case 5 /* Duration */:
+  case 7 /* Duration */:
     *err = script_error_arg(ScriptError_ReadonlyParam, 3);
     return script_null();
   }
@@ -1986,6 +1994,15 @@ typedef struct {
   EcsIterator* animItr;
 } ActionContext;
 
+static u32 action_update_flag(u32 mask, const u32 flag, const bool enable) {
+  if (enable) {
+    mask |= flag;
+  } else {
+    mask &= ~flag;
+  }
+  return mask;
+}
+
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
     SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
@@ -2196,11 +2213,13 @@ static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdat
         layer->weight = a->value_f32;
         break;
       case 4 /* Loop */:
-        if (a->value_bool) {
-          layer->flags |= SceneAnimFlags_Loop;
-        } else {
-          layer->flags &= ~SceneAnimFlags_Loop;
-        }
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_Loop, a->value_bool);
+        break;
+      case 5 /* FadeIn */:
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeIn, a->value_bool);
+        break;
+      case 6 /* FadeOut */:
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeOut, a->value_bool);
         break;
       }
     }
