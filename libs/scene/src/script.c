@@ -124,7 +124,8 @@ static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("TimeNorm"), 1);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 3);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 4);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Loop"), 4);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 5);
 }
 
 static void eval_enum_init_layer() {
@@ -271,7 +272,10 @@ typedef struct {
   EcsEntityId entity;
   StringHash  layerName;
   i32         param;
-  f32         value;
+  union {
+    f32  value_f32;
+    bool value_bool;
+  };
 } ScriptActionUpdateAnimParam;
 
 typedef struct {
@@ -1426,7 +1430,9 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
           return script_num(layer->speed);
         case 3 /* Weight */:
           return script_num(layer->weight);
-        case 4 /* Duration */:
+        case 4 /* Loop */:
+          return script_bool((layer->flags & SceneAnimFlags_Loop) != 0);
+        case 5 /* Duration */:
           return script_num(layer->duration);
         }
       }
@@ -1439,18 +1445,21 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   update.param     = param;
   switch (param) {
   case 0 /* Time */:
-    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
+    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
     break;
   case 1 /* TimeNorm */:
-    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
     break;
   case 2 /* Speed */:
-    update.value = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
+    update.value_f32 = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
     break;
   case 3 /* Weight */:
-    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
     break;
-  case 4 /* Duration */:
+  case 4 /* Loop */:
+    update.value_bool = script_arg_bool(args, 3, err);
+    break;
+  case 5 /* Duration */:
     *err = script_error_arg(ScriptError_ReadonlyParam, 3);
     return script_null();
   }
@@ -2175,16 +2184,23 @@ static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdat
     if (layer) {
       switch (a->param) {
       case 0 /* Time */:
-        layer->time = a->value;
+        layer->time = a->value_f32;
         break;
       case 1 /* TimeNorm */:
-        layer->time = a->value * layer->duration;
+        layer->time = a->value_f32 * layer->duration;
         break;
       case 2 /* Speed */:
-        layer->speed = a->value;
+        layer->speed = a->value_f32;
         break;
       case 3 /* Weight */:
-        layer->weight = a->value;
+        layer->weight = a->value_f32;
+        break;
+      case 4 /* Loop */:
+        if (a->value_bool) {
+          layer->flags |= SceneAnimFlags_Loop;
+        } else {
+          layer->flags &= ~SceneAnimFlags_Loop;
+        }
         break;
       }
     }
