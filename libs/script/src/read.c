@@ -1222,7 +1222,7 @@ static ScriptExpr read_expr_mem_modify(
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range      = read_range_to_current(ctx, keyRange.start);
+  const ScriptRange range      = script_range(keyRange.start, script_expr_range(ctx->doc, val).end);
   const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, keyRange, key);
   const ScriptExpr  intrArgs[] = {loadExpr, val};
   const ScriptExpr  intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
