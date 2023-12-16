@@ -513,6 +513,8 @@ ecs_system_define(SceneSkeletonUpdateSys) {
           layer->time = math_mod_f32(layer->time, layer->duration);
         } else if (layer->time > layer->duration) {
           layer->time = layer->duration;
+        } else if (layer->time < 0) {
+          layer->time = 0;
         }
       }
       const f32 layerTimeNorm = layer->duration > 0 ? (layer->time / layer->duration) : 0.0f;
