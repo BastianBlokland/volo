@@ -2155,10 +2155,13 @@ static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdat
       switch (a->param) {
       case 0 /* Time */:
         layer->time = a->value;
+        break;
       case 1 /* Speed */:
         layer->speed = a->value;
+        break;
       case 2 /* Weight */:
         layer->weight = a->value;
+        break;
       }
     }
   }
