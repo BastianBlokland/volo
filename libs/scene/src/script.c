@@ -1427,15 +1427,24 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
     }
     return script_null();
   }
+  ScriptActionUpdateAnimParam update;
+  update.entity    = entity;
+  update.layerName = layerName;
+  update.param     = param;
+  switch (param) {
+  case 0 /* Time */:
+    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
+    break;
+  case 1 /* Speed */:
+    update.value = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
+    break;
+  case 2 /* Weight */:
+    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    break;
+  }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateAnimParam,
-      .data_updateAnimParam =
-          {
-              .entity    = entity,
-              .layerName = layerName,
-              .param     = param,
-              .value     = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err),
-          },
+      .type                 = ScriptActionType_UpdateAnimParam,
+      .data_updateAnimParam = update,
   };
   return script_null();
 }
