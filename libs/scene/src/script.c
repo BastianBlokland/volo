@@ -1127,7 +1127,7 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
   if (scale < 0.999f || scale > 1.001f) {
     ecs_world_add_t(ctx->world, result, SceneScaleComp, .scale = scale);
   }
-  // NOTE: Tags are needed to make the selection outline line.
+  // NOTE: Tags are needed to make the selection outline work.
   ecs_world_add_t(ctx->world, result, SceneTagComp, .tags = SceneTags_Default);
   ecs_world_add_t(
       ctx->world,
