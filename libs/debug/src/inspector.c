@@ -1488,6 +1488,12 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
       icon = UiShape_WebAsset;
     } else if (ecs_world_has_t(world, e, SceneCollisionComp)) {
       icon = UiShape_Dashboard;
+    } else if (ecs_world_has_t(world, e, SceneCameraComp)) {
+      /**
+       * Avoid drawing an icon for the camera as it will appear in the middle of the screen, another
+       * approach would be modifying the text drawing to skip text very close to the screen.
+       */
+      icon = 0;
     } else {
       icon = '?';
     }
@@ -1499,11 +1505,13 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 
-  DynString textBuffer = dynstring_create_over(mem_stack(4));
-  utf8_cp_write(&textBuffer, icon);
+  if (icon) {
+    DynString textBuffer = dynstring_create_over(mem_stack(4));
+    utf8_cp_write(&textBuffer, icon);
 
-  const String str = dynstring_view(&textBuffer);
-  debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
+    const String str = dynstring_view(&textBuffer);
+    debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
+  }
 }
 
 ecs_system_define(DebugInspectorVisDrawSys) {
