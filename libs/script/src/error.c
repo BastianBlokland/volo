@@ -30,6 +30,7 @@ ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
       [ScriptError_UnimplementedBinding]        = ScriptPanic_UnimplementedBinding,
       [ScriptError_QueryLimitExceeded]          = ScriptPanic_QueryLimitExceeded,
       [ScriptError_QueryInvalid]                = ScriptPanic_QueryInvalid,
+      [ScriptError_ReadonlyParam]               = ScriptPanic_ReadonlyParam,
   };
   diag_assert(kind < ScriptErrorKind_Count);
   return g_panics[kind];

@@ -123,6 +123,7 @@ static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 1);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 2);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 3);
 }
 
 static void eval_enum_init_layer() {
@@ -1422,6 +1423,8 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
           return script_num(layer->speed);
         case 2 /* Weight */:
           return script_num(layer->weight);
+        case 3 /* Duration */:
+          return script_num(layer->duration);
         }
       }
     }
@@ -1441,6 +1444,9 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   case 2 /* Weight */:
     update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
     break;
+  case 3 /* Duration */:
+    *err = script_error_arg(ScriptError_ReadonlyParam, 3);
+    return script_null();
   }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
       .type                 = ScriptActionType_UpdateAnimParam,
