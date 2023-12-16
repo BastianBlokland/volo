@@ -560,7 +560,7 @@ static void asset_binder_init() {
     {
       const String       name   = string_lit("joint_position");
       const String       doc    = string_lit("Lookup the world position of a joint on the given entity.\n\n*Note*: Animation update from this frame is not taken into account.");
-      const ScriptMask   ret    = script_mask_any;
+      const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("joint"), script_mask_str},
