@@ -121,9 +121,13 @@ static void eval_enum_init_sound_param() {
 
 static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 1);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 2);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 3);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("TimeNorm"), 1);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 3);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Loop"), 4);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeIn"), 5);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeOut"), 6);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 7);
 }
 
 static void eval_enum_init_layer() {
@@ -270,7 +274,10 @@ typedef struct {
   EcsEntityId entity;
   StringHash  layerName;
   i32         param;
-  f32         value;
+  union {
+    f32  value_f32;
+    bool value_bool;
+  };
 } ScriptActionUpdateAnimParam;
 
 typedef struct {
@@ -330,6 +337,14 @@ ecs_view_define(EvalLineOfSightView) {
   ecs_access_maybe_read(SceneCollisionComp);
 }
 
+ecs_view_define(EvalSkeletonView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_read(SceneSkeletonComp);
+  ecs_access_read(SceneTransformComp);
+}
+ecs_view_define(EvalSkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
+
 typedef struct {
   EcsEntityId values[scene_script_query_values_max];
   u32         count, itr;
@@ -357,6 +372,8 @@ typedef struct {
   EcsIterator* attackItr;
   EcsIterator* targetItr;
   EcsIterator* lineOfSightItr;
+  EcsIterator* skeletonItr;
+  EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
   SceneScriptComp*       scriptInstance;
@@ -1419,11 +1436,19 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
         switch (param) {
         case 0 /* Time */:
           return script_num(layer->time);
-        case 1 /* Speed */:
+        case 1 /* TimeNorm */:
+          return script_num(layer->duration > 0 ? (layer->time / layer->duration) : 0.0f);
+        case 2 /* Speed */:
           return script_num(layer->speed);
-        case 2 /* Weight */:
+        case 3 /* Weight */:
           return script_num(layer->weight);
-        case 3 /* Duration */:
+        case 4 /* Loop */:
+          return script_bool((layer->flags & SceneAnimFlags_Loop) != 0);
+        case 5 /* FadeIn */:
+          return script_bool((layer->flags & SceneAnimFlags_AutoFadeIn) != 0);
+        case 6 /* FadeOut */:
+          return script_bool((layer->flags & SceneAnimFlags_AutoFadeOut) != 0);
+        case 7 /* Duration */:
           return script_num(layer->duration);
         }
       }
@@ -1436,15 +1461,23 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   update.param     = param;
   switch (param) {
   case 0 /* Time */:
-    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
+    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
     break;
-  case 1 /* Speed */:
-    update.value = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
+  case 1 /* TimeNorm */:
+    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
     break;
-  case 2 /* Weight */:
-    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+  case 2 /* Speed */:
+    update.value_f32 = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
     break;
-  case 3 /* Duration */:
+  case 3 /* Weight */:
+    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    break;
+  case 4 /* Loop */:
+  case 5 /* FadeIn */:
+  case 6 /* FadeOut */:
+    update.value_bool = script_arg_bool(args, 3, err);
+    break;
+  case 7 /* Duration */:
     *err = script_error_arg(ScriptError_ReadonlyParam, 3);
     return script_null();
   }
@@ -1453,6 +1486,42 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
       .data_updateAnimParam = update,
   };
   return script_null();
+}
+
+static ScriptVal eval_joint_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity    = script_arg_entity(args, 0, err);
+  const StringHash  jointName = script_arg_str(args, 1, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  if (!ecs_view_maybe_jump(ctx->skeletonItr, entity)) {
+    return script_null(); // Entity does not have a skeleton.
+  }
+  const SceneRenderableComp* renderable = ecs_view_read_t(ctx->skeletonItr, SceneRenderableComp);
+  const SceneScaleComp*      scale      = ecs_view_read_t(ctx->skeletonItr, SceneScaleComp);
+  const SceneSkeletonComp*   skeleton   = ecs_view_read_t(ctx->skeletonItr, SceneSkeletonComp);
+  const SceneTransformComp*  trans      = ecs_view_read_t(ctx->skeletonItr, SceneTransformComp);
+
+  /**
+   * Lookup the joint-index by name from the skeleton template.
+   * NOTE: In the future we could consider making an api that takes join-indices directly as that is
+   * considerably cheaper.
+   */
+  if (!ecs_view_maybe_jump(ctx->skeletonTemplItr, renderable->graphic)) {
+    return script_null(); // Graphic does not have a skeleton template.
+  }
+  const SceneSkeletonTemplComp* template =
+      ecs_view_read_t(ctx->skeletonTemplItr, SceneSkeletonTemplComp);
+
+  const u32 jointIndex = scene_skeleton_joint_by_name(template, jointName);
+  if (sentinel_check(jointIndex)) {
+    return script_null(); // Skeleton does not have joint with the given name.
+  }
+
+  const GeoMatrix jointMat = scene_skeleton_joint_world(trans, scale, skeleton, jointIndex);
+  const GeoVector jointPos = geo_matrix_to_translation(&jointMat);
+
+  return script_vec3(jointPos);
 }
 
 static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -1706,6 +1775,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("sound_spawn"),            eval_sound_spawn);
     eval_bind(b, string_lit("sound_param"),            eval_sound_param);
     eval_bind(b, string_lit("anim_param"),             eval_anim_param);
+    eval_bind(b, string_lit("joint_position"),         eval_joint_position);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);
@@ -1867,28 +1937,30 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EvalQuery   queries[scene_script_query_max];
   EvalContext ctx = {
-      .world          = world,
-      .globalItr      = globalItr,
-      .transformItr   = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
-      .veloItr        = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
-      .scaleItr       = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
-      .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
-      .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
-      .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
-      .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
-      .renderableItr  = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
-      .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
-      .vfxDecalItr    = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
-      .lightPointItr  = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
-      .lightDirItr    = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
-      .soundItr       = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
-      .animItr        = ecs_view_itr(ecs_world_view_t(world, EvalAnimView)),
-      .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
-      .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
-      .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
-      .targetItr      = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
-      .lineOfSightItr = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
-      .queries        = queries,
+      .world            = world,
+      .globalItr        = globalItr,
+      .transformItr     = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
+      .veloItr          = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
+      .scaleItr         = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
+      .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
+      .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
+      .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
+      .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
+      .vfxSysItr        = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
+      .vfxDecalItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
+      .lightPointItr    = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
+      .lightDirItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
+      .soundItr         = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
+      .animItr          = ecs_view_itr(ecs_world_view_t(world, EvalAnimView)),
+      .navAgentItr      = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
+      .locoItr          = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
+      .attackItr        = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
+      .targetItr        = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
+      .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
+      .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
+      .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
+      .queries          = queries,
   };
 
   u32 startedAssetLoads = 0;
@@ -1970,6 +2042,15 @@ typedef struct {
   EcsIterator* soundItr;
   EcsIterator* animItr;
 } ActionContext;
+
+static u32 action_update_flag(u32 mask, const u32 flag, const bool enable) {
+  if (enable) {
+    mask |= flag;
+  } else {
+    mask &= ~flag;
+  }
+  return mask;
+}
 
 static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
@@ -2169,13 +2250,25 @@ static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdat
     if (layer) {
       switch (a->param) {
       case 0 /* Time */:
-        layer->time = a->value;
+        layer->time = a->value_f32;
         break;
-      case 1 /* Speed */:
-        layer->speed = a->value;
+      case 1 /* TimeNorm */:
+        layer->time = a->value_f32 * layer->duration;
         break;
-      case 2 /* Weight */:
-        layer->weight = a->value;
+      case 2 /* Speed */:
+        layer->speed = a->value_f32;
+        break;
+      case 3 /* Weight */:
+        layer->weight = a->value_f32;
+        break;
+      case 4 /* Loop */:
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_Loop, a->value_bool);
+        break;
+      case 5 /* FadeIn */:
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeIn, a->value_bool);
+        break;
+      case 6 /* FadeOut */:
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeOut, a->value_bool);
         break;
       }
     }
@@ -2310,7 +2403,9 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
       ecs_register_view(EvalTargetView),
-      ecs_register_view(EvalLineOfSightView));
+      ecs_register_view(EvalLineOfSightView),
+      ecs_register_view(EvalSkeletonView),
+      ecs_register_view(EvalSkeletonTemplView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, 4);

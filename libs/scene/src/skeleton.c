@@ -529,6 +529,8 @@ ecs_system_define(SceneSkeletonUpdateSys) {
           layer->time = anim_time_clamp(layer->time, layer->duration);
         }
         diag_assert(layer->time >= 0 && layer->time <= layer->duration);
+      } else {
+        layer->time = 0;
       }
       const f32 layerTimeNorm = layer->duration > 0 ? (layer->time / layer->duration) : 0.0f;
       f32       layerWeight   = layer->weight;
@@ -691,7 +693,10 @@ SceneJointPose scene_skeleton_sample(
   const SceneSkeletonChannel* chR = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Rotation];
   const SceneSkeletonChannel* chS = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Scale];
 
-  const u16 tNorm16 = (u16)(time / tl->anims[layer].duration * u16_max);
+  const f32 duration = tl->anims[layer].duration;
+  const f32 tNorm    = duration > 0 ? (anim_time_clamp(time, duration) / duration) : 0.0f;
+  const u16 tNorm16  = (u16)(tNorm * u16_max);
+
   return (SceneJointPose){
       .t = chT->frameCount ? anim_channel_get_vec(chT, tNorm16) : geo_vector(0),
       .r = chR->frameCount ? anim_channel_get_quat(chR, tNorm16) : geo_quat_ident,
