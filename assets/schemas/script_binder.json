@@ -680,6 +680,23 @@
       }
     },
     {
+      "name": "joint_position",
+      "doc": "Lookup the world position of a joint on the given entity.\n\n*Note*: Animation update from this frame is not taken into account.",
+      "sig": {
+        "ret": "any",
+        "args": [
+          {
+            "name": "v",
+            "mask": "entity"
+          },
+          {
+            "name": "joint",
+            "mask": "str"
+          }
+        ]
+      }
+    },
+    {
       "name": "exists",
       "doc": "Test if the given entity still exists.\n\n*Note*: Returns false if input value is null.",
       "sig": {

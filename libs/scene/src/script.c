@@ -337,6 +337,14 @@ ecs_view_define(EvalLineOfSightView) {
   ecs_access_maybe_read(SceneCollisionComp);
 }
 
+ecs_view_define(EvalSkeletonView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_read(SceneSkeletonComp);
+  ecs_access_read(SceneTransformComp);
+}
+ecs_view_define(EvalSkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
+
 typedef struct {
   EcsEntityId values[scene_script_query_values_max];
   u32         count, itr;
@@ -364,6 +372,8 @@ typedef struct {
   EcsIterator* attackItr;
   EcsIterator* targetItr;
   EcsIterator* lineOfSightItr;
+  EcsIterator* skeletonItr;
+  EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
   SceneScriptComp*       scriptInstance;
@@ -1478,6 +1488,42 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   return script_null();
 }
 
+static ScriptVal eval_joint_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity    = script_arg_entity(args, 0, err);
+  const StringHash  jointName = script_arg_str(args, 1, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  if (!ecs_view_maybe_jump(ctx->skeletonItr, entity)) {
+    return script_null(); // Entity does not have a skeleton.
+  }
+  const SceneRenderableComp* renderable = ecs_view_read_t(ctx->skeletonItr, SceneRenderableComp);
+  const SceneScaleComp*      scale      = ecs_view_read_t(ctx->skeletonItr, SceneScaleComp);
+  const SceneSkeletonComp*   skeleton   = ecs_view_read_t(ctx->skeletonItr, SceneSkeletonComp);
+  const SceneTransformComp*  trans      = ecs_view_read_t(ctx->skeletonItr, SceneTransformComp);
+
+  /**
+   * Lookup the joint-index by name from the skeleton template.
+   * NOTE: In the future we could consider making an api that takes join-indices directly as that is
+   * considerably cheaper.
+   */
+  if (!ecs_view_maybe_jump(ctx->skeletonTemplItr, renderable->graphic)) {
+    return script_null(); // Graphic does not have a skeleton template.
+  }
+  const SceneSkeletonTemplComp* template =
+      ecs_view_read_t(ctx->skeletonTemplItr, SceneSkeletonTemplComp);
+
+  const u32 jointIndex = scene_skeleton_joint_by_name(template, jointName);
+  if (sentinel_check(jointIndex)) {
+    return script_null(); // Skeleton does not have joint with the given name.
+  }
+
+  const GeoMatrix jointMat = scene_skeleton_joint_world(trans, scale, skeleton, jointIndex);
+  const GeoVector jointPos = geo_matrix_to_translation(&jointMat);
+
+  return script_vec3(jointPos);
+}
+
 static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   /**
@@ -1729,6 +1775,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("sound_spawn"),            eval_sound_spawn);
     eval_bind(b, string_lit("sound_param"),            eval_sound_param);
     eval_bind(b, string_lit("anim_param"),             eval_anim_param);
+    eval_bind(b, string_lit("joint_position"),         eval_joint_position);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);
@@ -1890,28 +1937,30 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EvalQuery   queries[scene_script_query_max];
   EvalContext ctx = {
-      .world          = world,
-      .globalItr      = globalItr,
-      .transformItr   = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
-      .veloItr        = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
-      .scaleItr       = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
-      .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
-      .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
-      .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
-      .statusItr      = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
-      .renderableItr  = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
-      .vfxSysItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
-      .vfxDecalItr    = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
-      .lightPointItr  = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
-      .lightDirItr    = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
-      .soundItr       = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
-      .animItr        = ecs_view_itr(ecs_world_view_t(world, EvalAnimView)),
-      .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
-      .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
-      .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
-      .targetItr      = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
-      .lineOfSightItr = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
-      .queries        = queries,
+      .world            = world,
+      .globalItr        = globalItr,
+      .transformItr     = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
+      .veloItr          = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
+      .scaleItr         = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
+      .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
+      .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
+      .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
+      .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
+      .vfxSysItr        = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
+      .vfxDecalItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
+      .lightPointItr    = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
+      .lightDirItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
+      .soundItr         = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
+      .animItr          = ecs_view_itr(ecs_world_view_t(world, EvalAnimView)),
+      .navAgentItr      = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
+      .locoItr          = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
+      .attackItr        = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
+      .targetItr        = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
+      .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
+      .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
+      .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
+      .queries          = queries,
   };
 
   u32 startedAssetLoads = 0;
@@ -2354,7 +2403,9 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
       ecs_register_view(EvalTargetView),
-      ecs_register_view(EvalLineOfSightView));
+      ecs_register_view(EvalLineOfSightView),
+      ecs_register_view(EvalSkeletonView),
+      ecs_register_view(EvalSkeletonTemplView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, 4);
