@@ -121,9 +121,10 @@ static void eval_enum_init_sound_param() {
 
 static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 1);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 2);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 3);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("TimeNorm"), 1);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 3);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 4);
 }
 
 static void eval_enum_init_layer() {
@@ -1419,11 +1420,13 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
         switch (param) {
         case 0 /* Time */:
           return script_num(layer->time);
-        case 1 /* Speed */:
+        case 1 /* TimeNorm */:
+          return script_num(layer->duration > 0 ? (layer->time / layer->duration) : 0.0f);
+        case 2 /* Speed */:
           return script_num(layer->speed);
-        case 2 /* Weight */:
+        case 3 /* Weight */:
           return script_num(layer->weight);
-        case 3 /* Duration */:
+        case 4 /* Duration */:
           return script_num(layer->duration);
         }
       }
@@ -1438,13 +1441,16 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   case 0 /* Time */:
     update.value = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
     break;
-  case 1 /* Speed */:
-    update.value = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
-    break;
-  case 2 /* Weight */:
+  case 1 /* TimeNorm */:
     update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
     break;
-  case 3 /* Duration */:
+  case 2 /* Speed */:
+    update.value = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
+    break;
+  case 3 /* Weight */:
+    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    break;
+  case 4 /* Duration */:
     *err = script_error_arg(ScriptError_ReadonlyParam, 3);
     return script_null();
   }
@@ -2171,10 +2177,13 @@ static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdat
       case 0 /* Time */:
         layer->time = a->value;
         break;
-      case 1 /* Speed */:
+      case 1 /* TimeNorm */:
+        layer->time = a->value * layer->duration;
+        break;
+      case 2 /* Speed */:
         layer->speed = a->value;
         break;
-      case 2 /* Weight */:
+      case 3 /* Weight */:
         layer->weight = a->value;
         break;
       }

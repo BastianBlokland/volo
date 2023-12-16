@@ -1293,7 +1293,7 @@
     },
     {
       "name": "anim_param",
-      "doc": "Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`Speed`\n\n-`Weight`",
+      "doc": "Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Duration`",
       "sig": {
         "ret": [
           "null",
