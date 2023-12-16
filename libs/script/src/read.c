@@ -1123,7 +1123,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
     valExpr = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   }
 
-  const ScriptRange range = read_range_to_current(ctx, start);
+  const ScriptRange range = script_range(start, script_expr_range(ctx->doc, valExpr).end);
 
   ScriptVarId varId;
   if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
@@ -1180,7 +1180,7 @@ static ScriptExpr read_expr_var_modify(
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range = read_range_to_current(ctx, varRange.start);
+  const ScriptRange range = script_range(varRange.start, script_expr_range(ctx->doc, val).end);
 
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
@@ -1204,7 +1204,7 @@ read_expr_mem_store(ScriptReadContext* ctx, const StringHash key, const ScriptPo
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range = read_range_to_current(ctx, start);
+  const ScriptRange range = script_range(start, script_expr_range(ctx->doc, val).end);
   return script_add_mem_store(ctx->doc, range, key, val);
 }
 
