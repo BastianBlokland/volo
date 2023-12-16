@@ -464,6 +464,20 @@ static f32 anim_compute_fade(const f32 timeNorm, const SceneAnimFlags flags) {
   return strength;
 }
 
+static f32 anim_time_clamp(const f32 time, const f32 duration) {
+  return math_clamp_f32(time, 0, duration);
+}
+
+static f32 anim_time_wrap(f32 time, const f32 duration) {
+  if (time < 0) {
+    do {
+      time += duration;
+    } while (time < 0);
+    return time;
+  }
+  return math_mod_f32(time, duration);
+}
+
 ecs_view_define(UpdateView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_write(SceneSkeletonComp);
@@ -510,10 +524,11 @@ ecs_system_define(SceneSkeletonUpdateSys) {
       if (LIKELY(layer->duration > scene_anim_duration_min)) {
         layer->time += deltaSeconds * layer->speed;
         if (layer->flags & SceneAnimFlags_Loop) {
-          layer->time = math_mod_f32(layer->time, layer->duration);
-        } else if (layer->time > layer->duration) {
-          layer->time = layer->duration;
+          layer->time = anim_time_wrap(layer->time, layer->duration);
+        } else {
+          layer->time = anim_time_clamp(layer->time, layer->duration);
         }
+        diag_assert(layer->time >= 0 && layer->time <= layer->duration);
       }
       const f32 layerTimeNorm = layer->duration > 0 ? (layer->time / layer->duration) : 0.0f;
       f32       layerWeight   = layer->weight;

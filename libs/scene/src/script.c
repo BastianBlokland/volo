@@ -30,6 +30,7 @@
 #include "scene_skeleton.h"
 #include "scene_sound.h"
 #include "scene_status.h"
+#include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -122,6 +123,7 @@ static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 1);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 2);
+  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 3);
 }
 
 static void eval_enum_init_layer() {
@@ -1125,6 +1127,8 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
   if (scale < 0.999f || scale > 1.001f) {
     ecs_world_add_t(ctx->world, result, SceneScaleComp, .scale = scale);
   }
+  // NOTE: Tags are needed to make the selection outline work.
+  ecs_world_add_t(ctx->world, result, SceneTagComp, .tags = SceneTags_Default);
   ecs_world_add_t(
       ctx->world,
       result,
@@ -1419,20 +1423,34 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
           return script_num(layer->speed);
         case 2 /* Weight */:
           return script_num(layer->weight);
+        case 3 /* Duration */:
+          return script_num(layer->duration);
         }
       }
     }
     return script_null();
   }
+  ScriptActionUpdateAnimParam update;
+  update.entity    = entity;
+  update.layerName = layerName;
+  update.param     = param;
+  switch (param) {
+  case 0 /* Time */:
+    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
+    break;
+  case 1 /* Speed */:
+    update.value = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
+    break;
+  case 2 /* Weight */:
+    update.value = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    break;
+  case 3 /* Duration */:
+    *err = script_error_arg(ScriptError_ReadonlyParam, 3);
+    return script_null();
+  }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateAnimParam,
-      .data_updateAnimParam =
-          {
-              .entity    = entity,
-              .layerName = layerName,
-              .param     = param,
-              .value     = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err),
-          },
+      .type                 = ScriptActionType_UpdateAnimParam,
+      .data_updateAnimParam = update,
   };
   return script_null();
 }
@@ -2152,10 +2170,13 @@ static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdat
       switch (a->param) {
       case 0 /* Time */:
         layer->time = a->value;
+        break;
       case 1 /* Speed */:
         layer->speed = a->value;
+        break;
       case 2 /* Weight */:
         layer->weight = a->value;
+        break;
       }
     }
   }

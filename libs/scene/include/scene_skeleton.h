@@ -32,7 +32,7 @@ typedef enum {
 } SceneAnimFlags;
 
 typedef struct {
-  f32               time;
+  f32               time; // Not normalized.
   f32               duration;
   f32               speed;
   f32               weight;

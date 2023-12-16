@@ -355,7 +355,7 @@ static void anim_panel_draw(
       ui_slider(canvas, &layer->time, .max = layer->duration);
       ui_table_next_column(canvas, &table);
 
-      ui_slider(canvas, &layer->speed, .max = 5);
+      ui_slider(canvas, &layer->speed, .min = -2.5f, .max = 2.5f);
       ui_table_next_column(canvas, &table);
 
       ui_slider(canvas, &layer->weight);

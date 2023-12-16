@@ -16,6 +16,7 @@ static const String g_panicKindStrs[] = {
     string_static("Unimplemented binding"),
     string_static("Query limit exceeded"),
     string_static("Query invalid"),
+    string_static("Cannot change readonly parameter"),
 };
 ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
