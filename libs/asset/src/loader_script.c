@@ -547,7 +547,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("anim_param");
-      const String       doc    = string_lit("Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop``\n\n-`FadeIn``\n\n-`FadeOut`\n\n-`Duration`");
+      const String       doc    = string_lit("Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`");
       const ScriptMask   ret    = script_mask_any;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
