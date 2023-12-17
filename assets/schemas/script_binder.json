@@ -645,7 +645,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Attack`\n\n-`Status`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`",
       "sig": {
         "ret": [
           "null",
