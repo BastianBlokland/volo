@@ -1,1 +1,20 @@
 
+var me = self()
+
+if (!$colEntity) {
+  var colPos   = position(me)
+  var colRot   = quat_ident
+  var colSize  = vec3(0.25, 2.25, 4.75)
+  var colLayer = "Environment"
+
+  var colEntity = collision_box_spawn(colPos, colSize, colRot, colLayer, true)
+  attach(colEntity, me, "barrier")
+
+  $colEntity = colEntity
+}
+
+var openSpeed  = 2.5
+var shouldOpen = $open ?? false
+
+anim_param(me, "open", "Loop", false)
+anim_param(me, "open", "Speed", shouldOpen ? openSpeed : -openSpeed)
