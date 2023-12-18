@@ -128,9 +128,9 @@ ecs_comp_define(DebugInspectorPanelComp) {
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 
 ecs_view_define(GlobalPanelUpdateView) {
-  ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -140,16 +140,16 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(SceneSetEnvComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(GlobalVisDrawView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneSetEnvComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -549,6 +549,40 @@ static void inspector_panel_draw_decal(
   }
 }
 
+static void inspector_panel_draw_sets(
+    SceneSetEnvComp*         setEnv,
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  if (!subject) {
+    return;
+  }
+  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+
+  StringHash sets[scene_set_member_max_sets];
+  const u32  setCount = setMember ? scene_set_member_all(setMember, sets) : 0;
+
+  inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, fmt_write_scratch("Sets ({})", fmt_int(setCount)))) {
+    for (u32 i = 0; i != setCount; ++i) {
+      inspector_panel_next(canvas, panelComp, table);
+      const String setName = stringtable_lookup(g_stringtable, sets[i]);
+      ui_label(canvas, string_is_empty(setName) ? string_lit("< unknown >") : setName);
+      ui_table_next_column(canvas, table);
+      ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      if (ui_button(
+              canvas,
+              .label      = ui_shape_scratch(UiShape_Delete),
+              .fontSize   = 18,
+              .frameColor = ui_color(255, 16, 0, 192),
+              .tooltip    = string_lit("Remove this entity from the set."))) {
+        scene_set_remove(setEnv, sets[i], ecs_view_entity(subject));
+      }
+    }
+  }
+}
+
 static void inspector_panel_draw_tags(
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
@@ -745,6 +779,7 @@ static void inspector_panel_draw(
     EcsWorld*                   world,
     DebugStatsGlobalComp*       stats,
     const SceneTimeComp*        time,
+    SceneSetEnvComp*            setEnv,
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
@@ -796,6 +831,9 @@ static void inspector_panel_draw(
   inspector_panel_draw_decal(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
+  inspector_panel_draw_sets(setEnv, canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
@@ -844,8 +882,8 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSetEnvComp*      setEnv   = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTimeComp*        time     = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneSetEnvComp*            setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
@@ -861,7 +899,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    inspector_panel_draw(world, stats, time, canvas, panelComp, settings, subjectItr);
+    inspector_panel_draw(world, stats, time, setEnv, canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
