@@ -294,7 +294,7 @@ rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* suppor
     result.depthClamp = true;
     dev->flags |= RvkDeviceFlags_SupportDepthClamp;
   }
-  // TODO: Either supper devices without the 'independentBlend' feature or disqualify devices
+  // TODO: Either support devices without the 'independentBlend' feature or disqualify devices
   // without this feature during device selection.
   result.independentBlend = true;
   return result;
