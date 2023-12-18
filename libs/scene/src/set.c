@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_intrinsic.h"
 #include "core_sentinel.h"
+#include "core_stringtable.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -12,6 +13,7 @@
 #include "scene_tag.h"
 
 #define scene_set_simd_enable 1
+#define scene_set_wellknown_names 1
 
 #if scene_set_simd_enable
 #include "core_simd.h"
@@ -215,7 +217,12 @@ static struct {
 
 static void set_wellknown_tags_init_locked() {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    *g_setWellknownTagEntries[i].setPtr = string_hash(g_setWellknownTagEntries[i].setName);
+    const String name = g_setWellknownTagEntries[i].setName;
+#if scene_set_wellknown_names
+    *g_setWellknownTagEntries[i].setPtr = stringtable_add(g_stringtable, name);
+#else
+    *g_setWellknownTagEntries[i].setPtr = string_hash(name);
+#endif
   }
 }
 
