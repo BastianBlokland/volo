@@ -122,15 +122,21 @@ ecs_comp_define(DebugInspectorPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   u32          totalRows;
+  DynString    setNameBuffer;
   GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
+
+static void ecs_destruct_panel_comp(void* data) {
+  DebugInspectorPanelComp* panel = data;
+  dynstring_destroy(&panel->setNameBuffer);
+}
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 
 ecs_view_define(GlobalPanelUpdateView) {
-  ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -140,16 +146,16 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(SceneSetEnvComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(GlobalVisDrawView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneSetEnvComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -173,9 +179,9 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
-  ecs_access_maybe_write(SceneLightPointComp);
-  ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightAmbientComp);
+  ecs_access_maybe_write(SceneLightDirComp);
+  ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -549,6 +555,57 @@ static void inspector_panel_draw_decal(
   }
 }
 
+static void inspector_panel_draw_sets(
+    SceneSetEnvComp*         setEnv,
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  if (!subject) {
+    return;
+  }
+  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+
+  StringHash sets[scene_set_member_max_sets];
+  const u32  setCount = setMember ? scene_set_member_all(setMember, sets) : 0;
+
+  inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, fmt_write_scratch("Sets ({})", fmt_int(setCount)))) {
+    for (u32 i = 0; i != setCount; ++i) {
+      inspector_panel_next(canvas, panelComp, table);
+      const String setName = stringtable_lookup(g_stringtable, sets[i]);
+      ui_label(canvas, string_is_empty(setName) ? string_lit("< unknown >") : setName);
+      ui_table_next_column(canvas, table);
+      ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      if (ui_button(
+              canvas,
+              .label      = ui_shape_scratch(UiShape_Delete),
+              .fontSize   = 18,
+              .frameColor = ui_color(255, 16, 0, 192),
+              .tooltip    = string_lit("Remove this entity from the set."))) {
+        scene_set_remove(setEnv, sets[i], ecs_view_entity(subject));
+      }
+    }
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_textbox(canvas, &panelComp->setNameBuffer, .placeholder = string_lit("Set name..."));
+    ui_table_next_column(canvas, table);
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(
+            canvas,
+            .flags      = panelComp->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
+            .label      = ui_shape_scratch(UiShape_Add),
+            .fontSize   = 18,
+            .frameColor = ui_color(16, 192, 0, 192),
+            .tooltip    = string_lit("Add this entity to the specified set."))) {
+      const String     setName = dynstring_view(&panelComp->setNameBuffer);
+      const StringHash set     = stringtable_add(g_stringtable, setName);
+      scene_set_add(setEnv, set, ecs_view_entity(subject));
+      dynstring_clear(&panelComp->setNameBuffer);
+    }
+  }
+}
+
 static void inspector_panel_draw_tags(
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
@@ -745,6 +802,7 @@ static void inspector_panel_draw(
     EcsWorld*                   world,
     DebugStatsGlobalComp*       stats,
     const SceneTimeComp*        time,
+    SceneSetEnvComp*            setEnv,
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
@@ -796,6 +854,9 @@ static void inspector_panel_draw(
   inspector_panel_draw_decal(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
+  inspector_panel_draw_sets(setEnv, canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
@@ -844,8 +905,8 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSetEnvComp*      setEnv   = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTimeComp*        time     = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneSetEnvComp*            setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
@@ -861,7 +922,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    inspector_panel_draw(world, stats, time, canvas, panelComp, settings, subjectItr);
+    inspector_panel_draw(world, stats, time, setEnv, canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
@@ -1612,7 +1673,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
 ecs_module_init(debug_inspector_module) {
   ecs_register_comp(DebugInspectorSettingsComp);
-  ecs_register_comp(DebugInspectorPanelComp);
+  ecs_register_comp(DebugInspectorPanelComp, .destructor = ecs_destruct_panel_comp);
 
   ecs_register_view(SettingsWriteView);
   ecs_register_view(GlobalPanelUpdateView);
@@ -1648,6 +1709,7 @@ EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel = ui_panel(.position = ui_vector(0.2f, 0.5f), .size = ui_vector(500, 500)));
+      .panel         = ui_panel(.position = ui_vector(0.2f, 0.5f), .size = ui_vector(500, 500)),
+      .setNameBuffer = dynstring_create(g_alloc_heap, 0));
   return panelEntity;
 }

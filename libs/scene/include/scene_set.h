@@ -3,6 +3,11 @@
 #include "ecs_module.h"
 
 /**
+ * Maximum amount of sets that a single member can be in.
+ */
+#define scene_set_member_max_sets 8
+
+/**
  * Well-known sets.
  */
 extern StringHash g_sceneSetUnit;
@@ -16,6 +21,8 @@ ecs_comp_extern(SceneSetMemberComp);
 
 void scene_set_member_create(EcsWorld*, EcsEntityId, const StringHash* sets, u32 setCount);
 bool scene_set_member_contains(const SceneSetMemberComp*, StringHash set);
+u32  scene_set_member_all(
+     const SceneSetMemberComp*, StringHash out[PARAM_ARRAY_SIZE(scene_set_member_max_sets)]);
 
 /**
  * Query a set.

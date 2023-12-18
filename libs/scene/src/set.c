@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_intrinsic.h"
 #include "core_sentinel.h"
+#include "core_stringtable.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -12,13 +13,13 @@
 #include "scene_tag.h"
 
 #define scene_set_simd_enable 1
+#define scene_set_wellknown_names 1
 
 #if scene_set_simd_enable
 #include "core_simd.h"
 #endif
 
 #define scene_set_max 64
-#define scene_set_member_max 8
 
 typedef struct {
   ALIGNAS(16) StringHash ids[scene_set_max];
@@ -216,7 +217,12 @@ static struct {
 
 static void set_wellknown_tags_init_locked() {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    *g_setWellknownTagEntries[i].setPtr = string_hash(g_setWellknownTagEntries[i].setName);
+    const String name = g_setWellknownTagEntries[i].setName;
+#if scene_set_wellknown_names
+    *g_setWellknownTagEntries[i].setPtr = stringtable_add(g_stringtable, name);
+#else
+    *g_setWellknownTagEntries[i].setPtr = string_hash(name);
+#endif
   }
 }
 
@@ -265,7 +271,7 @@ ecs_comp_define(SceneSetEnvComp) {
   DynArray    speculativeAdds; // SetSpeculativeAdd[]
 };
 
-ecs_comp_define(SceneSetMemberComp) { ALIGNAS(16) StringHash sets[scene_set_member_max]; };
+ecs_comp_define(SceneSetMemberComp) { ALIGNAS(16) StringHash sets[scene_set_member_max_sets]; };
 ecs_comp_define(SceneSetMemberStateComp) { bool initialized; };
 
 static void ecs_destruct_set_env_comp(void* data) {
@@ -277,7 +283,7 @@ static void ecs_destruct_set_env_comp(void* data) {
 
 static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
 #if scene_set_simd_enable
-  ASSERT(scene_set_member_max == 8, "set_member_contains only supports 8 elems at the moment")
+  ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
   const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
@@ -297,7 +303,7 @@ static bool set_member_contains(const SceneSetMemberComp* member, const StringHa
 
 static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
 #if scene_set_simd_enable
-  ASSERT(scene_set_member_max == 8, "set_member_add only supports 8 elems at the moment")
+  ASSERT(scene_set_member_max_sets == 8, "set_member_add only supports 8 elems at the moment")
 
   const SimdVec setVec      = simd_vec_broadcast_u32(set);
   const SimdVec memberSetsA = simd_vec_load_u32(member->sets);
@@ -338,7 +344,7 @@ static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
 
 static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) {
 #if scene_set_simd_enable
-  ASSERT(scene_set_member_max == 8, "set_member_contains only supports 8 elems at the moment")
+  ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
   const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
@@ -570,6 +576,17 @@ void scene_set_member_create(
 
 bool scene_set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
   return set_member_contains(member, set);
+}
+
+u32 scene_set_member_all(
+    const SceneSetMemberComp* member, StringHash out[PARAM_ARRAY_SIZE(scene_set_member_max_sets)]) {
+  u32 count = 0;
+  for (u32 i = 0; i != array_elems(member->sets); ++i) {
+    if (member->sets[i]) {
+      out[count++] = member->sets[i];
+    }
+  }
+  return count;
 }
 
 bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
