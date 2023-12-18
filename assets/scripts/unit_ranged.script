@@ -43,6 +43,10 @@ if (target && health(target) > 0) {
     nav_stop(me)
     attack(me, target)
   } else {
+    if ($user_attack_target) {
+      // When its a user requested target we should move towards it if its not in rage.
+      nav_travel(me, target)
+    }
     attack(me, null)
   }
 }
