@@ -130,10 +130,15 @@ typedef struct {
 } UiRenderState;
 
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFontTexComp* font) {
-  const UiVector canvasRes = state->canvas->resolution;
-  UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
-          canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
+  // NOTE: Inverse of resolutions precalculated for faster normalization on the gpu.
+  const GeoVector canvasRes = geo_vector(
+      state->canvas->resolution.width,
+      state->canvas->resolution.height,
+      1.0f / state->canvas->resolution.width,
+      1.0f / state->canvas->resolution.height);
+
+  UiDrawMetaData meta = {
+      .canvasRes       = canvasRes,
       .invCanvasScale  = 1.0f / state->canvas->scale,
       .glyphsPerDim    = font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
@@ -177,7 +182,7 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
   UiRenderState* state = userCtx;
   switch (layer) {
   case UiLayer_Normal:
-    *rend_draw_add_instance_t(state->draw, UiGlyphData, SceneTags_Ui, (GeoBox){0}) = data;
+    *rend_draw_add_instance_t(state->draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = data;
     break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
@@ -461,12 +466,12 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+         .settings      = settings,
+         .font          = font,
+         .renderer      = renderer,
+         .draw          = draw,
+         .clipRects[0]  = {.size = canvasSize},
+         .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -534,7 +539,7 @@ ecs_system_define(UiRenderSys) {
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
     dynarray_for_t(&renderer->overlayGlyphs, UiGlyphData, glyph) {
-      *rend_draw_add_instance_t(draw, UiGlyphData, SceneTags_Ui, (GeoBox){0}) = *glyph;
+      *rend_draw_add_instance_t(draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = *glyph;
     }
     dynarray_clear(&renderer->overlayGlyphs);
 
@@ -699,7 +704,7 @@ UiStatus ui_canvas_group_block_status(const UiCanvasComp* comp) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }

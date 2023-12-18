@@ -15,9 +15,8 @@ typedef enum {
   SceneTags_Debug        = 1 << 8,
   SceneTags_Light        = 1 << 9,
   SceneTags_ShadowCaster = 1 << 10,
-  SceneTags_Ui           = 1 << 11,
 
-  SceneTags_Count   = 12,
+  SceneTags_Count   = 11,
   SceneTags_Default = SceneTags_Geometry | SceneTags_ShadowCaster | SceneTags_Emit,
 } SceneTags;
 
