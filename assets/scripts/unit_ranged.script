@@ -39,7 +39,6 @@ if (target && health(target) > 0) {
     nav_stop(me)
     attack(me, target)
   } else {
-    nav_travel(me, target)
     attack(me, null)
   }
 }
