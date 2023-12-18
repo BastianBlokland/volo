@@ -122,8 +122,14 @@ ecs_comp_define(DebugInspectorPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   u32          totalRows;
+  DynString    setNameBuffer;
   GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
+
+static void ecs_destruct_panel_comp(void* data) {
+  DebugInspectorPanelComp* panel = data;
+  dynstring_destroy(&panel->setNameBuffer);
+}
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 
@@ -579,6 +585,23 @@ static void inspector_panel_draw_sets(
               .tooltip    = string_lit("Remove this entity from the set."))) {
         scene_set_remove(setEnv, sets[i], ecs_view_entity(subject));
       }
+    }
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_textbox(canvas, &panelComp->setNameBuffer, .placeholder = string_lit("Set name..."));
+    ui_table_next_column(canvas, table);
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(
+            canvas,
+            .flags      = panelComp->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
+            .label      = ui_shape_scratch(UiShape_Add),
+            .fontSize   = 18,
+            .frameColor = ui_color(16, 192, 0, 192),
+            .tooltip    = string_lit("Add this entity to the specified set."))) {
+      const String     setName = dynstring_view(&panelComp->setNameBuffer);
+      const StringHash set     = stringtable_add(g_stringtable, setName);
+      scene_set_add(setEnv, set, ecs_view_entity(subject));
+      dynstring_clear(&panelComp->setNameBuffer);
     }
   }
 }
@@ -1650,7 +1673,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
 ecs_module_init(debug_inspector_module) {
   ecs_register_comp(DebugInspectorSettingsComp);
-  ecs_register_comp(DebugInspectorPanelComp);
+  ecs_register_comp(DebugInspectorPanelComp, .destructor = ecs_destruct_panel_comp);
 
   ecs_register_view(SettingsWriteView);
   ecs_register_view(GlobalPanelUpdateView);
@@ -1686,6 +1709,7 @@ EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel = ui_panel(.position = ui_vector(0.2f, 0.5f), .size = ui_vector(500, 500)));
+      .panel         = ui_panel(.position = ui_vector(0.2f, 0.5f), .size = ui_vector(500, 500)),
+      .setNameBuffer = dynstring_create(g_alloc_heap, 0));
   return panelEntity;
 }
