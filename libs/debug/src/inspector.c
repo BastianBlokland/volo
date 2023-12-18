@@ -173,9 +173,9 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
-  ecs_access_maybe_write(SceneLightPointComp);
-  ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightAmbientComp);
+  ecs_access_maybe_write(SceneLightDirComp);
+  ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
