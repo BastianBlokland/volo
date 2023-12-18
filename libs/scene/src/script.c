@@ -89,8 +89,9 @@ static void eval_enum_init_nav_find() {
 
 static void eval_enum_init_capability() {
   script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Status"), 2);
+  script_enum_push(&g_scriptEnumCapability, string_lit("Animation"), 1);
+  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 2);
+  script_enum_push(&g_scriptEnumCapability, string_lit("Status"), 3);
 }
 
 static void eval_enum_init_activity() {
@@ -815,9 +816,11 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
   switch (script_arg_enum(args, 1, &g_scriptEnumCapability, err)) {
   case 0 /* NavTravel */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
-  case 1 /* Attack */:
+  case 1 /* Animation */:
+    return script_bool(ecs_world_has_t(ctx->world, e, SceneAnimationComp));
+  case 2 /* Attack */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
-  case 2 /* Status */:
+  case 3 /* Status */:
     return script_bool(ecs_world_has_t(ctx->world, e, SceneStatusComp));
   }
   return script_null();

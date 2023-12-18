@@ -160,7 +160,7 @@
       ]
     },
     {
-      "name": "InfantryEnemy", "isVolatile": true,
+      "name": "InfantryEnemy",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
@@ -432,6 +432,14 @@
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 0.8 }, "max": { "y": 0.8 } } },
         { "$type": "AssetPrefabTrait_Status", "burnable": true }
+      ]
+    },
+    {
+      "name": "PropGate",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gate.graphic" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/gate.script" }
       ]
     },
     {
@@ -770,15 +778,15 @@
       ]
     },
     {
-      "name": "ScriptTest",
+      "name": "LogicBarrelAttack",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test/barrel_attack.script" }
       ]
     },
     {
-      "name": "LightTest",
+      "name": "LogicSwitch",
       "traits": [
-        { "$type": "AssetPrefabTrait_LightPoint", "radiance": { "r": 1, "g": 0.1, "b": 0.1, "a": 1000 }, "radius": 15 }
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test/gate_switch.script" }
       ]
     },
     {

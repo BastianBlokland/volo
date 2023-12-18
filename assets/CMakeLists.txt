@@ -144,6 +144,10 @@ if(${EXTERNAL_ASSETS})
       gas_tank/gas_tank_normal.tga
       gas_tank/gas_tank.bin
       gas_tank/gas_tank.gltf
+      gate/gate_1.bin
+      gate/gate_1.gltf
+      gate/gate_color_rough.tga
+      gate/gate_normal.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin
