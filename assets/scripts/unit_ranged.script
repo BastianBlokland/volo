@@ -11,9 +11,13 @@ if ($user_stop) {
 }
 
 if ($user_move_target) {
-  if (nav_target(me) == $user_move_target && !active(me, "Traveling")) {
-    $user_move_target = null
+  if (nav_target(me) == $user_move_target) {
+    // Already navigating to requested target; check if we arrived (having stopped travelling).
+    if (!active(me, "Traveling")) {
+      $user_move_target = null
+    }
   } else {
+    // Not yet navigating to requested target; start traveling.
     nav_travel(me, $user_move_target)
     attack(me, null)
     bark(me, "Confirm")
