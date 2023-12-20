@@ -1,6 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
+#include "atlas.glsl"
 #include "binding.glsl"
 #include "color.glsl"
 #include "instance.glsl"
@@ -27,10 +28,9 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
 const u32 c_maxClipRects = 50;
 
 struct MetaData {
-  f32v4 canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
-  f32   glyphsPerDim;
-  f32   invGlyphsPerDim; // 1.0 / glyphsPerDim
-  f32v4 clipRects[c_maxClipRects];
+  f32v4     canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
+  AtlasMeta atlasFont;  // Font atlas meta-data.
+  f32v4     clipRects[c_maxClipRects];
 };
 
 struct GlyphData {
@@ -94,12 +94,7 @@ void main() {
   const f32v2 uiPosRel = rotMat * (c_unitPositions[in_vertexIndex] * glyphSize) + glyphSize * 0.5;
   const f32v2 uiPos    = glyphPos + uiPosRel;
 
-  /**
-   * Compute the x and y position in the texture atlas based on the glyphIndex.
-   */
-  const f32v2 texOrigin =
-      f32v2(mod(atlasIndex, u_meta.glyphsPerDim), floor(atlasIndex * u_meta.invGlyphsPerDim));
-
+  const f32v2 texOrigin      = atlas_entry_origin(u_meta.atlasFont, atlasIndex);
   const f32v2 invCanvasSize  = u_meta.canvasData.xy;
   const f32   invCanvasScale = u_meta.canvasData.z;
 
@@ -109,7 +104,7 @@ void main() {
   out_invCanvasScale = invCanvasScale;
   out_clipRect       = u_meta.clipRects[clipId];
   out_texOrigin      = texOrigin;
-  out_texScale       = u_meta.invGlyphsPerDim;
+  out_texScale       = atlas_entry_size(u_meta.atlasFont);
   out_color          = glyphColor;
   out_invBorder      = 1.0 / (glyphSize.x * borderFrac);
   out_outlineWidth   = outlineWidth;

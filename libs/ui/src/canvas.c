@@ -109,11 +109,19 @@ static i8 ui_persistent_elem_compare(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
-  f32       glyphsPerDim;
-  f32       invGlyphsPerDim;
-  f32       padding[2];
-  UiRect    clipRects[ui_canvas_clip_rects_max];
+  f32 atlasEntriesPerDim;
+  f32 atlasEntrySize;
+  f32 atlasEntrySizeMinusPadding;
+  f32 atlasEntryPadding;
+} UiAtlasData;
+
+ASSERT(sizeof(UiAtlasData) == 16, "Size needs to match the size defined in glsl");
+
+typedef struct {
+  ALIGNAS(16)
+  GeoVector   canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
+  UiAtlasData atlasFont;
+  UiRect      clipRects[ui_canvas_clip_rects_max];
 } UiDrawMetaData;
 
 ASSERT(sizeof(UiDrawMetaData) == 832, "Size needs to match the size defined in glsl");
@@ -128,6 +136,16 @@ typedef struct {
   u32                     clipRectCount;
 } UiRenderState;
 
+static UiAtlasData ui_atlas_metadata_font(const AssetFontTexComp* font) {
+  const f32 atlasEntrySize = 1.0f / (f32)font->glyphsPerDim;
+  return (UiAtlasData){
+      .atlasEntriesPerDim         = (f32)font->glyphsPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySize, // Font textures do not use any padding atm.
+      .atlasEntryPadding          = 0.0f,           // Font textures do not use any padding atm.
+  };
+}
+
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFontTexComp* font) {
   GeoVector canvasData;
   canvasData.x = 1.0f / state->canvas->resolution.width;  // Inverse canvas width.
@@ -135,9 +153,8 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFo
   canvasData.z = 1.0f / state->canvas->scale;             // Inverse canvas scale.
 
   UiDrawMetaData meta = {
-      .canvasData      = canvasData,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .canvasData = canvasData,
+      .atlasFont  = ui_atlas_metadata_font(font),
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;

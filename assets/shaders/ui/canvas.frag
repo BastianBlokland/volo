@@ -82,7 +82,7 @@ f32v2 remap_texcoord(const f32v2 texcoord, const f32 xCorner, const f32 aspectRa
  * Compute the final texture coordinates in the font atlas.
  */
 f32v2 get_fontcoord() {
-  return (in_texOrigin + remap_texcoord(in_texCoord, in_cornerFrac, in_aspectRatio)) * in_texScale;
+  return in_texOrigin + remap_texcoord(in_texCoord, in_cornerFrac, in_aspectRatio) * in_texScale;
 }
 
 /**
