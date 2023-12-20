@@ -6,7 +6,7 @@ ecs_comp_extern_public(UiStatsComp) {
   UiVector canvasSize;
   u32      canvasCount;
   u32      trackedElemCount, persistElemCount;
-  u32      glyphCount, glyphOverlayCount;
+  u32      atomCount, atomOverlayCount;
   u32      clipRectCount;
   u32      commandCount;
 };

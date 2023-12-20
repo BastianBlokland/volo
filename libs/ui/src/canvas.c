@@ -544,11 +544,11 @@ ecs_system_define(UiRenderSys) {
     }
     ui_canvas_cursor_update(window, interactType);
 
-    stats->canvasSize        = canvasSize;
-    stats->canvasCount       = canvasCount;
-    stats->glyphCount        = rend_draw_instance_count(draw);
-    stats->glyphOverlayCount = (u32)renderer->overlayAtoms.size;
-    stats->clipRectCount     = renderState.clipRectCount;
+    stats->canvasSize       = canvasSize;
+    stats->canvasCount      = canvasCount;
+    stats->atomCount        = rend_draw_instance_count(draw);
+    stats->atomOverlayCount = (u32)renderer->overlayAtoms.size;
+    stats->clipRectCount    = renderState.clipRectCount;
 
     // Add the overlay atoms, at this stage all the normal atoms have already been added.
     dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
