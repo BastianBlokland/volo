@@ -48,8 +48,7 @@ bind_internal(0) out f32v2 out_uiPos;
 bind_internal(1) out f32v2 out_texCoord;
 bind_internal(2) out flat f32 out_invCanvasScale;
 bind_internal(3) out flat f32v4 out_clipRect;
-bind_internal(4) out flat f32v2 out_texOrigin;
-bind_internal(5) out flat f32 out_texScale;
+bind_internal(4) out flat f32v3 out_texMeta; // xy: origin, z: scale.
 bind_internal(6) out flat f32v4 out_color;
 bind_internal(7) out flat f32 out_invBorder;
 bind_internal(8) out flat f32 out_outlineWidth;
@@ -103,8 +102,7 @@ void main() {
   out_texCoord       = c_unitTexCoords[in_vertexIndex];
   out_invCanvasScale = invCanvasScale;
   out_clipRect       = u_meta.clipRects[clipId];
-  out_texOrigin      = texOrigin;
-  out_texScale       = atlas_entry_size(u_meta.atlasFont);
+  out_texMeta        = f32v3(texOrigin, atlas_entry_size(u_meta.atlasFont));
   out_color          = glyphColor;
   out_invBorder      = 1.0 / (glyphSize.x * borderFrac);
   out_outlineWidth   = outlineWidth;

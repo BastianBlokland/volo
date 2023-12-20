@@ -18,8 +18,7 @@ bind_internal(0) in f32v2 in_uiPos;             // Coordinates in ui-pixels.
 bind_internal(1) in f32v2 in_texCoord;          // Texture coordinates of this glyph.
 bind_internal(2) in flat f32 in_invCanvasScale; // Inverse of the canvas scale.
 bind_internal(3) in flat f32v4 in_clipRect;     // Clipping rectangle in ui-pixel coordinates.
-bind_internal(4) in flat f32v2 in_texOrigin;    // Origin of the glyph in the font atlas.
-bind_internal(5) in flat f32 in_texScale;       // Scale of the glyph in the font atlas.
+bind_internal(4) in flat f32v3 in_texMeta;      // xy: texture origin in atlas, z: texture scale.
 bind_internal(6) in flat f32v4 in_color;
 bind_internal(7) in flat f32 in_invBorder;      // 1.0 / borderPixelSize
 bind_internal(8) in flat f32 in_outlineWidth;   // Desired outline size in ui-pixels.
@@ -92,7 +91,9 @@ f32v2 remap_texcoord(const f32v2 texcoord, const f32 xCorner, const f32 aspectRa
  * Compute the final texture coordinates in the atlas.
  */
 f32v2 atlas_coord() {
-  return in_texOrigin + remap_texcoord(in_texCoord, in_cornerFrac, in_aspectRatio) * in_texScale;
+  const f32v2 texOrigin = in_texMeta.xy;
+  const f32   texScale  = in_texMeta.z;
+  return texOrigin + remap_texcoord(in_texCoord, in_cornerFrac, in_aspectRatio) * texScale;
 }
 
 /**
