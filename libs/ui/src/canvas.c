@@ -56,7 +56,7 @@ typedef enum {
 
 ecs_comp_define(UiRendererComp) {
   EcsEntityId draw;
-  DynArray    overlayGlyphs; // UiGlyphData[]
+  DynArray    overlayAtoms; // UiAtomData[]
 };
 
 ecs_comp_define(UiCanvasComp) {
@@ -82,7 +82,7 @@ ecs_comp_define(UiCanvasComp) {
 
 static void ecs_destruct_renderer(void* data) {
   UiRendererComp* comp = data;
-  dynarray_destroy(&comp->overlayGlyphs);
+  dynarray_destroy(&comp->overlayAtoms);
 }
 
 static void ecs_destruct_canvas(void* data) {
@@ -191,17 +191,17 @@ static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
   return id;
 }
 
-static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const UiLayer layer) {
+static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const UiLayer layer) {
   UiRenderState* state = userCtx;
   switch (layer) {
   case UiLayer_Normal:
-    *rend_draw_add_instance_t(state->draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = data;
+    *rend_draw_add_instance_t(state->draw, UiAtomData, SceneTags_None, (GeoBox){0}) = data;
     break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
     break;
   case UiLayer_Overlay:
-    *dynarray_push_t(&state->renderer->overlayGlyphs, UiGlyphData) = data;
+    *dynarray_push_t(&state->renderer->overlayAtoms, UiAtomData) = data;
     break;
   }
 }
@@ -292,7 +292,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
       .inputPos       = state->canvas->inputPos,
       .userCtx        = state,
       .outputClipRect = &ui_canvas_output_clip_rect,
-      .outputGlyph    = &ui_canvas_output_glyph,
+      .outputAtom     = &ui_canvas_output_atom,
       .outputRect     = &ui_canvas_output_rect,
       .outputTextInfo = &ui_canvas_output_text_info,
   };
@@ -394,8 +394,8 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
       world,
       window,
       UiRendererComp,
-      .draw          = drawEntity,
-      .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
+      .draw         = drawEntity,
+      .overlayAtoms = dynarray_create_t(g_alloc_heap, UiAtomData, 32));
 
   UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
   ui_settings_to_default(settings);
@@ -547,14 +547,14 @@ ecs_system_define(UiRenderSys) {
     stats->canvasSize        = canvasSize;
     stats->canvasCount       = canvasCount;
     stats->glyphCount        = rend_draw_instance_count(draw);
-    stats->glyphOverlayCount = (u32)renderer->overlayGlyphs.size;
+    stats->glyphOverlayCount = (u32)renderer->overlayAtoms.size;
     stats->clipRectCount     = renderState.clipRectCount;
 
-    // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
-    dynarray_for_t(&renderer->overlayGlyphs, UiGlyphData, glyph) {
-      *rend_draw_add_instance_t(draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = *glyph;
+    // Add the overlay atoms, at this stage all the normal atoms have already been added.
+    dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
+      *rend_draw_add_instance_t(draw, UiAtomData, SceneTags_None, (GeoBox){0}) = *atom;
     }
-    dynarray_clear(&renderer->overlayGlyphs);
+    dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
     *rend_draw_set_data_t(draw, UiDrawMetaData) = ui_draw_metadata(&renderState, font);

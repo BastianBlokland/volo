@@ -157,7 +157,7 @@ static f32 ui_build_angle_rad_to_frac(const f32 angle) {
   return math_mod_f32(angle * g_radToFrac, 1.0f);
 }
 
-static void ui_build_glyph(
+static void ui_build_atom_glyph(
     UiBuildState*      state,
     const Unicode      cp,
     const UiRect       rect,
@@ -180,9 +180,9 @@ static void ui_build_glyph(
     return; // Glyph too small.
   }
   const bool rotated = math_abs(angleRad) > f32_epsilon;
-  state->ctx->outputGlyph(
+  state->ctx->outputAtom(
       state->ctx->userCtx,
-      (UiGlyphData){
+      (UiAtomData){
           .rect         = outputRect,
           .color        = style.color,
           .atlasIndex   = ch->glyphIndex,
@@ -196,7 +196,7 @@ static void ui_build_glyph(
       style.layer);
 }
 
-static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
+static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
   const u8  clipId   = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
@@ -206,9 +206,9 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       info->pos.x + info->ch->offsetX * info->size - border,
       info->pos.y + info->ch->offsetY * info->size - border,
   };
-  state->ctx->outputGlyph(
+  state->ctx->outputAtom(
       state->ctx->userCtx,
-      (UiGlyphData){
+      (UiAtomData){
           .rect         = {pos, ui_vector(size, size)},
           .color        = info->color,
           .atlasIndex   = info->ch->glyphIndex,
@@ -221,7 +221,7 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       info->layer);
 }
 
-static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
+static void ui_build_atom_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
   UiBuildState* state = userCtx;
 
   const u8 clipId = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
@@ -232,7 +232,7 @@ static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* 
   };
   const u8  maxCorner = 4; // Roundedness of the backgrounds.
   const f32 angleRad  = 0.0f;
-  ui_build_glyph(state, UiShape_Circle, info->rect, style, maxCorner, angleRad, clipId);
+  ui_build_atom_glyph(state, UiShape_Circle, info->rect, style, maxCorner, angleRad, clipId);
 }
 
 static bool ui_rect_contains(const UiRect rect, const UiVector point) {
@@ -296,8 +296,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.weight,
       cmd->align,
       state,
-      &ui_build_text_char,
-      &ui_build_text_background);
+      &ui_build_atom_text_char,
+      &ui_build_atom_text_background);
 
   if (cmd->flags & UiFlags_TightTextRect) {
     rect = result.rect;
@@ -350,7 +350,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
     };
   }
 
-  ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, cmd->angleRad, container.clipId);
+  ui_build_atom_glyph(state, cmd->cp, rect, style, cmd->maxCorner, cmd->angleRad, container.clipId);
 
   if (cmd->flags & UiFlags_TrackRect) {
     diag_assert(!rotated); // Tracking is not supported for rotated glyphs.
@@ -367,16 +367,18 @@ static void ui_build_debug_inspector(
   const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerClip  = {.color = {0, 255, 0, 178}, .layer = UiLayer_Overlay};
-  const UiBuildStyle styleText           = {
+
+  const UiBuildStyle styleText = {
       .color     = ui_color_white,
       .outline   = 3,
       .variation = 1,
       .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay};
+      .layer     = UiLayer_Overlay,
+  };
 
-  ui_build_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0.0f, 0);
-  ui_build_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0.0f, 0);
-  ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
+  ui_build_atom_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0.0f, 0);
+  ui_build_atom_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0.0f, 0);
+  ui_build_atom_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
   fmt_write(&str, "Id\t\t{}\n", fmt_int(id));
@@ -422,8 +424,8 @@ static void ui_build_debug_inspector(
       styleText.weight,
       UiAlign_TopLeft,
       state,
-      &ui_build_text_char,
-      &ui_build_text_background);
+      &ui_build_atom_text_char,
+      &ui_build_atom_text_background);
 }
 
 INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {

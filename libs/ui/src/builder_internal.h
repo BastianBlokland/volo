@@ -17,10 +17,10 @@ typedef struct {
   u8      clipId;
   u8      outlineWidth;
   u8      weight;
-} UiGlyphData;
+} UiAtomData;
 
-ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
-ASSERT(alignof(UiGlyphData) == 16, "Alignment needs to match the glsl alignment");
+ASSERT(sizeof(UiAtomData) == 32, "Size needs to match the size defined in glsl");
+ASSERT(alignof(UiAtomData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef struct {
   u32 lineCount;
@@ -35,7 +35,7 @@ typedef struct {
 } UiBuildTextInfo;
 
 typedef u8 (*UiOutputClipRectFunc)(void* userCtx, UiRect);
-typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
+typedef void (*UiOutputAtomFunc)(void* userCtx, UiAtomData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 typedef void (*UiOutputTextInfo)(void* userCtx, UiId, UiBuildTextInfo);
 
@@ -46,7 +46,7 @@ typedef struct {
   UiVector                canvasRes, inputPos;
   void*                   userCtx;
   UiOutputClipRectFunc    outputClipRect;
-  UiOutputGlyphFunc       outputGlyph;
+  UiOutputAtomFunc        outputAtom;
   UiOutputRect            outputRect;
   UiOutputTextInfo        outputTextInfo;
 } UiBuildCtx;
