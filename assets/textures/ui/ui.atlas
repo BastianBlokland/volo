@@ -1,0 +1,17 @@
+{
+  "size": 1024,
+  "entrySize": 128,
+  "entryPadding": 1,
+  "mipmaps": false,
+  "srgb": true,
+  "entries": [
+    {
+      "name": "glow",
+      "texture": "textures/glow.proctex"
+    },
+    {
+      "name": "flash",
+      "texture": "external/vfx/flash_2.tga"
+    }
+  ]
+}
