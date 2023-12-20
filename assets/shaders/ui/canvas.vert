@@ -8,8 +8,8 @@
 #include "math.glsl"
 #include "ui.glsl"
 
-const u32   c_verticesPerGlyph                  = 6;
-const f32v2 c_unitPositions[c_verticesPerGlyph] = {
+const u32   c_vertexCount                  = 6;
+const f32v2 c_unitPositions[c_vertexCount] = {
     f32v2(-0.5, +0.5),
     f32v2(+0.5, +0.5),
     f32v2(-0.5, -0.5),
@@ -17,7 +17,7 @@ const f32v2 c_unitPositions[c_verticesPerGlyph] = {
     f32v2(+0.5, -0.5),
     f32v2(-0.5, -0.5),
 };
-const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
+const f32v2 c_unitTexCoords[c_vertexCount] = {
     f32v2(0, 1),
     f32v2(1, 1),
     f32v2(0, 0),
@@ -33,7 +33,7 @@ struct MetaData {
   f32v4     clipRects[c_maxClipRects];
 };
 
-struct GlyphData {
+struct AtomData {
   f32v4 rect; // x + y = position, z + w = size
   u32v4 data; // x = color,
               // y = 16b atlasIndex, 16b angleFrac,
@@ -42,7 +42,7 @@ struct GlyphData {
 };
 
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
-bind_instance_data(0) readonly uniform Instance { GlyphData u_glyphs[c_maxInstances]; };
+bind_instance_data(0) readonly uniform Instance { AtomData u_atoms[c_maxInstances]; };
 
 bind_internal(0) out f32v2 out_uiPos;
 bind_internal(1) out f32v2 out_texCoord;
@@ -59,7 +59,7 @@ bind_internal(10) out flat f32 out_edgeShiftFrac;
 /**
  * Compute the shape edge shift in fractions of the glyphs width.
  */
-f32 get_edge_shift(const u32 weight) {
+f32 font_glyph_edge_shift(const u32 weight) {
   /**
    * Possible weight values:
    *   0: Light
@@ -71,27 +71,27 @@ f32 get_edge_shift(const u32 weight) {
 }
 
 void main() {
-  const GlyphData glyphData    = u_glyphs[in_instanceIndex];
-  const f32v2     glyphPos     = glyphData.rect.xy;
-  const f32v2     glyphSize    = glyphData.rect.zw;
-  const f32v4     glyphColor   = color_from_u32(glyphData.data.x);
-  const u32       atlasIndex   = glyphData.data.y & 0xFFFF;
-  const f32       angleRad     = (glyphData.data.y >> 16) / f32(0xFFFF) * c_pi * 2;
-  const f32       borderFrac   = (glyphData.data.z & 0xFFFF) / f32(0xFFFF);
-  const f32       cornerFrac   = (glyphData.data.z >> 16) / f32(0xFFFF);
-  const u32       clipId       = glyphData.data.w & 0xFF;
-  const u32       outlineWidth = (glyphData.data.w >> 8) & 0xFF;
-  const u32       weight       = (glyphData.data.w >> 16) & 0xFF;
+  const AtomData atomData     = u_atoms[in_instanceIndex];
+  const f32v2    atomPos      = atomData.rect.xy;
+  const f32v2    atomSize     = atomData.rect.zw;
+  const f32v4    atomColor    = color_from_u32(atomData.data.x);
+  const u32      atlasIndex   = atomData.data.y & 0xFFFF;
+  const f32      angleRad     = (atomData.data.y >> 16) / f32(0xFFFF) * c_pi * 2;
+  const f32      borderFrac   = (atomData.data.z & 0xFFFF) / f32(0xFFFF);
+  const f32      cornerFrac   = (atomData.data.z >> 16) / f32(0xFFFF);
+  const u32      clipId       = atomData.data.w & 0xFF;
+  const u32      outlineWidth = (atomData.data.w >> 8) & 0xFF;
+  const u32      weight       = (atomData.data.w >> 16) & 0xFF;
 
   const f32m2 rotMat = math_rotate_mat_f32m2(angleRad);
 
   /**
    * Compute the ui positions of the vertices.
-   * NOTE: Expected origin of the glyph is in the lower left hand corner but rotation should happen
-   * around the center of the glyph.
+   * NOTE: Expected origin of the atom is in the lower left hand corner but rotation should happen
+   * around the center of the atom.
    */
-  const f32v2 uiPosRel = rotMat * (c_unitPositions[in_vertexIndex] * glyphSize) + glyphSize * 0.5;
-  const f32v2 uiPos    = glyphPos + uiPosRel;
+  const f32v2 uiPosRel = rotMat * (c_unitPositions[in_vertexIndex] * atomSize) + atomSize * 0.5;
+  const f32v2 uiPos    = atomPos + uiPosRel;
 
   const f32v2 texOrigin      = atlas_entry_origin(u_meta.atlasFont, atlasIndex);
   const f32v2 invCanvasSize  = u_meta.canvasData.xy;
@@ -103,10 +103,10 @@ void main() {
   out_invCanvasScale = invCanvasScale;
   out_clipRect       = u_meta.clipRects[clipId];
   out_texMeta        = f32v3(texOrigin, atlas_entry_size(u_meta.atlasFont));
-  out_color          = glyphColor;
-  out_invBorder      = 1.0 / (glyphSize.x * borderFrac);
+  out_color          = atomColor;
+  out_invBorder      = 1.0 / (atomSize.x * borderFrac);
   out_outlineWidth   = outlineWidth;
-  out_aspectRatio    = glyphSize.x / glyphSize.y;
+  out_aspectRatio    = atomSize.x / atomSize.y;
   out_cornerFrac     = cornerFrac;
-  out_edgeShiftFrac  = get_edge_shift(weight);
+  out_edgeShiftFrac  = font_glyph_edge_shift(weight);
 }
