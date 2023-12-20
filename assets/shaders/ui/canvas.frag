@@ -19,12 +19,12 @@ bind_internal(1) in f32v2 in_texCoord;          // Texture coordinates of this g
 bind_internal(2) in flat f32 in_invCanvasScale; // Inverse of the canvas scale.
 bind_internal(3) in flat f32v4 in_clipRect;     // Clipping rectangle in ui-pixel coordinates.
 bind_internal(4) in flat f32v3 in_texMeta;      // xy: texture origin in atlas, z: texture scale.
-bind_internal(6) in flat f32v4 in_color;
-bind_internal(7) in flat f32 in_invBorder;      // 1.0 / borderPixelSize
-bind_internal(8) in flat f32 in_outlineWidth;   // Desired outline size in ui-pixels.
-bind_internal(9) in flat f32 in_aspectRatio;    // Aspect ratio of the glyph
-bind_internal(10) in flat f32 in_cornerFrac;    // Corner size in fractions of the glyph width.
-bind_internal(11) in flat f32 in_edgeShiftFrac; // Pushes the edge in or out, in fractions of width.
+bind_internal(5) in flat f32v4 in_color;
+bind_internal(6) in flat f32 in_invBorder;      // 1.0 / borderPixelSize
+bind_internal(7) in flat f32 in_outlineWidth;   // Desired outline size in ui-pixels.
+bind_internal(8) in flat f32 in_aspectRatio;    // Aspect ratio of the glyph
+bind_internal(9) in flat f32 in_cornerFrac;     // Corner size in fractions of the glyph width.
+bind_internal(10) in flat f32 in_edgeShiftFrac; // Pushes the edge in or out, in fractions of width.
 
 bind_internal(0) out f32v4 out_color;
 
