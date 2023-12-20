@@ -109,11 +109,10 @@ static i8 ui_persistent_elem_compare(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector canvasRes;      // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
-  f32       invCanvasScale; // Inverse of the canvas scale.
+  GeoVector canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
   f32       glyphsPerDim;
   f32       invGlyphsPerDim;
-  f32       padding[1];
+  f32       padding[2];
   UiRect    clipRects[ui_canvas_clip_rects_max];
 } UiDrawMetaData;
 
@@ -130,16 +129,13 @@ typedef struct {
 } UiRenderState;
 
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFontTexComp* font) {
-  // NOTE: Inverse of resolutions precalculated for faster normalization on the gpu.
-  const GeoVector canvasRes = geo_vector(
-      state->canvas->resolution.width,
-      state->canvas->resolution.height,
-      1.0f / state->canvas->resolution.width,
-      1.0f / state->canvas->resolution.height);
+  GeoVector canvasData;
+  canvasData.x = 1.0f / state->canvas->resolution.width;  // Inverse canvas width.
+  canvasData.y = 1.0f / state->canvas->resolution.height; // Inverse canvas height.
+  canvasData.z = 1.0f / state->canvas->scale;             // Inverse canvas scale.
 
   UiDrawMetaData meta = {
-      .canvasRes       = canvasRes,
-      .invCanvasScale  = 1.0f / state->canvas->scale,
+      .canvasData      = canvasData,
       .glyphsPerDim    = font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };

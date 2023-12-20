@@ -27,8 +27,7 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
 const u32 c_maxClipRects = 50;
 
 struct MetaData {
-  f32v4 canvasRes;      // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
-  f32   invCanvasScale; // Inverse of the canvas scale.
+  f32v4 canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
   f32   glyphsPerDim;
   f32   invGlyphsPerDim; // 1.0 / glyphsPerDim
   f32v4 clipRects[c_maxClipRects];
@@ -101,10 +100,13 @@ void main() {
   const f32v2 texOrigin =
       f32v2(mod(atlasIndex, u_meta.glyphsPerDim), floor(atlasIndex * u_meta.invGlyphsPerDim));
 
-  out_vertexPosition = ui_norm_to_ndc(uiPos * u_meta.canvasRes.zw);
+  const f32v2 invCanvasSize  = u_meta.canvasData.xy;
+  const f32   invCanvasScale = u_meta.canvasData.z;
+
+  out_vertexPosition = ui_norm_to_ndc(uiPos * invCanvasSize);
   out_uiPos          = uiPos;
   out_texCoord       = c_unitTexCoords[in_vertexIndex];
-  out_invCanvasScale = u_meta.invCanvasScale;
+  out_invCanvasScale = invCanvasScale;
   out_clipRect       = u_meta.clipRects[clipId];
   out_texOrigin      = texOrigin;
   out_texScale       = u_meta.invGlyphsPerDim;
