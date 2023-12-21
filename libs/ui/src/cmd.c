@@ -16,11 +16,15 @@ struct sUiCmdBuffer {
 
 UiCmdBuffer* ui_cmdbuffer_create(Allocator* alloc) {
   UiCmdBuffer* buffer = alloc_alloc_t(alloc, UiCmdBuffer);
-  *buffer             = (UiCmdBuffer){
-      .commands = dynarray_create_t(alloc, UiCmd, 128),
-      .alloc    = alloc,
-      .allocTransient =
-          alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size)};
+
+  Allocator* allocTransient =
+      alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size);
+
+  *buffer = (UiCmdBuffer){
+      .commands       = dynarray_create_t(alloc, UiCmd, 128),
+      .alloc          = alloc,
+      .allocTransient = allocTransient,
+  };
   return buffer;
 }
 
@@ -212,6 +216,25 @@ void ui_cmd_push_draw_glyph(
       .drawGlyph = {
           .id        = id,
           .cp        = cp,
+          .angleRad  = angleRad,
+          .maxCorner = maxCorner,
+          .flags     = flags,
+      }};
+}
+
+void ui_cmd_push_draw_image(
+    UiCmdBuffer*     buffer,
+    const UiId       id,
+    const StringHash img,
+    const u16        maxCorner,
+    const f32        angleRad,
+    const UiFlags    flags) {
+
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type      = UiCmd_DrawImage,
+      .drawImage = {
+          .id        = id,
+          .img       = img,
           .angleRad  = angleRad,
           .maxCorner = maxCorner,
           .flags     = flags,
