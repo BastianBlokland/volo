@@ -845,4 +845,26 @@ UiId ui_canvas_draw_glyph_rotated(
   return id;
 }
 
+UiId ui_canvas_draw_image(
+    UiCanvasComp* comp, const StringHash img, const u16 maxCorner, const UiFlags flags) {
+  const UiId id       = comp->nextId++;
+  const f32  angleRad = 0.0f;
+  ui_cmd_push_draw_image(comp->cmdBuffer, id, img, maxCorner, angleRad, flags);
+  return id;
+}
+
+UiId ui_canvas_draw_image_rotated(
+    UiCanvasComp*    comp,
+    const StringHash img,
+    const u16        maxCorner,
+    const f32        angleRad,
+    const UiFlags    flags) {
+  diag_assert_msg(!(flags & UiFlags_Interactable), "Rotated images cannot be interactable");
+  diag_assert_msg(!(flags & UiFlags_TrackRect), "Rectangle cannot be tracked for rotated images");
+
+  const UiId id = comp->nextId++;
+  ui_cmd_push_draw_image(comp->cmdBuffer, id, img, maxCorner, angleRad, flags);
+  return id;
+}
+
 UiCmdBuffer* ui_canvas_cmd_buffer(UiCanvasComp* canvas) { return canvas->cmdBuffer; }
