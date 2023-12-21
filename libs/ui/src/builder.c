@@ -198,6 +198,41 @@ static void ui_build_atom_glyph(
       style.layer);
 }
 
+static void ui_build_atom_image(
+    UiBuildState*      state,
+    const StringHash   img,
+    const UiRect       rect,
+    const UiBuildStyle style,
+    const u16          maxCorner,
+    const f32          angleRad,
+    const u8           clipId) {
+  if (UNLIKELY(rect.size.width < f32_epsilon || rect.size.height < f32_epsilon)) {
+    return; // Image too small.
+  }
+  const AssetAtlasEntry* entry = asset_atlas_lookup(state->atlasImage, img);
+  if (UNLIKELY(!entry)) {
+    // Image not found in atlas; draw a replacement square.
+    // TODO: Should we also log an error/warning in this case?
+    ui_build_atom_glyph(state, UiShape_Square, rect, style, maxCorner, angleRad, clipId);
+    return;
+  }
+  const f32  halfMinDim = math_min(rect.width, rect.height) * 0.5f;
+  const f32  corner     = maxCorner ? math_min(maxCorner, halfMinDim) : halfMinDim;
+  const bool rotated    = math_abs(angleRad) > f32_epsilon;
+  state->ctx->outputAtom(
+      state->ctx->userCtx,
+      (UiAtomData){
+          .atomType   = UiAtomType_Image,
+          .rect       = rect,
+          .color      = style.color,
+          .atlasIndex = entry->atlasIndex,
+          .angleFrac  = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
+          .cornerFrac = (u16)(corner / rect.size.width * u16_max),
+          .clipId     = clipId,
+      },
+      style.layer);
+}
+
 static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
@@ -362,8 +397,34 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 }
 
 static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
-  (void)state;
-  (void)cmd;
+  const UiRect           rect      = *ui_build_rect_current(state);
+  const UiBuildStyle     style     = *ui_build_style_current(state);
+  const UiBuildContainer container = *ui_build_container_active(state);
+  const u8               clipId    = container.clipId;
+
+  const bool rotated = math_abs(cmd->angleRad) > f32_epsilon;
+  // TODO: Support culling for rotated images.
+  if (!rotated && ui_build_cull(container, rect, style)) {
+    return;
+  }
+  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+
+  if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    // TODO: Implement proper hovering for rotated images.
+    state->hover = (UiBuildHover){
+        .id    = cmd->id,
+        .layer = style.layer,
+        .flags = cmd->flags,
+    };
+  }
+
+  ui_build_atom_image(state, cmd->img, rect, style, cmd->maxCorner, cmd->angleRad, clipId);
+
+  if (cmd->flags & UiFlags_TrackRect) {
+    diag_assert(!rotated); // Tracking is not supported for rotated images.
+    state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
+  }
 }
 
 static void ui_build_debug_inspector(
