@@ -184,16 +184,17 @@ static void ui_build_atom_glyph(
   state->ctx->outputAtom(
       state->ctx->userCtx,
       (UiAtomData){
-          .atomType     = UiAtomType_Glyph,
-          .rect         = outputRect,
-          .color        = style.color,
-          .atlasIndex   = ch->glyphIndex,
-          .angleFrac    = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
-          .borderFrac   = (u16)(border / outputRect.size.width * u16_max),
-          .cornerFrac   = (u16)((corner + border) / outputRect.size.width * u16_max),
-          .clipId       = clipId,
-          .outlineWidth = style.outline,
-          .weight       = style.weight,
+          .atomType   = UiAtomType_Glyph,
+          .rect       = outputRect,
+          .color      = style.color,
+          .atlasIndex = ch->glyphIndex,
+          .angleFrac  = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
+          .cornerFrac = (u16)((corner + border) / outputRect.size.width * u16_max),
+          .clipId     = clipId,
+
+          .glyphBorderFrac   = (u16)(border / outputRect.size.width * u16_max),
+          .glyphOutlineWidth = style.outline,
+          .glyphWeight       = style.weight,
       },
       style.layer);
 }
@@ -246,15 +247,16 @@ static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   state->ctx->outputAtom(
       state->ctx->userCtx,
       (UiAtomData){
-          .atomType     = UiAtomType_Glyph,
-          .rect         = {pos, ui_vector(size, size)},
-          .color        = info->color,
-          .atlasIndex   = info->ch->glyphIndex,
-          .borderFrac   = (u16)(border / size * u16_max),
-          .cornerFrac   = (u16)(0.5f * u16_max),
-          .clipId       = clipId,
-          .outlineWidth = info->outline,
-          .weight       = info->weight,
+          .atomType   = UiAtomType_Glyph,
+          .rect       = {pos, ui_vector(size, size)},
+          .color      = info->color,
+          .atlasIndex = info->ch->glyphIndex,
+          .cornerFrac = (u16)(0.5f * u16_max),
+          .clipId     = clipId,
+
+          .glyphBorderFrac   = (u16)(border / size * u16_max),
+          .glyphOutlineWidth = info->outline,
+          .glyphWeight       = info->weight,
       },
       info->layer);
 }

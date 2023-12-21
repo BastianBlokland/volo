@@ -17,13 +17,13 @@ typedef struct {
   UiRect  rect;
   UiColor color;
   u16     atlasIndex;
-  u16     angleFrac;  // 'angle radians' / math_pi_f32 / 2 * u16_max
-  u16     borderFrac; // 'border size' / rect.width * u16_max
-  u16     cornerFrac; // 'corner size' / rect.width * u16_max
+  u16     angleFrac;       // 'angle radians' / math_pi_f32 / 2 * u16_max.
+  u16     glyphBorderFrac; // 'border size' / rect.width * u16_max (glyph only).
+  u16     cornerFrac;      // 'corner size' / rect.width * u16_max.
   u8      atomType;
   u8      clipId;
-  u8      outlineWidth;
-  u8      weight;
+  u8      glyphOutlineWidth; // (glyph only).
+  u8      glyphWeight;       // (glyph only).
 } UiAtomData;
 
 ASSERT(sizeof(UiAtomData) == 32, "Size needs to match the size defined in glsl");
