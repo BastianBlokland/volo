@@ -429,6 +429,18 @@ static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
     };
   }
 
+  if (style.outline) {
+    /**
+     * Image atoms do not support outlines, to work around this we additionally output a transparent
+     * square glyph with an outline.
+     */
+    const UiBuildStyle outlineStyle = {
+        .outline = style.outline,
+        .color   = ui_color_clear,
+        .layer   = style.layer,
+    };
+    ui_build_atom_glyph(state, UiShape_Square, rect, outlineStyle, 10, cmd->angleRad, clipId);
+  }
   ui_build_atom_image(state, cmd->img, rect, style, cmd->maxCorner, cmd->angleRad, clipId);
 
   if (cmd->flags & UiFlags_TrackRect) {
