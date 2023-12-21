@@ -119,11 +119,11 @@ ASSERT(sizeof(UiAtlasData) == 16, "Size needs to match the size defined in glsl"
 typedef struct {
   ALIGNAS(16)
   GeoVector   canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
-  UiAtlasData atlasFont;
+  UiAtlasData atlasFont, atlasImage;
   UiRect      clipRects[ui_canvas_clip_rects_max];
 } UiDrawMetaData;
 
-ASSERT(sizeof(UiDrawMetaData) == 832, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiDrawMetaData) == 848, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const UiSettingsComp*   settings;
@@ -146,7 +146,22 @@ static UiAtlasData ui_atlas_metadata_font(const AssetFontTexComp* font) {
   };
 }
 
-static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFontTexComp* font) {
+static UiAtlasData ui_atlas_metadata(const AssetAtlasComp* atlas) {
+  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
+  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
+
+  return (UiAtlasData){
+      .atlasEntriesPerDim         = atlas->entriesPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
+      .atlasEntryPadding          = atlas->entryPadding,
+  };
+}
+
+static UiDrawMetaData ui_draw_metadata(
+    const UiRenderState*    state,
+    const AssetFontTexComp* atlasFont,
+    const AssetAtlasComp*   atlasImage) {
   GeoVector canvasData;
   canvasData.x = 1.0f / state->canvas->resolution.width;  // Inverse canvas width.
   canvasData.y = 1.0f / state->canvas->resolution.height; // Inverse canvas height.
@@ -154,7 +169,8 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFo
 
   UiDrawMetaData meta = {
       .canvasData = canvasData,
-      .atlasFont  = ui_atlas_metadata_font(font),
+      .atlasFont  = ui_atlas_metadata_font(atlasFont),
+      .atlasImage = ui_atlas_metadata(atlasImage),
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -570,7 +586,8 @@ ecs_system_define(UiRenderSys) {
     dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
-    *rend_draw_set_data_t(draw, UiDrawMetaData) = ui_draw_metadata(&renderState, atlasFont);
+    UiDrawMetaData* drawMeta = rend_draw_set_data_t(draw, UiDrawMetaData);
+    *drawMeta                = ui_draw_metadata(&renderState, atlasFont, atlasImage);
   }
 }
 

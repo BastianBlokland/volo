@@ -30,7 +30,7 @@ const u32 c_atomTypeGlyph = 0;
 
 struct MetaData {
   f32v4     canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
-  AtlasMeta atlasFont;  // Font atlas meta-data.
+  AtlasMeta atlasFont, atlasImage;
   f32v4     clipRects[c_maxClipRects];
 };
 
