@@ -1,4 +1,3 @@
-#include "asset_fonttex.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -128,7 +127,8 @@ ASSERT(sizeof(UiDrawMetaData) == 832, "Size needs to match the size defined in g
 
 typedef struct {
   const UiSettingsComp*   settings;
-  const AssetFontTexComp* font;
+  const AssetFontTexComp* atlasFont;
+  const AssetAtlasComp*   atlasImage;
   UiRendererComp*         renderer;
   RendDrawComp*           draw;
   UiCanvasComp*           canvas;
@@ -286,8 +286,8 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
 
   const UiBuildCtx buildCtx = {
       .settings       = state->settings,
-      .atlasFont      = state->font,
-      .atlasImage     = null,
+      .atlasFont      = state->atlasFont,
+      .atlasImage     = state->atlasImage,
       .debugElem      = debugElem,
       .canvasRes      = state->canvas->resolution,
       .inputPos       = state->canvas->inputPos,
@@ -308,7 +308,8 @@ ecs_view_define(SoundGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
   ecs_access_write(SndMixerComp);
 }
-ecs_view_define(FontTexView) { ecs_access_read(AssetFontTexComp); }
+ecs_view_define(AtlasFontView) { ecs_access_read(AssetFontTexComp); }
+ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(WindowView) {
   ecs_access_write(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
@@ -318,9 +319,18 @@ ecs_view_define(WindowView) {
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
-static const AssetFontTexComp* ui_global_font(EcsWorld* world, const EcsEntityId entity) {
-  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, FontTexView), entity);
+static const AssetFontTexComp*
+ui_atlas_font_get(EcsWorld* world, const UiGlobalResourcesComp* globalRes) {
+  const EcsEntityId entity = ui_resource_atlas(globalRes, UiAtlasRes_Font);
+  EcsIterator*      itr    = ecs_view_maybe_at(ecs_world_view_t(world, AtlasFontView), entity);
   return itr ? ecs_view_read_t(itr, AssetFontTexComp) : null;
+}
+
+static const AssetAtlasComp*
+ui_atlas_get(EcsWorld* world, const UiGlobalResourcesComp* globalRes, const UiAtlasRes res) {
+  const EcsEntityId entity = ui_resource_atlas(globalRes, res);
+  EcsIterator*      itr    = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), entity);
+  return itr ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
 ecs_system_define(UiCanvasInputSys) {
@@ -444,10 +454,10 @@ ecs_system_define(UiRenderSys) {
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
   InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
-  const EcsEntityId       fontEntity = ui_resource_atlas(globalRes, UiAtlasRes_Font);
-  const AssetFontTexComp* font       = ui_global_font(world, fontEntity);
-  if (!font) {
-    return; // Global font not loaded yet.
+  const AssetFontTexComp* atlasFont  = ui_atlas_font_get(world, globalRes);
+  const AssetAtlasComp*   atlasImage = ui_atlas_get(world, globalRes, UiAtlasRes_Image);
+  if (!atlasFont || !atlasImage) {
+    return; // Global atlases not loaded yet.
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
@@ -482,7 +492,8 @@ ecs_system_define(UiRenderSys) {
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
          .settings      = settings,
-         .font          = font,
+         .atlasFont     = atlasFont,
+         .atlasImage    = atlasImage,
          .renderer      = renderer,
          .draw          = draw,
          .clipRects[0]  = {.size = canvasSize},
@@ -559,7 +570,7 @@ ecs_system_define(UiRenderSys) {
     dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
-    *rend_draw_set_data_t(draw, UiDrawMetaData) = ui_draw_metadata(&renderState, font);
+    *rend_draw_set_data_t(draw, UiDrawMetaData) = ui_draw_metadata(&renderState, atlasFont);
   }
 }
 
@@ -611,7 +622,8 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_view(DrawView);
   ecs_register_view(RenderGlobalView);
   ecs_register_view(SoundGlobalView);
-  ecs_register_view(FontTexView);
+  ecs_register_view(AtlasFontView);
+  ecs_register_view(AtlasView);
   ecs_register_view(WindowView);
 
   ecs_register_system(UiCanvasInputSys, ecs_view_id(CanvasView), ecs_view_id(WindowView));
@@ -619,7 +631,8 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_system(
       UiRenderSys,
       ecs_view_id(RenderGlobalView),
-      ecs_view_id(FontTexView),
+      ecs_view_id(AtlasFontView),
+      ecs_view_id(AtlasView),
       ecs_view_id(WindowView),
       ecs_view_id(CanvasView),
       ecs_view_id(DrawView));
