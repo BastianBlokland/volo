@@ -443,7 +443,8 @@ ecs_system_define(UiRenderSys) {
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
   InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
-  const AssetFontTexComp* font = ui_global_font(world, ui_resource_font(globalRes));
+  const EcsEntityId       fontEntity = ui_resource_atlas(globalRes, UiAtlasType_Font);
+  const AssetFontTexComp* font       = ui_global_font(world, fontEntity);
   if (!font) {
     return; // Global font not loaded yet.
   }
