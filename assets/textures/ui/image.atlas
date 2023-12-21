@@ -6,12 +6,8 @@
   "srgb": true,
   "entries": [
     {
-      "name": "glow",
-      "texture": "textures/glow.proctex"
-    },
-    {
-      "name": "flash",
-      "texture": "external/vfx/flash_2.tga"
+      "name": "ducks",
+      "texture": "external/testimages/ducks.tga"
     }
   ]
 }
