@@ -53,11 +53,11 @@ bind_internal(3) out flat f32 out_invCanvasScale;
 bind_internal(4) out flat f32v4 out_clipRect;
 bind_internal(5) out flat f32v3 out_texMeta; // xy: origin, z: scale.
 bind_internal(6) out flat f32v4 out_color;
-bind_internal(7) out flat f32 out_invBorder;
-bind_internal(8) out flat f32 out_outlineWidth;
+bind_internal(7) out flat f32 out_glyphInvBorder;
+bind_internal(8) out flat f32 out_glyphOutlineWidth;
 bind_internal(9) out flat f32 out_aspectRatio;
 bind_internal(10) out flat f32 out_cornerFrac;
-bind_internal(11) out flat f32 out_edgeShiftFrac;
+bind_internal(11) out flat f32 out_glyphEdgeShiftFrac;
 
 AtlasMeta atlas_meta(const u32 atomType) {
   switch (atomType) {
@@ -112,17 +112,17 @@ void main() {
   const f32v2     invCanvasSize  = u_meta.canvasData.xy;
   const f32       invCanvasScale = u_meta.canvasData.z;
 
-  out_vertexPosition = ui_norm_to_ndc(uiPos * invCanvasSize);
-  out_uiPos          = uiPos;
-  out_texCoord       = c_unitTexCoords[in_vertexIndex];
-  out_atomType       = atomType;
-  out_invCanvasScale = invCanvasScale;
-  out_clipRect       = u_meta.clipRects[clipId];
-  out_texMeta        = f32v3(texOrigin, atlas_entry_size(atlasMeta));
-  out_color          = atomColor;
-  out_invBorder      = 1.0 / (atomSize.x * borderFrac);
-  out_outlineWidth   = outlineWidth;
-  out_aspectRatio    = atomSize.x / atomSize.y;
-  out_cornerFrac     = cornerFrac;
-  out_edgeShiftFrac  = glyph_edge_shift(weight);
+  out_vertexPosition     = ui_norm_to_ndc(uiPos * invCanvasSize);
+  out_uiPos              = uiPos;
+  out_texCoord           = c_unitTexCoords[in_vertexIndex];
+  out_atomType           = atomType;
+  out_invCanvasScale     = invCanvasScale;
+  out_clipRect           = u_meta.clipRects[clipId];
+  out_texMeta            = f32v3(texOrigin, atlas_entry_size(atlasMeta));
+  out_color              = atomColor;
+  out_glyphInvBorder     = 1.0 / (atomSize.x * borderFrac);
+  out_glyphOutlineWidth  = outlineWidth;
+  out_aspectRatio        = atomSize.x / atomSize.y;
+  out_cornerFrac         = cornerFrac;
+  out_glyphEdgeShiftFrac = glyph_edge_shift(weight);
 }

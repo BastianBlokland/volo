@@ -25,11 +25,11 @@ bind_internal(3) in flat f32 in_invCanvasScale; // Inverse of the canvas scale.
 bind_internal(4) in flat f32v4 in_clipRect;     // Clipping rectangle in ui-pixel coordinates.
 bind_internal(5) in flat f32v3 in_texMeta;      // xy: texture origin in atlas, z: texture scale.
 bind_internal(6) in flat f32v4 in_color;
-bind_internal(7) in flat f32 in_invBorder;      // 1.0 / borderPixelSize.
-bind_internal(8) in flat f32 in_outlineWidth;   // Desired outline size in ui-pixels.
-bind_internal(9) in flat f32 in_aspectRatio;    // Aspect ratio of the atom.
-bind_internal(10) in flat f32 in_cornerFrac;    // Corner size in fractions of the atom width.
-bind_internal(11) in flat f32 in_edgeShiftFrac; // Pushes the edge in or out, in fractions of width.
+bind_internal(7) in flat f32 in_glyphInvBorder;      // 1.0 / glyphBorderPixelSize.
+bind_internal(8) in flat f32 in_glyphOutlineWidth;   // Desired outline size in ui-pixels.
+bind_internal(9) in flat f32 in_aspectRatio;         // Aspect ratio of the atom.
+bind_internal(10) in flat f32 in_cornerFrac;         // Corner size in fractions of the atom width.
+bind_internal(11) in flat f32 in_glyphEdgeShiftFrac; // Pushes the edge in/out. in frac of width.
 
 bind_internal(0) out f32v4 out_color;
 
@@ -108,8 +108,9 @@ bool clip(const f32v2 point) {
 }
 
 f32v4 color_glyph() {
-  const f32 smoothingNorm = min(c_glyphSmoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
-  const f32 outlineNorm   = in_outlineWidth * in_invBorder;
+  const f32 invBorder     = in_glyphInvBorder;
+  const f32 smoothingNorm = min(c_glyphSmoothingPixels * in_invCanvasScale * invBorder, 1.0);
+  const f32 outlineNorm   = in_glyphOutlineWidth * invBorder;
 
   /**
    * When the outlineNorm is bigger then 0.5 it means there is not enough space in the border for
@@ -120,7 +121,7 @@ f32v4 color_glyph() {
   const f32 outlineShift = max(outlineNorm - 0.5, 0);
 
   const f32v2 atlasCoord  = atlas_coord();
-  const f32   distNorm    = glyph_signed_dist(atlasCoord) - in_edgeShiftFrac + outlineShift;
+  const f32   distNorm    = glyph_signed_dist(atlasCoord) - in_glyphEdgeShiftFrac + outlineShift;
   const f32   outlineFrac = glyph_outline_frac(distNorm, outlineNorm, smoothingNorm);
   const f32v4 color       = mix(in_color, c_glyphOutlineColor, outlineFrac);
   const f32   alpha       = glyph_alpha(distNorm, outlineNorm, smoothingNorm);
