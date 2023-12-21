@@ -7,7 +7,7 @@
           "$type": "AssetProduct_Unit",
           "meta": {
             "name": "Assault Ranger",
-            "icon": "\uF051",
+            "iconImage": "icon_infantry_rifle",
             "costTime": 3,
             "queueMax": 99,
             "cooldown": 1,
@@ -22,7 +22,7 @@
           "$type": "AssetProduct_Unit",
           "meta": {
             "name": "Rocket Ranger",
-            "icon": "\uF050",
+            "iconImage": "icon_infantry_rocket",
             "costTime": 5,
             "queueMax": 99,
             "cooldown": 1,
@@ -37,7 +37,7 @@
           "$type": "AssetProduct_Unit",
           "meta": {
             "name": "Flame Ranger",
-            "icon": "\uF052",
+            "iconImage": "icon_infantry_flame",
             "costTime": 5,
             "queueMax": 99,
             "cooldown": 1,

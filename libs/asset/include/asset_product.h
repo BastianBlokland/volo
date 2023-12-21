@@ -36,7 +36,7 @@ typedef struct {
 typedef struct sAssetProduct {
   String            name;
   AssetProductType  type;
-  Unicode           icon;
+  StringHash        iconImage; // Identifier in the Ui image atlas.
   TimeDuration      costTime;
   TimeDuration      cooldown;
   u16               queueMax;

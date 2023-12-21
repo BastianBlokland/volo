@@ -668,7 +668,7 @@ static void hud_production_queue_icon_draw(
   }
   ui_style_color(c, color);
   ui_layout_inner(c, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
-  ui_canvas_draw_glyph(c, queue->product->icon, 0, UiFlags_None);
+  ui_canvas_draw_image(c, queue->product->iconImage, 0, UiFlags_None);
 
   ui_layout_pop(c);
   ui_style_pop(c);

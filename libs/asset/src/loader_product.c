@@ -26,7 +26,7 @@ typedef struct {
 
 typedef struct {
   String               name;
-  String               icon;
+  String               iconImage;
   f32                  costTime;
   u16                  queueMax;
   u16                  queueBulkSize;
@@ -85,7 +85,7 @@ static void product_datareg_init() {
 
     data_reg_struct_t(reg, AssetProductMetaDef);
     data_reg_field_t(reg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, iconImage, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
@@ -161,7 +161,7 @@ static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, As
   const TimeDuration costTimeRaw = (TimeDuration)time_seconds(def->costTime);
   const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
 
-  utf8_cp_read(def->icon, &out->icon);
+  out->iconImage     = string_maybe_hash(def->iconImage);
   out->name          = string_maybe_dup(g_alloc_heap, def->name);
   out->costTime      = math_max(costTimeRaw, time_millisecond);
   out->queueMax      = def->queueMax ? def->queueMax : u16_max;
