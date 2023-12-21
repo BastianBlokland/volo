@@ -38,7 +38,7 @@ struct AtomData {
   f32v4 rect; // x + y = position, z + w = size
   u32v4 data; // x = color,
               // y = 16b atlasIndex, 16b angleFrac,
-              // z = 16b borderFrac 16b cornerFrac,
+              // z = 16b borderFrac, 16b cornerFrac,
               // w = 8b atomType, 8b clipId, 8b outlineWidth, 8b weight
 };
 
