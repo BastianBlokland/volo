@@ -183,6 +183,7 @@ static void ui_build_atom_glyph(
   state->ctx->outputAtom(
       state->ctx->userCtx,
       (UiAtomData){
+          .atomType     = UiAtomType_Glyph,
           .rect         = outputRect,
           .color        = style.color,
           .atlasIndex   = ch->glyphIndex,
@@ -209,6 +210,7 @@ static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   state->ctx->outputAtom(
       state->ctx->userCtx,
       (UiAtomData){
+          .atomType     = UiAtomType_Glyph,
           .rect         = {pos, ui_vector(size, size)},
           .color        = info->color,
           .atlasIndex   = info->ch->glyphIndex,

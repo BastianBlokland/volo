@@ -25,7 +25,8 @@ const f32v2 c_unitTexCoords[c_vertexCount] = {
     f32v2(1, 0),
     f32v2(0, 0),
 };
-const u32 c_maxClipRects = 50;
+const u32 c_maxClipRects  = 50;
+const u32 c_atomTypeGlyph = 0;
 
 struct MetaData {
   f32v4     canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
@@ -38,7 +39,7 @@ struct AtomData {
   u32v4 data; // x = color,
               // y = 16b atlasIndex, 16b angleFrac,
               // z = 16b borderFrac 16b cornerFrac,
-              // w = 8b clipId, 8b outlineWidth, 8b weight
+              // w = 8b atomType, 8b clipId, 8b outlineWidth, 8b weight
 };
 
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
@@ -79,9 +80,10 @@ void main() {
   const f32      angleRad     = (atomData.data.y >> 16) / f32(0xFFFF) * c_pi * 2;
   const f32      borderFrac   = (atomData.data.z & 0xFFFF) / f32(0xFFFF);
   const f32      cornerFrac   = (atomData.data.z >> 16) / f32(0xFFFF);
-  const u32      clipId       = atomData.data.w & 0xFF;
-  const u32      outlineWidth = (atomData.data.w >> 8) & 0xFF;
-  const u32      weight       = (atomData.data.w >> 16) & 0xFF;
+  const u32      atomType     = (atomData.data.w >> 0) & 0xFF;
+  const u32      clipId       = (atomData.data.w >> 8) & 0xFF;
+  const u32      outlineWidth = (atomData.data.w >> 16) & 0xFF;
+  const u32      weight       = (atomData.data.w >> 24) & 0xFF;
 
   const f32m2 rotMat = math_rotate_mat_f32m2(angleRad);
 

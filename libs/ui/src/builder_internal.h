@@ -6,6 +6,10 @@
 // Internal forward declarations:
 typedef struct sUiCmdBuffer UiCmdBuffer;
 
+typedef enum {
+  UiAtomType_Glyph,
+} UiAtomType;
+
 typedef struct {
   ALIGNAS(16)
   UiRect  rect;
@@ -14,6 +18,7 @@ typedef struct {
   u16     angleFrac;  // 'angle radians' / math_pi_f32 / 2 * u16_max
   u16     borderFrac; // 'border size' / rect.width * u16_max
   u16     cornerFrac; // 'corner size' / rect.width * u16_max
+  u8      atomType;
   u8      clipId;
   u8      outlineWidth;
   u8      weight;
