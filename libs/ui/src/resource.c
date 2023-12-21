@@ -7,23 +7,23 @@
 
 #include "resource_internal.h"
 
-static const String g_uiAtlasIds[UiAtlasType_Count] = {
-    [UiAtlasType_Font]  = string_static("fonts/ui.fonttex"),
-    [UiAtlasType_Image] = string_static("textures/ui/image.atlas"),
+static const String g_uiAtlasIds[UiAtlasRes_Count] = {
+    [UiAtlasRes_Font]  = string_static("fonts/ui.fonttex"),
+    [UiAtlasRes_Image] = string_static("textures/ui/image.atlas"),
 };
 static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.graphic");
 static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.graphic");
 static const String g_uiSoundClick         = string_static("external/sound/click-02.wav");
 static const String g_uiSoundClickAlt      = string_static("external/sound/click-03.wav");
 
-static const String g_uiAtlasTypeNames[] = {
+static const String g_uiAtlasResNames[] = {
     string_static("font"),
     string_static("image"),
 };
-ASSERT(array_elems(g_uiAtlasTypeNames) == UiAtlasType_Count, "Incorrect number of names");
+ASSERT(array_elems(g_uiAtlasResNames) == UiAtlasRes_Count, "Incorrect number of names");
 
 ecs_comp_define(UiGlobalResourcesComp) {
-  EcsEntityId atlases[UiAtlasType_Count];
+  EcsEntityId atlases[UiAtlasRes_Count];
   u32         acquiredAtlases;
   u32         unloadingAtlases;
   EcsEntityId graphic, graphicDebug;
@@ -65,7 +65,7 @@ ecs_system_define(UiResourceInitSys) {
         .soundClickAlt = asset_lookup(world, assets, g_uiSoundClickAlt));
 
     // Initialize atlases.
-    for (UiAtlasType type = 0; type != UiAtlasType_Count; ++type) {
+    for (UiAtlasRes type = 0; type != UiAtlasRes_Count; ++type) {
       globalResources->atlases[type] = asset_lookup(world, assets, g_uiAtlasIds[type]);
     }
 
@@ -75,13 +75,13 @@ ecs_system_define(UiResourceInitSys) {
     return;
   }
 
-  for (UiAtlasType type = 0; type != UiAtlasType_Count; ++type) {
+  for (UiAtlasRes type = 0; type != UiAtlasRes_Count; ++type) {
     const bool isAcquired  = (globalResources->acquiredAtlases & (1 << type)) != 0;
     const bool isUnloading = (globalResources->unloadingAtlases & (1 << type)) != 0;
     if (!isAcquired && !isUnloading) {
       log_i(
           "Acquiring ui {} atlas",
-          log_param("type", fmt_text(g_uiAtlasTypeNames[type])),
+          log_param("type", fmt_text(g_uiAtlasResNames[type])),
           log_param("id", fmt_text(g_uiAtlasIds[type])));
       asset_acquire(world, globalResources->atlases[type]);
       globalResources->acquiredAtlases |= 1 << type;
@@ -94,7 +94,7 @@ ecs_system_define(UiResourceUnloadChangedAtlasSys) {
   if (!globalResources) {
     return;
   }
-  for (UiAtlasType type = 0; type != UiAtlasType_Count; ++type) {
+  for (UiAtlasRes type = 0; type != UiAtlasRes_Count; ++type) {
     const EcsEntityId atlas      = globalResources->atlases[type];
     const bool        isAcquired = (globalResources->acquiredAtlases & (1 << type)) != 0;
     const bool        isLoaded   = ecs_world_has_t(world, atlas, AssetLoadedComp);
@@ -104,7 +104,7 @@ ecs_system_define(UiResourceUnloadChangedAtlasSys) {
     if (isAcquired && (isLoaded || isFailed) && hasChanged) {
       log_i(
           "Unloading ui {} atlas",
-          log_param("type", fmt_text(g_uiAtlasTypeNames[type])),
+          log_param("type", fmt_text(g_uiAtlasResNames[type])),
           log_param("id", fmt_text(g_uiAtlasIds[type])),
           log_param("reason", fmt_text_lit("Asset changed")));
 
@@ -131,7 +131,7 @@ ecs_module_init(ui_resource_module) {
   ecs_register_system(UiResourceUnloadChangedAtlasSys, ecs_view_id(GlobalResourcesView));
 }
 
-EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasType type) {
+EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasRes type) {
   return comp->atlases[type];
 }
 EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp->graphic; }
