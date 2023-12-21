@@ -33,7 +33,7 @@ bind_internal(0) out f32v4 out_color;
  * 0 = beyond the outline and smoothing ui-pixels.
  * 1 = Precisely on the outer edge of the outline.
  */
-f32 font_glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
+f32 glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
   const f32 halfSmoothing = smoothingNorm * 0.5;
   return 1.0 - smoothstep(outlineNorm - halfSmoothing, outlineNorm + halfSmoothing, distNorm);
 }
@@ -43,7 +43,7 @@ f32 font_glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smooth
  * 0 = fully glyph color
  * 1 = fully outline color
  */
-f32 font_glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
+f32 glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
   if (outlineNorm < c_outlineMin) {
     return 0.0; // Outline is disabled.
   }
@@ -56,9 +56,7 @@ f32 font_glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32
  *  0.0 = Precisely on the border of the glyph.
  * +1.0 = Well outside the glyph.
  */
-f32 font_glyph_signed_dist(const f32v2 coord) {
-  return texture(u_fontTexture, coord).r * 2.0 - 1.0;
-}
+f32 glyph_signed_dist(const f32v2 coord) { return texture(u_fontTexture, coord).r * 2.0 - 1.0; }
 
 /**
  * Remap a single texture coordinate axis.
@@ -121,10 +119,10 @@ void main() {
   const f32 outlineShift = max(outlineNorm - 0.5, 0);
 
   const f32v2 fontCoord   = atlas_coord();
-  const f32   distNorm    = font_glyph_signed_dist(fontCoord) - in_edgeShiftFrac + outlineShift;
-  const f32   outlineFrac = font_glyph_outline_frac(distNorm, outlineNorm, smoothingNorm);
+  const f32   distNorm    = glyph_signed_dist(fontCoord) - in_edgeShiftFrac + outlineShift;
+  const f32   outlineFrac = glyph_outline_frac(distNorm, outlineNorm, smoothingNorm);
   const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
-  const f32   alpha       = font_glyph_alpha(distNorm, outlineNorm, smoothingNorm);
+  const f32   alpha       = glyph_alpha(distNorm, outlineNorm, smoothingNorm);
 
   if (s_debug) {
     out_color = f32v4(outlineFrac * alpha, (distNorm + 1) * 0.5, alpha, 1);

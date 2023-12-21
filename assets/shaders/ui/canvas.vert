@@ -59,7 +59,7 @@ bind_internal(10) out flat f32 out_edgeShiftFrac;
 /**
  * Compute the shape edge shift in fractions of the glyphs width.
  */
-f32 font_glyph_edge_shift(const u32 weight) {
+f32 glyph_edge_shift(const u32 weight) {
   /**
    * Possible weight values:
    *   0: Light
@@ -108,5 +108,5 @@ void main() {
   out_outlineWidth   = outlineWidth;
   out_aspectRatio    = atomSize.x / atomSize.y;
   out_cornerFrac     = cornerFrac;
-  out_edgeShiftFrac  = font_glyph_edge_shift(weight);
+  out_edgeShiftFrac  = glyph_edge_shift(weight);
 }
