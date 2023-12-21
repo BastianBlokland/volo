@@ -137,8 +137,11 @@ f32v4 color_glyph() {
 
 f32v4 color_image() {
   const f32v2 atlasCoord = atlas_coord();
-  const f32v4 imageColor = texture(u_atlasImage, atlasCoord);
+  if (s_debug) {
+    return f32v4(atlasCoord.xy, 0, 1);
+  }
   // TODO: Support smoothing the edges to reduce aliasing on rotated images.
+  const f32v4 imageColor = texture(u_atlasImage, atlasCoord);
   return imageColor * in_color;
 }
 

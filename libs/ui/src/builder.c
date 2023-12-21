@@ -345,6 +345,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hover = (UiBuildHover){
         .id    = cmd->id,
