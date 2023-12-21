@@ -472,9 +472,9 @@ ecs_system_define(UiRenderSys) {
 
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
     if (settings->flags & UiSettingFlags_DebugShading) {
-      rend_draw_set_graphic(draw, ui_resource_graphic_debug(globalRes));
+      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes, UiGraphicRes_Debug));
     } else {
-      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
+      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes, UiGraphicRes_Normal));
     }
 
     const f32      scale       = ui_window_scale(window, settings);

@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -11,9 +12,10 @@ static const String g_uiAtlasIds[UiAtlasRes_Count] = {
     [UiAtlasRes_Font]  = string_static("fonts/ui.fonttex"),
     [UiAtlasRes_Image] = string_static("textures/ui/image.atlas"),
 };
-static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.graphic");
-static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.graphic");
-
+static const String g_uiGraphicIds[UiGraphicRes_Count] = {
+    [UiGraphicRes_Normal] = string_static("graphics/ui/canvas.graphic"),
+    [UiGraphicRes_Debug]  = string_static("graphics/ui/canvas_debug.graphic"),
+};
 static const String g_uiSoundIds[UiSoundRes_Count] = {
     [UiSoundRes_Click]    = string_static("external/sound/click-02.wav"),
     [UiSoundRes_ClickAlt] = string_static("external/sound/click-03.wav"),
@@ -29,7 +31,7 @@ ecs_comp_define(UiGlobalResourcesComp) {
   EcsEntityId atlases[UiAtlasRes_Count];
   u32         acquiredAtlases;
   u32         unloadingAtlases;
-  EcsEntityId graphic, graphicDebug;
+  EcsEntityId graphics[UiGraphicRes_Count];
   EcsEntityId sounds[UiSoundRes_Count];
 };
 
@@ -57,20 +59,13 @@ ecs_system_define(UiResourceInitSys) {
 
   UiGlobalResourcesComp* globalResources = ui_global_resources(world);
   if (!globalResources) {
-    // Initialize global resources.
-    globalResources = ecs_world_add_t(
-        world,
-        ecs_world_global(world),
-        UiGlobalResourcesComp,
-        .graphic      = asset_lookup(world, assets, g_uiGlobalGraphic),
-        .graphicDebug = asset_lookup(world, assets, g_uiGlobalGraphicDebug));
-
-    // Initialize atlases.
+    globalResources = ecs_world_add_t(world, ecs_world_global(world), UiGlobalResourcesComp);
     for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
       globalResources->atlases[res] = asset_lookup(world, assets, g_uiAtlasIds[res]);
     }
-
-    // Initialize sound assets.
+    for (UiGraphicRes res = 0; res != UiGraphicRes_Count; ++res) {
+      globalResources->graphics[res] = asset_lookup(world, assets, g_uiGraphicIds[res]);
+    }
     for (UiSoundRes res = 0; res != UiSoundRes_Count; ++res) {
       globalResources->sounds[res] = asset_lookup(world, assets, g_uiSoundIds[res]);
       snd_mixer_persistent_asset(soundMixer, globalResources->sounds[res]);
@@ -135,14 +130,16 @@ ecs_module_init(ui_resource_module) {
 }
 
 EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasRes res) {
+  diag_assert(res < UiAtlasRes_Count);
   return comp->atlases[res];
 }
 
-EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp->graphic; }
-EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp* comp) {
-  return comp->graphicDebug;
+EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp, const UiGraphicRes res) {
+  diag_assert(res < UiGraphicRes_Count);
+  return comp->graphics[res];
 }
 
 EcsEntityId ui_resource_sound(const UiGlobalResourcesComp* comp, const UiSoundRes res) {
+  diag_assert(res < UiSoundRes_Count);
   return comp->sounds[res];
 }
