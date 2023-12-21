@@ -13,8 +13,11 @@ static const String g_uiAtlasIds[UiAtlasRes_Count] = {
 };
 static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.graphic");
 static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.graphic");
-static const String g_uiSoundClick         = string_static("external/sound/click-02.wav");
-static const String g_uiSoundClickAlt      = string_static("external/sound/click-03.wav");
+
+static const String g_uiSoundIds[UiSoundRes_Count] = {
+    [UiSoundRes_Click]    = string_static("external/sound/click-02.wav"),
+    [UiSoundRes_ClickAlt] = string_static("external/sound/click-03.wav"),
+};
 
 static const String g_uiAtlasResNames[] = {
     string_static("font"),
@@ -27,7 +30,7 @@ ecs_comp_define(UiGlobalResourcesComp) {
   u32         acquiredAtlases;
   u32         unloadingAtlases;
   EcsEntityId graphic, graphicDebug;
-  EcsEntityId soundClick, soundClickAlt;
+  EcsEntityId sounds[UiSoundRes_Count];
 };
 
 ecs_view_define(GlobalInitView) {
@@ -59,32 +62,32 @@ ecs_system_define(UiResourceInitSys) {
         world,
         ecs_world_global(world),
         UiGlobalResourcesComp,
-        .graphic       = asset_lookup(world, assets, g_uiGlobalGraphic),
-        .graphicDebug  = asset_lookup(world, assets, g_uiGlobalGraphicDebug),
-        .soundClick    = asset_lookup(world, assets, g_uiSoundClick),
-        .soundClickAlt = asset_lookup(world, assets, g_uiSoundClickAlt));
+        .graphic      = asset_lookup(world, assets, g_uiGlobalGraphic),
+        .graphicDebug = asset_lookup(world, assets, g_uiGlobalGraphicDebug));
 
     // Initialize atlases.
-    for (UiAtlasRes type = 0; type != UiAtlasRes_Count; ++type) {
-      globalResources->atlases[type] = asset_lookup(world, assets, g_uiAtlasIds[type]);
+    for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
+      globalResources->atlases[res] = asset_lookup(world, assets, g_uiAtlasIds[res]);
     }
 
     // Initialize sound assets.
-    snd_mixer_persistent_asset(soundMixer, globalResources->soundClick);
-    snd_mixer_persistent_asset(soundMixer, globalResources->soundClickAlt);
+    for (UiSoundRes res = 0; res != UiSoundRes_Count; ++res) {
+      globalResources->sounds[res] = asset_lookup(world, assets, g_uiSoundIds[res]);
+      snd_mixer_persistent_asset(soundMixer, globalResources->sounds[res]);
+    }
     return;
   }
 
-  for (UiAtlasRes type = 0; type != UiAtlasRes_Count; ++type) {
-    const bool isAcquired  = (globalResources->acquiredAtlases & (1 << type)) != 0;
-    const bool isUnloading = (globalResources->unloadingAtlases & (1 << type)) != 0;
+  for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
+    const bool isAcquired  = (globalResources->acquiredAtlases & (1 << res)) != 0;
+    const bool isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
     if (!isAcquired && !isUnloading) {
       log_i(
           "Acquiring ui {} atlas",
-          log_param("type", fmt_text(g_uiAtlasResNames[type])),
-          log_param("id", fmt_text(g_uiAtlasIds[type])));
-      asset_acquire(world, globalResources->atlases[type]);
-      globalResources->acquiredAtlases |= 1 << type;
+          log_param("type", fmt_text(g_uiAtlasResNames[res])),
+          log_param("id", fmt_text(g_uiAtlasIds[res])));
+      asset_acquire(world, globalResources->atlases[res]);
+      globalResources->acquiredAtlases |= 1 << res;
     }
   }
 }
@@ -94,9 +97,9 @@ ecs_system_define(UiResourceUnloadChangedAtlasSys) {
   if (!globalResources) {
     return;
   }
-  for (UiAtlasRes type = 0; type != UiAtlasRes_Count; ++type) {
-    const EcsEntityId atlas      = globalResources->atlases[type];
-    const bool        isAcquired = (globalResources->acquiredAtlases & (1 << type)) != 0;
+  for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
+    const EcsEntityId atlas      = globalResources->atlases[res];
+    const bool        isAcquired = (globalResources->acquiredAtlases & (1 << res)) != 0;
     const bool        isLoaded   = ecs_world_has_t(world, atlas, AssetLoadedComp);
     const bool        isFailed   = ecs_world_has_t(world, atlas, AssetFailedComp);
     const bool        hasChanged = ecs_world_has_t(world, atlas, AssetChangedComp);
@@ -104,18 +107,18 @@ ecs_system_define(UiResourceUnloadChangedAtlasSys) {
     if (isAcquired && (isLoaded || isFailed) && hasChanged) {
       log_i(
           "Unloading ui {} atlas",
-          log_param("type", fmt_text(g_uiAtlasResNames[type])),
-          log_param("id", fmt_text(g_uiAtlasIds[type])),
+          log_param("type", fmt_text(g_uiAtlasResNames[res])),
+          log_param("id", fmt_text(g_uiAtlasIds[res])),
           log_param("reason", fmt_text_lit("Asset changed")));
 
       asset_release(world, atlas);
-      globalResources->acquiredAtlases &= ~(1 << type);
-      globalResources->unloadingAtlases |= 1 << type;
+      globalResources->acquiredAtlases &= ~(1 << res);
+      globalResources->unloadingAtlases |= 1 << res;
     }
 
-    const bool isUnloading = (globalResources->unloadingAtlases & (1 << type)) != 0;
+    const bool isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
     if (isUnloading && !isLoaded) {
-      globalResources->unloadingAtlases &= ~(1 << type);
+      globalResources->unloadingAtlases &= ~(1 << res);
     }
   }
 }
@@ -131,14 +134,15 @@ ecs_module_init(ui_resource_module) {
   ecs_register_system(UiResourceUnloadChangedAtlasSys, ecs_view_id(GlobalResourcesView));
 }
 
-EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasRes type) {
-  return comp->atlases[type];
+EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasRes res) {
+  return comp->atlases[res];
 }
+
 EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp->graphic; }
 EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp* comp) {
   return comp->graphicDebug;
 }
-EcsEntityId ui_resource_sound_click(const UiGlobalResourcesComp* comp) { return comp->soundClick; }
-EcsEntityId ui_resource_sound_click_alt(const UiGlobalResourcesComp* comp) {
-  return comp->soundClickAlt;
+
+EcsEntityId ui_resource_sound(const UiGlobalResourcesComp* comp, const UiSoundRes res) {
+  return comp->sounds[res];
 }

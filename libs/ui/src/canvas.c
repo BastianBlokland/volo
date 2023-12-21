@@ -572,8 +572,8 @@ ecs_system_define(UiSoundSys) {
   SndMixerComp*                mixer     = ecs_view_write_t(globalItr, SndMixerComp);
 
   const EcsEntityId soundAssetPerType[UiSoundType_Count] = {
-      [UiSoundType_Click]    = ui_resource_sound_click(globalRes),
-      [UiSoundType_ClickAlt] = ui_resource_sound_click_alt(globalRes),
+      [UiSoundType_Click]    = ui_resource_sound(globalRes, UiSoundRes_Click),
+      [UiSoundType_ClickAlt] = ui_resource_sound(globalRes, UiSoundRes_ClickAlt),
   };
   const f32 soundGainPerType[UiSoundType_Count] = {
       [UiSoundType_Click]    = 0.25f,
