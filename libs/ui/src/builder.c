@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -11,6 +12,12 @@
 #define ui_build_rect_stack_max 10
 #define ui_build_style_stack_max 10
 #define ui_build_container_stack_max 10
+
+static const String g_uiAtomTypeNames[] = {
+    string_static("glyph"),
+    string_static("image"),
+};
+ASSERT(array_elems(g_uiAtomTypeNames) == UiAtomType_Count, "Incorrect number of names");
 
 typedef struct {
   UiColor  color;
@@ -431,7 +438,11 @@ static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
 }
 
 static void ui_build_debug_inspector(
-    UiBuildState* state, const UiId id, const UiFlags flags, const f32 angleRad) {
+    UiBuildState*    state,
+    const UiId       id,
+    const UiFlags    flags,
+    const f32        angleRad,
+    const UiAtomType atomType) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_active(state);
@@ -453,26 +464,27 @@ static void ui_build_debug_inspector(
   ui_build_atom_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  fmt_write(&str, "Id\t\t{}\n", fmt_int(id));
-  fmt_write(&str, "X\t\t{}\n", fmt_float(rect.x, .maxDecDigits = 2));
-  fmt_write(&str, "Y\t\t{}\n", fmt_float(rect.y, .maxDecDigits = 2));
-  fmt_write(&str, "Width\t\t{}\n", fmt_float(rect.width, .maxDecDigits = 2));
-  fmt_write(&str, "Height\t\t{}\n", fmt_float(rect.height, .maxDecDigits = 2));
+  fmt_write(&str, "Id\a>0B{}\n", fmt_int(id));
+  fmt_write(&str, "AtomType\a>0B{}\n", fmt_text(g_uiAtomTypeNames[atomType]));
+  fmt_write(&str, "X\a>0B{}\n", fmt_float(rect.x, .maxDecDigits = 2));
+  fmt_write(&str, "Y\a>0B{}\n", fmt_float(rect.y, .maxDecDigits = 2));
+  fmt_write(&str, "Width\a>0B{}\n", fmt_float(rect.width, .maxDecDigits = 2));
+  fmt_write(&str, "Height\a>0B{}\n", fmt_float(rect.height, .maxDecDigits = 2));
   fmt_write(
       &str,
-      "Color\t\t#{}{}{}{}\n",
+      "Color\a>0B#{}{}{}{}\n",
       fmt_int(style.color.r, .base = 16, .minDigits = 2),
       fmt_int(style.color.g, .base = 16, .minDigits = 2),
       fmt_int(style.color.b, .base = 16, .minDigits = 2),
       fmt_int(style.color.a, .base = 16, .minDigits = 2));
-  fmt_write(&str, "Outline\t{}\n", fmt_int(style.outline));
-  fmt_write(&str, "Layer\t\t{}\n", fmt_int(style.layer));
-  fmt_write(&str, "Variation\t{}\n", fmt_int(style.variation));
-  fmt_write(&str, "ClipId\t\t{}\n", fmt_int(container.clipId));
-  fmt_write(&str, "Interact\t{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
+  fmt_write(&str, "Outline\a>0B{}\n", fmt_int(style.outline));
+  fmt_write(&str, "Layer\a>0B{}\n", fmt_int(style.layer));
+  fmt_write(&str, "Variation\a>0B{}\n", fmt_int(style.variation));
+  fmt_write(&str, "ClipId\a>0B{}\n", fmt_int(container.clipId));
+  fmt_write(&str, "Interact\a>0B{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
   fmt_write(
       &str,
-      "Angle\t\t{} rad ({} deg)\n",
+      "Angle\a>0B{} rad ({} deg)\n",
       fmt_float(angleRad, .minDecDigits = 2, .maxDecDigits = 2),
       fmt_float(angleRad * math_rad_to_deg, .maxDecDigits = 0));
 
@@ -597,22 +609,25 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
     if (UNLIKELY(cmd->drawText.id == state->ctx->debugElem)) {
-      const f32 angleRad = 0.0f;
-      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags, angleRad);
+      const UiId id       = cmd->drawText.id;
+      const f32  angleRad = 0.0f;
+      ui_build_debug_inspector(state, id, cmd->drawText.flags, angleRad, UiAtomType_Glyph);
     }
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
     if (UNLIKELY(cmd->drawGlyph.id == state->ctx->debugElem)) {
-      const f32 angleRad = cmd->drawGlyph.angleRad;
-      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags, angleRad);
+      const UiId id       = cmd->drawGlyph.id;
+      const f32  angleRad = cmd->drawGlyph.angleRad;
+      ui_build_debug_inspector(state, id, cmd->drawGlyph.flags, angleRad, UiAtomType_Glyph);
     }
     break;
   case UiCmd_DrawImage:
     ui_build_draw_image(state, &cmd->drawImage);
     if (UNLIKELY(cmd->drawImage.id == state->ctx->debugElem)) {
-      const f32 angleRad = cmd->drawImage.angleRad;
-      ui_build_debug_inspector(state, cmd->drawImage.id, cmd->drawImage.flags, angleRad);
+      const UiId id       = cmd->drawImage.id;
+      const f32  angleRad = cmd->drawImage.angleRad;
+      ui_build_debug_inspector(state, id, cmd->drawImage.flags, angleRad, UiAtomType_Image);
     }
     break;
   }

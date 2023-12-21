@@ -10,6 +10,8 @@ typedef struct sUiCmdBuffer UiCmdBuffer;
 typedef enum {
   UiAtomType_Glyph,
   UiAtomType_Image,
+
+  UiAtomType_Count,
 } UiAtomType;
 
 typedef struct {
