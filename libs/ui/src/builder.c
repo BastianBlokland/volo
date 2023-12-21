@@ -361,6 +361,11 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   }
 }
 
+static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
+  (void)state;
+  (void)cmd;
+}
+
 static void ui_build_debug_inspector(
     UiBuildState* state, const UiId id, const UiFlags flags, const f32 angleRad) {
   const UiRect           rect      = *ui_build_rect_current(state);
@@ -537,6 +542,13 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     if (UNLIKELY(cmd->drawGlyph.id == state->ctx->debugElem)) {
       const f32 angleRad = cmd->drawGlyph.angleRad;
       ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags, angleRad);
+    }
+    break;
+  case UiCmd_DrawImage:
+    ui_build_draw_image(state, &cmd->drawImage);
+    if (UNLIKELY(cmd->drawImage.id == state->ctx->debugElem)) {
+      const f32 angleRad = cmd->drawImage.angleRad;
+      ui_build_debug_inspector(state, cmd->drawImage.id, cmd->drawImage.flags, angleRad);
     }
     break;
   }
