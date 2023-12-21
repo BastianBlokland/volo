@@ -7,12 +7,13 @@
 
 bind_spec(0) const bool s_debug = false;
 
-const f32   c_smoothingPixels = 2;
-const f32v4 c_outlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
-const f32   c_outlineNormMax  = 0.9; // Avoid the extremities of the sdf border to avoid artifacts.
-const f32   c_outlineMin      = 0.001; // Outlines smaller then this will not be drawn.
-const u32   c_atomTypeGlyph   = 0;
-const u32   c_atomTypeImage   = 1;
+const u32 c_atomTypeGlyph = 0;
+const u32 c_atomTypeImage = 1;
+
+const f32   c_glyphSmoothingPixels = 2;
+const f32v4 c_glyphOutlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
+const f32   c_glyphOutlineNormMax  = 0.9; // Avoid extremities of the sdf border to avoid artifacts.
+const f32   c_glyphOutlineMin      = 0.001; // Outlines smaller then this will not be drawn.
 
 bind_graphic_img(0) uniform sampler2D u_atlasFont;
 bind_graphic_img(1) uniform sampler2D u_atlasImage;
@@ -48,7 +49,7 @@ f32 glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNo
  * 1 = fully outline color
  */
 f32 glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
-  if (outlineNorm < c_outlineMin) {
+  if (outlineNorm < c_glyphOutlineMin) {
     return 0.0; // Outline is disabled.
   }
   return smoothstep(-smoothingNorm * 0.5, smoothingNorm * 0.5, distNorm);
@@ -107,7 +108,7 @@ bool clip(const f32v2 point) {
 }
 
 f32v4 color_glyph() {
-  const f32 smoothingNorm = min(c_smoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
+  const f32 smoothingNorm = min(c_glyphSmoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
   const f32 outlineNorm   = in_outlineWidth * in_invBorder;
 
   /**
@@ -121,7 +122,7 @@ f32v4 color_glyph() {
   const f32v2 atlasCoord  = atlas_coord();
   const f32   distNorm    = glyph_signed_dist(atlasCoord) - in_edgeShiftFrac + outlineShift;
   const f32   outlineFrac = glyph_outline_frac(distNorm, outlineNorm, smoothingNorm);
-  const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
+  const f32v4 color       = mix(in_color, c_glyphOutlineColor, outlineFrac);
   const f32   alpha       = glyph_alpha(distNorm, outlineNorm, smoothingNorm);
 
   if (s_debug) {
