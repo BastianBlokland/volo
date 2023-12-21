@@ -621,56 +621,27 @@ static UiId hud_production_header_draw(UiCanvasComp* c, EcsIterator* itr) {
   return id;
 }
 
-static void hud_production_queue_bg_draw(UiCanvasComp* c, const UiStatus status) {
+static void hud_production_queue_bg_draw(
+    UiCanvasComp* c, const SceneProductQueue* queue, const UiStatus status) {
   ui_style_push(c);
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_color(c, ui_color(32, 32, 32, 128));
+    ui_style_color(c, ui_color(255, 255, 255, 255));
     ui_style_outline(c, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
   case UiStatus_ActivatedAlt:
-    ui_style_color(c, ui_color(48, 48, 48, 128));
+    ui_style_color(c, ui_color(225, 225, 225, 255));
     ui_style_outline(c, 1);
     break;
   case UiStatus_Idle:
-    ui_style_color(c, ui_color(16, 16, 16, 128));
+    ui_style_color(c, ui_color(178, 178, 178, 255));
     ui_style_outline(c, 2);
     break;
   }
   const UiFlags flags = UiFlags_Interactable | UiFlags_InteractSupportAlt;
-  ui_canvas_draw_glyph(c, UiShape_Square, 10, flags);
-  ui_style_pop(c);
-}
-
-static void hud_production_queue_icon_draw(
-    UiCanvasComp* c, const SceneProductQueue* queue, const UiStatus status) {
-  static const UiVector g_size = {.x = 30, .y = 30};
-
-  ui_style_push(c);
-  ui_layout_push(c);
-
-  UiColor color = ui_color_white;
-  switch (queue->state) {
-  case SceneProductState_Idle:
-    ui_style_outline(c, status == UiStatus_Hovered ? 2 : 1);
-    break;
-  case SceneProductState_Ready:
-  case SceneProductState_Active:
-    ui_style_outline(c, 1);
-    color = ui_color_gray;
-    break;
-  case SceneProductState_Building:
-  case SceneProductState_Cooldown:
-    ui_style_outline(c, 2);
-    break;
-  }
-  ui_style_color(c, color);
-  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
-  ui_canvas_draw_image(c, queue->product->iconImage, 0, UiFlags_None);
-
-  ui_layout_pop(c);
+  ui_canvas_draw_image(c, queue->product->iconImage, 0, flags);
   ui_style_pop(c);
 }
 
@@ -786,12 +757,11 @@ static void hud_production_queue_draw(
   const StringHash hotkey =
       queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
-  hud_production_queue_bg_draw(c, status);
+  hud_production_queue_bg_draw(c, queue, status);
   if (queue->state >= SceneProductState_Building) {
     const f32 progress = queue->state == SceneProductState_Building ? queue->progress : 1.0f;
     hud_production_queue_progress_draw(c, progress);
   }
-  hud_production_queue_icon_draw(c, queue, status);
   if (queue->count) {
     hud_production_queue_count_draw(c, queue);
   }
