@@ -18,6 +18,7 @@ const f32   c_glyphOutlineMin      = 0.001; // Outlines smaller then this will n
 bind_graphic_img(0) uniform sampler2D u_atlasFont;
 bind_graphic_img(1) uniform sampler2D u_atlasImage;
 
+// Generic inputs (used for all atoms).
 bind_internal(0) in f32v2 in_uiPos;             // Coordinates in ui-pixels.
 bind_internal(1) in f32v2 in_texCoord;          // Texture coordinates of this atom.
 bind_internal(2) in flat u32 in_atomType;       // Type of this atom.
@@ -25,43 +26,15 @@ bind_internal(3) in flat f32 in_invCanvasScale; // Inverse of the canvas scale.
 bind_internal(4) in flat f32v4 in_clipRect;     // Clipping rectangle in ui-pixel coordinates.
 bind_internal(5) in flat f32v3 in_texMeta;      // xy: texture origin in atlas, z: texture scale.
 bind_internal(6) in flat f32v4 in_color;
-bind_internal(7) in flat f32 in_glyphInvBorder;      // 1.0 / glyphBorderPixelSize.
-bind_internal(8) in flat f32 in_glyphOutlineWidth;   // Desired outline size in ui-pixels.
-bind_internal(9) in flat f32 in_aspectRatio;         // Aspect ratio of the atom.
-bind_internal(10) in flat f32 in_cornerFrac;         // Corner size in fractions of the atom width.
+bind_internal(7) in flat f32 in_aspectRatio; // Aspect ratio of the atom.
+bind_internal(8) in flat f32 in_cornerFrac;  // Corner size in fractions of the atom width.
+
+// Glyph-only inputs.
+bind_internal(9) in flat f32 in_glyphInvBorder;      // 1.0 / glyphBorderPixelSize.
+bind_internal(10) in flat f32 in_glyphOutlineWidth;  // Desired outline size in ui-pixels.
 bind_internal(11) in flat f32 in_glyphEdgeShiftFrac; // Pushes the edge in/out. in frac of width.
 
 bind_internal(0) out f32v4 out_color;
-
-/**
- * Fade out the glyph beyond the outline edge.
- * 0 = beyond the outline and smoothing ui-pixels.
- * 1 = Precisely on the outer edge of the outline.
- */
-f32 glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
-  const f32 halfSmoothing = smoothingNorm * 0.5;
-  return 1.0 - smoothstep(outlineNorm - halfSmoothing, outlineNorm + halfSmoothing, distNorm);
-}
-
-/**
- * Get the fraction between the glyph color and the outline color.
- * 0 = fully glyph color
- * 1 = fully outline color
- */
-f32 glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
-  if (outlineNorm < c_glyphOutlineMin) {
-    return 0.0; // Outline is disabled.
-  }
-  return smoothstep(-smoothingNorm * 0.5, smoothingNorm * 0.5, distNorm);
-}
-
-/**
- * Get the signed distance to the glyph edge:
- * -1.0 = Well into the glyph.
- *  0.0 = Precisely on the border of the glyph.
- * +1.0 = Well outside the glyph.
- */
-f32 glyph_signed_dist(const f32v2 coord) { return texture(u_atlasFont, coord).r * 2.0 - 1.0; }
 
 /**
  * Remap a single texture coordinate axis.
@@ -106,6 +79,36 @@ bool clip(const f32v2 point) {
   return point.x < in_clipRect.x || point.x > in_clipRect.x + in_clipRect.z ||
          point.y < in_clipRect.y || point.y > in_clipRect.y + in_clipRect.w;
 }
+
+/**
+ * Fade out the glyph beyond the outline edge.
+ * 0 = beyond the outline and smoothing ui-pixels.
+ * 1 = Precisely on the outer edge of the outline.
+ */
+f32 glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
+  const f32 halfSmoothing = smoothingNorm * 0.5;
+  return 1.0 - smoothstep(outlineNorm - halfSmoothing, outlineNorm + halfSmoothing, distNorm);
+}
+
+/**
+ * Get the fraction between the glyph color and the outline color.
+ * 0 = fully glyph color
+ * 1 = fully outline color
+ */
+f32 glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
+  if (outlineNorm < c_glyphOutlineMin) {
+    return 0.0; // Outline is disabled.
+  }
+  return smoothstep(-smoothingNorm * 0.5, smoothingNorm * 0.5, distNorm);
+}
+
+/**
+ * Get the signed distance to the glyph edge:
+ * -1.0 = Well into the glyph.
+ *  0.0 = Precisely on the border of the glyph.
+ * +1.0 = Well outside the glyph.
+ */
+f32 glyph_signed_dist(const f32v2 coord) { return texture(u_atlasFont, coord).r * 2.0 - 1.0; }
 
 f32v4 color_glyph() {
   const f32 invBorder     = in_glyphInvBorder;
