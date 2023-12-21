@@ -30,7 +30,8 @@ typedef struct {
 
 typedef struct {
   const UiBuildCtx*       ctx;
-  const AssetFontTexComp* font;
+  const AssetFontTexComp* atlasFont;
+  const AssetAtlasComp*   atlasImage;
   UiRect                  rectStack[ui_build_rect_stack_max];
   u32                     rectStackCount;
   UiBuildStyle            styleStack[ui_build_style_stack_max];
@@ -165,7 +166,7 @@ static void ui_build_atom_glyph(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
-  const AssetFontTexChar* ch = asset_fonttex_lookup(state->font, cp, style.variation);
+  const AssetFontTexChar* ch = asset_fonttex_lookup(state->atlasFont, cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }
@@ -285,7 +286,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   }
 
   const UiTextBuildResult result = ui_text_build(
-      state->font,
+      state->atlasFont,
       cmd->flags,
       rect,
       state->ctx->inputPos,
@@ -413,7 +414,7 @@ static void ui_build_debug_inspector(
       .size = {textSize, textSize},
   };
   ui_text_build(
-      state->font,
+      state->atlasFont,
       UiFlags_None,
       textRect,
       state->ctx->inputPos,
@@ -544,7 +545,8 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   UiBuildState state = {
       .ctx            = ctx,
-      .font           = ctx->font,
+      .atlasFont      = ctx->atlasFont,
+      .atlasImage     = ctx->atlasImage,
       .rectStack[0]   = {.width = 100, .height = 100},
       .rectStackCount = 1,
       .styleStack[0] =

@@ -286,7 +286,8 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
 
   const UiBuildCtx buildCtx = {
       .settings       = state->settings,
-      .font           = state->font,
+      .atlasFont      = state->font,
+      .atlasImage     = null,
       .debugElem      = debugElem,
       .canvasRes      = state->canvas->resolution,
       .inputPos       = state->canvas->inputPos,

@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_atlas.h"
 #include "asset_fonttex.h"
 #include "ui_canvas.h"
 #include "ui_settings.h"
@@ -46,7 +47,8 @@ typedef void (*UiOutputTextInfo)(void* userCtx, UiId, UiBuildTextInfo);
 
 typedef struct {
   const UiSettingsComp*   settings;
-  const AssetFontTexComp* font;
+  const AssetFontTexComp* atlasFont;
+  const AssetAtlasComp*   atlasImage;
   UiId                    debugElem;
   UiVector                canvasRes, inputPos;
   void*                   userCtx;
