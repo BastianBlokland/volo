@@ -1,4 +1,6 @@
 #include "asset_manager.h"
+#include "core_array.h"
+#include "core_diag.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -6,22 +8,31 @@
 
 #include "resource_internal.h"
 
-static const String g_uiGlobalFont         = string_static("fonts/ui.fonttex");
-static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.graphic");
-static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.graphic");
-static const String g_uiSoundClick         = string_static("external/sound/click-02.wav");
-static const String g_uiSoundClickAlt      = string_static("external/sound/click-03.wav");
+static const String g_uiAtlasIds[UiAtlasRes_Count] = {
+    [UiAtlasRes_Font]  = string_static("fonts/ui.fonttex"),
+    [UiAtlasRes_Image] = string_static("textures/ui/image.atlas"),
+};
+static const String g_uiGraphicIds[UiGraphicRes_Count] = {
+    [UiGraphicRes_Normal] = string_static("graphics/ui/canvas.graphic"),
+    [UiGraphicRes_Debug]  = string_static("graphics/ui/canvas_debug.graphic"),
+};
+static const String g_uiSoundIds[UiSoundRes_Count] = {
+    [UiSoundRes_Click]    = string_static("external/sound/click-02.wav"),
+    [UiSoundRes_ClickAlt] = string_static("external/sound/click-03.wav"),
+};
 
-typedef enum {
-  UiGlobalRes_FontAcquired  = 1 << 0,
-  UiGlobalRes_FontUnloading = 1 << 1,
-} UiGlobalResFlags;
+static const String g_uiAtlasResNames[] = {
+    string_static("font"),
+    string_static("image"),
+};
+ASSERT(array_elems(g_uiAtlasResNames) == UiAtlasRes_Count, "Incorrect number of names");
 
 ecs_comp_define(UiGlobalResourcesComp) {
-  UiGlobalResFlags flags;
-  EcsEntityId      font;
-  EcsEntityId      graphic, graphicDebug;
-  EcsEntityId      soundClick, soundClickAlt;
+  EcsEntityId atlases[UiAtlasRes_Count];
+  u32         acquiredAtlases;
+  u32         unloadingAtlases;
+  EcsEntityId graphics[UiGraphicRes_Count];
+  EcsEntityId sounds[UiSoundRes_Count];
 };
 
 ecs_view_define(GlobalInitView) {
@@ -48,51 +59,62 @@ ecs_system_define(UiResourceInitSys) {
 
   UiGlobalResourcesComp* globalResources = ui_global_resources(world);
   if (!globalResources) {
-    // Initialize global resource lookup.
-    globalResources = ecs_world_add_t(
-        world,
-        ecs_world_global(world),
-        UiGlobalResourcesComp,
-        .font          = asset_lookup(world, assets, g_uiGlobalFont),
-        .graphic       = asset_lookup(world, assets, g_uiGlobalGraphic),
-        .graphicDebug  = asset_lookup(world, assets, g_uiGlobalGraphicDebug),
-        .soundClick    = asset_lookup(world, assets, g_uiSoundClick),
-        .soundClickAlt = asset_lookup(world, assets, g_uiSoundClickAlt));
-
-    // Initialize sound assets.
-    snd_mixer_persistent_asset(soundMixer, globalResources->soundClick);
-    snd_mixer_persistent_asset(soundMixer, globalResources->soundClickAlt);
+    globalResources = ecs_world_add_t(world, ecs_world_global(world), UiGlobalResourcesComp);
+    for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
+      globalResources->atlases[res] = asset_lookup(world, assets, g_uiAtlasIds[res]);
+    }
+    for (UiGraphicRes res = 0; res != UiGraphicRes_Count; ++res) {
+      globalResources->graphics[res] = asset_lookup(world, assets, g_uiGraphicIds[res]);
+    }
+    for (UiSoundRes res = 0; res != UiSoundRes_Count; ++res) {
+      globalResources->sounds[res] = asset_lookup(world, assets, g_uiSoundIds[res]);
+      snd_mixer_persistent_asset(soundMixer, globalResources->sounds[res]);
+    }
     return;
   }
 
-  if (!(globalResources->flags & (UiGlobalRes_FontAcquired | UiGlobalRes_FontUnloading))) {
-    log_i("Acquiring global font", log_param("id", fmt_text(g_uiGlobalFont)));
-    asset_acquire(world, globalResources->font);
-    globalResources->flags |= UiGlobalRes_FontAcquired;
+  for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
+    const bool isAcquired  = (globalResources->acquiredAtlases & (1 << res)) != 0;
+    const bool isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
+    if (!isAcquired && !isUnloading) {
+      log_i(
+          "Acquiring ui {} atlas",
+          log_param("type", fmt_text(g_uiAtlasResNames[res])),
+          log_param("id", fmt_text(g_uiAtlasIds[res])));
+      asset_acquire(world, globalResources->atlases[res]);
+      globalResources->acquiredAtlases |= 1 << res;
+    }
   }
 }
 
-ecs_system_define(UiResourceUnloadChangedFontsSys) {
+ecs_system_define(UiResourceUnloadChangedAtlasSys) {
   UiGlobalResourcesComp* globalResources = ui_global_resources(world);
   if (!globalResources) {
     return;
   }
-  const bool isLoaded   = ecs_world_has_t(world, globalResources->font, AssetLoadedComp);
-  const bool isFailed   = ecs_world_has_t(world, globalResources->font, AssetFailedComp);
-  const bool hasChanged = ecs_world_has_t(world, globalResources->font, AssetChangedComp);
+  for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
+    const EcsEntityId atlas      = globalResources->atlases[res];
+    const bool        isAcquired = (globalResources->acquiredAtlases & (1 << res)) != 0;
+    const bool        isLoaded   = ecs_world_has_t(world, atlas, AssetLoadedComp);
+    const bool        isFailed   = ecs_world_has_t(world, atlas, AssetFailedComp);
+    const bool        hasChanged = ecs_world_has_t(world, atlas, AssetChangedComp);
 
-  if (globalResources->flags & UiGlobalRes_FontAcquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading global font",
-        log_param("id", fmt_text(g_uiGlobalFont)),
-        log_param("reason", fmt_text_lit("Asset changed")));
+    if (isAcquired && (isLoaded || isFailed) && hasChanged) {
+      log_i(
+          "Unloading ui {} atlas",
+          log_param("type", fmt_text(g_uiAtlasResNames[res])),
+          log_param("id", fmt_text(g_uiAtlasIds[res])),
+          log_param("reason", fmt_text_lit("Asset changed")));
 
-    asset_release(world, globalResources->font);
-    globalResources->flags &= ~UiGlobalRes_FontAcquired;
-    globalResources->flags |= UiGlobalRes_FontUnloading;
-  }
-  if (globalResources->flags & UiGlobalRes_FontUnloading && !isLoaded) {
-    globalResources->flags &= ~UiGlobalRes_FontUnloading;
+      asset_release(world, atlas);
+      globalResources->acquiredAtlases &= ~(1 << res);
+      globalResources->unloadingAtlases |= 1 << res;
+    }
+
+    const bool isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
+    if (isUnloading && !isLoaded) {
+      globalResources->unloadingAtlases &= ~(1 << res);
+    }
   }
 }
 
@@ -104,15 +126,20 @@ ecs_module_init(ui_resource_module) {
 
   ecs_register_system(
       UiResourceInitSys, ecs_view_id(GlobalInitView), ecs_view_id(GlobalResourcesView));
-  ecs_register_system(UiResourceUnloadChangedFontsSys, ecs_view_id(GlobalResourcesView));
+  ecs_register_system(UiResourceUnloadChangedAtlasSys, ecs_view_id(GlobalResourcesView));
 }
 
-EcsEntityId ui_resource_font(const UiGlobalResourcesComp* comp) { return comp->font; }
-EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp->graphic; }
-EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp* comp) {
-  return comp->graphicDebug;
+EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasRes res) {
+  diag_assert(res < UiAtlasRes_Count);
+  return comp->atlases[res];
 }
-EcsEntityId ui_resource_sound_click(const UiGlobalResourcesComp* comp) { return comp->soundClick; }
-EcsEntityId ui_resource_sound_click_alt(const UiGlobalResourcesComp* comp) {
-  return comp->soundClickAlt;
+
+EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp, const UiGraphicRes res) {
+  diag_assert(res < UiGraphicRes_Count);
+  return comp->graphics[res];
+}
+
+EcsEntityId ui_resource_sound(const UiGlobalResourcesComp* comp, const UiSoundRes res) {
+  diag_assert(res < UiSoundRes_Count);
+  return comp->sounds[res];
 }

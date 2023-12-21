@@ -159,3 +159,12 @@ String ui_canvas_text_editor_result(UiCanvasComp*);
  */
 UiId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner, UiFlags);
 UiId ui_canvas_draw_glyph_rotated(UiCanvasComp*, Unicode, u16 maxCorner, f32 angleRad, UiFlags);
+
+/**
+ * Draw an image in the current rectangle.
+ * NOTE: The given string-hash is an identifier into the ui image-atlas.
+ * The image will be stretched using 9-slice scaling to fill the rectangle, 'maxCorner' is used to
+ * control the size of the 9-slice corner.
+ */
+UiId ui_canvas_draw_image(UiCanvasComp*, StringHash, u16 maxCorner, UiFlags);
+UiId ui_canvas_draw_image_rotated(UiCanvasComp*, StringHash, u16 maxCorner, f32 angleRad, UiFlags);

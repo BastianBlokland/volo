@@ -57,7 +57,7 @@ ecs_system_define(VfxAtlasInitSys) {
     VfxAtlasData* atlas = &manager->atlases[type];
     if (!(atlas->flags & (VfxAtlas_Acquired | VfxAtlas_Unloading))) {
       log_i(
-          "Acquiring {} atlas",
+          "Acquiring vfx {} atlas",
           log_param("type", fmt_text(g_vfxAtlasTypeNames[type])),
           log_param("id", fmt_text(g_vfxAtlasAssets[type])));
       asset_acquire(world, atlas->entity);
@@ -84,7 +84,7 @@ ecs_system_define(VfxAtlasUnloadChangedSys) {
 
     if (atlas->flags & VfxAtlas_Acquired && (isLoaded || isFailed) && hasChanged) {
       log_i(
-          "Unloading {} atlas",
+          "Unloading vfx {} atlas",
           log_param("type", fmt_text(g_vfxAtlasTypeNames[type])),
           log_param("id", fmt_text(g_vfxAtlasAssets[type])),
           log_param("reason", fmt_text_lit("Asset changed")));

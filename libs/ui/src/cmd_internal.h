@@ -22,6 +22,7 @@ typedef enum {
   UiCmd_StyleWeight,
   UiCmd_DrawText,
   UiCmd_DrawGlyph,
+  UiCmd_DrawImage,
 } UiCmdType;
 
 typedef struct {
@@ -96,6 +97,14 @@ typedef struct {
 } UiDrawGlyph;
 
 typedef struct {
+  UiId       id;
+  StringHash img;
+  f32        angleRad;
+  u16        maxCorner;
+  UiFlags    flags : 16;
+} UiDrawImage;
+
+typedef struct {
   UiCmdType type;
   union {
     UiRectPos        rectPos;
@@ -111,6 +120,7 @@ typedef struct {
     UiStyleWeight    styleWeight;
     UiDrawText       drawText;
     UiDrawGlyph      drawGlyph;
+    UiDrawImage      drawImage;
   };
 } UiCmd;
 
@@ -139,5 +149,6 @@ void ui_cmd_push_style_variation(UiCmdBuffer*, u8 variation);
 void ui_cmd_push_style_weight(UiCmdBuffer*, UiWeight);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, f32 angleRad, UiFlags);
+void ui_cmd_push_draw_image(UiCmdBuffer*, UiId, StringHash, u16 maxCorner, f32 angleRad, UiFlags);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);

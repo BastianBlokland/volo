@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -11,6 +12,12 @@
 #define ui_build_rect_stack_max 10
 #define ui_build_style_stack_max 10
 #define ui_build_container_stack_max 10
+
+static const String g_uiAtomTypeNames[] = {
+    string_static("glyph"),
+    string_static("image"),
+};
+ASSERT(array_elems(g_uiAtomTypeNames) == UiAtomType_Count, "Incorrect number of names");
 
 typedef struct {
   UiColor  color;
@@ -30,7 +37,8 @@ typedef struct {
 
 typedef struct {
   const UiBuildCtx*       ctx;
-  const AssetFontTexComp* font;
+  const AssetFontTexComp* atlasFont;
+  const AssetAtlasComp*   atlasImage;
   UiRect                  rectStack[ui_build_rect_stack_max];
   u32                     rectStackCount;
   UiBuildStyle            styleStack[ui_build_style_stack_max];
@@ -157,7 +165,7 @@ static f32 ui_build_angle_rad_to_frac(const f32 angle) {
   return math_mod_f32(angle * g_radToFrac, 1.0f);
 }
 
-static void ui_build_glyph(
+static void ui_build_atom_glyph(
     UiBuildState*      state,
     const Unicode      cp,
     const UiRect       rect,
@@ -165,7 +173,7 @@ static void ui_build_glyph(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
-  const AssetFontTexChar* ch = asset_fonttex_lookup(state->font, cp, style.variation);
+  const AssetFontTexChar* ch = asset_fonttex_lookup(state->atlasFont, cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }
@@ -180,23 +188,60 @@ static void ui_build_glyph(
     return; // Glyph too small.
   }
   const bool rotated = math_abs(angleRad) > f32_epsilon;
-  state->ctx->outputGlyph(
+  state->ctx->outputAtom(
       state->ctx->userCtx,
-      (UiGlyphData){
-          .rect         = outputRect,
-          .color        = style.color,
-          .atlasIndex   = ch->glyphIndex,
-          .angleFrac    = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
-          .borderFrac   = (u16)(border / outputRect.size.width * u16_max),
-          .cornerFrac   = (u16)((corner + border) / outputRect.size.width * u16_max),
-          .clipId       = clipId,
-          .outlineWidth = style.outline,
-          .weight       = style.weight,
+      (UiAtomData){
+          .atomType   = UiAtomType_Glyph,
+          .rect       = outputRect,
+          .color      = style.color,
+          .atlasIndex = ch->glyphIndex,
+          .angleFrac  = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
+          .cornerFrac = (u16)((corner + border) / outputRect.size.width * u16_max),
+          .clipId     = clipId,
+
+          .glyphBorderFrac   = (u16)(border / outputRect.size.width * u16_max),
+          .glyphOutlineWidth = style.outline,
+          .glyphWeight       = style.weight,
       },
       style.layer);
 }
 
-static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
+static void ui_build_atom_image(
+    UiBuildState*      state,
+    const StringHash   img,
+    const UiRect       rect,
+    const UiBuildStyle style,
+    const u16          maxCorner,
+    const f32          angleRad,
+    const u8           clipId) {
+  if (UNLIKELY(rect.size.width < f32_epsilon || rect.size.height < f32_epsilon)) {
+    return; // Image too small.
+  }
+  const AssetAtlasEntry* entry = asset_atlas_lookup(state->atlasImage, img);
+  if (UNLIKELY(!entry)) {
+    // Image not found in atlas; draw a replacement square.
+    // TODO: Should we also log an error/warning in this case?
+    ui_build_atom_glyph(state, UiShape_Square, rect, style, maxCorner, angleRad, clipId);
+    return;
+  }
+  const f32  halfMinDim = math_min(rect.width, rect.height) * 0.5f;
+  const f32  corner     = maxCorner ? math_min(maxCorner, halfMinDim) : halfMinDim;
+  const bool rotated    = math_abs(angleRad) > f32_epsilon;
+  state->ctx->outputAtom(
+      state->ctx->userCtx,
+      (UiAtomData){
+          .atomType   = UiAtomType_Image,
+          .rect       = rect,
+          .color      = style.color,
+          .atlasIndex = entry->atlasIndex,
+          .angleFrac  = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
+          .cornerFrac = (u16)(corner / rect.size.width * u16_max),
+          .clipId     = clipId,
+      },
+      style.layer);
+}
+
+static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
   const u8  clipId   = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
@@ -206,22 +251,24 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       info->pos.x + info->ch->offsetX * info->size - border,
       info->pos.y + info->ch->offsetY * info->size - border,
   };
-  state->ctx->outputGlyph(
+  state->ctx->outputAtom(
       state->ctx->userCtx,
-      (UiGlyphData){
-          .rect         = {pos, ui_vector(size, size)},
-          .color        = info->color,
-          .atlasIndex   = info->ch->glyphIndex,
-          .borderFrac   = (u16)(border / size * u16_max),
-          .cornerFrac   = (u16)(0.5f * u16_max),
-          .clipId       = clipId,
-          .outlineWidth = info->outline,
-          .weight       = info->weight,
+      (UiAtomData){
+          .atomType   = UiAtomType_Glyph,
+          .rect       = {pos, ui_vector(size, size)},
+          .color      = info->color,
+          .atlasIndex = info->ch->glyphIndex,
+          .cornerFrac = (u16)(0.5f * u16_max),
+          .clipId     = clipId,
+
+          .glyphBorderFrac   = (u16)(border / size * u16_max),
+          .glyphOutlineWidth = info->outline,
+          .glyphWeight       = info->weight,
       },
       info->layer);
 }
 
-static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
+static void ui_build_atom_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
   UiBuildState* state = userCtx;
 
   const u8 clipId = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
@@ -232,7 +279,7 @@ static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* 
   };
   const u8  maxCorner = 4; // Roundedness of the backgrounds.
   const f32 angleRad  = 0.0f;
-  ui_build_glyph(state, UiShape_Circle, info->rect, style, maxCorner, angleRad, clipId);
+  ui_build_atom_glyph(state, UiShape_Circle, info->rect, style, maxCorner, angleRad, clipId);
 }
 
 static bool ui_rect_contains(const UiRect rect, const UiVector point) {
@@ -283,7 +330,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   }
 
   const UiTextBuildResult result = ui_text_build(
-      state->font,
+      state->atlasFont,
       cmd->flags,
       rect,
       state->ctx->inputPos,
@@ -296,8 +343,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.weight,
       cmd->align,
       state,
-      &ui_build_text_char,
-      &ui_build_text_background);
+      &ui_build_atom_text_char,
+      &ui_build_atom_text_background);
 
   if (cmd->flags & UiFlags_TightTextRect) {
     rect = result.rect;
@@ -305,6 +352,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hover = (UiBuildHover){
         .id    = cmd->id,
@@ -350,7 +398,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
     };
   }
 
-  ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, cmd->angleRad, container.clipId);
+  ui_build_atom_glyph(state, cmd->cp, rect, style, cmd->maxCorner, cmd->angleRad, container.clipId);
 
   if (cmd->flags & UiFlags_TrackRect) {
     diag_assert(!rotated); // Tracking is not supported for rotated glyphs.
@@ -358,8 +406,55 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   }
 }
 
+static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
+  const UiRect           rect      = *ui_build_rect_current(state);
+  const UiBuildStyle     style     = *ui_build_style_current(state);
+  const UiBuildContainer container = *ui_build_container_active(state);
+  const u8               clipId    = container.clipId;
+
+  const bool rotated = math_abs(cmd->angleRad) > f32_epsilon;
+  // TODO: Support culling for rotated images.
+  if (!rotated && ui_build_cull(container, rect, style)) {
+    return;
+  }
+  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+
+  if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    // TODO: Implement proper hovering for rotated images.
+    state->hover = (UiBuildHover){
+        .id    = cmd->id,
+        .layer = style.layer,
+        .flags = cmd->flags,
+    };
+  }
+
+  if (style.outline) {
+    /**
+     * Image atoms do not support outlines, to work around this we additionally output a transparent
+     * square glyph with an outline.
+     */
+    const UiBuildStyle outlineStyle = {
+        .outline = style.outline,
+        .color   = ui_color_clear,
+        .layer   = style.layer,
+    };
+    ui_build_atom_glyph(state, UiShape_Square, rect, outlineStyle, 10, cmd->angleRad, clipId);
+  }
+  ui_build_atom_image(state, cmd->img, rect, style, cmd->maxCorner, cmd->angleRad, clipId);
+
+  if (cmd->flags & UiFlags_TrackRect) {
+    diag_assert(!rotated); // Tracking is not supported for rotated images.
+    state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
+  }
+}
+
 static void ui_build_debug_inspector(
-    UiBuildState* state, const UiId id, const UiFlags flags, const f32 angleRad) {
+    UiBuildState*    state,
+    const UiId       id,
+    const UiFlags    flags,
+    const f32        angleRad,
+    const UiAtomType atomType) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_active(state);
@@ -367,38 +462,41 @@ static void ui_build_debug_inspector(
   const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerClip  = {.color = {0, 255, 0, 178}, .layer = UiLayer_Overlay};
-  const UiBuildStyle styleText           = {
+
+  const UiBuildStyle styleText = {
       .color     = ui_color_white,
       .outline   = 3,
       .variation = 1,
       .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay};
+      .layer     = UiLayer_Overlay,
+  };
 
-  ui_build_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0.0f, 0);
-  ui_build_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0.0f, 0);
-  ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
+  ui_build_atom_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0.0f, 0);
+  ui_build_atom_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0.0f, 0);
+  ui_build_atom_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  fmt_write(&str, "Id\t\t{}\n", fmt_int(id));
-  fmt_write(&str, "X\t\t{}\n", fmt_float(rect.x, .maxDecDigits = 2));
-  fmt_write(&str, "Y\t\t{}\n", fmt_float(rect.y, .maxDecDigits = 2));
-  fmt_write(&str, "Width\t\t{}\n", fmt_float(rect.width, .maxDecDigits = 2));
-  fmt_write(&str, "Height\t\t{}\n", fmt_float(rect.height, .maxDecDigits = 2));
+  fmt_write(&str, "Id\a>0B{}\n", fmt_int(id));
+  fmt_write(&str, "AtomType\a>0B{}\n", fmt_text(g_uiAtomTypeNames[atomType]));
+  fmt_write(&str, "X\a>0B{}\n", fmt_float(rect.x, .maxDecDigits = 2));
+  fmt_write(&str, "Y\a>0B{}\n", fmt_float(rect.y, .maxDecDigits = 2));
+  fmt_write(&str, "Width\a>0B{}\n", fmt_float(rect.width, .maxDecDigits = 2));
+  fmt_write(&str, "Height\a>0B{}\n", fmt_float(rect.height, .maxDecDigits = 2));
   fmt_write(
       &str,
-      "Color\t\t#{}{}{}{}\n",
+      "Color\a>0B#{}{}{}{}\n",
       fmt_int(style.color.r, .base = 16, .minDigits = 2),
       fmt_int(style.color.g, .base = 16, .minDigits = 2),
       fmt_int(style.color.b, .base = 16, .minDigits = 2),
       fmt_int(style.color.a, .base = 16, .minDigits = 2));
-  fmt_write(&str, "Outline\t{}\n", fmt_int(style.outline));
-  fmt_write(&str, "Layer\t\t{}\n", fmt_int(style.layer));
-  fmt_write(&str, "Variation\t{}\n", fmt_int(style.variation));
-  fmt_write(&str, "ClipId\t\t{}\n", fmt_int(container.clipId));
-  fmt_write(&str, "Interact\t{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
+  fmt_write(&str, "Outline\a>0B{}\n", fmt_int(style.outline));
+  fmt_write(&str, "Layer\a>0B{}\n", fmt_int(style.layer));
+  fmt_write(&str, "Variation\a>0B{}\n", fmt_int(style.variation));
+  fmt_write(&str, "ClipId\a>0B{}\n", fmt_int(container.clipId));
+  fmt_write(&str, "Interact\a>0B{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
   fmt_write(
       &str,
-      "Angle\t\t{} rad ({} deg)\n",
+      "Angle\a>0B{} rad ({} deg)\n",
       fmt_float(angleRad, .minDecDigits = 2, .maxDecDigits = 2),
       fmt_float(angleRad * math_rad_to_deg, .maxDecDigits = 0));
 
@@ -409,7 +507,7 @@ static void ui_build_debug_inspector(
       .size = {textSize, textSize},
   };
   ui_text_build(
-      state->font,
+      state->atlasFont,
       UiFlags_None,
       textRect,
       state->ctx->inputPos,
@@ -422,8 +520,8 @@ static void ui_build_debug_inspector(
       styleText.weight,
       UiAlign_TopLeft,
       state,
-      &ui_build_text_char,
-      &ui_build_text_background);
+      &ui_build_atom_text_char,
+      &ui_build_atom_text_background);
 }
 
 INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
@@ -523,15 +621,25 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
     if (UNLIKELY(cmd->drawText.id == state->ctx->debugElem)) {
-      const f32 angleRad = 0.0f;
-      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags, angleRad);
+      const UiId id       = cmd->drawText.id;
+      const f32  angleRad = 0.0f;
+      ui_build_debug_inspector(state, id, cmd->drawText.flags, angleRad, UiAtomType_Glyph);
     }
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
     if (UNLIKELY(cmd->drawGlyph.id == state->ctx->debugElem)) {
-      const f32 angleRad = cmd->drawGlyph.angleRad;
-      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags, angleRad);
+      const UiId id       = cmd->drawGlyph.id;
+      const f32  angleRad = cmd->drawGlyph.angleRad;
+      ui_build_debug_inspector(state, id, cmd->drawGlyph.flags, angleRad, UiAtomType_Glyph);
+    }
+    break;
+  case UiCmd_DrawImage:
+    ui_build_draw_image(state, &cmd->drawImage);
+    if (UNLIKELY(cmd->drawImage.id == state->ctx->debugElem)) {
+      const UiId id       = cmd->drawImage.id;
+      const f32  angleRad = cmd->drawImage.angleRad;
+      ui_build_debug_inspector(state, id, cmd->drawImage.flags, angleRad, UiAtomType_Image);
     }
     break;
   }
@@ -540,7 +648,8 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   UiBuildState state = {
       .ctx            = ctx,
-      .font           = ctx->font,
+      .atlasFont      = ctx->atlasFont,
+      .atlasImage     = ctx->atlasImage,
       .rectStack[0]   = {.width = 100, .height = 100},
       .rectStackCount = 1,
       .styleStack[0] =

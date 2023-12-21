@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_atlas.h"
 #include "asset_fonttex.h"
 #include "ui_canvas.h"
 #include "ui_settings.h"
@@ -6,21 +7,29 @@
 // Internal forward declarations:
 typedef struct sUiCmdBuffer UiCmdBuffer;
 
+typedef enum {
+  UiAtomType_Glyph,
+  UiAtomType_Image,
+
+  UiAtomType_Count,
+} UiAtomType;
+
 typedef struct {
   ALIGNAS(16)
   UiRect  rect;
   UiColor color;
   u16     atlasIndex;
-  u16     angleFrac;  // 'angle radians' / math_pi_f32 / 2 * u16_max
-  u16     borderFrac; // 'border size' / rect.width * u16_max
-  u16     cornerFrac; // 'corner size' / rect.width * u16_max
+  u16     angleFrac;       // 'angle radians' / math_pi_f32 / 2 * u16_max.
+  u16     glyphBorderFrac; // 'border size' / rect.width * u16_max (glyph only).
+  u16     cornerFrac;      // 'corner size' / rect.width * u16_max.
+  u8      atomType;
   u8      clipId;
-  u8      outlineWidth;
-  u8      weight;
-} UiGlyphData;
+  u8      glyphOutlineWidth; // (glyph only).
+  u8      glyphWeight;       // (glyph only).
+} UiAtomData;
 
-ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
-ASSERT(alignof(UiGlyphData) == 16, "Alignment needs to match the glsl alignment");
+ASSERT(sizeof(UiAtomData) == 32, "Size needs to match the size defined in glsl");
+ASSERT(alignof(UiAtomData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef struct {
   u32 lineCount;
@@ -35,18 +44,19 @@ typedef struct {
 } UiBuildTextInfo;
 
 typedef u8 (*UiOutputClipRectFunc)(void* userCtx, UiRect);
-typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
+typedef void (*UiOutputAtomFunc)(void* userCtx, UiAtomData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 typedef void (*UiOutputTextInfo)(void* userCtx, UiId, UiBuildTextInfo);
 
 typedef struct {
   const UiSettingsComp*   settings;
-  const AssetFontTexComp* font;
+  const AssetFontTexComp* atlasFont;
+  const AssetAtlasComp*   atlasImage;
   UiId                    debugElem;
   UiVector                canvasRes, inputPos;
   void*                   userCtx;
   UiOutputClipRectFunc    outputClipRect;
-  UiOutputGlyphFunc       outputGlyph;
+  UiOutputAtomFunc        outputAtom;
   UiOutputRect            outputRect;
   UiOutputTextInfo        outputTextInfo;
 } UiBuildCtx;

@@ -1,0 +1,21 @@
+{
+  "size": 512,
+  "entrySize": 128,
+  "entryPadding": 0,
+  "mipmaps": false,
+  "srgb": true,
+  "entries": [
+    {
+      "name": "icon_infantry_rifle",
+      "texture": "external/icon/icon_infantry_rifle.tga"
+    },
+    {
+      "name": "icon_infantry_rocket",
+      "texture": "external/icon/icon_infantry_rocket.tga"
+    },
+    {
+      "name": "icon_infantry_flame",
+      "texture": "external/icon/icon_infantry_flame.tga"
+    }
+  ]
+}

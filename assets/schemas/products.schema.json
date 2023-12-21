@@ -129,7 +129,7 @@
           "title": "String",
           "type": "string"
         },
-        "icon": {
+        "iconImage": {
           "title": "String",
           "type": "string"
         },

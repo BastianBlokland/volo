@@ -12,6 +12,11 @@
       "textureId": "fonts/ui.fonttex",
       "wrap": "Clamp",
       "filter": "Linear"
+    },
+    {
+      "textureId": "textures/ui/image.atlas",
+      "wrap": "Clamp",
+      "filter": "Linear"
     }
   ],
   "vertexCount": 6,

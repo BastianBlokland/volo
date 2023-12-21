@@ -1,4 +1,3 @@
-#include "asset_fonttex.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -56,7 +55,7 @@ typedef enum {
 
 ecs_comp_define(UiRendererComp) {
   EcsEntityId draw;
-  DynArray    overlayGlyphs; // UiGlyphData[]
+  DynArray    overlayAtoms; // UiAtomData[]
 };
 
 ecs_comp_define(UiCanvasComp) {
@@ -82,7 +81,7 @@ ecs_comp_define(UiCanvasComp) {
 
 static void ecs_destruct_renderer(void* data) {
   UiRendererComp* comp = data;
-  dynarray_destroy(&comp->overlayGlyphs);
+  dynarray_destroy(&comp->overlayAtoms);
 }
 
 static void ecs_destruct_canvas(void* data) {
@@ -109,19 +108,27 @@ static i8 ui_persistent_elem_compare(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector canvasRes;      // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
-  f32       invCanvasScale; // Inverse of the canvas scale.
-  f32       glyphsPerDim;
-  f32       invGlyphsPerDim;
-  f32       padding[1];
-  UiRect    clipRects[ui_canvas_clip_rects_max];
+  f32 atlasEntriesPerDim;
+  f32 atlasEntrySize;
+  f32 atlasEntrySizeMinusPadding;
+  f32 atlasEntryPadding;
+} UiAtlasData;
+
+ASSERT(sizeof(UiAtlasData) == 16, "Size needs to match the size defined in glsl");
+
+typedef struct {
+  ALIGNAS(16)
+  GeoVector   canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
+  UiAtlasData atlasFont, atlasImage;
+  UiRect      clipRects[ui_canvas_clip_rects_max];
 } UiDrawMetaData;
 
-ASSERT(sizeof(UiDrawMetaData) == 832, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiDrawMetaData) == 848, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const UiSettingsComp*   settings;
-  const AssetFontTexComp* font;
+  const AssetFontTexComp* atlasFont;
+  const AssetAtlasComp*   atlasImage;
   UiRendererComp*         renderer;
   RendDrawComp*           draw;
   UiCanvasComp*           canvas;
@@ -129,19 +136,41 @@ typedef struct {
   u32                     clipRectCount;
 } UiRenderState;
 
-static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFontTexComp* font) {
-  // NOTE: Inverse of resolutions precalculated for faster normalization on the gpu.
-  const GeoVector canvasRes = geo_vector(
-      state->canvas->resolution.width,
-      state->canvas->resolution.height,
-      1.0f / state->canvas->resolution.width,
-      1.0f / state->canvas->resolution.height);
+static UiAtlasData ui_atlas_metadata_font(const AssetFontTexComp* font) {
+  const f32 atlasEntrySize = 1.0f / (f32)font->glyphsPerDim;
+  return (UiAtlasData){
+      .atlasEntriesPerDim         = (f32)font->glyphsPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySize, // Font textures do not use any padding atm.
+      .atlasEntryPadding          = 0.0f,           // Font textures do not use any padding atm.
+  };
+}
+
+static UiAtlasData ui_atlas_metadata(const AssetAtlasComp* atlas) {
+  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
+  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
+
+  return (UiAtlasData){
+      .atlasEntriesPerDim         = atlas->entriesPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
+      .atlasEntryPadding          = atlas->entryPadding,
+  };
+}
+
+static UiDrawMetaData ui_draw_metadata(
+    const UiRenderState*    state,
+    const AssetFontTexComp* atlasFont,
+    const AssetAtlasComp*   atlasImage) {
+  GeoVector canvasData;
+  canvasData.x = 1.0f / state->canvas->resolution.width;  // Inverse canvas width.
+  canvasData.y = 1.0f / state->canvas->resolution.height; // Inverse canvas height.
+  canvasData.z = 1.0f / state->canvas->scale;             // Inverse canvas scale.
 
   UiDrawMetaData meta = {
-      .canvasRes       = canvasRes,
-      .invCanvasScale  = 1.0f / state->canvas->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .canvasData = canvasData,
+      .atlasFont  = ui_atlas_metadata_font(atlasFont),
+      .atlasImage = ui_atlas_metadata(atlasImage),
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -178,17 +207,17 @@ static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
   return id;
 }
 
-static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const UiLayer layer) {
+static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const UiLayer layer) {
   UiRenderState* state = userCtx;
   switch (layer) {
   case UiLayer_Normal:
-    *rend_draw_add_instance_t(state->draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = data;
+    *rend_draw_add_instance_t(state->draw, UiAtomData, SceneTags_None, (GeoBox){0}) = data;
     break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
     break;
   case UiLayer_Overlay:
-    *dynarray_push_t(&state->renderer->overlayGlyphs, UiGlyphData) = data;
+    *dynarray_push_t(&state->renderer->overlayAtoms, UiAtomData) = data;
     break;
   }
 }
@@ -273,13 +302,14 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
 
   const UiBuildCtx buildCtx = {
       .settings       = state->settings,
-      .font           = state->font,
+      .atlasFont      = state->atlasFont,
+      .atlasImage     = state->atlasImage,
       .debugElem      = debugElem,
       .canvasRes      = state->canvas->resolution,
       .inputPos       = state->canvas->inputPos,
       .userCtx        = state,
       .outputClipRect = &ui_canvas_output_clip_rect,
-      .outputGlyph    = &ui_canvas_output_glyph,
+      .outputAtom     = &ui_canvas_output_atom,
       .outputRect     = &ui_canvas_output_rect,
       .outputTextInfo = &ui_canvas_output_text_info,
   };
@@ -294,7 +324,8 @@ ecs_view_define(SoundGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
   ecs_access_write(SndMixerComp);
 }
-ecs_view_define(FontTexView) { ecs_access_read(AssetFontTexComp); }
+ecs_view_define(AtlasFontView) { ecs_access_read(AssetFontTexComp); }
+ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(WindowView) {
   ecs_access_write(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
@@ -304,9 +335,18 @@ ecs_view_define(WindowView) {
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
-static const AssetFontTexComp* ui_global_font(EcsWorld* world, const EcsEntityId entity) {
-  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, FontTexView), entity);
+static const AssetFontTexComp*
+ui_atlas_font_get(EcsWorld* world, const UiGlobalResourcesComp* globalRes) {
+  const EcsEntityId entity = ui_resource_atlas(globalRes, UiAtlasRes_Font);
+  EcsIterator*      itr    = ecs_view_maybe_at(ecs_world_view_t(world, AtlasFontView), entity);
   return itr ? ecs_view_read_t(itr, AssetFontTexComp) : null;
+}
+
+static const AssetAtlasComp*
+ui_atlas_get(EcsWorld* world, const UiGlobalResourcesComp* globalRes, const UiAtlasRes res) {
+  const EcsEntityId entity = ui_resource_atlas(globalRes, res);
+  EcsIterator*      itr    = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), entity);
+  return itr ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
 ecs_system_define(UiCanvasInputSys) {
@@ -381,8 +421,8 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
       world,
       window,
       UiRendererComp,
-      .draw          = drawEntity,
-      .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
+      .draw         = drawEntity,
+      .overlayAtoms = dynarray_create_t(g_alloc_heap, UiAtomData, 32));
 
   UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
   ui_settings_to_default(settings);
@@ -430,9 +470,10 @@ ecs_system_define(UiRenderSys) {
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
   InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
-  const AssetFontTexComp* font = ui_global_font(world, ui_resource_font(globalRes));
-  if (!font) {
-    return; // Global font not loaded yet.
+  const AssetFontTexComp* atlasFont  = ui_atlas_font_get(world, globalRes);
+  const AssetAtlasComp*   atlasImage = ui_atlas_get(world, globalRes, UiAtlasRes_Image);
+  if (!atlasFont || !atlasImage) {
+    return; // Global atlases not loaded yet.
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
@@ -458,16 +499,17 @@ ecs_system_define(UiRenderSys) {
 
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
     if (settings->flags & UiSettingFlags_DebugShading) {
-      rend_draw_set_graphic(draw, ui_resource_graphic_debug(globalRes));
+      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes, UiGraphicRes_Debug));
     } else {
-      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
+      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes, UiGraphicRes_Normal));
     }
 
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
          .settings      = settings,
-         .font          = font,
+         .atlasFont     = atlasFont,
+         .atlasImage    = atlasImage,
          .renderer      = renderer,
          .draw          = draw,
          .clipRects[0]  = {.size = canvasSize},
@@ -531,20 +573,21 @@ ecs_system_define(UiRenderSys) {
     }
     ui_canvas_cursor_update(window, interactType);
 
-    stats->canvasSize        = canvasSize;
-    stats->canvasCount       = canvasCount;
-    stats->glyphCount        = rend_draw_instance_count(draw);
-    stats->glyphOverlayCount = (u32)renderer->overlayGlyphs.size;
-    stats->clipRectCount     = renderState.clipRectCount;
+    stats->canvasSize       = canvasSize;
+    stats->canvasCount      = canvasCount;
+    stats->atomCount        = rend_draw_instance_count(draw);
+    stats->atomOverlayCount = (u32)renderer->overlayAtoms.size;
+    stats->clipRectCount    = renderState.clipRectCount;
 
-    // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
-    dynarray_for_t(&renderer->overlayGlyphs, UiGlyphData, glyph) {
-      *rend_draw_add_instance_t(draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = *glyph;
+    // Add the overlay atoms, at this stage all the normal atoms have already been added.
+    dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
+      *rend_draw_add_instance_t(draw, UiAtomData, SceneTags_None, (GeoBox){0}) = *atom;
     }
-    dynarray_clear(&renderer->overlayGlyphs);
+    dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
-    *rend_draw_set_data_t(draw, UiDrawMetaData) = ui_draw_metadata(&renderState, font);
+    UiDrawMetaData* drawMeta = rend_draw_set_data_t(draw, UiDrawMetaData);
+    *drawMeta                = ui_draw_metadata(&renderState, atlasFont, atlasImage);
   }
 }
 
@@ -558,8 +601,8 @@ ecs_system_define(UiSoundSys) {
   SndMixerComp*                mixer     = ecs_view_write_t(globalItr, SndMixerComp);
 
   const EcsEntityId soundAssetPerType[UiSoundType_Count] = {
-      [UiSoundType_Click]    = ui_resource_sound_click(globalRes),
-      [UiSoundType_ClickAlt] = ui_resource_sound_click_alt(globalRes),
+      [UiSoundType_Click]    = ui_resource_sound(globalRes, UiSoundRes_Click),
+      [UiSoundType_ClickAlt] = ui_resource_sound(globalRes, UiSoundRes_ClickAlt),
   };
   const f32 soundGainPerType[UiSoundType_Count] = {
       [UiSoundType_Click]    = 0.25f,
@@ -596,7 +639,8 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_view(DrawView);
   ecs_register_view(RenderGlobalView);
   ecs_register_view(SoundGlobalView);
-  ecs_register_view(FontTexView);
+  ecs_register_view(AtlasFontView);
+  ecs_register_view(AtlasView);
   ecs_register_view(WindowView);
 
   ecs_register_system(UiCanvasInputSys, ecs_view_id(CanvasView), ecs_view_id(WindowView));
@@ -604,7 +648,8 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_system(
       UiRenderSys,
       ecs_view_id(RenderGlobalView),
-      ecs_view_id(FontTexView),
+      ecs_view_id(AtlasFontView),
+      ecs_view_id(AtlasView),
       ecs_view_id(WindowView),
       ecs_view_id(CanvasView),
       ecs_view_id(DrawView));
@@ -797,6 +842,28 @@ UiId ui_canvas_draw_glyph_rotated(
 
   const UiId id = comp->nextId++;
   ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, angleRad, flags);
+  return id;
+}
+
+UiId ui_canvas_draw_image(
+    UiCanvasComp* comp, const StringHash img, const u16 maxCorner, const UiFlags flags) {
+  const UiId id       = comp->nextId++;
+  const f32  angleRad = 0.0f;
+  ui_cmd_push_draw_image(comp->cmdBuffer, id, img, maxCorner, angleRad, flags);
+  return id;
+}
+
+UiId ui_canvas_draw_image_rotated(
+    UiCanvasComp*    comp,
+    const StringHash img,
+    const u16        maxCorner,
+    const f32        angleRad,
+    const UiFlags    flags) {
+  diag_assert_msg(!(flags & UiFlags_Interactable), "Rotated images cannot be interactable");
+  diag_assert_msg(!(flags & UiFlags_TrackRect), "Rectangle cannot be tracked for rotated images");
+
+  const UiId id = comp->nextId++;
+  ui_cmd_push_draw_image(comp->cmdBuffer, id, img, maxCorner, angleRad, flags);
   return id;
 }
 

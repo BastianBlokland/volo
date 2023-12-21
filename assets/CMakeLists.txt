@@ -148,6 +148,9 @@ if(${EXTERNAL_ASSETS})
       gate/gate_1.gltf
       gate/gate_color_rough.tga
       gate/gate_normal.tga
+      icon/icon_infantry_flame.tga
+      icon/icon_infantry_rifle.tga
+      icon/icon_infantry_rocket.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin
