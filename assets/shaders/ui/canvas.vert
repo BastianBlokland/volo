@@ -27,6 +27,7 @@ const f32v2 c_unitTexCoords[c_vertexCount] = {
 };
 const u32 c_maxClipRects  = 50;
 const u32 c_atomTypeGlyph = 0;
+const u32 c_atomTypeImage = 1;
 
 struct MetaData {
   f32v4     canvasData; // x + y = inverse canvas size in ui-pixels, z = inverse canvas-scale.
@@ -57,6 +58,16 @@ bind_internal(8) out flat f32 out_outlineWidth;
 bind_internal(9) out flat f32 out_aspectRatio;
 bind_internal(10) out flat f32 out_cornerFrac;
 bind_internal(11) out flat f32 out_edgeShiftFrac;
+
+AtlasMeta atlas_meta(const u32 atomType) {
+  switch (atomType) {
+  default:
+  case c_atomTypeGlyph:
+    return u_meta.atlasFont;
+  case c_atomTypeImage:
+    return u_meta.atlasImage;
+  }
+}
 
 /**
  * Compute the shape edge shift in fractions of the glyphs width.
@@ -96,9 +107,10 @@ void main() {
   const f32v2 uiPosRel = rotMat * (c_unitPositions[in_vertexIndex] * atomSize) + atomSize * 0.5;
   const f32v2 uiPos    = atomPos + uiPosRel;
 
-  const f32v2 texOrigin      = atlas_entry_origin(u_meta.atlasFont, atlasIndex);
-  const f32v2 invCanvasSize  = u_meta.canvasData.xy;
-  const f32   invCanvasScale = u_meta.canvasData.z;
+  const AtlasMeta atlasMeta      = atlas_meta(atomType);
+  const f32v2     texOrigin      = atlas_entry_origin(atlasMeta, atlasIndex);
+  const f32v2     invCanvasSize  = u_meta.canvasData.xy;
+  const f32       invCanvasScale = u_meta.canvasData.z;
 
   out_vertexPosition = ui_norm_to_ndc(uiPos * invCanvasSize);
   out_uiPos          = uiPos;
@@ -106,7 +118,7 @@ void main() {
   out_atomType       = atomType;
   out_invCanvasScale = invCanvasScale;
   out_clipRect       = u_meta.clipRects[clipId];
-  out_texMeta        = f32v3(texOrigin, atlas_entry_size(u_meta.atlasFont));
+  out_texMeta        = f32v3(texOrigin, atlas_entry_size(atlasMeta));
   out_color          = atomColor;
   out_invBorder      = 1.0 / (atomSize.x * borderFrac);
   out_outlineWidth   = outlineWidth;

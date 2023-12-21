@@ -11,8 +11,11 @@ const f32   c_smoothingPixels = 2;
 const f32v4 c_outlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
 const f32   c_outlineNormMax  = 0.9; // Avoid the extremities of the sdf border to avoid artifacts.
 const f32   c_outlineMin      = 0.001; // Outlines smaller then this will not be drawn.
+const u32   c_atomTypeGlyph   = 0;
+const u32   c_atomTypeImage   = 1;
 
-bind_graphic_img(0) uniform sampler2D u_fontTexture;
+bind_graphic_img(0) uniform sampler2D u_atlasFont;
+bind_graphic_img(1) uniform sampler2D u_atlasImage;
 
 bind_internal(0) in f32v2 in_uiPos;             // Coordinates in ui-pixels.
 bind_internal(1) in f32v2 in_texCoord;          // Texture coordinates of this atom.
@@ -57,7 +60,7 @@ f32 glyph_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoo
  *  0.0 = Precisely on the border of the glyph.
  * +1.0 = Well outside the glyph.
  */
-f32 glyph_signed_dist(const f32v2 coord) { return texture(u_fontTexture, coord).r * 2.0 - 1.0; }
+f32 glyph_signed_dist(const f32v2 coord) { return texture(u_atlasFont, coord).r * 2.0 - 1.0; }
 
 /**
  * Remap a single texture coordinate axis.
@@ -103,11 +106,7 @@ bool clip(const f32v2 point) {
          point.y < in_clipRect.y || point.y > in_clipRect.y + in_clipRect.w;
 }
 
-void main() {
-  if (clip(in_uiPos)) {
-    discard;
-  }
-
+f32v4 color_glyph() {
   const f32 smoothingNorm = min(c_smoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
   const f32 outlineNorm   = in_outlineWidth * in_invBorder;
 
@@ -119,15 +118,36 @@ void main() {
    */
   const f32 outlineShift = max(outlineNorm - 0.5, 0);
 
-  const f32v2 fontCoord   = atlas_coord();
-  const f32   distNorm    = glyph_signed_dist(fontCoord) - in_edgeShiftFrac + outlineShift;
+  const f32v2 atlasCoord  = atlas_coord();
+  const f32   distNorm    = glyph_signed_dist(atlasCoord) - in_edgeShiftFrac + outlineShift;
   const f32   outlineFrac = glyph_outline_frac(distNorm, outlineNorm, smoothingNorm);
   const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
   const f32   alpha       = glyph_alpha(distNorm, outlineNorm, smoothingNorm);
 
   if (s_debug) {
-    out_color = f32v4(outlineFrac * alpha, (distNorm + 1) * 0.5, alpha, 1);
-  } else {
-    out_color = f32v4(color.rgb, color.a * alpha);
+    return f32v4(outlineFrac * alpha, (distNorm + 1) * 0.5, alpha, 1);
+  }
+  return f32v4(color.rgb, color.a * alpha);
+}
+
+f32v4 color_image() {
+  const f32v2 atlasCoord = atlas_coord();
+  const f32v4 imageColor = texture(u_atlasImage, atlasCoord);
+  // TODO: Support smoothing the edges to reduce aliasing on rotated images.
+  return imageColor * in_color;
+}
+
+void main() {
+  if (clip(in_uiPos)) {
+    discard;
+  }
+
+  switch (in_atomType) {
+  case c_atomTypeGlyph:
+    out_color = color_glyph();
+    break;
+  case c_atomTypeImage:
+    out_color = color_image();
+    break;
   }
 }
