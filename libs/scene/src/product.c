@@ -412,7 +412,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     return scene_nav_blocked_box(ctx->nav, &boxWorld);
   }
   }
-  UNREACHABLE
+  diag_crash_msg("Unsupported product collision shape");
 }
 
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
