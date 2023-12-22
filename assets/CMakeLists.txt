@@ -151,6 +151,9 @@ if(${EXTERNAL_ASSETS})
       icon/icon_infantry_flame.tga
       icon/icon_infantry_rifle.tga
       icon/icon_infantry_rocket.tga
+      icon/icon_structure_barracks.tga
+      icon/icon_structure_turret_gun.tga
+      icon/icon_structure_turret_missile.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin
