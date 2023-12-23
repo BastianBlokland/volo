@@ -368,7 +368,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Factory" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_barracks.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_factory.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Production",
@@ -386,8 +386,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": { "x": -5.5, "y": 0, "z": -2.4 },
-            "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
+            "min": { "x": -4.7, "y": 0, "z": -4 },
+            "max": { "x": 4.7, "y": 7.1, "z": 3.4 }
           }
         },
         {

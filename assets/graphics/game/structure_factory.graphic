@@ -1,0 +1,31 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 0,
+          "value": 0
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/white.proctex",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    }
+  ],
+  "meshId": "external/factory/factory.gltf",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
