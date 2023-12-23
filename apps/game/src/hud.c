@@ -704,7 +704,7 @@ static void hud_production_queue_hotkey_draw(
 }
 
 static void hud_production_queue_cost_draw(UiCanvasComp* c, const AssetProduct* product) {
-  static const UiVector g_size = {.x = 45, .y = 25};
+  static const UiVector g_size = {.x = 50, .y = 25};
 
   ui_layout_push(c);
 
