@@ -18,6 +18,8 @@ typedef enum {
 
 ecs_comp_extern_public(SceneLocationComp) { GeoBox volumes[SceneLocationType_Count]; };
 
+String scene_location_type_name(SceneLocationType);
+
 GeoBoxRotated scene_location(
     const SceneLocationComp*, const SceneTransformComp*, const SceneScaleComp*, SceneLocationType);
 
