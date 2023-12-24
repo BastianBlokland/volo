@@ -49,6 +49,79 @@
           "unitCount": 2
         }
       ]
+    },
+    {
+      "name": "Factory",
+      "products": [
+        {
+          "$type": "AssetProduct_Placable",
+          "meta": {
+            "name": "Guardian",
+            "iconImage": "icon_structure_turret_gun",
+            "costTime": 12,
+            "cooldown": 1,
+            "queueMax": 1,
+            "queueBulkSize": 1,
+            "soundBuilding": { "assetId": "external/sound/announcer-building-01.wav", "gain": 0.5 },
+            "soundReady": { "assetId": "external/sound/announcer-structure-ready-01.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 },
+            "soundSuccess": { "assetId": "external/sound/announcer-structure-deployed-01.wav", "gain": 0.5 }
+          },
+          "prefab": "StructureTurretGun",
+          "soundBlocked": { "assetId": "external/sound/announcer-location-invalid-01.wav", "gain": 0.5 }
+        },
+        {
+          "$type": "AssetProduct_Placable",
+          "meta": {
+            "name": "Hawk",
+            "iconImage": "icon_structure_turret_missile",
+            "costTime": 15,
+            "cooldown": 1,
+            "queueMax": 1,
+            "queueBulkSize": 1,
+            "soundBuilding": { "assetId": "external/sound/announcer-building-01.wav", "gain": 0.5 },
+            "soundReady": { "assetId": "external/sound/announcer-structure-ready-01.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 },
+            "soundSuccess": { "assetId": "external/sound/announcer-structure-deployed-01.wav", "gain": 0.5 }
+          },
+          "prefab": "StructureTurretMissile",
+          "soundBlocked": { "assetId": "external/sound/announcer-location-invalid-01.wav", "gain": 0.5 }
+        },
+        {
+          "$type": "AssetProduct_Placable",
+          "meta": {
+            "name": "Barracks",
+            "iconImage": "icon_structure_barracks",
+            "costTime": 30,
+            "cooldown": 1,
+            "queueMax": 1,
+            "queueBulkSize": 1,
+            "soundBuilding": { "assetId": "external/sound/announcer-building-01.wav", "gain": 0.5 },
+            "soundReady": { "assetId": "external/sound/announcer-structure-ready-01.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 },
+            "soundSuccess": { "assetId": "external/sound/announcer-structure-deployed-01.wav", "gain": 0.5 }
+          },
+          "prefab": "StructureBarracks",
+          "soundBlocked": { "assetId": "external/sound/announcer-location-invalid-01.wav", "gain": 0.5 }
+        },
+        {
+          "$type": "AssetProduct_Placable",
+          "meta": {
+            "name": "Factory",
+            "iconImage": "icon_structure_factory",
+            "costTime": 60,
+            "cooldown": 1,
+            "queueMax": 1,
+            "queueBulkSize": 1,
+            "soundBuilding": { "assetId": "external/sound/announcer-building-01.wav", "gain": 0.5 },
+            "soundReady": { "assetId": "external/sound/announcer-structure-ready-01.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 },
+            "soundSuccess": { "assetId": "external/sound/announcer-structure-deployed-01.wav", "gain": 0.5 }
+          },
+          "prefab": "StructureFactory",
+          "soundBlocked": { "assetId": "external/sound/announcer-location-invalid-01.wav", "gain": 0.5 }
+        }
+      ]
     }
   ]
 }

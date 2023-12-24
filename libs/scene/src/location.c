@@ -1,3 +1,5 @@
+#include "core_array.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "scene_location.h"
 #include "scene_transform.h"
@@ -5,6 +7,15 @@
 ecs_comp_define_public(SceneLocationComp);
 
 ecs_module_init(scene_location_module) { ecs_register_comp(SceneLocationComp); }
+
+String scene_location_type_name(const SceneLocationType type) {
+  diag_assert(type < SceneLocationType_Count);
+  static const String g_names[] = {
+      string_static("AimTarget"),
+  };
+  ASSERT(array_elems(g_names) == SceneLocationType_Count, "Incorrect number of type names");
+  return g_names[type];
+}
 
 GeoBoxRotated scene_location(
     const SceneLocationComp*  locComp,

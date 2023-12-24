@@ -115,6 +115,10 @@ if(${EXTERNAL_ASSETS})
       decal/tarp.tga
       decal/text_volo.tga
       decal/tire_track_normal.tga
+      factory/factory_color_rough.tga
+      factory/factory_normal.tga
+      factory/factory.bin
+      factory/factory.gltf
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin
@@ -151,6 +155,10 @@ if(${EXTERNAL_ASSETS})
       icon/icon_infantry_flame.tga
       icon/icon_infantry_rifle.tga
       icon/icon_infantry_rocket.tga
+      icon/icon_structure_barracks.tga
+      icon/icon_structure_factory.tga
+      icon/icon_structure_turret_gun.tga
+      icon/icon_structure_turret_missile.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin

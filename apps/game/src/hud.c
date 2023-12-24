@@ -596,7 +596,6 @@ static UiId hud_production_header_draw(UiCanvasComp* c, EcsIterator* itr) {
 
   const SceneNameComp* nameComp   = ecs_view_read_t(itr, SceneNameComp);
   const String         entityName = stringtable_lookup(g_stringtable, nameComp->name);
-  const Unicode        icon       = UiShape_Groups; // TODO: Make the icon configurable.
 
   ui_layout_push(c);
   ui_style_push(c);
@@ -610,11 +609,7 @@ static UiId hud_production_header_draw(UiCanvasComp* c, EcsIterator* itr) {
 
   ui_style_outline(c, 2);
   ui_style_color(c, ui_color_white);
-  ui_label(
-      c,
-      fmt_write_scratch("{} {}", fmt_text(ui_shape_scratch(icon)), fmt_text(entityName)),
-      .align    = UiAlign_MiddleCenter,
-      .fontSize = 22);
+  ui_label(c, entityName, .align = UiAlign_MiddleCenter, .fontSize = 22);
 
   ui_style_pop(c);
   ui_layout_pop(c);
@@ -704,7 +699,7 @@ static void hud_production_queue_hotkey_draw(
 }
 
 static void hud_production_queue_cost_draw(UiCanvasComp* c, const AssetProduct* product) {
-  static const UiVector g_size = {.x = 45, .y = 25};
+  static const UiVector g_size = {.x = 50, .y = 25};
 
   ui_layout_push(c);
 

@@ -43,7 +43,7 @@
     { "fileMatch": [ "*.level" ], "url": "./assets/schemas/level.schema.json" },
     { "fileMatch": [ "*.prefabs" ], "url": "./assets/schemas/prefabs.schema.json" },
     { "fileMatch": [ "*.procmesh" ], "url": "./assets/schemas/procmesh.schema.json" },
-    { "fileMatch": [ "*.producs" ], "url": "./assets/schemas/products.schema.json" },
+    { "fileMatch": [ "*.products" ], "url": "./assets/schemas/products.schema.json" },
     { "fileMatch": [ "*.proctex" ], "url": "./assets/schemas/proctex.schema.json" },
     { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
     { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }

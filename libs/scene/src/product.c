@@ -77,12 +77,7 @@ static void product_sound_play(EcsWorld* world, const EcsEntityId asset, const f
 static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector localPos) {
   const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-
-  const GeoVector position = transComp ? transComp->position : geo_vector(0);
-  const GeoQuat   rotation = transComp ? transComp->rotation : geo_quat_ident;
-  const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
-
-  return geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(localPos, scale)));
+  return transComp ? scene_transform_to_world(transComp, scaleComp, localPos) : localPos;
 }
 
 static GeoVector product_spawn_pos(EcsIterator* itr, const SceneNavEnvComp* nav) {
@@ -412,7 +407,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     return scene_nav_blocked_box(ctx->nav, &boxWorld);
   }
   }
-  UNREACHABLE
+  diag_crash_msg("Unsupported product collision shape");
 }
 
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
