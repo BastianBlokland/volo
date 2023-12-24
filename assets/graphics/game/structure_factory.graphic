@@ -9,14 +9,20 @@
         {
           "name": "normalMap",
           "binding": 0,
-          "value": 0
+          "value": 1
         }
       ]
     }
   ],
   "samplers": [
     {
-      "textureId": "textures/white.proctex",
+      "textureId": "external/factory/factory_color_rough.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    },
+    {
+      "textureId": "external/factory/factory_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x2"

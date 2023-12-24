@@ -18,16 +18,20 @@
       "texture": "external/icon/icon_infantry_flame.tga"
     },
     {
-      "name": "icon_structure_barracks",
-      "texture": "external/icon/icon_structure_barracks.tga"
-    },
-    {
       "name": "icon_structure_turret_gun",
       "texture": "external/icon/icon_structure_turret_gun.tga"
     },
     {
       "name": "icon_structure_turret_missile",
       "texture": "external/icon/icon_structure_turret_missile.tga"
+    },
+    {
+      "name": "icon_structure_barracks",
+      "texture": "external/icon/icon_structure_barracks.tga"
+    },
+    {
+      "name": "icon_structure_factory",
+      "texture": "external/icon/icon_structure_factory.tga"
     }
   ]
 }
