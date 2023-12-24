@@ -115,6 +115,10 @@ if(${EXTERNAL_ASSETS})
       decal/tarp.tga
       decal/text_volo.tga
       decal/tire_track_normal.tga
+      factory/factory_color_rough.tga
+      factory/factory_normal.tga
+      factory/factory.bin
+      factory/factory.gltf
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin
