@@ -163,7 +163,6 @@ ecs_view_define(GlobalVisDrawView) {
 }
 
 ecs_view_define(SubjectView) {
-  ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
@@ -182,6 +181,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
+  ecs_access_maybe_write(SceneLocationComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -734,6 +734,33 @@ static void inspector_panel_draw_bounds(
   }
 }
 
+static void inspector_panel_draw_location(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneLocationComp* location = subject ? ecs_view_write_t(subject, SceneLocationComp) : null;
+  if (location) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Location"))) {
+
+      for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
+        const String typeName = scene_location_type_name(type);
+
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
+        ui_table_next_column(canvas, table);
+        debug_widget_editor_vec3(canvas, &location->volumes[type].min, UiWidget_Default);
+
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
+        ui_table_next_column(canvas, table);
+        debug_widget_editor_vec3(canvas, &location->volumes[type].max, UiWidget_Default);
+      }
+    }
+  }
+}
+
 static void inspector_panel_draw_components(
     EcsWorld*                world,
     UiCanvasComp*            canvas,
@@ -861,6 +888,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_collision(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_location(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
