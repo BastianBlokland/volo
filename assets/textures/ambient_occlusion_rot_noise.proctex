@@ -1,6 +1,6 @@
 {
   "type": "NoiseWhite",
-  "channels": 4,
+  "channels": "Four",
   "mipmaps": false,
   "size": 4,
   "frequency": 1,

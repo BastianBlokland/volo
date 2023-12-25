@@ -1,6 +1,6 @@
 {
   "type": "NoiseWhiteGauss",
-  "channels": 1,
+  "channels": "One",
   "mipmaps": true,
   "size": 128,
   "frequency": 1,
