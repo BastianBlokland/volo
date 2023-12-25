@@ -1,9 +1,9 @@
 {
   "type": "Circle",
   "pixelType": "F32",
-  "channels": "One",
+  "channels": "Four",
   "size": 128,
   "frequency": 1,
-  "power": 5,
+  "power": 1,
   "seed": 1
 }
