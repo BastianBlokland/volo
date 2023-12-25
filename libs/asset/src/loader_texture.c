@@ -186,6 +186,11 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
   const usize layerDataSize = pixelCount * asset_texture_pixel_size(tex);
   const void* pixelsMip0    = tex->pixelsRaw + (layerDataSize * layer);
 
+  /**
+   * Follows the same to RGBA conversion rules as the Vulkan spec:
+   * https://registry.khronos.org/vulkan/specs/1.0/html/chap16.html#textures-conversion-to-rgba
+   */
+
   GeoColor res;
   switch (tex->type) {
   // 8 bit unsigned pixels.
@@ -193,14 +198,14 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
     static const f32 g_u8MaxInv = 1.0f / u8_max;
     switch (tex->channels) {
     case AssetTextureChannels_One:
-      res.r = 1.0f;
-      res.g = 1.0f;
-      res.b = 1.0f;
       if (tex->flags & AssetTextureFlags_Srgb) {
-        res.a = g_textureSrgbToFloat[((AssetTexturePixelB1*)pixelsMip0)[index].r];
+        res.r = g_textureSrgbToFloat[((AssetTexturePixelB1*)pixelsMip0)[index].r];
       } else {
-        res.a = ((AssetTexturePixelB1*)pixelsMip0)[index].r * g_u8MaxInv;
+        res.r = ((AssetTexturePixelB1*)pixelsMip0)[index].r * g_u8MaxInv;
       }
+      res.g = 0.0f;
+      res.b = 0.0f;
+      res.a = 1.0f;
       return res;
     case AssetTextureChannels_Four:
       if (tex->flags & AssetTextureFlags_Srgb) {
@@ -222,10 +227,10 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
     static const f32 g_u16MaxInv = 1.0f / u16_max;
     switch (tex->channels) {
     case AssetTextureChannels_One:
-      res.r = 1.0f;
-      res.g = 1.0f;
-      res.b = 1.0f;
-      res.a = ((AssetTexturePixelU1*)pixelsMip0)[index].r * g_u16MaxInv;
+      res.r = ((AssetTexturePixelU1*)pixelsMip0)[index].r * g_u16MaxInv;
+      res.g = 0.0f;
+      res.b = 0.0f;
+      res.a = 1.0f;
       return res;
     case AssetTextureChannels_Four:
       res.r = ((AssetTexturePixelU4*)pixelsMip0)[index].r * g_u16MaxInv;
@@ -239,10 +244,10 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
   case AssetTextureType_F32: {
     switch (tex->channels) {
     case AssetTextureChannels_One:
-      res.r = 1.0f;
-      res.g = 1.0f;
-      res.b = 1.0f;
-      res.a = ((AssetTexturePixelF1*)pixelsMip0)[index].r;
+      res.r = ((AssetTexturePixelF1*)pixelsMip0)[index].r;
+      res.g = 0.0f;
+      res.b = 0.0f;
+      res.a = 1.0f;
       return res;
     case AssetTextureChannels_Four:
       res.r = ((AssetTexturePixelF4*)pixelsMip0)[index].r;
