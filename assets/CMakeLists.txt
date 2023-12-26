@@ -234,7 +234,7 @@ if(${EXTERNAL_ASSETS})
       tent/tent.gltf
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
-      tiling/clouds.tga
+      tiling/clouds_2.tga
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
       tiling/metal_panel_color_rough.tga
