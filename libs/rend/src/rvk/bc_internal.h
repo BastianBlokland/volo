@@ -29,6 +29,12 @@ typedef struct {
 ASSERT(sizeof(RvkBc1Block) == 8, "Unexpected bc1 block size");
 
 /**
+ * Extract a single 4x4 BC0 (aka raw pixels) block.
+ * Pre-condition: Width (and also height) input pixels have to be multiples of 4.
+ */
+void rvk_bc0_extract(const RvkBcColor8888* in, u32 width, RvkBc0Block* out);
+
+/**
  * Encode a single 4x4 BC1 (aka S3TC DXT1) block.
  */
-void rvk_bc1_encode_block(const RvkBc0Block* in, RvkBc1Block* out);
+void rvk_bc1_encode(const RvkBc0Block* in, RvkBc1Block* out);

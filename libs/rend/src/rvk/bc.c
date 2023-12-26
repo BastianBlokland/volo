@@ -1,4 +1,6 @@
 #include "core_array.h"
+#include "core_bits.h"
+#include "core_diag.h"
 
 #include "bc_internal.h"
 
@@ -85,7 +87,18 @@ static void bc_block_bounds(const RvkBc0Block* b, RvkBcColor8888* outMin, RvkBcC
   }
 }
 
-void rvk_bc1_encode_block(const RvkBc0Block* in, RvkBc1Block* out) {
+void rvk_bc0_extract(const RvkBcColor8888* in, const u32 width, RvkBc0Block* out) {
+  diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
+
+  for (u32 y = 0; y != 4; ++y) {
+    for (u32 x = 0; x != 4; ++x) {
+      out->colors[y * 4 + x] = in[x];
+    }
+    in += width;
+  }
+}
+
+void rvk_bc1_encode(const RvkBc0Block* in, RvkBc1Block* out) {
   RvkBcColor8888 min, max;
   bc_block_bounds(in, &min, &max);
 
