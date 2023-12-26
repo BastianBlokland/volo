@@ -315,10 +315,17 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
   }
   rng_destroy(rng);
 
+  AssetTextureFlags flags = 0;
+  if (def->mipmaps) {
+    flags |= AssetTextureFlags_GenerateMipMaps;
+  }
+  if (def->channels == 4) {
+    flags |= AssetTextureFlags_Alpha;
+  }
   *outTexture = (AssetTextureComp){
       .type         = def->pixelType,
       .channels     = def->channels,
-      .flags        = def->mipmaps ? AssetTextureFlags_GenerateMipMaps : 0,
+      .flags        = flags,
       .pixelsRaw    = pixels,
       .width        = size,
       .height       = size,

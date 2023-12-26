@@ -133,7 +133,8 @@ static String arraytex_error_str(const ArrayTexError err) {
   return g_msgs[err];
 }
 
-static AssetTextureFlags arraytex_texture_flags(const ArrayTexDef* def, const bool srgb) {
+static AssetTextureFlags
+arraytex_texture_flags(const ArrayTexDef* def, const bool srgb, const bool alpha) {
   AssetTextureFlags flags = 0;
   switch (def->type) {
   case ArrayTexType_Array:
@@ -149,6 +150,9 @@ static AssetTextureFlags arraytex_texture_flags(const ArrayTexDef* def, const bo
   }
   if (srgb) {
     flags |= AssetTextureFlags_Srgb;
+  }
+  if (alpha) {
+    flags |= AssetTextureFlags_Alpha;
   }
   return flags;
 }
@@ -466,6 +470,7 @@ static void arraytex_generate(
   const u32                  inWidth  = textures[0]->width;
   const u32                  inHeight = textures[0]->height;
   u32                        layers   = math_max(1, textures[0]->layers);
+  bool                       alpha    = false;
 
   const bool irradianceMap = arraytex_output_irradiance(def);
   if (UNLIKELY(irradianceMap && type != AssetTextureType_U8)) {
@@ -490,6 +495,9 @@ static void arraytex_generate(
     if (UNLIKELY(textures[i]->width != inWidth || textures[i]->height != inHeight)) {
       *err = ArrayTexError_MismatchSize;
       return;
+    }
+    if (textures[i]->flags & AssetTextureFlags_Alpha) {
+      alpha = true;
     }
     layers += math_max(1, textures[i]->layers);
   }
@@ -542,7 +550,7 @@ static void arraytex_generate(
   *outTexture = (AssetTextureComp){
       .type         = type,
       .channels     = channels,
-      .flags        = arraytex_texture_flags(def, outSrgb),
+      .flags        = arraytex_texture_flags(def, outSrgb, alpha),
       .pixelsRaw    = pixelsMem.ptr,
       .width        = outWidth,
       .height       = outHeight,

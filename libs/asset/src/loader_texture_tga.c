@@ -200,6 +200,9 @@ static AssetTextureChannels tga_texture_channels(const TgaChannels channels) {
 
 static AssetTextureFlags tga_texture_flags(const TgaChannels channels, const bool isNormalmap) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
+  if (channels == TgaChannels_RGBA) {
+    flags |= AssetTextureFlags_Alpha;
+  }
   if (isNormalmap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;

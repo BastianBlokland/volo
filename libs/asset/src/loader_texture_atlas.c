@@ -131,13 +131,16 @@ static i8 atlas_compare_entry(const void* a, const void* b) {
       field_ptr(a, AssetAtlasEntry, name), field_ptr(b, AssetAtlasEntry, name));
 }
 
-static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
+static AssetTextureFlags atlas_texture_flags(const AtlasDef* def, const bool hasAlpha) {
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
   if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
+  }
+  if (hasAlpha) {
+    flags |= AssetTextureFlags_Alpha;
   }
   return flags;
 }
@@ -207,11 +210,14 @@ static void atlas_generate(
   }
 
   // Allocate output texture.
-  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
+  bool hasAlpha;
+  Mem  pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
   if (def->paddingColor) {
     atlas_fill(pixelMem, def->size, *def->paddingColor);
+    hasAlpha = def->paddingColor->a != 255;
   } else {
     mem_set(pixelMem, 0); // Initialize to transparent.
+    hasAlpha = true;
   }
 
   const u32        entryCount = (u32)def->entries.count;
@@ -220,6 +226,9 @@ static void atlas_generate(
   // Render entries into output texture.
   AssetTexturePixelB4* pixels = pixelMem.ptr;
   for (u32 i = 0; i != def->entries.count; ++i) {
+    if (textures[i]->flags & AssetTextureFlags_Alpha) {
+      hasAlpha = true;
+    }
     atlas_generate_entry(def, textures[i], i, pixels);
     entries[i] = (AssetAtlasEntry){
         .name       = string_hash(def->entries.values[i].name),
@@ -239,7 +248,7 @@ static void atlas_generate(
   *outTexture = (AssetTextureComp){
       .type         = AssetTextureType_U8,
       .channels     = AssetTextureChannels_Four,
-      .flags        = atlas_texture_flags(def),
+      .flags        = atlas_texture_flags(def, hasAlpha),
       .pixelsB4     = pixels,
       .width        = def->size,
       .height       = def->size,

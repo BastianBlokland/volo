@@ -47,6 +47,7 @@ typedef enum {
   AssetTextureFlags_GenerateMipMaps = 1 << 1,
   AssetTextureFlags_CubeMap         = 1 << 2,
   AssetTextureFlags_NormalMap       = 1 << 3,
+  AssetTextureFlags_Alpha           = 1 << 4, // Alpha channel is in use.
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {
