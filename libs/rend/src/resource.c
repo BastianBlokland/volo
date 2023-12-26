@@ -765,8 +765,8 @@ u8 rend_res_texture_mip_levels(const RendResTextureComp* comp) {
   return comp->texture->image.mipLevels;
 }
 
-bool rend_res_texture_is_gen_mips(const RendResTextureComp* comp) {
-  return (comp->texture->flags & RvkTextureFlags_GenerateMipMaps) != 0;
+bool rend_res_texture_mip_gpu_gen(const RendResTextureComp* comp) {
+  return (comp->texture->flags & RvkTextureFlags_GpuMipGen) != 0;
 }
 
 bool rend_res_texture_is_cube(const RendResTextureComp* comp) {

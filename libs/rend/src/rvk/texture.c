@@ -84,7 +84,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
     diag_assert(asset->srcMipLevels <= 1);
     mipLevels = rvk_compute_max_miplevels(size);
-    texture->flags |= RvkTextureFlags_GenerateMipMaps;
+    texture->flags |= RvkTextureFlags_GpuMipGen;
   } else {
     diag_assert(asset->srcMipLevels <= rvk_compute_max_miplevels(size));
     mipLevels = math_max(asset->srcMipLevels, 1);
@@ -152,7 +152,7 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
     return false;
   }
 
-  if (texture->flags & RvkTextureFlags_GenerateMipMaps) {
+  if (texture->flags & RvkTextureFlags_GpuMipGen) {
     rvk_debug_label_begin(
         texture->device->debug,
         vkCmdBuf,
