@@ -551,9 +551,9 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
     return;
   }
 
-  static const RvkImageCapability g_requiredCaps = RvkImageCapability_TransferSource |
-                                                   RvkImageCapability_TransferDest |
-                                                   RvkImageCapability_BlitDest;
+  MAYBE_UNUSED static const RvkImageCapability g_requiredCaps = RvkImageCapability_TransferSource |
+                                                                RvkImageCapability_TransferDest |
+                                                                RvkImageCapability_BlitDest;
 
   diag_assert((g_requiredCaps & img->caps) == g_requiredCaps);
   diag_assert(img->type == RvkImageType_ColorSource || img->type == RvkImageType_ColorSourceCube);
@@ -635,7 +635,7 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
 
   const VkClearColorValue       clearColor = rvk_rend_clear_color(color);
   const VkImageSubresourceRange ranges[]   = {
-      {
+        {
             .aspectMask     = rvk_image_vkaspect(img->type),
             .baseMipLevel   = 0,
             .levelCount     = img->mipLevels,
@@ -658,7 +658,7 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
 
   const VkClearDepthStencilValue clearValue = {.depth = depth};
   const VkImageSubresourceRange  ranges[]   = {
-      {
+         {
              .aspectMask     = rvk_image_vkaspect(img->type),
              .baseMipLevel   = 0,
              .levelCount     = img->mipLevels,
