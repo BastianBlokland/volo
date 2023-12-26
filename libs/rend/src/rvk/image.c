@@ -369,7 +369,7 @@ RvkImage rvk_image_create_source_color(
     const u8       mipLevels,
     const bool     mipGpuGen) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
-  if (mipGpuGen) {
+  if (mipGpuGen && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   return rvk_image_create_backed(
@@ -383,7 +383,7 @@ RvkImage rvk_image_create_source_color_cube(
     const u8       mipLevels,
     const bool     mipGpuGen) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
-  if (mipGpuGen) {
+  if (mipGpuGen && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   const u8 layers = 6;
