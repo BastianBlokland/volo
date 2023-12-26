@@ -198,13 +198,13 @@ static AssetTextureChannels tga_texture_channels(const TgaChannels channels) {
   diag_crash_msg("Unsupported Tga channels value");
 }
 
-static AssetTextureFlags tga_texture_flags(const bool isNormalmap) {
+static AssetTextureFlags tga_texture_flags(const TgaChannels channels, const bool isNormalmap) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
   if (isNormalmap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
-  } else {
-    // All other textures are assumed to be sRGB encoded.
+  } else if (channels == TgaChannels_RGB || channels == TgaChannels_RGBA) {
+    // All other (3 or 4 channel) textures are assumed to be sRGB encoded.
     flags |= AssetTextureFlags_Srgb;
   }
   return flags;
@@ -453,7 +453,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       AssetTextureComp,
       .type         = AssetTextureType_U8,
       .channels     = tga_texture_channels(channels),
-      .flags        = tga_texture_flags(isNormalmap),
+      .flags        = tga_texture_flags(channels, isNormalmap),
       .width        = width,
       .height       = height,
       .pixelsRaw    = pixels.ptr,
