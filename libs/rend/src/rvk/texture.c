@@ -73,21 +73,24 @@ static VkFormat rvk_texture_format(
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
   diag_assert_msg(asset->layers < u8_max, "Only {} texture layers are supported", fmt_int(u8_max));
 
-  RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
-  *texture            = (RvkTexture){
+  RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
+  *tex            = (RvkTexture){
       .device  = dev,
       .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize size = rvk_size(asset->width, asset->height);
 
-  u8 mipLevels;
+  u8   mipLevels;
+  bool mipGpuGen;
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
     diag_assert(asset->srcMipLevels <= 1);
     mipLevels = rvk_compute_max_miplevels(size);
-    texture->flags |= RvkTextureFlags_GpuMipGen;
+    tex->flags |= RvkTextureFlags_GpuMipGen;
+    mipGpuGen = true;
   } else {
     diag_assert(asset->srcMipLevels <= rvk_compute_max_miplevels(size));
     mipLevels = math_max(asset->srcMipLevels, 1);
+    mipGpuGen = false;
   }
 
   const VkFormat vkFormat = rvk_texture_format(asset->type, asset->flags, asset->channels);
@@ -96,30 +99,30 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(asset->layers == 6, "CubeMap needs 6 layers");
-    texture->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels);
+    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGpuGen);
   } else {
     const u8 layers = math_max(1, asset->layers);
-    texture->image  = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
+    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGpuGen);
   }
 
-  const Mem srcData      = asset_texture_data(asset);
-  const u32 srcMips      = math_max(asset->srcMipLevels, 1);
-  texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, srcData, srcMips);
+  const Mem srcData  = asset_texture_data(asset);
+  const u32 srcMips  = math_max(asset->srcMipLevels, 1);
+  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, srcData, srcMips);
 
-  rvk_debug_name_img(dev->debug, texture->image.vkImage, "{}", fmt_text(dbgName));
-  rvk_debug_name_img_view(dev->debug, texture->image.vkImageView, "{}", fmt_text(dbgName));
+  rvk_debug_name_img(dev->debug, tex->image.vkImage, "{}", fmt_text(dbgName));
+  rvk_debug_name_img_view(dev->debug, tex->image.vkImageView, "{}", fmt_text(dbgName));
 
 #if VOLO_RVK_TEXTURE_LOGGING
   log_d(
       "Vulkan texture created",
       log_param("name", fmt_text(dbgName)),
       log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
-      log_param("size", rvk_size_fmt(texture->image.size)),
-      log_param("layers", fmt_int(texture->image.layers)),
-      log_param("memory", fmt_size(texture->image.mem.size)));
+      log_param("size", rvk_size_fmt(tex->image.size)),
+      log_param("layers", fmt_int(tex->image.layers)),
+      log_param("memory", fmt_size(tex->image.mem.size)));
 #endif
 
-  return texture;
+  return tex;
 }
 
 void rvk_texture_destroy(RvkTexture* texture) {

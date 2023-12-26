@@ -55,12 +55,16 @@ typedef struct sRvkImage {
   RvkMem             mem;
 } RvkImage;
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels);
-RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels);
+// clang-format off
+
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels, bool mipGpuGen);
+RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels, bool mipGpuGen);
 RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
 RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
 RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
+
+// clang-format on
 
 String rvk_image_type_str(RvkImageType);
 String rvk_image_phase_str(RvkImagePhase);
