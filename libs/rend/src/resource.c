@@ -769,6 +769,10 @@ bool rend_res_texture_mip_gpu_gen(const RendResTextureComp* comp) {
   return (comp->texture->flags & RvkTextureFlags_GpuMipGen) != 0;
 }
 
+bool rend_res_texture_alpha(const RendResTextureComp* comp) {
+  return (comp->texture->flags & RvkTextureFlags_Alpha) != 0;
+}
+
 bool rend_res_texture_is_cube(const RendResTextureComp* comp) {
   return comp->texture->image.type == RvkImageType_ColorSourceCube;
 }

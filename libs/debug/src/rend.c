@@ -344,6 +344,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "MipGpuGen:  {}\n", fmt_bool(rend_res_texture_mip_gpu_gen(texture)));
       fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
       fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
+      fmt_write(&str, "Alpha:      {}\n", fmt_bool(rend_res_texture_alpha(texture)));
     }
     const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
     if (mesh) {
@@ -730,9 +731,10 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
-  const bool supportsPreview =
-      resInfo->type == DebugRendResType_Texture || resInfo->type == DebugRendResType_Mesh;
+  const bool previewActive   = ecs_entity_valid(settings->debugViewerResource);
+  const bool supportsPreview = resInfo->type == DebugRendResType_Texture ||
+                               resInfo->type == DebugRendResType_TextureCube ||
+                               resInfo->type == DebugRendResType_Mesh;
 
   if (supportsPreview &&
       ui_button(

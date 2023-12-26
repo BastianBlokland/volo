@@ -80,6 +80,10 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   };
   const RvkSize size = rvk_size(asset->width, asset->height);
 
+  if (asset->flags & AssetTextureFlags_Alpha) {
+    tex->flags |= RvkTextureFlags_Alpha;
+  }
+
   u8   mipLevels;
   bool mipGpuGen;
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
