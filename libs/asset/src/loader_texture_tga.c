@@ -198,15 +198,15 @@ static AssetTextureChannels tga_texture_channels(const TgaChannels channels) {
   diag_crash_msg("Unsupported Tga channels value");
 }
 
-static AssetTextureFlags tga_texture_flags(const TgaChannels channels, const bool isNormalmap) {
+static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const bool nrm, const bool alpha) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
-  if (channels == TgaChannels_RGBA) {
+  if (alpha) {
     flags |= AssetTextureFlags_Alpha;
   }
-  if (isNormalmap) {
+  if (nrm) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
-  } else if (channels == TgaChannels_RGB || channels == TgaChannels_RGBA) {
+  } else if (ch == TgaChannels_RGB || ch == TgaChannels_RGBA) {
     // All other (3 or 4 channel) textures are assumed to be sRGB encoded.
     flags |= AssetTextureFlags_Srgb;
   }
@@ -247,7 +247,8 @@ static void tga_pixels_read_at(
     const Mem         pixels /* AssetTexturePixelB1* or AssetTexturePixelB4* */,
     const TgaChannels channels,
     const u8*         data,
-    const usize       index) {
+    const usize       index,
+    bool*             outAlpha) {
 
   /**
    * Follows the same to RGBA conversion rules as the Vulkan spec:
@@ -272,6 +273,9 @@ static void tga_pixels_read_at(
     outPixelB4->g                   = data[1];
     outPixelB4->r                   = data[2];
     outPixelB4->a                   = data[3];
+    if (outPixelB4->a != 255) {
+      *outAlpha = true;
+    }
   } break;
   default:
     UNREACHABLE
@@ -285,6 +289,7 @@ static Mem tga_pixels_read_uncompressed(
     const u32         width,
     const u32         height,
     const Mem         input,
+    bool*             outAlpha,
     TgaError*         err) {
 
   const u32 pixelCount = width * height;
@@ -296,7 +301,7 @@ static Mem tga_pixels_read_uncompressed(
   u8* src = mem_begin(input);
   for (u32 y = 0; y != height; ++y) {
     for (u32 x = 0; x != width; ++x) {
-      tga_pixels_read_at(pixels, channels, src, tga_index(x, y, width, height, flags));
+      tga_pixels_read_at(pixels, channels, src, tga_index(x, y, width, height, flags), outAlpha);
       src += channels;
     }
   }
@@ -311,6 +316,7 @@ static Mem tga_pixels_read_rle(
     const u32         width,
     const u32         height,
     Mem               input,
+    bool*             outAlpha,
     TgaError*         err) {
 
   u32 packetRem      = 0; // How many pixels are left in the current rle packet.
@@ -353,7 +359,7 @@ static Mem tga_pixels_read_rle(
         tga_pixels_copy_at(pixels, channels, i, packetRefPixel);
       } else {
         // No reference pixel; Read a new pixel value.
-        tga_pixels_read_at(pixels, channels, mem_begin(input), i);
+        tga_pixels_read_at(pixels, channels, mem_begin(input), i, outAlpha);
         tga_mem_consume_inplace(&input, channels);
       }
     }
@@ -369,12 +375,13 @@ static Mem tga_pixels_read(
     const u32         width,
     const u32         height,
     const Mem         input,
+    bool*             outAlpha,
     TgaError*         err) {
 
   if (flags & TgaFlags_Rle) {
-    return tga_pixels_read_rle(pixels, channels, flags, width, height, input, err);
+    return tga_pixels_read_rle(pixels, channels, flags, width, height, input, outAlpha, err);
   }
-  return tga_pixels_read_uncompressed(pixels, channels, flags, width, height, input, err);
+  return tga_pixels_read_uncompressed(pixels, channels, flags, width, height, input, outAlpha, err);
 }
 
 static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaError err) {
@@ -442,7 +449,10 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
   const u32 width  = header.imageSpec.width;
   const u32 height = header.imageSpec.height;
   const Mem pixels = tga_pixels_alloc(g_alloc_heap, channels, width, height);
-  data             = tga_pixels_read(pixels, channels, flags, width, height, data, &res);
+
+  bool hasAlpha = false;
+  data          = tga_pixels_read(pixels, channels, flags, width, height, data, &hasAlpha, &res);
+
   if (res) {
     tga_load_fail(world, entity, res);
     alloc_free(g_alloc_heap, pixels);
@@ -456,7 +466,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       AssetTextureComp,
       .type         = AssetTextureType_U8,
       .channels     = tga_texture_channels(channels),
-      .flags        = tga_texture_flags(channels, isNormalmap),
+      .flags        = tga_texture_flags(channels, isNormalmap, hasAlpha),
       .width        = width,
       .height       = height,
       .pixelsRaw    = pixels.ptr,
