@@ -324,7 +324,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   ui_layout_push(canvas);
   ui_style_push(canvas);
   {
-    const UiVector size = {0.5f, 0.25f};
+    const UiVector size = {0.75f, 0.25f};
     ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
     ui_style_layer(canvas, UiLayer_Overlay);
     ui_style_variation(canvas, UiVariation_Monospace);
