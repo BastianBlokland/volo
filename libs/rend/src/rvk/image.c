@@ -178,6 +178,9 @@ static VkFormatFeatureFlags rvk_image_format_features(const RvkImageCapability c
   if (caps & RvkImageCapability_TransferDest) {
     formatFeatures |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
   }
+  if (caps & RvkImageCapability_BlitDest) {
+    formatFeatures |= VK_FORMAT_FEATURE_BLIT_DST_BIT;
+  }
   if (caps & RvkImageCapability_Sampled) {
     formatFeatures |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
   }
@@ -322,7 +325,9 @@ static RvkImage rvk_image_create_backed(
 
   const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(caps);
   if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {
-    diag_crash_msg("Image format {} unsupported", fmt_text(rvk_format_info(vkFormat).name));
+    diag_crash_msg(
+        "Image format {} does not support requested features",
+        fmt_text(rvk_format_info(vkFormat).name));
   }
   if (UNLIKELY(layers > dev->vkProperties.limits.maxImageArrayLayers)) {
     diag_crash_msg("Image layer count {} unsupported", fmt_int(layers));
@@ -364,7 +369,7 @@ RvkImage rvk_image_create_source_color(
     const u8       mipLevels) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
   if (mipLevels > 1) {
-    caps |= RvkImageCapability_TransferSource;
+    caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   return rvk_image_create_backed(
       dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels);
@@ -374,7 +379,7 @@ RvkImage rvk_image_create_source_color_cube(
     RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
   if (mipLevels > 1) {
-    caps |= RvkImageCapability_TransferSource;
+    caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   const u8 layers = 6;
   return rvk_image_create_backed(
@@ -420,6 +425,7 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
    */
   capabilities |= RvkImageCapability_AttachmentColor;
   capabilities |= RvkImageCapability_TransferDest;
+  capabilities |= RvkImageCapability_BlitDest;
 
   const u8 layers    = 1;
   const u8 mipLevels = 1;
@@ -545,8 +551,11 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
     return;
   }
 
-  diag_assert(img->caps & RvkImagePhase_TransferSource);
-  diag_assert(img->caps & RvkImagePhase_TransferDest);
+  MAYBE_UNUSED static const RvkImageCapability g_requiredCaps = RvkImageCapability_TransferSource |
+                                                                RvkImageCapability_TransferDest |
+                                                                RvkImageCapability_BlitDest;
+
+  diag_assert((g_requiredCaps & img->caps) == g_requiredCaps);
   diag_assert(img->type == RvkImageType_ColorSource || img->type == RvkImageType_ColorSourceCube);
 
   /**
@@ -626,7 +635,7 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
 
   const VkClearColorValue       clearColor = rvk_rend_clear_color(color);
   const VkImageSubresourceRange ranges[]   = {
-      {
+        {
             .aspectMask     = rvk_image_vkaspect(img->type),
             .baseMipLevel   = 0,
             .levelCount     = img->mipLevels,
@@ -649,7 +658,7 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
 
   const VkClearDepthStencilValue clearValue = {.depth = depth};
   const VkImageSubresourceRange  ranges[]   = {
-      {
+         {
              .aspectMask     = rvk_image_vkaspect(img->type),
              .baseMipLevel   = 0,
              .levelCount     = img->mipLevels,
@@ -700,6 +709,7 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
   diag_assert_msg(src->layers == dest->layers, "Image blit requires matching layer counts");
+  diag_assert_msg(dest->caps & RvkImageCapability_BlitDest, "Dest image does not support blitting");
 
   const VkImageBlit regions[] = {
       {

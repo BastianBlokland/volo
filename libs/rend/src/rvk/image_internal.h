@@ -35,10 +35,11 @@ typedef enum eRvkImageCapability {
   RvkImageCapability_None            = 0,
   RvkImageCapability_TransferSource  = 1 << 0,
   RvkImageCapability_TransferDest    = 1 << 1,
-  RvkImageCapability_Sampled         = 1 << 2,
-  RvkImageCapability_AttachmentColor = 1 << 3,
-  RvkImageCapability_AttachmentDepth = 1 << 4,
-  RvkImageCapability_Present         = 1 << 5,
+  RvkImageCapability_BlitDest        = 1 << 2,
+  RvkImageCapability_Sampled         = 1 << 3,
+  RvkImageCapability_AttachmentColor = 1 << 4,
+  RvkImageCapability_AttachmentDepth = 1 << 5,
+  RvkImageCapability_Present         = 1 << 6,
 } RvkImageCapability;
 
 typedef struct sRvkImage {

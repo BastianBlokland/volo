@@ -18,7 +18,8 @@ ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple 
  * Capabilities that all attachments will have.
  * TODO: Investigate if these have any (serious) performance impact.
  */
-static const RvkImageCapability g_attachDefaultCapabilities = RvkImageCapability_TransferDest;
+static const RvkImageCapability g_attachDefaultCapabilities =
+    RvkImageCapability_TransferDest | RvkImageCapability_BlitDest;
 
 typedef u32 RvkAttachIndex;
 

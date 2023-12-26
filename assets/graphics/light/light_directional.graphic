@@ -26,7 +26,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/tiling/clouds.tga",
+      "textureId": "external/tiling/clouds_2.tga",
       "wrap": "Repeat",
       "filter": "Linear"
     }
