@@ -277,6 +277,25 @@ static usize proctex_pixel_channel_size(const ProcTexDef* def) {
   diag_crash();
 }
 
+static bool proctex_pixel_has_alpha(const ProcTexDef* def) {
+  if (def->channels != 4) {
+    return false;
+  }
+  switch (def->type) {
+  case ProcTexType_Zero:
+  case ProcTexType_Circle:
+  case ProcTexType_NoisePerlin:
+  case ProcTexType_NoiseWhite:
+  case ProcTexType_NoiseWhiteGauss:
+    return true;
+  case ProcTexType_One:
+  case ProcTexType_Checker:
+  case ProcTexType_BrdfIntegration:
+    return false;
+  }
+  diag_crash();
+}
+
 static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture) {
   const u32   size             = def->size;
   const usize pixelChannelSize = proctex_pixel_channel_size(def);
@@ -319,7 +338,7 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
-  if (def->channels == 4) {
+  if (proctex_pixel_has_alpha(def)) {
     flags |= AssetTextureFlags_Alpha;
   }
   *outTexture = (AssetTextureComp){
