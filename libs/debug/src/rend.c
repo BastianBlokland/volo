@@ -324,7 +324,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   ui_layout_push(canvas);
   ui_style_push(canvas);
   {
-    const UiVector size = {0.5f, 0.25f};
+    const UiVector size = {0.75f, 0.25f};
     ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
     ui_style_layer(canvas, UiLayer_Overlay);
     ui_style_variation(canvas, UiVariation_Monospace);
@@ -341,7 +341,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "Height:     {}\n", fmt_int(rend_res_texture_height(texture)));
       fmt_write(&str, "Layers:     {}\n", fmt_int(rend_res_texture_layers(texture)));
       fmt_write(&str, "MipLevels:  {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
-      fmt_write(&str, "GenMips:    {}\n", fmt_bool(rend_res_texture_is_gen_mips(texture)));
+      fmt_write(&str, "MipGpuGen:  {}\n", fmt_bool(rend_res_texture_mip_gpu_gen(texture)));
       fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
       fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
     }

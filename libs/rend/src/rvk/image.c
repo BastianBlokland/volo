@@ -366,9 +366,10 @@ RvkImage rvk_image_create_source_color(
     const VkFormat vkFormat,
     const RvkSize  size,
     const u8       layers,
-    const u8       mipLevels) {
+    const u8       mipLevels,
+    const bool     mipGpuGen) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
-  if (mipLevels > 1) {
+  if (mipGpuGen && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   return rvk_image_create_backed(
@@ -376,9 +377,13 @@ RvkImage rvk_image_create_source_color(
 }
 
 RvkImage rvk_image_create_source_color_cube(
-    RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
+    RvkDevice*     dev,
+    const VkFormat vkFormat,
+    const RvkSize  size,
+    const u8       mipLevels,
+    const bool     mipGpuGen) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
-  if (mipLevels > 1) {
+  if (mipGpuGen && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   const u8 layers = 6;
