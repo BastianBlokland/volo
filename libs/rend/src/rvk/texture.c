@@ -12,26 +12,60 @@
 
 #define VOLO_RVK_TEXTURE_LOGGING 0
 
+typedef enum {
+  RvkTextureCompress_None,
+  RvkTextureCompress_Bc1, // RGB, 8 bit per channel.
+} RvkTextureCompress;
+
 /**
  * Compute how many times we can cut the image in half before both sides hit 1 pixel.
  */
-static u16 rvk_compute_max_miplevels(const RvkSize size) {
+static u16 rvk_compute_miplevels(const RvkSize size) {
   const u16 biggestSide = math_max(size.width, size.height);
   return (u16)(32 - bits_clz_32(biggestSide));
 }
 
-static VkFormat rvk_texture_format_byte(const AssetTextureChannels channels, const bool srgb) {
-  switch (channels) {
+static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset) {
+  if (asset->type != AssetTextureType_U8) {
+    return RvkTextureCompress_None;
+  }
+  if (asset->channels != AssetTextureChannels_Four) {
+    return RvkTextureCompress_None;
+  }
+  if (asset->flags & AssetTextureFlags_GenerateMipMaps || asset->srcMipLevels > 1) {
+    // TODO: Support compressed textures with mip-maps.
+    return RvkTextureCompress_None;
+  }
+  if (asset->flags & AssetTextureFlags_Alpha) {
+    // TODO: Support BC3 compression
+    return RvkTextureCompress_None;
+  }
+  return RvkTextureCompress_Bc1;
+}
+
+static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const RvkTextureCompress c) {
+  const bool srgb = (asset->flags & AssetTextureFlags_Srgb) != 0;
+  switch (asset->channels) {
   case AssetTextureChannels_One:
+    diag_assert_msg(c == RvkTextureCompress_None, "One channel with compression is not supported");
     return srgb ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM;
   case AssetTextureChannels_Four:
-    return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    switch (c) {
+    case RvkTextureCompress_Bc1:
+      return srgb ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+    case RvkTextureCompress_None:
+      return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    }
   }
   diag_crash();
 }
 
-static VkFormat rvk_texture_format_u16(const AssetTextureChannels channels) {
-  switch (channels) {
+static VkFormat rvk_texture_format_u16(const AssetTextureComp* asset, const RvkTextureCompress c) {
+  diag_assert_msg(!(asset->flags & AssetTextureFlags_Srgb), "U16 with srgb is not supported");
+  diag_assert_msg(c == RvkTextureCompress_None, "U16 with compression is not supported");
+  (void)c;
+
+  switch (asset->channels) {
   case AssetTextureChannels_One:
     return VK_FORMAT_R16_UNORM;
   case AssetTextureChannels_Four:
@@ -40,8 +74,12 @@ static VkFormat rvk_texture_format_u16(const AssetTextureChannels channels) {
   diag_crash();
 }
 
-static VkFormat rvk_texture_format_f32(const AssetTextureChannels channels) {
-  switch (channels) {
+static VkFormat rvk_texture_format_f32(const AssetTextureComp* asset, const RvkTextureCompress c) {
+  diag_assert_msg(!(asset->flags & AssetTextureFlags_Srgb), "F32 with srgb is not supported");
+  diag_assert_msg(c == RvkTextureCompress_None, "F32 with compression is not supported");
+  (void)c;
+
+  switch (asset->channels) {
   case AssetTextureChannels_One:
     return VK_FORMAT_R32_SFLOAT;
   case AssetTextureChannels_Four:
@@ -50,20 +88,14 @@ static VkFormat rvk_texture_format_f32(const AssetTextureChannels channels) {
   diag_crash();
 }
 
-static VkFormat rvk_texture_format(
-    const AssetTextureType     type,
-    const AssetTextureFlags    flags,
-    const AssetTextureChannels channels) {
-  const bool srgb = (flags & AssetTextureFlags_Srgb) != 0;
-  switch (type) {
+static VkFormat rvk_texture_format(const AssetTextureComp* asset, const RvkTextureCompress c) {
+  switch (asset->type) {
   case AssetTextureType_U8:
-    return rvk_texture_format_byte(channels, srgb);
+    return rvk_texture_format_byte(asset, c);
   case AssetTextureType_U16:
-    diag_assert_msg(!srgb, "U16 textures with srgb encoding are not supported");
-    return rvk_texture_format_u16(channels);
+    return rvk_texture_format_u16(asset, c);
   case AssetTextureType_F32:
-    diag_assert_msg(!srgb, "F32 textures with srgb encoding are not supported");
-    return rvk_texture_format_f32(channels);
+    return rvk_texture_format_f32(asset, c);
   case AssetTextureType_Count:
     UNREACHABLE
   }
@@ -75,37 +107,34 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .device  = dev,
+                 .dbgName = string_dup(g_alloc_heap, dbgName),
   };
-  const RvkSize size = rvk_size(asset->width, asset->height);
+  const RvkSize            size     = rvk_size(asset->width, asset->height);
+  const RvkTextureCompress compress = rvk_texture_compression(asset);
+  const VkFormat           vkFormat = rvk_texture_format(asset, compress);
+
+  u8 mipLevels;
+  if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
+    diag_assert(asset->srcMipLevels <= 1);
+    mipLevels = rvk_compute_miplevels(size);
+    tex->flags |= RvkTextureFlags_GpuMipGen;
+  } else {
+    diag_assert(asset->srcMipLevels <= rvk_compute_miplevels(size));
+    mipLevels = math_max(asset->srcMipLevels, 1);
+  }
 
   if (asset->flags & AssetTextureFlags_Alpha) {
     tex->flags |= RvkTextureFlags_Alpha;
   }
 
-  u8   mipLevels;
-  bool mipGpuGen;
-  if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
-    diag_assert(asset->srcMipLevels <= 1);
-    mipLevels = rvk_compute_max_miplevels(size);
-    tex->flags |= RvkTextureFlags_GpuMipGen;
-    mipGpuGen = true;
-  } else {
-    diag_assert(asset->srcMipLevels <= rvk_compute_max_miplevels(size));
-    mipLevels = math_max(asset->srcMipLevels, 1);
-    mipGpuGen = false;
-  }
-
-  const VkFormat vkFormat = rvk_texture_format(asset->type, asset->flags, asset->channels);
-  diag_assert(rvk_format_info(vkFormat).size == asset_texture_pixel_size(asset));
-  diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
-
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(asset->layers == 6, "CubeMap needs 6 layers");
+    const bool mipGpuGen = (tex->flags & RvkTextureFlags_GpuMipGen) != 0;
     tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGpuGen);
   } else {
-    const u8 layers = math_max(1, asset->layers);
+    const u8   layers    = math_max(1, asset->layers);
+    const bool mipGpuGen = (tex->flags & RvkTextureFlags_GpuMipGen) != 0;
     tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGpuGen);
   }
 
