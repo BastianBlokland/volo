@@ -50,7 +50,7 @@ static void bc_color_swap(RvkBcColor8888* a, RvkBcColor8888* b) {
 static u8 bc_color_pick(const RvkBcColor8888 ref[PARAM_ARRAY_SIZE(4)], const RvkBcColor8888* c) {
   u32 bestDistSqr = u32_max;
   u8  bestIndex;
-  for (u32 i = 0; i != 4; ++i) {
+  for (u8 i = 0; i != 4; ++i) {
     const u32 distSqr = bc_color_distance_sqr(c, &ref[i]);
     if (distSqr < bestDistSqr) {
       bestDistSqr = distSqr;
@@ -91,11 +91,10 @@ static void bc_block_bounds(const RvkBc0Block* b, RvkBcColor8888* outMin, RvkBcC
 void rvk_bc0_extract(const RvkBcColor8888* in, const u32 width, RvkBc0Block* out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
-  for (u32 y = 0; y != 4; ++y) {
+  for (u32 y = 0; y != 4; ++y, in += width) {
     for (u32 x = 0; x != 4; ++x) {
       out->colors[y * 4 + x] = in[x];
     }
-    in += width;
   }
 }
 
@@ -116,8 +115,8 @@ void rvk_bc1_encode(const RvkBc0Block* in, RvkBc1Block* out) {
 
   bc_block_implicit_colors(&refColors[0], &refColors[1], &refColors[2], &refColors[3]);
 
-  out->color0  = bc_color_to_565(&min);
-  out->color1  = bc_color_to_565(&max);
+  out->color0  = bc_color_to_565(&max);
+  out->color1  = bc_color_to_565(&min);
   out->indices = 0;
   for (u32 i = 0; i != array_elems(in->colors); ++i) {
     const u8 index = bc_color_pick(&in->colors[i], refColors);
