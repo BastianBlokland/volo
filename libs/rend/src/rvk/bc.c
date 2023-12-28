@@ -8,6 +8,7 @@
  * Texture Block Compression.
  *
  * Specification:
+ * https://registry.khronos.org/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
  * https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression
  *
  * References:
