@@ -75,7 +75,7 @@ usize asset_texture_req_size(
 usize asset_texture_req_align(AssetTextureType, AssetTextureChannels);
 
 usize asset_texture_pixel_size(const AssetTextureComp*);
-usize asset_texture_mip_size(const AssetTextureComp*, const u32 mipLevel);
+usize asset_texture_mip_size(const AssetTextureComp*, u32 mipLevel);
 usize asset_texture_data_size(const AssetTextureComp*);
 Mem   asset_texture_data(const AssetTextureComp*);
 

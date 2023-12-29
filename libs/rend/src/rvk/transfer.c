@@ -313,9 +313,14 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
 
 static u32 rvk_transfer_image_src_size_mip(const RvkImage* img, const u32 mipLevel) {
   diag_assert(mipLevel < img->mipLevels);
-  const u32 mipWidth  = math_max(img->size.width >> mipLevel, 1);
-  const u32 mipHeight = math_max(img->size.height >> mipLevel, 1);
-  return mipWidth * mipHeight * img->layers * rvk_format_info(img->vkFormat).size;
+  const u32           mipWidth   = math_max(img->size.width >> mipLevel, 1);
+  const u32           mipHeight  = math_max(img->size.height >> mipLevel, 1);
+  const RvkFormatInfo formatInfo = rvk_format_info(img->vkFormat);
+  if (formatInfo.flags & RvkFormat_Block4x4) {
+    const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
+    return blocks * formatInfo.size * img->layers;
+  }
+  return mipWidth * mipHeight * formatInfo.size * img->layers;
 }
 
 MAYBE_UNUSED static u32 rvk_transfer_image_src_size(const RvkImage* img, const u32 mipLevels) {
