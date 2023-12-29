@@ -17,7 +17,6 @@ add_library(lib_rend STATIC
   src/reset.c
   src/resource.c
   src/rvk/attach.c
-  src/rvk/bc.c
   src/rvk/buffer.c
   src/rvk/canvas.c
   src/rvk/debug.c

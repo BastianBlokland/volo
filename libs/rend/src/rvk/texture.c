@@ -1,9 +1,9 @@
+#include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "log_logger.h"
 
-#include "bc_internal.h"
 #include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
@@ -161,18 +161,18 @@ static void rvk_texture_encode(
   diag_assert_msg(bits_aligned(size.width, 4), "Width has to be a multiple of 4");
   diag_assert_msg(bits_aligned(size.height, 4), "Height has to be a multiple of 4");
 
-  const RvkBcColor8888* inPtr  = dataIn.ptr;
-  RvkBc1Block*          outPtr = dataOut.ptr;
+  const BcColor8888* inPtr  = dataIn.ptr;
+  Bc1Block*          outPtr = dataOut.ptr;
 
-  RvkBc0Block block;
+  Bc0Block block;
   for (u32 l = 0; l != layers; ++l) {
     for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
       for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
-        rvk_bc0_extract(inPtr + x, size.width, &block);
+        bc0_extract(inPtr + x, size.width, &block);
 
         switch (compress) {
         case RvkTextureCompress_Bc1:
-          rvk_bc1_encode(&block, outPtr);
+          bc1_encode(&block, outPtr);
           break;
         default:
           UNREACHABLE
