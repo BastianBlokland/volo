@@ -25,10 +25,11 @@ static BcColor565 bc_color_to_565(const BcColor8888* c) {
 /**
  * Quantize a color in the same way that converting it to 565 and back would do.
  */
-static void bc_color_quantize_565(BcColor8888* c) {
-  c->r = (c->r & 0b11111000) | (c->r >> 5);
-  c->g = (c->g & 0b11111100) | (c->g >> 6);
-  c->b = (c->b & 0b11111000) | (c->b >> 5);
+static BcColor8888 bc_color_quantize_565(const BcColor8888* c) {
+  const u8 r = (c->r & 0b11111000) | (c->r >> 5);
+  const u8 g = (c->g & 0b11111100) | (c->g >> 6);
+  const u8 b = (c->b & 0b11111000) | (c->b >> 5);
+  return (BcColor8888){.r = r, .g = g, .b = b, .a = 255};
 }
 
 static u32 bc_color_luminance(const BcColor8888* c) { return c->r + c->g * 2 + c->b; }
@@ -103,11 +104,8 @@ void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   }
 
   BcColor8888 refColors[4];
-  refColors[0] = min;
-  refColors[1] = max;
-
-  bc_color_quantize_565(&refColors[0]);
-  bc_color_quantize_565(&refColors[1]);
+  refColors[0] = bc_color_quantize_565(&min);
+  refColors[1] = bc_color_quantize_565(&max);
 
   bc_block_implicit_colors(&refColors[0], &refColors[1], &refColors[2], &refColors[3]);
 
