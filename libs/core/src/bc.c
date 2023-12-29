@@ -62,6 +62,15 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
 
 static void bc_block_implicit_colors(
     const BcColor8888 min, const BcColor8888 max, BcColor8888* outA, BcColor8888* outB) {
+  /**
+   * We use the bc1 mode that uses 2 interpolated implicit colors.
+   *
+   * Bc1 reference colors:
+   * - RGB0: color0                (if color0 > color1)
+   * - RGB1: color1                (if color0 > color1)
+   * - RGB2: (2 * RGB0 + RGB1) / 3 (if color0 > color1)
+   * - RGB3: (RGB0 + 2 * RGB1) / 3 (if color0 > color1)
+   */
   outA->r = (min.r * 2 + max.r * 1) / 3;
   outA->g = (min.g * 2 + max.g * 1) / 3;
   outA->b = (min.b * 2 + max.b * 1) / 3;
@@ -99,6 +108,13 @@ void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   BcColor8888 min, max;
   bc_block_bounds(in, &min, &max);
 
+  /**
+   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
+   * always larger then color1.
+   * NOTE: When color0 is equal to color1 we do end up using the mode where the 4th color is black
+   * instead of an interpolated value, this should not be a problem however as when min is equal to
+   * max then all colors must be equal so we can use index 0 for all entries.
+   */
   if (bc_color_to_565(max) < bc_color_to_565(min)) {
     bc_color_swap(&min, &max);
   }
