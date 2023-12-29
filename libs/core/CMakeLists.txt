@@ -15,6 +15,7 @@ add_library(lib_core STATIC
   src/alloc.c
   src/ascii.c
   src/base64.c
+  src/bc.c
   src/bits.c
   src/bitset.c
   src/compare.c
