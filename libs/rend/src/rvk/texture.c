@@ -169,7 +169,14 @@ static void rvk_texture_encode(
     for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
       for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
         rvk_bc0_extract(inPtr + x, size.width, &block);
-        rvk_bc1_encode(&block, outPtr);
+
+        switch (compress) {
+        case RvkTextureCompress_Bc1:
+          rvk_bc1_encode(&block, outPtr);
+          break;
+        default:
+          UNREACHABLE
+        }
       }
     }
   }
