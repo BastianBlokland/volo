@@ -5,31 +5,98 @@
 
 /**
  * BcUtil - Utility to test texture block compression.
+ *
+ * NOTE: Contains an extremely simplistic tga parser that only supports uncompressed RGBA data which
+ * uses lower-left as the image origin.
  */
 
+typedef struct {
+  u16 width, height;
+} TgaHeader;
+
+static Mem tga_header_read(Mem input, TgaHeader* out) {
+  if (UNLIKELY(input.size < 18)) {
+    return *out = (TgaHeader){0}, input; // Malformed header.
+  }
+  u8  colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
+  u16 width, height;
+
+  input = mem_consume(input, 1); // Skip over 'idLength'.
+  input = mem_consume_u8(input, &colorMapType);
+  input = mem_consume_u8(input, &imageType);
+  input = mem_consume(input, 5); // Skip over 'ColorMapSpec'.
+  input = mem_consume(input, 4); // Skip over 'origin'.
+  input = mem_consume_le_u16(input, &width);
+  input = mem_consume_le_u16(input, &height);
+  input = mem_consume_u8(input, &bitsPerPixel);
+  input = mem_consume_u8(input, &imageSpecDescriptorRaw);
+
+  const u8 imageAttributeDepth = imageSpecDescriptorRaw & u8_lit(0b1111);
+  const u8 imageOrigin         = imageSpecDescriptorRaw & u8_lit(0b110000);
+  const u8 imageInterleave     = imageSpecDescriptorRaw & u8_lit(0b11000000);
+
+  if (colorMapType != 0 /* Absent*/) {
+    log_e("Unsupported tga color-map type", log_param("type", fmt_int(colorMapType)));
+    return *out = (TgaHeader){0}, input; // Unsupported color-map type.
+  }
+  if (imageType != 2 /* TrueColor */) {
+    log_e("Unsupported tga image type", log_param("type", fmt_int(imageType)));
+    return *out = (TgaHeader){0}, input; // Unsupported color-map type.
+  }
+  if (bitsPerPixel != 32) {
+    log_e("Unsupported tga bitsPerPixel", log_param("bitsPerPixel", fmt_int(bitsPerPixel)));
+    return *out = (TgaHeader){0}, input; // Unsupported image depth.
+  }
+  if (imageAttributeDepth != 8) {
+    log_e("Unsupported tga image attribute depth");
+    return *out = (TgaHeader){0}, input; // Unsupported alpha depth.
+  }
+  if (imageOrigin != 0 /* LowerLeft */) {
+    log_e("Unsupported tga image origin");
+    return *out = (TgaHeader){0}, input; // Unsupported image origin.
+  }
+  if (imageInterleave != 0 /* None */) {
+    log_e("Unsupported tga interleaved image");
+    return *out = (TgaHeader){0}, input; // Unsupported interleave mode.
+  }
+
+  *out = (TgaHeader){.width = width, .height = height};
+  return input;
+}
+
 static bool bcutil_run(const String inputPath, const String outputPath) {
+  bool success = false;
+
   log_i(
       "BcUtil run",
       log_param("input", fmt_path(inputPath)),
       log_param("output", fmt_path(outputPath)));
 
-  File*      inFile;
+  File*      inFile = null;
   FileResult inRes;
   if ((inRes = file_create(g_alloc_heap, inputPath, FileMode_Open, FileAccess_Read, &inFile))) {
     log_e("Failed to open input file", log_param("path", fmt_path(inputPath)));
-    return false;
+    goto End;
   }
-  String inData;
+  Mem inData;
   if ((inRes = file_map(inFile, &inData))) {
     log_e("Failed to map input file", log_param("path", fmt_path(inputPath)));
-    file_destroy(inFile);
-    return false;
+    goto End;
+  }
+  TgaHeader header;
+  inData = tga_header_read(inData, &header);
+  if (!header.width || !header.height) {
+    log_e("Unsupported input tga file", log_param("path", fmt_path(inputPath)));
+    goto End;
   }
 
-  (void)outputPath;
+  success = true;
 
-  file_destroy(inFile);
-  return true;
+End:
+  if (inFile) {
+    file_destroy(inFile);
+  }
+  return success;
 }
 
 static CliId g_inputFlag, g_outputFlag, g_helpFlag;
