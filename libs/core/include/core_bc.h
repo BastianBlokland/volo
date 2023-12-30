@@ -35,6 +35,7 @@ ASSERT(sizeof(Bc1Block) == 8, "Unexpected bc1 block size");
 void bc0_extract(const BcColor8888* in, u32 width, Bc0Block* out);
 
 /**
- * Encode a single 4x4 BC1 (aka S3TC DXT1) block.
+ * Encode / decode a single 4x4 BC1 (aka S3TC DXT1) block.
  */
 void bc1_encode(const Bc0Block* in, Bc1Block* out);
+void bc1_decode(const Bc1Block* in, Bc0Block* out);
