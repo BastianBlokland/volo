@@ -1,0 +1,38 @@
+#include "app_cli.h"
+#include "core_alloc.h"
+#include "core_file.h"
+#include "log.h"
+
+/**
+ * BcUtil - Utility to test texture block compression.
+ */
+
+static CliId g_inputFlag, g_helpFlag;
+
+void app_cli_configure(CliApp* app) {
+  cli_app_register_desc(app, string_lit("Texture block compression utility."));
+
+  g_inputFlag = cli_register_flag(app, 'i', string_lit("input"), CliOptionFlags_Required);
+  cli_register_desc(app, g_inputFlag, string_lit("Input image path."));
+  cli_register_validator(app, g_inputFlag, cli_validate_file_regular);
+
+  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_helpFlag, g_inputFlag);
+}
+
+i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  if (cli_parse_provided(invoc, g_helpFlag)) {
+    cli_help_write_file(app, g_file_stdout);
+    return 0;
+  }
+
+  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
+  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
+
+  const String inputPath = cli_read_string(invoc, g_inputFlag, string_empty);
+
+  log_i("BcUtil startup", log_param("input", fmt_path(inputPath)));
+
+  return 0;
+}
