@@ -10,6 +10,14 @@ static void test_bc0_block_fill(Bc0Block* b, const BcColor8888 color) {
   }
 }
 
+static void test_bc0_block_fill_checker(Bc0Block* b, const BcColor8888 cA, const BcColor8888 cB) {
+  for (u32 y = 0; y != 4; ++y) {
+    for (u32 x = 0; x != 4; ++x) {
+      b->colors[y * 4 + x] = ((x & 1) == (y & 1)) ? cA : cB;
+    }
+  }
+}
+
 static void test_color8888_check(
     CheckTestContext* ctx, const BcColor8888 a, const BcColor8888 b, const SourceLoc src) {
   if (UNLIKELY(
@@ -60,6 +68,21 @@ spec(bc) {
 
     for (u32 i = 0; i != array_elems(decodedBlock.colors); ++i) {
       check_eq_color8888(decodedBlock.colors[i], g_white);
+    }
+  }
+
+  it("can encode a black and white checker bc1 block") {
+    Bc0Block orgBlock;
+    test_bc0_block_fill_checker(&orgBlock, g_black, g_white);
+
+    Bc1Block bc1Block;
+    bc1_encode(&orgBlock, &bc1Block);
+
+    Bc0Block decodedBlock;
+    bc1_decode(&bc1Block, &decodedBlock);
+
+    for (u32 i = 0; i != array_elems(decodedBlock.colors); ++i) {
+      check_eq_color8888(decodedBlock.colors[i], orgBlock.colors[i]);
     }
   }
 }
