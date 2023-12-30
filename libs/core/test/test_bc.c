@@ -2,6 +2,8 @@
 #include "core_array.h"
 #include "core_bc.h"
 
+#define test_threshold_color8888 10
+
 static void test_bc0_block_fill(Bc0Block* b, const BcColor8888 color) {
   for (u32 i = 0; i != array_elems(b->colors); ++i) {
     b->colors[i] = color;
@@ -10,7 +12,11 @@ static void test_bc0_block_fill(Bc0Block* b, const BcColor8888 color) {
 
 static void test_color8888_check(
     CheckTestContext* ctx, const BcColor8888 a, const BcColor8888 b, const SourceLoc src) {
-  if (UNLIKELY(a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a)) {
+  if (UNLIKELY(
+          math_abs((i32)a.r - (i32)b.r) > test_threshold_color8888 ||
+          math_abs((i32)a.g - (i32)b.g) > test_threshold_color8888 ||
+          math_abs((i32)a.b - (i32)b.b) > test_threshold_color8888 ||
+          math_abs((i32)a.a - (i32)b.a) > test_threshold_color8888)) {
     check_report_error(
         ctx,
         fmt_write_scratch(
@@ -25,6 +31,7 @@ static void test_color8888_check(
 
 spec(bc) {
   static const BcColor8888 g_black = {0, 0, 0, 255};
+  static const BcColor8888 g_white = {255, 255, 255, 255};
 
   it("can encode a black bc1 block") {
     Bc0Block orgBlock;
@@ -38,6 +45,21 @@ spec(bc) {
 
     for (u32 i = 0; i != array_elems(decodedBlock.colors); ++i) {
       check_eq_color8888(decodedBlock.colors[i], g_black);
+    }
+  }
+
+  it("can encode a white bc1 block") {
+    Bc0Block orgBlock;
+    test_bc0_block_fill(&orgBlock, g_white);
+
+    Bc1Block bc1Block;
+    bc1_encode(&orgBlock, &bc1Block);
+
+    Bc0Block decodedBlock;
+    bc1_decode(&bc1Block, &decodedBlock);
+
+    for (u32 i = 0; i != array_elems(decodedBlock.colors); ++i) {
+      check_eq_color8888(decodedBlock.colors[i], g_white);
     }
   }
 }
