@@ -113,6 +113,70 @@ Mem mem_consume_be_u64(const Mem mem, u64* out) {
   return mem_consume(mem, 8);
 }
 
+Mem mem_write_u8(const Mem mem, const u8 value) {
+  diag_assert(mem.size >= 1);
+  *mem_begin(mem) = value;
+  return mem_consume(mem, 1);
+}
+
+Mem mem_write_le_u16(const Mem mem, const u16 value) {
+  diag_assert(mem.size >= 2);
+  mem_begin(mem)[0] = value;
+  mem_begin(mem)[1] = value >> 8;
+  return mem_consume(mem, 2);
+}
+
+Mem mem_write_le_u32(const Mem mem, const u32 value) {
+  diag_assert(mem.size >= 4);
+  mem_begin(mem)[0] = value;
+  mem_begin(mem)[1] = value >> 8;
+  mem_begin(mem)[2] = value >> 16;
+  mem_begin(mem)[3] = value >> 24;
+  return mem_consume(mem, 4);
+}
+
+Mem mem_write_le_u64(const Mem mem, const u64 value) {
+  diag_assert(mem.size >= 8);
+  mem_begin(mem)[0] = value;
+  mem_begin(mem)[1] = value >> 8;
+  mem_begin(mem)[2] = value >> 16;
+  mem_begin(mem)[3] = value >> 24;
+  mem_begin(mem)[4] = value >> 32;
+  mem_begin(mem)[5] = value >> 40;
+  mem_begin(mem)[6] = value >> 48;
+  mem_begin(mem)[7] = value >> 56;
+  return mem_consume(mem, 8);
+}
+
+Mem mem_write_be_u16(const Mem mem, const u16 value) {
+  diag_assert(mem.size >= 2);
+  mem_begin(mem)[0] = value >> 8;
+  mem_begin(mem)[1] = value;
+  return mem_consume(mem, 2);
+}
+
+Mem mem_write_be_u32(const Mem mem, const u32 value) {
+  diag_assert(mem.size >= 4);
+  mem_begin(mem)[0] = value >> 24;
+  mem_begin(mem)[1] = value >> 16;
+  mem_begin(mem)[2] = value >> 8;
+  mem_begin(mem)[3] = value;
+  return mem_consume(mem, 4);
+}
+
+Mem mem_write_be_u64(const Mem mem, const u64 value) {
+  diag_assert(mem.size >= 8);
+  mem_begin(mem)[0] = value >> 56;
+  mem_begin(mem)[1] = value >> 48;
+  mem_begin(mem)[2] = value >> 40;
+  mem_begin(mem)[3] = value >> 32;
+  mem_begin(mem)[4] = value >> 24;
+  mem_begin(mem)[5] = value >> 16;
+  mem_begin(mem)[6] = value >> 8;
+  mem_begin(mem)[7] = value;
+  return mem_consume(mem, 8);
+}
+
 void* mem_as(const Mem mem, const usize size, const usize align) {
   (void)size;
   (void)align;
