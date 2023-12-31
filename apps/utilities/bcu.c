@@ -152,7 +152,7 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   buffer     = mem_write_le_u16(buffer, size.width);    // image width.
   buffer     = mem_write_le_u16(buffer, size.height);   // image height.
   buffer     = mem_write_u8(buffer, 32);                // bitsPerPixel.
-  buffer     = mem_write_u8(buffer, 0b100000);          // imageSpecDescriptor.
+  buffer     = mem_write_u8(buffer, 0);                 // imageSpecDescriptor.
   mem_cpy(buffer, mem_create(pixels, pixelDataSize));   // pixel data.
 
   String pathWithExt;
