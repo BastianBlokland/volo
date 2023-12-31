@@ -6,26 +6,26 @@
 #include "log.h"
 
 /**
- * BcUtil - Utility to test texture block compression.
+ * BlockCompressionUtility - Utility to test texture block compression.
  *
  * NOTE: Contains an extremely simplistic tga parser that only supports uncompressed RGBA data which
  * uses lower-left as the image origin.
  */
 
 typedef enum {
-  Result_Success = 0,
-  Result_TgaMalformedHeader,
-  Result_TgaUnsupportedColorMap,
-  Result_TgaUnsupportedImageType,
-  Result_TgaUnsupportedBitsPerPixel,
-  Result_TgaUnsupportedAttributeDepth,
-  Result_TgaUnsupportedImageOrigin,
-  Result_TgaUnsupportedInterleavedImage,
+  BcuResult_Success = 0,
+  BcuResult_TgaMalformedHeader,
+  BcuResult_TgaUnsupportedColorMap,
+  BcuResult_TgaUnsupportedImageType,
+  BcuResult_TgaUnsupportedBitsPerPixel,
+  BcuResult_TgaUnsupportedAttributeDepth,
+  BcuResult_TgaUnsupportedImageOrigin,
+  BcuResult_TgaUnsupportedInterleavedImage,
 
-  Result_Count,
-} Result;
+  BcuResult_Count,
+} BcuResult;
 
-static String result_str(const Result res) {
+static String bcu_result_str(const BcuResult res) {
   static const String g_msgs[] = {
       string_static("Success"),
       string_static("Malformed Tga header"),
@@ -36,17 +36,17 @@ static String result_str(const Result res) {
       string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
       string_static("Interleaved Tga images are not supported"),
   };
-  ASSERT(array_elems(g_msgs) == Result_Count, "Incorrect number of result messages");
+  ASSERT(array_elems(g_msgs) == BcuResult_Count, "Incorrect number of result messages");
   return g_msgs[res];
 }
 
 typedef struct {
   u16 width, height;
-} TgaHeader;
+} BcuTgaHeader;
 
-static Mem tga_header_read(Mem input, TgaHeader* out, Result* res) {
+static Mem bcu_tga_header_read(Mem input, BcuTgaHeader* out, BcuResult* res) {
   if (UNLIKELY(input.size < 18)) {
-    return *res = Result_TgaMalformedHeader, input;
+    return *res = BcuResult_TgaMalformedHeader, input;
   }
   u8  colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
   u16 width, height;
@@ -66,30 +66,30 @@ static Mem tga_header_read(Mem input, TgaHeader* out, Result* res) {
   const u8 imageInterleave     = imageSpecDescriptorRaw & u8_lit(0b11000000);
 
   if (colorMapType != 0 /* Absent*/) {
-    return *res = Result_TgaUnsupportedColorMap, input;
+    return *res = BcuResult_TgaUnsupportedColorMap, input;
   }
   if (imageType != 2 /* TrueColor */) {
-    return *res = Result_TgaUnsupportedImageType, input;
+    return *res = BcuResult_TgaUnsupportedImageType, input;
   }
   if (bitsPerPixel != 32) {
-    return *res = Result_TgaUnsupportedBitsPerPixel, input;
+    return *res = BcuResult_TgaUnsupportedBitsPerPixel, input;
   }
   if (imageAttributeDepth != 8) {
-    return *res = Result_TgaUnsupportedAttributeDepth, input;
+    return *res = BcuResult_TgaUnsupportedAttributeDepth, input;
   }
   if (imageOrigin != 0 /* LowerLeft */) {
-    return *res = Result_TgaUnsupportedImageOrigin, input;
+    return *res = BcuResult_TgaUnsupportedImageOrigin, input;
   }
   if (imageInterleave != 0 /* None */) {
-    return *res = Result_TgaUnsupportedInterleavedImage, input;
+    return *res = BcuResult_TgaUnsupportedInterleavedImage, input;
   }
 
-  *out = (TgaHeader){.width = width, .height = height};
-  *res = Result_Success;
+  *out = (BcuTgaHeader){.width = width, .height = height};
+  *res = BcuResult_Success;
   return input;
 }
 
-static void tga_header_write(const TgaHeader* header, DynString* out) {
+static void bcu_tga_header_write(const BcuTgaHeader* header, DynString* out) {
   Mem headerMem = dynarray_push(out, 18);
   headerMem     = mem_write_u8_zero(headerMem, 2);            // 'idLength' and 'colorMapType'.
   headerMem     = mem_write_u8(headerMem, 2 /* TrueColor */); // 'imageType'.
@@ -100,13 +100,10 @@ static void tga_header_write(const TgaHeader* header, DynString* out) {
   headerMem     = mem_write_u8(headerMem, 0b100000); // 'imageSpecDescriptor'.
 }
 
-static bool bcutil_run(const String inputPath, const String outputPath) {
+static bool bcu_run(const String inputPath, const String outputPath) {
   bool success = false;
 
-  log_i(
-      "BcUtil run",
-      log_param("input", fmt_path(inputPath)),
-      log_param("output", fmt_path(outputPath)));
+  log_i("Run", log_param("input", fmt_path(inputPath)), log_param("output", fmt_path(outputPath)));
 
   File*      inFile = null;
   FileResult inRes;
@@ -119,11 +116,11 @@ static bool bcutil_run(const String inputPath, const String outputPath) {
     log_e("Failed to map input file", log_param("path", fmt_path(inputPath)));
     goto End;
   }
-  TgaHeader header;
-  Result    headerResult;
-  inData = tga_header_read(inData, &header, &headerResult);
-  if (headerResult != Result_Success) {
-    log_e("Unsupported input tga file", log_param("error", fmt_text(result_str(headerResult))));
+  BcuTgaHeader header;
+  BcuResult    headerResult;
+  inData = bcu_tga_header_read(inData, &header, &headerResult);
+  if (headerResult != BcuResult_Success) {
+    log_e("Unsupported input tga file", log_param("error", fmt_text(bcu_result_str(headerResult))));
     goto End;
   }
   if (!bits_ispow2(header.width) || !bits_ispow2(header.height)) {
@@ -137,7 +134,7 @@ static bool bcutil_run(const String inputPath, const String outputPath) {
 
   // const u32          pixelCount = header.width * header.height;
   // const BcColor8888* pixels     = inData.ptr;
-  (void)tga_header_write;
+  (void)bcu_tga_header_write;
 
   success = true;
 
@@ -177,5 +174,5 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const String inputPath  = cli_read_string(invoc, g_inputFlag, string_empty);
   const String outputPath = cli_read_string(invoc, g_outputFlag, string_empty);
 
-  return bcutil_run(inputPath, outputPath) ? 0 : 1;
+  return bcu_run(inputPath, outputPath) ? 0 : 1;
 }
