@@ -45,10 +45,10 @@ static String bcu_result_str(const BcuResult res) {
 
 typedef struct {
   u16 width, height;
-} BcSize;
+} BcuSize;
 
 typedef struct {
-  BcSize             size;
+  BcuSize            size;
   const BcColor8888* pixels;
 } BcuImage;
 
@@ -56,8 +56,8 @@ static BcuResult bcu_image_read(Mem input, BcuImage* out) {
   if (input.size < 18) {
     return BcuResult_TgaFileTruncated;
   }
-  u8     colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
-  BcSize size;
+  u8      colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
+  BcuSize size;
 
   input = mem_consume(input, 1); // Skip over 'idLength'.
   input = mem_consume_u8(input, &colorMapType);
@@ -98,23 +98,23 @@ static BcuResult bcu_image_read(Mem input, BcuImage* out) {
   return BcuResult_Success;
 }
 
-static BcuResult bcu_image_write(const BcuImage* image, const String path) {
+static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, const String path) {
   const usize headerSize    = 18;
-  const usize pixelDataSize = image->size.width * image->size.height * sizeof(BcColor8888);
+  const usize pixelDataSize = size.width * size.height * sizeof(BcColor8888);
   const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 8);
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
   }
 
   Mem buffer = data;
-  buffer     = mem_write_u8_zero(buffer, 2);                 // idLength and colorMapType.
-  buffer     = mem_write_u8(buffer, 2 /* TrueColor */);      // imageType.
-  buffer     = mem_write_u8_zero(buffer, 9);                 // colorMapSpec and origin.
-  buffer     = mem_write_le_u16(buffer, image->size.width);  // image width.
-  buffer     = mem_write_le_u16(buffer, image->size.height); // image height.
-  buffer     = mem_write_u8(buffer, 32);                     // bitsPerPixel.
-  buffer     = mem_write_u8(buffer, 0b100000);               // imageSpecDescriptor.
-  mem_cpy(buffer, mem_create(image->pixels, pixelDataSize)); // pixel data.
+  buffer     = mem_write_u8_zero(buffer, 2);            // idLength and colorMapType.
+  buffer     = mem_write_u8(buffer, 2 /* TrueColor */); // imageType.
+  buffer     = mem_write_u8_zero(buffer, 9);            // colorMapSpec and origin.
+  buffer     = mem_write_le_u16(buffer, size.width);    // image width.
+  buffer     = mem_write_le_u16(buffer, size.height);   // image height.
+  buffer     = mem_write_u8(buffer, 32);                // bitsPerPixel.
+  buffer     = mem_write_u8(buffer, 0b100000);          // imageSpecDescriptor.
+  mem_cpy(buffer, mem_create(pixels, pixelDataSize));   // pixel data.
 
   String pathWithExt;
   if (string_eq(path_extension(path), string_lit("tga"))) {
