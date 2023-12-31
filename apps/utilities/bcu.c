@@ -44,7 +44,11 @@ static String bcu_result_str(const BcuResult res) {
 }
 
 typedef struct {
-  u16                width, height;
+  u16 width, height;
+} BcSize;
+
+typedef struct {
+  BcSize             size;
   const BcColor8888* pixels;
 } BcuImage;
 
@@ -52,16 +56,16 @@ static BcuResult bcu_image_read(Mem input, BcuImage* out) {
   if (input.size < 18) {
     return BcuResult_TgaFileTruncated;
   }
-  u8  colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
-  u16 width, height;
+  u8     colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
+  BcSize size;
 
   input = mem_consume(input, 1); // Skip over 'idLength'.
   input = mem_consume_u8(input, &colorMapType);
   input = mem_consume_u8(input, &imageType);
   input = mem_consume(input, 5); // Skip over 'ColorMapSpec'.
   input = mem_consume(input, 4); // Skip over 'origin'.
-  input = mem_consume_le_u16(input, &width);
-  input = mem_consume_le_u16(input, &height);
+  input = mem_consume_le_u16(input, &size.width);
+  input = mem_consume_le_u16(input, &size.height);
   input = mem_consume_u8(input, &bitsPerPixel);
   input = mem_consume_u8(input, &imageSpecDescriptorRaw);
 
@@ -87,16 +91,16 @@ static BcuResult bcu_image_read(Mem input, BcuImage* out) {
   if (imageInterleave != 0 /* None */) {
     return BcuResult_TgaUnsupportedInterleavedImage;
   }
-  if (input.size < (width * height * sizeof(BcColor8888))) {
+  if (input.size < (size.width * size.height * sizeof(BcColor8888))) {
     return BcuResult_TgaUnsupportedColorMap;
   }
-  *out = (BcuImage){.width = width, .height = height, .pixels = input.ptr};
+  *out = (BcuImage){.size = size, .pixels = input.ptr};
   return BcuResult_Success;
 }
 
 static BcuResult bcu_image_write(const BcuImage* image, const String path) {
   const usize headerSize    = 18;
-  const usize pixelDataSize = image->width * image->height * sizeof(BcColor8888);
+  const usize pixelDataSize = image->size.width * image->size.height * sizeof(BcColor8888);
   const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 8);
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
@@ -106,8 +110,8 @@ static BcuResult bcu_image_write(const BcuImage* image, const String path) {
   buffer     = mem_write_u8_zero(buffer, 2);                 // idLength and colorMapType.
   buffer     = mem_write_u8(buffer, 2 /* TrueColor */);      // imageType.
   buffer     = mem_write_u8_zero(buffer, 9);                 // colorMapSpec and origin.
-  buffer     = mem_write_le_u16(buffer, image->width);       // image width.
-  buffer     = mem_write_le_u16(buffer, image->height);      // image height.
+  buffer     = mem_write_le_u16(buffer, image->size.width);  // image width.
+  buffer     = mem_write_le_u16(buffer, image->size.height); // image height.
   buffer     = mem_write_u8(buffer, 32);                     // bitsPerPixel.
   buffer     = mem_write_u8(buffer, 0b100000);               // imageSpecDescriptor.
   mem_cpy(buffer, mem_create(image->pixels, pixelDataSize)); // pixel data.
@@ -143,11 +147,11 @@ static bool bcu_run(const String inputPath, const String outputPath) {
     log_e("Input image unsupported", log_param("error", fmt_text(bcu_result_str(inResult))));
     goto End;
   }
-  if (!bits_ispow2(inImage.width) || !bits_ispow2(inImage.height)) {
+  if (!bits_ispow2(inImage.size.width) || !bits_ispow2(inImage.size.height)) {
     log_e("Input image dimensions needs to be a power of two");
     goto End;
   }
-  if (inImage.width < 4 || inImage.height < 4) {
+  if (inImage.size.width < 4 || inImage.size.height < 4) {
     log_e("Input image dimensions too small (needs to be at least 4 pixels)");
     goto End;
   }
