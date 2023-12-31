@@ -15,6 +15,8 @@
 
 typedef enum {
   BcuResult_Success = 0,
+  BcuResult_FileOpenFailed,
+  BcuResult_FileMapFailed,
   BcuResult_MemoryAllocationFailed,
   BcuResult_TgaFileTruncated,
   BcuResult_TgaUnsupportedColorMap,
@@ -30,6 +32,8 @@ typedef enum {
 static String bcu_result_str(const BcuResult res) {
   static const String g_msgs[] = {
       string_static("Success"),
+      string_static("Failed to open file"),
+      string_static("Failed to map file"),
       string_static("Memory allocation failed"),
       string_static("Truncated tga file"),
       string_static("Color-mapped Tga images are not supported"),
@@ -50,52 +54,85 @@ typedef struct {
 typedef struct {
   BcuSize            size;
   const BcColor8888* pixels;
+  File*              handle;
 } BcuImage;
 
-static BcuResult bcu_image_read(Mem input, BcuImage* out) {
-  if (input.size < 18) {
-    return BcuResult_TgaFileTruncated;
+static BcuResult bcu_image_read(const String path, BcuImage* out) {
+  BcuResult  error;
+  File*      fileHandle = null;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &fileHandle))) {
+    error = BcuResult_FileOpenFailed;
+    goto Failure;
+  }
+  Mem data;
+  if ((fileRes = file_map(fileHandle, &data))) {
+    error = BcuResult_FileOpenFailed;
+    goto Failure;
+  }
+  if (data.size < 18) {
+    error = BcuResult_TgaFileTruncated;
+    goto Failure;
   }
   u8      colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
   BcuSize size;
 
-  input = mem_consume(input, 1); // Skip over 'idLength'.
-  input = mem_consume_u8(input, &colorMapType);
-  input = mem_consume_u8(input, &imageType);
-  input = mem_consume(input, 5); // Skip over 'ColorMapSpec'.
-  input = mem_consume(input, 4); // Skip over 'origin'.
-  input = mem_consume_le_u16(input, &size.width);
-  input = mem_consume_le_u16(input, &size.height);
-  input = mem_consume_u8(input, &bitsPerPixel);
-  input = mem_consume_u8(input, &imageSpecDescriptorRaw);
+  data = mem_consume(data, 1); // Skip over 'idLength'.
+  data = mem_consume_u8(data, &colorMapType);
+  data = mem_consume_u8(data, &imageType);
+  data = mem_consume(data, 5); // Skip over 'ColorMapSpec'.
+  data = mem_consume(data, 4); // Skip over 'origin'.
+  data = mem_consume_le_u16(data, &size.width);
+  data = mem_consume_le_u16(data, &size.height);
+  data = mem_consume_u8(data, &bitsPerPixel);
+  data = mem_consume_u8(data, &imageSpecDescriptorRaw);
 
   const u8 imageAttributeDepth = imageSpecDescriptorRaw & u8_lit(0b1111);
   const u8 imageOrigin         = imageSpecDescriptorRaw & u8_lit(0b110000);
   const u8 imageInterleave     = imageSpecDescriptorRaw & u8_lit(0b11000000);
 
   if (colorMapType != 0 /* Absent*/) {
-    return BcuResult_TgaUnsupportedColorMap;
+    error = BcuResult_TgaUnsupportedColorMap;
+    goto Failure;
   }
   if (imageType != 2 /* TrueColor */) {
-    return BcuResult_TgaUnsupportedImageType;
+    error = BcuResult_TgaUnsupportedImageType;
+    goto Failure;
   }
   if (bitsPerPixel != 32) {
-    return BcuResult_TgaUnsupportedBitsPerPixel;
+    error = BcuResult_TgaUnsupportedBitsPerPixel;
+    goto Failure;
   }
   if (imageAttributeDepth != 8) {
-    return BcuResult_TgaUnsupportedAttributeDepth;
+    error = BcuResult_TgaUnsupportedAttributeDepth;
+    goto Failure;
   }
   if (imageOrigin != 0 /* LowerLeft */) {
-    return BcuResult_TgaUnsupportedImageOrigin;
+    error = BcuResult_TgaUnsupportedImageOrigin;
+    goto Failure;
   }
   if (imageInterleave != 0 /* None */) {
-    return BcuResult_TgaUnsupportedInterleavedImage;
+    error = BcuResult_TgaUnsupportedInterleavedImage;
+    goto Failure;
   }
-  if (input.size < (size.width * size.height * sizeof(BcColor8888))) {
-    return BcuResult_TgaUnsupportedColorMap;
+  if (data.size < (size.width * size.height * sizeof(BcColor8888))) {
+    error = BcuResult_TgaFileTruncated;
+    goto Failure;
   }
-  *out = (BcuImage){.size = size, .pixels = input.ptr};
+  *out = (BcuImage){.size = size, .pixels = data.ptr, .handle = fileHandle};
   return BcuResult_Success;
+
+Failure:
+  if (fileHandle) {
+    file_destroy(fileHandle);
+  }
+  return error;
+}
+
+static void bcu_image_close(BcuImage* image) {
+  if (image->handle) {
+    file_destroy(image->handle);
+  }
 }
 
 static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, const String path) {
@@ -128,22 +165,10 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
 }
 
 static bool bcu_run(const String inputPath, const String outputPath) {
-  bool success = false;
-
-  File*      inFile = null;
-  FileResult inRes;
-  if ((inRes = file_create(g_alloc_heap, inputPath, FileMode_Open, FileAccess_Read, &inFile))) {
-    log_e("Failed to open input file", log_param("path", fmt_path(inputPath)));
-    goto End;
-  }
-  Mem inData;
-  if ((inRes = file_map(inFile, &inData))) {
-    log_e("Failed to map input file", log_param("path", fmt_path(inputPath)));
-    goto End;
-  }
-  BcuImage  inImage;
+  bool      success = false;
+  BcuImage  inImage = {0};
   BcuResult inResult;
-  if ((inResult = bcu_image_read(inData, &inImage))) {
+  if ((inResult = bcu_image_read(inputPath, &inImage))) {
     log_e("Input image unsupported", log_param("error", fmt_text(bcu_result_str(inResult))));
     goto End;
   }
@@ -156,17 +181,11 @@ static bool bcu_run(const String inputPath, const String outputPath) {
     goto End;
   }
 
-  // const u32          pixelCount = header.width * header.height;
-  // const BcColor8888* pixels     = inData.ptr;
-  (void)bcu_image_write;
-  (void)outputPath;
-
+  bcu_image_write(inImage.size, inImage.pixels, outputPath);
   success = true;
 
 End:
-  if (inFile) {
-    file_destroy(inFile);
-  }
+  bcu_image_close(&inImage);
   return success;
 }
 
