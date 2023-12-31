@@ -17,6 +17,7 @@ typedef enum {
   BcuResult_Success = 0,
   BcuResult_FileOpenFailed,
   BcuResult_FileMapFailed,
+  BcuResult_FileWriteFailed,
   BcuResult_MemoryAllocationFailed,
   BcuResult_TgaFileTruncated,
   BcuResult_TgaUnsupportedColorMap,
@@ -34,6 +35,7 @@ static String bcu_result_str(const BcuResult res) {
       string_static("Success"),
       string_static("Failed to open file"),
       string_static("Failed to map file"),
+      string_static("Failed to write file"),
       string_static("Memory allocation failed"),
       string_static("Truncated tga file"),
       string_static("Color-mapped Tga images are not supported"),
@@ -138,7 +140,7 @@ static void bcu_image_close(BcuImage* image) {
 static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, const String path) {
   const usize headerSize    = 18;
   const usize pixelDataSize = size.width * size.height * sizeof(BcColor8888);
-  const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 8);
+  const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 1);
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
   }
@@ -160,33 +162,41 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
     pathWithExt = fmt_write_scratch("{}.tga", fmt_path(path));
   }
 
-  file_write_to_path_sync(pathWithExt, data);
-  return BcuResult_Success;
+  const FileResult writeRes = file_write_to_path_sync(pathWithExt, data);
+  alloc_free(g_alloc_heap, data);
+  return writeRes ? BcuResult_FileWriteFailed : BcuResult_Success;
 }
 
-static bool bcu_run(const String inputPath, const String outputPath) {
-  bool      success = false;
-  BcuImage  inImage = {0};
-  BcuResult inResult;
-  if ((inResult = bcu_image_read(inputPath, &inImage))) {
-    log_e("Input image unsupported", log_param("error", fmt_text(bcu_result_str(inResult))));
+static i32 bcu_run(const String inputPath, const String outputPath) {
+  i32       exitCode = 1;
+  BcuImage  input    = {0};
+  BcuResult result;
+  if ((result = bcu_image_read(inputPath, &input))) {
+    log_e("Input image unsupported", log_param("error", fmt_text(bcu_result_str(result))));
     goto End;
   }
-  if (!bits_ispow2(inImage.size.width) || !bits_ispow2(inImage.size.height)) {
-    log_e("Input image dimensions needs to be a power of two");
-    goto End;
-  }
-  if (inImage.size.width < 4 || inImage.size.height < 4) {
-    log_e("Input image dimensions too small (needs to be at least 4 pixels)");
+  if (!bits_aligned(input.size.width, 4) || !bits_aligned(input.size.height, 4)) {
+    log_e("Input image dimensions needs to be 4 pixel aligned");
     goto End;
   }
 
-  bcu_image_write(inImage.size, inImage.pixels, outputPath);
-  success = true;
+  log_i(
+      "Opened input image",
+      log_param("path", fmt_text(inputPath)),
+      log_param("width", fmt_int(input.size.width)),
+      log_param("height", fmt_int(input.size.height)));
+
+  if ((result = bcu_image_write(input.size, input.pixels, outputPath))) {
+    log_e("Failed to write output file", log_param("error", fmt_text(bcu_result_str(result))));
+    goto End;
+  }
+
+  log_i("Wrote output image", log_param("path", fmt_text(outputPath)));
+  exitCode = 0;
 
 End:
-  bcu_image_close(&inImage);
-  return success;
+  bcu_image_close(&input);
+  return exitCode;
 }
 
 static CliId g_inputFlag, g_outputFlag, g_helpFlag;
@@ -218,5 +228,5 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const String inputPath  = cli_read_string(invoc, g_inputFlag, string_empty);
   const String outputPath = cli_read_string(invoc, g_outputFlag, string_empty);
 
-  return bcu_run(inputPath, outputPath) ? 0 : 1;
+  return bcu_run(inputPath, outputPath);
 }
