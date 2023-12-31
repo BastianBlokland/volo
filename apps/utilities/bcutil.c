@@ -1,6 +1,7 @@
 #include "app_cli.h"
 #include "core_alloc.h"
 #include "core_bc.h"
+#include "core_bits.h"
 #include "core_file.h"
 #include "log.h"
 
@@ -11,13 +12,41 @@
  * uses lower-left as the image origin.
  */
 
+typedef enum {
+  Result_Success = 0,
+  Result_TgaMalformedHeader,
+  Result_TgaUnsupportedColorMap,
+  Result_TgaUnsupportedImageType,
+  Result_TgaUnsupportedBitsPerPixel,
+  Result_TgaUnsupportedAttributeDepth,
+  Result_TgaUnsupportedImageOrigin,
+  Result_TgaUnsupportedInterleavedImage,
+
+  Result_Count,
+} Result;
+
+static String result_str(const Result res) {
+  static const String g_msgs[] = {
+      string_static("Success"),
+      string_static("Malformed Tga header"),
+      string_static("Color-mapped Tga images are not supported"),
+      string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
+      string_static("Unsupported Tga bits-per-pixel, only 32 bits (RGBA is supported)"),
+      string_static("Unsupported Tga attribute depth, only 8 bit Tga alpha is supported"),
+      string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
+      string_static("Interleaved Tga images are not supported"),
+  };
+  ASSERT(array_elems(g_msgs) == Result_Count, "Incorrect number of result messages");
+  return g_msgs[res];
+}
+
 typedef struct {
   u16 width, height;
 } TgaHeader;
 
-static Mem tga_header_read(Mem input, TgaHeader* out) {
+static Mem tga_header_read(Mem input, TgaHeader* out, Result* res) {
   if (UNLIKELY(input.size < 18)) {
-    return *out = (TgaHeader){0}, input; // Malformed header.
+    return *res = Result_TgaMalformedHeader, input;
   }
   u8  colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
   u16 width, height;
@@ -37,31 +66,26 @@ static Mem tga_header_read(Mem input, TgaHeader* out) {
   const u8 imageInterleave     = imageSpecDescriptorRaw & u8_lit(0b11000000);
 
   if (colorMapType != 0 /* Absent*/) {
-    log_e("Unsupported tga color-map type", log_param("type", fmt_int(colorMapType)));
-    return *out = (TgaHeader){0}, input; // Unsupported color-map type.
+    return *res = Result_TgaUnsupportedColorMap, input;
   }
   if (imageType != 2 /* TrueColor */) {
-    log_e("Unsupported tga image type", log_param("type", fmt_int(imageType)));
-    return *out = (TgaHeader){0}, input; // Unsupported color-map type.
+    return *res = Result_TgaUnsupportedImageType, input;
   }
   if (bitsPerPixel != 32) {
-    log_e("Unsupported tga bitsPerPixel", log_param("bitsPerPixel", fmt_int(bitsPerPixel)));
-    return *out = (TgaHeader){0}, input; // Unsupported image depth.
+    return *res = Result_TgaUnsupportedBitsPerPixel, input;
   }
   if (imageAttributeDepth != 8) {
-    log_e("Unsupported tga image attribute depth");
-    return *out = (TgaHeader){0}, input; // Unsupported alpha depth.
+    return *res = Result_TgaUnsupportedAttributeDepth, input;
   }
   if (imageOrigin != 0 /* LowerLeft */) {
-    log_e("Unsupported tga image origin");
-    return *out = (TgaHeader){0}, input; // Unsupported image origin.
+    return *res = Result_TgaUnsupportedImageOrigin, input;
   }
   if (imageInterleave != 0 /* None */) {
-    log_e("Unsupported tga interleaved image");
-    return *out = (TgaHeader){0}, input; // Unsupported interleave mode.
+    return *res = Result_TgaUnsupportedInterleavedImage, input;
   }
 
   *out = (TgaHeader){.width = width, .height = height};
+  *res = Result_Success;
   return input;
 }
 
@@ -96,9 +120,18 @@ static bool bcutil_run(const String inputPath, const String outputPath) {
     goto End;
   }
   TgaHeader header;
-  inData = tga_header_read(inData, &header);
-  if (!header.width || !header.height) {
-    log_e("Unsupported input tga file", log_param("path", fmt_path(inputPath)));
+  Result    headerResult;
+  inData = tga_header_read(inData, &header, &headerResult);
+  if (headerResult != Result_Success) {
+    log_e("Unsupported input tga file", log_param("error", fmt_text(result_str(headerResult))));
+    goto End;
+  }
+  if (!bits_ispow2(header.width) || !bits_ispow2(header.height)) {
+    log_e("Input tga image dimensions needs to be a power of two");
+    goto End;
+  }
+  if (header.width < 4 || header.height < 4) {
+    log_e("Input tga image dimensions too small (needs to be at least 4 pixels)");
     goto End;
   }
 
