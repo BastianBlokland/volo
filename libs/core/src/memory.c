@@ -119,6 +119,12 @@ Mem mem_write_u8(const Mem mem, const u8 value) {
   return mem_consume(mem, 1);
 }
 
+Mem mem_write_u8_zero(const Mem mem, const usize bytes) {
+  diag_assert(mem.size >= bytes);
+  mem_set(mem_slice(mem, 0, bytes), 0);
+  return mem_consume(mem, bytes);
+}
+
 Mem mem_write_le_u16(const Mem mem, const u16 value) {
   diag_assert(mem.size >= 2);
   mem_begin(mem)[0] = value;

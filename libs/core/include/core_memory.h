@@ -170,6 +170,7 @@ Mem mem_consume_be_u64(Mem, u64* out);
  * Pre-condition: mem.size >= 1
  */
 Mem mem_write_u8(Mem, u8 value);
+Mem mem_write_u8_zero(Mem, usize bytes);
 
 /**
  * Write a little-endian value and return a view 'sizeof(value)' bytes into the memory.

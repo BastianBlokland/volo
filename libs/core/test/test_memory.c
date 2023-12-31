@@ -192,6 +192,16 @@ spec(memory) {
     check_eq_int(out, val);
   }
 
+  it("can zero memory") {
+    const Mem bufferA = mem_stack(42);
+    mem_write_u8_zero(bufferA, 42);
+
+    const Mem bufferB = mem_stack(42);
+    mem_set(bufferB, 0);
+
+    check(mem_eq(bufferA, bufferB));
+  }
+
   it("can write a little-endian encoded 16bit unsigned integer") {
     const u16 val    = 1337;
     const Mem buffer = mem_stack(2);
