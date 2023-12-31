@@ -1,5 +1,6 @@
 #include "app_cli.h"
 #include "core_alloc.h"
+#include "core_bc.h"
 #include "core_file.h"
 #include "log.h"
 
@@ -64,6 +65,17 @@ static Mem tga_header_read(Mem input, TgaHeader* out) {
   return input;
 }
 
+static void tga_header_write(const TgaHeader* header, DynString* out) {
+  Mem headerMem = dynarray_push(out, 18);
+  headerMem     = mem_write_u8_zero(headerMem, 2);            // 'idLength' and 'colorMapType'.
+  headerMem     = mem_write_u8(headerMem, 2 /* TrueColor */); // 'imageType'.
+  headerMem     = mem_write_u8_zero(headerMem, 9);            // 'colorMapSpec' and 'origin'.
+  headerMem     = mem_write_le_u16(headerMem, header->width);
+  headerMem     = mem_write_le_u16(headerMem, header->height);
+  headerMem     = mem_write_u8(headerMem, 32);       // 'bitsPerPixel'.
+  headerMem     = mem_write_u8(headerMem, 0b100000); // 'imageSpecDescriptor'.
+}
+
 static bool bcutil_run(const String inputPath, const String outputPath) {
   bool success = false;
 
@@ -89,6 +101,10 @@ static bool bcutil_run(const String inputPath, const String outputPath) {
     log_e("Unsupported input tga file", log_param("path", fmt_path(inputPath)));
     goto End;
   }
+
+  // const u32          pixelCount = header.width * header.height;
+  // const BcColor8888* pixels     = inData.ptr;
+  (void)tga_header_write;
 
   success = true;
 
