@@ -3,6 +3,7 @@
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_file.h"
+#include "core_path.h"
 #include "log.h"
 
 /**
@@ -14,7 +15,8 @@
 
 typedef enum {
   BcuResult_Success = 0,
-  BcuResult_TgaMalformedHeader,
+  BcuResult_MemoryAllocationFailed,
+  BcuResult_TgaFileTruncated,
   BcuResult_TgaUnsupportedColorMap,
   BcuResult_TgaUnsupportedImageType,
   BcuResult_TgaUnsupportedBitsPerPixel,
@@ -28,7 +30,8 @@ typedef enum {
 static String bcu_result_str(const BcuResult res) {
   static const String g_msgs[] = {
       string_static("Success"),
-      string_static("Malformed Tga header"),
+      string_static("Memory allocation failed"),
+      string_static("Truncated tga file"),
       string_static("Color-mapped Tga images are not supported"),
       string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
       string_static("Unsupported Tga bits-per-pixel, only 32 bits (RGBA is supported)"),
@@ -41,12 +44,13 @@ static String bcu_result_str(const BcuResult res) {
 }
 
 typedef struct {
-  u16 width, height;
-} BcuTgaHeader;
+  u16                width, height;
+  const BcColor8888* pixels;
+} BcuImage;
 
-static Mem bcu_tga_header_read(Mem input, BcuTgaHeader* out, BcuResult* res) {
-  if (UNLIKELY(input.size < 18)) {
-    return *res = BcuResult_TgaMalformedHeader, input;
+static BcuResult bcu_image_read(Mem input, BcuImage* out) {
+  if (input.size < 18) {
+    return BcuResult_TgaFileTruncated;
   }
   u8  colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
   u16 width, height;
@@ -66,44 +70,61 @@ static Mem bcu_tga_header_read(Mem input, BcuTgaHeader* out, BcuResult* res) {
   const u8 imageInterleave     = imageSpecDescriptorRaw & u8_lit(0b11000000);
 
   if (colorMapType != 0 /* Absent*/) {
-    return *res = BcuResult_TgaUnsupportedColorMap, input;
+    return BcuResult_TgaUnsupportedColorMap;
   }
   if (imageType != 2 /* TrueColor */) {
-    return *res = BcuResult_TgaUnsupportedImageType, input;
+    return BcuResult_TgaUnsupportedImageType;
   }
   if (bitsPerPixel != 32) {
-    return *res = BcuResult_TgaUnsupportedBitsPerPixel, input;
+    return BcuResult_TgaUnsupportedBitsPerPixel;
   }
   if (imageAttributeDepth != 8) {
-    return *res = BcuResult_TgaUnsupportedAttributeDepth, input;
+    return BcuResult_TgaUnsupportedAttributeDepth;
   }
   if (imageOrigin != 0 /* LowerLeft */) {
-    return *res = BcuResult_TgaUnsupportedImageOrigin, input;
+    return BcuResult_TgaUnsupportedImageOrigin;
   }
   if (imageInterleave != 0 /* None */) {
-    return *res = BcuResult_TgaUnsupportedInterleavedImage, input;
+    return BcuResult_TgaUnsupportedInterleavedImage;
   }
-
-  *out = (BcuTgaHeader){.width = width, .height = height};
-  *res = BcuResult_Success;
-  return input;
+  if (input.size < (width * height * sizeof(BcColor8888))) {
+    return BcuResult_TgaUnsupportedColorMap;
+  }
+  *out = (BcuImage){.width = width, .height = height, .pixels = input.ptr};
+  return BcuResult_Success;
 }
 
-static void bcu_tga_header_write(const BcuTgaHeader* header, DynString* out) {
-  Mem headerMem = dynarray_push(out, 18);
-  headerMem     = mem_write_u8_zero(headerMem, 2);            // 'idLength' and 'colorMapType'.
-  headerMem     = mem_write_u8(headerMem, 2 /* TrueColor */); // 'imageType'.
-  headerMem     = mem_write_u8_zero(headerMem, 9);            // 'colorMapSpec' and 'origin'.
-  headerMem     = mem_write_le_u16(headerMem, header->width);
-  headerMem     = mem_write_le_u16(headerMem, header->height);
-  headerMem     = mem_write_u8(headerMem, 32);       // 'bitsPerPixel'.
-  headerMem     = mem_write_u8(headerMem, 0b100000); // 'imageSpecDescriptor'.
+static BcuResult bcu_image_write(const BcuImage* image, const String path) {
+  const usize headerSize    = 18;
+  const usize pixelDataSize = image->width * image->height * sizeof(BcColor8888);
+  const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 8);
+  if (!mem_valid(data)) {
+    return BcuResult_MemoryAllocationFailed;
+  }
+
+  Mem buffer = data;
+  buffer     = mem_write_u8_zero(buffer, 2);                 // idLength and colorMapType.
+  buffer     = mem_write_u8(buffer, 2 /* TrueColor */);      // imageType.
+  buffer     = mem_write_u8_zero(buffer, 9);                 // colorMapSpec and origin.
+  buffer     = mem_write_le_u16(buffer, image->width);       // image width.
+  buffer     = mem_write_le_u16(buffer, image->height);      // image height.
+  buffer     = mem_write_u8(buffer, 32);                     // bitsPerPixel.
+  buffer     = mem_write_u8(buffer, 0b100000);               // imageSpecDescriptor.
+  mem_cpy(buffer, mem_create(image->pixels, pixelDataSize)); // pixel data.
+
+  String pathWithExt;
+  if (string_eq(path_extension(path), string_lit("tga"))) {
+    pathWithExt = path;
+  } else {
+    pathWithExt = fmt_write_scratch("{}.tga", fmt_path(path));
+  }
+
+  file_write_to_path_sync(pathWithExt, data);
+  return BcuResult_Success;
 }
 
 static bool bcu_run(const String inputPath, const String outputPath) {
   bool success = false;
-
-  log_i("Run", log_param("input", fmt_path(inputPath)), log_param("output", fmt_path(outputPath)));
 
   File*      inFile = null;
   FileResult inRes;
@@ -116,25 +137,25 @@ static bool bcu_run(const String inputPath, const String outputPath) {
     log_e("Failed to map input file", log_param("path", fmt_path(inputPath)));
     goto End;
   }
-  BcuTgaHeader header;
-  BcuResult    headerResult;
-  inData = bcu_tga_header_read(inData, &header, &headerResult);
-  if (headerResult != BcuResult_Success) {
-    log_e("Unsupported input tga file", log_param("error", fmt_text(bcu_result_str(headerResult))));
+  BcuImage  inImage;
+  BcuResult inResult;
+  if ((inResult = bcu_image_read(inData, &inImage))) {
+    log_e("Input image unsupported", log_param("error", fmt_text(bcu_result_str(inResult))));
     goto End;
   }
-  if (!bits_ispow2(header.width) || !bits_ispow2(header.height)) {
-    log_e("Input tga image dimensions needs to be a power of two");
+  if (!bits_ispow2(inImage.width) || !bits_ispow2(inImage.height)) {
+    log_e("Input image dimensions needs to be a power of two");
     goto End;
   }
-  if (header.width < 4 || header.height < 4) {
-    log_e("Input tga image dimensions too small (needs to be at least 4 pixels)");
+  if (inImage.width < 4 || inImage.height < 4) {
+    log_e("Input image dimensions too small (needs to be at least 4 pixels)");
     goto End;
   }
 
   // const u32          pixelCount = header.width * header.height;
   // const BcColor8888* pixels     = inData.ptr;
-  (void)bcu_tga_header_write;
+  (void)bcu_image_write;
+  (void)outputPath;
 
   success = true;
 
