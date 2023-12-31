@@ -3,6 +3,7 @@
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_file.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "log.h"
 
@@ -173,14 +174,28 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   return writeRes ? BcuResult_FileWriteFailed : BcuResult_Success;
 }
 
-static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
-  BcuResult result;
-  if ((result = bcu_image_write(input->size, input->pixels, outputPath))) {
-    return result;
+static void bcu_blocks_extract(const BcuSize size, const BcColor8888* inPtr, Bc0Block* outPtr) {
+  for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
+    for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
+      bc0_extract(inPtr + x, size.width, outPtr);
+    }
   }
+}
+
+static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
+  const u32 blockCount = math_max(input->size.width / 4, 1) * math_max(input->size.height / 4, 1);
+  Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
+
+  bcu_blocks_extract(input->size, input->pixels, blocks);
+
+  log_i("Extracted {} blocks", log_param("blocks", fmt_int(blockCount)));
+
+  const BcuResult result = bcu_image_write(input->size, input->pixels, outputPath);
 
   log_i("Wrote output image", log_param("path", fmt_text(outputPath)));
-  return BcuResult_Success;
+
+  alloc_free_array_t(g_alloc_heap, blocks, blockCount);
+  return result;
 }
 
 static CliId g_inputFlag, g_outputFlag, g_helpFlag;
