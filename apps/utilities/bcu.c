@@ -220,11 +220,15 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     goto End;
   }
 
+  const usize pixelCount    = input.size.width * input.size.height;
+  const usize pixelDataSize = pixelCount * sizeof(BcColor8888);
   log_i(
       "Opened input image",
       log_param("path", fmt_text(inputPath)),
       log_param("width", fmt_int(input.size.width)),
-      log_param("height", fmt_int(input.size.height)));
+      log_param("height", fmt_int(input.size.height)),
+      log_param("pixels", fmt_int(pixelCount)),
+      log_param("data", fmt_size(pixelDataSize)));
 
   result = bcu_run(&input, outputPath);
 
