@@ -17,12 +17,10 @@
  * NOTE: This encoder assumes a little-endian host system.
  */
 
-enum {
-  BcLineFit_Distance,
-  BcLineFit_Luminance,
-};
+#define bc_line_fit_distance 0
+#define bc_line_fit_luminance 1
 
-#define bc_line_fit_mode BcLineFit_Luminance
+#define bc_line_fit_mode bc_line_fit_luminance
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
@@ -121,9 +119,9 @@ bc_block_line_fit_luminance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* 
  * the given block.
  */
 static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-#if bc_line_fit_mode == BcLineFit_Distance
+#if bc_line_fit_mode == bc_line_fit_distance
   bc_block_line_fit_distance(b, outC0, outC1);
-#elif bc_line_fit_mode == BcLineFit_Luminance
+#elif bc_line_fit_mode == bc_line_fit_luminance
   bc_block_line_fit_luminance(b, outC0, outC1);
 #else
   ASSERT(false, "Unsupported line-fit mode");
