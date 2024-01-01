@@ -17,6 +17,12 @@
  * NOTE: This encoder assumes a little-endian host system.
  */
 
+enum {
+  BcLineFit_MinMaxLuminance,
+};
+
+#define bc_line_fit_mode BcLineFit_MinMaxLuminance
+
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
   const u16 g = ((c.g >> 2) & 0x3F) << 5;
@@ -72,11 +78,8 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   return bestIndex;
 }
 
-/**
- * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
- * the given block.
- */
-static void bc_block_line_endpoints(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+MAYBE_UNUSED INLINE_HINT static void
+bc_block_line_fit_lum(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
   /**
    * Find the color with the lowest and the color with the highest luminance.
    */
@@ -92,6 +95,16 @@ static void bc_block_line_endpoints(const Bc0Block* b, BcColor8888* outC0, BcCol
       *outC1 = *c;
     }
   }
+}
+
+/**
+ * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
+ * the given block.
+ */
+static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+#if bc_line_fit_mode == BcLineFit_MinMaxLuminance
+  bc_block_line_fit_lum(b, outC0, outC1);
+#endif
 }
 
 /**
@@ -141,7 +154,7 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 color0, color1;
-  bc_block_line_endpoints(in, &color0, &color1);
+  bc_block_line_fit(in, &color0, &color1);
 
   /**
    * To use the encoding mode with two interpolated colors we need to make sure that color0 is
