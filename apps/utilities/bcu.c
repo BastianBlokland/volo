@@ -182,6 +182,14 @@ static void bcu_blocks_extract(const BcuSize size, const BcColor8888* inPtr, Bc0
   }
 }
 
+static void bcu_blocks_scanout(const BcuSize size, const Bc0Block* inPtr, BcColor8888* outPtr) {
+  for (u32 y = 0; y < size.height; y += 4, outPtr += size.width * 4) {
+    for (u32 x = 0; x < size.width; x += 4, ++inPtr) {
+      bc0_scanout(inPtr, size.width, outPtr + x);
+    }
+  }
+}
+
 static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
   const u32 blockCount = math_max(input->size.width / 4, 1) * math_max(input->size.height / 4, 1);
   Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
@@ -190,10 +198,18 @@ static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
 
   log_i("Extracted {} blocks", log_param("blocks", fmt_int(blockCount)));
 
-  const BcuResult result = bcu_image_write(input->size, input->pixels, outputPath);
+  const usize  encodedPixelCount = blockCount * 16;
+  BcColor8888* encodedPixels     = alloc_array_t(g_alloc_heap, BcColor8888, encodedPixelCount);
+
+  bcu_blocks_scanout(input->size, blocks, encodedPixels);
+
+  log_i("Scanned out to {} pixels", log_param("pixels", fmt_int(encodedPixelCount)));
+
+  const BcuResult result = bcu_image_write(input->size, encodedPixels, outputPath);
 
   log_i("Wrote output image", log_param("path", fmt_text(outputPath)));
 
+  alloc_free_array_t(g_alloc_heap, encodedPixels, encodedPixelCount);
   alloc_free_array_t(g_alloc_heap, blocks, blockCount);
   return result;
 }
