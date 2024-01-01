@@ -526,36 +526,36 @@ ecs_module_init(game_app_module) {
       ecs_view_id(DebugLogViewerView));
 }
 
-static CliId g_assetFlag, g_windowFlag, g_widthFlag, g_heightFlag, g_helpFlag;
+static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optHelp;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
-  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
-  cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
-  cli_register_validator(app, g_assetFlag, cli_validate_file_directory);
+  g_optAssets = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optAssets, string_lit("Path to asset directory."));
+  cli_register_validator(app, g_optAssets, cli_validate_file_directory);
 
-  g_windowFlag = cli_register_flag(app, 'w', string_lit("window"), CliOptionFlags_None);
-  cli_register_desc(app, g_windowFlag, string_lit("Start the game in windowed mode."));
+  g_optWindow = cli_register_flag(app, 'w', string_lit("window"), CliOptionFlags_None);
+  cli_register_desc(app, g_optWindow, string_lit("Start the game in windowed mode."));
 
-  g_widthFlag = cli_register_flag(app, '\0', string_lit("width"), CliOptionFlags_Value);
-  cli_register_desc(app, g_widthFlag, string_lit("Game window width in pixels."));
-  cli_register_validator(app, g_widthFlag, cli_validate_u16);
+  g_optWidth = cli_register_flag(app, '\0', string_lit("width"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optWidth, string_lit("Game window width in pixels."));
+  cli_register_validator(app, g_optWidth, cli_validate_u16);
 
-  g_heightFlag = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
-  cli_register_desc(app, g_heightFlag, string_lit("Game window height in pixels."));
-  cli_register_validator(app, g_heightFlag, cli_validate_u16);
+  g_optHeight = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
+  cli_register_validator(app, g_optHeight, cli_validate_u16);
 
-  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
-  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_helpFlag, g_assetFlag);
-  cli_register_exclusions(app, g_helpFlag, g_windowFlag);
-  cli_register_exclusions(app, g_helpFlag, g_widthFlag);
-  cli_register_exclusions(app, g_helpFlag, g_heightFlag);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_optHelp, g_optAssets);
+  cli_register_exclusions(app, g_optHelp, g_optWindow);
+  cli_register_exclusions(app, g_optHelp, g_optWidth);
+  cli_register_exclusions(app, g_optHelp, g_optHeight);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_helpFlag)) {
+  if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_file_stderr);
     return false;
   }
@@ -581,7 +581,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  const String assetPath = cli_read_string(invoc, g_assetFlag, string_lit("assets"));
+  const String assetPath = cli_read_string(invoc, g_optAssets, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
     return;
@@ -591,9 +591,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
 
   GamePrefsComp* prefs      = prefs_init(world);
-  const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_windowFlag);
-  const u16      width      = (u16)cli_read_u64(invoc, g_widthFlag, prefs->windowWidth);
-  const u16      height     = (u16)cli_read_u64(invoc, g_heightFlag, prefs->windowHeight);
+  const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
+  const u16      width      = (u16)cli_read_u64(invoc, g_optWidth, prefs->windowWidth);
+  const u16      height     = (u16)cli_read_u64(invoc, g_optHeight, prefs->windowHeight);
 
   RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world);
 

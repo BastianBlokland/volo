@@ -13,22 +13,31 @@
  * References:
  * 'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
  * https://www.researchgate.net/publication/259000525_Real-Time_DXT_Compression
+ *
+ * NOTE: This encoder assumes a little-endian host system.
  */
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
-  const u16 r = ((c.r >> 3) & 0x1f) << 11;
-  const u16 g = ((c.g >> 2) & 0x3f) << 5;
-  const u16 b = (c.b >> 3) & 0x1f;
+  const u16 r = ((c.r >> 3) & 0x1F) << 11;
+  const u16 g = ((c.g >> 2) & 0x3F) << 5;
+  const u16 b = (c.b >> 3) & 0x1F;
   return (BcColor565){r | g | b};
+}
+
+static BcColor8888 bc_color_from_565(const BcColor565 c) {
+  const u8 r = (c & 0xF800) >> 8;
+  const u8 g = (c & 0x07E0) >> 3;
+  const u8 b = (c & 0x001F) << 3;
+  return (BcColor8888){r, g, b, 255};
 }
 
 /**
  * Quantize a color in the same way that converting it to 565 and back would do.
  */
 static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
-  const u8 r = (c.r & 0b11111000) | (c.r >> 5);
-  const u8 g = (c.g & 0b11111100) | (c.g >> 6);
-  const u8 b = (c.b & 0b11111000) | (c.b >> 5);
+  const u8 r = (c.r & 0xF8) | (c.r >> 5);
+  const u8 g = (c.g & 0xFC) | (c.g >> 6);
+  const u8 b = (c.b & 0xF8) | (c.b >> 5);
   return (BcColor8888){r, g, b, 255};
 }
 
@@ -48,6 +57,9 @@ static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
 }
 
 static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
+  /**
+   * Pick the reference color that is closest in RGB space.
+   */
   u32 bestDistSqr = u32_max;
   u8  bestIndex;
   for (u8 i = 0; i != 4; ++i) {
@@ -74,12 +86,18 @@ static void bc_block_implicit_colors(
   outA->r = (min.r * 2 + max.r * 1) / 3;
   outA->g = (min.g * 2 + max.g * 1) / 3;
   outA->b = (min.b * 2 + max.b * 1) / 3;
+  outA->a = 255;
+
   outB->r = (min.r * 1 + max.r * 2) / 3;
   outB->g = (min.g * 1 + max.g * 2) / 3;
   outB->b = (min.b * 1 + max.b * 2) / 3;
+  outB->a = 255;
 }
 
 static void bc_block_bounds(const Bc0Block* b, BcColor8888* outMin, BcColor8888* outMax) {
+  /**
+   * Find the color with the lowest and the color with the highest luminance.
+   */
   u32 lumMin = u32_max, lumMax = 0;
   array_for_t(b->colors, BcColor8888, c) {
     const u32 lum = bc_color_luminance(*c);
@@ -104,6 +122,16 @@ void bc0_extract(const BcColor8888* in, const u32 width, Bc0Block* out) {
   }
 }
 
+void bc0_scanout(const Bc0Block* in, const u32 width, BcColor8888* out) {
+  diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
+
+  for (u32 y = 0; y != 4; ++y, out += width) {
+    for (u32 x = 0; x != 4; ++x) {
+      *(out + x) = in->colors[y * 4 + x];
+    }
+  }
+}
+
 void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   BcColor8888 min, max;
   bc_block_bounds(in, &min, &max);
@@ -122,7 +150,6 @@ void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_quantize_565(max);
   refColors[1] = bc_color_quantize_565(min);
-
   bc_block_implicit_colors(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   out->color0  = bc_color_to_565(max);
@@ -130,6 +157,23 @@ void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   out->indices = 0;
   for (u32 i = 0; i != array_elems(in->colors); ++i) {
     const u8 index = bc_color_pick(refColors, in->colors[i]);
-    out->indices |= index << (i << 1);
+    out->indices |= index << (i * 2);
+  }
+}
+
+void bc1_decode(const Bc1Block* in, Bc0Block* out) {
+  /**
+   * NOTE: This only supports the bc1 mode with 2 interpolated implicit colors, and thus assumes
+   * color0 is always greater then color1. When color0 is equal to color1 then we assume that only
+   * one of the explicit colors is used and not one of the interpolated colors.
+   */
+  BcColor8888 refColors[4];
+  refColors[0] = bc_color_from_565(in->color0);
+  refColors[1] = bc_color_from_565(in->color1);
+  bc_block_implicit_colors(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+
+  for (u32 i = 0; i != array_elems(out->colors); ++i) {
+    const u8 index = (in->indices >> (i * 2)) & 0b11;
+    out->colors[i] = refColors[index];
   }
 }

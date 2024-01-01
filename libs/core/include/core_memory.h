@@ -166,6 +166,29 @@ Mem mem_consume_be_u32(Mem, u32* out);
 Mem mem_consume_be_u64(Mem, u64* out);
 
 /**
+ * Write a single byte.
+ * Pre-condition: mem.size >= 1
+ */
+Mem mem_write_u8(Mem, u8 value);
+Mem mem_write_u8_zero(Mem, usize bytes);
+
+/**
+ * Write a little-endian value and return a view 'sizeof(value)' bytes into the memory.
+ * Pre-condition: mem.size >= sizeof(value).
+ */
+Mem mem_write_le_u16(Mem, u16 value);
+Mem mem_write_le_u32(Mem, u32 value);
+Mem mem_write_le_u64(Mem, u64 value);
+
+/**
+ * Write a big-endian value and return a view 'sizeof(value)' bytes into the memory.
+ * Pre-condition: mem.size >= sizeof(value).
+ */
+Mem mem_write_be_u16(Mem, u16 value);
+Mem mem_write_be_u32(Mem, u32 value);
+Mem mem_write_be_u64(Mem, u64 value);
+
+/**
  * Interpret this memory as an object with the given size.
  * Only performs diagnostic size / align validation, no-op in non-debug builds.
  */

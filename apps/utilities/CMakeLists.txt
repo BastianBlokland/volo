@@ -43,3 +43,9 @@ message(STATUS "> application: lsp")
 add_executable(app_lsp lsp.c)
 target_link_libraries(app_lsp PRIVATE lib_app_cli lib_script lib_json)
 configure_debuggable(app_lsp)
+
+message(STATUS "> application: bcu")
+
+add_executable(app_bcu bcu.c)
+target_link_libraries(app_bcu PRIVATE lib_app_cli lib_log)
+configure_debuggable(app_bcu)

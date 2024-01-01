@@ -9,6 +9,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, array);
   register_spec(check, ascii);
   register_spec(check, base64);
+  register_spec(check, bc);
   register_spec(check, bits);
   register_spec(check, bitset);
   register_spec(check, compare);

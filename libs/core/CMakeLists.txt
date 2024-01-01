@@ -80,6 +80,7 @@ add_executable(test_lib_core
   test/test_array.c
   test/test_ascii.c
   test/test_base64.c
+  test/test_bc.c
   test/test_bits.c
   test/test_bitset.c
   test/test_compare.c
