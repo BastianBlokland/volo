@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_bc.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "core_file.h"
 #include "core_math.h"
 #include "core_path.h"
@@ -13,6 +14,27 @@
  * NOTE: Contains an extremely simplistic tga parser that only supports uncompressed RGBA data which
  * uses lower-left as the image origin.
  */
+
+typedef enum {
+  BcuMode_QuantizeBc1,
+
+  BcuMode_Count,
+  BcuMode_Default = BcuMode_QuantizeBc1
+} BcuMode;
+
+static const String g_modeStrs[] = {
+    string_static("quantize-bc1"),
+};
+ASSERT(array_elems(g_modeStrs) == BcuMode_Count, "Incorrect number of mode strings");
+
+static bool bcu_validate_mode(const String input) {
+  array_for_t(g_modeStrs, String, mode) {
+    if (string_eq(*mode, input)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 typedef enum {
   BcuResult_Success = 0,
@@ -32,25 +54,22 @@ typedef enum {
   BcuResult_Count,
 } BcuResult;
 
-static String bcu_result_str(const BcuResult res) {
-  static const String g_msgs[] = {
-      string_static("Success"),
-      string_static("Failed to open file"),
-      string_static("Failed to map file"),
-      string_static("Failed to write file"),
-      string_static("Memory allocation failed"),
-      string_static("Truncated tga file"),
-      string_static("Color-mapped Tga images are not supported"),
-      string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
-      string_static("Unsupported Tga bits-per-pixel, only 32 bits (RGBA is supported)"),
-      string_static("Unsupported Tga attribute depth, only 8 bit Tga alpha is supported"),
-      string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
-      string_static("Interleaved Tga images are not supported"),
-      string_static("Image dimensions need to be 4 pixel aligned"),
-  };
-  ASSERT(array_elems(g_msgs) == BcuResult_Count, "Incorrect number of result messages");
-  return g_msgs[res];
-}
+static const String g_resultStrs[] = {
+    string_static("Success"),
+    string_static("Failed to open file"),
+    string_static("Failed to map file"),
+    string_static("Failed to write file"),
+    string_static("Memory allocation failed"),
+    string_static("Truncated tga file"),
+    string_static("Color-mapped Tga images are not supported"),
+    string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
+    string_static("Unsupported Tga bits-per-pixel, only 32 bits (RGBA is supported)"),
+    string_static("Unsupported Tga attribute depth, only 8 bit Tga alpha is supported"),
+    string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
+    string_static("Interleaved Tga images are not supported"),
+    string_static("Image dimensions need to be 4 pixel aligned"),
+};
+ASSERT(array_elems(g_resultStrs) == BcuResult_Count, "Incorrect number of result strings");
 
 typedef struct {
   u16 width, height;
@@ -198,7 +217,7 @@ static void bcu_blocks_quantize_bc1(Bc0Block* blocks, const u32 blockCount) {
   }
 }
 
-static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
+static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String outputPath) {
   const u32 blockCount = math_max(input->size.width / 4, 1) * math_max(input->size.height / 4, 1);
   Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
 
@@ -208,8 +227,15 @@ static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
   const usize  encodedPixelCount = blockCount * 16;
   BcColor8888* encodedPixels     = alloc_array_t(g_alloc_heap, BcColor8888, encodedPixelCount);
 
-  bcu_blocks_quantize_bc1(blocks, blockCount);
-  log_i("Quantized to bc1", log_param("bc1-size", fmt_size(blockCount * sizeof(Bc1Block))));
+  switch (mode) {
+  case BcuMode_QuantizeBc1:
+    bcu_blocks_quantize_bc1(blocks, blockCount);
+    log_i("Quantized to bc1", log_param("bc1-size", fmt_size(blockCount * sizeof(Bc1Block))));
+    break;
+  default:
+    diag_crash_msg("Unsupported mode");
+    break;
+  }
 
   bcu_blocks_scanout(input->size, blocks, encodedPixels);
   log_i("Scanned out to {} pixels", log_param("pixels", fmt_int(encodedPixelCount)));
@@ -222,25 +248,29 @@ static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
   return result;
 }
 
-static CliId g_inputFlag, g_outputFlag, g_helpFlag;
+static CliId g_optMode, g_optInput, g_optOutput, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Texture block compression utility."));
 
-  g_inputFlag = cli_register_flag(app, 'i', string_lit("input"), CliOptionFlags_Required);
-  cli_register_desc(app, g_inputFlag, string_lit("Input image path."));
-  cli_register_validator(app, g_inputFlag, cli_validate_file_regular);
+  g_optMode = cli_register_arg(app, string_lit("mode"), CliOptionFlags_None);
+  cli_register_desc_choice_array(app, g_optMode, string_empty, g_modeStrs, BcuMode_Default);
+  cli_register_validator(app, g_optMode, bcu_validate_mode);
 
-  g_outputFlag = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Required);
-  cli_register_desc(app, g_outputFlag, string_lit("Output image path."));
+  g_optInput = cli_register_flag(app, 'i', string_lit("input"), CliOptionFlags_Required);
+  cli_register_desc(app, g_optInput, string_lit("Input image path."));
+  cli_register_validator(app, g_optInput, cli_validate_file_regular);
 
-  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
-  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_helpFlag, g_inputFlag, g_outputFlag);
+  g_optOutput = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Required);
+  cli_register_desc(app, g_optOutput, string_lit("Output image path."));
+
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_optHelp, g_optMode, g_optInput, g_optOutput);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_helpFlag)) {
+  if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_file_stdout);
     return 0;
   }
@@ -248,14 +278,16 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
-  const String inputPath  = cli_read_string(invoc, g_inputFlag, string_empty);
-  const String outputPath = cli_read_string(invoc, g_outputFlag, string_empty);
+  const usize   modeRaw    = cli_read_choice_array(invoc, g_optMode, g_modeStrs, BcuMode_Default);
+  const BcuMode mode       = (BcuMode)modeRaw;
+  const String  inputPath  = cli_read_string(invoc, g_optInput, string_empty);
+  const String  outputPath = cli_read_string(invoc, g_optOutput, string_empty);
 
   BcuImage  input = {0};
   BcuResult result;
 
   if ((result = bcu_image_read(inputPath, &input))) {
-    log_e("Input image unsupported", log_param("error", fmt_text(bcu_result_str(result))));
+    log_e("Input image unsupported", log_param("error", fmt_text(g_resultStrs[result])));
     goto End;
   }
 
@@ -269,7 +301,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       log_param("pixels", fmt_int(pixelCount)),
       log_param("data", fmt_size(pixelDataSize)));
 
-  result = bcu_run(&input, outputPath);
+  result = bcu_run(mode, &input, outputPath);
 
 End:
   bcu_image_close(&input);
