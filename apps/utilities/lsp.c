@@ -1028,9 +1028,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(doc->scriptSyms, callSym),
-      .doc       = script_sym_doc(doc->scriptSyms, callSym),
-      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+          .label     = script_sym_label(doc->scriptSyms, callSym),
+          .doc       = script_sym_doc(doc->scriptSyms, callSym),
+          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1278,22 +1278,22 @@ Ret:
   return success;
 }
 
-static CliId g_stdioFlag, g_binderFlag, g_optHelp;
+static CliId g_optStdio, g_optBinder, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo Script Language Server"));
 
-  g_stdioFlag = cli_register_flag(app, 0, string_lit("stdio"), CliOptionFlags_None);
-  cli_register_desc(app, g_stdioFlag, string_lit("Use stdin and stdout for communication."));
+  g_optStdio = cli_register_flag(app, 0, string_lit("stdio"), CliOptionFlags_None);
+  cli_register_desc(app, g_optStdio, string_lit("Use stdin and stdout for communication."));
 
-  g_binderFlag = cli_register_flag(app, 'b', string_lit("binder"), CliOptionFlags_Value);
-  cli_register_desc(app, g_binderFlag, string_lit("Script binder schema to use."));
-  cli_register_validator(app, g_binderFlag, cli_validate_file_regular);
+  g_optBinder = cli_register_flag(app, 'b', string_lit("binder"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optBinder, string_lit("Script binder schema to use."));
+  cli_register_validator(app, g_optBinder, cli_validate_file_regular);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_stdioFlag);
-  cli_register_exclusions(app, g_optHelp, g_binderFlag);
+  cli_register_exclusions(app, g_optHelp, g_optStdio);
+  cli_register_exclusions(app, g_optHelp, g_optBinder);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -1305,7 +1305,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     goto Exit;
   }
 
-  const CliParseValues binderArg = cli_parse_values(invoc, g_binderFlag);
+  const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
   if (binderArg.count) {
     scriptBinder = script_binder_create(g_alloc_heap);
     if (!lsp_read_binder_file(scriptBinder, binderArg.values[0])) {
@@ -1315,7 +1315,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     script_binder_finalize(scriptBinder);
   }
 
-  if (cli_parse_provided(invoc, g_stdioFlag)) {
+  if (cli_parse_provided(invoc, g_optStdio)) {
     exitCode = lsp_run_stdio(scriptBinder);
   } else {
     exitCode = 1;

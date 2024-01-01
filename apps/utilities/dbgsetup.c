@@ -32,19 +32,16 @@
 typedef enum {
   DbgSetupDbg_Lldb,
   DbgSetupDbg_Cppvsdbg,
-} DbgSetupDbg;
 
-typedef struct {
-  DbgSetupDbg dbg;
-  String      workspace;
-  String*     targets;
-  usize       targetCount;
-} DbgSetupCtx;
+  DbgSetupDbg_Count,
+  DbgSetupDbg_Default = DbgSetupDbg_Lldb,
+} DbgSetupDbg;
 
 static const String g_dbgStrs[] = {
     string_static("lldb"),
     string_static("cppvsdbg"),
 };
+ASSERT(array_elems(g_dbgStrs) == DbgSetupDbg_Count, "Incorrect number of dbg strings");
 
 static bool dbgsetup_validate_dbg(const String input) {
   array_for_t(g_dbgStrs, String, cfg) {
@@ -54,6 +51,13 @@ static bool dbgsetup_validate_dbg(const String input) {
   }
   return false;
 }
+
+typedef struct {
+  DbgSetupDbg dbg;
+  String      workspace;
+  String*     targets;
+  usize       targetCount;
+} DbgSetupCtx;
 
 static bool dbgsetup_write_json(String path, const JsonDoc* jsonDoc, const JsonVal jsonVal) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
@@ -129,30 +133,30 @@ static bool dbgsetup_vscode_generate_launch_file(DbgSetupCtx* ctx) {
   return res;
 }
 
-static CliId g_dbgFlag, g_workspaceFlag, g_targetsFlag, g_helpFlag;
+static CliId g_optDbg, g_optWorkspace, g_optTargets, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to generate debugger configuration files."));
 
-  g_dbgFlag = cli_register_flag(app, 'd', string_lit("debugger"), CliOptionFlags_Value);
+  g_optDbg = cli_register_flag(app, 'd', string_lit("debugger"), CliOptionFlags_Value);
   cli_register_desc_choice_array(
-      app, g_dbgFlag, string_lit("What debugger to use."), g_dbgStrs, DbgSetupDbg_Lldb);
-  cli_register_validator(app, g_dbgFlag, dbgsetup_validate_dbg);
+      app, g_optDbg, string_lit("What debugger to use."), g_dbgStrs, DbgSetupDbg_Default);
+  cli_register_validator(app, g_optDbg, dbgsetup_validate_dbg);
 
-  g_workspaceFlag = cli_register_flag(app, 'w', string_lit("workspace"), CliOptionFlags_Required);
-  cli_register_desc(app, g_workspaceFlag, string_lit("Project workspace."));
+  g_optWorkspace = cli_register_flag(app, 'w', string_lit("workspace"), CliOptionFlags_Required);
+  cli_register_desc(app, g_optWorkspace, string_lit("Project workspace."));
 
-  g_targetsFlag =
+  g_optTargets =
       cli_register_flag(app, 't', string_lit("targets"), CliOptionFlags_RequiredMultiValue);
-  cli_register_desc(app, g_targetsFlag, string_lit("List of debuggable executables."));
+  cli_register_desc(app, g_optTargets, string_lit("List of debuggable executables."));
 
-  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
-  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_helpFlag, g_dbgFlag, g_workspaceFlag, g_targetsFlag);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_optHelp, g_optDbg, g_optWorkspace, g_optTargets);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_helpFlag)) {
+  if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_file_stdout);
     return 0;
   }
@@ -161,10 +165,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   DbgSetupCtx ctx = {
-      .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, g_dbgFlag, g_dbgStrs, DbgSetupDbg_Lldb),
-      .workspace   = cli_read_string(invoc, g_workspaceFlag, string_empty),
-      .targets     = cli_parse_values(invoc, g_targetsFlag).values,
-      .targetCount = cli_parse_values(invoc, g_targetsFlag).count,
+      .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, g_optDbg, g_dbgStrs, DbgSetupDbg_Default),
+      .workspace   = cli_read_string(invoc, g_optWorkspace, string_empty),
+      .targets     = cli_parse_values(invoc, g_optTargets).values,
+      .targetCount = cli_parse_values(invoc, g_optTargets).count,
   };
 
   // Sort targets alphabetically.
