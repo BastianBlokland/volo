@@ -56,10 +56,10 @@ static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
   *b              = tmp;
 }
 
+/**
+ * Pick the reference color that is closest in RGB space.
+ */
 static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
-  /**
-   * Pick the reference color that is closest in RGB space.
-   */
   u32 bestDistSqr = u32_max;
   u8  bestIndex;
   for (u8 i = 0; i != 4; ++i) {
@@ -72,8 +72,33 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   return bestIndex;
 }
 
-static void bc_block_implicit_colors(
-    const BcColor8888 min, const BcColor8888 max, BcColor8888* outA, BcColor8888* outB) {
+/**
+ * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
+ * the given block.
+ */
+static void bc_block_line_endpoints(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+  /**
+   * Find the color with the lowest and the color with the highest luminance.
+   */
+  u32 lumMin = u32_max, lumMax = 0;
+  array_for_t(b->colors, BcColor8888, c) {
+    const u32 lum = bc_color_luminance(*c);
+    if (lum >= lumMax) {
+      lumMax = lum;
+      *outC0 = *c;
+    }
+    if (lum <= lumMin) {
+      lumMin = lum;
+      *outC1 = *c;
+    }
+  }
+}
+
+/**
+ * Compute two middle points on the given line through RGB space.
+ */
+static void bc_block_line_interpolate(
+    const BcColor8888 c0, const BcColor8888 c1, BcColor8888* outC2, BcColor8888* outC3) {
   /**
    * We use the bc1 mode that uses 2 interpolated implicit colors.
    *
@@ -83,33 +108,15 @@ static void bc_block_implicit_colors(
    * - RGB2: (2 * RGB0 + RGB1) / 3 (if color0 > color1)
    * - RGB3: (RGB0 + 2 * RGB1) / 3 (if color0 > color1)
    */
-  outA->r = (min.r * 2 + max.r * 1) / 3;
-  outA->g = (min.g * 2 + max.g * 1) / 3;
-  outA->b = (min.b * 2 + max.b * 1) / 3;
-  outA->a = 255;
+  outC2->r = (c0.r * 2 + c1.r * 1) / 3;
+  outC2->g = (c0.g * 2 + c1.g * 1) / 3;
+  outC2->b = (c0.b * 2 + c1.b * 1) / 3;
+  outC2->a = 255;
 
-  outB->r = (min.r * 1 + max.r * 2) / 3;
-  outB->g = (min.g * 1 + max.g * 2) / 3;
-  outB->b = (min.b * 1 + max.b * 2) / 3;
-  outB->a = 255;
-}
-
-static void bc_block_bounds(const Bc0Block* b, BcColor8888* outMin, BcColor8888* outMax) {
-  /**
-   * Find the color with the lowest and the color with the highest luminance.
-   */
-  u32 lumMin = u32_max, lumMax = 0;
-  array_for_t(b->colors, BcColor8888, c) {
-    const u32 lum = bc_color_luminance(*c);
-    if (lum >= lumMax) {
-      lumMax  = lum;
-      *outMax = *c;
-    }
-    if (lum <= lumMin) {
-      lumMin  = lum;
-      *outMin = *c;
-    }
-  }
+  outC3->r = (c0.r * 1 + c1.r * 2) / 3;
+  outC3->g = (c0.g * 1 + c1.g * 2) / 3;
+  outC3->b = (c0.b * 1 + c1.b * 2) / 3;
+  outC3->a = 255;
 }
 
 void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
@@ -133,8 +140,8 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 }
 
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
-  BcColor8888 min, max;
-  bc_block_bounds(in, &min, &max);
+  BcColor8888 color0, color1;
+  bc_block_line_endpoints(in, &color0, &color1);
 
   /**
    * To use the encoding mode with two interpolated colors we need to make sure that color0 is
@@ -143,17 +150,17 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
    * instead of an interpolated value, this should not be a problem however as when min is equal to
    * max then all colors must be equal so we can use index 0 for all entries.
    */
-  if (bc_color_to_565(max) < bc_color_to_565(min)) {
-    bc_color_swap(&min, &max);
+  if (bc_color_to_565(color0) < bc_color_to_565(color1)) {
+    bc_color_swap(&color1, &color0);
   }
 
   BcColor8888 refColors[4];
-  refColors[0] = bc_color_quantize_565(max);
-  refColors[1] = bc_color_quantize_565(min);
-  bc_block_implicit_colors(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  refColors[0] = bc_color_quantize_565(color0);
+  refColors[1] = bc_color_quantize_565(color1);
+  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->color0  = bc_color_to_565(max);
-  out->color1  = bc_color_to_565(min);
+  out->color0  = bc_color_to_565(color0);
+  out->color1  = bc_color_to_565(color1);
   out->indices = 0;
   for (u32 i = 0; i != array_elems(in->colors); ++i) {
     const u8 index = bc_color_pick(refColors, in->colors[i]);
@@ -170,7 +177,7 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_block_implicit_colors(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   for (u32 i = 0; i != array_elems(out->colors); ++i) {
     const u8 index = (in->indices >> (i * 2)) & 0b11;
