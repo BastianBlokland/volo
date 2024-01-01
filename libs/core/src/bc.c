@@ -2,6 +2,7 @@
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 
 /**
  * Texture Block Compression.
@@ -19,8 +20,9 @@
 
 #define bc_line_fit_distance 0
 #define bc_line_fit_luminance 1
+#define bc_line_fit_bounds 2
 
-#define bc_line_fit_mode bc_line_fit_luminance
+#define bc_line_fit_mode bc_line_fit_bounds
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
@@ -55,7 +57,7 @@ static u32 bc_color_distance_sqr(const BcColor8888 a, const BcColor8888 b) {
   return dR * dR + dG * dG + dB * dB;
 }
 
-static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
+MAYBE_UNUSED static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
   BcColor8888 tmp = *a;
   *a              = *b;
   *b              = tmp;
@@ -77,7 +79,7 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   return bestIndex;
 }
 
-MAYBE_UNUSED INLINE_HINT static void
+MAYBE_UNUSED static void
 bc_block_line_fit_distance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
   /**
    * Find the two colors with the lowest and highest distance in RGB space.
@@ -95,7 +97,7 @@ bc_block_line_fit_distance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* o
   }
 }
 
-MAYBE_UNUSED INLINE_HINT static void
+MAYBE_UNUSED static void
 bc_block_line_fit_luminance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
   /**
    * Find the two colors with the lowest and highest luminance.
@@ -114,6 +116,22 @@ bc_block_line_fit_luminance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* 
   }
 }
 
+MAYBE_UNUSED static void
+bc_block_line_fit_bounds(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+  /**
+   * Find the bounds of the block's RGB space.
+   */
+  for (u32 i = 0; i != array_elems(b->colors); ++i) {
+    outC1->r = math_min(outC1->r, b->colors[i].r);
+    outC1->g = math_min(outC1->g, b->colors[i].g);
+    outC1->b = math_min(outC1->b, b->colors[i].b);
+
+    outC0->r = math_max(outC0->r, b->colors[i].r);
+    outC0->g = math_max(outC0->g, b->colors[i].g);
+    outC0->b = math_max(outC0->b, b->colors[i].b);
+  }
+}
+
 /**
  * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
  * the given block.
@@ -123,8 +141,23 @@ static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888
   bc_block_line_fit_distance(b, outC0, outC1);
 #elif bc_line_fit_mode == bc_line_fit_luminance
   bc_block_line_fit_luminance(b, outC0, outC1);
+#elif bc_line_fit_mode == bc_line_fit_bounds
+  bc_block_line_fit_bounds(b, outC0, outC1);
 #else
   ASSERT(false, "Unsupported line-fit mode");
+#endif
+
+#if bc_line_fit_mode != bc_line_fit_bounds
+  /**
+   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
+   * always larger then color1.
+   * NOTE: When color0 is equal to color1 we do end up using the mode where the 4th color is black
+   * instead of an interpolated value, this should not be a problem however as when min is equal to
+   * max then all colors must be equal so we can use index 0 for all entries.
+   */
+  if (bc_color_to_565(color0) < bc_color_to_565(color1)) {
+    bc_color_swap(&color1, &color0);
+  }
 #endif
 }
 
@@ -176,17 +209,6 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 color0, color1;
   bc_block_line_fit(in, &color0, &color1);
-
-  /**
-   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
-   * always larger then color1.
-   * NOTE: When color0 is equal to color1 we do end up using the mode where the 4th color is black
-   * instead of an interpolated value, this should not be a problem however as when min is equal to
-   * max then all colors must be equal so we can use index 0 for all entries.
-   */
-  if (bc_color_to_565(color0) < bc_color_to_565(color1)) {
-    bc_color_swap(&color1, &color0);
-  }
 
   BcColor8888 refColors[4];
   refColors[0] = bc_color_quantize_565(color0);
