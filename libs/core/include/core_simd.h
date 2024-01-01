@@ -28,6 +28,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const f32 values[PARAM_ARR
 }
 
 /**
+ * Load 16 (128 bit aligned) u8 values into a Simd vector.
+ * Pre-condition: bits_aligned_ptr(values, 16)
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u8(const u8 values[PARAM_ARRAY_SIZE(16)]) {
+  return _mm_load_ps((const f32*)values);
+}
+
+/**
  * Load 8 (128 bit aligned) u16 values into a Simd vector.
  * Pre-condition: bits_aligned_ptr(values, 16)
  */
