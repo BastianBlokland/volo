@@ -16,9 +16,10 @@ ASSERT(sizeof(BcColor8888) == 4, "Unexpected rgba8888 size");
 typedef u16 BcColor565;
 
 typedef struct {
-  BcColor8888 colors[16];
+  ALIGNAS(16) BcColor8888 colors[16];
 } Bc0Block;
 
+ASSERT(alignof(Bc0Block) == 16, "Unexpected bc0 block alignment");
 ASSERT(sizeof(Bc0Block) == 64, "Unexpected bc0 block size");
 
 typedef struct {
