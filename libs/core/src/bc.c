@@ -119,6 +119,16 @@ void bc0_extract(const BcColor8888* in, const u32 width, Bc0Block* out) {
   }
 }
 
+void bc0_scanout(const Bc0Block* in, const u32 width, BcColor8888* out) {
+  diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
+
+  for (u32 y = 0; y != 4; ++y, out += width) {
+    for (u32 x = 0; x != 4; ++x) {
+      *(out + x) = in->colors[y * 4 + x];
+    }
+  }
+}
+
 void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   BcColor8888 min, max;
   bc_block_bounds(in, &min, &max);
