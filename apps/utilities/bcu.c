@@ -194,6 +194,22 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   return writeRes ? BcuResult_FileWriteFailed : BcuResult_Success;
 }
 
+INLINE_HINT static f64 bcu_sqr(const f64 val) { return val * val; }
+
+static f64 bcu_image_diff_rgb(const BcuSize size, const BcColor8888* pA, const BcColor8888* pB) {
+  /**
+   * Compute the root mean square error between the sets of pixels.
+   */
+  f64 sum = 0;
+  for (u32 i = 0; i != (size.width * size.height); ++i) {
+    sum += bcu_sqr((f64)pB[i].r - (f64)pA[i].r);
+    sum += bcu_sqr((f64)pB[i].g - (f64)pA[i].g);
+    sum += bcu_sqr((f64)pB[i].b - (f64)pA[i].b);
+  }
+  const u16 channels = 3;
+  return math_sqrt_f64(sum / (size.width * size.height * channels));
+}
+
 static u32 bcu_block_count(const BcuSize size) {
   return math_max(size.width / 4, 1) * math_max(size.height / 4, 1);
 }
@@ -266,8 +282,12 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
 
   bcu_blocks_scanout(input->size, blocks, encodedPixels);
 
-  const BcuResult result = bcu_image_write(input->size, encodedPixels, outputPath);
-  log_i("Wrote output image", log_param("path", fmt_path(outputPath)));
+  const f64       diffRgb = bcu_image_diff_rgb(input->size, input->pixels, encodedPixels);
+  const BcuResult result  = bcu_image_write(input->size, encodedPixels, outputPath);
+  log_i(
+      "Wrote output image",
+      log_param("path", fmt_path(outputPath)),
+      log_param("diff", fmt_float(diffRgb)));
 
   alloc_free_array_t(g_alloc_heap, encodedPixels, encodedPixelCount);
   alloc_free_array_t(g_alloc_heap, blocks, blockCount);
