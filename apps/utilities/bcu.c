@@ -209,7 +209,7 @@ static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
   BcColor8888* encodedPixels     = alloc_array_t(g_alloc_heap, BcColor8888, encodedPixelCount);
 
   bcu_blocks_quantize_bc1(blocks, blockCount);
-  log_i("Quantized to bc1", log_param("blocks", fmt_int(blockCount)));
+  log_i("Quantized to bc1", log_param("bc1-size", fmt_size(blockCount * sizeof(Bc1Block))));
 
   bcu_blocks_scanout(input->size, blocks, encodedPixels);
   log_i("Scanned out to {} pixels", log_param("pixels", fmt_int(encodedPixelCount)));
