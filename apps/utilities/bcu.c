@@ -6,6 +6,7 @@
 #include "core_file.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_time.h"
 #include "log.h"
 
 /**
@@ -81,7 +82,7 @@ typedef struct {
   File*              handle;
 } BcuImage;
 
-static BcuResult bcu_image_read(const String path, BcuImage* out) {
+static BcuResult bcu_image_open(const String path, BcuImage* out) {
   BcuResult  error;
   File*      fileHandle = null;
   FileResult fileRes;
@@ -193,36 +194,63 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   return writeRes ? BcuResult_FileWriteFailed : BcuResult_Success;
 }
 
+static u32 bcu_block_count(const BcuSize size) {
+  return math_max(size.width / 4, 1) * math_max(size.height / 4, 1);
+}
+
 static void bcu_blocks_extract(const BcuSize size, const BcColor8888* inPtr, Bc0Block* outPtr) {
+  const TimeSteady startTime = time_steady_clock();
+
   for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
     for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
       bc0_extract(inPtr + x, size.width, outPtr);
     }
   }
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  log_i(
+      "Extracted {} blocks",
+      log_param("blocks", fmt_int(bcu_block_count(size))),
+      log_param("duration", fmt_duration(dur)));
 }
 
 static void bcu_blocks_scanout(const BcuSize size, const Bc0Block* inPtr, BcColor8888* outPtr) {
+  const TimeSteady startTime = time_steady_clock();
+
   for (u32 y = 0; y < size.height; y += 4, outPtr += size.width * 4) {
     for (u32 x = 0; x < size.width; x += 4, ++inPtr) {
       bc0_scanout(inPtr, size.width, outPtr + x);
     }
   }
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  log_i(
+      "Scanned out to {} pixels",
+      log_param("pixels", fmt_int(size.width * size.height)),
+      log_param("duration", fmt_duration(dur)));
 }
 
 static void bcu_blocks_quantize_bc1(Bc0Block* blocks, const u32 blockCount) {
+  const TimeSteady startTime = time_steady_clock();
+
   Bc1Block encodedBlock;
   for (u32 i = 0; i != blockCount; ++i) {
     bc1_encode(blocks + i, &encodedBlock);
     bc1_decode(&encodedBlock, blocks + i);
   }
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  log_i(
+      "Quantized to bc1",
+      log_param("bc1-size", fmt_size(blockCount * sizeof(Bc1Block))),
+      log_param("duration", fmt_duration(dur)));
 }
 
 static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String outputPath) {
-  const u32 blockCount = math_max(input->size.width / 4, 1) * math_max(input->size.height / 4, 1);
+  const u32 blockCount = bcu_block_count(input->size);
   Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
 
   bcu_blocks_extract(input->size, input->pixels, blocks);
-  log_i("Extracted {} blocks", log_param("blocks", fmt_int(blockCount)));
 
   const usize  encodedPixelCount = blockCount * 16;
   BcColor8888* encodedPixels     = alloc_array_t(g_alloc_heap, BcColor8888, encodedPixelCount);
@@ -230,7 +258,6 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
   switch (mode) {
   case BcuMode_QuantizeBc1:
     bcu_blocks_quantize_bc1(blocks, blockCount);
-    log_i("Quantized to bc1", log_param("bc1-size", fmt_size(blockCount * sizeof(Bc1Block))));
     break;
   default:
     diag_crash_msg("Unsupported mode");
@@ -238,7 +265,6 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
   }
 
   bcu_blocks_scanout(input->size, blocks, encodedPixels);
-  log_i("Scanned out to {} pixels", log_param("pixels", fmt_int(encodedPixelCount)));
 
   const BcuResult result = bcu_image_write(input->size, encodedPixels, outputPath);
   log_i("Wrote output image", log_param("path", fmt_path(outputPath)));
@@ -286,7 +312,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   BcuImage  input = {0};
   BcuResult result;
 
-  if ((result = bcu_image_read(inputPath, &input))) {
+  if ((result = bcu_image_open(inputPath, &input))) {
     log_e("Input image unsupported", log_param("error", fmt_text(g_resultStrs[result])));
     goto End;
   }
