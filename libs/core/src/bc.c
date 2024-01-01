@@ -86,9 +86,12 @@ static void bc_block_implicit_colors(
   outA->r = (min.r * 2 + max.r * 1) / 3;
   outA->g = (min.g * 2 + max.g * 1) / 3;
   outA->b = (min.b * 2 + max.b * 1) / 3;
+  outA->a = 255;
+
   outB->r = (min.r * 1 + max.r * 2) / 3;
   outB->g = (min.g * 1 + max.g * 2) / 3;
   outB->b = (min.b * 1 + max.b * 2) / 3;
+  outB->a = 255;
 }
 
 static void bc_block_bounds(const Bc0Block* b, BcColor8888* outMin, BcColor8888* outMax) {
