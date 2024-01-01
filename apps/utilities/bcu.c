@@ -207,7 +207,7 @@ static BcuResult bcu_run(const BcuImage* input, const String outputPath) {
 
   const BcuResult result = bcu_image_write(input->size, encodedPixels, outputPath);
 
-  log_i("Wrote output image", log_param("path", fmt_text(outputPath)));
+  log_i("Wrote output image", log_param("path", fmt_path(outputPath)));
 
   alloc_free_array_t(g_alloc_heap, encodedPixels, encodedPixelCount);
   alloc_free_array_t(g_alloc_heap, blocks, blockCount);
@@ -255,7 +255,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const usize pixelDataSize = pixelCount * sizeof(BcColor8888);
   log_i(
       "Opened input image",
-      log_param("path", fmt_text(inputPath)),
+      log_param("path", fmt_path(inputPath)),
       log_param("width", fmt_int(input.size.width)),
       log_param("height", fmt_int(input.size.height)),
       log_param("pixels", fmt_int(pixelCount)),
