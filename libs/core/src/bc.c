@@ -112,7 +112,7 @@ static void bc_block_bounds(const Bc0Block* b, BcColor8888* outMin, BcColor8888*
   }
 }
 
-void bc0_extract(const BcColor8888* in, const u32 width, Bc0Block* out) {
+void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
   for (u32 y = 0; y != 4; ++y, in += width) {
@@ -122,7 +122,7 @@ void bc0_extract(const BcColor8888* in, const u32 width, Bc0Block* out) {
   }
 }
 
-void bc0_scanout(const Bc0Block* in, const u32 width, BcColor8888* out) {
+void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
   for (u32 y = 0; y != 4; ++y, out += width) {
@@ -132,7 +132,7 @@ void bc0_scanout(const Bc0Block* in, const u32 width, BcColor8888* out) {
   }
 }
 
-void bc1_encode(const Bc0Block* in, Bc1Block* out) {
+void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 min, max;
   bc_block_bounds(in, &min, &max);
 
@@ -161,7 +161,7 @@ void bc1_encode(const Bc0Block* in, Bc1Block* out) {
   }
 }
 
-void bc1_decode(const Bc1Block* in, Bc0Block* out) {
+void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   /**
    * NOTE: This only supports the bc1 mode with 2 interpolated implicit colors, and thus assumes
    * color0 is always greater then color1. When color0 is equal to color1 then we assume that only
