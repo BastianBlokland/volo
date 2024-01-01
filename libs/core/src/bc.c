@@ -18,10 +18,11 @@
  */
 
 enum {
-  BcLineFit_MinMaxLuminance,
+  BcLineFit_Distance,
+  BcLineFit_Luminance,
 };
 
-#define bc_line_fit_mode BcLineFit_MinMaxLuminance
+#define bc_line_fit_mode BcLineFit_Luminance
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
@@ -79,20 +80,38 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
 }
 
 MAYBE_UNUSED INLINE_HINT static void
-bc_block_line_fit_lum(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+bc_block_line_fit_distance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
   /**
-   * Find the color with the lowest and the color with the highest luminance.
+   * Find the two colors with the lowest and highest distance in RGB space.
+   */
+  u32 bestDistSqr = 0;
+  for (u32 i = 0; i != array_elems(b->colors); ++i) {
+    for (u32 j = 0; j != array_elems(b->colors); ++j) {
+      const u32 distSqr = bc_color_distance_sqr(b->colors[i], b->colors[j]);
+      if (distSqr >= bestDistSqr) {
+        bestDistSqr = distSqr;
+        *outC0      = b->colors[i];
+        *outC1      = b->colors[j];
+      }
+    }
+  }
+}
+
+MAYBE_UNUSED INLINE_HINT static void
+bc_block_line_fit_luminance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+  /**
+   * Find the two colors with the lowest and highest luminance.
    */
   u32 lumMin = u32_max, lumMax = 0;
-  array_for_t(b->colors, BcColor8888, c) {
-    const u32 lum = bc_color_luminance(*c);
+  for (u32 i = 0; i != array_elems(b->colors); ++i) {
+    const u32 lum = bc_color_luminance(b->colors[i]);
     if (lum >= lumMax) {
       lumMax = lum;
-      *outC0 = *c;
+      *outC0 = b->colors[i];
     }
     if (lum <= lumMin) {
       lumMin = lum;
-      *outC1 = *c;
+      *outC1 = b->colors[i];
     }
   }
 }
@@ -102,8 +121,12 @@ bc_block_line_fit_lum(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1)
  * the given block.
  */
 static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-#if bc_line_fit_mode == BcLineFit_MinMaxLuminance
-  bc_block_line_fit_lum(b, outC0, outC1);
+#if bc_line_fit_mode == BcLineFit_Distance
+  bc_block_line_fit_distance(b, outC0, outC1);
+#elif bc_line_fit_mode == BcLineFit_Luminance
+  bc_block_line_fit_luminance(b, outC0, outC1);
+#else
+  ASSERT(false, "Unsupported line-fit mode");
 #endif
 }
 
