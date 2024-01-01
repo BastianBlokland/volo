@@ -25,9 +25,9 @@ static BcColor565 bc_color_to_565(const BcColor8888 c) {
 }
 
 static BcColor8888 bc_color_from_565(const BcColor565 c) {
-  const u8 r = (c & 0x01F) << 3;
-  const u8 g = (c & 0x03E0) >> 2;
-  const u8 b = (c & 0x7C00) >> 7;
+  const u8 r = (c & 0xF800) >> 8;
+  const u8 g = (c & 0x07E0) >> 3;
+  const u8 b = (c & 0x001F) << 3;
   return (BcColor8888){r, g, b, 255};
 }
 
