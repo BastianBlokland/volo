@@ -22,7 +22,8 @@
 #define bc_line_fit_luminance 1
 #define bc_line_fit_bounds 2
 
-#define bc_line_fit_mode bc_line_fit_bounds
+#define bc_line_fit_mode bc_line_fit_luminance
+#define bc_line_fit_inset
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
@@ -132,6 +133,25 @@ bc_block_line_fit_bounds(const Bc0Block* b, BcColor8888* outC0, BcColor8888* out
   }
 }
 
+MAYBE_UNUSED static void bc_block_line_fit_inset(BcColor8888* c0, BcColor8888* c1) {
+  /**
+   * Slightly insetting the bounds results in a bit more error at the extreme edges of the block but
+   * less error in between, usually this is a good tradeoff.
+   */
+  BcColor8888 inset;
+  inset.r = (c0->r - c1->r) / 16;
+  inset.g = (c0->g - c1->g) / 16;
+  inset.b = (c0->b - c1->b) / 16;
+
+  c1->r = (c1->r + inset.r <= 255) ? c1->r + inset.r : 255;
+  c1->g = (c1->g + inset.g <= 255) ? c1->g + inset.g : 255;
+  c1->b = (c1->b + inset.b <= 255) ? c1->b + inset.b : 255;
+
+  c0->r = (c0->r >= inset.r) ? c0->r - inset.r : 0;
+  c0->g = (c0->g >= inset.g) ? c0->g - inset.g : 0;
+  c0->b = (c0->b >= inset.b) ? c0->b - inset.b : 0;
+}
+
 /**
  * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
  * the given block.
@@ -155,9 +175,13 @@ static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888
    * instead of an interpolated value, this should not be a problem however as when min is equal to
    * max then all colors must be equal so we can use index 0 for all entries.
    */
-  if (bc_color_to_565(color0) < bc_color_to_565(color1)) {
-    bc_color_swap(&color1, &color0);
+  if (bc_color_to_565(*outC0) < bc_color_to_565(*outC1)) {
+    bc_color_swap(outC1, outC0);
   }
+#endif
+
+#ifdef bc_line_fit_inset
+  bc_block_line_fit_inset(outC0, outC1);
 #endif
 }
 
