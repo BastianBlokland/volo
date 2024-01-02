@@ -12,7 +12,7 @@
  * https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#BCFormats
  *
  * References:
- * https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression
+ * https://fgiesen.wordpress.com/2022/11/08/whats-that-magic-computation-in-stb__refineblock/
  * 'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
  *     https://www.researchgate.net/publication/259000525_Real-Time_DXT_Compression
  * https://fgiesen.wordpress.com/2021/10/04/gpu-bcn-decoding/
@@ -88,30 +88,68 @@ typedef struct {
   BcColor8888 min, max, mean;
 } BcBlockAnalysis;
 
-static BcBlockAnalysis bc_block_analyze(const Bc0Block* b) {
-  BcBlockAnalysis res;
-  res.min = res.max = res.mean = b->colors[0];
+static void bc_block_analyze(const Bc0Block* b, BcBlockAnalysis* out) {
+  out->min = out->max = out->mean = b->colors[0];
 
   for (u32 i = 1; i != 16; ++i) {
-    res.min.r = math_min(res.min.r, b->colors[i].r);
-    res.min.g = math_min(res.min.g, b->colors[i].g);
-    res.min.b = math_min(res.min.b, b->colors[i].b);
+    out->min.r = math_min(out->min.r, b->colors[i].r);
+    out->min.g = math_min(out->min.g, b->colors[i].g);
+    out->min.b = math_min(out->min.b, b->colors[i].b);
 
-    res.max.r = math_max(res.max.r, b->colors[i].r);
-    res.max.g = math_max(res.max.g, b->colors[i].g);
-    res.max.b = math_max(res.max.b, b->colors[i].b);
+    out->max.r = math_max(out->max.r, b->colors[i].r);
+    out->max.g = math_max(out->max.g, b->colors[i].g);
+    out->max.b = math_max(out->max.b, b->colors[i].b);
 
-    res.mean.r += b->colors[i].r;
-    res.mean.g += b->colors[i].g;
-    res.mean.b += b->colors[i].b;
+    out->mean.r += b->colors[i].r;
+    out->mean.g += b->colors[i].g;
+    out->mean.b += b->colors[i].b;
   }
 
-  // NOTE: + 8 to round to nearest.
-  res.mean.r = (res.mean.r + 8) / 16;
-  res.mean.g = (res.mean.g + 8) / 16;
-  res.mean.b = (res.mean.b + 8) / 16;
+  // NOTE: +8 to round to nearest.
+  out->mean.r = (out->mean.r + 8) / 16;
+  out->mean.g = (out->mean.g + 8) / 16;
+  out->mean.b = (out->mean.b + 8) / 16;
+}
 
-  return res;
+/**
+ * Covariance matrix of a block.
+ * https://en.wikipedia.org/wiki/Covariance_matrix
+ *
+ * NOTE: Values are normalized.
+ * NOTE: Only the bottom left side of the matrix is computed, this is sufficient as the diagonal
+ * is the covariance with itself and the top right is a mirror of the bottom left.
+ *
+ *  0 0 0 0
+ *  1 0 0 0
+ *  1 1 0 0
+ *  1 1 1 0
+ */
+typedef struct {
+  f32 values[6];
+} BcBlockCovariance;
+
+/**
+ * Compute the covariance matrix of the colors in the block.
+ */
+static void bc_block_covariance(const Bc0Block* b, const BcColor8888 mean, BcBlockCovariance* out) {
+  i32 mat[6] = {0};
+  for (u32 i = 0; i != 16; ++i) {
+    const i32 dR = b->colors[i].r - mean.r;
+    const i32 dG = b->colors[i].g - mean.g;
+    const i32 dB = b->colors[i].b - mean.b;
+
+    mat[0] += dR * dR;
+    mat[1] += dR * dG;
+    mat[2] += dR * dB;
+    mat[3] += dG * dG;
+    mat[4] += dG * dB;
+    mat[5] += dB * dB;
+  }
+  // Output the covariance matrix as floats.
+  static const f32 g_u8MaxInv = 1.0f / u8_max;
+  for (u32 i = 0; i != 6; ++i) {
+    out[i].values[i] = mat[i] * g_u8MaxInv;
+  }
 }
 
 /**
@@ -119,9 +157,15 @@ static BcBlockAnalysis bc_block_analyze(const Bc0Block* b) {
  * the given block.
  */
 static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-  const BcBlockAnalysis analysis = bc_block_analyze(b);
-  *outC0                         = analysis.max;
-  *outC1                         = analysis.min;
+  BcBlockAnalysis analysis;
+  bc_block_analyze(b, &analysis);
+
+  BcBlockCovariance covariance;
+  bc_block_covariance(b, analysis.mean, &covariance);
+
+  // TODO: Compute the principle axis.
+  *outC0 = analysis.max;
+  *outC1 = analysis.min;
 
 #ifdef bc_line_fit_use_inset
   /**
