@@ -69,19 +69,51 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   return bestIndex;
 }
 
-MAYBE_UNUSED static void bc_block_line_fit_inset(BcColor8888* c0, BcColor8888* c1) {
+MAYBE_UNUSED static void bc_line_inset(BcColor8888* start, BcColor8888* end) {
   BcColor8888 inset;
-  inset.r = (c0->r - c1->r) / 16;
-  inset.g = (c0->g - c1->g) / 16;
-  inset.b = (c0->b - c1->b) / 16;
+  inset.r = (end->r - start->r) / 16;
+  inset.g = (end->g - start->g) / 16;
+  inset.b = (end->b - start->b) / 16;
 
-  c1->r = (c1->r + inset.r <= 255) ? c1->r + inset.r : 255;
-  c1->g = (c1->g + inset.g <= 255) ? c1->g + inset.g : 255;
-  c1->b = (c1->b + inset.b <= 255) ? c1->b + inset.b : 255;
+  start->r = (start->r + inset.r <= 255) ? start->r + inset.r : 255;
+  start->g = (start->g + inset.g <= 255) ? start->g + inset.g : 255;
+  start->b = (start->b + inset.b <= 255) ? start->b + inset.b : 255;
 
-  c0->r = (c0->r >= inset.r) ? c0->r - inset.r : 0;
-  c0->g = (c0->g >= inset.g) ? c0->g - inset.g : 0;
-  c0->b = (c0->b >= inset.b) ? c0->b - inset.b : 0;
+  end->r = (end->r >= inset.r) ? end->r - inset.r : 0;
+  end->g = (end->g >= inset.g) ? end->g - inset.g : 0;
+  end->b = (end->b >= inset.b) ? end->b - inset.b : 0;
+}
+
+typedef struct {
+  BcColor8888 min, max, mean;
+} BcBlockAnalysis;
+
+static BcBlockAnalysis bc_block_analyze(const Bc0Block* b) {
+  BcBlockAnalysis res;
+  res.min  = (BcColor8888){255, 255, 255, 255};
+  res.max  = (BcColor8888){0, 0, 0, 255};
+  res.mean = (BcColor8888){0, 0, 0, 255};
+
+  for (u32 i = 0; i != 16; ++i) {
+    res.min.r = math_min(res.min.r, b->colors[i].r);
+    res.min.g = math_min(res.min.g, b->colors[i].g);
+    res.min.b = math_min(res.min.b, b->colors[i].b);
+
+    res.max.r = math_max(res.max.r, b->colors[i].r);
+    res.max.g = math_max(res.max.g, b->colors[i].g);
+    res.max.b = math_max(res.max.b, b->colors[i].b);
+
+    res.mean.r += b->colors[i].r;
+    res.mean.g += b->colors[i].g;
+    res.mean.b += b->colors[i].b;
+  }
+
+  // NOTE: + 8 to round to nearest.
+  res.mean.r = (res.mean.r + 8) / 16;
+  res.mean.g = (res.mean.g + 8) / 16;
+  res.mean.b = (res.mean.b + 8) / 16;
+
+  return res;
 }
 
 /**
@@ -89,27 +121,16 @@ MAYBE_UNUSED static void bc_block_line_fit_inset(BcColor8888* c0, BcColor8888* c
  * the given block.
  */
 static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-  /**
-   * Find the bounds of the block's RGB space.
-   * NOTE: This is very naive and atleast for offline compression we should perform some kind of
-   * search for line that matches the input colors as close as possible.
-   */
-  for (u32 i = 0; i != array_elems(b->colors); ++i) {
-    outC1->r = math_min(outC1->r, b->colors[i].r);
-    outC1->g = math_min(outC1->g, b->colors[i].g);
-    outC1->b = math_min(outC1->b, b->colors[i].b);
-
-    outC0->r = math_max(outC0->r, b->colors[i].r);
-    outC0->g = math_max(outC0->g, b->colors[i].g);
-    outC0->b = math_max(outC0->b, b->colors[i].b);
-  }
+  const BcBlockAnalysis analysis = bc_block_analyze(b);
+  *outC0                         = analysis.max;
+  *outC1                         = analysis.min;
 
 #ifdef bc_line_fit_use_inset
   /**
    * Slightly insetting the bounds results in a bit more error at the extreme edges of the block but
    * less error in between, this can be a good tradeoff.
    */
-  bc_block_line_fit_inset(outC0, outC1);
+  bc_line_inset(outC1, outC0);
 #endif
 }
 
