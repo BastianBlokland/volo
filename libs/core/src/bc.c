@@ -13,18 +13,14 @@
  *
  * References:
  * https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression
- *   'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
- * https://www.researchgate.net/publication/259000525_Real-Time_DXT_Compression
+ * 'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
+ *     https://www.researchgate.net/publication/259000525_Real-Time_DXT_Compression
+ * https://fgiesen.wordpress.com/2021/10/04/gpu-bcn-decoding/
  *
  * NOTE: This encoder assumes a little-endian host system.
  */
 
-#define bc_line_fit_distance 0
-#define bc_line_fit_luminance 1
-#define bc_line_fit_bounds 2
-
-#define bc_line_fit_mode bc_line_fit_luminance
-#define bc_line_fit_inset
+#define bc_line_fit_use_inset
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
@@ -50,19 +46,11 @@ static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
   return (BcColor8888){r, g, b, 255};
 }
 
-static u32 bc_color_luminance(const BcColor8888 c) { return c.r + c.g * 2 + c.b; }
-
 static u32 bc_color_distance_sqr(const BcColor8888 a, const BcColor8888 b) {
   const i32 dR = b.r - a.r;
   const i32 dG = b.g - a.g;
   const i32 dB = b.b - a.b;
   return dR * dR + dG * dG + dB * dB;
-}
-
-MAYBE_UNUSED static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
-  BcColor8888 tmp = *a;
-  *a              = *b;
-  *b              = tmp;
 }
 
 /**
@@ -81,64 +69,7 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   return bestIndex;
 }
 
-MAYBE_UNUSED static void
-bc_block_line_fit_distance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-  /**
-   * Find the two colors with the lowest and highest distance in RGB space.
-   */
-  u32 bestDistSqr = 0;
-  for (u32 i = 0; i != array_elems(b->colors); ++i) {
-    for (u32 j = 0; j != array_elems(b->colors); ++j) {
-      const u32 distSqr = bc_color_distance_sqr(b->colors[i], b->colors[j]);
-      if (distSqr >= bestDistSqr) {
-        bestDistSqr = distSqr;
-        *outC0      = b->colors[i];
-        *outC1      = b->colors[j];
-      }
-    }
-  }
-}
-
-MAYBE_UNUSED static void
-bc_block_line_fit_luminance(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-  /**
-   * Find the two colors with the lowest and highest luminance.
-   */
-  u32 lumMin = u32_max, lumMax = 0;
-  for (u32 i = 0; i != array_elems(b->colors); ++i) {
-    const u32 lum = bc_color_luminance(b->colors[i]);
-    if (lum >= lumMax) {
-      lumMax = lum;
-      *outC0 = b->colors[i];
-    }
-    if (lum <= lumMin) {
-      lumMin = lum;
-      *outC1 = b->colors[i];
-    }
-  }
-}
-
-MAYBE_UNUSED static void
-bc_block_line_fit_bounds(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-  /**
-   * Find the bounds of the block's RGB space.
-   */
-  for (u32 i = 0; i != array_elems(b->colors); ++i) {
-    outC1->r = math_min(outC1->r, b->colors[i].r);
-    outC1->g = math_min(outC1->g, b->colors[i].g);
-    outC1->b = math_min(outC1->b, b->colors[i].b);
-
-    outC0->r = math_max(outC0->r, b->colors[i].r);
-    outC0->g = math_max(outC0->g, b->colors[i].g);
-    outC0->b = math_max(outC0->b, b->colors[i].b);
-  }
-}
-
 MAYBE_UNUSED static void bc_block_line_fit_inset(BcColor8888* c0, BcColor8888* c1) {
-  /**
-   * Slightly insetting the bounds results in a bit more error at the extreme edges of the block but
-   * less error in between, usually this is a good tradeoff.
-   */
   BcColor8888 inset;
   inset.r = (c0->r - c1->r) / 16;
   inset.g = (c0->g - c1->g) / 16;
@@ -158,30 +89,26 @@ MAYBE_UNUSED static void bc_block_line_fit_inset(BcColor8888* c0, BcColor8888* c
  * the given block.
  */
 static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
-#if bc_line_fit_mode == bc_line_fit_distance
-  bc_block_line_fit_distance(b, outC0, outC1);
-#elif bc_line_fit_mode == bc_line_fit_luminance
-  bc_block_line_fit_luminance(b, outC0, outC1);
-#elif bc_line_fit_mode == bc_line_fit_bounds
-  bc_block_line_fit_bounds(b, outC0, outC1);
-#else
-  ASSERT(false, "Unsupported line-fit mode");
-#endif
-
-#if bc_line_fit_mode != bc_line_fit_bounds
   /**
-   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
-   * always larger then color1.
-   * NOTE: When color0 is equal to color1 we do end up using the mode where the 4th color is black
-   * instead of an interpolated value, this should not be a problem however as when min is equal to
-   * max then all colors must be equal so we can use index 0 for all entries.
+   * Find the bounds of the block's RGB space.
+   * NOTE: This is very naive and atleast for offline compression we should perform some kind of
+   * search for line that matches the input colors as close as possible.
    */
-  if (bc_color_to_565(*outC0) < bc_color_to_565(*outC1)) {
-    bc_color_swap(outC1, outC0);
-  }
-#endif
+  for (u32 i = 0; i != array_elems(b->colors); ++i) {
+    outC1->r = math_min(outC1->r, b->colors[i].r);
+    outC1->g = math_min(outC1->g, b->colors[i].g);
+    outC1->b = math_min(outC1->b, b->colors[i].b);
 
-#ifdef bc_line_fit_inset
+    outC0->r = math_max(outC0->r, b->colors[i].r);
+    outC0->g = math_max(outC0->g, b->colors[i].g);
+    outC0->b = math_max(outC0->b, b->colors[i].b);
+  }
+
+#ifdef bc_line_fit_use_inset
+  /**
+   * Slightly insetting the bounds results in a bit more error at the extreme edges of the block but
+   * less error in between, this can be a good tradeoff.
+   */
   bc_block_line_fit_inset(outC0, outC1);
 #endif
 }
