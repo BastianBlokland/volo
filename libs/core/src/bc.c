@@ -9,10 +9,11 @@
  *
  * Specification:
  * https://registry.khronos.org/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
- * https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression
+ * https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#BCFormats
  *
  * References:
- * 'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
+ * https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression
+ *   'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
  * https://www.researchgate.net/publication/259000525_Real-Time_DXT_Compression
  *
  * NOTE: This encoder assumes a little-endian host system.
