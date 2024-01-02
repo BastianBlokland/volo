@@ -90,11 +90,9 @@ typedef struct {
 
 static BcBlockAnalysis bc_block_analyze(const Bc0Block* b) {
   BcBlockAnalysis res;
-  res.min  = (BcColor8888){255, 255, 255, 255};
-  res.max  = (BcColor8888){0, 0, 0, 255};
-  res.mean = (BcColor8888){0, 0, 0, 255};
+  res.min = res.max = res.mean = b->colors[0];
 
-  for (u32 i = 0; i != 16; ++i) {
+  for (u32 i = 1; i != 16; ++i) {
     res.min.r = math_min(res.min.r, b->colors[i].r);
     res.min.g = math_min(res.min.g, b->colors[i].g);
     res.min.b = math_min(res.min.b, b->colors[i].b);
