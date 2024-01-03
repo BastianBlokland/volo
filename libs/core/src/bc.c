@@ -2,6 +2,7 @@
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 
 /**
@@ -20,7 +21,46 @@
  * NOTE: This encoder assumes a little-endian host system.
  */
 
-#define bc_line_fit_use_inset
+#define bc_pca_power_itrs 4
+
+typedef struct {
+  f32 vals[3];
+} BcAxis;
+
+static BcAxis bc_axis_luminance() {
+  // Luminance (brightness) coefficients.
+  return (BcAxis){.vals[0] = 0.299f, .vals[1] = 0.587f, .vals[2] = 0.114f};
+}
+
+static f32 bc_axis_dot(const BcAxis a, const BcAxis b) {
+  f32 res = 0;
+  res += a.vals[0] * b.vals[0];
+  res += a.vals[1] * b.vals[1];
+  res += a.vals[2] * b.vals[2];
+  return res;
+}
+
+static f32 bc_axis_mag_sqr(const BcAxis a) { return bc_axis_dot(a, a); }
+
+static BcAxis bc_axis_div(const BcAxis a, const f32 scalar) {
+  return (BcAxis){
+      .vals[0] = a.vals[0] / scalar,
+      .vals[1] = a.vals[1] / scalar,
+      .vals[2] = a.vals[2] / scalar,
+  };
+}
+
+static BcAxis bc_axis_sub(const BcAxis a, const BcAxis b) {
+  return (BcAxis){
+      .vals[0] = a.vals[0] - b.vals[0],
+      .vals[1] = a.vals[1] - b.vals[1],
+      .vals[2] = a.vals[2] - b.vals[2],
+  };
+}
+
+static BcAxis bc_color_to_axis(const BcColor8888 c) {
+  return (BcAxis){.vals[0] = c.r, .vals[1] = c.g, .vals[2] = c.b};
+}
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u16 r = ((c.r >> 3) & 0x1F) << 11;
@@ -46,11 +86,17 @@ static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
   return (BcColor8888){r, g, b, 255};
 }
 
-static u32 bc_color_distance_sqr(const BcColor8888 a, const BcColor8888 b) {
+static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
   const i32 dR = b.r - a.r;
   const i32 dG = b.g - a.g;
   const i32 dB = b.b - a.b;
   return dR * dR + dG * dG + dB * dB;
+}
+
+static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
+  BcColor8888 tmp = *a;
+  *a              = *b;
+  *b              = tmp;
 }
 
 /**
@@ -60,28 +106,13 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   u32 bestDistSqr = u32_max;
   u8  bestIndex;
   for (u8 i = 0; i != 4; ++i) {
-    const u32 distSqr = bc_color_distance_sqr(ref[i], c);
+    const u32 distSqr = bc_color_dist_sqr(ref[i], c);
     if (distSqr < bestDistSqr) {
       bestDistSqr = distSqr;
       bestIndex   = i;
     }
   }
   return bestIndex;
-}
-
-MAYBE_UNUSED static void bc_line_inset(BcColor8888* start, BcColor8888* end) {
-  BcColor8888 inset;
-  inset.r = (end->r - start->r) / 16;
-  inset.g = (end->g - start->g) / 16;
-  inset.b = (end->b - start->b) / 16;
-
-  start->r = (start->r + inset.r <= 255) ? start->r + inset.r : 255;
-  start->g = (start->g + inset.g <= 255) ? start->g + inset.g : 255;
-  start->b = (start->b + inset.b <= 255) ? start->b + inset.b : 255;
-
-  end->r = (end->r >= inset.r) ? end->r - inset.r : 0;
-  end->g = (end->g >= inset.g) ? end->g - inset.g : 0;
-  end->b = (end->b >= inset.b) ? end->b - inset.b : 0;
 }
 
 typedef struct {
@@ -113,9 +144,7 @@ static void bc_block_analyze(const Bc0Block* b, BcBlockAnalysis* out) {
 
 /**
  * Covariance matrix of a block.
- * https://en.wikipedia.org/wiki/Covariance_matrix
  *
- * NOTE: Values are normalized.
  * NOTE: Only the bottom left side of the matrix is computed, this is sufficient as the diagonal
  * is the covariance with itself and the top right is a mirror of the bottom left.
  *
@@ -125,13 +154,13 @@ static void bc_block_analyze(const Bc0Block* b, BcBlockAnalysis* out) {
  *  1 1 1 0
  */
 typedef struct {
-  f32 values[6];
+  f32 vals[6];
 } BcBlockCovariance;
 
 /**
  * Compute the covariance matrix of the colors in the block.
  */
-static void bc_block_covariance(const Bc0Block* b, const BcColor8888 mean, BcBlockCovariance* out) {
+static void bc_block_cov(const Bc0Block* b, const BcColor8888 mean, BcBlockCovariance* out) {
   i32 mat[6] = {0};
   for (u32 i = 0; i != 16; ++i) {
     const i32 dR = b->colors[i].r - mean.r;
@@ -148,7 +177,55 @@ static void bc_block_covariance(const Bc0Block* b, const BcColor8888 mean, BcBlo
   // Output the covariance matrix as floats.
   static const f32 g_u8MaxInv = 1.0f / u8_max;
   for (u32 i = 0; i != 6; ++i) {
-    out[i].values[i] = mat[i] * g_u8MaxInv;
+    out->vals[i] = mat[i] * g_u8MaxInv;
+  }
+}
+
+static BcAxis bc_block_cov_mul(const BcBlockCovariance* c, const BcAxis a) {
+  const f32 x = a.vals[0] * c->vals[0] + a.vals[1] * c->vals[1] + a.vals[2] * c->vals[2];
+  const f32 y = a.vals[0] * c->vals[1] + a.vals[1] * c->vals[3] + a.vals[2] * c->vals[4];
+  const f32 z = a.vals[0] * c->vals[2] + a.vals[1] * c->vals[4] + a.vals[2] * c->vals[5];
+  return (BcAxis){.vals[0] = x, .vals[1] = y, .vals[2] = z};
+}
+
+/**
+ * Find the principle axis of the colors in a block using power iteration.
+ */
+static BcAxis bc_block_principle_axis(const BcBlockAnalysis* a, const BcBlockCovariance* cov) {
+  // Start the axis in the extreme direction of the bounds.
+  BcAxis axis = bc_axis_sub(bc_color_to_axis(a->max), bc_color_to_axis(a->min));
+
+  // Iteratively push the axis towards the principle axis.
+  // NOTE: We do not normalize per iteration so on many iterations the axis will get very large.
+  for (u32 i = 0; i != bc_pca_power_itrs; ++i) {
+    axis = bc_block_cov_mul(cov, axis);
+  }
+
+  const f32 magSqr = bc_axis_mag_sqr(axis);
+  if (magSqr < 1.0f) {
+    return bc_axis_luminance();
+  }
+  const f32 mag = intrinsic_sqrt_f32(magSqr);
+  return bc_axis_div(axis, mag);
+}
+
+static void
+bc_block_min_max(const Bc0Block* b, const BcAxis axis, BcColor8888* outMin, BcColor8888* outMax) {
+  *outMin    = b->colors[0];
+  *outMax    = b->colors[0];
+  f32 minDot = bc_axis_dot(bc_color_to_axis(b->colors[0]), axis);
+  f32 maxDot = minDot;
+
+  for (u32 i = 1; i != 16; ++i) {
+    const f32 dot = bc_axis_dot(bc_color_to_axis(b->colors[i]), axis);
+    if (dot < minDot) {
+      minDot  = dot;
+      *outMin = b->colors[i];
+    }
+    if (dot > maxDot) {
+      maxDot  = dot;
+      *outMax = b->colors[i];
+    }
   }
 }
 
@@ -161,19 +238,22 @@ static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888
   bc_block_analyze(b, &analysis);
 
   BcBlockCovariance covariance;
-  bc_block_covariance(b, analysis.mean, &covariance);
+  bc_block_cov(b, analysis.mean, &covariance);
 
-  // TODO: Compute the principle axis.
-  *outC0 = analysis.max;
-  *outC1 = analysis.min;
+  const BcAxis principleAxis = bc_block_principle_axis(&analysis, &covariance);
 
-#ifdef bc_line_fit_use_inset
+  bc_block_min_max(b, principleAxis, outC1, outC0);
+
   /**
-   * Slightly insetting the bounds results in a bit more error at the extreme edges of the block but
-   * less error in between, this can be a good tradeoff.
+   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
+   * always larger then color1.
+   * NOTE: When color0 is equal to color1 we do end up using the mode where the 4th color is black
+   * instead of an interpolated value, this should not be a problem however as when min is equal to
+   * max then all colors must be equal so we can use index 0 for all entries.
    */
-  bc_line_inset(outC1, outC0);
-#endif
+  if (bc_color_to_565(*outC0) < bc_color_to_565(*outC1)) {
+    bc_color_swap(outC1, outC0);
+  }
 }
 
 /**
