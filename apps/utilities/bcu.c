@@ -191,7 +191,15 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   buffer     = mem_write_le_u16(buffer, size.height);   // image height.
   buffer     = mem_write_u8(buffer, 32);                // bitsPerPixel.
   buffer     = mem_write_u8(buffer, 0);                 // imageSpecDescriptor.
-  mem_cpy(buffer, mem_create(pixels, pixelDataSize));   // pixel data.
+
+  // pixel data.
+  u8* outPixelData = buffer.ptr;
+  for (u32 i = 0; i != (size.width * size.height); ++i, outPixelData += 4) {
+    outPixelData[0] = pixels[i].b;
+    outPixelData[1] = pixels[i].g;
+    outPixelData[2] = pixels[i].r;
+    outPixelData[3] = pixels[i].a;
+  }
 
   String pathWithExt;
   if (string_eq(path_extension(path), string_lit("tga"))) {
