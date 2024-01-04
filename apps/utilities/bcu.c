@@ -225,8 +225,7 @@ static f64 bcu_image_diff_rgb(const BcuSize size, const BcColor8888* pA, const B
     sum += bcu_sqr((f64)pB[i].g - (f64)pA[i].g);
     sum += bcu_sqr((f64)pB[i].b - (f64)pA[i].b);
   }
-  const u16 channels = 3;
-  return math_sqrt_f64(sum / (size.width * size.height * channels));
+  return math_sqrt_f64(sum / (size.width * size.height));
 }
 
 static u32 bcu_block_count(const BcuSize size) {
