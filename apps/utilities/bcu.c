@@ -79,25 +79,24 @@ typedef struct {
 typedef struct {
   BcuSize            size;
   const BcColor8888* pixels;
-  File*              handle;
 } BcuImage;
 
-static BcuResult bcu_image_open(const String path, BcuImage* out) {
-  BcuResult  error;
+static BcuResult bcu_image_load(const String path, BcuImage* out) {
+  BcuResult  result;
   File*      fileHandle = null;
   FileResult fileRes;
   if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &fileHandle))) {
-    error = BcuResult_FileOpenFailed;
-    goto Failure;
+    result = BcuResult_FileOpenFailed;
+    goto End;
   }
   Mem data;
   if ((fileRes = file_map(fileHandle, &data))) {
-    error = BcuResult_FileOpenFailed;
-    goto Failure;
+    result = BcuResult_FileOpenFailed;
+    goto End;
   }
   if (data.size < 18) {
-    error = BcuResult_TgaFileTruncated;
-    goto Failure;
+    result = BcuResult_TgaFileTruncated;
+    goto End;
   }
   u8      colorMapType, imageType, bitsPerPixel, imageSpecDescriptorRaw;
   BcuSize size;
@@ -117,50 +116,62 @@ static BcuResult bcu_image_open(const String path, BcuImage* out) {
   const u8 imageInterleave     = imageSpecDescriptorRaw & u8_lit(0b11000000);
 
   if (colorMapType != 0 /* Absent*/) {
-    error = BcuResult_TgaUnsupportedColorMap;
-    goto Failure;
+    result = BcuResult_TgaUnsupportedColorMap;
+    goto End;
   }
   if (imageType != 2 /* TrueColor */) {
-    error = BcuResult_TgaUnsupportedImageType;
-    goto Failure;
+    result = BcuResult_TgaUnsupportedImageType;
+    goto End;
   }
   if (bitsPerPixel != 32) {
-    error = BcuResult_TgaUnsupportedBitsPerPixel;
-    goto Failure;
+    result = BcuResult_TgaUnsupportedBitsPerPixel;
+    goto End;
   }
   if (imageAttributeDepth != 8) {
-    error = BcuResult_TgaUnsupportedAttributeDepth;
-    goto Failure;
+    result = BcuResult_TgaUnsupportedAttributeDepth;
+    goto End;
   }
   if (imageOrigin != 0 /* LowerLeft */) {
-    error = BcuResult_TgaUnsupportedImageOrigin;
-    goto Failure;
+    result = BcuResult_TgaUnsupportedImageOrigin;
+    goto End;
   }
   if (imageInterleave != 0 /* None */) {
-    error = BcuResult_TgaUnsupportedInterleavedImage;
-    goto Failure;
+    result = BcuResult_TgaUnsupportedInterleavedImage;
+    goto End;
   }
   if (!bits_aligned(size.width, 4) || !bits_aligned(size.height, 4)) {
-    error = BcuResult_ImageSizeNotAligned;
-    goto Failure;
+    result = BcuResult_ImageSizeNotAligned;
+    goto End;
   }
   if (data.size < (size.width * size.height * sizeof(BcColor8888))) {
-    error = BcuResult_TgaFileTruncated;
-    goto Failure;
+    result = BcuResult_TgaFileTruncated;
+    goto End;
   }
-  *out = (BcuImage){.size = size, .pixels = data.ptr, .handle = fileHandle};
-  return BcuResult_Success;
+  BcColor8888* pixels = alloc_array_t(g_alloc_heap, BcColor8888, size.width * size.height);
+  if (!pixels) {
+    result = BcuResult_MemoryAllocationFailed;
+    goto End;
+  }
+  u8* pixelData = data.ptr;
+  for (u32 i = 0; i != (size.width * size.height); ++i, pixelData += 4) {
+    pixels[i].b = pixelData[0];
+    pixels[i].g = pixelData[1];
+    pixels[i].r = pixelData[2];
+    pixels[i].a = pixelData[3];
+  }
+  result = BcuResult_Success;
+  *out   = (BcuImage){.size = size, .pixels = pixels};
 
-Failure:
+End:
   if (fileHandle) {
     file_destroy(fileHandle);
   }
-  return error;
+  return result;
 }
 
-static void bcu_image_close(BcuImage* image) {
-  if (image->handle) {
-    file_destroy(image->handle);
+static void bcu_image_destroy(BcuImage* image) {
+  if (image->pixels) {
+    alloc_free_array_t(g_alloc_heap, image->pixels, image->size.width * image->size.height);
   }
 }
 
@@ -332,7 +343,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   BcuImage  input = {0};
   BcuResult result;
 
-  if ((result = bcu_image_open(inputPath, &input))) {
+  if ((result = bcu_image_load(inputPath, &input))) {
     log_e("Input image unsupported", log_param("error", fmt_text(g_resultStrs[result])));
     goto End;
   }
@@ -350,6 +361,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   result = bcu_run(mode, &input, outputPath);
 
 End:
-  bcu_image_close(&input);
+  bcu_image_destroy(&input);
   return result == BcuResult_Success ? 0 : 1;
 }
