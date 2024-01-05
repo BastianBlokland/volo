@@ -62,24 +62,24 @@ static BcAxis bc_color_to_axis(const BcColor8888 c) {
   return (BcAxis){.vals[0] = c.r, .vals[1] = c.g, .vals[2] = c.b};
 }
 
+/**
+ * Convert a 888 color to 565 with proper rounding.
+ * Constants have been derived by 'Anonymous':
+ * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
+ */
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
-  /**
-   * Convert a 888 color to 565 with proper rounding.
-   * Constants have been derived by 'Anonymous':
-   * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
-   */
   const u8 r = (c.r * 249 + 1014) >> 11;
   const u8 g = (c.g * 253 + 505) >> 10;
   const u8 b = (c.b * 249 + 1014) >> 11;
   return (BcColor565){r << 11 | g << 5 | b};
 }
 
+/**
+ * Convert a 565 color to 888 with proper rounding.
+ * Constants have been derived by 'Anonymous':
+ * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
+ */
 static BcColor8888 bc_color_from_565(const BcColor565 c) {
-  /**
-   * Convert a 565 color to 888 with proper rounding.
-   * Constants have been derived by 'Anonymous':
-   * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
-   */
   const u8 r = ((c >> 11 & 0x1F) * 527 + 23) >> 6;
   const u8 g = ((c >> 5 & 0x3F) * 259 + 33) >> 6;
   const u8 b = ((c & 0x1F) * 527 + 23) >> 6;
@@ -90,9 +90,10 @@ static BcColor8888 bc_color_from_565(const BcColor565 c) {
  * Quantize a color in the same way that converting it to 565 and back would do.
  */
 static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
-  const u8 r = (c.r & 0xF8) | (c.r >> 5);
-  const u8 g = (c.g & 0xFC) | (c.g >> 6);
-  const u8 b = (c.b & 0xF8) | (c.b >> 5);
+  // TODO: Investigate if this can be simplified (its a combination of to_565 and from_565).
+  const u8 r = (((c.r * 249 + 1014) >> 11) * 527 + 23) >> 6;
+  const u8 g = (((c.g * 253 + 505) >> 10) * 259 + 33) >> 6;
+  const u8 b = (((c.b * 249 + 1014) >> 11) * 527 + 23) >> 6;
   return (BcColor8888){r, g, b, 255};
 }
 
