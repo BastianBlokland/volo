@@ -63,16 +63,26 @@ static BcAxis bc_color_to_axis(const BcColor8888 c) {
 }
 
 static BcColor565 bc_color_to_565(const BcColor8888 c) {
-  const u16 r = ((c.r >> 3) & 0x1F) << 11;
-  const u16 g = ((c.g >> 2) & 0x3F) << 5;
-  const u16 b = (c.b >> 3) & 0x1F;
-  return (BcColor565){r | g | b};
+  /**
+   * Convert a 888 color to 565 with proper rounding.
+   * Constants have been derived by 'Anonymous':
+   * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
+   */
+  const u8 r = (c.r * 249 + 1014) >> 11;
+  const u8 g = (c.g * 253 + 505) >> 10;
+  const u8 b = (c.b * 249 + 1014) >> 11;
+  return (BcColor565){r << 11 | g << 5 | b};
 }
 
 static BcColor8888 bc_color_from_565(const BcColor565 c) {
-  const u8 r = (c & 0xF800) >> 8;
-  const u8 g = (c & 0x07E0) >> 3;
-  const u8 b = (c & 0x001F) << 3;
+  /**
+   * Convert a 565 color to 888 with proper rounding.
+   * Constants have been derived by 'Anonymous':
+   * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
+   */
+  const u8 r = ((c >> 11 & 0x1F) * 527 + 23) >> 6;
+  const u8 g = ((c >> 5 & 0x3F) * 259 + 33) >> 6;
+  const u8 b = ((c & 0x1F) * 527 + 23) >> 6;
   return (BcColor8888){r, g, b, 255};
 }
 
