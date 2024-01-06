@@ -25,10 +25,6 @@ typedef struct {
   f32 x, y, z;
 } BcVec;
 
-INLINE_HINT static f32 bc_vec_dot(const BcVec a, const BcVec b) {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
 INLINE_HINT static BcVec bc_vec_mul(const BcVec a, const f32 scalar) {
   return (BcVec){a.x * scalar, a.y * scalar, a.z * scalar};
 }
@@ -37,7 +33,18 @@ INLINE_HINT static f32 bc_vec_max(const BcVec a) { return math_max(a.x, math_max
 
 INLINE_HINT static BcVec bc_color_to_vec(const BcColor8888 c) {
   static const f32 g_u8MaxInv = 1.0f / u8_max;
-  return (BcVec){c.r * g_u8MaxInv, c.g * g_u8MaxInv, c.b * g_u8MaxInv};
+  return (BcVec){(f32)c.r * g_u8MaxInv, (f32)c.g * g_u8MaxInv, (f32)c.b * g_u8MaxInv};
+}
+
+INLINE_HINT static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
+  const i32 dR = b.r - a.r;
+  const i32 dG = b.g - a.g;
+  const i32 dB = b.b - a.b;
+  return dR * dR + dG * dG + dB * dB;
+}
+
+INLINE_HINT static f32 bc_color_dot3(const BcColor8888 c, const BcVec axis) {
+  return (f32)c.r * axis.x + (f32)c.g * axis.y + (f32)c.b * axis.z;
 }
 
 /**
@@ -73,13 +80,6 @@ INLINE_HINT static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
   const u8 g = (((c.g * 253 + 505) >> 10) * 259 + 33) >> 6;
   const u8 b = (((c.b * 249 + 1014) >> 11) * 527 + 23) >> 6;
   return (BcColor8888){r, g, b, 255};
-}
-
-INLINE_HINT static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
-  const i32 dR = b.r - a.r;
-  const i32 dG = b.g - a.g;
-  const i32 dB = b.b - a.b;
-  return dR * dR + dG * dG + dB * dB;
 }
 
 INLINE_HINT static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
@@ -173,11 +173,11 @@ INLINE_HINT static void
 bc_block_min_max(const Bc0Block* b, const BcVec axis, BcColor8888* outMin, BcColor8888* outMax) {
   *outMin    = b->colors[0];
   *outMax    = b->colors[0];
-  f32 minDot = bc_vec_dot(bc_color_to_vec(b->colors[0]), axis);
+  f32 minDot = bc_color_dot3(b->colors[0], axis);
   f32 maxDot = minDot;
 
   for (u32 i = 1; i != 16; ++i) {
-    const f32 dot = bc_vec_dot(bc_color_to_vec(b->colors[i]), axis);
+    const f32 dot = bc_color_dot3(b->colors[i], axis);
     if (dot < minDot) {
       minDot  = dot;
       *outMin = b->colors[i];
