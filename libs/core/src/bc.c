@@ -72,23 +72,6 @@ INLINE_HINT static BcColor8888 bc_color_from_565(const BcColor565 c) {
 }
 
 /**
- * Quantize a color in the same way that converting it to 565 and back would do.
- */
-INLINE_HINT static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
-  // TODO: Investigate if this can be simplified (its a combination of to_565 and from_565).
-  const u8 r = (((c.r * 249 + 1014) >> 11) * 527 + 23) >> 6;
-  const u8 g = (((c.g * 253 + 505) >> 10) * 259 + 33) >> 6;
-  const u8 b = (((c.b * 249 + 1014) >> 11) * 527 + 23) >> 6;
-  return (BcColor8888){r, g, b, 255};
-}
-
-INLINE_HINT static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
-  BcColor8888 tmp = *a;
-  *a              = *b;
-  *b              = tmp;
-}
-
-/**
  * Pick the reference color that is closest in RGB space.
  */
 INLINE_HINT static u8
@@ -193,24 +176,17 @@ bc_block_min_max(const Bc0Block* b, const BcVec axis, BcColor8888* outMin, BcCol
  * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
  * the given block.
  */
-INLINE_HINT static void bc_block_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+INLINE_HINT static void bc_block_fit(const Bc0Block* b, BcColor565* outC0, BcColor565* outC1) {
   BcBlockCovariance covariance;
   bc_block_cov(b, &covariance);
 
   const BcVec principleAxis = bc_block_principle_axis(&covariance);
 
-  bc_block_min_max(b, principleAxis, outC1, outC0);
+  BcColor8888 min, max;
+  bc_block_min_max(b, principleAxis, &min, &max);
 
-  /**
-   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
-   * always larger then color1.
-   * NOTE: When color0 is equal to color1 we do end up using the mode where the 4th color is black
-   * instead of an interpolated value, this should not be a problem however as when min is equal to
-   * max then all colors must be equal so we can use index 0 for all entries.
-   */
-  if (UNLIKELY(bc_color_to_565(*outC0) < bc_color_to_565(*outC1))) {
-    bc_color_swap(outC1, outC0);
-  }
+  *outC0 = bc_color_to_565(min);
+  *outC1 = bc_color_to_565(max);
 }
 
 /**
@@ -259,16 +235,31 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 }
 
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
-  BcColor8888 color0, color1;
+  BcColor565 color0, color1;
   bc_block_fit(in, &color0, &color1);
 
+  /**
+   * To use the encoding mode with two interpolated colors we need to make sure that color0 is
+   * always larger then color1.
+   */
+  if (UNLIKELY(color0 < color1)) {
+    const BcColor565 tmp = color0;
+    color0               = color1;
+    color1               = tmp;
+  } else if (UNLIKELY(color0 == color1)) {
+    out->color0  = color0;
+    out->color1  = color0;
+    out->indices = 0;
+    return;
+  }
+
   BcColor8888 refColors[4];
-  refColors[0] = bc_color_quantize_565(color0);
-  refColors[1] = bc_color_quantize_565(color1);
+  refColors[0] = bc_color_from_565(color0);
+  refColors[1] = bc_color_from_565(color1);
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->color0  = bc_color_to_565(color0);
-  out->color1  = bc_color_to_565(color1);
+  out->color0  = color0;
+  out->color1  = color1;
   out->indices = 0;
   for (u32 i = 0; i != array_elems(in->colors); ++i) {
     const u8 index = bc_color_pick(refColors, in->colors[i]);
