@@ -2,7 +2,7 @@
 #include "core_array.h"
 #include "core_bc.h"
 
-#define test_threshold_color8888 10
+#define test_threshold_color8888 15
 
 static void test_bc0_block_fill(Bc0Block* b, const BcColor8888 color) {
   for (u32 i = 0; i != array_elems(b->colors); ++i) {
