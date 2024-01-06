@@ -147,13 +147,14 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     result = BcuResult_TgaFileTruncated;
     goto End;
   }
-  BcColor8888* pixels = alloc_array_t(g_alloc_heap, BcColor8888, size.width * size.height);
+  const usize  pixelCount = size.width * size.height;
+  BcColor8888* pixels     = alloc_array_t(g_alloc_heap, BcColor8888, pixelCount);
   if (!pixels) {
     result = BcuResult_MemoryAllocationFailed;
     goto End;
   }
   u8* pixelData = data.ptr;
-  for (u32 i = 0; i != (size.width * size.height); ++i, pixelData += 4) {
+  for (usize i = 0; i != pixelCount; ++i, pixelData += 4) {
     pixels[i].b = pixelData[0];
     pixels[i].g = pixelData[1];
     pixels[i].r = pixelData[2];
@@ -177,7 +178,8 @@ static void bcu_image_destroy(BcuImage* image) {
 
 static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, const String path) {
   const usize headerSize    = 18;
-  const usize pixelDataSize = size.width * size.height * sizeof(BcColor8888);
+  const usize pixelCount    = size.width * size.height;
+  const usize pixelDataSize = pixelCount * sizeof(BcColor8888);
   const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 1);
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
@@ -194,7 +196,7 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
 
   // pixel data.
   u8* outPixelData = buffer.ptr;
-  for (u32 i = 0; i != (size.width * size.height); ++i, outPixelData += 4) {
+  for (usize i = 0; i != pixelCount; ++i, outPixelData += 4) {
     outPixelData[0] = pixels[i].b;
     outPixelData[1] = pixels[i].g;
     outPixelData[2] = pixels[i].r;
@@ -219,13 +221,14 @@ static f64 bcu_image_diff_rgb(const BcuSize size, const BcColor8888* pA, const B
   /**
    * Compute the root mean square error between the sets of pixels.
    */
-  f64 sum = 0;
-  for (u32 i = 0; i != (size.width * size.height); ++i) {
+  const usize pixelCount = size.width * size.height;
+  f64         sum        = 0;
+  for (usize i = 0; i != pixelCount; ++i) {
     sum += bcu_sqr((f64)pB[i].r - (f64)pA[i].r);
     sum += bcu_sqr((f64)pB[i].g - (f64)pA[i].g);
     sum += bcu_sqr((f64)pB[i].b - (f64)pA[i].b);
   }
-  return math_sqrt_f64(sum / (size.width * size.height));
+  return math_sqrt_f64(sum / pixelCount);
 }
 
 static u32 bcu_block_count(const BcuSize size) {
