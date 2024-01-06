@@ -31,11 +31,6 @@ INLINE_HINT static BcVec bc_vec_mul(const BcVec a, const f32 scalar) {
 
 INLINE_HINT static f32 bc_vec_max(const BcVec a) { return math_max(a.x, math_max(a.y, a.z)); }
 
-INLINE_HINT static BcVec bc_color_to_vec(const BcColor8888 c) {
-  static const f32 g_u8MaxInv = 1.0f / u8_max;
-  return (BcVec){(f32)c.r * g_u8MaxInv, (f32)c.g * g_u8MaxInv, (f32)c.b * g_u8MaxInv};
-}
-
 INLINE_HINT static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
   const i32 dR = b.r - a.r;
   const i32 dG = b.g - a.g;
