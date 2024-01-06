@@ -25,15 +25,17 @@ typedef struct {
   f32 x, y, z;
 } BcVec;
 
-static f32 bc_vec_dot(const BcVec a, const BcVec b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+INLINE_HINT static f32 bc_vec_dot(const BcVec a, const BcVec b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 
-static BcVec bc_vec_mul(const BcVec a, const f32 scalar) {
+INLINE_HINT static BcVec bc_vec_mul(const BcVec a, const f32 scalar) {
   return (BcVec){a.x * scalar, a.y * scalar, a.z * scalar};
 }
 
-static f32 bc_vec_max(const BcVec a) { return math_max(a.x, math_max(a.y, a.z)); }
+INLINE_HINT static f32 bc_vec_max(const BcVec a) { return math_max(a.x, math_max(a.y, a.z)); }
 
-static BcVec bc_color_to_vec(const BcColor8888 c) {
+INLINE_HINT static BcVec bc_color_to_vec(const BcColor8888 c) {
   static const f32 g_u8MaxInv = 1.0f / u8_max;
   return (BcVec){c.r * g_u8MaxInv, c.g * g_u8MaxInv, c.b * g_u8MaxInv};
 }
@@ -43,7 +45,7 @@ static BcVec bc_color_to_vec(const BcColor8888 c) {
  * Constants have been derived by 'Anonymous':
  * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
  */
-static BcColor565 bc_color_to_565(const BcColor8888 c) {
+INLINE_HINT static BcColor565 bc_color_to_565(const BcColor8888 c) {
   const u8 r = (c.r * 249 + 1014) >> 11;
   const u8 g = (c.g * 253 + 505) >> 10;
   const u8 b = (c.b * 249 + 1014) >> 11;
@@ -55,7 +57,7 @@ static BcColor565 bc_color_to_565(const BcColor8888 c) {
  * Constants have been derived by 'Anonymous':
  * https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
  */
-static BcColor8888 bc_color_from_565(const BcColor565 c) {
+INLINE_HINT static BcColor8888 bc_color_from_565(const BcColor565 c) {
   const u8 r = ((c >> 11 & 0x1F) * 527 + 23) >> 6;
   const u8 g = ((c >> 5 & 0x3F) * 259 + 33) >> 6;
   const u8 b = ((c & 0x1F) * 527 + 23) >> 6;
@@ -65,7 +67,7 @@ static BcColor8888 bc_color_from_565(const BcColor565 c) {
 /**
  * Quantize a color in the same way that converting it to 565 and back would do.
  */
-static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
+INLINE_HINT static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
   // TODO: Investigate if this can be simplified (its a combination of to_565 and from_565).
   const u8 r = (((c.r * 249 + 1014) >> 11) * 527 + 23) >> 6;
   const u8 g = (((c.g * 253 + 505) >> 10) * 259 + 33) >> 6;
@@ -73,14 +75,14 @@ static BcColor8888 bc_color_quantize_565(const BcColor8888 c) {
   return (BcColor8888){r, g, b, 255};
 }
 
-static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
+INLINE_HINT static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
   const i32 dR = b.r - a.r;
   const i32 dG = b.g - a.g;
   const i32 dB = b.b - a.b;
   return dR * dR + dG * dG + dB * dB;
 }
 
-static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
+INLINE_HINT static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
   BcColor8888 tmp = *a;
   *a              = *b;
   *b              = tmp;
@@ -89,7 +91,8 @@ static void bc_color_swap(BcColor8888* a, BcColor8888* b) {
 /**
  * Pick the reference color that is closest in RGB space.
  */
-static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
+INLINE_HINT static u8
+bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
   u32 bestDistSqr = u32_max;
   u8  bestIndex;
   for (u8 i = 0; i != 4; ++i) {
@@ -102,7 +105,7 @@ static u8 bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColo
   return bestIndex;
 }
 
-static BcColor8888 bc_block_mean(const Bc0Block* b) {
+INLINE_HINT static BcColor8888 bc_block_mean(const Bc0Block* b) {
   u32 sumR = b->colors[0].r, sumG = b->colors[0].g, sumB = b->colors[0].b;
   for (u32 i = 1; i != 16; ++i) {
     sumR += b->colors[i].r;
@@ -122,7 +125,7 @@ typedef struct {
 /**
  * Compute the covariance matrix of the colors in the block.
  */
-static void bc_block_cov(const Bc0Block* b, BcBlockCovariance* out) {
+INLINE_HINT static void bc_block_cov(const Bc0Block* b, BcBlockCovariance* out) {
   const BcColor8888 mean = bc_block_mean(b);
 
   i32 cov[6] = {0};
@@ -145,7 +148,7 @@ static void bc_block_cov(const Bc0Block* b, BcBlockCovariance* out) {
   }
 }
 
-static BcVec bc_block_cov_mul(const BcBlockCovariance* c, const BcVec a) {
+INLINE_HINT static BcVec bc_block_cov_mul(const BcBlockCovariance* c, const BcVec a) {
   const f32 x = a.x * c->mat[0] + a.y * c->mat[1] + a.z * c->mat[2];
   const f32 y = a.x * c->mat[1] + a.y * c->mat[3] + a.z * c->mat[4];
   const f32 z = a.x * c->mat[2] + a.y * c->mat[4] + a.z * c->mat[5];
@@ -155,7 +158,7 @@ static BcVec bc_block_cov_mul(const BcBlockCovariance* c, const BcVec a) {
 /**
  * Find the principle axis of the colors in a block using power iteration.
  */
-static BcVec bc_block_principle_axis(const BcBlockCovariance* cov) {
+INLINE_HINT static BcVec bc_block_principle_axis(const BcBlockCovariance* cov) {
   BcVec axis = {1, 1, 1};
   // Iteratively push the axis towards the principle axis.
   // NOTE: Keep itr count low as we don't normalize per itr so we can run into precision issues.
@@ -166,7 +169,7 @@ static BcVec bc_block_principle_axis(const BcBlockCovariance* cov) {
   return bc_vec_mul(axis, 1.0f / bc_vec_max(axis));
 }
 
-static void
+INLINE_HINT static void
 bc_block_min_max(const Bc0Block* b, const BcVec axis, BcColor8888* outMin, BcColor8888* outMax) {
   *outMin    = b->colors[0];
   *outMax    = b->colors[0];
@@ -190,7 +193,7 @@ bc_block_min_max(const Bc0Block* b, const BcVec axis, BcColor8888* outMin, BcCol
  * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
  * the given block.
  */
-static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
+INLINE_HINT static void bc_block_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888* outC1) {
   BcBlockCovariance covariance;
   bc_block_cov(b, &covariance);
 
@@ -213,7 +216,7 @@ static void bc_block_line_fit(const Bc0Block* b, BcColor8888* outC0, BcColor8888
 /**
  * Compute two middle points on the given line through RGB space.
  */
-static void bc_block_line_interpolate(
+INLINE_HINT static void bc_block_line_interpolate(
     const BcColor8888 c0, const BcColor8888 c1, BcColor8888* outC2, BcColor8888* outC3) {
   /**
    * We use the bc1 mode that uses 2 interpolated implicit colors.
@@ -257,7 +260,7 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 color0, color1;
-  bc_block_line_fit(in, &color0, &color1);
+  bc_block_fit(in, &color0, &color1);
 
   BcColor8888 refColors[4];
   refColors[0] = bc_color_quantize_565(color0);
