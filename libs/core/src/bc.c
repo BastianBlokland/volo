@@ -208,7 +208,7 @@ INLINE_HINT static void bc_block_fit(const Bc0Block* b, BcColor8888* outC0, BcCo
    * instead of an interpolated value, this should not be a problem however as when min is equal to
    * max then all colors must be equal so we can use index 0 for all entries.
    */
-  if (bc_color_to_565(*outC0) < bc_color_to_565(*outC1)) {
+  if (UNLIKELY(bc_color_to_565(*outC0) < bc_color_to_565(*outC1))) {
     bc_color_swap(outC1, outC0);
   }
 }
