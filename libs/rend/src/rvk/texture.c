@@ -19,6 +19,7 @@
 typedef enum {
   RvkTextureCompress_None,
   RvkTextureCompress_Bc1, // RGB 4x4 block compression.
+  RvkTextureCompress_Bc3, // RGBA 4x4 block compression.
 } RvkTextureCompress;
 
 /**
@@ -56,11 +57,7 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
     // TODO: Support compressed textures with mip-maps.
     return RvkTextureCompress_None;
   }
-  if (asset->flags & AssetTextureFlags_Alpha) {
-    // TODO: Support BC3 compression.
-    return RvkTextureCompress_None;
-  }
-  return RvkTextureCompress_Bc1;
+  return asset->flags & AssetTextureFlags_Alpha ? RvkTextureCompress_Bc3 : RvkTextureCompress_Bc1;
 #else
   (void)asset;
   return RvkTextureCompress_None;
@@ -77,6 +74,8 @@ static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const Rvk
     switch (c) {
     case RvkTextureCompress_Bc1:
       return srgb ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+    case RvkTextureCompress_Bc3:
+      return srgb ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
     case RvkTextureCompress_None:
       return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
     }
@@ -162,17 +161,22 @@ static void rvk_texture_encode(
   diag_assert_msg(bits_aligned(size.height, 4), "Height has to be a multiple of 4");
 
   const BcColor8888* inPtr  = dataIn.ptr;
-  Bc1Block*          outPtr = dataOut.ptr;
+  u8*                outPtr = dataOut.ptr;
 
   Bc0Block block;
   for (u32 l = 0; l != layers; ++l) {
     for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
-      for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
+      for (u32 x = 0; x < size.width; x += 4) {
         bc0_extract(inPtr + x, size.width, &block);
 
         switch (compress) {
         case RvkTextureCompress_Bc1:
-          bc1_encode(&block, outPtr);
+          bc1_encode(&block, (Bc1Block*)outPtr);
+          outPtr += sizeof(Bc1Block);
+          break;
+        case RvkTextureCompress_Bc3:
+          bc3_encode(&block, (Bc3Block*)outPtr);
+          outPtr += sizeof(Bc3Block);
           break;
         default:
           UNREACHABLE
@@ -190,8 +194,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-                 .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(asset);
