@@ -65,8 +65,8 @@ static const String g_resultStrs[] = {
     string_static("Memory allocation failed"),
     string_static("Truncated tga file"),
     string_static("Color-mapped Tga images are not supported"),
-    string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
-    string_static("Unsupported Tga bits-per-pixel, only 32 (RGBA) and 24 (RGB) are supported"),
+    string_static("Unsupported Tga image type, only TrueColor and Grayscale supported (no rle)"),
+    string_static("Unsupported Tga bits-per-pixel, only 32 (RGBA), 24 (RGB), 8 (R) are supported"),
     string_static("Unsupported Tga attribute depth, only 8 bit Tga alpha is supported"),
     string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
     string_static("Interleaved Tga images are not supported"),
@@ -121,11 +121,11 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     result = BcuResult_TgaUnsupportedColorMap;
     goto End;
   }
-  if (imageType != 2 /* TrueColor */) {
+  if (imageType != 2 /* TrueColor */ && imageType != 3 /* Grayscale */) {
     result = BcuResult_TgaUnsupportedImageType;
     goto End;
   }
-  if (bitsPerPixel != 32 && bitsPerPixel != 24) {
+  if (bitsPerPixel != 32 && bitsPerPixel != 24 && bitsPerPixel != 8) {
     result = BcuResult_TgaUnsupportedBitsPerPixel;
     goto End;
   }
@@ -168,6 +168,12 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
       pixels[i].b = pixelData[0];
       pixels[i].g = pixelData[1];
       pixels[i].r = pixelData[2];
+      pixels[i].a = 255;
+      break;
+    case 8:
+      pixels[i].r = pixelData[0];
+      pixels[i].g = 0;
+      pixels[i].b = 0;
       pixels[i].a = 255;
       break;
     default:
