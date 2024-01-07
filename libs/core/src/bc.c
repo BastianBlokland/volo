@@ -267,6 +267,16 @@ INLINE_HINT static void bc_block_colors_decode(
 }
 
 /**
+ * Map a linear index (0 min, 7 max, 1-6 interp) to a BC alpha index (0 min, 1 max, 2-7 interp).
+ */
+INLINE_HINT static u8 bc_block_alpha_index_map(const u8 linearIndex) {
+  // Clever bit-fiddling based on the STB implementation: https://github.com/nothings/stb/
+  u8 res = -linearIndex & 7;
+  res ^= res < 2;
+  return res;
+}
+
+/**
  * For each alpha value pick of one the 8 linearly interpolated values between min/max and encode
  * the 3-bit index.
  * NOTE: We only support the 8 value mode and not the 6 value + 0/255 mode at the moment.
@@ -284,11 +294,10 @@ INLINE_HINT static void bc_block_alpha_encode(
   u32 indexBuffer = 0, bitCount = 0;
   u8* outPtr = outIndices;
   for (u32 i = 0; i != 16; ++i) {
-    const u32 val   = b->colors[i].a * 7 + bias;
-    const u32 index = ((val - min) * 7 + bias) / range;
+    const u8 index = ((b->colors[i].a - min) * 7 + bias) / range;
 
     // Accumulate 3bit indices until we've filled up a byte and then output it.
-    indexBuffer |= index << bitCount;
+    indexBuffer |= bc_block_alpha_index_map(index) << bitCount;
     if ((bitCount += 3) >= 8) {
       *outPtr++ = (u8)indexBuffer;
       indexBuffer >>= 8;
