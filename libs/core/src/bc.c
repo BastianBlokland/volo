@@ -1,4 +1,3 @@
-#include "core_array.h"
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
@@ -210,6 +209,19 @@ INLINE_HINT static void bc_block_line_interpolate(
   outC3->a = 255;
 }
 
+/**
+ * For each color pick of one the reference colors and encode the 2-bit index.
+ */
+INLINE_HINT static u32
+bc_block_color_indices_encode(const Bc0Block* b, const BcColor8888 ref[PARAM_ARRAY_SIZE(4)]) {
+  u32 indices = 0; // 4x4 2bit indices.
+  for (u32 i = 0; i != 16; ++i) {
+    const u8 index = bc_color_pick(ref, b->colors[i]);
+    indices |= index << (i * 2);
+  }
+  return indices;
+}
+
 void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
@@ -256,11 +268,7 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
 
   out->color0       = color0;
   out->color1       = color1;
-  out->colorIndices = 0;
-  for (u32 i = 0; i != array_elems(in->colors); ++i) {
-    const u8 index = bc_color_pick(refColors, in->colors[i]);
-    out->colorIndices |= index << (i * 2);
-  }
+  out->colorIndices = bc_block_color_indices_encode(in, refColors);
 }
 
 void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
@@ -274,7 +282,7 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   refColors[1] = bc_color_from_565(in->color1);
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  for (u32 i = 0; i != array_elems(out->colors); ++i) {
+  for (u32 i = 0; i != 16; ++i) {
     const u8 index = (in->colorIndices >> (i * 2)) & 0b11;
     out->colors[i] = refColors[index];
   }
@@ -291,11 +299,7 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
 
   out->color0       = color0;
   out->color1       = color1;
-  out->colorIndices = 0;
-  for (u32 i = 0; i != array_elems(in->colors); ++i) {
-    const u8 index = bc_color_pick(refColors, in->colors[i]);
-    out->colorIndices |= index << (i * 2);
-  }
+  out->colorIndices = bc_block_color_indices_encode(in, refColors);
 }
 
 void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
@@ -304,7 +308,7 @@ void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
   refColors[1] = bc_color_from_565(in->color1);
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  for (u32 i = 0; i != array_elems(out->colors); ++i) {
+  for (u32 i = 0; i != 16; ++i) {
     const u8 index = (in->colorIndices >> (i * 2)) & 0b11;
     out->colors[i] = refColors[index];
   }
