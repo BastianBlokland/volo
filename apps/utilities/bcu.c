@@ -204,15 +204,17 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
   }
+  const u8 attributeDepth      = 8;
+  const u8 imageSpecDescriptor = attributeDepth; // imageOrigin and imageInterleave both zero.
 
   Mem buffer = data;
-  buffer     = mem_write_u8_zero(buffer, 2);            // idLength and colorMapType.
-  buffer     = mem_write_u8(buffer, 2 /* TrueColor */); // imageType.
-  buffer     = mem_write_u8_zero(buffer, 9);            // colorMapSpec and origin.
-  buffer     = mem_write_le_u16(buffer, size.width);    // image width.
-  buffer     = mem_write_le_u16(buffer, size.height);   // image height.
-  buffer     = mem_write_u8(buffer, 32);                // bitsPerPixel.
-  buffer     = mem_write_u8(buffer, 0);                 // imageSpecDescriptor.
+  buffer     = mem_write_u8_zero(buffer, 2);              // idLength and colorMapType.
+  buffer     = mem_write_u8(buffer, 2 /* TrueColor */);   // imageType.
+  buffer     = mem_write_u8_zero(buffer, 9);              // colorMapSpec and origin.
+  buffer     = mem_write_le_u16(buffer, size.width);      // image width.
+  buffer     = mem_write_le_u16(buffer, size.height);     // image height.
+  buffer     = mem_write_u8(buffer, 32);                  // bitsPerPixel.
+  buffer     = mem_write_u8(buffer, imageSpecDescriptor); // imageSpecDescriptor.
 
   // pixel data.
   u8* outPixelData = buffer.ptr;
