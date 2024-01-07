@@ -231,16 +231,28 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
 
 INLINE_HINT static f64 bcu_sqr(const f64 val) { return val * val; }
 
+/**
+ * Compute the root mean square error between the sets of pixels.
+ */
 static f64 bcu_image_diff_rgb(const BcuSize size, const BcColor8888* pA, const BcColor8888* pB) {
-  /**
-   * Compute the root mean square error between the sets of pixels.
-   */
   const usize pixelCount = size.width * size.height;
   f64         sum        = 0;
   for (usize i = 0; i != pixelCount; ++i) {
     sum += bcu_sqr((f64)pB[i].r - (f64)pA[i].r);
     sum += bcu_sqr((f64)pB[i].g - (f64)pA[i].g);
     sum += bcu_sqr((f64)pB[i].b - (f64)pA[i].b);
+  }
+  return math_sqrt_f64(sum / pixelCount);
+}
+
+/**
+ * Compute the root mean square error between the alpha of the sets of pixels.
+ */
+static f64 bcu_image_diff_a(const BcuSize size, const BcColor8888* pA, const BcColor8888* pB) {
+  const usize pixelCount = size.width * size.height;
+  f64         sum        = 0;
+  for (usize i = 0; i != pixelCount; ++i) {
+    sum += bcu_sqr((f64)pB[i].a - (f64)pA[i].a);
   }
   return math_sqrt_f64(sum / pixelCount);
 }
@@ -337,11 +349,13 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
   bcu_blocks_scanout(input->size, blocks, encodedPixels);
 
   const f64       diffRgb = bcu_image_diff_rgb(input->size, input->pixels, encodedPixels);
+  const f64       diffA   = bcu_image_diff_a(input->size, input->pixels, encodedPixels);
   const BcuResult result  = bcu_image_write(input->size, encodedPixels, outputPath);
   log_i(
       "Wrote output image",
       log_param("path", fmt_path(outputPath)),
-      log_param("diff", fmt_float(diffRgb)));
+      log_param("diff-rgb", fmt_float(diffRgb)),
+      log_param("diff-a", fmt_float(diffA)));
 
   alloc_free_array_t(g_alloc_heap, encodedPixels, encodedPixelCount);
   alloc_free_array_t(g_alloc_heap, blocks, blockCount);
