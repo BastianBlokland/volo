@@ -200,8 +200,7 @@ INLINE_HINT static void bc_block_alpha_fit(const Bc0Block* b, u8* out0, u8* out1
 /**
  * Compute two middle points on the given line through RGB space.
  */
-INLINE_HINT static void bc_line_color3_interpolate(
-    const BcColor8888 c0, const BcColor8888 c1, BcColor8888* outC2, BcColor8888* outC3) {
+INLINE_HINT static void bc_line_color3_interpolate(BcColor8888 line[PARAM_ARRAY_SIZE(4)]) {
   /**
    * We use the bc1 mode that uses 2 interpolated implicit colors.
    *
@@ -211,15 +210,15 @@ INLINE_HINT static void bc_line_color3_interpolate(
    * - RGB2: (2 * RGB0 + RGB1) / 3 (if color0 > color1)
    * - RGB3: (RGB0 + 2 * RGB1) / 3 (if color0 > color1)
    */
-  outC2->r = (c0.r * 2 + c1.r * 1) / 3;
-  outC2->g = (c0.g * 2 + c1.g * 1) / 3;
-  outC2->b = (c0.b * 2 + c1.b * 1) / 3;
-  outC2->a = 255;
+  line[2].r = (line[0].r * 2 + line[1].r * 1) / 3;
+  line[2].g = (line[0].g * 2 + line[1].g * 1) / 3;
+  line[2].b = (line[0].b * 2 + line[1].b * 1) / 3;
+  line[2].a = 255;
 
-  outC3->r = (c0.r * 1 + c1.r * 2) / 3;
-  outC3->g = (c0.g * 1 + c1.g * 2) / 3;
-  outC3->b = (c0.b * 1 + c1.b * 2) / 3;
-  outC3->a = 255;
+  line[3].r = (line[0].r * 1 + line[1].r * 2) / 3;
+  line[3].g = (line[0].g * 1 + line[1].g * 2) / 3;
+  line[3].b = (line[0].b * 1 + line[1].b * 2) / 3;
+  line[3].a = 255;
 }
 
 /**
@@ -312,7 +311,7 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(out->color0);
   refColors[1] = bc_color_from_565(out->color1);
-  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors);
 
   bc_block_colors_encode(in, refColors, &out->colorIndices);
 }
@@ -326,7 +325,7 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors);
 
   bc_block_colors_decode(refColors, in->colorIndices, out);
 }
@@ -345,7 +344,7 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(out->color0);
   refColors[1] = bc_color_from_565(out->color1);
-  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors);
 
   bc_block_colors_encode(in, refColors, &out->colorIndices);
 }
@@ -354,7 +353,7 @@ void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors);
 
   bc_block_colors_decode(refColors, in->colorIndices, out);
 }
