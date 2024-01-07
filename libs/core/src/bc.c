@@ -249,31 +249,26 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 }
 
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
-  BcColor565 color0, color1;
-  bc_block_color_fit(in, &color0, &color1);
+  bc_block_color_fit(in, &out->color0, &out->color1);
 
   /**
    * To use the encoding mode with two interpolated colors we need to make sure that color0 is
    * always larger then color1.
    */
-  if (UNLIKELY(color0 < color1)) {
-    const BcColor565 tmp = color0;
-    color0               = color1;
-    color1               = tmp;
-  } else if (UNLIKELY(color0 == color1)) {
-    out->color0       = color0;
-    out->color1       = color0;
+  if (UNLIKELY(out->color0 < out->color1)) {
+    const BcColor565 tmp = out->color0;
+    out->color0          = out->color1;
+    out->color1          = tmp;
+  } else if (UNLIKELY(out->color0 == out->color1)) {
     out->colorIndices = 0;
     return;
   }
 
   BcColor8888 refColors[4];
-  refColors[0] = bc_color_from_565(color0);
-  refColors[1] = bc_color_from_565(color1);
+  refColors[0] = bc_color_from_565(out->color0);
+  refColors[1] = bc_color_from_565(out->color1);
   bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->color0       = color0;
-  out->color1       = color1;
   out->colorIndices = bc_block_colors_encode(in, refColors);
 }
 
@@ -292,16 +287,13 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
 }
 
 void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
-  BcColor565 color0, color1;
-  bc_block_color_fit(in, &color0, &color1);
+  bc_block_color_fit(in, &out->color0, &out->color1);
 
   BcColor8888 refColors[4];
-  refColors[0] = bc_color_from_565(color0);
-  refColors[1] = bc_color_from_565(color1);
+  refColors[0] = bc_color_from_565(out->color0);
+  refColors[1] = bc_color_from_565(out->color1);
   bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->color0       = color0;
-  out->color1       = color1;
   out->colorIndices = bc_block_colors_encode(in, refColors);
 }
 
