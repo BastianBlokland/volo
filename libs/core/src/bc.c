@@ -222,6 +222,14 @@ bc_block_color_indices_encode(const Bc0Block* b, const BcColor8888 ref[PARAM_ARR
   return indices;
 }
 
+INLINE_HINT static void bc_block_color_indices_decode(
+    const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const u32 indices, Bc0Block* out) {
+  for (u32 i = 0; i != 16; ++i) {
+    const u8 index = (indices >> (i * 2)) & 0b11;
+    out->colors[i] = ref[index];
+  }
+}
+
 void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
@@ -282,10 +290,7 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   refColors[1] = bc_color_from_565(in->color1);
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  for (u32 i = 0; i != 16; ++i) {
-    const u8 index = (in->colorIndices >> (i * 2)) & 0b11;
-    out->colors[i] = refColors[index];
-  }
+  bc_block_color_indices_decode(refColors, in->colorIndices, out);
 }
 
 void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
@@ -308,8 +313,5 @@ void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
   refColors[1] = bc_color_from_565(in->color1);
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  for (u32 i = 0; i != 16; ++i) {
-    const u8 index = (in->colorIndices >> (i * 2)) & 0b11;
-    out->colors[i] = refColors[index];
-  }
+  bc_block_color_indices_decode(refColors, in->colorIndices, out);
 }
