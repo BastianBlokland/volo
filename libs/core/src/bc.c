@@ -31,7 +31,7 @@ INLINE_HINT static BcVec bc_vec_mul(const BcVec a, const f32 scalar) {
 
 INLINE_HINT static f32 bc_vec_max(const BcVec a) { return math_max(a.x, math_max(a.y, a.z)); }
 
-INLINE_HINT static u32 bc_color_dist_sqr(const BcColor8888 a, const BcColor8888 b) {
+INLINE_HINT static u32 bc_color_dist3_sqr(const BcColor8888 a, const BcColor8888 b) {
   const i32 dR = b.r - a.r;
   const i32 dG = b.g - a.g;
   const i32 dB = b.b - a.b;
@@ -70,11 +70,11 @@ INLINE_HINT static BcColor8888 bc_color_from_565(const BcColor565 c) {
  * Pick the reference color that is closest in RGB space.
  */
 INLINE_HINT static u8
-bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
+bc_color_pick3(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
   u32 bestDistSqr = u32_max;
   u8  bestIndex;
   for (u8 i = 0; i != 4; ++i) {
-    const u32 distSqr = bc_color_dist_sqr(ref[i], c);
+    const u32 distSqr = bc_color_dist3_sqr(ref[i], c);
     if (distSqr < bestDistSqr) {
       bestDistSqr = distSqr;
       bestIndex   = i;
@@ -83,7 +83,7 @@ bc_color_pick(const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const BcColor8888 c) {
   return bestIndex;
 }
 
-INLINE_HINT static BcColor8888 bc_block_mean(const Bc0Block* b) {
+INLINE_HINT static BcColor8888 bc_block_mean3(const Bc0Block* b) {
   u32 sumR = b->colors[0].r, sumG = b->colors[0].g, sumB = b->colors[0].b;
   for (u32 i = 1; i != 16; ++i) {
     sumR += b->colors[i].r;
@@ -95,6 +95,7 @@ INLINE_HINT static BcColor8888 bc_block_mean(const Bc0Block* b) {
 
 /**
  * Covariance matrix of a block.
+ * NOTE: Only encodes covariance of the RGB components.
  */
 typedef struct {
   f32 mat[6];
@@ -103,8 +104,8 @@ typedef struct {
 /**
  * Compute the covariance matrix of the colors in the block.
  */
-INLINE_HINT static void bc_block_cov(const Bc0Block* b, BcBlockCovariance* out) {
-  const BcColor8888 mean = bc_block_mean(b);
+INLINE_HINT static void bc_block_cov3(const Bc0Block* b, BcBlockCovariance* out) {
+  const BcColor8888 mean = bc_block_mean3(b);
 
   i32 cov[6] = {0};
   for (u32 i = 0; i != 16; ++i) {
@@ -126,7 +127,7 @@ INLINE_HINT static void bc_block_cov(const Bc0Block* b, BcBlockCovariance* out) 
   }
 }
 
-INLINE_HINT static BcVec bc_block_cov_mul(const BcBlockCovariance* c, const BcVec a) {
+INLINE_HINT static BcVec bc_block_cov3_mul(const BcBlockCovariance* c, const BcVec a) {
   const f32 x = a.x * c->mat[0] + a.y * c->mat[1] + a.z * c->mat[2];
   const f32 y = a.x * c->mat[1] + a.y * c->mat[3] + a.z * c->mat[4];
   const f32 z = a.x * c->mat[2] + a.y * c->mat[4] + a.z * c->mat[5];
@@ -134,7 +135,7 @@ INLINE_HINT static BcVec bc_block_cov_mul(const BcBlockCovariance* c, const BcVe
 }
 
 /**
- * Find the principle axis of the colors in a block using power iteration.
+ * Find the principle axis of the colors (rgb only) in a block using power iteration.
  */
 INLINE_HINT static BcVec bc_block_principle_axis(const BcBlockCovariance* cov) {
   BcVec axis = {1, 1, 1};
@@ -142,52 +143,49 @@ INLINE_HINT static BcVec bc_block_principle_axis(const BcBlockCovariance* cov) {
   // NOTE: Keep itr count low as we don't normalize per itr so we can run into precision issues.
   const u32 powerItrs = 10;
   for (u32 i = 0; i != powerItrs; ++i) {
-    axis = bc_block_cov_mul(cov, axis);
+    axis = bc_block_cov3_mul(cov, axis);
   }
   return bc_vec_mul(axis, 1.0f / bc_vec_max(axis));
-}
-
-INLINE_HINT static void
-bc_block_min_max(const Bc0Block* b, const BcVec axis, BcColor8888* outMin, BcColor8888* outMax) {
-  *outMin    = b->colors[0];
-  *outMax    = b->colors[0];
-  f32 minDot = bc_color_dot3(b->colors[0], axis);
-  f32 maxDot = minDot;
-
-  for (u32 i = 1; i != 16; ++i) {
-    const f32 dot = bc_color_dot3(b->colors[i], axis);
-    if (dot < minDot) {
-      minDot  = dot;
-      *outMin = b->colors[i];
-    }
-    if (dot > maxDot) {
-      maxDot  = dot;
-      *outMax = b->colors[i];
-    }
-  }
 }
 
 /**
  * Compute the endpoints of a line through RGB space that can be used to approximate the colors in
  * the given block.
  */
-INLINE_HINT static void bc_block_fit(const Bc0Block* b, BcColor565* outC0, BcColor565* outC1) {
+INLINE_HINT static void bc_block_color_fit(const Bc0Block* b, BcColor565* out0, BcColor565* out1) {
   BcBlockCovariance covariance;
-  bc_block_cov(b, &covariance);
+  bc_block_cov3(b, &covariance);
 
   const BcVec principleAxis = bc_block_principle_axis(&covariance);
 
-  BcColor8888 min, max;
-  bc_block_min_max(b, principleAxis, &min, &max);
+  /**
+   * Find the min/max colors along the principle axis (axis that fits the most colors).
+   * NOTE: In the future we could consider doing some kind of iterative refinement to find
+   * end-points that cause the least error with all the block colors.
+   */
+  BcColor8888 minColor = b->colors[0], maxColor = b->colors[0];
+  f32         minDot = bc_color_dot3(b->colors[0], principleAxis);
+  f32         maxDot = minDot;
+  for (u32 i = 1; i != 16; ++i) {
+    const f32 dot = bc_color_dot3(b->colors[i], principleAxis);
+    if (dot < minDot) {
+      minDot   = dot;
+      minColor = b->colors[i];
+    }
+    if (dot > maxDot) {
+      maxDot   = dot;
+      maxColor = b->colors[i];
+    }
+  }
 
-  *outC0 = bc_color_to_565(min);
-  *outC1 = bc_color_to_565(max);
+  *out0 = bc_color_to_565(minColor);
+  *out1 = bc_color_to_565(maxColor);
 }
 
 /**
  * Compute two middle points on the given line through RGB space.
  */
-INLINE_HINT static void bc_block_line_interpolate(
+INLINE_HINT static void bc_line_interpolate3(
     const BcColor8888 c0, const BcColor8888 c1, BcColor8888* outC2, BcColor8888* outC3) {
   /**
    * We use the bc1 mode that uses 2 interpolated implicit colors.
@@ -213,16 +211,16 @@ INLINE_HINT static void bc_block_line_interpolate(
  * For each color pick of one the reference colors and encode the 2-bit index.
  */
 INLINE_HINT static u32
-bc_block_color_indices_encode(const Bc0Block* b, const BcColor8888 ref[PARAM_ARRAY_SIZE(4)]) {
+bc_block_colors_encode(const Bc0Block* b, const BcColor8888 ref[PARAM_ARRAY_SIZE(4)]) {
   u32 indices = 0; // 4x4 2bit indices.
   for (u32 i = 0; i != 16; ++i) {
-    const u8 index = bc_color_pick(ref, b->colors[i]);
+    const u8 index = bc_color_pick3(ref, b->colors[i]);
     indices |= index << (i * 2);
   }
   return indices;
 }
 
-INLINE_HINT static void bc_block_color_indices_decode(
+INLINE_HINT static void bc_block_colors_decode(
     const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], const u32 indices, Bc0Block* out) {
   for (u32 i = 0; i != 16; ++i) {
     const u8 index = (indices >> (i * 2)) & 0b11;
@@ -252,7 +250,7 @@ void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* rest
 
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor565 color0, color1;
-  bc_block_fit(in, &color0, &color1);
+  bc_block_color_fit(in, &color0, &color1);
 
   /**
    * To use the encoding mode with two interpolated colors we need to make sure that color0 is
@@ -272,11 +270,11 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(color0);
   refColors[1] = bc_color_from_565(color1);
-  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   out->color0       = color0;
   out->color1       = color1;
-  out->colorIndices = bc_block_color_indices_encode(in, refColors);
+  out->colorIndices = bc_block_colors_encode(in, refColors);
 }
 
 void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
@@ -288,30 +286,30 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  bc_block_color_indices_decode(refColors, in->colorIndices, out);
+  bc_block_colors_decode(refColors, in->colorIndices, out);
 }
 
 void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
   BcColor565 color0, color1;
-  bc_block_fit(in, &color0, &color1);
+  bc_block_color_fit(in, &color0, &color1);
 
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(color0);
   refColors[1] = bc_color_from_565(color1);
-  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   out->color0       = color0;
   out->color1       = color1;
-  out->colorIndices = bc_block_color_indices_encode(in, refColors);
+  out->colorIndices = bc_block_colors_encode(in, refColors);
 }
 
 void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  bc_block_color_indices_decode(refColors, in->colorIndices, out);
+  bc_block_colors_decode(refColors, in->colorIndices, out);
 }
