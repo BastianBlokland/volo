@@ -302,8 +302,8 @@ INLINE_HINT static void bc_block_alpha_decode(
   // Decode the 16 3bit indices.
   u64 indexStream = ((u64)indices[0] << 0) | ((u64)indices[1] << 8) | ((u64)indices[2] << 16) |
                     ((u64)indices[3] << 24) | ((u64)indices[4] << 32) | ((u64)indices[5] << 40);
-  for (u32 i = 0; i != 16; ++i) {
-    const u8 index   = (indexStream >>= 3) & 0x07;
+  for (u32 i = 0; i != 16; ++i, indexStream >>= 3) {
+    const u8 index   = indexStream & 0x07;
     out->colors[i].a = ref[index];
   }
 }
