@@ -179,8 +179,8 @@ INLINE_HINT static void bc_block_color_fit(const Bc0Block* b, BcColor565* out0, 
     }
   }
 
-  *out0 = bc_color_to_565(minColor);
-  *out1 = bc_color_to_565(maxColor);
+  *out0 = bc_color_to_565(maxColor);
+  *out1 = bc_color_to_565(minColor);
 }
 
 /**
@@ -335,7 +335,7 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
    * To use the encoding mode with two interpolated colors we need to make sure that color0 is
    * always larger then color1.
    */
-  if (UNLIKELY(out->color0 < out->color1)) {
+  if (out->color0 < out->color1) {
     const BcColor565 tmp = out->color0;
     out->color0          = out->color1;
     out->color1          = tmp;
