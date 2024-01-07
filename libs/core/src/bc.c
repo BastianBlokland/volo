@@ -222,6 +222,31 @@ INLINE_HINT static void bc_line_color3_interpolate(BcColor8888 line[PARAM_ARRAY_
 }
 
 /**
+ * Compute 6 middle points on the given line through alpha space.
+ */
+INLINE_HINT static void bc_line_alpha_interpolate(u8 line[PARAM_ARRAY_SIZE(8)]) {
+  /**
+   * We use the bc3 mode that uses 6 interpolated implicit values.
+   *
+   * Bc3 reference values:
+   * - a0: alpha0                 (if alpha0 > alpha1)
+   * - a1: alpha1                 (if alpha0 > alpha1)
+   * - a2: (6 * a0 + 1 * a1 ) / 7 (if alpha0 > alpha1)
+   * - a3: (5 * a0 + 2 * a1 ) / 7 (if alpha0 > alpha1)
+   * - a4: (4 * a0 + 3 * a1 ) / 7 (if alpha0 > alpha1)
+   * - a5: (3 * a0 + 4 * a1 ) / 7 (if alpha0 > alpha1)
+   * - a6: (2 * a0 + 5 * a1 ) / 7 (if alpha0 > alpha1)
+   * - a7: (1 * a0 + 6 * a1 ) / 7 (if alpha0 > alpha1)
+   */
+  line[2] = (line[0] * 6 + line[1] * 1 + 1) / 7;
+  line[3] = (line[0] * 5 + line[1] * 2 + 1) / 7;
+  line[4] = (line[0] * 4 + line[1] * 3 + 1) / 7;
+  line[5] = (line[0] * 3 + line[1] * 4 + 1) / 7;
+  line[6] = (line[0] * 2 + line[1] * 5 + 1) / 7;
+  line[7] = (line[0] * 1 + line[1] * 6 + 1) / 7;
+}
+
+/**
  * For each color pick of one the reference colors and encode the 2-bit index.
  */
 INLINE_HINT static void bc_block_colors_encode(
@@ -269,6 +294,17 @@ INLINE_HINT static void bc_block_alpha_encode(
       indexBuffer >>= 8;
       bitCount -= 8;
     }
+  }
+}
+
+INLINE_HINT static void bc_block_alpha_decode(
+    const u8 ref[PARAM_ARRAY_SIZE(8)], const u8 indices[PARAM_ARRAY_SIZE(6)], Bc0Block* out) {
+  // Decode the 16 3bit indices.
+  u64 indexStream = ((u64)indices[0] << 0) | ((u64)indices[1] << 8) | ((u64)indices[2] << 16) |
+                    ((u64)indices[3] << 24) | ((u64)indices[4] << 32) | ((u64)indices[5] << 40);
+  for (u32 i = 0; i != 16; ++i) {
+    const u8 index   = (indexStream >>= 3) & 0x07;
+    out->colors[i].a = ref[index];
   }
 }
 
@@ -350,10 +386,20 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
 }
 
 void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
+  /**
+   * NOTE: This only supports the bc3 alpha mode with 6 interpolated implicit values, and thus
+   * assumes alpha0 is always greater then alpha1. When alpha0 is equal to alpha1 then we assume
+   * that only one of the explicit values is used and not one of the interpolated values.
+   */
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
   bc_line_color3_interpolate(refColors);
-
   bc_block_colors_decode(refColors, in->colorIndices, out);
+
+  u8 refAlpha[8];
+  refAlpha[0] = in->alpha0;
+  refAlpha[1] = in->alpha1;
+  bc_line_alpha_interpolate(refAlpha);
+  bc_block_alpha_decode(refAlpha, in->alphaIndices, out);
 }
