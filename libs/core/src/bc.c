@@ -13,6 +13,7 @@
  * https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#BCFormats
  *
  * References:
+ * https://sjbrown.co.uk/posts/dxt-compression-techniques/
  * https://fgiesen.wordpress.com/2022/11/08/whats-that-magic-computation-in-stb__refineblock/
  * 'Real-Time DXT Compression by J.M.P. van Waveren, 2006, Id Software, Inc.':
  *     https://www.researchgate.net/publication/259000525_Real-Time_DXT_Compression
@@ -242,9 +243,9 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
     color0               = color1;
     color1               = tmp;
   } else if (UNLIKELY(color0 == color1)) {
-    out->color0  = color0;
-    out->color1  = color0;
-    out->indices = 0;
+    out->color0       = color0;
+    out->color1       = color0;
+    out->colorIndices = 0;
     return;
   }
 
@@ -253,12 +254,12 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   refColors[1] = bc_color_from_565(color1);
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->color0  = color0;
-  out->color1  = color1;
-  out->indices = 0;
+  out->color0       = color0;
+  out->color1       = color1;
+  out->colorIndices = 0;
   for (u32 i = 0; i != array_elems(in->colors); ++i) {
     const u8 index = bc_color_pick(refColors, in->colors[i]);
-    out->indices |= index << (i * 2);
+    out->colorIndices |= index << (i * 2);
   }
 }
 
@@ -274,7 +275,37 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   for (u32 i = 0; i != array_elems(out->colors); ++i) {
-    const u8 index = (in->indices >> (i * 2)) & 0b11;
+    const u8 index = (in->colorIndices >> (i * 2)) & 0b11;
+    out->colors[i] = refColors[index];
+  }
+}
+
+void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
+  BcColor565 color0, color1;
+  bc_block_fit(in, &color0, &color1);
+
+  BcColor8888 refColors[4];
+  refColors[0] = bc_color_from_565(color0);
+  refColors[1] = bc_color_from_565(color1);
+  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+
+  out->color0       = color0;
+  out->color1       = color1;
+  out->colorIndices = 0;
+  for (u32 i = 0; i != array_elems(in->colors); ++i) {
+    const u8 index = bc_color_pick(refColors, in->colors[i]);
+    out->colorIndices |= index << (i * 2);
+  }
+}
+
+void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
+  BcColor8888 refColors[4];
+  refColors[0] = bc_color_from_565(in->color0);
+  refColors[1] = bc_color_from_565(in->color1);
+  bc_block_line_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+
+  for (u32 i = 0; i != array_elems(out->colors); ++i) {
+    const u8 index = (in->colorIndices >> (i * 2)) & 0b11;
     out->colors[i] = refColors[index];
   }
 }

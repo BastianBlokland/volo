@@ -24,10 +24,19 @@ ASSERT(sizeof(Bc0Block) == 64, "Unexpected bc0 block size");
 
 typedef struct {
   BcColor565 color0, color1;
-  u32        indices;
+  u32        colorIndices; // 4x4 lookup table with 2 bit indices.
 } Bc1Block;
 
 ASSERT(sizeof(Bc1Block) == 8, "Unexpected bc1 block size");
+
+typedef struct {
+  u8         alpha0, alpha1;
+  u8         alphaIndices[6]; // 4x4 lookup table with 3 bit indices.
+  BcColor565 color0, color1;
+  u32        colorIndices; // 4x4 lookup table with 2 bit indices.
+} Bc3Block;
+
+ASSERT(sizeof(Bc3Block) == 16, "Unexpected bc3 block size");
 
 /**
  * Extract / scanout a single 4x4 BC0 (aka raw pixels) block.
@@ -41,3 +50,9 @@ void bc0_scanout(const Bc0Block* restrict in, u32 width, BcColor8888* restrict o
  */
 void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out);
 void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out);
+
+/**
+ * Encode / decode a single 4x4 BC3 (aka S3TC DXT4 / DXT5) block.
+ */
+void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out);
+void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out);
