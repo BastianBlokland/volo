@@ -66,7 +66,7 @@ static const String g_resultStrs[] = {
     string_static("Truncated tga file"),
     string_static("Color-mapped Tga images are not supported"),
     string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
-    string_static("Unsupported Tga bits-per-pixel, only 32 bits (RGBA is supported)"),
+    string_static("Unsupported Tga bits-per-pixel, only 32 (RGBA) and 24 (RGB) are supported"),
     string_static("Unsupported Tga attribute depth, only 8 bit Tga alpha is supported"),
     string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
     string_static("Interleaved Tga images are not supported"),
@@ -125,11 +125,11 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     result = BcuResult_TgaUnsupportedImageType;
     goto End;
   }
-  if (bitsPerPixel != 32) {
+  if (bitsPerPixel != 32 && bitsPerPixel != 24) {
     result = BcuResult_TgaUnsupportedBitsPerPixel;
     goto End;
   }
-  if (imageAttributeDepth != 8) {
+  if (bitsPerPixel == 32 && imageAttributeDepth != 8) {
     result = BcuResult_TgaUnsupportedAttributeDepth;
     goto End;
   }
@@ -145,7 +145,7 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     result = BcuResult_ImageSizeNotAligned;
     goto End;
   }
-  if (data.size < (size.width * size.height * sizeof(BcColor8888))) {
+  if (data.size < (size.width * size.height * bits_to_bytes(bitsPerPixel))) {
     result = BcuResult_TgaFileTruncated;
     goto End;
   }
@@ -156,11 +156,23 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     goto End;
   }
   u8* pixelData = data.ptr;
-  for (usize i = 0; i != pixelCount; ++i, pixelData += 4) {
-    pixels[i].b = pixelData[0];
-    pixels[i].g = pixelData[1];
-    pixels[i].r = pixelData[2];
-    pixels[i].a = pixelData[3];
+  for (usize i = 0; i != pixelCount; ++i, pixelData += bits_to_bytes(bitsPerPixel)) {
+    switch (bitsPerPixel) {
+    case 32:
+      pixels[i].b = pixelData[0];
+      pixels[i].g = pixelData[1];
+      pixels[i].r = pixelData[2];
+      pixels[i].a = pixelData[3];
+      break;
+    case 24:
+      pixels[i].b = pixelData[0];
+      pixels[i].g = pixelData[1];
+      pixels[i].r = pixelData[2];
+      pixels[i].a = 255;
+      break;
+    default:
+      UNREACHABLE
+    }
   }
   result = BcuResult_Success;
   *out   = (BcuImage){.size = size, .pixels = pixels};
