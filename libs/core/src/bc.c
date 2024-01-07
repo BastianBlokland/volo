@@ -210,14 +210,13 @@ INLINE_HINT static void bc_line_color3_interpolate(
 /**
  * For each color pick of one the reference colors and encode the 2-bit index.
  */
-INLINE_HINT static u32
-bc_block_colors_encode(const Bc0Block* b, const BcColor8888 ref[PARAM_ARRAY_SIZE(4)]) {
-  u32 indices = 0; // 4x4 2bit indices.
+INLINE_HINT static void bc_block_colors_encode(
+    const Bc0Block* b, const BcColor8888 ref[PARAM_ARRAY_SIZE(4)], u32* outIndices) {
+  *outIndices = 0;
   for (u32 i = 0; i != 16; ++i) {
     const u8 index = bc_color_pick3(ref, b->colors[i]);
-    indices |= index << (i * 2);
+    *outIndices |= index << (i * 2);
   }
-  return indices;
 }
 
 INLINE_HINT static void bc_block_colors_decode(
@@ -269,7 +268,7 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   refColors[1] = bc_color_from_565(out->color1);
   bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->colorIndices = bc_block_colors_encode(in, refColors);
+  bc_block_colors_encode(in, refColors, &out->colorIndices);
 }
 
 void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
@@ -294,7 +293,7 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
   refColors[1] = bc_color_from_565(out->color1);
   bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
-  out->colorIndices = bc_block_colors_encode(in, refColors);
+  bc_block_colors_encode(in, refColors, &out->colorIndices);
 }
 
 void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
