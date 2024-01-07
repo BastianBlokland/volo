@@ -185,7 +185,7 @@ INLINE_HINT static void bc_block_color_fit(const Bc0Block* b, BcColor565* out0, 
 /**
  * Compute two middle points on the given line through RGB space.
  */
-INLINE_HINT static void bc_line_interpolate3(
+INLINE_HINT static void bc_line_color3_interpolate(
     const BcColor8888 c0, const BcColor8888 c1, BcColor8888* outC2, BcColor8888* outC3) {
   /**
    * We use the bc1 mode that uses 2 interpolated implicit colors.
@@ -270,7 +270,7 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(color0);
   refColors[1] = bc_color_from_565(color1);
-  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   out->color0       = color0;
   out->color1       = color1;
@@ -286,7 +286,7 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   bc_block_colors_decode(refColors, in->colorIndices, out);
 }
@@ -298,7 +298,7 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(color0);
   refColors[1] = bc_color_from_565(color1);
-  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   out->color0       = color0;
   out->color1       = color1;
@@ -309,7 +309,7 @@ void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
-  bc_line_interpolate3(refColors[0], refColors[1], &refColors[2], &refColors[3]);
+  bc_line_color3_interpolate(refColors[0], refColors[1], &refColors[2], &refColors[3]);
 
   bc_block_colors_decode(refColors, in->colorIndices, out);
 }
