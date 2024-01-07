@@ -193,8 +193,8 @@ INLINE_HINT static void bc_block_alpha_fit(const Bc0Block* b, u8* out0, u8* out1
     min = math_min(min, b->colors[i].a);
     max = math_max(max, b->colors[i].a);
   }
-  *out0 = min;
-  *out1 = max;
+  *out0 = max;
+  *out1 = min;
 }
 
 /**
@@ -372,7 +372,7 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
   if (out->alpha0 == out->alpha1) {
     mem_set(array_mem(out->alphaIndices), 0);
   } else {
-    bc_block_alpha_encode(in, out->alpha0, out->alpha1, out->alphaIndices);
+    bc_block_alpha_encode(in, out->alpha1, out->alpha0, out->alphaIndices);
   }
 
   bc_block_color_fit(in, &out->color0, &out->color1);
