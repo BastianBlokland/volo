@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
@@ -183,6 +184,20 @@ INLINE_HINT static void bc_block_color_fit(const Bc0Block* b, BcColor565* out0, 
 }
 
 /**
+ * Compute the endpoints of a line through alpha space that can be used to approximate the alpha
+ * values in the given block.
+ */
+INLINE_HINT static void bc_block_alpha_fit(const Bc0Block* b, u8* out0, u8* out1) {
+  u8 min = b->colors[0].a, max = b->colors[0].a;
+  for (u32 i = 1; i != 16; ++i) {
+    min = math_min(min, b->colors[i].a);
+    max = math_max(max, b->colors[i].a);
+  }
+  *out0 = min;
+  *out1 = max;
+}
+
+/**
  * Compute two middle points on the given line through RGB space.
  */
 INLINE_HINT static void bc_line_color3_interpolate(
@@ -227,6 +242,37 @@ INLINE_HINT static void bc_block_colors_decode(
   }
 }
 
+/**
+ * For each alpha value pick of one the 8 linearly interpolated values between min/max and encode
+ * the 3-bit index.
+ * NOTE: We only support the 8 value mode and not the 6 value + 0/255 mode at the moment.
+ */
+INLINE_HINT static void bc_block_alpha_encode(
+    const Bc0Block* b, const u8 min, const u8 max, u8 outIndices[PARAM_ARRAY_SIZE(6)]) {
+  /**
+   * Pick the exact closest of the 8 alpha values based on the min/max, for details see:
+   * https://fgiesen.wordpress.com/2009/12/15/dxt5-alpha-block-index-determination/
+   */
+  diag_assert(max > min);
+  const u32 range = max - min;
+  const u32 bias  = (range < 8) ? (range - 1) : (range / 2 + 2);
+
+  u32 indexBuffer = 0, bitCount = 0;
+  u8* outPtr = outIndices;
+  for (u32 i = 0; i != 16; ++i) {
+    const u32 val   = b->colors[i].a * 7 + bias;
+    const u32 index = ((val - min) * 7 + bias) / range;
+
+    // Accumulate 3bit indices until we've filled up a byte and then output it.
+    indexBuffer |= index << bitCount;
+    if ((bitCount += 3) >= 8) {
+      *outPtr++ = (u8)indexBuffer;
+      indexBuffer >>= 8;
+      bitCount -= 8;
+    }
+  }
+}
+
 void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
@@ -258,7 +304,7 @@ void bc1_encode(const Bc0Block* restrict in, Bc1Block* restrict out) {
     const BcColor565 tmp = out->color0;
     out->color0          = out->color1;
     out->color1          = tmp;
-  } else if (UNLIKELY(out->color0 == out->color1)) {
+  } else if (out->color0 == out->color1) {
     out->colorIndices = 0;
     return;
   }
@@ -286,6 +332,14 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
 }
 
 void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
+  bc_block_alpha_fit(in, &out->alpha0, &out->alpha1);
+
+  if (out->alpha0 == out->alpha1) {
+    mem_set(array_mem(out->alphaIndices), 0);
+  } else {
+    bc_block_alpha_encode(in, out->alpha0, out->alpha1, out->alphaIndices);
+  }
+
   bc_block_color_fit(in, &out->color0, &out->color1);
 
   BcColor8888 refColors[4];
