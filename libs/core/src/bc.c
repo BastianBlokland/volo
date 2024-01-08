@@ -197,6 +197,14 @@ INLINE_HINT static void bc_block_alpha_fit(const Bc0Block* b, u8* out0, u8* out1
   *out1 = min;
 }
 
+INLINE_HINT static const u8* bc_block_values_r(const Bc0Block* b) {
+  return bits_ptr_offset(b->colors, offsetof(BcColor8888, r));
+}
+
+INLINE_HINT static u8* bc_block_values_mut_r(Bc0Block* b) {
+  return bits_ptr_offset(b->colors, offsetof(BcColor8888, r));
+}
+
 INLINE_HINT static const u8* bc_block_values_a(const Bc0Block* b) {
   return bits_ptr_offset(b->colors, offsetof(BcColor8888, a));
 }
@@ -424,20 +432,43 @@ void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
 }
 
 void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
-  /**
-   * NOTE: This only supports the bc3 alpha mode with 6 interpolated implicit values, and thus
-   * assumes alpha0 is always greater then alpha1. When alpha0 is equal to alpha1 then we assume
-   * that only one of the explicit values is used and not one of the interpolated values.
-   */
   BcColor8888 refColors[4];
   refColors[0] = bc_color_from_565(in->color0);
   refColors[1] = bc_color_from_565(in->color1);
   bc_line_color3_interpolate(refColors);
   bc_colors_decode(refColors, in->colorIndices, out->colors);
 
+  /**
+   * NOTE: This only supports the bc3 alpha mode with 6 interpolated implicit values, and thus
+   * assumes alpha0 is always greater then alpha1. When alpha0 is equal to alpha1 then we assume
+   * that only one of the explicit values is used and not one of the interpolated values.
+   */
   u8 refAlpha[8];
   refAlpha[0] = in->alpha0;
   refAlpha[1] = in->alpha1;
   bc_line_alpha_interpolate(refAlpha);
   bc_alpha_decode(refAlpha, in->alphaIndices, bc_block_values_mut_a(out), 4);
+}
+
+void bc4_encode(const Bc0Block* restrict in, Bc4Block* restrict out) {
+  bc_block_alpha_fit(in, &out->value0, &out->value1);
+
+  if (out->value0 == out->value1) {
+    mem_set(array_mem(out->valueIndices), 0);
+  } else {
+    bc_alpha_encode(bc_block_values_r(in), 4, out->value1, out->value0, out->valueIndices);
+  }
+}
+
+void bc4_decode(const Bc4Block* restrict in, Bc0Block* restrict out) {
+  /**
+   * NOTE: This only supports the bc4 mode with 6 interpolated implicit values, and thus assumes
+   * value0 is always greater then value1. When value0 is equal to value1 then we assume that only
+   * one of the explicit values is used and not one of the interpolated values.
+   */
+  u8 refValues[8];
+  refValues[0] = in->value0;
+  refValues[1] = in->value1;
+  bc_line_alpha_interpolate(refValues);
+  bc_alpha_decode(refValues, in->valueIndices, bc_block_values_mut_r(out), 4);
 }
