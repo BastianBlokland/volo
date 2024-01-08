@@ -18,8 +18,9 @@
 
 typedef enum {
   RvkTextureCompress_None,
-  RvkTextureCompress_Bc1, // RGB 4x4 block compression.
+  RvkTextureCompress_Bc1, // RGB  4x4 block compression.
   RvkTextureCompress_Bc3, // RGBA 4x4 block compression.
+  RvkTextureCompress_Bc4, // R    4x4 block compression.
 } RvkTextureCompress;
 
 /**
@@ -50,14 +51,17 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
      */
     return RvkTextureCompress_None;
   }
-  if (asset->channels != AssetTextureChannels_Four) {
-    return RvkTextureCompress_None;
-  }
   if (asset->flags & AssetTextureFlags_GenerateMipMaps || asset->srcMipLevels > 1) {
     // TODO: Support compressed textures with mip-maps.
     return RvkTextureCompress_None;
   }
-  return asset->flags & AssetTextureFlags_Alpha ? RvkTextureCompress_Bc3 : RvkTextureCompress_Bc1;
+  if (asset->channels == AssetTextureChannels_One) {
+    return RvkTextureCompress_Bc4;
+  }
+  if (asset->channels == AssetTextureChannels_Four) {
+    return asset->flags & AssetTextureFlags_Alpha ? RvkTextureCompress_Bc3 : RvkTextureCompress_Bc1;
+  }
+  return RvkTextureCompress_None;
 #else
   (void)asset;
   return RvkTextureCompress_None;
@@ -68,8 +72,15 @@ static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const Rvk
   const bool srgb = (asset->flags & AssetTextureFlags_Srgb) != 0;
   switch (asset->channels) {
   case AssetTextureChannels_One:
-    diag_assert_msg(c == RvkTextureCompress_None, "Single channel compression is not supported");
-    return srgb ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM;
+    diag_assert_msg(!srgb, "Single channel srgb is not supported");
+    switch (c) {
+    case RvkTextureCompress_Bc4:
+      return VK_FORMAT_BC4_UNORM_BLOCK;
+    case RvkTextureCompress_None:
+      return VK_FORMAT_R8_UNORM;
+    default:
+      diag_crash_msg("Unsupported compression '{}' for 1 channel textures", fmt_int(c));
+    }
   case AssetTextureChannels_Four:
     switch (c) {
     case RvkTextureCompress_Bc1:
@@ -78,6 +89,8 @@ static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const Rvk
       return srgb ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
     case RvkTextureCompress_None:
       return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    default:
+      diag_crash_msg("Unsupported compression '{}' for 4 channel textures", fmt_int(c));
     }
   }
   diag_crash();
@@ -151,24 +164,29 @@ static usize rvk_texture_data_size(
 
 static void rvk_texture_encode(
     const RvkSize            size,
+    const u32                channels,
     const u32                layers,
     const RvkTextureCompress compress,
     const Mem                dataIn,
     const Mem                dataOut) {
+  diag_assert(channels == 1 || channels == 4);
   diag_assert(layers >= 1);
   diag_assert(compress != RvkTextureCompress_None);
   diag_assert_msg(bits_aligned(size.width, 4), "Width has to be a multiple of 4");
   diag_assert_msg(bits_aligned(size.height, 4), "Height has to be a multiple of 4");
 
-  const BcColor8888* inPtr  = dataIn.ptr;
-  u8*                outPtr = dataOut.ptr;
+  const u8* inPtr  = dataIn.ptr;
+  u8*       outPtr = dataOut.ptr;
 
   Bc0Block block;
   for (u32 l = 0; l != layers; ++l) {
-    for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
+    for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4 * channels) {
       for (u32 x = 0; x < size.width; x += 4) {
-        bc0_extract4(inPtr + x, size.width, &block);
-
+        if (channels == 1) {
+          bc0_extract1(inPtr + x, size.width, &block);
+        } else {
+          bc0_extract4((const BcColor8888*)inPtr + x, size.width, &block);
+        }
         switch (compress) {
         case RvkTextureCompress_Bc1:
           bc1_encode(&block, (Bc1Block*)outPtr);
@@ -177,6 +195,10 @@ static void rvk_texture_encode(
         case RvkTextureCompress_Bc3:
           bc3_encode(&block, (Bc3Block*)outPtr);
           outPtr += sizeof(Bc3Block);
+          break;
+        case RvkTextureCompress_Bc4:
+          bc4_encode(&block, (Bc4Block*)outPtr);
+          outPtr += sizeof(Bc4Block);
           break;
         default:
           UNREACHABLE
@@ -194,8 +216,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .device  = dev,
+                 .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(asset);
@@ -234,7 +256,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   Mem srcData = asset_texture_data(asset);
   if (encodeNeeded) {
     const Mem encodedData = alloc_alloc(encodeAlloc, encodedSize, encodedAlign);
-    rvk_texture_encode(size, asset->layers, compress, srcData, encodedData);
+    rvk_texture_encode(size, asset->channels, asset->layers, compress, srcData, encodedData);
     srcData = encodedData;
   }
   const u32 srcMips  = math_max(asset->srcMipLevels, 1);
