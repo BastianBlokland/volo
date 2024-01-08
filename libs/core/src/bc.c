@@ -317,6 +317,16 @@ INLINE_HINT static void bc_block_alpha_decode(
   }
 }
 
+void bc0_extract1(const u8* restrict in, const u32 width, Bc0Block* restrict out) {
+  diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
+
+  for (u32 y = 0; y != 4; ++y, in += width) {
+    for (u32 x = 0; x != 4; ++x) {
+      out->colors[y * 4 + x] = (BcColor8888){in[x], 0, 0, 255};
+    }
+  }
+}
+
 void bc0_extract4(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
