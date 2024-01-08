@@ -19,6 +19,7 @@
 typedef enum {
   BcuMode_QuantizeBc1,
   BcuMode_QuantizeBc3,
+  BcuMode_QuantizeBc4,
 
   BcuMode_Count,
   BcuMode_Default = BcuMode_QuantizeBc1
@@ -27,6 +28,7 @@ typedef enum {
 static const String g_modeStrs[] = {
     string_static("quantize-bc1"),
     string_static("quantize-bc3"),
+    string_static("quantize-bc4"),
 };
 ASSERT(array_elems(g_modeStrs) == BcuMode_Count, "Incorrect number of mode strings");
 
@@ -345,6 +347,22 @@ static void bcu_blocks_quantize_bc3(Bc0Block* blocks, const u32 blockCount) {
       log_param("duration", fmt_duration(dur)));
 }
 
+static void bcu_blocks_quantize_bc4(Bc0Block* blocks, const u32 blockCount) {
+  const TimeSteady startTime = time_steady_clock();
+
+  Bc4Block encodedBlock;
+  for (u32 i = 0; i != blockCount; ++i) {
+    bc4_encode(blocks + i, &encodedBlock);
+    bc4_decode(&encodedBlock, blocks + i);
+  }
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  log_i(
+      "Quantized to bc4",
+      log_param("bc4-size", fmt_size(blockCount * sizeof(Bc3Block))),
+      log_param("duration", fmt_duration(dur)));
+}
+
 static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String outputPath) {
   const u32 blockCount = bcu_block_count(input->size);
   Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
@@ -360,6 +378,9 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
     break;
   case BcuMode_QuantizeBc3:
     bcu_blocks_quantize_bc3(blocks, blockCount);
+    break;
+  case BcuMode_QuantizeBc4:
+    bcu_blocks_quantize_bc4(blocks, blockCount);
     break;
   default:
     diag_crash_msg("Unsupported mode");
