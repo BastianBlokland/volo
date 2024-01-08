@@ -42,8 +42,8 @@ ASSERT(sizeof(Bc3Block) == 16, "Unexpected bc3 block size");
  * Extract / scanout a single 4x4 BC0 (aka raw pixels) block.
  * Pre-condition: Width (and also height) input pixels have to be multiples of 4.
  */
-void bc0_extract(const BcColor8888* restrict in, u32 width, Bc0Block* restrict out);
-void bc0_scanout(const Bc0Block* restrict in, u32 width, BcColor8888* restrict out);
+void bc0_extract4(const BcColor8888* restrict in, u32 width, Bc0Block* restrict out);
+void bc0_scanout4(const Bc0Block* restrict in, u32 width, BcColor8888* restrict out);
 
 /**
  * Encode / decode a single 4x4 BC1 (aka S3TC DXT1) block.

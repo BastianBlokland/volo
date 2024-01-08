@@ -167,7 +167,7 @@ static void rvk_texture_encode(
   for (u32 l = 0; l != layers; ++l) {
     for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
       for (u32 x = 0; x < size.width; x += 4) {
-        bc0_extract(inPtr + x, size.width, &block);
+        bc0_extract4(inPtr + x, size.width, &block);
 
         switch (compress) {
         case RvkTextureCompress_Bc1:

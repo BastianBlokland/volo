@@ -317,7 +317,7 @@ INLINE_HINT static void bc_block_alpha_decode(
   }
 }
 
-void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
+void bc0_extract4(const BcColor8888* restrict in, const u32 width, Bc0Block* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
   for (u32 y = 0; y != 4; ++y, in += width) {
@@ -327,7 +327,7 @@ void bc0_extract(const BcColor8888* restrict in, const u32 width, Bc0Block* rest
   }
 }
 
-void bc0_scanout(const Bc0Block* restrict in, const u32 width, BcColor8888* restrict out) {
+void bc0_scanout4(const Bc0Block* restrict in, const u32 width, BcColor8888* restrict out) {
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
   for (u32 y = 0; y != 4; ++y, out += width) {

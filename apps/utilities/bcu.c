@@ -286,7 +286,7 @@ static void bcu_blocks_extract(const BcuSize size, const BcColor8888* inPtr, Bc0
 
   for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
     for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
-      bc0_extract(inPtr + x, size.width, outPtr);
+      bc0_extract4(inPtr + x, size.width, outPtr);
     }
   }
 
@@ -302,7 +302,7 @@ static void bcu_blocks_scanout(const BcuSize size, const Bc0Block* inPtr, BcColo
 
   for (u32 y = 0; y < size.height; y += 4, outPtr += size.width * 4) {
     for (u32 x = 0; x < size.width; x += 4, ++inPtr) {
-      bc0_scanout(inPtr, size.width, outPtr + x);
+      bc0_scanout4(inPtr, size.width, outPtr + x);
     }
   }
 
