@@ -184,10 +184,10 @@ INLINE_HINT static void bc_block_color_fit(const Bc0Block* b, BcColor565* out0, 
 }
 
 /**
- * Compute the endpoints of a line through alpha space that can be used to approximate the alpha
- * values in the given block.
+ * Compute the endpoints of a line through 1D space that can be used to approximate the values in
+ * the given block.
  */
-INLINE_HINT static void bc_block_alpha_fit(const Bc0Block* b, u8* out0, u8* out1) {
+INLINE_HINT static void bc_block_value_fit(const Bc0Block* b, u8* out0, u8* out1) {
   u8 min = b->colors[0].a, max = b->colors[0].a;
   for (u32 i = 1; i != 16; ++i) {
     min = math_min(min, b->colors[i].a);
@@ -238,21 +238,21 @@ INLINE_HINT static void bc_line_color3_interpolate(BcColor8888 line[PARAM_ARRAY_
 }
 
 /**
- * Compute 6 middle points on the given line through alpha space.
+ * Compute 6 middle points on the given line through 1D space.
  */
-INLINE_HINT static void bc_line_alpha_interpolate(u8 line[PARAM_ARRAY_SIZE(8)]) {
+INLINE_HINT static void bc_line_value_interpolate(u8 line[PARAM_ARRAY_SIZE(8)]) {
   /**
-   * We use the bc3 mode that uses 6 interpolated implicit values.
+   * We use the bc3/bc4 mode that uses 6 interpolated implicit values.
    *
-   * Bc3 reference values:
-   * - a0: alpha0                 (if alpha0 > alpha1)
-   * - a1: alpha1                 (if alpha0 > alpha1)
-   * - a2: (6 * a0 + 1 * a1 ) / 7 (if alpha0 > alpha1)
-   * - a3: (5 * a0 + 2 * a1 ) / 7 (if alpha0 > alpha1)
-   * - a4: (4 * a0 + 3 * a1 ) / 7 (if alpha0 > alpha1)
-   * - a5: (3 * a0 + 4 * a1 ) / 7 (if alpha0 > alpha1)
-   * - a6: (2 * a0 + 5 * a1 ) / 7 (if alpha0 > alpha1)
-   * - a7: (1 * a0 + 6 * a1 ) / 7 (if alpha0 > alpha1)
+   * Bc3/bc4 reference values:
+   * - a0: value0                 (if value0 > value1)
+   * - a1: value1                 (if value0 > value1)
+   * - a2: (6 * a0 + 1 * a1 ) / 7 (if value0 > value1)
+   * - a3: (5 * a0 + 2 * a1 ) / 7 (if value0 > value1)
+   * - a4: (4 * a0 + 3 * a1 ) / 7 (if value0 > value1)
+   * - a5: (3 * a0 + 4 * a1 ) / 7 (if value0 > value1)
+   * - a6: (2 * a0 + 5 * a1 ) / 7 (if value0 > value1)
+   * - a7: (1 * a0 + 6 * a1 ) / 7 (if value0 > value1)
    */
   line[2] = (line[0] * 6 + line[1] * 1 + 1) / 7;
   line[3] = (line[0] * 5 + line[1] * 2 + 1) / 7;
@@ -287,9 +287,9 @@ INLINE_HINT static void bc_colors_decode(
 }
 
 /**
- * Map a linear index (0 min, 7 max, 1-6 interp) to a BC alpha index (0 min, 1 max, 2-7 interp).
+ * Map a linear index (0 min, 7 max, 1-6 interp) to a Bc value index (0 min, 1 max, 2-7 interp).
  */
-INLINE_HINT static u8 bc_alpha_index_map(const u8 linearIndex) {
+INLINE_HINT static u8 bc_value_index_map(const u8 linearIndex) {
   // Clever bit-fiddling based on the STB implementation: https://github.com/nothings/stb/
   u8 res = -linearIndex & 7;
   res ^= res < 2;
@@ -297,18 +297,18 @@ INLINE_HINT static u8 bc_alpha_index_map(const u8 linearIndex) {
 }
 
 /**
- * For each alpha value pick of one the 8 linearly interpolated values between min/max and encode
- * the 3-bit index.
+ * For each value pick of one the 8 linearly interpolated values between min/max and encode the
+ * 3-bit index.
  * NOTE: We only support the 8 value mode and not the 6 value + 0/255 mode at the moment.
  */
-INLINE_HINT static void bc_alpha_encode(
+INLINE_HINT static void bc_value_encode(
     const u8* values,
     const u32 valueStride,
     const u8  min,
     const u8  max,
     u8        outIndices[PARAM_ARRAY_SIZE(6)]) {
   /**
-   * Pick the exact closest of the 8 alpha values based on the min/max, for details see:
+   * Pick the exact closest of the 8 values based on the min/max, for details see:
    * https://fgiesen.wordpress.com/2009/12/15/dxt5-alpha-block-index-determination/
    */
   diag_assert(max > min);
@@ -321,7 +321,7 @@ INLINE_HINT static void bc_alpha_encode(
     const u8 index = ((*values - min) * 7 + bias) / range;
 
     // Accumulate 3bit indices until we've filled up a byte and then output it.
-    indexBuffer |= bc_alpha_index_map(index) << bitCount;
+    indexBuffer |= bc_value_index_map(index) << bitCount;
     if ((bitCount += 3) >= 8) {
       *outPtr++ = (u8)indexBuffer;
       indexBuffer >>= 8;
@@ -330,7 +330,7 @@ INLINE_HINT static void bc_alpha_encode(
   }
 }
 
-INLINE_HINT static void bc_alpha_decode(
+INLINE_HINT static void bc_value_decode(
     const u8  ref[PARAM_ARRAY_SIZE(8)],
     const u8  indices[PARAM_ARRAY_SIZE(6)],
     u8*       outValues,
@@ -413,12 +413,12 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
 }
 
 void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
-  bc_block_alpha_fit(in, &out->alpha0, &out->alpha1);
+  bc_block_value_fit(in, &out->alpha0, &out->alpha1);
 
   if (out->alpha0 == out->alpha1) {
     mem_set(array_mem(out->alphaIndices), 0);
   } else {
-    bc_alpha_encode(bc_block_values_a(in), 4, out->alpha1, out->alpha0, out->alphaIndices);
+    bc_value_encode(bc_block_values_a(in), 4, out->alpha1, out->alpha0, out->alphaIndices);
   }
 
   bc_block_color_fit(in, &out->color0, &out->color1);
@@ -446,17 +446,17 @@ void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
   u8 refAlpha[8];
   refAlpha[0] = in->alpha0;
   refAlpha[1] = in->alpha1;
-  bc_line_alpha_interpolate(refAlpha);
-  bc_alpha_decode(refAlpha, in->alphaIndices, bc_block_values_mut_a(out), 4);
+  bc_line_value_interpolate(refAlpha);
+  bc_value_decode(refAlpha, in->alphaIndices, bc_block_values_mut_a(out), 4);
 }
 
 void bc4_encode(const Bc0Block* restrict in, Bc4Block* restrict out) {
-  bc_block_alpha_fit(in, &out->value0, &out->value1);
+  bc_block_value_fit(in, &out->value0, &out->value1);
 
   if (out->value0 == out->value1) {
     mem_set(array_mem(out->valueIndices), 0);
   } else {
-    bc_alpha_encode(bc_block_values_r(in), 4, out->value1, out->value0, out->valueIndices);
+    bc_value_encode(bc_block_values_r(in), 4, out->value1, out->value0, out->valueIndices);
   }
 }
 
@@ -469,6 +469,6 @@ void bc4_decode(const Bc4Block* restrict in, Bc0Block* restrict out) {
   u8 refValues[8];
   refValues[0] = in->value0;
   refValues[1] = in->value1;
-  bc_line_alpha_interpolate(refValues);
-  bc_alpha_decode(refValues, in->valueIndices, bc_block_values_mut_r(out), 4);
+  bc_line_value_interpolate(refValues);
+  bc_value_decode(refValues, in->valueIndices, bc_block_values_mut_r(out), 4);
 }
