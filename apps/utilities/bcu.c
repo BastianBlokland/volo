@@ -19,6 +19,7 @@
 typedef enum {
   BcuMode_QuantizeBc1,
   BcuMode_QuantizeBc3,
+  BcuMode_QuantizeBc4,
 
   BcuMode_Count,
   BcuMode_Default = BcuMode_QuantizeBc1
@@ -27,6 +28,7 @@ typedef enum {
 static const String g_modeStrs[] = {
     string_static("quantize-bc1"),
     string_static("quantize-bc3"),
+    string_static("quantize-bc4"),
 };
 ASSERT(array_elems(g_modeStrs) == BcuMode_Count, "Incorrect number of mode strings");
 
@@ -65,8 +67,8 @@ static const String g_resultStrs[] = {
     string_static("Memory allocation failed"),
     string_static("Truncated tga file"),
     string_static("Color-mapped Tga images are not supported"),
-    string_static("Unsupported Tga image type, only 'TrueColor' is supported (no rle)"),
-    string_static("Unsupported Tga bits-per-pixel, only 32 (RGBA) and 24 (RGB) are supported"),
+    string_static("Unsupported Tga image type, only TrueColor and Grayscale supported (no rle)"),
+    string_static("Unsupported Tga bits-per-pixel, only 32 (RGBA), 24 (RGB), 8 (R) are supported"),
     string_static("Unsupported Tga attribute depth, only 8 bit Tga alpha is supported"),
     string_static("Unsupported Tga image origin, only 'BottomLeft' is supported"),
     string_static("Interleaved Tga images are not supported"),
@@ -121,11 +123,11 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     result = BcuResult_TgaUnsupportedColorMap;
     goto End;
   }
-  if (imageType != 2 /* TrueColor */) {
+  if (imageType != 2 /* TrueColor */ && imageType != 3 /* Grayscale */) {
     result = BcuResult_TgaUnsupportedImageType;
     goto End;
   }
-  if (bitsPerPixel != 32 && bitsPerPixel != 24) {
+  if (bitsPerPixel != 32 && bitsPerPixel != 24 && bitsPerPixel != 8) {
     result = BcuResult_TgaUnsupportedBitsPerPixel;
     goto End;
   }
@@ -170,6 +172,12 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
       pixels[i].r = pixelData[2];
       pixels[i].a = 255;
       break;
+    case 8:
+      pixels[i].r = pixelData[0];
+      pixels[i].g = 0;
+      pixels[i].b = 0;
+      pixels[i].a = 255;
+      break;
     default:
       UNREACHABLE
     }
@@ -198,15 +206,17 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
   }
+  const u8 attributeDepth      = 8;
+  const u8 imageSpecDescriptor = attributeDepth; // imageOrigin and imageInterleave both zero.
 
   Mem buffer = data;
-  buffer     = mem_write_u8_zero(buffer, 2);            // idLength and colorMapType.
-  buffer     = mem_write_u8(buffer, 2 /* TrueColor */); // imageType.
-  buffer     = mem_write_u8_zero(buffer, 9);            // colorMapSpec and origin.
-  buffer     = mem_write_le_u16(buffer, size.width);    // image width.
-  buffer     = mem_write_le_u16(buffer, size.height);   // image height.
-  buffer     = mem_write_u8(buffer, 32);                // bitsPerPixel.
-  buffer     = mem_write_u8(buffer, 0);                 // imageSpecDescriptor.
+  buffer     = mem_write_u8_zero(buffer, 2);              // idLength and colorMapType.
+  buffer     = mem_write_u8(buffer, 2 /* TrueColor */);   // imageType.
+  buffer     = mem_write_u8_zero(buffer, 9);              // colorMapSpec and origin.
+  buffer     = mem_write_le_u16(buffer, size.width);      // image width.
+  buffer     = mem_write_le_u16(buffer, size.height);     // image height.
+  buffer     = mem_write_u8(buffer, 32);                  // bitsPerPixel.
+  buffer     = mem_write_u8(buffer, imageSpecDescriptor); // imageSpecDescriptor.
 
   // pixel data.
   u8* outPixelData = buffer.ptr;
@@ -231,28 +241,34 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
 
 INLINE_HINT static f64 bcu_sqr(const f64 val) { return val * val; }
 
+typedef enum {
+  BcuChannelMask_R   = 1 << 0,
+  BcuChannelMask_G   = 1 << 1,
+  BcuChannelMask_B   = 1 << 2,
+  BcuChannelMask_A   = 1 << 3,
+  BcuChannelMask_RGB = BcuChannelMask_R | BcuChannelMask_G | BcuChannelMask_B,
+} BcuChannelMask;
+
 /**
  * Compute the root mean square error between the sets of pixels.
  */
-static f64 bcu_image_diff_rgb(const BcuSize size, const BcColor8888* pA, const BcColor8888* pB) {
+static f64 bcu_image_diff(
+    const BcuSize size, const BcuChannelMask mask, const BcColor8888* pA, const BcColor8888* pB) {
   const usize pixelCount = size.width * size.height;
   f64         sum        = 0;
   for (usize i = 0; i != pixelCount; ++i) {
-    sum += bcu_sqr((f64)pB[i].r - (f64)pA[i].r);
-    sum += bcu_sqr((f64)pB[i].g - (f64)pA[i].g);
-    sum += bcu_sqr((f64)pB[i].b - (f64)pA[i].b);
-  }
-  return math_sqrt_f64(sum / pixelCount);
-}
-
-/**
- * Compute the root mean square error between the alpha of the sets of pixels.
- */
-static f64 bcu_image_diff_a(const BcuSize size, const BcColor8888* pA, const BcColor8888* pB) {
-  const usize pixelCount = size.width * size.height;
-  f64         sum        = 0;
-  for (usize i = 0; i != pixelCount; ++i) {
-    sum += bcu_sqr((f64)pB[i].a - (f64)pA[i].a);
+    if (mask & BcuChannelMask_R) {
+      sum += bcu_sqr((f64)pB[i].r - (f64)pA[i].r);
+    }
+    if (mask & BcuChannelMask_G) {
+      sum += bcu_sqr((f64)pB[i].g - (f64)pA[i].g);
+    }
+    if (mask & BcuChannelMask_B) {
+      sum += bcu_sqr((f64)pB[i].b - (f64)pA[i].b);
+    }
+    if (mask & BcuChannelMask_A) {
+      sum += bcu_sqr((f64)pB[i].a - (f64)pA[i].a);
+    }
   }
   return math_sqrt_f64(sum / pixelCount);
 }
@@ -266,7 +282,7 @@ static void bcu_blocks_extract(const BcuSize size, const BcColor8888* inPtr, Bc0
 
   for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4) {
     for (u32 x = 0; x < size.width; x += 4, ++outPtr) {
-      bc0_extract(inPtr + x, size.width, outPtr);
+      bc0_extract4(inPtr + x, size.width, outPtr);
     }
   }
 
@@ -282,7 +298,7 @@ static void bcu_blocks_scanout(const BcuSize size, const Bc0Block* inPtr, BcColo
 
   for (u32 y = 0; y < size.height; y += 4, outPtr += size.width * 4) {
     for (u32 x = 0; x < size.width; x += 4, ++inPtr) {
-      bc0_scanout(inPtr, size.width, outPtr + x);
+      bc0_scanout4(inPtr, size.width, outPtr + x);
     }
   }
 
@@ -325,6 +341,22 @@ static void bcu_blocks_quantize_bc3(Bc0Block* blocks, const u32 blockCount) {
       log_param("duration", fmt_duration(dur)));
 }
 
+static void bcu_blocks_quantize_bc4(Bc0Block* blocks, const u32 blockCount) {
+  const TimeSteady startTime = time_steady_clock();
+
+  Bc4Block encodedBlock;
+  for (u32 i = 0; i != blockCount; ++i) {
+    bc4_encode(blocks + i, &encodedBlock);
+    bc4_decode(&encodedBlock, blocks + i);
+  }
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  log_i(
+      "Quantized to bc4",
+      log_param("bc4-size", fmt_size(blockCount * sizeof(Bc3Block))),
+      log_param("duration", fmt_duration(dur)));
+}
+
 static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String outputPath) {
   const u32 blockCount = bcu_block_count(input->size);
   Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
@@ -341,6 +373,9 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
   case BcuMode_QuantizeBc3:
     bcu_blocks_quantize_bc3(blocks, blockCount);
     break;
+  case BcuMode_QuantizeBc4:
+    bcu_blocks_quantize_bc4(blocks, blockCount);
+    break;
   default:
     diag_crash_msg("Unsupported mode");
     break;
@@ -348,13 +383,15 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
 
   bcu_blocks_scanout(input->size, blocks, encodedPixels);
 
-  const f64       diffRgb = bcu_image_diff_rgb(input->size, input->pixels, encodedPixels);
-  const f64       diffA   = bcu_image_diff_a(input->size, input->pixels, encodedPixels);
-  const BcuResult result  = bcu_image_write(input->size, encodedPixels, outputPath);
+  const f64 diffRgb = bcu_image_diff(input->size, BcuChannelMask_RGB, input->pixels, encodedPixels);
+  const f64 diffR   = bcu_image_diff(input->size, BcuChannelMask_R, input->pixels, encodedPixels);
+  const f64 diffA   = bcu_image_diff(input->size, BcuChannelMask_A, input->pixels, encodedPixels);
+  const BcuResult result = bcu_image_write(input->size, encodedPixels, outputPath);
   log_i(
       "Wrote output image",
       log_param("path", fmt_path(outputPath)),
       log_param("diff-rgb", fmt_float(diffRgb)),
+      log_param("diff-r", fmt_float(diffR)),
       log_param("diff-a", fmt_float(diffA)));
 
   alloc_free_array_t(g_alloc_heap, encodedPixels, encodedPixelCount);
