@@ -183,20 +183,6 @@ INLINE_HINT static void bc_block_color_fit(const Bc0Block* b, BcColor565* out0, 
   *out1 = bc_color_to_565(minColor);
 }
 
-/**
- * Compute the endpoints of a line through 1D space that can be used to approximate the values in
- * the given block.
- */
-INLINE_HINT static void bc_block_value_fit(const Bc0Block* b, u8* out0, u8* out1) {
-  u8 min = b->colors[0].a, max = b->colors[0].a;
-  for (u32 i = 1; i != 16; ++i) {
-    min = math_min(min, b->colors[i].a);
-    max = math_max(max, b->colors[i].a);
-  }
-  *out0 = max;
-  *out1 = min;
-}
-
 INLINE_HINT static const u8* bc_block_values_r(const Bc0Block* b) {
   return bits_ptr_offset(b->colors, offsetof(BcColor8888, r));
 }
@@ -284,6 +270,20 @@ INLINE_HINT static void bc_colors_decode(
     const u8 index = (indices >> (i * 2)) & 0b11;
     out[i]         = ref[index];
   }
+}
+
+/**
+ * Compute the endpoints of a line through 1D space that can be used to approximate the values in
+ * the given block.
+ */
+INLINE_HINT static void bc_value_fit(const u8* values, const u32 valueStride, u8* out0, u8* out1) {
+  u8 min = *values, max = *values;
+  for (u32 i = 1; i != 16; ++i, values += valueStride) {
+    min = math_min(min, *values);
+    max = math_max(max, *values);
+  }
+  *out0 = max;
+  *out1 = min;
 }
 
 /**
@@ -413,7 +413,7 @@ void bc1_decode(const Bc1Block* restrict in, Bc0Block* restrict out) {
 }
 
 void bc3_encode(const Bc0Block* restrict in, Bc3Block* restrict out) {
-  bc_block_value_fit(in, &out->alpha0, &out->alpha1);
+  bc_value_fit(bc_block_values_a(in), 4, &out->alpha0, &out->alpha1);
 
   if (out->alpha0 == out->alpha1) {
     mem_set(array_mem(out->alphaIndices), 0);
@@ -451,7 +451,7 @@ void bc3_decode(const Bc3Block* restrict in, Bc0Block* restrict out) {
 }
 
 void bc4_encode(const Bc0Block* restrict in, Bc4Block* restrict out) {
-  bc_block_value_fit(in, &out->value0, &out->value1);
+  bc_value_fit(bc_block_values_r(in), 4, &out->value0, &out->value1);
 
   if (out->value0 == out->value1) {
     mem_set(array_mem(out->valueIndices), 0);
