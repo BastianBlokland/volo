@@ -51,8 +51,8 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
      */
     return RvkTextureCompress_None;
   }
-  if (asset->flags & AssetTextureFlags_GenerateMipMaps || asset->srcMipLevels > 1) {
-    // TODO: Support compressed textures with mip-maps.
+  if (asset->srcMipLevels > 1) {
+    // TODO: Support compressed textures with source mip-maps.
     return RvkTextureCompress_None;
   }
   if (asset->channels == AssetTextureChannels_One) {
@@ -216,27 +216,35 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const VkFormat           vkFormat = rvk_texture_format(asset, compress);
   const u8                 layers   = math_max(asset->layers, 1);
 
-  u8 mipLevels;
+  u8 mipLevels = math_max(asset->srcMipLevels, 1);
+  enum {
+    MipGen_None,
+    MipGen_Cpu,
+    MipGen_Gpu,
+  } mipGen = MipGen_None;
+
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
     diag_assert(asset->srcMipLevels <= 1);
     mipLevels = rvk_texture_mip_count(asset);
-    tex->flags |= RvkTextureFlags_GpuMipGen;
+    mipGen    = compress == RvkTextureCompress_None ? MipGen_Gpu : MipGen_Cpu;
   } else {
     diag_assert(asset->srcMipLevels <= rvk_texture_mip_count(asset));
-    mipLevels = math_max(asset->srcMipLevels, 1);
   }
 
+  if (mipGen == MipGen_Gpu) {
+    tex->flags |= RvkTextureFlags_MipGenGpu;
+  }
   if (asset->flags & AssetTextureFlags_Alpha) {
     tex->flags |= RvkTextureFlags_Alpha;
   }
 
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(layers == 6, "CubeMap needs 6 layers");
-    const bool mipGpuGen = (tex->flags & RvkTextureFlags_GpuMipGen) != 0;
-    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGpuGen);
+    const bool mipGenGpu = mipGen == MipGen_Gpu;
+    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGenGpu);
   } else {
-    const bool mipGpuGen = (tex->flags & RvkTextureFlags_GpuMipGen) != 0;
-    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGpuGen);
+    const bool mipGenGpu = mipGen == MipGen_Gpu;
+    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGenGpu);
   }
 
   const usize encodedSize      = rvk_texture_data_size(asset, vkFormat, mipLevels);
@@ -305,7 +313,7 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
     return false;
   }
 
-  if (texture->flags & RvkTextureFlags_GpuMipGen) {
+  if (texture->flags & RvkTextureFlags_MipGenGpu) {
     rvk_debug_label_begin(
         texture->device->debug,
         vkCmdBuf,
