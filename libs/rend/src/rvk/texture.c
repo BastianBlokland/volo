@@ -26,8 +26,8 @@ typedef enum {
 /**
  * Compute how many times we can cut the image in half before both sides hit 1 pixel.
  */
-static u16 rvk_compute_miplevels(const RvkSize size) {
-  const u16 biggestSide = math_max(size.width, size.height);
+static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
+  const u16 biggestSide = math_max(asset->width, asset->height);
   return (u16)(32 - bits_clz_32(biggestSide));
 }
 
@@ -139,53 +139,47 @@ static VkFormat rvk_texture_format(const AssetTextureComp* asset, const RvkTextu
 }
 
 static usize rvk_texture_data_size_mip(
-    const VkFormat format, const RvkSize size, const u32 layers, const u32 mipLevel) {
-  const u32           mipWidth   = math_max(size.width >> mipLevel, 1);
-  const u32           mipHeight  = math_max(size.height >> mipLevel, 1);
+    const AssetTextureComp* asset, const VkFormat format, const u32 mipLevel) {
+  const u32           mipWidth   = math_max(asset->width >> mipLevel, 1);
+  const u32           mipHeight  = math_max(asset->height >> mipLevel, 1);
   const RvkFormatInfo formatInfo = rvk_format_info(format);
   if (formatInfo.flags & RvkFormat_Block4x4) {
     const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
-    return blocks * formatInfo.size * layers;
+    return blocks * formatInfo.size * math_max(asset->layers, 1);
   }
-  return mipWidth * mipHeight * formatInfo.size * layers;
+  return mipWidth * mipHeight * formatInfo.size * math_max(asset->layers, 1);
 }
 
-static usize rvk_texture_data_size(
-    const VkFormat format, const RvkSize size, const u32 layers, const u32 mipLevels) {
-  diag_assert(layers >= 1);
+static usize
+rvk_texture_data_size(const AssetTextureComp* asset, const VkFormat format, const u32 mipLevels) {
   diag_assert(mipLevels >= 1);
 
   usize dataSize = 0;
   for (u32 mipLevel = 0; mipLevel != mipLevels; ++mipLevel) {
-    dataSize += rvk_texture_data_size_mip(format, size, layers, mipLevel);
+    dataSize += rvk_texture_data_size_mip(asset, format, mipLevel);
   }
   return dataSize;
 }
 
 static void rvk_texture_encode(
-    const RvkSize            size,
-    const u32                channels,
-    const u32                layers,
-    const RvkTextureCompress compress,
-    const Mem                dataIn,
-    const Mem                dataOut) {
-  diag_assert(channels == 1 || channels == 4);
-  diag_assert(layers >= 1);
+    const AssetTextureComp* asset, const RvkTextureCompress compress, const Mem out) {
+  diag_assert(asset->type == AssetTextureType_U8);
+  diag_assert(asset->channels == 1 || asset->channels == 4);
   diag_assert(compress != RvkTextureCompress_None);
-  diag_assert_msg(bits_aligned(size.width, 4), "Width has to be a multiple of 4");
-  diag_assert_msg(bits_aligned(size.height, 4), "Height has to be a multiple of 4");
+  diag_assert(bits_aligned(asset->width, 4));
+  diag_assert(bits_aligned(asset->height, 4));
 
-  const u8* inPtr  = dataIn.ptr;
-  u8*       outPtr = dataOut.ptr;
+  const u8* inPtr  = asset_texture_data(asset).ptr;
+  u8*       outPtr = out.ptr;
 
   Bc0Block block;
-  for (u32 l = 0; l != layers; ++l) {
-    for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4 * channels) {
-      for (u32 x = 0; x < size.width; x += 4) {
-        if (channels == 1) {
-          bc0_extract1(inPtr + x, size.width, &block);
+  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
+      for (u32 x = 0; x < asset->width; x += 4) {
+        if (asset->channels == 1) {
+          bc0_extract1(inPtr + x, asset->width, &block);
         } else {
-          bc0_extract4((const BcColor8888*)inPtr + x, size.width, &block);
+          bc0_extract4((const BcColor8888*)inPtr + x, asset->width, &block);
         }
         switch (compress) {
         case RvkTextureCompress_Bc1:
@@ -206,9 +200,7 @@ static void rvk_texture_encode(
       }
     }
   }
-
-  diag_assert(mem_from_to(dataIn.ptr, inPtr).size == dataIn.size);
-  diag_assert(mem_from_to(dataOut.ptr, outPtr).size == dataOut.size);
+  diag_assert(mem_from_to(out.ptr, outPtr).size == out.size);
 }
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
@@ -216,8 +208,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-                 .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(asset);
@@ -227,10 +219,10 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   u8 mipLevels;
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
     diag_assert(asset->srcMipLevels <= 1);
-    mipLevels = rvk_compute_miplevels(size);
+    mipLevels = rvk_texture_mip_count(asset);
     tex->flags |= RvkTextureFlags_GpuMipGen;
   } else {
-    diag_assert(asset->srcMipLevels <= rvk_compute_miplevels(size));
+    diag_assert(asset->srcMipLevels <= rvk_texture_mip_count(asset));
     mipLevels = math_max(asset->srcMipLevels, 1);
   }
 
@@ -247,23 +239,24 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
     tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGpuGen);
   }
 
-  const usize encodedSize      = rvk_texture_data_size(vkFormat, size, layers, mipLevels);
+  const usize encodedSize      = rvk_texture_data_size(asset, vkFormat, mipLevels);
   const usize encodedAlign     = rvk_format_info(vkFormat).size;
   const bool  encodeNeeded     = compress != RvkTextureCompress_None;
   const bool  encodeUseScratch = encodedSize < rvk_texture_max_scratch_size;
   Allocator*  encodeAlloc      = encodeUseScratch ? g_alloc_scratch : g_alloc_heap;
 
-  Mem srcData = asset_texture_data(asset);
+  Mem data;
   if (encodeNeeded) {
-    const Mem encodedData = alloc_alloc(encodeAlloc, encodedSize, encodedAlign);
-    rvk_texture_encode(size, asset->channels, asset->layers, compress, srcData, encodedData);
-    srcData = encodedData;
+    data = alloc_alloc(encodeAlloc, encodedSize, encodedAlign);
+    rvk_texture_encode(asset, compress, data);
+  } else {
+    data = asset_texture_data(asset);
   }
   const u32 srcMips  = math_max(asset->srcMipLevels, 1);
-  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, srcData, srcMips);
+  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, data, srcMips);
 
   if (encodeNeeded) {
-    alloc_free(encodeAlloc, srcData);
+    alloc_free(encodeAlloc, data);
   }
 
   rvk_debug_name_img(dev->debug, tex->image.vkImage, "{}", fmt_text(dbgName));
