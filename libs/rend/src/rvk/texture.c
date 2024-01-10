@@ -161,6 +161,22 @@ rvk_texture_data_size(const AssetTextureComp* asset, const VkFormat format, cons
   return dataSize;
 }
 
+static u32 rvk_texture_encode_block(const Bc0Block* b, const RvkTextureCompress c, u8* outPtr) {
+  switch (c) {
+  case RvkTextureCompress_Bc1:
+    bc1_encode(b, (Bc1Block*)outPtr);
+    return sizeof(Bc1Block);
+  case RvkTextureCompress_Bc3:
+    bc3_encode(b, (Bc3Block*)outPtr);
+    return sizeof(Bc3Block);
+  case RvkTextureCompress_Bc4:
+    bc4_encode(b, (Bc4Block*)outPtr);
+    return sizeof(Bc4Block);
+  default:
+    UNREACHABLE
+  }
+}
+
 static void rvk_texture_encode(
     const AssetTextureComp* asset, const RvkTextureCompress compress, const Mem out) {
   diag_assert(asset->type == AssetTextureType_U8);
@@ -181,25 +197,87 @@ static void rvk_texture_encode(
         } else {
           bc0_extract4((const BcColor8888*)inPtr + x, asset->width, &block);
         }
-        switch (compress) {
-        case RvkTextureCompress_Bc1:
-          bc1_encode(&block, (Bc1Block*)outPtr);
-          outPtr += sizeof(Bc1Block);
-          break;
-        case RvkTextureCompress_Bc3:
-          bc3_encode(&block, (Bc3Block*)outPtr);
-          outPtr += sizeof(Bc3Block);
-          break;
-        case RvkTextureCompress_Bc4:
-          bc4_encode(&block, (Bc4Block*)outPtr);
-          outPtr += sizeof(Bc4Block);
-          break;
-        default:
-          UNREACHABLE
+        outPtr += rvk_texture_encode_block(&block, compress, outPtr);
+      }
+    }
+  }
+  diag_assert(mem_from_to(out.ptr, outPtr).size == out.size);
+}
+
+static void rvk_texture_encode_gen_mips(
+    const AssetTextureComp*  asset,
+    const RvkTextureCompress comp,
+    const u32                mipLevels,
+    const Mem                out) {
+  diag_assert(asset->srcMipLevels <= 1); // Cannot both generate mips and have source mips.
+  diag_assert(asset->type == AssetTextureType_U8);
+  diag_assert(asset->channels == 1 || asset->channels == 4);
+  diag_assert(comp != RvkTextureCompress_None);
+  diag_assert(bits_aligned(asset->width, 4));
+  diag_assert(bits_aligned(asset->height, 4));
+
+  const usize blockBufferSize = asset->width * asset->height * sizeof(BcColor8888);
+  const Mem   blockBuffer     = alloc_alloc(g_alloc_heap, blockBufferSize, alignof(Bc0Block));
+
+  Bc0Block* blockPtr = blockBuffer.ptr;
+  const u8* inPtr    = asset_texture_data(asset).ptr;
+  u8*       outPtr   = out.ptr;
+
+  // Extract blocks from the source data and encode mip0.
+  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
+      for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
+        if (asset->channels == 1) {
+          bc0_extract1(inPtr + x, asset->width, blockPtr);
+        } else {
+          bc0_extract4((const BcColor8888*)inPtr + x, asset->width, blockPtr);
+        }
+        outPtr += rvk_texture_encode_block(blockPtr, comp, outPtr);
+      }
+    }
+  }
+  blockPtr = blockBuffer.ptr; // Reset the block pointer to the beginning.
+
+  // Down-sample and encode the other mips.
+  for (u32 mip = 1; mip < mipLevels; ++mip) {
+    const u32 blockCountX = math_max((asset->width >> mip) / 4, 1);
+    const u32 blockCountY = math_max((asset->height >> mip) / 4, 1);
+    for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+      for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
+        for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
+          Bc0Block block;
+          // Fill the block by down-sampling from 4 blocks of the previous mip.
+          for (u32 y = 0; y != 4; ++y) {
+            for (u32 x = 0; x != 4; ++x) {
+              const u32       srcBlockY = blockY * 2 + (y >= 2);
+              const u32       srcBlockX = blockX * 2 + (x >= 2);
+              const Bc0Block* src       = &blockPtr[srcBlockY * blockCountX * 2 + srcBlockX];
+              const u32       srcX      = x % 2;
+              const u32       srcY      = y % 2;
+
+              const BcColor8888 c0 = src->colors[srcY * 8 + srcX * 2];
+              const BcColor8888 c1 = src->colors[srcY * 8 + srcX * 2 + 1];
+              const BcColor8888 c2 = src->colors[srcY * 8 + srcY * 4 + srcX * 2];
+              const BcColor8888 c3 = src->colors[srcY * 8 + srcY * 4 + srcX * 2 + 1];
+
+              block.colors[y * 4 + x] = (BcColor8888){
+                  (c0.r + c1.r + c2.r + c3.r) / 4,
+                  (c0.g + c1.g + c2.g + c3.g) / 4,
+                  (c0.b + c1.b + c2.b + c3.b) / 4,
+                  (c0.a + c1.a + c2.a + c3.a) / 4,
+              };
+            }
+          }
+          // Save the down-sampled block for use in the next mip.
+          blockPtr[blockY * blockCountX + blockX] = block;
+          // Encode and output this block.
+          outPtr += rvk_texture_encode_block(&block, comp, outPtr);
         }
       }
     }
   }
+
+  alloc_free(g_alloc_heap, blockBuffer);
   diag_assert(mem_from_to(out.ptr, outPtr).size == out.size);
 }
 
@@ -208,8 +286,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .device  = dev,
+                 .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(asset);
@@ -256,12 +334,17 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   Mem data;
   if (encodeNeeded) {
     data = alloc_alloc(encodeAlloc, encodedSize, encodedAlign);
-    rvk_texture_encode(asset, compress, data);
+    if (mipGen == MipGen_None) {
+      rvk_texture_encode(asset, compress, data);
+    } else {
+      diag_assert(mipGen == MipGen_Cpu);
+      rvk_texture_encode_gen_mips(asset, compress, mipLevels, data);
+    }
   } else {
     data = asset_texture_data(asset);
   }
-  const u32 srcMips  = math_max(asset->srcMipLevels, 1);
-  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, data, srcMips);
+  const u32 transferMips = mipGen == MipGen_Cpu ? mipLevels : math_max(asset->srcMipLevels, 1);
+  tex->pixelTransfer     = rvk_transfer_image(dev->transferer, &tex->image, data, transferMips);
 
   if (encodeNeeded) {
     alloc_free(encodeAlloc, data);
