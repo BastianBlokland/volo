@@ -26,8 +26,8 @@ typedef enum {
 /**
  * Compute how many times we can cut the image in half before both sides hit 1 pixel.
  */
-static u16 rvk_compute_miplevels(const RvkSize size) {
-  const u16 biggestSide = math_max(size.width, size.height);
+static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
+  const u16 biggestSide = math_max(asset->width, asset->height);
   return (u16)(32 - bits_clz_32(biggestSide));
 }
 
@@ -51,8 +51,8 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
      */
     return RvkTextureCompress_None;
   }
-  if (asset->flags & AssetTextureFlags_GenerateMipMaps || asset->srcMipLevels > 1) {
-    // TODO: Support compressed textures with mip-maps.
+  if (asset->srcMipLevels > 1) {
+    // TODO: Support compressed textures with source mip-maps.
     return RvkTextureCompress_None;
   }
   if (asset->channels == AssetTextureChannels_One) {
@@ -139,76 +139,151 @@ static VkFormat rvk_texture_format(const AssetTextureComp* asset, const RvkTextu
 }
 
 static usize rvk_texture_data_size_mip(
-    const VkFormat format, const RvkSize size, const u32 layers, const u32 mipLevel) {
-  const u32           mipWidth   = math_max(size.width >> mipLevel, 1);
-  const u32           mipHeight  = math_max(size.height >> mipLevel, 1);
+    const AssetTextureComp* asset, const VkFormat format, const u32 mipLevel) {
+  const u32           mipWidth   = math_max(asset->width >> mipLevel, 1);
+  const u32           mipHeight  = math_max(asset->height >> mipLevel, 1);
   const RvkFormatInfo formatInfo = rvk_format_info(format);
   if (formatInfo.flags & RvkFormat_Block4x4) {
     const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
-    return blocks * formatInfo.size * layers;
+    return blocks * formatInfo.size * math_max(asset->layers, 1);
   }
-  return mipWidth * mipHeight * formatInfo.size * layers;
+  return mipWidth * mipHeight * formatInfo.size * math_max(asset->layers, 1);
 }
 
-static usize rvk_texture_data_size(
-    const VkFormat format, const RvkSize size, const u32 layers, const u32 mipLevels) {
-  diag_assert(layers >= 1);
+static usize
+rvk_texture_data_size(const AssetTextureComp* asset, const VkFormat format, const u32 mipLevels) {
   diag_assert(mipLevels >= 1);
 
   usize dataSize = 0;
   for (u32 mipLevel = 0; mipLevel != mipLevels; ++mipLevel) {
-    dataSize += rvk_texture_data_size_mip(format, size, layers, mipLevel);
+    dataSize += rvk_texture_data_size_mip(asset, format, mipLevel);
   }
   return dataSize;
 }
 
-static void rvk_texture_encode(
-    const RvkSize            size,
-    const u32                channels,
-    const u32                layers,
-    const RvkTextureCompress compress,
-    const Mem                dataIn,
-    const Mem                dataOut) {
-  diag_assert(channels == 1 || channels == 4);
-  diag_assert(layers >= 1);
-  diag_assert(compress != RvkTextureCompress_None);
-  diag_assert_msg(bits_aligned(size.width, 4), "Width has to be a multiple of 4");
-  diag_assert_msg(bits_aligned(size.height, 4), "Height has to be a multiple of 4");
+static BcColor8888 rvk_texture_encode_bilerp(
+    const BcColor8888 c0, const BcColor8888 c1, const BcColor8888 c2, const BcColor8888 c3) {
+  return (BcColor8888){
+      (c0.r + c1.r + c2.r + c3.r) / 4,
+      (c0.g + c1.g + c2.g + c3.g) / 4,
+      (c0.b + c1.b + c2.b + c3.b) / 4,
+      (c0.a + c1.a + c2.a + c3.a) / 4,
+  };
+}
 
-  const u8* inPtr  = dataIn.ptr;
-  u8*       outPtr = dataOut.ptr;
+static u32 rvk_texture_encode_block(const Bc0Block* b, const RvkTextureCompress c, u8* outPtr) {
+  switch (c) {
+  case RvkTextureCompress_Bc1:
+    bc1_encode(b, (Bc1Block*)outPtr);
+    return sizeof(Bc1Block);
+  case RvkTextureCompress_Bc3:
+    bc3_encode(b, (Bc3Block*)outPtr);
+    return sizeof(Bc3Block);
+  case RvkTextureCompress_Bc4:
+    bc4_encode(b, (Bc4Block*)outPtr);
+    return sizeof(Bc4Block);
+  default:
+    UNREACHABLE
+  }
+}
+
+static void rvk_texture_encode(
+    const AssetTextureComp* asset, const RvkTextureCompress compress, const Mem out) {
+  diag_assert(asset->type == AssetTextureType_U8);
+  diag_assert(asset->channels == 1 || asset->channels == 4);
+  diag_assert(compress != RvkTextureCompress_None);
+  diag_assert(bits_aligned(asset->width, 4));
+  diag_assert(bits_aligned(asset->height, 4));
+
+  const u8* inPtr  = asset_texture_data(asset).ptr;
+  u8*       outPtr = out.ptr;
 
   Bc0Block block;
-  for (u32 l = 0; l != layers; ++l) {
-    for (u32 y = 0; y < size.height; y += 4, inPtr += size.width * 4 * channels) {
-      for (u32 x = 0; x < size.width; x += 4) {
-        if (channels == 1) {
-          bc0_extract1(inPtr + x, size.width, &block);
+  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
+      for (u32 x = 0; x < asset->width; x += 4) {
+        if (asset->channels == 1) {
+          bc0_extract1(inPtr + x, asset->width, &block);
         } else {
-          bc0_extract4((const BcColor8888*)inPtr + x, size.width, &block);
+          bc0_extract4((const BcColor8888*)inPtr + x, asset->width, &block);
         }
-        switch (compress) {
-        case RvkTextureCompress_Bc1:
-          bc1_encode(&block, (Bc1Block*)outPtr);
-          outPtr += sizeof(Bc1Block);
-          break;
-        case RvkTextureCompress_Bc3:
-          bc3_encode(&block, (Bc3Block*)outPtr);
-          outPtr += sizeof(Bc3Block);
-          break;
-        case RvkTextureCompress_Bc4:
-          bc4_encode(&block, (Bc4Block*)outPtr);
-          outPtr += sizeof(Bc4Block);
-          break;
-        default:
-          UNREACHABLE
+        outPtr += rvk_texture_encode_block(&block, compress, outPtr);
+      }
+    }
+  }
+  diag_assert(mem_from_to(out.ptr, outPtr).size == out.size);
+}
+
+static void rvk_texture_encode_gen_mips(
+    const AssetTextureComp*  asset,
+    const RvkTextureCompress comp,
+    const u32                mipLevels,
+    const Mem                out) {
+  diag_assert(asset->srcMipLevels <= 1); // Cannot both generate mips and have source mips.
+  diag_assert(asset->type == AssetTextureType_U8);
+  diag_assert(asset->channels == 1 || asset->channels == 4);
+  diag_assert(comp != RvkTextureCompress_None);
+  diag_assert(bits_aligned(asset->width, 4) && bits_ispow2(asset->width));
+  diag_assert(bits_aligned(asset->height, 4) && bits_ispow2(asset->height));
+
+  const usize blockBufferSize = asset->width * asset->height * sizeof(BcColor8888);
+  const Mem   blockBuffer     = alloc_alloc(g_alloc_heap, blockBufferSize, alignof(Bc0Block));
+
+  Bc0Block* blockPtr = blockBuffer.ptr;
+  const u8* inPtr    = asset_texture_data(asset).ptr;
+  u8*       outPtr   = out.ptr;
+
+  // Extract 4x4 blocks from the source data and encode mip0.
+  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
+      for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
+        if (asset->channels == 1) {
+          bc0_extract1(inPtr + x, asset->width, blockPtr);
+        } else {
+          bc0_extract4((const BcColor8888*)inPtr + x, asset->width, blockPtr);
+        }
+        outPtr += rvk_texture_encode_block(blockPtr, comp, outPtr);
+      }
+    }
+  }
+  blockPtr = blockBuffer.ptr; // Reset the block pointer to the beginning.
+
+  // Down-sample and encode the other mips.
+  for (u32 mip = 1; mip < mipLevels; ++mip) {
+    const u32 blockCountX = math_max((asset->width >> mip) / 4, 1);
+    const u32 blockCountY = math_max((asset->height >> mip) / 4, 1);
+    for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+      for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
+        for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
+          Bc0Block block;
+          // Fill the 4x4 block by down-sampling from 4 blocks of the previous mip.
+          for (u32 y = 0; y != 4; ++y) {
+            for (u32 x = 0; x != 4; ++x) {
+              const u32       srcBlockY = blockY * 2 + (y >= 2);
+              const u32       srcBlockX = blockX * 2 + (x >= 2);
+              const Bc0Block* src       = &blockPtr[srcBlockY * blockCountX * 2 + srcBlockX];
+              const u32       srcX      = (x % 2) * 2;
+              const u32       srcY      = (y % 2) * 2;
+
+              const BcColor8888 c0 = src->colors[srcY * 4 + srcX];
+              const BcColor8888 c1 = src->colors[srcY * 4 + srcX + 1];
+              const BcColor8888 c2 = src->colors[(srcY + 1) * 4 + srcX];
+              const BcColor8888 c3 = src->colors[(srcY + 1) * 4 + srcX + 1];
+
+              block.colors[y * 4 + x] = rvk_texture_encode_bilerp(c0, c1, c2, c3);
+            }
+          }
+          // Save the down-sampled block for use in the next mip.
+          blockPtr[blockY * blockCountX + blockX] = block;
+          // Encode and output this block.
+          outPtr += rvk_texture_encode_block(&block, comp, outPtr);
         }
       }
     }
   }
 
-  diag_assert(mem_from_to(dataIn.ptr, inPtr).size == dataIn.size);
-  diag_assert(mem_from_to(dataOut.ptr, outPtr).size == dataOut.size);
+  alloc_free(g_alloc_heap, blockBuffer);
+  diag_assert(mem_from_to(out.ptr, outPtr).size == out.size);
 }
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
@@ -224,46 +299,60 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const VkFormat           vkFormat = rvk_texture_format(asset, compress);
   const u8                 layers   = math_max(asset->layers, 1);
 
-  u8 mipLevels;
+  u8 mipLevels = math_max(asset->srcMipLevels, 1);
+  enum {
+    MipGen_None,
+    MipGen_Cpu,
+    MipGen_Gpu,
+  } mipGen = MipGen_None;
+
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
     diag_assert(asset->srcMipLevels <= 1);
-    mipLevels = rvk_compute_miplevels(size);
-    tex->flags |= RvkTextureFlags_GpuMipGen;
+    mipLevels = rvk_texture_mip_count(asset);
+    mipGen    = compress == RvkTextureCompress_None ? MipGen_Gpu : MipGen_Cpu;
   } else {
-    diag_assert(asset->srcMipLevels <= rvk_compute_miplevels(size));
-    mipLevels = math_max(asset->srcMipLevels, 1);
+    diag_assert(asset->srcMipLevels <= rvk_texture_mip_count(asset));
   }
 
+  if (mipGen == MipGen_Gpu) {
+    tex->flags |= RvkTextureFlags_MipGenGpu;
+  }
   if (asset->flags & AssetTextureFlags_Alpha) {
     tex->flags |= RvkTextureFlags_Alpha;
   }
 
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(layers == 6, "CubeMap needs 6 layers");
-    const bool mipGpuGen = (tex->flags & RvkTextureFlags_GpuMipGen) != 0;
-    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGpuGen);
+    const bool mipGenGpu = mipGen == MipGen_Gpu;
+    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGenGpu);
   } else {
-    const bool mipGpuGen = (tex->flags & RvkTextureFlags_GpuMipGen) != 0;
-    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGpuGen);
+    const bool mipGenGpu = mipGen == MipGen_Gpu;
+    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGenGpu);
   }
 
-  const usize encodedSize      = rvk_texture_data_size(vkFormat, size, layers, mipLevels);
+  const usize encodedSize      = rvk_texture_data_size(asset, vkFormat, mipLevels);
   const usize encodedAlign     = rvk_format_info(vkFormat).size;
   const bool  encodeNeeded     = compress != RvkTextureCompress_None;
   const bool  encodeUseScratch = encodedSize < rvk_texture_max_scratch_size;
   Allocator*  encodeAlloc      = encodeUseScratch ? g_alloc_scratch : g_alloc_heap;
 
-  Mem srcData = asset_texture_data(asset);
+  Mem data;
   if (encodeNeeded) {
-    const Mem encodedData = alloc_alloc(encodeAlloc, encodedSize, encodedAlign);
-    rvk_texture_encode(size, asset->channels, asset->layers, compress, srcData, encodedData);
-    srcData = encodedData;
+    data = alloc_alloc(encodeAlloc, encodedSize, encodedAlign);
+    if (mipGen == MipGen_None) {
+      rvk_texture_encode(asset, compress, data);
+    } else {
+      diag_assert(mipGen == MipGen_Cpu);
+      rvk_texture_encode_gen_mips(asset, compress, mipLevels, data);
+    }
+  } else {
+    data = asset_texture_data(asset);
   }
-  const u32 srcMips  = math_max(asset->srcMipLevels, 1);
-  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, srcData, srcMips);
+  const u32 transferMips = mipGen == MipGen_Cpu ? mipLevels : math_max(asset->srcMipLevels, 1);
+  tex->pixelTransfer     = rvk_transfer_image(dev->transferer, &tex->image, data, transferMips);
 
   if (encodeNeeded) {
-    alloc_free(encodeAlloc, srcData);
+    alloc_free(encodeAlloc, data);
   }
 
   rvk_debug_name_img(dev->debug, tex->image.vkImage, "{}", fmt_text(dbgName));
@@ -312,7 +401,7 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
     return false;
   }
 
-  if (texture->flags & RvkTextureFlags_GpuMipGen) {
+  if (texture->flags & RvkTextureFlags_MipGenGpu) {
     rvk_debug_label_begin(
         texture->device->debug,
         vkCmdBuf,
