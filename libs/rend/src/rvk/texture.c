@@ -161,6 +161,16 @@ rvk_texture_data_size(const AssetTextureComp* asset, const VkFormat format, cons
   return dataSize;
 }
 
+static BcColor8888 rvk_texture_encode_bilerp(
+    const BcColor8888 c0, const BcColor8888 c1, const BcColor8888 c2, const BcColor8888 c3) {
+  return (BcColor8888){
+      (c0.r + c1.r + c2.r + c3.r) / 4,
+      (c0.g + c1.g + c2.g + c3.g) / 4,
+      (c0.b + c1.b + c2.b + c3.b) / 4,
+      (c0.a + c1.a + c2.a + c3.a) / 4,
+  };
+}
+
 static u32 rvk_texture_encode_block(const Bc0Block* b, const RvkTextureCompress c, u8* outPtr) {
   switch (c) {
   case RvkTextureCompress_Bc1:
@@ -223,7 +233,7 @@ static void rvk_texture_encode_gen_mips(
   const u8* inPtr    = asset_texture_data(asset).ptr;
   u8*       outPtr   = out.ptr;
 
-  // Extract blocks from the source data and encode mip0.
+  // Extract 4x4 blocks from the source data and encode mip0.
   for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
     for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
       for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
@@ -246,7 +256,7 @@ static void rvk_texture_encode_gen_mips(
       for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
         for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
           Bc0Block block;
-          // Fill the block by down-sampling from 4 blocks of the previous mip.
+          // Fill the 4x4 block by down-sampling from 4 blocks of the previous mip.
           for (u32 y = 0; y != 4; ++y) {
             for (u32 x = 0; x != 4; ++x) {
               const u32       srcBlockY = blockY * 2 + (y >= 2);
@@ -260,12 +270,7 @@ static void rvk_texture_encode_gen_mips(
               const BcColor8888 c2 = src->colors[srcY * 8 + srcY * 4 + srcX * 2];
               const BcColor8888 c3 = src->colors[srcY * 8 + srcY * 4 + srcX * 2 + 1];
 
-              block.colors[y * 4 + x] = (BcColor8888){
-                  (c0.r + c1.r + c2.r + c3.r) / 4,
-                  (c0.g + c1.g + c2.g + c3.g) / 4,
-                  (c0.b + c1.b + c2.b + c3.b) / 4,
-                  (c0.a + c1.a + c2.a + c3.a) / 4,
-              };
+              block.colors[y * 4 + x] = rvk_texture_encode_bilerp(c0, c1, c2, c3);
             }
           }
           // Save the down-sampled block for use in the next mip.
