@@ -11,7 +11,7 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-#define VOLO_RVK_TEXTURE_COMPRESSION 0
+#define VOLO_RVK_TEXTURE_COMPRESSION 1
 #define VOLO_RVK_TEXTURE_LOGGING 0
 
 #define rvk_texture_max_scratch_size (64 * usize_kibibyte)
@@ -262,13 +262,13 @@ static void rvk_texture_encode_gen_mips(
               const u32       srcBlockY = blockY * 2 + (y >= 2);
               const u32       srcBlockX = blockX * 2 + (x >= 2);
               const Bc0Block* src       = &blockPtr[srcBlockY * blockCountX * 2 + srcBlockX];
-              const u32       srcX      = x % 2;
-              const u32       srcY      = y % 2;
+              const u32       srcX      = (x % 2) * 2;
+              const u32       srcY      = (y % 2) * 2;
 
-              const BcColor8888 c0 = src->colors[srcY * 8 + srcX * 2];
-              const BcColor8888 c1 = src->colors[srcY * 8 + srcX * 2 + 1];
-              const BcColor8888 c2 = src->colors[srcY * 8 + srcY * 4 + srcX * 2];
-              const BcColor8888 c3 = src->colors[srcY * 8 + srcY * 4 + srcX * 2 + 1];
+              const BcColor8888 c0 = src->colors[srcY * 4 + srcX];
+              const BcColor8888 c1 = src->colors[srcY * 4 + srcX + 1];
+              const BcColor8888 c2 = src->colors[(srcY + 1) * 4 + srcX];
+              const BcColor8888 c3 = src->colors[(srcY + 1) * 4 + srcX + 1];
 
               block.colors[y * 4 + x] = rvk_texture_encode_bilerp(c0, c1, c2, c3);
             }
