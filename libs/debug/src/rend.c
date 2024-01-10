@@ -343,7 +343,6 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "MipLevels:  {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
       fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
       fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
-      fmt_write(&str, "Alpha:      {}\n", fmt_bool(rend_res_texture_alpha(texture)));
     }
     const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
     if (mesh) {
