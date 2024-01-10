@@ -765,10 +765,6 @@ u8 rend_res_texture_mip_levels(const RendResTextureComp* comp) {
   return comp->texture->image.mipLevels;
 }
 
-bool rend_res_texture_mip_gen_gpu(const RendResTextureComp* comp) {
-  return (comp->texture->flags & RvkTextureFlags_MipGenGpu) != 0;
-}
-
 bool rend_res_texture_alpha(const RendResTextureComp* comp) {
   return (comp->texture->flags & RvkTextureFlags_Alpha) != 0;
 }
