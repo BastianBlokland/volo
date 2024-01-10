@@ -223,8 +223,8 @@ static void rvk_texture_encode_gen_mips(
   diag_assert(asset->type == AssetTextureType_U8);
   diag_assert(asset->channels == 1 || asset->channels == 4);
   diag_assert(comp != RvkTextureCompress_None);
-  diag_assert(bits_aligned(asset->width, 4));
-  diag_assert(bits_aligned(asset->height, 4));
+  diag_assert(bits_aligned(asset->width, 4) && bits_ispow2(asset->width));
+  diag_assert(bits_aligned(asset->height, 4) && bits_ispow2(asset->height));
 
   const usize blockBufferSize = asset->width * asset->height * sizeof(BcColor8888);
   const Mem   blockBuffer     = alloc_alloc(g_alloc_heap, blockBufferSize, alignof(Bc0Block));
