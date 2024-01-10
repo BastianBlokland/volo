@@ -11,7 +11,7 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-#define VOLO_RVK_TEXTURE_COMPRESSION 1
+#define VOLO_RVK_TEXTURE_COMPRESSION 0
 #define VOLO_RVK_TEXTURE_LOGGING 0
 
 #define rvk_texture_max_scratch_size (64 * usize_kibibyte)
