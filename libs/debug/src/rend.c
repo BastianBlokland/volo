@@ -41,6 +41,7 @@ static const String g_tooltipAmbientMode      = string_static("Controls the ambi
                                                             "- \a.bDebugFresnel\ar: Fresnel contribution.\n"
                                                             "- \a.bDebugDiffuseIrradiance\ar: Ambient diffuse irradiance.\n"
                                                             "- \a.bDebugSpecularIrradiance\ar: Ambient brdf specular irradiance.\n");
+static const String g_tooltipTextureCompr     = string_static("Should texture compression be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipDebugCamera      = string_static("Enable a top-down orthographic debug camera projection.\n\n\a.bNote\ar: The view properties of the 'real' camera will be used, this is useful for debugging the frustum culling.");
 static const String g_tooltipDebugWireframe   = string_static("Enable a geometry wireframe debug overlay.");
 static const String g_tooltipDebugSkinning    = string_static("Enable a skinning-weight debug overlay.");
@@ -421,6 +422,15 @@ static void rend_settings_tab_draw(
   ui_select(canvas, (i32*)&settings->skyMode, g_skyModeNames, array_elems(g_skyModeNames));
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Texture compression"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settingsGlobal->flags,
+      RendGlobalFlags_TextureCompression,
+      .tooltip = g_tooltipTextureCompr);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Camera"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
@@ -437,21 +447,6 @@ static void rend_settings_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas, (u32*)&settings->flags, RendFlags_DebugSkinning, .tooltip = g_tooltipDebugSkinning);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Debug shadow"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Debug light"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&settingsGlobal->flags,
-      RendGlobalFlags_DebugLight,
-      .tooltip = g_tooltipDebugLight);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Gpu"));
@@ -811,6 +806,22 @@ static void rend_light_tab_draw(
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug light"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settingsGlobal->flags,
+      RendGlobalFlags_DebugLight,
+      .tooltip = g_tooltipDebugLight);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug shadow"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
+
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadows"));
   ui_table_next_column(canvas, &table);

@@ -11,7 +11,6 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-#define VOLO_RVK_TEXTURE_COMPRESSION 0
 #define VOLO_RVK_TEXTURE_LOGGING 0
 
 #define rvk_texture_max_scratch_size (64 * usize_kibibyte)
@@ -31,8 +30,10 @@ static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
   return (u16)(32 - bits_clz_32(biggestSide));
 }
 
-static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset) {
-#if VOLO_RVK_TEXTURE_COMPRESSION
+static RvkTextureCompress rvk_texture_compression(RvkDevice* dev, const AssetTextureComp* asset) {
+  if (!(dev->flags & RvkDeviceFlags_TextureCompression)) {
+    return RvkTextureCompress_None;
+  }
   if (asset->type != AssetTextureType_U8) {
     return RvkTextureCompress_None;
   }
@@ -51,10 +52,6 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
      */
     return RvkTextureCompress_None;
   }
-  if (asset->srcMipLevels > 1) {
-    // TODO: Support compressed textures with source mip-maps.
-    return RvkTextureCompress_None;
-  }
   if (asset->channels == AssetTextureChannels_One) {
     return RvkTextureCompress_Bc4;
   }
@@ -62,10 +59,6 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
     return asset->flags & AssetTextureFlags_Alpha ? RvkTextureCompress_Bc3 : RvkTextureCompress_Bc1;
   }
   return RvkTextureCompress_None;
-#else
-  (void)asset;
-  return RvkTextureCompress_None;
-#endif
 }
 
 static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const RvkTextureCompress c) {
@@ -199,15 +192,19 @@ static void rvk_texture_encode(
   u8*       outPtr = out.ptr;
 
   Bc0Block block;
-  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
-    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
-      for (u32 x = 0; x < asset->width; x += 4) {
-        if (asset->channels == 1) {
-          bc0_extract1(inPtr + x, asset->width, &block);
-        } else {
-          bc0_extract4((const BcColor8888*)inPtr + x, asset->width, &block);
+  for (u32 mip = 0; mip != math_max(asset->srcMipLevels, 1); ++mip) {
+    const u32 mipWidth  = math_max(asset->width >> mip, 1);
+    const u32 mipHeight = math_max(asset->height >> mip, 1);
+    for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+      for (u32 y = 0; y < mipHeight; y += 4, inPtr += mipWidth * 4 * asset->channels) {
+        for (u32 x = 0; x < mipWidth; x += 4) {
+          if (asset->channels == 1) {
+            bc0_extract1(inPtr + x, mipWidth, &block);
+          } else {
+            bc0_extract4((const BcColor8888*)inPtr + x, mipWidth, &block);
+          }
+          outPtr += rvk_texture_encode_block(&block, compress, outPtr);
         }
-        outPtr += rvk_texture_encode_block(&block, compress, outPtr);
       }
     }
   }
@@ -291,11 +288,11 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-                 .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
-  const RvkTextureCompress compress = rvk_texture_compression(asset);
+  const RvkTextureCompress compress = rvk_texture_compression(dev, asset);
   const VkFormat           vkFormat = rvk_texture_format(asset, compress);
   const u8                 layers   = math_max(asset->layers, 1);
 
