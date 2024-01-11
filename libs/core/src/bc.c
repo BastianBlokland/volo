@@ -278,7 +278,8 @@ INLINE_HINT static void bc_colors_decode(
  */
 INLINE_HINT static void bc_value_fit(const u8* values, const u32 valueStride, u8* out0, u8* out1) {
   u8 min = *values, max = *values;
-  for (u32 i = 1; i != 16; ++i, values += valueStride) {
+  for (u32 i = 0; i != 15; ++i) {
+    values += valueStride;
     min = math_min(min, *values);
     max = math_max(max, *values);
   }
