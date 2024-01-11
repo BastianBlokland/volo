@@ -11,7 +11,6 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-#define VOLO_RVK_TEXTURE_COMPRESSION 0
 #define VOLO_RVK_TEXTURE_LOGGING 0
 
 #define rvk_texture_max_scratch_size (64 * usize_kibibyte)
@@ -31,8 +30,10 @@ static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
   return (u16)(32 - bits_clz_32(biggestSide));
 }
 
-static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset) {
-#if VOLO_RVK_TEXTURE_COMPRESSION
+static RvkTextureCompress rvk_texture_compression(RvkDevice* dev, const AssetTextureComp* asset) {
+  if (!(dev->flags & RvkDeviceFlags_TextureCompression)) {
+    return RvkTextureCompress_None;
+  }
   if (asset->type != AssetTextureType_U8) {
     return RvkTextureCompress_None;
   }
@@ -58,10 +59,6 @@ static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset)
     return asset->flags & AssetTextureFlags_Alpha ? RvkTextureCompress_Bc3 : RvkTextureCompress_Bc1;
   }
   return RvkTextureCompress_None;
-#else
-  (void)asset;
-  return RvkTextureCompress_None;
-#endif
 }
 
 static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const RvkTextureCompress c) {
@@ -295,7 +292,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
       .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
-  const RvkTextureCompress compress = rvk_texture_compression(asset);
+  const RvkTextureCompress compress = rvk_texture_compression(dev, asset);
   const VkFormat           vkFormat = rvk_texture_format(asset, compress);
   const u8                 layers   = math_max(asset->layers, 1);
 

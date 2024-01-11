@@ -418,7 +418,9 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
       .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
       .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
-
+  if (settingsGlobal->flags & RendGlobalFlags_TextureCompression) {
+    dev->flags |= RvkDeviceFlags_TextureCompression;
+  }
   const bool validationDesired = (settingsGlobal->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_instance_layer_supported(g_validationLayer)) {
     dev->flags |= RvkDeviceFlags_Validation;
