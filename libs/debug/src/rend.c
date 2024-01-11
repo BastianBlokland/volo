@@ -439,21 +439,6 @@ static void rend_settings_tab_draw(
       canvas, (u32*)&settings->flags, RendFlags_DebugSkinning, .tooltip = g_tooltipDebugSkinning);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Debug shadow"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Debug light"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&settingsGlobal->flags,
-      RendGlobalFlags_DebugLight,
-      .tooltip = g_tooltipDebugLight);
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Gpu"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
@@ -811,6 +796,22 @@ static void rend_light_tab_draw(
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug light"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settingsGlobal->flags,
+      RendGlobalFlags_DebugLight,
+      .tooltip = g_tooltipDebugLight);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug shadow"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
+
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadows"));
   ui_table_next_column(canvas, &table);
