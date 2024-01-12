@@ -222,7 +222,7 @@ static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, co
   const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
-      rvk_desc_set_vklayout(graphic->descSet),
+      rvk_desc_set_vklayout(graphic->graphicDescSet),
       rvk_desc_vklayout(graphic->device->descPool, &dynamicDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &drawDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &instanceDescMeta),
@@ -689,8 +689,8 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (graphic->vkPipelineLayout) {
     vkDestroyPipelineLayout(dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
   }
-  if (rvk_desc_valid(graphic->descSet)) {
-    rvk_desc_free(graphic->descSet);
+  if (rvk_desc_valid(graphic->graphicDescSet)) {
+    rvk_desc_free(graphic->graphicDescSet);
   }
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->overrides.count) {
@@ -834,12 +834,12 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    graphic->descSet = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
+    graphic->graphicDescSet = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
 
     // Attach mesh.
     if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
       if (LIKELY(graphic->mesh)) {
-        rvk_desc_set_attach_buffer(graphic->descSet, 0, &graphic->mesh->vertexBuffer, 0);
+        rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0);
       } else {
         log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
         graphic->flags |= RvkGraphicFlags_Invalid;
@@ -879,7 +879,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
         }
         const RvkImage*      image       = &graphic->samplerTextures[samplerIndex]->image;
         const RvkSamplerSpec samplerSpec = graphic->samplerSpecs[samplerIndex];
-        rvk_desc_set_attach_sampler(graphic->descSet, i, image, samplerSpec);
+        rvk_desc_set_attach_sampler(graphic->graphicDescSet, i, image, samplerSpec);
         ++samplerIndex;
       }
     }
@@ -914,7 +914,7 @@ void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
-  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->descSet);
+  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
   vkCmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,

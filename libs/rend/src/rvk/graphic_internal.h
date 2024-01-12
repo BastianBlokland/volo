@@ -64,7 +64,7 @@ typedef struct sRvkGraphic {
   RvkMesh*               mesh;
   RvkTexture*            samplerTextures[rvk_graphic_samplers_max];
   RvkSamplerSpec         samplerSpecs[rvk_graphic_samplers_max];
-  RvkDescSet             descSet;
+  RvkDescSet             graphicDescSet;
   VkPipelineLayout       vkPipelineLayout;
   VkPipeline             vkPipeline;
 } RvkGraphic;
