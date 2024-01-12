@@ -1,8 +1,8 @@
 #pragma once
 #include "core_time.h"
 
+#include "sampler_internal.h"
 #include "types_internal.h"
-#include "vulkan_internal.h"
 
 #define rvk_pass_attach_color_max 2
 
@@ -55,14 +55,15 @@ typedef struct sRvkPassConfig {
 } RvkPassConfig;
 
 typedef struct sRvkPassDraw {
-  RvkGraphic* graphic;
-  RvkMesh*    dynMesh;  // Dynamic (late bound) mesh to use in this draw.
-  RvkImage*   dynImage; // Dynamic (late bound) image to use in this draw.
-  Mem         drawData;
-  Mem         instData;
-  u32         vertexCountOverride;
-  u32         instCount;
-  u32         instDataStride;
+  RvkGraphic*    graphic;
+  Mem            drawData;
+  Mem            instData;
+  RvkMesh*       dynMesh;    // Dynamic (late bound) mesh to use in this draw.
+  RvkImage*      dynImage;   // Dynamic (late bound) image to use in this draw.
+  RvkSamplerSpec dynSampler; // Sampler specification for a dynamic image in this draw.
+  u32            vertexCountOverride;
+  u32            instCount;
+  u32            instDataStride;
 } RvkPassDraw;
 
 RvkPass* rvk_pass_create(

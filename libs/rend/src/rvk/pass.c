@@ -442,7 +442,8 @@ static void rvk_pass_bind_dyn(
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      graphic,
     RvkMesh*                         mesh,
-    RvkImage*                        img) {
+    RvkImage*                        img,
+    const RvkSamplerSpec             sampler) {
   if (!mesh && !img) {
     return; // No dynamic resources to bind.
   }
@@ -463,13 +464,7 @@ static void rvk_pass_bind_dyn(
       const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
       img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
-    const RvkSamplerSpec samplerSpec = {
-        .flags  = RvkSamplerFlags_None,
-        .wrap   = RvkSamplerWrap_Clamp,
-        .filter = RvkSamplerFilter_Linear,
-        .aniso  = RvkSamplerAniso_x8,
-    };
-    rvk_desc_set_attach_sampler(descSet, 1, img, samplerSpec);
+    rvk_desc_set_attach_sampler(descSet, 1, img, sampler);
   }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
@@ -969,7 +964,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
-  rvk_pass_bind_dyn(pass, stage, graphic, draw->dynMesh, draw->dynImage);
+  rvk_pass_bind_dyn(pass, stage, graphic, draw->dynMesh, draw->dynImage, draw->dynSampler);
 
   if (draw->drawData.size) {
     rvk_uniform_bind(
