@@ -360,7 +360,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
-      RvkTexture* alphaTexture = graphicOriginal->samplers[AlphaTextureIndex].texture;
+      RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
       if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
         continue; // Graphic uses discard but has no alpha texture.
       }
@@ -383,9 +383,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       drawSpec.dynMesh     = dynMesh;
       drawSpec.dynImage    = dynAlphaImage;
       drawSpec.dynSampler  = (RvkSamplerSpec){
-          .wrap   = RvkSamplerWrap_Clamp,
-          .filter = RvkSamplerFilter_Linear,
-          .aniso  = RvkSamplerAniso_x8,
+           .wrap   = RvkSamplerWrap_Clamp,
+           .filter = RvkSamplerFilter_Linear,
+           .aniso  = RvkSamplerAniso_x8,
       };
       painter_push(ctx, drawSpec);
     }
