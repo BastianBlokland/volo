@@ -438,7 +438,7 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
 }
 
 static void rvk_pass_bind_dyn(
-    RvkPass*           pass,
+    RvkPass*                         pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      graphic,
     RvkMesh*                         mesh,
@@ -450,8 +450,7 @@ static void rvk_pass_bind_dyn(
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
-  const RvkDescMeta meta    = rvk_pass_meta_dynamic(pass);
-  const RvkDescSet  descSet = rvk_pass_alloc_desc(pass, &meta);
+  const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &graphic->dynamicDescMeta);
   if (mesh) {
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
@@ -598,15 +597,6 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
 }
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }
-
-RvkDescMeta rvk_pass_meta_dynamic(const RvkPass* pass) {
-  (void)pass;
-  // Dynamic (late bound) draw resources.
-  return (RvkDescMeta){
-      .bindings[0] = RvkDescKind_StorageBuffer, // StorageBuffer for the dynamic mesh vertices.
-      .bindings[1] = RvkDescKind_CombinedImageSampler2D, // Dynamic image.
-  };
-}
 
 RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
 

@@ -217,13 +217,12 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, const RvkPass* pass) {
   const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
-  const RvkDescMeta           dynamicDescMeta     = rvk_pass_meta_dynamic(pass);
   const RvkDescMeta           drawDescMeta        = rvk_pass_meta_draw(pass);
   const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->graphicDescSet),
-      rvk_desc_vklayout(graphic->device->descPool, &dynamicDescMeta),
+      rvk_desc_vklayout(graphic->device->descPool, &graphic->dynamicDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &drawDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &instanceDescMeta),
   };
@@ -807,6 +806,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     if (dynamicDescMeta.bindings[1] == RvkDescKind_CombinedImageSampler2D) {
       graphic->flags |= RvkGraphicFlags_RequireDynamicImage;
     }
+    graphic->dynamicDescMeta = dynamicDescMeta;
 
     // Prepare draw set bindings.
     const RvkDescMeta drawDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Draw);

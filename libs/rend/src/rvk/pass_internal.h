@@ -82,7 +82,6 @@ bool   rvk_pass_has_depth(const RvkPass*);
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
-RvkDescMeta   rvk_pass_meta_dynamic(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_draw(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
