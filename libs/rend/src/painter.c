@@ -382,6 +382,11 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       RvkPassDraw drawSpec = rend_draw_output(draw, shadowGraphic);
       drawSpec.dynMesh     = dynMesh;
       drawSpec.dynImage    = dynAlphaImage;
+      drawSpec.dynSampler  = (RvkSamplerSpec){
+          .wrap   = RvkSamplerWrap_Clamp,
+          .filter = RvkSamplerFilter_Linear,
+          .aniso  = RvkSamplerAniso_x8,
+      };
       painter_push(ctx, drawSpec);
     }
   }
@@ -403,10 +408,11 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
     data->fogViewProj          = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
 
     const RvkPassDraw draw = {
-        .graphic   = graphic,
-        .dynImage  = fogMap,
-        .instCount = 1,
-        .drawData  = mem_create(data, sizeof(FogData)),
+        .graphic    = graphic,
+        .dynImage   = fogMap,
+        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
+        .instCount  = 1,
+        .drawData   = mem_create(data, sizeof(FogData)),
     };
     painter_push(ctx, draw);
   }
@@ -514,10 +520,11 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
     data->zoomInv = ctx->settings->minimapZoom > 0 ? 1.0f / ctx->settings->minimapZoom : 1.0f;
 
     const RvkPassDraw draw = {
-        .graphic   = graphic,
-        .dynImage  = fogBuffer,
-        .instCount = 1,
-        .drawData  = mem_create(data, sizeof(MinimapData)),
+        .graphic    = graphic,
+        .dynImage   = fogBuffer,
+        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
+        .instCount  = 1,
+        .drawData   = mem_create(data, sizeof(MinimapData)),
     };
     painter_push(ctx, draw);
   }
@@ -554,10 +561,11 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     data->exposure        = exposure;
 
     const RvkPassDraw draw = {
-        .graphic   = graphic,
-        .dynImage  = image,
-        .instCount = 1,
-        .drawData  = mem_create(data, sizeof(ImageViewerData)),
+        .graphic    = graphic,
+        .dynImage   = image,
+        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Nearest},
+        .instCount  = 1,
+        .drawData   = mem_create(data, sizeof(ImageViewerData)),
     };
     painter_push(ctx, draw);
   }
