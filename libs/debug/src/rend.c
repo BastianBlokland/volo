@@ -322,13 +322,16 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
-  ui_layout_push(canvas);
+  const UiVector infoPanelSize = {0.75f, 0.25f};
+
   ui_style_push(canvas);
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, infoPanelSize, UiBase_Container);
   {
-    const UiVector size = {0.75f, 0.25f};
-    ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
     ui_style_layer(canvas, UiLayer_Overlay);
     ui_style_variation(canvas, UiVariation_Monospace);
+
+    f32 lodMax = 0.0f;
 
     DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
     fmt_write(&str, "Name:       {}\n", fmt_text(asset_id(assetComp)));
@@ -337,6 +340,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
 
     const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
     if (texture) {
+      lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
       fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_texture_memory(texture)));
       fmt_write(&str, "Width:      {}\n", fmt_int(rend_res_texture_width(texture)));
       fmt_write(&str, "Height:     {}\n", fmt_int(rend_res_texture_height(texture)));
@@ -352,12 +356,28 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "Triangles:  {}\n", fmt_int(rend_res_mesh_indices(mesh) / 3));
       fmt_write(&str, "Skinned:    {}\n", fmt_bool(rend_res_mesh_is_skinned(mesh)));
     }
-
     ui_label(canvas, dynstring_view(&str), .fontSize = 14, .align = UiAlign_MiddleLeft);
     dynstring_destroy(&str);
+
+    ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(0.5f, 0.0f), UiBase_Current, Ui_X);
+    ui_layout_move_dir(canvas, Ui_Right, 1.0f, UiBase_Current);
+    ui_layout_container_push(canvas, UiClip_None);
+
+    UiTable settingsTable = ui_table();
+    ui_table_add_column(&settingsTable, UiTableColumn_Fixed, 100);
+    ui_table_add_column(&settingsTable, UiTableColumn_Fixed, 200);
+
+    if (lodMax > 0.0f) {
+      ui_table_next_row(canvas, &settingsTable);
+      ui_label(canvas, string_lit("Lod"));
+      ui_table_next_column(canvas, &settingsTable);
+      ui_slider(canvas, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
+    }
+
+    ui_layout_container_pop(canvas);
   }
-  ui_style_pop(canvas);
   ui_layout_pop(canvas);
+  ui_style_pop(canvas);
 }
 
 static void rend_settings_tab_draw(
@@ -737,6 +757,7 @@ static void rend_resource_actions_draw(
           .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
+    settings->debugViewerLod      = 0.0f;
   }
 }
 
