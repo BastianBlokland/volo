@@ -344,7 +344,7 @@ debug_overlay_entity(UiCanvasComp* c, UiTable* t, const String label, const EcsE
   debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_int(v, .base = 16)));
 }
 
-static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, EcsView* resView) {
+static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
   EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
   if (!resourceItr) {
     return;
@@ -354,48 +354,76 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
-  static const UiVector g_panelSize = {600, 200};
+  static const UiVector g_panelSize = {900, 200};
+  static const UiVector g_inset     = {-5, -5};
 
-  ui_style_push(canvas);
-  ui_style_layer(canvas, UiLayer_Overlay);
+  ui_style_push(c);
+  ui_style_layer(c, UiLayer_Overlay);
 
-  ui_layout_push(canvas);
-  ui_layout_move_to(canvas, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
-  ui_layout_move_dir(canvas, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
-  ui_layout_resize(canvas, UiAlign_MiddleCenter, g_panelSize, UiBase_Absolute, Ui_XY);
+  ui_layout_push(c);
+  ui_layout_move_to(c, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
+  ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
+  ui_layout_resize(c, UiAlign_MiddleCenter, g_panelSize, UiBase_Absolute, Ui_XY);
 
-  debug_overlay_bg(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, -10), UiBase_Absolute, Ui_XY);
-  ui_layout_container_push(canvas, UiClip_None);
+  f32  lodMax               = 0.0f;
+  bool supportInterpolation = false;
 
-  UiTable table = ui_table(.spacing = {2, 2}, .rowHeight = 17);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  debug_overlay_bg(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, g_inset, UiBase_Absolute, Ui_XY);
+  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0.5f, 0), UiBase_Current, Ui_X);
+  ui_layout_container_push(c, UiClip_None);
+
+  UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  debug_overlay_str(canvas, &table, string_lit("Name"), asset_id(assetComp));
-  debug_overlay_entity(canvas, &table, string_lit("Entity"), entity);
-  debug_overlay_int(canvas, &table, string_lit("Dependents"), rend_res_dependents(resComp));
+  // Info section (left side of panel).
+  debug_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
+  debug_overlay_entity(c, &table, string_lit("Entity"), entity);
+  debug_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   if (texture) {
-    debug_overlay_size(canvas, &table, string_lit("Memory"), rend_res_texture_memory(texture));
-    debug_overlay_int(canvas, &table, string_lit("Width"), rend_res_texture_width(texture));
-    debug_overlay_int(canvas, &table, string_lit("Height"), rend_res_texture_height(texture));
-    debug_overlay_str(canvas, &table, string_lit("Format"), rend_res_texture_format_str(texture));
-    debug_overlay_int(canvas, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
-    debug_overlay_int(canvas, &table, string_lit("Layers"), rend_res_texture_layers(texture));
+    lodMax               = (f32)(rend_res_texture_mip_levels(texture) - 1);
+    supportInterpolation = true;
+    debug_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
+    debug_overlay_int(c, &table, string_lit("Width"), rend_res_texture_width(texture));
+    debug_overlay_int(c, &table, string_lit("Height"), rend_res_texture_height(texture));
+    debug_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
+    debug_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
+    debug_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
   }
   const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
   if (mesh) {
-    debug_overlay_size(canvas, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
-    debug_overlay_int(canvas, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
-    debug_overlay_int(canvas, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
-    debug_overlay_int(canvas, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
-    debug_overlay_bool(canvas, &table, string_lit("Skinned"), rend_res_mesh_is_skinned(mesh));
+    debug_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
+    debug_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
+    debug_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
+    debug_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
+    debug_overlay_bool(c, &table, string_lit("Skinned"), rend_res_mesh_is_skinned(mesh));
+  }
+  ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Container);
+  ui_layout_container_pop(c);
+
+  // Settings section (right side of panel).
+  ui_layout_move_dir(c, Ui_Right, 1.0f, UiBase_Current);
+  ui_layout_container_push(c, UiClip_None);
+  ui_table_reset(&table);
+
+  if (lodMax > 0.0f) {
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Lod"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_slider(c, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
+  }
+  if (supportInterpolation) {
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Interpolate"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
   }
 
-  ui_layout_container_pop(canvas);
-  ui_layout_pop(canvas);
-  ui_style_pop(canvas);
+  ui_layout_container_pop(c);
+  ui_layout_pop(c);
+  ui_style_pop(c);
 }
 
 static void rend_settings_tab_draw(
