@@ -88,26 +88,33 @@ typedef enum {
   RendTonemapper_Aces,
 } RendTonemapper;
 
+typedef enum {
+  RendDebugViewer_Interpolate = 1 << 0, // Enable linear interpolation for textures in the viewer.
+  RendDebugViewer_IgnoreAlpha = 1 << 1, // Ignore the alpha when viewing textures in the viewer.
+} RendDebugViewerFlags;
+
 ecs_comp_extern_public(RendSettingsComp) {
-  RendFlags       flags;
-  RendPresentMode presentMode;
-  RendAmbientMode ambientMode;
-  RendSkyMode     skyMode;
-  f32             exposure;
-  RendTonemapper  tonemapper;
-  f32             resolutionScale;
-  u16             shadowResolution, fogResolution;
-  f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;
-  GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
-  u32             fogBlurSteps;
-  f32             fogBlurScale;
-  f32             bloomIntensity;
-  u32             bloomSteps;
-  f32             bloomRadius;
-  f32             distortionResolutionScale;
-  f32             minimapRect[4]; // x, y, width, height. Normalized screen coordinates.
-  f32             minimapAlpha, minimapZoom;
-  EcsEntityId     debugViewerResource; // Resource entity to visualize for debug purposes.
+  RendFlags            flags;
+  RendPresentMode      presentMode;
+  RendAmbientMode      ambientMode;
+  RendSkyMode          skyMode;
+  f32                  exposure;
+  RendTonemapper       tonemapper;
+  f32                  resolutionScale;
+  u16                  shadowResolution, fogResolution;
+  f32                  aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;
+  GeoVector*           aoKernel; // GeoVector[rend_ao_kernel_size];
+  u32                  fogBlurSteps;
+  f32                  fogBlurScale;
+  f32                  bloomIntensity;
+  u32                  bloomSteps;
+  f32                  bloomRadius;
+  f32                  distortionResolutionScale;
+  f32                  minimapRect[4]; // x, y, width, height. Normalized screen coordinates.
+  f32                  minimapAlpha, minimapZoom;
+  EcsEntityId          debugViewerResource; // Resource entity to visualize for debug purposes.
+  f32                  debugViewerLod;      // Level-of-detail to use for the debug-viewer.
+  RendDebugViewerFlags debugViewerFlags;    // Flags to use for the debug-viewer.
 };
 
 typedef enum {

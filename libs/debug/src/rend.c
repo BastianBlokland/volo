@@ -312,7 +312,39 @@ static bool debug_overlay_blocker(UiCanvasComp* canvas) {
   return status == UiStatus_Activated;
 }
 
-static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, EcsView* resView) {
+static void debug_overlay_bg(UiCanvasComp* c) {
+  ui_style_push(c);
+  ui_style_color(c, ui_color(0, 0, 0, 175));
+  ui_style_outline(c, 3);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
+  ui_style_pop(c);
+}
+
+static void debug_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
+  ui_table_next_row(c, t);
+  ui_label(c, label, .fontSize = 14);
+  ui_table_next_column(c, t);
+  ui_label(c, v, .fontSize = 14, .selectable = true);
+}
+
+static void debug_overlay_int(UiCanvasComp* c, UiTable* t, const String label, const i64 v) {
+  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_int(v)));
+}
+
+static void debug_overlay_size(UiCanvasComp* c, UiTable* t, const String label, const usize v) {
+  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_size(v)));
+}
+
+static void debug_overlay_bool(UiCanvasComp* c, UiTable* t, const String label, const bool v) {
+  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_bool(v)));
+}
+
+static void
+debug_overlay_entity(UiCanvasComp* c, UiTable* t, const String label, const EcsEntityId v) {
+  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_int(v, .base = 16)));
+}
+
+static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
   EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
   if (!resourceItr) {
     return;
@@ -322,43 +354,81 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
-  ui_layout_push(canvas);
-  ui_style_push(canvas);
-  {
-    const UiVector size = {0.75f, 0.25f};
-    ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
-    ui_style_layer(canvas, UiLayer_Overlay);
-    ui_style_variation(canvas, UiVariation_Monospace);
+  static const UiVector g_panelSize = {900, 180};
+  static const UiVector g_inset     = {-5, -5};
 
-    DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-    fmt_write(&str, "Name:       {}\n", fmt_text(asset_id(assetComp)));
-    fmt_write(&str, "Entity:     {}\n", fmt_int(entity, .base = 16));
-    fmt_write(&str, "Dependents: {}\n", fmt_int(rend_res_dependents(resComp)));
+  ui_style_push(c);
+  ui_style_layer(c, UiLayer_Overlay);
 
-    const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
-    if (texture) {
-      fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_texture_memory(texture)));
-      fmt_write(&str, "Width:      {}\n", fmt_int(rend_res_texture_width(texture)));
-      fmt_write(&str, "Height:     {}\n", fmt_int(rend_res_texture_height(texture)));
-      fmt_write(&str, "Layers:     {}\n", fmt_int(rend_res_texture_layers(texture)));
-      fmt_write(&str, "MipLevels:  {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
-      fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
-      fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
-    }
-    const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
-    if (mesh) {
-      fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_mesh_memory(mesh)));
-      fmt_write(&str, "Vertices:   {}\n", fmt_int(rend_res_mesh_vertices(mesh)));
-      fmt_write(&str, "Indices:    {}\n", fmt_int(rend_res_mesh_indices(mesh)));
-      fmt_write(&str, "Triangles:  {}\n", fmt_int(rend_res_mesh_indices(mesh) / 3));
-      fmt_write(&str, "Skinned:    {}\n", fmt_bool(rend_res_mesh_is_skinned(mesh)));
-    }
+  ui_layout_push(c);
+  ui_layout_move_to(c, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
+  ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
+  ui_layout_resize(c, UiAlign_MiddleCenter, g_panelSize, UiBase_Absolute, Ui_XY);
 
-    ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
-    dynstring_destroy(&str);
+  f32 lodMax = 0.0f;
+
+  debug_overlay_bg(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, g_inset, UiBase_Absolute, Ui_XY);
+  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0.5f, 0), UiBase_Current, Ui_X);
+  ui_layout_container_push(c, UiClip_None);
+
+  UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  // Info section (left side of panel).
+  debug_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
+  debug_overlay_entity(c, &table, string_lit("Entity"), entity);
+  debug_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
+  const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
+  if (texture) {
+    lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
+    debug_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
+    const u16    width   = rend_res_texture_width(texture);
+    const u16    height  = rend_res_texture_height(texture);
+    const String sizeStr = fmt_write_scratch("{} x {}", fmt_int(width), fmt_int(height));
+    debug_overlay_str(c, &table, string_lit("Size"), sizeStr);
+    debug_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
+    debug_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
+    debug_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
   }
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
+  const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
+  if (mesh) {
+    debug_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
+    debug_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
+    debug_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
+    debug_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
+    debug_overlay_bool(c, &table, string_lit("Skinned"), rend_res_mesh_is_skinned(mesh));
+  }
+  ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Container);
+  ui_layout_container_pop(c);
+
+  // Settings section (right side of panel).
+  ui_layout_move_dir(c, Ui_Right, 1.0f, UiBase_Current);
+  ui_layout_container_push(c, UiClip_None);
+  ui_table_reset(&table);
+
+  if (lodMax > 0.0f) {
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Lod"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_slider(c, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
+  }
+  if (texture) {
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Interpolate"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Ignore alpha"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_IgnoreAlpha);
+  }
+
+  ui_layout_container_pop(c);
+  ui_layout_pop(c);
+  ui_style_pop(c);
 }
 
 static void rend_settings_tab_draw(
@@ -738,6 +808,7 @@ static void rend_resource_actions_draw(
           .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
+    settings->debugViewerLod      = 0.0f;
   }
 }
 

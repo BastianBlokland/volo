@@ -542,13 +542,17 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef struct {
       ALIGNAS(16)
-      u32 imageChannels;
+      u16 imageChannels;
+      f16 lod;
       u32 flags;
       f32 exposure;
       f32 aspect;
     } ImageViewerData;
 
-    enum { ImageViewerFlags_FlipY = 1 << 0 };
+    enum {
+      ImageViewerFlags_FlipY       = 1 << 0,
+      ImageViewerFlags_IgnoreAlpha = 1 << 1,
+    };
 
     u32 flags = 0;
     if (image->type != RvkImageType_ColorSource && image->type != RvkImageType_ColorSourceCube) {
@@ -559,17 +563,26 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
        */
       flags |= ImageViewerFlags_FlipY;
     }
+    if (ctx->settings->debugViewerFlags & RendDebugViewer_IgnoreAlpha) {
+      flags = ImageViewerFlags_IgnoreAlpha;
+    }
 
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
+    data->lod             = float_f32_to_f16(ctx->settings->debugViewerLod);
     data->flags           = flags;
     data->exposure        = exposure;
     data->aspect          = (f32)image->size.width / (f32)image->size.height;
 
+    RvkSamplerFilter filter = RvkSamplerFilter_Nearest;
+    if (ctx->settings->debugViewerFlags & RendDebugViewer_Interpolate) {
+      filter = RvkSamplerFilter_Linear;
+    }
+
     const RvkPassDraw draw = {
         .graphic    = graphic,
         .dynImage   = image,
-        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Nearest},
+        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = filter},
         .instCount  = 1,
         .drawData   = mem_create(data, sizeof(ImageViewerData)),
     };

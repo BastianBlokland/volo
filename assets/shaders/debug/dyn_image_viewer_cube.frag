@@ -7,14 +7,16 @@
 #include "texture.glsl"
 
 struct ImageData {
-  u32 imageChannels;
+  u16 imageChannels;
+  f16 lod;
   u32 flags;
   f32 exposure;
   f32 aspect;
 };
 
-const f32 c_rotateSpeed = 0.15;
-const u32 c_flagsFlipY  = 1 << 0;
+const f32 c_rotateSpeed      = 0.15;
+const u32 c_flagsFlipY       = 1 << 0;
+const u32 c_flagsIgnoreAlpha = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_dynamic_img(0) uniform samplerCube u_tex;
@@ -41,10 +43,13 @@ void main() {
   if ((u_draw.flags & c_flagsFlipY) != 0) {
     coord.y = 1.0 - coord.y;
   }
+  const u32 imageChannels = u32(u_draw.imageChannels);
+  const f32 lod           = f32(u_draw.lod);
+  const f32 exposure      = u_draw.exposure;
 
   const f32v3 dir        = compute_dir(coord, u_global.time.y * c_rotateSpeed);
-  const f32v4 imageColor = abs(texture_cube(u_tex, dir)) * u_draw.exposure;
-  switch (u_draw.imageChannels) {
+  const f32v4 imageColor = abs(texture_cube_lod(u_tex, dir, lod)) * exposure;
+  switch (imageChannels) {
   case 1:
     out_color = imageColor.rrr;
     break;
@@ -55,7 +60,11 @@ void main() {
     out_color = imageColor.rgb;
     break;
   case 4:
-    out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);
+    if ((u_draw.flags & c_flagsIgnoreAlpha) != 0) {
+      out_color = imageColor.rgb;
+    } else {
+      out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);
+    }
     break;
   }
 }

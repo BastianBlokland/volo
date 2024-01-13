@@ -5,13 +5,15 @@
 #include "texture.glsl"
 
 struct ImageData {
-  u32 imageChannels;
+  u16 imageChannels;
+  f16 lod;
   u32 flags;
   f32 exposure;
   f32 aspect;
 };
 
-const u32 c_flagsFlipY = 1 << 0;
+const u32 c_flagsFlipY       = 1 << 0;
+const u32 c_flagsIgnoreAlpha = 1 << 1;
 
 bind_dynamic_img(0) uniform sampler2D u_tex;
 bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
@@ -31,9 +33,12 @@ void main() {
   if ((u_draw.flags & c_flagsFlipY) != 0) {
     coord.y = 1.0 - coord.y;
   }
+  const u32 imageChannels = u32(u_draw.imageChannels);
+  const f32 lod           = f32(u_draw.lod);
+  const f32 exposure      = u_draw.exposure;
 
-  const f32v4 imageColor = abs(texture(u_tex, coord)) * u_draw.exposure;
-  switch (u_draw.imageChannels) {
+  const f32v4 imageColor = abs(textureLod(u_tex, coord, lod)) * exposure;
+  switch (imageChannels) {
   case 1:
     out_color = imageColor.rrr;
     break;
@@ -44,7 +49,11 @@ void main() {
     out_color = imageColor.rgb;
     break;
   case 4:
-    out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);
+    if ((u_draw.flags & c_flagsIgnoreAlpha) != 0) {
+      out_color = imageColor.rgb;
+    } else {
+      out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);
+    }
     break;
   }
 }
