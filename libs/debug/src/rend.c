@@ -354,7 +354,7 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
-  static const UiVector g_panelSize = {900, 200};
+  static const UiVector g_panelSize = {900, 180};
   static const UiVector g_inset     = {-5, -5};
 
   ui_style_push(c);
@@ -386,8 +386,10 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
     lodMax               = (f32)(rend_res_texture_mip_levels(texture) - 1);
     supportInterpolation = true;
     debug_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
-    debug_overlay_int(c, &table, string_lit("Width"), rend_res_texture_width(texture));
-    debug_overlay_int(c, &table, string_lit("Height"), rend_res_texture_height(texture));
+    const u16    width   = rend_res_texture_width(texture);
+    const u16    height  = rend_res_texture_height(texture);
+    const String sizeStr = fmt_write_scratch("{} x {}", fmt_int(width), fmt_int(height));
+    debug_overlay_str(c, &table, string_lit("Size"), sizeStr);
     debug_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
     debug_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
     debug_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
