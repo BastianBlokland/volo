@@ -438,9 +438,9 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
 }
 
 static void rvk_pass_bind_dyn(
-    RvkPass*                         pass,
+    RvkPass*           pass,
     MAYBE_UNUSED const RvkPassStage* stage,
-    RvkGraphic*                      graphic,
+    RvkGraphic*                      gra,
     RvkMesh*                         mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
@@ -450,7 +450,7 @@ static void rvk_pass_bind_dyn(
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
-  const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &graphic->dynamicDescMeta);
+  const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->dynamicDescMeta);
   if (mesh) {
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
@@ -458,9 +458,12 @@ static void rvk_pass_bind_dyn(
 #ifndef VOLO_FAST
     rvk_pass_assert_dyn_image_staged(stage, img);
 #endif
-    if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
-      log_e("Cube images cannot be bound dynamically");
-      const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
+    const bool reqCube = gra->dynamicDescMeta.bindings[1] == RvkDescKind_CombinedImageSamplerCube;
+    if (UNLIKELY(reqCube != (img->type == RvkImageType_ColorSourceCube))) {
+      log_e("Unsupported dynamic image type", log_param("graphic", fmt_text(gra->dbgName)));
+
+      const RvkRepositoryId missing =
+          reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
       img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
     rvk_desc_set_attach_sampler(descSet, 1, img, sampler);
@@ -470,7 +473,7 @@ static void rvk_pass_bind_dyn(
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
-      graphic->vkPipelineLayout,
+      gra->vkPipelineLayout,
       RvkGraphicSet_Dynamic,
       array_elems(vkDescSets),
       vkDescSets,
