@@ -312,6 +312,14 @@ static bool debug_overlay_blocker(UiCanvasComp* canvas) {
   return status == UiStatus_Activated;
 }
 
+static void debug_overlay_bg(UiCanvasComp* c) {
+  ui_style_push(c);
+  ui_style_color(c, ui_color(0, 0, 0, 175));
+  ui_style_outline(c, 3);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
+  ui_style_pop(c);
+}
+
 static void debug_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
   ui_table_next_row(c, t);
   ui_label(c, label, .fontSize = 14);
@@ -345,13 +353,19 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   const EcsEntityId  entity    = ecs_view_entity(resourceItr);
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
-  const UiVector     tableSize = {0.5f, 0.225f};
+
+  static const UiVector g_panelSize = {600, 200};
 
   ui_style_push(canvas);
   ui_style_layer(canvas, UiLayer_Overlay);
 
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, tableSize, UiBase_Container);
+  ui_layout_move_to(canvas, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
+  ui_layout_move_dir(canvas, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
+  ui_layout_resize(canvas, UiAlign_MiddleCenter, g_panelSize, UiBase_Absolute, Ui_XY);
+
+  debug_overlay_bg(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, -10), UiBase_Absolute, Ui_XY);
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = {2, 2}, .rowHeight = 17);
