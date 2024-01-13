@@ -532,9 +532,13 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
 
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
+  RvkGraphic*    graphic;
+  if (image->type == RvkImageType_ColorSourceCube) {
+    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
+  } else {
+    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerGraphic);
+  }
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef struct {
       ALIGNAS(16)
