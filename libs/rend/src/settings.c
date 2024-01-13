@@ -66,6 +66,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->distortionResolutionScale = 0.25f;
   s->debugViewerResource       = 0;
   s->debugViewerLod            = 0.0f;
+  s->debugViewerFlags          = 0;
 
   rend_settings_generate_ao_kernel(s);
 }

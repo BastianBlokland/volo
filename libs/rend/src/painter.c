@@ -568,10 +568,15 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     data->exposure        = exposure;
     data->aspect          = (f32)image->size.width / (f32)image->size.height;
 
+    RvkSamplerFilter filter = RvkSamplerFilter_Nearest;
+    if (ctx->settings->debugViewerFlags & RendDebugViewer_Interpolate) {
+      filter = RvkSamplerFilter_Linear;
+    }
+
     const RvkPassDraw draw = {
         .graphic    = graphic,
         .dynImage   = image,
-        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Nearest},
+        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = filter},
         .instCount  = 1,
         .drawData   = mem_create(data, sizeof(ImageViewerData)),
     };

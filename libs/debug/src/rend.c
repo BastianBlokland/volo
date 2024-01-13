@@ -373,6 +373,12 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       ui_table_next_column(canvas, &settingsTable);
       ui_slider(canvas, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
     }
+    if (texture) {
+      ui_table_next_row(canvas, &settingsTable);
+      ui_label(canvas, string_lit("Interpolate"));
+      ui_table_next_column(canvas, &settingsTable);
+      ui_toggle_flag(canvas, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
+    }
 
     ui_layout_container_pop(canvas);
   }
@@ -758,6 +764,7 @@ static void rend_resource_actions_draw(
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
     settings->debugViewerLod      = 0.0f;
+    settings->debugViewerFlags    = 0;
   }
 }
 
