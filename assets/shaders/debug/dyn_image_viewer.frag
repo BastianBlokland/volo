@@ -5,7 +5,8 @@
 #include "texture.glsl"
 
 struct ImageData {
-  u32 imageChannels;
+  u16 imageChannels;
+  f16 lod;
   u32 flags;
   f32 exposure;
   f32 aspect;
@@ -31,9 +32,12 @@ void main() {
   if ((u_draw.flags & c_flagsFlipY) != 0) {
     coord.y = 1.0 - coord.y;
   }
+  const u32 imageChannels = u32(u_draw.imageChannels);
+  const f32 lod           = f32(u_draw.lod);
+  const f32 exposure      = u_draw.exposure;
 
-  const f32v4 imageColor = abs(texture(u_tex, coord)) * u_draw.exposure;
-  switch (u_draw.imageChannels) {
+  const f32v4 imageColor = abs(textureLod(u_tex, coord, lod)) * exposure;
+  switch (imageChannels) {
   case 1:
     out_color = imageColor.rrr;
     break;

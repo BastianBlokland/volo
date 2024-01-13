@@ -18,7 +18,8 @@ const f32v2 c_unitTexCoords[] = {
 };
 
 struct ImageData {
-  u32 imageChannels;
+  u16 imageChannels;
+  f16 lod;
   u32 flags;
   f32 exposure;
   f32 aspect;
@@ -31,6 +32,7 @@ bind_internal(0) out f32v2 out_texcoord;
 
 void main() {
   const f32 screenAspect = u_global.resolution.z;
+  const f32 imageAspect  = u_draw.aspect;
 
   /**
    * Rectangle to display the image onto.
@@ -43,7 +45,7 @@ void main() {
   /**
    * Scale the image so that it fills the rect while maintaining the aspect ratio.
    */
-  const f32 aspectFrac = u_draw.aspect / rectAspect;
+  const f32 aspectFrac = imageAspect / rectAspect;
   f32v2     size;
   if (aspectFrac > 1) {
     size = f32v2(rectSize.x, rectSize.y / aspectFrac);

@@ -383,9 +383,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       drawSpec.dynMesh     = dynMesh;
       drawSpec.dynImage    = dynAlphaImage;
       drawSpec.dynSampler  = (RvkSamplerSpec){
-          .wrap   = RvkSamplerWrap_Clamp,
-          .filter = RvkSamplerFilter_Linear,
-          .aniso  = RvkSamplerAniso_x8,
+           .wrap   = RvkSamplerWrap_Clamp,
+           .filter = RvkSamplerFilter_Linear,
+           .aniso  = RvkSamplerAniso_x8,
       };
       painter_push(ctx, drawSpec);
     }
@@ -542,7 +542,8 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef struct {
       ALIGNAS(16)
-      u32 imageChannels;
+      u16 imageChannels;
+      f16 lod;
       u32 flags;
       f32 exposure;
       f32 aspect;
@@ -562,6 +563,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
+    data->lod             = float_f32_to_f16(0.0f);
     data->flags           = flags;
     data->exposure        = exposure;
     data->aspect          = (f32)image->size.width / (f32)image->size.height;
