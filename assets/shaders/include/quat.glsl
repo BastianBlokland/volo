@@ -10,6 +10,15 @@
 f32v4 quat_identity() { return f32v4(0, 0, 0, 1); }
 
 /**
+ * Compute a quaternion that rotates around an axis.
+ * NOTE: Angle is in radians.
+ * Pre-condition: Axis is normalized.
+ */
+f32v4 quat_angle_axis(const f32 angle, const f32v3 axis) {
+  return f32v4(axis * sin(angle * 0.5), cos(angle * 0.5));
+}
+
+/**
  * Compute a vector that is rotated based on the given quaternion.
  * Pre-condition: Quaternion has to be normalized.
  */
