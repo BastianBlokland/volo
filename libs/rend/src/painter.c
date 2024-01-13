@@ -360,7 +360,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
-      RvkTexture* alphaTexture = graphicOriginal->samplers[AlphaTextureIndex].texture;
+      RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
       if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
         continue; // Graphic uses discard but has no alpha texture.
       }
@@ -532,15 +532,20 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
 
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
+  RvkGraphic*    graphic;
+  if (image->type == RvkImageType_ColorSourceCube) {
+    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
+  } else {
+    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerGraphic);
+  }
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef struct {
       ALIGNAS(16)
       u32 imageChannels;
       u32 flags;
       f32 exposure;
+      f32 aspect;
     } ImageViewerData;
 
     enum { ImageViewerFlags_FlipY = 1 << 0 };
@@ -559,6 +564,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
     data->flags           = flags;
     data->exposure        = exposure;
+    data->aspect          = (f32)image->size.width / (f32)image->size.height;
 
     const RvkPassDraw draw = {
         .graphic    = graphic,
@@ -622,19 +628,9 @@ static void painter_push_debug_resource_viewer(
 
     RendResTextureComp* textureComp = ecs_view_write_t(itr, RendResTextureComp);
     if (textureComp) {
-      RvkTexture* tex = textureComp->texture;
-      if (tex->image.type == RvkImageType_ColorSourceCube) {
-        /**
-         * Viewing cube-maps is not supported at the moment (because late-bound cube maps are not
-         * supported), show the 'Missing Texture' instead.
-         * NOTE: Should we print a warning/error instead?
-         */
-        RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
-        tex                 = rvk_repository_texture_get(repo, RvkRepositoryId_MissingTexture);
-      }
-      if (rvk_pass_prepare_texture(ctx->pass, tex)) {
+      if (rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
         const f32 exposure = 1.0f;
-        painter_push_debug_image_viewer(ctx, &tex->image, exposure);
+        painter_push_debug_image_viewer(ctx, &textureComp->texture->image, exposure);
       }
     }
     RendResMeshComp* meshComp = ecs_view_write_t(itr, RendResMeshComp);

@@ -44,6 +44,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("BlurHorGraphic"),
       string_static("BlurVerGraphic"),
       string_static("DebugImageViewerGraphic"),
+      string_static("DebugImageViewerCubeGraphic"),
       string_static("DebugMeshViewerGraphic"),
       string_static("DebugMeshViewerSkinnedGraphic"),
       string_static("DebugWireframeGraphic"),

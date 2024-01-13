@@ -2,6 +2,8 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "global.glsl"
+#include "quat.glsl"
 #include "texture.glsl"
 
 struct ImageData {
@@ -11,9 +13,11 @@ struct ImageData {
   f32 aspect;
 };
 
-const u32 c_flagsFlipY = 1 << 0;
+const f32 c_rotateSpeed = 0.15;
+const u32 c_flagsFlipY  = 1 << 0;
 
-bind_dynamic_img(0) uniform sampler2D u_tex;
+bind_global_data(0) readonly uniform Global { GlobalData u_global; };
+bind_dynamic_img(0) uniform samplerCube u_tex;
 bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -26,13 +30,20 @@ f32v3 checker_pattern(const f32v2 texcoord) {
   return mix(f32v3(0.2), f32v3(0.3), val);
 }
 
+f32v3 compute_dir(const f32v2 texcoord, const f32 angle) {
+  const f32v3 dir = normalize(f32v3((texcoord - f32v2(0.5)) * 2, 1));
+  const f32v4 rot = quat_angle_axis(angle, f32v3(0, 1, 0));
+  return quat_rotate(rot, dir);
+}
+
 void main() {
   f32v2 coord = in_texcoord;
   if ((u_draw.flags & c_flagsFlipY) != 0) {
     coord.y = 1.0 - coord.y;
   }
 
-  const f32v4 imageColor = abs(texture(u_tex, coord)) * u_draw.exposure;
+  const f32v3 dir        = compute_dir(coord, u_global.time.y * c_rotateSpeed);
+  const f32v4 imageColor = abs(texture_cube(u_tex, dir)) * u_draw.exposure;
   switch (u_draw.imageChannels) {
   case 1:
     out_color = imageColor.rrr;

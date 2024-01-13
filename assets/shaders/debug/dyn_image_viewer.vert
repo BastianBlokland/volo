@@ -17,19 +17,20 @@ const f32v2 c_unitTexCoords[] = {
     f32v2(0, 1),
 };
 
+struct ImageData {
+  u32 imageChannels;
+  u32 flags;
+  f32 exposure;
+  f32 aspect;
+};
+
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_dynamic_img(0) uniform sampler2D u_tex;
+bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
 
 bind_internal(0) out f32v2 out_texcoord;
 
-f32 texture_aspect(const sampler2D texture) {
-  const f32v2 size = textureSize(texture, 0);
-  return size.x / size.y;
-}
-
 void main() {
-  const f32 screenAspect  = u_global.resolution.z;
-  const f32 textureAspect = texture_aspect(u_tex);
+  const f32 screenAspect = u_global.resolution.z;
 
   /**
    * Rectangle to display the image onto.
@@ -42,7 +43,7 @@ void main() {
   /**
    * Scale the image so that it fills the rect while maintaining the aspect ratio.
    */
-  const f32 aspectFrac = textureAspect / rectAspect;
+  const f32 aspectFrac = u_draw.aspect / rectAspect;
   f32v2     size;
   if (aspectFrac > 1) {
     size = f32v2(rectSize.x, rectSize.y / aspectFrac);

@@ -23,11 +23,6 @@ enum {
 #define rvk_graphic_shaders_max 2
 #define rvk_graphic_samplers_max 6
 
-typedef struct {
-  RvkTexture*    texture;
-  RvkSamplerSpec spec;
-} RvkGraphicSampler;
-
 typedef enum {
   RvkGraphicFlags_MayDiscard          = 1 << 0, // Graphic might discard a fragment.
   RvkGraphicFlags_DepthClamp          = 1 << 1,
@@ -67,8 +62,10 @@ typedef struct sRvkGraphic {
   f32                    blendConstant;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
-  RvkGraphicSampler      samplers[rvk_graphic_samplers_max];
-  RvkDescSet             descSet;
+  RvkTexture*            samplerTextures[rvk_graphic_samplers_max];
+  RvkSamplerSpec         samplerSpecs[rvk_graphic_samplers_max];
+  RvkDescSet             graphicDescSet;
+  RvkDescMeta            dynamicDescMeta;
   VkPipelineLayout       vkPipelineLayout;
   VkPipeline             vkPipeline;
 } RvkGraphic;

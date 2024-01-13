@@ -61,7 +61,7 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
 
 static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
     rend_storage_buffer_mask,
-    rend_image_sampler_2d_mask,
+    rend_image_sampler_mask,
 };
 
 static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
@@ -217,13 +217,12 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, const RvkPass* pass) {
   const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
-  const RvkDescMeta           dynamicDescMeta     = rvk_pass_meta_dynamic(pass);
   const RvkDescMeta           drawDescMeta        = rvk_pass_meta_draw(pass);
   const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
-      rvk_desc_set_vklayout(graphic->descSet),
-      rvk_desc_vklayout(graphic->device->descPool, &dynamicDescMeta),
+      rvk_desc_set_vklayout(graphic->graphicDescSet),
+      rvk_desc_vklayout(graphic->device->descPool, &graphic->dynamicDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &drawDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &instanceDescMeta),
   };
@@ -549,22 +548,15 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
 
 static void rvk_graphic_set_missing_sampler(
     RvkGraphic* graphic, const u32 samplerIndex, const RvkDescKind kind) {
-  diag_assert(!graphic->samplers[samplerIndex].texture);
+  diag_assert(!graphic->samplerTextures[samplerIndex]);
 
+  RvkRepository*        repo   = graphic->device->repository;
   const RvkRepositoryId repoId = kind == RvkDescKind_CombinedImageSamplerCube
                                      ? RvkRepositoryId_MissingTextureCube
                                      : RvkRepositoryId_MissingTexture;
 
-  RvkDevice*  dev = graphic->device;
-  RvkTexture* tex = rvk_repository_texture_get(dev->repository, repoId);
-
-  graphic->samplers[samplerIndex].texture = tex;
-  graphic->samplers[samplerIndex].spec    = (RvkSamplerSpec){
-      .flags  = RvkSamplerFlags_None,
-      .wrap   = RvkSamplerWrap_Repeat,
-      .filter = RvkSamplerFilter_Nearest,
-      .aniso  = RvkSamplerAniso_None,
-  };
+  graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
+  graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){.filter = RvkSamplerFilter_Nearest};
 }
 
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
@@ -696,8 +688,8 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (graphic->vkPipelineLayout) {
     vkDestroyPipelineLayout(dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
   }
-  if (rvk_desc_valid(graphic->descSet)) {
-    rvk_desc_free(graphic->descSet);
+  if (rvk_desc_valid(graphic->graphicDescSet)) {
+    rvk_desc_free(graphic->graphicDescSet);
   }
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->overrides.count) {
@@ -757,21 +749,19 @@ void rvk_graphic_sampler_add(
     RvkGraphic* graphic, RvkTexture* tex, const AssetGraphicSampler* sampler) {
 
   for (u8 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
-    RvkGraphicSampler* itr = &graphic->samplers[samplerIndex];
-    if (!itr->texture) {
+    if (!graphic->samplerTextures[samplerIndex]) {
       RvkSamplerFlags samplerFlags = RvkSamplerFlags_None;
       if (sampler->mipBlending) {
         samplerFlags |= RvkSamplerFlags_MipBlending;
       }
-
-      itr->texture = tex;
-      itr->spec    = (RvkSamplerSpec){
-          .flags  = samplerFlags,
-          .wrap   = rvk_graphic_wrap(sampler->wrap),
-          .filter = rvk_graphic_filter(sampler->filter),
-          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
-      };
       graphic->samplerMask |= 1 << samplerIndex;
+      graphic->samplerTextures[samplerIndex] = tex;
+      graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
+             .flags  = samplerFlags,
+             .wrap   = rvk_graphic_wrap(sampler->wrap),
+             .filter = rvk_graphic_filter(sampler->filter),
+             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+      };
       return;
     }
   }
@@ -816,6 +806,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     if (dynamicDescMeta.bindings[1] == RvkDescKind_CombinedImageSampler2D) {
       graphic->flags |= RvkGraphicFlags_RequireDynamicImage;
     }
+    graphic->dynamicDescMeta = dynamicDescMeta;
 
     // Prepare draw set bindings.
     const RvkDescMeta drawDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Draw);
@@ -843,12 +834,12 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    graphic->descSet = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
+    graphic->graphicDescSet = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
 
     // Attach mesh.
     if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
       if (LIKELY(graphic->mesh)) {
-        rvk_desc_set_attach_buffer(graphic->descSet, 0, &graphic->mesh->vertexBuffer, 0);
+        rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0);
       } else {
         log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
         graphic->flags |= RvkGraphicFlags_Invalid;
@@ -874,10 +865,10 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
           graphic->flags |= RvkGraphicFlags_Invalid;
           break;
         }
-        if (!graphic->samplers[samplerIndex].texture) {
+        if (!graphic->samplerTextures[samplerIndex]) {
           rvk_graphic_set_missing_sampler(graphic, samplerIndex, kind);
         }
-        if (kind != rvk_texture_sampler_kind(graphic->samplers[samplerIndex].texture)) {
+        if (kind != rvk_texture_sampler_kind(graphic->samplerTextures[samplerIndex])) {
           log_e(
               "Mismatched shader texture sampler kind",
               log_param("graphic", fmt_text(graphic->dbgName)),
@@ -886,9 +877,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
           graphic->flags |= RvkGraphicFlags_Invalid;
           break;
         }
-        const RvkImage*      image       = &graphic->samplers[samplerIndex].texture->image;
-        const RvkSamplerSpec samplerSpec = graphic->samplers[samplerIndex].spec;
-        rvk_desc_set_attach_sampler(graphic->descSet, i, image, samplerSpec);
+        const RvkImage*      image       = &graphic->samplerTextures[samplerIndex]->image;
+        const RvkSamplerSpec samplerSpec = graphic->samplerSpecs[samplerIndex];
+        rvk_desc_set_attach_sampler(graphic->graphicDescSet, i, image, samplerSpec);
         ++samplerIndex;
       }
     }
@@ -908,8 +899,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
   if (graphic->mesh && !rvk_mesh_prepare(graphic->mesh)) {
     return false;
   }
-  array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
-    if (itr->texture && !rvk_texture_prepare(itr->texture, vkCmdBuf)) {
+  for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
+    RvkTexture* tex = graphic->samplerTextures[samplerIndex];
+    if (tex && !rvk_texture_prepare(tex, vkCmdBuf)) {
       return false;
     }
   }
@@ -922,7 +914,7 @@ void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
-  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->descSet);
+  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
   vkCmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,

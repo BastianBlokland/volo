@@ -47,6 +47,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_BlurHorGraphic,                .assetId = string_static("graphics/blur_hor.graphic") },
   { .repoId = RvkRepositoryId_BlurVerGraphic,                .assetId = string_static("graphics/blur_ver.graphic") },
   { .repoId = RvkRepositoryId_DebugImageViewerGraphic,       .assetId = string_static("graphics/debug/image_viewer.graphic") },
+  { .repoId = RvkRepositoryId_DebugImageViewerCubeGraphic,   .assetId = string_static("graphics/debug/image_viewer_cube.graphic") },
   { .repoId = RvkRepositoryId_DebugMeshViewerGraphic,        .assetId = string_static("graphics/debug/mesh_viewer.graphic") },
   { .repoId = RvkRepositoryId_DebugMeshViewerSkinnedGraphic, .assetId = string_static("graphics/debug/mesh_viewer_skinned.graphic") },
   { .repoId = RvkRepositoryId_DebugWireframeGraphic,         .assetId = string_static("graphics/debug/wireframe.graphic") },

@@ -25,6 +25,7 @@ typedef enum {
   RvkRepositoryId_BlurHorGraphic,
   RvkRepositoryId_BlurVerGraphic,
   RvkRepositoryId_DebugImageViewerGraphic,
+  RvkRepositoryId_DebugImageViewerCubeGraphic,
   RvkRepositoryId_DebugMeshViewerGraphic,
   RvkRepositoryId_DebugMeshViewerSkinnedGraphic,
   RvkRepositoryId_DebugWireframeGraphic,
