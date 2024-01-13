@@ -4,7 +4,7 @@
       "shaderId": "shaders/debug/dyn_image_viewer.vert.spv"
     },
     {
-      "shaderId": "shaders/debug/dyn_image_viewer.frag.spv"
+      "shaderId": "shaders/debug/dyn_image_viewer_cube.frag.spv"
     }
   ],
   "vertexCount": 4,
