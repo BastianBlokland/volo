@@ -108,6 +108,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32             minimapRect[4]; // x, y, width, height. Normalized screen coordinates.
   f32             minimapAlpha, minimapZoom;
   EcsEntityId     debugViewerResource; // Resource entity to visualize for debug purposes.
+  f32             debugViewerLod;      // Level-of-detail to use for the debugViewer visualization.
 };
 
 typedef enum {

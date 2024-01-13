@@ -563,7 +563,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
-    data->lod             = float_f32_to_f16(0.0f);
+    data->lod             = float_f32_to_f16(ctx->settings->debugViewerLod);
     data->flags           = flags;
     data->exposure        = exposure;
     data->aspect          = (f32)image->size.width / (f32)image->size.height;
