@@ -223,7 +223,8 @@ static void rvk_texture_encode_gen_mips(
   diag_assert(bits_aligned(asset->width, 4) && bits_ispow2(asset->width));
   diag_assert(bits_aligned(asset->height, 4) && bits_ispow2(asset->height));
 
-  const usize blockBufferSize = asset->width * asset->height * sizeof(BcColor8888);
+  const u32   layerCount      = math_max(asset->layers, 1);
+  const usize blockBufferSize = layerCount * asset->width * asset->height * sizeof(BcColor8888);
   const Mem   blockBuffer     = alloc_alloc(g_alloc_heap, blockBufferSize, alignof(Bc0Block));
 
   Bc0Block* blockPtr = blockBuffer.ptr;
@@ -231,7 +232,7 @@ static void rvk_texture_encode_gen_mips(
   u8*       outPtr   = out.ptr;
 
   // Extract 4x4 blocks from the source data and encode mip0.
-  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+  for (u32 l = 0; l != layerCount; ++l) {
     for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
       for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
         if (asset->channels == 1) {
@@ -249,7 +250,7 @@ static void rvk_texture_encode_gen_mips(
   for (u32 mip = 1; mip < mipLevels; ++mip) {
     const u32 blockCountX = math_max((asset->width >> mip) / 4, 1);
     const u32 blockCountY = math_max((asset->height >> mip) / 4, 1);
-    for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+    for (u32 l = 0; l != layerCount; ++l) {
       for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
         for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
           Bc0Block block;
