@@ -223,7 +223,9 @@ static void rvk_texture_encode_gen_mips(
   diag_assert(bits_aligned(asset->width, 4) && bits_ispow2(asset->width));
   diag_assert(bits_aligned(asset->height, 4) && bits_ispow2(asset->height));
 
-  const usize blockBufferSize = asset->width * asset->height * sizeof(BcColor8888);
+  const u32   layerCount      = math_max(asset->layers, 1);
+  const u32   layerBlockCount = (asset->width / 4) * (asset->height / 4);
+  const usize blockBufferSize = layerCount * layerBlockCount * sizeof(Bc0Block);
   const Mem   blockBuffer     = alloc_alloc(g_alloc_heap, blockBufferSize, alignof(Bc0Block));
 
   Bc0Block* blockPtr = blockBuffer.ptr;
@@ -231,7 +233,7 @@ static void rvk_texture_encode_gen_mips(
   u8*       outPtr   = out.ptr;
 
   // Extract 4x4 blocks from the source data and encode mip0.
-  for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+  for (u32 l = 0; l != layerCount; ++l) {
     for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
       for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
         if (asset->channels == 1) {
@@ -243,13 +245,13 @@ static void rvk_texture_encode_gen_mips(
       }
     }
   }
-  blockPtr = blockBuffer.ptr; // Reset the block pointer to the beginning.
 
   // Down-sample and encode the other mips.
   for (u32 mip = 1; mip < mipLevels; ++mip) {
+    blockPtr              = blockBuffer.ptr; // Reset the block pointer to the beginning.
     const u32 blockCountX = math_max((asset->width >> mip) / 4, 1);
     const u32 blockCountY = math_max((asset->height >> mip) / 4, 1);
-    for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
+    for (u32 l = 0; l != layerCount; ++l) {
       for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
         for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
           Bc0Block block;
@@ -276,6 +278,7 @@ static void rvk_texture_encode_gen_mips(
           outPtr += rvk_texture_encode_block(&block, comp, outPtr);
         }
       }
+      blockPtr += layerBlockCount;
     }
   }
 
@@ -288,8 +291,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .device  = dev,
+                 .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(dev, asset);
