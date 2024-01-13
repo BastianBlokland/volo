@@ -383,9 +383,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       drawSpec.dynMesh     = dynMesh;
       drawSpec.dynImage    = dynAlphaImage;
       drawSpec.dynSampler  = (RvkSamplerSpec){
-           .wrap   = RvkSamplerWrap_Clamp,
-           .filter = RvkSamplerFilter_Linear,
-           .aniso  = RvkSamplerAniso_x8,
+          .wrap   = RvkSamplerWrap_Clamp,
+          .filter = RvkSamplerFilter_Linear,
+          .aniso  = RvkSamplerAniso_x8,
       };
       painter_push(ctx, drawSpec);
     }
@@ -549,7 +549,10 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
       f32 aspect;
     } ImageViewerData;
 
-    enum { ImageViewerFlags_FlipY = 1 << 0 };
+    enum {
+      ImageViewerFlags_FlipY       = 1 << 0,
+      ImageViewerFlags_IgnoreAlpha = 1 << 1,
+    };
 
     u32 flags = 0;
     if (image->type != RvkImageType_ColorSource && image->type != RvkImageType_ColorSourceCube) {
@@ -559,6 +562,9 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
        * that time we need to flip non-source (attachments) images as they are using top-left.
        */
       flags |= ImageViewerFlags_FlipY;
+    }
+    if (ctx->settings->debugViewerFlags & RendDebugViewer_IgnoreAlpha) {
+      flags = ImageViewerFlags_IgnoreAlpha;
     }
 
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);

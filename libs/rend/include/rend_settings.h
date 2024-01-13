@@ -89,7 +89,8 @@ typedef enum {
 } RendTonemapper;
 
 typedef enum {
-  RendDebugViewer_Interpolate = 1 << 0, // Enable linear interpolation for the debug-viewer.
+  RendDebugViewer_Interpolate = 1 << 0, // Enable linear interpolation for textures in the viewer.
+  RendDebugViewer_IgnoreAlpha = 1 << 1, // Ignore the alpha when viewing textures in the viewer.
 } RendDebugViewerFlags;
 
 ecs_comp_extern_public(RendSettingsComp) {

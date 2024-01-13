@@ -365,8 +365,7 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
   ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
   ui_layout_resize(c, UiAlign_MiddleCenter, g_panelSize, UiBase_Absolute, Ui_XY);
 
-  f32  lodMax               = 0.0f;
-  bool supportInterpolation = false;
+  f32 lodMax = 0.0f;
 
   debug_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, g_inset, UiBase_Absolute, Ui_XY);
@@ -383,8 +382,7 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
   debug_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   if (texture) {
-    lodMax               = (f32)(rend_res_texture_mip_levels(texture) - 1);
-    supportInterpolation = true;
+    lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
     debug_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
     const u16    width   = rend_res_texture_width(texture);
     const u16    height  = rend_res_texture_height(texture);
@@ -416,11 +414,16 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
     ui_table_next_column(c, &table);
     ui_slider(c, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
   }
-  if (supportInterpolation) {
+  if (texture) {
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Interpolate"), .fontSize = 14);
     ui_table_next_column(c, &table);
     ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Ignore alpha"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_IgnoreAlpha);
   }
 
   ui_layout_container_pop(c);
@@ -806,7 +809,6 @@ static void rend_resource_actions_draw(
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
     settings->debugViewerLod      = 0.0f;
-    settings->debugViewerFlags    = 0;
   }
 }
 
