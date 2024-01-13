@@ -8,6 +8,7 @@ struct ImageData {
   u32 imageChannels;
   u32 flags;
   f32 exposure;
+  f32 aspect;
 };
 
 const u32 c_flagsFlipY = 1 << 0;

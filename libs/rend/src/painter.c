@@ -383,9 +383,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       drawSpec.dynMesh     = dynMesh;
       drawSpec.dynImage    = dynAlphaImage;
       drawSpec.dynSampler  = (RvkSamplerSpec){
-           .wrap   = RvkSamplerWrap_Clamp,
-           .filter = RvkSamplerFilter_Linear,
-           .aniso  = RvkSamplerAniso_x8,
+          .wrap   = RvkSamplerWrap_Clamp,
+          .filter = RvkSamplerFilter_Linear,
+          .aniso  = RvkSamplerAniso_x8,
       };
       painter_push(ctx, drawSpec);
     }
@@ -541,6 +541,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
       u32 imageChannels;
       u32 flags;
       f32 exposure;
+      f32 aspect;
     } ImageViewerData;
 
     enum { ImageViewerFlags_FlipY = 1 << 0 };
@@ -559,6 +560,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
     data->flags           = flags;
     data->exposure        = exposure;
+    data->aspect          = (f32)image->size.width / (f32)image->size.height;
 
     const RvkPassDraw draw = {
         .graphic    = graphic,
