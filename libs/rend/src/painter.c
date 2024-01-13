@@ -628,19 +628,9 @@ static void painter_push_debug_resource_viewer(
 
     RendResTextureComp* textureComp = ecs_view_write_t(itr, RendResTextureComp);
     if (textureComp) {
-      RvkTexture* tex = textureComp->texture;
-      if (tex->image.type == RvkImageType_ColorSourceCube) {
-        /**
-         * Viewing cube-maps is not supported at the moment (because late-bound cube maps are not
-         * supported), show the 'Missing Texture' instead.
-         * NOTE: Should we print a warning/error instead?
-         */
-        RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
-        tex                 = rvk_repository_texture_get(repo, RvkRepositoryId_MissingTexture);
-      }
-      if (rvk_pass_prepare_texture(ctx->pass, tex)) {
+      if (rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
         const f32 exposure = 1.0f;
-        painter_push_debug_image_viewer(ctx, &tex->image, exposure);
+        painter_push_debug_image_viewer(ctx, &textureComp->texture->image, exposure);
       }
     }
     RendResMeshComp* meshComp = ecs_view_write_t(itr, RendResMeshComp);
