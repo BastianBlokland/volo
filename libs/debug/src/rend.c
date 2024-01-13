@@ -342,7 +342,6 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "Height:     {}\n", fmt_int(rend_res_texture_height(texture)));
       fmt_write(&str, "Layers:     {}\n", fmt_int(rend_res_texture_layers(texture)));
       fmt_write(&str, "MipLevels:  {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
-      fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
       fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
     }
     const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
@@ -354,7 +353,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "Skinned:    {}\n", fmt_bool(rend_res_mesh_is_skinned(mesh)));
     }
 
-    ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
+    ui_label(canvas, dynstring_view(&str), .fontSize = 14, .align = UiAlign_MiddleLeft);
     dynstring_destroy(&str);
   }
   ui_style_pop(canvas);
