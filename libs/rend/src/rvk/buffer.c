@@ -89,15 +89,6 @@ void rvk_buffer_destroy(RvkBuffer* buffer, RvkDevice* dev) {
   rvk_mem_free(buffer->mem);
 }
 
-void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
-  diag_assert(data.size + offset <= buffer->size);
-  diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
-
-  Mem mapped = mem_consume(rvk_mem_map(buffer->mem), offset);
-  mem_cpy(mapped, data);
-  rvk_mem_flush(buffer->mem);
-}
-
 String rvk_buffer_type_str(const RvkBufferType type) {
   static const String g_names[] = {
       string_static("DeviceIndex"),
@@ -107,6 +98,26 @@ String rvk_buffer_type_str(const RvkBufferType type) {
   };
   ASSERT(array_elems(g_names) == RvkBufferType_Count, "Incorrect number of buffer-type names");
   return g_names[type];
+}
+
+Mem rvk_buffer_map(RvkBuffer* buffer, const u64 offset) {
+  diag_assert(offset <= buffer->size);
+  diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
+
+  return mem_consume(rvk_mem_map(buffer->mem), offset);
+}
+
+void rvk_buffer_flush(RvkBuffer* buffer) {
+  diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
+  rvk_mem_flush(buffer->mem);
+}
+
+void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
+  diag_assert(data.size + offset <= buffer->size);
+  diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
+
+  mem_cpy(rvk_buffer_map(buffer, offset), data);
+  rvk_buffer_flush(buffer);
 }
 
 void rvk_buffer_transfer_ownership(
