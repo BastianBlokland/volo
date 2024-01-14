@@ -450,10 +450,10 @@ static void rvk_pass_bind_dyn(
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->dynamicDescMeta);
-  if (mesh) {
+  if (mesh && gra->dynamicDescMeta.bindings[1]) {
     rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);
   }
-  if (img) {
+  if (img && gra->dynamicDescMeta.bindings[2]) {
 #ifndef VOLO_FAST
     rvk_pass_assert_dyn_image_staged(stage, img);
 #endif
