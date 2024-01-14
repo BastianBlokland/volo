@@ -282,8 +282,8 @@ static void painter_stage_global_data(
 }
 
 static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
-  if (draw.dynImage) {
-    rvk_pass_stage_dyn_image(ctx->pass, draw.dynImage);
+  if (draw.drawImage) {
+    rvk_pass_stage_draw_image(ctx->pass, draw.drawImage);
   }
   *dynarray_push_t(&ctx->painter->drawBuffer, RvkPassDraw) = draw;
 }
@@ -352,11 +352,11 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     }
     const bool  isParticle      = (rend_draw_flags(draw) & RendDrawFlags_Particle) != 0;
     RvkGraphic* graphicOriginal = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    RvkMesh*    dynMesh         = graphicOriginal->mesh;
-    if (!isParticle && (!dynMesh || !rvk_pass_prepare_mesh(ctx->pass, dynMesh))) {
+    RvkMesh*    drawMesh        = graphicOriginal->mesh;
+    if (!isParticle && (!drawMesh || !rvk_pass_prepare_mesh(ctx->pass, drawMesh))) {
       continue; // Graphic is not a particle and does not have a mesh to draw a shadow for.
     }
-    RvkImage* dynAlphaImage = null;
+    RvkImage* drawAlphaImg = null;
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
@@ -364,7 +364,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
         continue; // Graphic uses discard but has no alpha texture.
       }
-      dynAlphaImage = &alphaTexture->image;
+      drawAlphaImg = &alphaTexture->image;
     }
     RvkRepositoryId graphicId;
     if (isParticle) {
@@ -372,7 +372,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     } else if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {
-      graphicId = dynAlphaImage ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
+      graphicId = drawAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
     }
     RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!shadowGraphic) {
@@ -380,9 +380,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     }
     if (rvk_pass_prepare(ctx->pass, shadowGraphic)) {
       RvkPassDraw drawSpec = rend_draw_output(draw, shadowGraphic);
-      drawSpec.dynMesh     = dynMesh;
-      drawSpec.dynImage    = dynAlphaImage;
-      drawSpec.dynSampler  = (RvkSamplerSpec){
+      drawSpec.drawMesh    = drawMesh;
+      drawSpec.drawImage   = drawAlphaImg;
+      drawSpec.drawSampler = (RvkSamplerSpec){
           .wrap   = RvkSamplerWrap_Clamp,
           .filter = RvkSamplerFilter_Linear,
           .aniso  = RvkSamplerAniso_x8,
@@ -408,11 +408,11 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
     data->fogViewProj          = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
 
     const RvkPassDraw draw = {
-        .graphic    = graphic,
-        .dynImage   = fogMap,
-        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
-        .instCount  = 1,
-        .drawData   = mem_create(data, sizeof(FogData)),
+        .graphic     = graphic,
+        .drawImage   = fogMap,
+        .drawSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
+        .instCount   = 1,
+        .drawData    = mem_create(data, sizeof(FogData)),
     };
     painter_push(ctx, draw);
   }
@@ -520,11 +520,11 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
     data->zoomInv = ctx->settings->minimapZoom > 0 ? 1.0f / ctx->settings->minimapZoom : 1.0f;
 
     const RvkPassDraw draw = {
-        .graphic    = graphic,
-        .dynImage   = fogBuffer,
-        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
-        .instCount  = 1,
-        .drawData   = mem_create(data, sizeof(MinimapData)),
+        .graphic     = graphic,
+        .drawImage   = fogBuffer,
+        .drawSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
+        .instCount   = 1,
+        .drawData    = mem_create(data, sizeof(MinimapData)),
     };
     painter_push(ctx, draw);
   }
@@ -584,11 +584,11 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     }
 
     const RvkPassDraw draw = {
-        .graphic    = graphic,
-        .dynImage   = image,
-        .dynSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = filter},
-        .instCount  = 1,
-        .drawData   = mem_create(data, sizeof(ImageViewerData)),
+        .graphic     = graphic,
+        .drawImage   = image,
+        .drawSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = filter},
+        .instCount   = 1,
+        .drawData    = mem_create(data, sizeof(ImageViewerData)),
     };
     painter_push(ctx, draw);
   }
@@ -625,7 +625,7 @@ static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspe
 
     const RvkPassDraw draw = {
         .graphic   = graphic,
-        .dynMesh   = mesh,
+        .drawMesh  = mesh,
         .instCount = 1,
         .drawData  = mem_create(data, sizeof(MeshViewerData)),
     };
@@ -691,7 +691,7 @@ static void painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawVie
     }
     if (rvk_pass_prepare(ctx->pass, graphicWireframe) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe);
-      drawSpec.dynMesh     = mesh;
+      drawSpec.drawMesh    = mesh;
       painter_push(ctx, drawSpec);
     }
   }
@@ -723,7 +723,7 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawVie,
 
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       RvkPassDraw drawSpec = rend_draw_output(draw, debugGraphic);
-      drawSpec.dynMesh     = mesh;
+      drawSpec.drawMesh    = mesh;
       painter_push(ctx, drawSpec);
     }
   }

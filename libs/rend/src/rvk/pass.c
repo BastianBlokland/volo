@@ -20,9 +20,9 @@
 
 #define pass_instance_count_max 2048
 #define pass_attachment_max (rvk_pass_attach_color_max + 1)
-#define pass_global_data_max 2
+#define pass_global_data_max 1
 #define pass_global_image_max 5
-#define pass_dyn_image_max 5
+#define pass_draw_image_max 5
 
 typedef RvkGraphic* RvkGraphicPtr;
 
@@ -54,11 +54,10 @@ typedef struct {
   // Global resources.
   RvkDescSet globalDescSet;
   u16        globalBoundMask; // Bitset of the bound global resources.
-  u32        globalDataOffsets[pass_global_data_max];
   RvkImage*  globalImages[pass_global_image_max];
 
-  // Dynamic resources.
-  RvkImage* dynImages[pass_dyn_image_max];
+  // Per-draw resources.
+  RvkImage* drawImages[pass_draw_image_max];
 } RvkPassStage;
 
 /**
@@ -91,8 +90,8 @@ struct sRvkPass {
   RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
 
-  DynArray descSets;    // RvkDescSet[]
-  DynArray invocations; // RvkPassInvoc[]
+  DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed at reset.
+  DynArray invocations;      // RvkPassInvoc[]
 };
 
 static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
@@ -204,13 +203,13 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSta
   }
 }
 
-static void rvk_pass_assert_dyn_image_staged(const RvkPassStage* stage, const RvkImage* img) {
-  for (u32 i = 0; i != pass_dyn_image_max; ++i) {
-    if (stage->dynImages[i] == img) {
+static void rvk_pass_assert_draw_image_staged(const RvkPassStage* stage, const RvkImage* img) {
+  for (u32 i = 0; i != pass_draw_image_max; ++i) {
+    if (stage->drawImages[i] == img) {
       return; // Image was staged.
     }
   }
-  diag_assert_fail("Dynamic image was used but not staged");
+  diag_assert_fail("Per-draw image was used but not staged");
 }
 #endif // !VOLO_FAST
 
@@ -307,7 +306,7 @@ static RvkDescMeta rvk_global_desc_meta() {
   RvkDescMeta meta;
   u16         globalBindingCount = 0;
   for (u16 globalDataIdx = 0; globalDataIdx != pass_global_data_max; ++globalDataIdx) {
-    meta.bindings[globalBindingCount++] = RvkDescKind_UniformBufferDynamic;
+    meta.bindings[globalBindingCount++] = RvkDescKind_UniformBuffer;
   }
   for (u16 globalImgIdx = 0; globalImgIdx != pass_global_image_max; ++globalImgIdx) {
     meta.bindings[globalBindingCount++] = RvkDescKind_CombinedImageSampler2D;
@@ -387,16 +386,16 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
 static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
   diag_assert(stage->globalBoundMask != 0);
 
-  const VkDescriptorSet descSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
+  const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       pass->globalPipelineLayout,
       RvkGraphicSet_Global,
-      array_elems(descSets),
-      descSets,
-      array_elems(stage->globalDataOffsets),
-      stage->globalDataOffsets);
+      array_elems(vkDescSets),
+      vkDescSets,
+      0,
+      null);
 }
 
 static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
@@ -426,47 +425,50 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
   vkCmdBeginRenderPass(pass->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void rvk_pass_free_desc(RvkPass* pass) {
-  dynarray_for_t(&pass->descSets, RvkDescSet, set) { rvk_desc_free(*set); }
-  dynarray_clear(&pass->descSets);
+static void rvk_pass_free_desc_volatile(RvkPass* pass) {
+  dynarray_for_t(&pass->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
+  dynarray_clear(&pass->descSetsVolatile);
 }
 
-static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
-  const RvkDescSet res                          = rvk_desc_alloc(pass->dev->descPool, meta);
-  *dynarray_push_t(&pass->descSets, RvkDescSet) = res;
+static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta* meta) {
+  const RvkDescSet res                                  = rvk_desc_alloc(pass->dev->descPool, meta);
+  *dynarray_push_t(&pass->descSetsVolatile, RvkDescSet) = res;
   return res;
 }
 
-static void rvk_pass_bind_dyn(
+static void rvk_pass_bind_draw(
     RvkPass*           pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
+    const Mem                        data,
     RvkMesh*                         mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
-  if (!mesh && !img) {
-    return; // No dynamic resources to bind.
-  }
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
-  const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->dynamicDescMeta);
-  if (mesh) {
-    rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
+  const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, &gra->drawDescMeta);
+  if (data.size && gra->drawDescMeta.bindings[0]) {
+    const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
+    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
+    rvk_desc_set_attach_buffer(descSet, 0, dataBuffer, dataHandle.offset, (u32)data.size);
   }
-  if (img) {
+  if (mesh && gra->drawDescMeta.bindings[1]) {
+    rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);
+  }
+  if (img && gra->drawDescMeta.bindings[2]) {
 #ifndef VOLO_FAST
-    rvk_pass_assert_dyn_image_staged(stage, img);
+    rvk_pass_assert_draw_image_staged(stage, img);
 #endif
-    const bool reqCube = gra->dynamicDescMeta.bindings[1] == RvkDescKind_CombinedImageSamplerCube;
+    const bool reqCube = gra->drawDescMeta.bindings[1] == RvkDescKind_CombinedImageSamplerCube;
     if (UNLIKELY(reqCube != (img->type == RvkImageType_ColorSourceCube))) {
-      log_e("Unsupported dynamic image type", log_param("graphic", fmt_text(gra->dbgName)));
+      log_e("Unsupported draw image type", log_param("graphic", fmt_text(gra->dbgName)));
 
       const RvkRepositoryId missing =
           reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
       img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
-    rvk_desc_set_attach_sampler(descSet, 1, img, sampler);
+    rvk_desc_set_attach_sampler(descSet, 2, img, sampler);
   }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
@@ -474,7 +476,7 @@ static void rvk_pass_bind_dyn(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       gra->vkPipelineLayout,
-      RvkGraphicSet_Dynamic,
+      RvkGraphicSet_Draw,
       array_elems(vkDescSets),
       vkDescSets,
       0,
@@ -523,16 +525,16 @@ RvkPass* rvk_pass_create(
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
   *pass = (RvkPass){
-      .dev             = dev,
-      .swapchainFormat = swapchainFormat,
-      .name            = string_dup(g_alloc_heap, name),
-      .statrecorder    = rvk_statrecorder_create(dev),
-      .stopwatch       = stopwatch,
-      .vkCmdBuf        = vkCmdBuf,
-      .uniformPool     = uniformPool,
-      .config          = config,
-      .descSets        = dynarray_create_t(g_alloc_heap, RvkDescSet, 8),
-      .invocations     = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
+      .dev              = dev,
+      .swapchainFormat  = swapchainFormat,
+      .name             = string_dup(g_alloc_heap, name),
+      .statrecorder     = rvk_statrecorder_create(dev),
+      .stopwatch        = stopwatch,
+      .vkCmdBuf         = vkCmdBuf,
+      .uniformPool      = uniformPool,
+      .config           = config,
+      .descSetsVolatile = dynarray_create_t(g_alloc_heap, RvkDescSet, 8),
+      .invocations      = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
@@ -556,7 +558,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
   string_free(g_alloc_heap, pass->name);
-  rvk_pass_free_desc(pass);
+  rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
@@ -564,7 +566,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
 
-  dynarray_destroy(&pass->descSets);
+  dynarray_destroy(&pass->descSetsVolatile);
   dynarray_destroy(&pass->invocations);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -601,10 +603,15 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }
 
-RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
-
 RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
-  return rvk_uniform_meta(pass->uniformPool);
+  (void)pass;
+  /**
+   * For per-instance data we use a dynamic uniform-buffer fast-path in the UniformPool where it can
+   * reuse the same descriptor-sets for different allocations within the same buffer.
+   */
+  return (RvkDescMeta){
+      .bindings[0] = RvkDescKind_UniformBufferDynamic,
+  };
 }
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
@@ -654,7 +661,7 @@ u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
 
 void rvk_pass_reset(RvkPass* pass) {
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
-  rvk_pass_free_desc(pass);
+  rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 }
@@ -752,13 +759,11 @@ void rvk_pass_stage_global_data(RvkPass* pass, const Mem data, const u16 dataInd
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
 
   if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, &pass->globalDescMeta);
   }
-  rvk_desc_set_attach_buffer(
-      stage->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
-
   stage->globalBoundMask |= 1 << globalDataBinding;
-  stage->globalDataOffsets[dataIndex] = dataHandle.offset;
+  rvk_desc_set_attach_buffer(
+      stage->globalDescSet, globalDataBinding, dataBuffer, dataHandle.offset, (u32)data.size);
 }
 
 static void rvk_pass_stage_global_image_internal(
@@ -779,7 +784,7 @@ static void rvk_pass_stage_global_image_internal(
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
   if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, &pass->globalDescMeta);
   }
   rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
 
@@ -813,21 +818,21 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
       });
 }
 
-void rvk_pass_stage_dyn_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
+void rvk_pass_stage_draw_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
   RvkPassStage* stage = rvk_pass_stage();
-  for (u32 i = 0; i != pass_dyn_image_max; ++i) {
-    if (stage->dynImages[i] == image) {
+  for (u32 i = 0; i != pass_draw_image_max; ++i) {
+    if (stage->drawImages[i] == image) {
       return; // Image was already staged.
     }
-    if (!stage->dynImages[i]) {
-      stage->dynImages[i] = image;
+    if (!stage->drawImages[i]) {
+      stage->drawImages[i] = image;
       return; // Image is staged in a empty slot.
     }
   }
-  diag_assert_fail("Amount of staged dynamic images exceeds the maximum");
+  diag_assert_fail("Amount of staged per-draw images exceeds the maximum");
 }
 
 void rvk_pass_begin(RvkPass* pass) {
@@ -853,7 +858,7 @@ void rvk_pass_begin(RvkPass* pass) {
    * Execute image transitions:
    * - Attachment images to color/depth-attachment-optimal.
    * - Global images to ShaderRead.
-   * - Dynamic images to ShaderRead.
+   * - Per-draw images to ShaderRead.
    */
   {
     RvkImageTransition transitions[16];
@@ -878,10 +883,10 @@ void rvk_pass_begin(RvkPass* pass) {
         };
       }
     }
-    for (u32 i = 0; i != pass_dyn_image_max; ++i) {
-      if (stage->dynImages[i]) {
+    for (u32 i = 0; i != pass_draw_image_max; ++i) {
+      if (stage->drawImages[i]) {
         transitions[transitionCount++] = (RvkImageTransition){
-            .img   = stage->dynImages[i],
+            .img   = stage->drawImages[i],
             .phase = RvkImagePhase_ShaderRead,
         };
       }
@@ -927,19 +932,19 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
         log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicMesh && !draw->dynMesh)) {
-    log_e("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
-    return;
-  }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicImage && !draw->dynImage)) {
-    log_e("Graphic requires a dynamic image", log_param("graphic", fmt_text(graphic->dbgName)));
-    return;
-  }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[0] && !draw->drawData.size)) {
     log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceData && !draw->instDataStride)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[1] && !draw->drawMesh)) {
+    log_e("Graphic requires a draw-mesh", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(graphic->drawDescMeta.bindings[2] && !draw->drawImage)) {
+    log_e("Graphic requires a draw-image", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceSet && !draw->instDataStride)) {
     log_e("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
@@ -957,39 +962,36 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
-  rvk_pass_bind_dyn(pass, stage, graphic, draw->dynMesh, draw->dynImage, draw->dynSampler);
 
-  if (draw->drawData.size) {
-    rvk_uniform_bind(
-        pass->uniformPool,
-        rvk_uniform_upload(pass->uniformPool, draw->drawData),
-        pass->vkCmdBuf,
-        graphic->vkPipelineLayout,
-        RvkGraphicSet_Draw);
+  if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
+    rvk_pass_bind_draw(
+        pass, stage, graphic, draw->drawData, draw->drawMesh, draw->drawImage, draw->drawSampler);
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
   const u32 dataStride =
-      graphic->flags & RvkGraphicFlags_RequireInstanceData ? draw->instDataStride : 0;
+      graphic->flags & RvkGraphicFlags_RequireInstanceSet ? draw->instDataStride : 0;
 
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
     const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);
     invoc->instanceCount += instCount;
 
     if (dataStride) {
-      const u32 dataSize = instCount * dataStride;
-      rvk_uniform_bind(
+      const u32              dataSize   = instCount * dataStride;
+      const Mem              data       = mem_slice(draw->instData, dataOffset, dataSize);
+      const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
+      rvk_uniform_dynamic_bind(
           pass->uniformPool,
-          rvk_uniform_upload(pass->uniformPool, mem_slice(draw->instData, dataOffset, dataSize)),
+          dataHandle,
           pass->vkCmdBuf,
           graphic->vkPipelineLayout,
           RvkGraphicSet_Instance);
       dataOffset += dataSize;
     }
 
-    if (draw->dynMesh || graphic->mesh) {
-      const u32 indexCount = draw->dynMesh ? draw->dynMesh->indexCount : graphic->mesh->indexCount;
-      vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, instCount, 0, 0, 0);
+    if (draw->drawMesh || graphic->mesh) {
+      const u32 idxCount = draw->drawMesh ? draw->drawMesh->indexCount : graphic->mesh->indexCount;
+      vkCmdDrawIndexed(pass->vkCmdBuf, idxCount, instCount, 0, 0, 0);
     } else {
       const u32 vertexCount =
           draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;

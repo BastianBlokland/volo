@@ -49,8 +49,7 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   case AssetShaderResKind_TextureCube:
     return RvkDescKind_CombinedImageSamplerCube;
   case AssetShaderResKind_UniformBuffer:
-    // NOTE: This makes the assumption that all uniform-buffers will be bound as dynamic buffers.
-    return RvkDescKind_UniformBufferDynamic;
+    return RvkDescKind_UniformBuffer;
   case AssetShaderResKind_StorageBuffer:
     return RvkDescKind_StorageBuffer;
   case AssetShaderResKind_Count:

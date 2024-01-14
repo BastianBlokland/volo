@@ -56,11 +56,11 @@ typedef struct sRvkPassConfig {
 
 typedef struct sRvkPassDraw {
   RvkGraphic*    graphic;
-  Mem            drawData;
   Mem            instData;
-  RvkMesh*       dynMesh;    // Dynamic (late bound) mesh to use in this draw.
-  RvkImage*      dynImage;   // Dynamic (late bound) image to use in this draw.
-  RvkSamplerSpec dynSampler; // Sampler specification for a dynamic image in this draw.
+  Mem            drawData;    // Per-draw data to use.
+  RvkMesh*       drawMesh;    // Per-draw mesh to use.
+  RvkImage*      drawImage;   // Per-draw image to use.
+  RvkSamplerSpec drawSampler; // Sampler specification for a per-draw image.
   u32            vertexCountOverride;
   u32            instCount;
   u32            instDataStride;
@@ -82,7 +82,6 @@ bool   rvk_pass_has_depth(const RvkPass*);
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
-RvkDescMeta   rvk_pass_meta_draw(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
@@ -104,7 +103,7 @@ void rvk_pass_stage_attach_depth(RvkPass*, RvkImage*);
 void rvk_pass_stage_global_data(RvkPass*, Mem, u16 dataIndex);
 void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
-void rvk_pass_stage_dyn_image(RvkPass*, RvkImage*);
+void rvk_pass_stage_draw_image(RvkPass*, RvkImage*);
 
 void rvk_pass_begin(RvkPass*);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);

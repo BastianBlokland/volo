@@ -697,7 +697,6 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(PlatReadView),
       ecs_register_view(ResLoadView),
       ecs_register_view(ResLoadDependencyView),
-      ecs_view_id(ResWriteView),
       ecs_view_id(ShaderWriteView),
       ecs_view_id(MeshWriteView),
       ecs_view_id(TextureWriteView));

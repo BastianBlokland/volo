@@ -274,6 +274,15 @@ u16 rvk_desc_pool_layouts(const RvkDescPool* pool) {
   return layouts;
 }
 
+bool rvk_desc_empty(const RvkDescMeta* meta) {
+  for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
+    if (meta->bindings[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* meta) {
   const u32 hash = rvk_desc_meta_hash(meta);
 
@@ -407,14 +416,21 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
 }
 
 void rvk_desc_set_attach_buffer(
-    const RvkDescSet set, const u32 binding, const RvkBuffer* buffer, const u32 size) {
+    const RvkDescSet set,
+    const u32        binding,
+    const RvkBuffer* buffer,
+    const u32        offset,
+    const u32        size) {
   RvkDescPool*      pool = set.chunk->pool;
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+
   diag_assert(kind);
+  diag_assert((offset + size) <= buffer->size);
+
   const VkDescriptorBufferInfo bufferInfo = {
       .buffer = buffer->vkBuffer,
-      .offset = 0,
-      .range  = size ? size : buffer->size,
+      .offset = offset,
+      .range  = size ? size : (buffer->size - offset),
   };
   const VkWriteDescriptorSet descriptorWrite = {
       .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
