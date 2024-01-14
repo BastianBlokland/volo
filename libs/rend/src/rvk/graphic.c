@@ -22,7 +22,7 @@ typedef RvkShader* RvkShaderPtr;
 static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Global,
     RvkGraphicSet_Graphic,
-    RvkGraphicSet_Dynamic,
+    RvkGraphicSet_Draw,
     RvkGraphicSet_Instance,
 };
 
@@ -51,7 +51,7 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
 };
 
-static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
+static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
     rend_uniform_buffer_mask,
     rend_storage_buffer_mask,
     rend_image_sampler_mask,
@@ -210,7 +210,7 @@ static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, co
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->graphicDescSet),
-      rvk_desc_vklayout(graphic->device->descPool, &graphic->dynamicDescMeta),
+      rvk_desc_vklayout(graphic->device->descPool, &graphic->drawDescMeta),
       rvk_desc_vklayout(graphic->device->descPool, &instanceDescMeta),
   };
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
@@ -781,22 +781,22 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
       }
     }
 
-    // Prepare dynamic bindings.
-    const RvkDescMeta dynamicDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Dynamic);
+    // Prepare draw bindings.
+    const RvkDescMeta drawDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Draw);
     if (UNLIKELY(!rend_graphic_validate_set(
-            graphic, RvkGraphicSet_Dynamic, &dynamicDescMeta, g_rendSupportedDynamicBindings))) {
+            graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (dynamicDescMeta.bindings[0] == RvkDescKind_UniformBuffer) {
+    if (drawDescMeta.bindings[0] == RvkDescKind_UniformBuffer) {
       graphic->flags |= RvkGraphicFlags_RequireDrawData;
     }
-    if (dynamicDescMeta.bindings[1] == RvkDescKind_StorageBuffer) {
-      graphic->flags |= RvkGraphicFlags_RequireDynamicMesh;
+    if (drawDescMeta.bindings[1] == RvkDescKind_StorageBuffer) {
+      graphic->flags |= RvkGraphicFlags_RequireDrawMesh;
     }
-    if (dynamicDescMeta.bindings[2] == RvkDescKind_CombinedImageSampler2D) {
-      graphic->flags |= RvkGraphicFlags_RequireDynamicImage;
+    if (drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSampler2D) {
+      graphic->flags |= RvkGraphicFlags_RequireDrawImage;
     }
-    graphic->dynamicDescMeta = dynamicDescMeta;
+    graphic->drawDescMeta = drawDescMeta;
 
     // Prepare instance set bindings.
     const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Instance);
@@ -825,9 +825,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
         graphic->flags |= RvkGraphicFlags_Invalid;
       }
     }
-    if (UNLIKELY(graphic->mesh && graphic->flags & RvkGraphicFlags_RequireDynamicMesh)) {
+    if (UNLIKELY(graphic->mesh && graphic->flags & RvkGraphicFlags_RequireDrawMesh)) {
       log_e(
-          "Graphic cannot use both a normal and a dynamic mesh ",
+          "Graphic cannot use both a normal and a per-draw mesh ",
           log_param("graphic", fmt_text(graphic->dbgName)));
       graphic->flags |= RvkGraphicFlags_Invalid;
     }

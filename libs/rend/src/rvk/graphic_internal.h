@@ -15,7 +15,7 @@ typedef struct sRvkTexture        RvkTexture;
 enum {
   RvkGraphicSet_Global   = 0,
   RvkGraphicSet_Graphic  = 1,
-  RvkGraphicSet_Dynamic  = 2,
+  RvkGraphicSet_Draw     = 2,
   RvkGraphicSet_Instance = 3,
 };
 
@@ -26,9 +26,9 @@ typedef enum {
   RvkGraphicFlags_MayDiscard          = 1 << 0, // Graphic might discard a fragment.
   RvkGraphicFlags_DepthClamp          = 1 << 1,
   RvkGraphicFlags_Ready               = 1 << 2,
-  RvkGraphicFlags_RequireDynamicMesh  = 1 << 3,
-  RvkGraphicFlags_RequireDynamicImage = 1 << 4,
-  RvkGraphicFlags_RequireDrawData     = 1 << 5,
+  RvkGraphicFlags_RequireDrawData     = 1 << 3,
+  RvkGraphicFlags_RequireDrawMesh     = 1 << 4,
+  RvkGraphicFlags_RequireDrawImage    = 1 << 5,
   RvkGraphicFlags_RequireInstanceData = 1 << 6,
   RvkGraphicFlags_Invalid             = 1 << 7,
 } RvkGraphicFlags;
@@ -64,7 +64,7 @@ typedef struct sRvkGraphic {
   RvkTexture*            samplerTextures[rvk_graphic_samplers_max];
   RvkSamplerSpec         samplerSpecs[rvk_graphic_samplers_max];
   RvkDescSet             graphicDescSet;
-  RvkDescMeta            dynamicDescMeta;
+  RvkDescMeta            drawDescMeta;
   VkPipelineLayout       vkPipelineLayout;
   VkPipeline             vkPipeline;
 } RvkGraphic;
