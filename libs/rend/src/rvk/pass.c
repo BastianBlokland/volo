@@ -90,8 +90,8 @@ struct sRvkPass {
   RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
 
-  DynArray descSets;    // RvkDescSet[]
-  DynArray invocations; // RvkPassInvoc[]
+  DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed at reset.
+  DynArray invocations;      // RvkPassInvoc[]
 };
 
 static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
@@ -386,14 +386,14 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
 static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
   diag_assert(stage->globalBoundMask != 0);
 
-  const VkDescriptorSet descSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
+  const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       pass->globalPipelineLayout,
       RvkGraphicSet_Global,
-      array_elems(descSets),
-      descSets,
+      array_elems(vkDescSets),
+      vkDescSets,
       0,
       null);
 }
@@ -425,14 +425,14 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
   vkCmdBeginRenderPass(pass->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void rvk_pass_free_desc(RvkPass* pass) {
-  dynarray_for_t(&pass->descSets, RvkDescSet, set) { rvk_desc_free(*set); }
-  dynarray_clear(&pass->descSets);
+static void rvk_pass_free_desc_volatile(RvkPass* pass) {
+  dynarray_for_t(&pass->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
+  dynarray_clear(&pass->descSetsVolatile);
 }
 
-static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
-  const RvkDescSet res                          = rvk_desc_alloc(pass->dev->descPool, meta);
-  *dynarray_push_t(&pass->descSets, RvkDescSet) = res;
+static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta* meta) {
+  const RvkDescSet res                                  = rvk_desc_alloc(pass->dev->descPool, meta);
+  *dynarray_push_t(&pass->descSetsVolatile, RvkDescSet) = res;
   return res;
 }
 
@@ -447,7 +447,7 @@ static void rvk_pass_bind_draw(
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
-  const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->drawDescMeta);
+  const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, &gra->drawDescMeta);
   if (data.size && gra->drawDescMeta.bindings[0]) {
     const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
     const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
@@ -525,16 +525,16 @@ RvkPass* rvk_pass_create(
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
   *pass = (RvkPass){
-      .dev             = dev,
-      .swapchainFormat = swapchainFormat,
-      .name            = string_dup(g_alloc_heap, name),
-      .statrecorder    = rvk_statrecorder_create(dev),
-      .stopwatch       = stopwatch,
-      .vkCmdBuf        = vkCmdBuf,
-      .uniformPool     = uniformPool,
-      .config          = config,
-      .descSets        = dynarray_create_t(g_alloc_heap, RvkDescSet, 8),
-      .invocations     = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
+      .dev              = dev,
+      .swapchainFormat  = swapchainFormat,
+      .name             = string_dup(g_alloc_heap, name),
+      .statrecorder     = rvk_statrecorder_create(dev),
+      .stopwatch        = stopwatch,
+      .vkCmdBuf         = vkCmdBuf,
+      .uniformPool      = uniformPool,
+      .config           = config,
+      .descSetsVolatile = dynarray_create_t(g_alloc_heap, RvkDescSet, 8),
+      .invocations      = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
@@ -558,7 +558,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
   string_free(g_alloc_heap, pass->name);
-  rvk_pass_free_desc(pass);
+  rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
@@ -566,7 +566,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
 
-  dynarray_destroy(&pass->descSets);
+  dynarray_destroy(&pass->descSetsVolatile);
   dynarray_destroy(&pass->invocations);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -654,7 +654,7 @@ u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
 
 void rvk_pass_reset(RvkPass* pass) {
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
-  rvk_pass_free_desc(pass);
+  rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 }
@@ -752,7 +752,7 @@ void rvk_pass_stage_global_data(RvkPass* pass, const Mem data, const u16 dataInd
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
 
   if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, &pass->globalDescMeta);
   }
   stage->globalBoundMask |= 1 << globalDataBinding;
   rvk_desc_set_attach_buffer(
@@ -777,7 +777,7 @@ static void rvk_pass_stage_global_image_internal(
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
   if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, &pass->globalDescMeta);
   }
   rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
 
