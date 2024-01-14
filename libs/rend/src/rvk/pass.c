@@ -925,16 +925,16 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
         log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawMesh && !draw->drawMesh)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[0] && !draw->drawData.size)) {
+    log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(graphic->drawDescMeta.bindings[1] && !draw->drawMesh)) {
     log_e("Graphic requires a draw-mesh", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawImage && !draw->drawImage)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[2] && !draw->drawImage)) {
     log_e("Graphic requires a draw-image", log_param("graphic", fmt_text(graphic->dbgName)));
-    return;
-  }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
-    log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceData && !draw->instDataStride)) {

@@ -787,15 +787,6 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (drawDescMeta.bindings[0] == RvkDescKind_UniformBuffer) {
-      graphic->flags |= RvkGraphicFlags_RequireDrawData;
-    }
-    if (drawDescMeta.bindings[1] == RvkDescKind_StorageBuffer) {
-      graphic->flags |= RvkGraphicFlags_RequireDrawMesh;
-    }
-    if (drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSampler2D) {
-      graphic->flags |= RvkGraphicFlags_RequireDrawImage;
-    }
     graphic->drawDescMeta = drawDescMeta;
 
     // Prepare instance set bindings.
@@ -825,7 +816,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
         graphic->flags |= RvkGraphicFlags_Invalid;
       }
     }
-    if (UNLIKELY(graphic->mesh && graphic->flags & RvkGraphicFlags_RequireDrawMesh)) {
+    if (UNLIKELY(graphic->mesh && graphic->drawDescMeta.bindings[1])) {
       log_e(
           "Graphic cannot use both a normal and a per-draw mesh ",
           log_param("graphic", fmt_text(graphic->dbgName)));
