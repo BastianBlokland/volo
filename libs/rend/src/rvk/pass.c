@@ -20,7 +20,7 @@
 
 #define pass_instance_count_max 2048
 #define pass_attachment_max (rvk_pass_attach_color_max + 1)
-#define pass_global_data_max 2
+#define pass_global_data_max 1
 #define pass_global_image_max 5
 #define pass_dyn_image_max 5
 
@@ -54,7 +54,6 @@ typedef struct {
   // Global resources.
   RvkDescSet globalDescSet;
   u16        globalBoundMask; // Bitset of the bound global resources.
-  u32        globalDataOffsets[pass_global_data_max];
   RvkImage*  globalImages[pass_global_image_max];
 
   // Dynamic resources.
@@ -307,7 +306,7 @@ static RvkDescMeta rvk_global_desc_meta() {
   RvkDescMeta meta;
   u16         globalBindingCount = 0;
   for (u16 globalDataIdx = 0; globalDataIdx != pass_global_data_max; ++globalDataIdx) {
-    meta.bindings[globalBindingCount++] = RvkDescKind_UniformBufferDynamic;
+    meta.bindings[globalBindingCount++] = RvkDescKind_UniformBuffer;
   }
   for (u16 globalImgIdx = 0; globalImgIdx != pass_global_image_max; ++globalImgIdx) {
     meta.bindings[globalBindingCount++] = RvkDescKind_CombinedImageSampler2D;
@@ -395,8 +394,8 @@ static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
       RvkGraphicSet_Global,
       array_elems(descSets),
       descSets,
-      array_elems(stage->globalDataOffsets),
-      stage->globalDataOffsets);
+      0,
+      null);
 }
 
 static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
@@ -754,15 +753,9 @@ void rvk_pass_stage_global_data(RvkPass* pass, const Mem data, const u16 dataInd
   if (!rvk_desc_valid(stage->globalDescSet)) {
     stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
   }
-  rvk_desc_set_attach_buffer(
-      stage->globalDescSet,
-      globalDataBinding,
-      dataBuffer,
-      0,
-      rvk_uniform_size_max(pass->uniformPool));
-
   stage->globalBoundMask |= 1 << globalDataBinding;
-  stage->globalDataOffsets[dataIndex] = dataHandle.offset;
+  rvk_desc_set_attach_buffer(
+      stage->globalDescSet, globalDataBinding, dataBuffer, dataHandle.offset, (u32)data.size);
 }
 
 static void rvk_pass_stage_global_image_internal(

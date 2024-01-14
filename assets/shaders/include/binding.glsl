@@ -15,7 +15,7 @@ const u32 c_setInstance = 4;
 /**
  * Maximum count of bindings per type for each set.
  */
-const u32 c_setGlobalMaxData   = 2;
+const u32 c_setGlobalMaxData   = 1;
 const u32 c_setGlobalMaxImage  = 5;
 const u32 c_setGraphicMaxData  = 1;
 const u32 c_setGraphicMaxImage = 6;
