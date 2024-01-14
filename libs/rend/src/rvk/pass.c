@@ -937,7 +937,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     log_e("Graphic requires a draw-image", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceData && !draw->instDataStride)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceSet && !draw->instDataStride)) {
     log_e("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
@@ -956,14 +956,14 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
 
-  if (draw->drawData.size || draw->drawMesh || draw->drawImage) {
+  if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(
         pass, stage, graphic, draw->drawData, draw->drawMesh, draw->drawImage, draw->drawSampler);
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
   const u32 dataStride =
-      graphic->flags & RvkGraphicFlags_RequireInstanceData ? draw->instDataStride : 0;
+      graphic->flags & RvkGraphicFlags_RequireInstanceSet ? draw->instDataStride : 0;
 
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
     const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);

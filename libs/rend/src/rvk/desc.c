@@ -274,6 +274,15 @@ u16 rvk_desc_pool_layouts(const RvkDescPool* pool) {
   return layouts;
 }
 
+bool rvk_desc_empty(const RvkDescMeta* meta) {
+  for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
+    if (meta->bindings[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* meta) {
   const u32 hash = rvk_desc_meta_hash(meta);
 

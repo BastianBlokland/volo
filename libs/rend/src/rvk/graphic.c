@@ -787,6 +787,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
+    if (!rvk_desc_empty(&drawDescMeta)) {
+      graphic->flags |= RvkGraphicFlags_RequireDrawSet;
+    }
     graphic->drawDescMeta = drawDescMeta;
 
     // Prepare instance set bindings.
@@ -795,8 +798,8 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Instance, &instanceDescMeta, g_rendSupportedInstanceBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (instanceDescMeta.bindings[0] == RvkDescKind_UniformBuffer) {
-      graphic->flags |= RvkGraphicFlags_RequireInstanceData;
+    if (!rvk_desc_empty(&instanceDescMeta)) {
+      graphic->flags |= RvkGraphicFlags_RequireInstanceSet;
     }
 
     // Prepare graphic set bindings.

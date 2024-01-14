@@ -40,6 +40,7 @@ u16          rvk_desc_pool_sets_occupied(const RvkDescPool*);
 u16          rvk_desc_pool_sets_reserved(const RvkDescPool*);
 u16          rvk_desc_pool_layouts(const RvkDescPool*);
 
+bool                  rvk_desc_empty(const RvkDescMeta*);
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool*, const RvkDescMeta*);
 RvkDescSet            rvk_desc_alloc(RvkDescPool*, const RvkDescMeta*);
 void                  rvk_desc_free(RvkDescSet);
