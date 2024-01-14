@@ -13,7 +13,8 @@ struct ImageData {
 };
 
 const u32 c_flagsFlipY       = 1 << 0;
-const u32 c_flagsIgnoreAlpha = 1 << 1;
+const u32 c_flagsAlphaIgnore = 1 << 1;
+const u32 c_flagsAlphaOnly   = 1 << 2;
 
 bind_dynamic_img(0) uniform sampler2D u_tex;
 bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
@@ -49,7 +50,9 @@ void main() {
     out_color = imageColor.rgb;
     break;
   case 4:
-    if ((u_draw.flags & c_flagsIgnoreAlpha) != 0) {
+    if ((u_draw.flags & c_flagsAlphaOnly) != 0) {
+      out_color = f32v3(imageColor.a, imageColor.a, imageColor.a);
+    } else if ((u_draw.flags & c_flagsAlphaIgnore) != 0) {
       out_color = imageColor.rgb;
     } else {
       out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);

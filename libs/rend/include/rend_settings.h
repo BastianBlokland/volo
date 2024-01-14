@@ -90,7 +90,8 @@ typedef enum {
 
 typedef enum {
   RendDebugViewer_Interpolate = 1 << 0, // Enable linear interpolation for textures in the viewer.
-  RendDebugViewer_IgnoreAlpha = 1 << 1, // Ignore the alpha when viewing textures in the viewer.
+  RendDebugViewer_AlphaIgnore = 1 << 1, // Ignore the alpha when viewing textures in the viewer.
+  RendDebugViewer_AlphaOnly   = 1 << 2, // Show only alpha when viewing textures in the viewer.
 } RendDebugViewerFlags;
 
 ecs_comp_extern_public(RendSettingsComp) {
