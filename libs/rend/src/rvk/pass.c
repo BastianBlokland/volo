@@ -437,7 +437,7 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
+    RvkPass*           pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -970,10 +970,12 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     invoc->instanceCount += instCount;
 
     if (dataStride) {
-      const u32 dataSize = instCount * dataStride;
+      const u32              dataSize   = instCount * dataStride;
+      const Mem              data       = mem_slice(draw->instData, dataOffset, dataSize);
+      const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
       rvk_uniform_bind(
           pass->uniformPool,
-          rvk_uniform_upload(pass->uniformPool, mem_slice(draw->instData, dataOffset, dataSize)),
+          dataHandle,
           pass->vkCmdBuf,
           graphic->vkPipelineLayout,
           RvkGraphicSet_Instance);
