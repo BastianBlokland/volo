@@ -8,7 +8,7 @@
 #include "vertex.glsl"
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_dynamic_data(1) readonly buffer Mesh { VertexPacked[] u_vertices; };
+bind_draw_data(1) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform Instance { InstanceData[c_maxInstances] u_instances; };
 
 bind_internal(0) out f32v2 out_texcoord;

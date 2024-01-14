@@ -8,7 +8,7 @@
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
-bind_dynamic_data(0) readonly uniform Draw { TerrainData u_terrain; };
+bind_draw_data(0) readonly uniform Draw { TerrainData u_terrain; };
 bind_instance_data(0) readonly uniform Instance {
   TerrainPatchData[c_terrainMaxPatches] u_patches;
 };

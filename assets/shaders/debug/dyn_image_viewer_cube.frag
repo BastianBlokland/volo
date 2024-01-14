@@ -20,8 +20,8 @@ const u32 c_flagsAlphaIgnore = 1 << 1;
 const u32 c_flagsAlphaOnly   = 1 << 2;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_dynamic_data(0) readonly uniform Draw { ImageData u_draw; };
-bind_dynamic_img(0) uniform samplerCube u_tex;
+bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
+bind_draw_img(0) uniform samplerCube u_tex;
 
 bind_internal(0) in f32v2 in_texcoord;
 

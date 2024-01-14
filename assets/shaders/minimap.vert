@@ -15,7 +15,7 @@ const f32v2 c_unitPositions[c_vertexCount] = {
     f32v2(0, 0),
 };
 
-bind_dynamic_data(0) readonly uniform Draw { MinimapData u_draw; };
+bind_draw_data(0) readonly uniform Draw { MinimapData u_draw; };
 
 bind_internal(0) out f32v2 out_texcoord;
 

@@ -41,7 +41,7 @@ bind_graphic_img(0) uniform samplerCube u_texDiffIrradiance;
 bind_graphic_img(1) uniform samplerCube u_texSpecIrradiance;
 bind_graphic_img(2) uniform sampler2D u_texBrdfIntegration;
 
-bind_dynamic_data(0) readonly uniform Draw { AmbientData u_draw; };
+bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 

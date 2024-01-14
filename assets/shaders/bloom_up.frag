@@ -10,7 +10,7 @@ struct BloomData {
 };
 
 bind_global_img(0) uniform sampler2D u_texInput;
-bind_dynamic_data(0) readonly uniform Draw { BloomData u_draw; };
+bind_draw_data(0) readonly uniform Draw { BloomData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 

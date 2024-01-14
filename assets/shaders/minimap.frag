@@ -15,8 +15,8 @@ const f32 c_terrainHeightStepsInv = 1.0 / c_terrainHeightSteps;
 bind_graphic_img(0) uniform sampler2D u_texTerrainHeight;
 bind_graphic_img(1) uniform sampler2D u_texTerrainSplat;
 
-bind_dynamic_data(0) readonly uniform Draw { MinimapData u_draw; };
-bind_dynamic_img(0) uniform sampler2D u_texFogBuffer;
+bind_draw_data(0) readonly uniform Draw { MinimapData u_draw; };
+bind_draw_img(0) uniform sampler2D u_texFogBuffer;
 
 bind_internal(0) in f32v2 in_texcoord;
 

@@ -43,7 +43,7 @@ struct ParticleData {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_dynamic_data(0) readonly uniform Draw { MetaData u_meta; };
+bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
 bind_instance_data(0) readonly uniform Instance { ParticleData[c_maxInstances] u_instances; };
 
 bind_internal(0) out flat f32v4 out_color;

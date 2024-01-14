@@ -44,7 +44,7 @@ struct AtomData {
               // w = 8b atomType, 8b clipId, 8b glyphOutlineWidth, 8b glyphWeight
 };
 
-bind_dynamic_data(0) readonly uniform Draw { MetaData u_meta; };
+bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
 bind_instance_data(0) readonly uniform Instance { AtomData u_atoms[c_maxInstances]; };
 
 // Generic outputs (used for all atoms).
