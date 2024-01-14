@@ -21,7 +21,7 @@ struct DecalData {
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
-bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
+bind_dynamic_data(0) readonly uniform Draw { MetaData u_meta; };
 bind_instance_data(0) readonly uniform Instance { DecalData[c_maxInstances] u_instances; };
 
 bind_internal(0) out flat f32v3 out_position;        // World-space.

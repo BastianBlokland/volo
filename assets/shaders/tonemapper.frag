@@ -19,7 +19,7 @@ const u32 c_modeAces          = 4;
 bind_global_img(0) uniform sampler2D u_texHdr;
 bind_global_img(1) uniform sampler2D u_texBloom;
 bind_global_img(2) uniform sampler2D u_texDistortion;
-bind_draw_data(0) readonly uniform Draw { TonemapperData u_draw; };
+bind_dynamic_data(0) readonly uniform Draw { TonemapperData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 

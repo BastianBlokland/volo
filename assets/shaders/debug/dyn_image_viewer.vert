@@ -26,7 +26,7 @@ struct ImageData {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
+bind_dynamic_data(0) readonly uniform Draw { ImageData u_draw; };
 
 bind_internal(0) out f32v2 out_texcoord;
 
