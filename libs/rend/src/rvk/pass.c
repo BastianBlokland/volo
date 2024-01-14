@@ -437,7 +437,7 @@ static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta*
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
+    RvkPass*                         pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -460,7 +460,7 @@ static void rvk_pass_bind_draw(
 #ifndef VOLO_FAST
     rvk_pass_assert_draw_image_staged(stage, img);
 #endif
-    const bool reqCube = gra->drawDescMeta.bindings[1] == RvkDescKind_CombinedImageSamplerCube;
+    const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
     if (UNLIKELY(reqCube != (img->type == RvkImageType_ColorSourceCube))) {
       log_e("Unsupported draw image type", log_param("graphic", fmt_text(gra->dbgName)));
 
