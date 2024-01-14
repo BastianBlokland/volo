@@ -604,7 +604,14 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }
 
 RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
-  return rvk_uniform_meta(pass->uniformPool);
+  (void)pass;
+  /**
+   * For per-instance data we use a dynamic uniform-buffer fast-path in the UniformPool where it can
+   * reuse the same descriptor-sets for different allocations within the same buffer.
+   */
+  return (RvkDescMeta){
+      .bindings[0] = RvkDescKind_UniformBufferDynamic,
+  };
 }
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
@@ -973,7 +980,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       const u32              dataSize   = instCount * dataStride;
       const Mem              data       = mem_slice(draw->instData, dataOffset, dataSize);
       const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
-      rvk_uniform_bind(
+      rvk_uniform_dynamic_bind(
           pass->uniformPool,
           dataHandle,
           pass->vkCmdBuf,

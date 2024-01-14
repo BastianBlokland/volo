@@ -24,15 +24,14 @@
 
 typedef struct {
   RvkBuffer  buffer;
-  RvkDescSet desc;
   u32        offset;
+  RvkDescSet dynamicSet; // Optional descriptor set for dynamic binding.
 } RvkUniformChunk;
 
 struct sRvkUniformPool {
-  RvkDevice*  device;
-  RvkDescMeta descMeta;
-  u32         alignMin, dataSizeMax;
-  DynArray    chunks; // RvkUniformChunk[]
+  RvkDevice* device;
+  u32        alignMin, dataSizeMax;
+  DynArray   chunks; // RvkUniformChunk[]
 };
 
 static RvkUniformChunk* rvk_uniform_chunk(RvkUniformPool* uni, const u32 chunkIdx) {
@@ -49,7 +48,6 @@ RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
           dev->vkProperties.limits.maxUniformBufferRange, rvk_uniform_desired_size_max),
       .chunks = dynarray_create_t(g_alloc_heap, RvkUniformChunk, 16),
   };
-  pool->descMeta = rvk_uniform_meta(pool);
 
   return pool;
 }
@@ -57,18 +55,15 @@ RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
 void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) {
     rvk_buffer_destroy(&chunk->buffer, uni->device);
-    rvk_desc_free(chunk->desc);
+    if (rvk_desc_valid(chunk->dynamicSet)) {
+      rvk_desc_free(chunk->dynamicSet);
+    }
   }
   dynarray_destroy(&uni->chunks);
   alloc_free_t(g_alloc_heap, uni);
 }
 
 u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
-
-RvkDescMeta rvk_uniform_meta(RvkUniformPool* uni) {
-  (void)uni;
-  return (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
-}
 
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }
@@ -84,9 +79,9 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
     RvkUniformChunk* chunk = rvk_uniform_chunk(uni, chunkIdx);
     /**
      * Check if this chunk still has enough space left.
-     * NOTE: Even though there is only 'paddedSize' amount of space requested we still need to
-     * ensure that at least up to dataSizeMax is available, reason is we told Vulkan to bind up
-     * to that much data and it cannot know that we will not be using all of it.
+     * NOTE: Even though there is only 'paddedSize' amount of space requested we still ensure that
+     * at least up to 'dataSizeMax' is available, reason is for dynamic bindings we can tell Vulkan
+     * to always bind up to 'dataSizeMax'. TODO: Investigate if there's a better way to do this.
      */
     if (chunk->buffer.mem.size - chunk->offset >= uni->dataSizeMax) {
       u32 offset = chunk->offset;
@@ -102,12 +97,10 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
 
   *newChunk = (RvkUniformChunk){
       .buffer = rvk_buffer_create(uni->device, rvk_uniform_buffer_size, RvkBufferType_HostUniform),
-      .desc   = rvk_desc_alloc(uni->device->descPool, &uni->descMeta),
       .offset = (u32)paddedSize,
   };
 
   rvk_debug_name_buffer(uni->device->debug, newChunk->buffer.vkBuffer, "uniform");
-  rvk_desc_set_attach_buffer(newChunk->desc, 0, &newChunk->buffer, 0, uni->dataSizeMax);
   rvk_buffer_upload(&newChunk->buffer, data, 0);
 
   log_d(
@@ -123,16 +116,20 @@ const RvkBuffer* rvk_uniform_buffer(RvkUniformPool* uni, const RvkUniformHandle 
   return &rvk_uniform_chunk(uni, handle.chunkIdx)->buffer;
 }
 
-void rvk_uniform_bind(
+void rvk_uniform_dynamic_bind(
     RvkUniformPool*  uni,
     RvkUniformHandle handle,
     VkCommandBuffer  vkCmdBuf,
     VkPipelineLayout vkPipelineLayout,
     const u32        set) {
-
-  const RvkUniformChunk* chunk            = rvk_uniform_chunk(uni, handle.chunkIdx);
-  const VkDescriptorSet  descSets[]       = {rvk_desc_set_vkset(chunk->desc)};
-  const u32              dynamicOffsets[] = {handle.offset};
+  RvkUniformChunk* chunk = rvk_uniform_chunk(uni, handle.chunkIdx);
+  if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
+    const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
+    chunk->dynamicSet      = rvk_desc_alloc(uni->device->descPool, &meta);
+    rvk_desc_set_attach_buffer(chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
+  }
+  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
+  const u32             dynamicOffsets[] = {handle.offset};
   vkCmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
