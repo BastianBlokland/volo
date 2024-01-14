@@ -421,9 +421,14 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
     ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
 
     ui_table_next_row(c, &table);
-    ui_label(c, string_lit("Ignore alpha"), .fontSize = 14);
+    ui_label(c, string_lit("Alpha Ignore"), .fontSize = 14);
     ui_table_next_column(c, &table);
-    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_IgnoreAlpha);
+    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaIgnore);
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Alpha Only"), .fontSize = 14);
+    ui_table_next_column(c, &table);
+    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaOnly);
   }
 
   ui_layout_container_pop(c);

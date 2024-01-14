@@ -551,7 +551,8 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
     enum {
       ImageViewerFlags_FlipY       = 1 << 0,
-      ImageViewerFlags_IgnoreAlpha = 1 << 1,
+      ImageViewerFlags_AlphaIgnore = 1 << 1,
+      ImageViewerFlags_AlphaOnly   = 1 << 2,
     };
 
     u32 flags = 0;
@@ -563,8 +564,11 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
        */
       flags |= ImageViewerFlags_FlipY;
     }
-    if (ctx->settings->debugViewerFlags & RendDebugViewer_IgnoreAlpha) {
-      flags = ImageViewerFlags_IgnoreAlpha;
+    if (ctx->settings->debugViewerFlags & RendDebugViewer_AlphaIgnore) {
+      flags |= ImageViewerFlags_AlphaIgnore;
+    }
+    if (ctx->settings->debugViewerFlags & RendDebugViewer_AlphaOnly) {
+      flags |= ImageViewerFlags_AlphaOnly;
     }
 
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
