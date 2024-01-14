@@ -438,7 +438,7 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
 }
 
 static void rvk_pass_bind_dyn(
-    RvkPass*           pass,
+    RvkPass*                         pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     RvkMesh*                         mesh,
@@ -452,7 +452,7 @@ static void rvk_pass_bind_dyn(
 
   const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->dynamicDescMeta);
   if (mesh) {
-    rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
+    rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0, 0);
   }
   if (img) {
 #ifndef VOLO_FAST
@@ -755,7 +755,11 @@ void rvk_pass_stage_global_data(RvkPass* pass, const Mem data, const u16 dataInd
     stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
   }
   rvk_desc_set_attach_buffer(
-      stage->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
+      stage->globalDescSet,
+      globalDataBinding,
+      dataBuffer,
+      0,
+      rvk_uniform_size_max(pass->uniformPool));
 
   stage->globalBoundMask |= 1 << globalDataBinding;
   stage->globalDataOffsets[dataIndex] = dataHandle.offset;

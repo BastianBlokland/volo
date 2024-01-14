@@ -839,7 +839,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     // Attach mesh.
     if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
       if (LIKELY(graphic->mesh)) {
-        rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0);
+        rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
       } else {
         log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
         graphic->flags |= RvkGraphicFlags_Invalid;

@@ -407,14 +407,21 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
 }
 
 void rvk_desc_set_attach_buffer(
-    const RvkDescSet set, const u32 binding, const RvkBuffer* buffer, const u32 size) {
+    const RvkDescSet set,
+    const u32        binding,
+    const RvkBuffer* buffer,
+    const u32        offset,
+    const u32        size) {
   RvkDescPool*      pool = set.chunk->pool;
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+
   diag_assert(kind);
+  diag_assert((offset + size) <= buffer->size);
+
   const VkDescriptorBufferInfo bufferInfo = {
       .buffer = buffer->vkBuffer,
-      .offset = 0,
-      .range  = size ? size : buffer->size,
+      .offset = offset,
+      .range  = size ? size : (buffer->size - offset),
   };
   const VkWriteDescriptorSet descriptorWrite = {
       .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

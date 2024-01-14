@@ -107,7 +107,7 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
   };
 
   rvk_debug_name_buffer(uni->device->debug, newChunk->buffer.vkBuffer, "uniform");
-  rvk_desc_set_attach_buffer(newChunk->desc, 0, &newChunk->buffer, uni->dataSizeMax);
+  rvk_desc_set_attach_buffer(newChunk->desc, 0, &newChunk->buffer, 0, uni->dataSizeMax);
   rvk_buffer_upload(&newChunk->buffer, data, 0);
 
   log_d(
