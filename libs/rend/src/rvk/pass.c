@@ -451,7 +451,7 @@ static void rvk_pass_bind_dyn(
 
   const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->dynamicDescMeta);
   if (mesh) {
-    rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0, 0);
+    rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);
   }
   if (img) {
 #ifndef VOLO_FAST
@@ -465,7 +465,7 @@ static void rvk_pass_bind_dyn(
           reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
       img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
-    rvk_desc_set_attach_sampler(descSet, 1, img, sampler);
+    rvk_desc_set_attach_sampler(descSet, 2, img, sampler);
   }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};

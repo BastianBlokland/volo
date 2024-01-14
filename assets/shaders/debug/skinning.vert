@@ -12,7 +12,7 @@
 const f32 c_alpha = 0.5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_dynamic_data(0) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
+bind_dynamic_data(1) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform InstanceSkinned {
   InstanceSkinnedData[c_maxInstances] u_instances;
 };

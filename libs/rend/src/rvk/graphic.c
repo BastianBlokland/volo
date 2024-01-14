@@ -59,6 +59,7 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
  */
 
 static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
+    rend_uniform_buffer_mask,
     rend_storage_buffer_mask,
     rend_image_sampler_mask,
 };

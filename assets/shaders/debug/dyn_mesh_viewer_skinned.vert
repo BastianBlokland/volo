@@ -8,7 +8,7 @@ struct ViewerData {
   f32m4 viewProj;
 };
 
-bind_dynamic_data(0) readonly buffer Mesh { VertexSkinnedPacked[] u_vertices; };
+bind_dynamic_data(1) readonly buffer Mesh { VertexSkinnedPacked[] u_vertices; };
 bind_draw_data(0) readonly uniform Draw { ViewerData u_draw; };
 
 void main() {
