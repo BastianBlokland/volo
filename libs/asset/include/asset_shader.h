@@ -1,7 +1,7 @@
 #pragma once
 #include "ecs_module.h"
 
-#define asset_shader_max_sets 5
+#define asset_shader_max_sets 4
 #define asset_shader_max_bindings 8
 #define asset_shader_max_resources (asset_shader_max_sets * asset_shader_max_bindings)
 #define asset_shader_max_specs 16

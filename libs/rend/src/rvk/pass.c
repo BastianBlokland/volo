@@ -606,8 +606,6 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }
 
-RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
-
 RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
   return rvk_uniform_meta(pass->uniformPool);
 }
@@ -962,15 +960,6 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
   rvk_pass_bind_dyn(
       pass, stage, graphic, draw->drawData, draw->dynMesh, draw->dynImage, draw->dynSampler);
-
-  if (draw->drawData.size) {
-    rvk_uniform_bind(
-        pass->uniformPool,
-        rvk_uniform_upload(pass->uniformPool, draw->drawData),
-        pass->vkCmdBuf,
-        graphic->vkPipelineLayout,
-        RvkGraphicSet_Draw);
-  }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
   const u32 dataStride =

@@ -16,8 +16,7 @@ enum {
   RvkGraphicSet_Global   = 0,
   RvkGraphicSet_Graphic  = 1,
   RvkGraphicSet_Dynamic  = 2,
-  RvkGraphicSet_Draw     = 3,
-  RvkGraphicSet_Instance = 4,
+  RvkGraphicSet_Instance = 3,
 };
 
 #define rvk_graphic_shaders_max 2

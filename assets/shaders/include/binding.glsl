@@ -9,8 +9,7 @@
 const u32 c_setGlobal   = 0;
 const u32 c_setGraphic  = 1;
 const u32 c_setDynamic  = 2;
-const u32 c_setDraw     = 3;
-const u32 c_setInstance = 4;
+const u32 c_setInstance = 3;
 
 /**
  * Maximum count of bindings per type for each set.
@@ -21,7 +20,6 @@ const u32 c_setGraphicMaxData  = 1;
 const u32 c_setGraphicMaxImage = 6;
 const u32 c_setDynamicMaxData  = 2;
 const u32 c_setDynamicMaxImage = 1;
-const u32 c_setDrawMaxData     = 1;
 const u32 c_setInstanceMaxData = 1;
 
 /**
@@ -37,16 +35,11 @@ const u32 c_setInstanceMaxData = 1;
 #define bind_graphic_img(_IDX) layout(set = c_setGraphic, binding = c_setGraphicMaxData + _IDX)
 
 /**
- * Declare a dynamic binding.
- * Allows for binding resources (like meshes) dynamically instead of fixed per graphic.
+ * Declare a per-draw binding.
+ * Allows for binding resources (like meshes) per draw instead of fixed per graphic.
  */
 #define bind_dynamic_data(_IDX_) layout(set = c_setDynamic, binding = _IDX_, std140)
 #define bind_dynamic_img(_IDX_) layout(set = c_setDynamic, binding = c_setDynamicMaxData + _IDX_)
-
-/**
- * Declare a per-draw binding.
- */
-#define bind_draw_data(_IDX) layout(set = c_setDraw, binding = _IDX, std140)
 
 /**
  * Declare a per-instance binding.
