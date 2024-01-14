@@ -34,6 +34,9 @@ static RvkTextureCompress rvk_texture_compression(RvkDevice* dev, const AssetTex
   if (!(dev->flags & RvkDeviceFlags_TextureCompression)) {
     return RvkTextureCompress_None;
   }
+  if (asset->flags & AssetTextureFlags_Uncompressed) {
+    return RvkTextureCompress_None;
+  }
   if (asset->type != AssetTextureType_U8) {
     return RvkTextureCompress_None;
   }
@@ -291,8 +294,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-                 .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(dev, asset);

@@ -22,6 +22,10 @@
           "title": "bool",
           "type": "boolean"
         },
+        "uncompressed": {
+          "title": "bool",
+          "type": "boolean"
+        },
         "size": {
           "title": "u32",
           "type": "integer",

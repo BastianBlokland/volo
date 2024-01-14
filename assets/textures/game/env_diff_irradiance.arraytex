@@ -1,6 +1,7 @@
 {
   "type": "CubeDiffIrradiance",
   "mipmaps": false,
+  "uncompressed": true,
   "sizeX": 16,
   "sizeY": 16,
   "textures": [

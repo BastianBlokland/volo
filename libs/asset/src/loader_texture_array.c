@@ -45,6 +45,7 @@ typedef enum {
 typedef struct {
   ArrayTexType type;
   bool         mipmaps;
+  bool         uncompressed;
   u32          sizeX, sizeY;
   struct {
     String* values;
@@ -71,6 +72,7 @@ static void arraytex_datareg_init() {
     data_reg_struct_t(reg, ArrayTexDef);
     data_reg_field_t(reg, ArrayTexDef, type, t_ArrayTexType);
     data_reg_field_t(reg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
@@ -147,6 +149,9 @@ arraytex_texture_flags(const ArrayTexDef* def, const bool srgb, const bool alpha
   }
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
+  }
+  if (def->uncompressed) {
+    flags |= AssetTextureFlags_Uncompressed;
   }
   if (srgb) {
     flags |= AssetTextureFlags_Srgb;

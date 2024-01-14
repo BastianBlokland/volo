@@ -40,6 +40,7 @@ typedef struct {
   AssetTextureType     pixelType;
   AssetTextureChannels channels;
   bool                 mipmaps;
+  bool                 uncompressed;
   u32                  size;
   f32                  frequency, power;
   u32                  seed;
@@ -79,6 +80,7 @@ static void proctex_datareg_init() {
     data_reg_field_t(reg, ProcTexDef, pixelType, t_AssetTextureType, .flags = DataFlags_Opt);
     data_reg_field_t(reg, ProcTexDef, channels, t_AssetTextureChannels);
     data_reg_field_t(reg, ProcTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, ProcTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, ProcTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, ProcTexDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, ProcTexDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -340,6 +342,9 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
   }
   if (proctex_pixel_has_alpha(def)) {
     flags |= AssetTextureFlags_Alpha;
+  }
+  if (def->uncompressed) {
+    flags |= AssetTextureFlags_Uncompressed;
   }
   *outTexture = (AssetTextureComp){
       .type         = def->pixelType,
