@@ -444,9 +444,6 @@ static void rvk_pass_bind_draw(
     RvkMesh*                         mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
-  if (!data.size && !mesh && !img) {
-    return; // No per-draw resources to bind.
-  }
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
@@ -958,8 +955,11 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
-  rvk_pass_bind_draw(
-      pass, stage, graphic, draw->drawData, draw->drawMesh, draw->drawImage, draw->drawSampler);
+
+  if (draw->drawData.size || draw->drawMesh || draw->drawImage) {
+    rvk_pass_bind_draw(
+        pass, stage, graphic, draw->drawData, draw->drawMesh, draw->drawImage, draw->drawSampler);
+  }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
   const u32 dataStride =
