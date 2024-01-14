@@ -28,9 +28,6 @@ struct sRvkJob {
   /**
    * Passes are stored per-job as they contain state that needs to persist throughout the lifetime
    * of the submission.
-   *
-   * TODO: a better design would be that the passes themselves track their state
-   * per-invocation, this would also allow rendering a single pass multiple times per job.
    */
   RvkPass* passes[RendPass_Count];
 
