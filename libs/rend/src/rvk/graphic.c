@@ -27,7 +27,7 @@ static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Instance,
 };
 
-#define rend_uniform_buffer_mask (1 << RvkDescKind_UniformBufferDynamic)
+#define rend_uniform_buffer_mask (1 << RvkDescKind_UniformBuffer)
 #define rend_storage_buffer_mask (1 << RvkDescKind_StorageBuffer)
 #define rend_image_sampler_2d_mask (1 << RvkDescKind_CombinedImageSampler2D)
 #define rend_image_sampler_cube_mask (1 << RvkDescKind_CombinedImageSamplerCube)
@@ -813,7 +813,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (drawDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
+    if (drawDescMeta.bindings[0] == RvkDescKind_UniformBuffer) {
       graphic->flags |= RvkGraphicFlags_RequireDrawData;
     }
 
@@ -823,7 +823,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Instance, &instanceDescMeta, g_rendSupportedInstanceBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (instanceDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
+    if (instanceDescMeta.bindings[0] == RvkDescKind_UniformBuffer) {
       graphic->flags |= RvkGraphicFlags_RequireInstanceData;
     }
 
