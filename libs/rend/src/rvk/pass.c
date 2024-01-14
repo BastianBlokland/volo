@@ -440,16 +440,22 @@ static void rvk_pass_bind_dyn(
     RvkPass*                         pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
+    const Mem                        data,
     RvkMesh*                         mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
-  if (!mesh && !img) {
+  if (!data.size && !mesh && !img) {
     return; // No dynamic resources to bind.
   }
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc(pass, &gra->dynamicDescMeta);
+  if (data.size && gra->dynamicDescMeta.bindings[0]) {
+    const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
+    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
+    rvk_desc_set_attach_buffer(descSet, 0, dataBuffer, dataHandle.offset, (u32)data.size);
+  }
   if (mesh && gra->dynamicDescMeta.bindings[1]) {
     rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);
   }
@@ -954,7 +960,8 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
-  rvk_pass_bind_dyn(pass, stage, graphic, draw->dynMesh, draw->dynImage, draw->dynSampler);
+  rvk_pass_bind_dyn(
+      pass, stage, graphic, draw->drawData, draw->dynMesh, draw->dynImage, draw->dynSampler);
 
   if (draw->drawData.size) {
     rvk_uniform_bind(
