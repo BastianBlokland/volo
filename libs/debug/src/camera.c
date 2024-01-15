@@ -365,8 +365,7 @@ ecs_module_init(debug_camera_module) {
 }
 
 EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_empty_t(world, panelEntity, DebugPanelComp);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

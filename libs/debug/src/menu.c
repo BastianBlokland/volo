@@ -257,8 +257,7 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_empty_t(world, menuEntity, DebugPanelComp);
-  ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
-  return menuEntity;
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
+  ecs_world_add_t(world, panelEntity, DebugMenuComp, .window = window);
+  return panelEntity;
 }
