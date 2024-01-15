@@ -1161,6 +1161,8 @@ ecs_system_define(DebugRendUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      settings->debugViewerResource = 0;
+      settings->flags &= ~RendFlags_DebugOverlay;
       continue;
     }
     rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
