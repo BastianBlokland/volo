@@ -723,13 +723,13 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
+    debug_editor_update(panelComp, assetManager);
+
     ui_canvas_reset(canvas);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
       continue;
     }
     script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
-
-    debug_editor_update(panelComp, assetManager);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -760,7 +760,7 @@ ecs_module_init(debug_script_module) {
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 500)));
   return panelEntity;
