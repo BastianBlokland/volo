@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
+#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -506,6 +507,7 @@ ecs_module_init(debug_prefab_module) {
 
 EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_empty_t(world, panelEntity, DebugPanelComp);
   ecs_world_add_t(
       world,
       panelEntity,

@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_format.h"
 #include "debug_ecs.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
@@ -774,6 +775,7 @@ ecs_module_init(debug_ecs_module) {
 
 EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_empty_t(world, panelEntity, DebugPanelComp);
   ecs_world_add_t(
       world,
       panelEntity,

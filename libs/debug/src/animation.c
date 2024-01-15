@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_animation.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_text.h"
@@ -579,6 +580,7 @@ ecs_module_init(debug_animation_module) {
 
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_empty_t(world, panelEntity, DebugPanelComp);
   ecs_world_add_t(
       world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
   return panelEntity;

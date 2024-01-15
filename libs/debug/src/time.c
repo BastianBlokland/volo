@@ -1,5 +1,6 @@
 #include "core_format.h"
 #include "core_math.h"
+#include "debug_panel.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -181,6 +182,7 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_empty_t(world, panelEntity, DebugPanelComp);
   ecs_world_add_t(
       world,
       panelEntity,

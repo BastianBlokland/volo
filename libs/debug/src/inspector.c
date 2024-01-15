@@ -8,6 +8,7 @@
 #include "core_utf8.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_stats.h"
@@ -1735,6 +1736,7 @@ ecs_module_init(debug_inspector_module) {
 
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_empty_t(world, panelEntity, DebugPanelComp);
   ecs_world_add_t(
       world,
       panelEntity,

@@ -16,6 +16,7 @@ add_library(lib_debug STATIC
   src/level.c
   src/log_viewer.c
   src/menu.c
+  src/panel.c
   src/prefab.c
   src/register.c
   src/rend.c
