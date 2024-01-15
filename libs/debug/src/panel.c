@@ -6,7 +6,7 @@ ecs_comp_define(DebugPanelComp) { bool hidden; };
 
 ecs_module_init(debug_panel_module) { ecs_register_comp(DebugPanelComp); }
 
-void debug_panel_hide(DebugPanelComp* panel, const bool hidden) { panel->hidden = hidden; }
+void debug_panel_hide(DebugPanelComp* panel, const bool hide) { panel->hidden = hide; }
 
 bool debug_panel_hidden(const DebugPanelComp* panel) { return panel->hidden; }
 
