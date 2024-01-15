@@ -132,7 +132,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
-ecs_view_define(MenuUpdateView) {
+ecs_view_define(PanelUpdateView) {
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugMenuComp);
   ecs_access_write(UiCanvasComp);
@@ -224,17 +224,17 @@ ecs_system_define(DebugMenuUpdateSys) {
   const InputManagerComp* input       = ecs_view_read_t(globalItr, InputManagerComp);
   DebugStatsGlobalComp*   statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
-  EcsView* menuView = ecs_world_view_t(world, MenuUpdateView);
+  EcsView* menuView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(menuView); ecs_view_walk(itr);) {
-    const EcsEntityId menuEntity = ecs_view_entity(itr);
-    DebugMenuComp*    menu       = ecs_view_write_t(itr, DebugMenuComp);
-    UiCanvasComp*     canvas     = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId panelEntity = ecs_view_entity(itr);
+    DebugMenuComp*    menu        = ecs_view_write_t(itr, DebugMenuComp);
+    UiCanvasComp*     canvas      = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
       continue;
     }
-    debug_action_bar_draw(world, menuEntity, canvas, input, menu, statsGlobal, menu->window);
+    debug_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window);
 
     if (input_triggered_lit(input, "DebugPanelClose")) {
       const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
@@ -250,13 +250,13 @@ ecs_module_init(debug_menu_module) {
   ecs_register_comp(DebugMenuComp);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(MenuUpdateView);
+  ecs_register_view(PanelUpdateView);
   ecs_register_view(CanvasView);
 
   ecs_register_system(
       DebugMenuUpdateSys,
       ecs_view_id(GlobalView),
-      ecs_view_id(MenuUpdateView),
+      ecs_view_id(PanelUpdateView),
       ecs_view_id(CanvasView));
 }
 
