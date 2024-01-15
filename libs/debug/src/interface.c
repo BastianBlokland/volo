@@ -145,6 +145,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      settings->flags &= ~(UiSettingFlags_DebugInspector | UiSettingFlags_DebugShading);
       continue;
     }
     interface_panel_draw(canvas, panelComp, settings);
