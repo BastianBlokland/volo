@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "debug_asset.h"
+#include "debug_panel.h"
 #include "ecs_world.h"
 #include "ui.h"
 
@@ -90,6 +91,7 @@ static i8 compare_asset_info_status(const void* a, const void* b) {
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugAssetPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -285,9 +287,11 @@ ecs_system_define(DebugAssetUpdatePanelSys) {
     DebugAssetPanelComp* panelComp = ecs_view_write_t(itr, DebugAssetPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    asset_info_query(panelComp, world);
-
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
+    asset_info_query(panelComp, world);
     asset_panel_draw(canvas, panelComp, world);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
@@ -310,7 +314,7 @@ ecs_module_init(debug_asset_module) {
 }
 
 EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

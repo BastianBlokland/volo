@@ -8,6 +8,7 @@
 #include "core_utf8.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_stats.h"
@@ -140,6 +141,7 @@ ecs_view_define(GlobalPanelUpdateView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugInspectorPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -952,6 +954,9 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     inspector_panel_draw(world, stats, time, setEnv, canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
@@ -1734,7 +1739,7 @@ ecs_module_init(debug_inspector_module) {
 }
 
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

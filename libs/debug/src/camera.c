@@ -4,6 +4,7 @@
 #include "core_stringtable.h"
 #include "debug_camera.h"
 #include "debug_gizmo.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_text.h"
@@ -40,6 +41,7 @@ ecs_comp_define(DebugCameraPanelComp) {
 };
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugCameraPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -202,6 +204,9 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     camera_panel_draw(canvas, panelComp, camera, transform);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
@@ -364,7 +369,7 @@ ecs_module_init(debug_camera_module) {
 }
 
 EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

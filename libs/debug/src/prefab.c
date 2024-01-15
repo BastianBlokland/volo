@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
+#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -422,6 +423,7 @@ ecs_view_define(PanelUpdateGlobalView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugPrefabPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -451,8 +453,6 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     DebugPrefabPanelComp* panelComp = ecs_view_write_t(itr, DebugPrefabPanelComp);
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    ui_canvas_reset(canvas);
-
     const PrefabPanelContext ctx = {
         .world       = world,
         .prefabMap   = prefabMap,
@@ -464,6 +464,16 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
         .globalStats = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
         .setEnv      = ecs_view_write_t(globalItr, SceneSetEnvComp),
     };
+
+    ui_canvas_reset(canvas);
+
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      if (panelComp->mode == PrefabPanelMode_Create) {
+        prefab_create_cancel(&ctx);
+      }
+      continue;
+    }
+
     switch (panelComp->mode) {
     case PrefabPanelMode_Create:
       prefab_create_update(&ctx);
@@ -505,7 +515,7 @@ ecs_module_init(debug_prefab_module) {
 }
 
 EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

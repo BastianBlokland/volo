@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "debug_panel.h"
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene_level.h"
@@ -176,6 +177,7 @@ ecs_view_define(PanelUpdateGlobalView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugLevelPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -229,6 +231,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     }
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     level_panel_draw(canvas, &ctx, assetView);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
@@ -255,8 +260,7 @@ ecs_module_init(debug_level_module) {
 }
 
 EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

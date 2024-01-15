@@ -4,6 +4,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "debug_panel.h"
 #include "debug_sound.h"
 #include "ecs_world.h"
 #include "snd.h"
@@ -34,6 +35,7 @@ ecs_comp_define(DebugSoundPanelComp) {
 ecs_view_define(GlobalView) { ecs_access_write(SndMixerComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugSoundPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -480,6 +482,9 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     sound_panel_draw(canvas, panelComp, mixer);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
@@ -502,7 +507,7 @@ ecs_module_init(debug_sound_module) {
 }
 
 EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,

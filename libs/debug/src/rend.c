@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "debug_panel.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
@@ -1133,6 +1134,7 @@ ecs_view_define(GlobalView) { ecs_access_write(RendSettingsGlobalComp); }
 ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugRendPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -1158,7 +1160,11 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      settings->debugViewerResource = 0;
+      settings->flags &= ~RendFlags_DebugOverlay;
+      continue;
+    }
     rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
 
     // Check if any renderer debug overlay is active.
@@ -1218,7 +1224,7 @@ ecs_module_init(debug_rend_module) {
 }
 
 EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
       world,
       panelEntity,
