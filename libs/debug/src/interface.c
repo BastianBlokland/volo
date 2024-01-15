@@ -51,6 +51,7 @@ ecs_comp_define(DebugInterfacePanelComp) {
 ecs_view_define(WindowView) { ecs_access_write(UiSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugInterfacePanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -143,6 +144,9 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
     }
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     interface_panel_draw(canvas, panelComp, settings);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {

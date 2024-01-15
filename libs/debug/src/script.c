@@ -646,6 +646,7 @@ ecs_view_define(PanelUpdateGlobalView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugScriptPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -723,6 +724,9 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
 
     debug_editor_update(panelComp, assetManager);

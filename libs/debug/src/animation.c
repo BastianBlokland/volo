@@ -400,6 +400,7 @@ static DebugAnimationSettingsComp* anim_settings_get_or_create(EcsWorld* world) 
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugAnimationPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -422,6 +423,9 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     anim_panel_draw(canvas, panelComp, settings, subject);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {

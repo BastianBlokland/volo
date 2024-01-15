@@ -91,6 +91,7 @@ static i8 compare_asset_info_status(const void* a, const void* b) {
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugAssetPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -286,9 +287,11 @@ ecs_system_define(DebugAssetUpdatePanelSys) {
     DebugAssetPanelComp* panelComp = ecs_view_write_t(itr, DebugAssetPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    asset_info_query(panelComp, world);
-
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
+    asset_info_query(panelComp, world);
     asset_panel_draw(canvas, panelComp, world);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {

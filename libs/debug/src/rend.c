@@ -1134,6 +1134,7 @@ ecs_view_define(GlobalView) { ecs_access_write(RendSettingsGlobalComp); }
 ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugRendPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -1159,7 +1160,9 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
 
     // Check if any renderer debug overlay is active.

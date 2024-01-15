@@ -18,6 +18,7 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugTimePanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -160,6 +161,9 @@ ecs_system_define(DebugTimeUpdateSys) {
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     time_panel_draw(canvas, stats, panelComp, time, timeSettings);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {

@@ -41,6 +41,7 @@ ecs_comp_define(DebugCameraPanelComp) {
 };
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugCameraPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -203,6 +204,9 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     camera_panel_draw(canvas, panelComp, camera, transform);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {

@@ -742,6 +742,7 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugEcsPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -754,6 +755,9 @@ ecs_system_define(DebugEcsUpdatePanelSys) {
     UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     ecs_panel_draw(canvas, panelComp, world);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {

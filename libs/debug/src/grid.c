@@ -73,6 +73,7 @@ ecs_view_define(UpdateGlobalView) {
 }
 
 ecs_view_define(UpdateView) {
+  ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugGridPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -292,7 +293,9 @@ ecs_system_define(DebugGridUpdateSys) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
 
     ui_canvas_reset(canvas);
-
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      continue;
+    }
     grid_panel_draw(canvas, stats, panelComp, grid);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
