@@ -453,11 +453,6 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     DebugPrefabPanelComp* panelComp = ecs_view_write_t(itr, DebugPrefabPanelComp);
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
-      continue;
-    }
-
     const PrefabPanelContext ctx = {
         .world       = world,
         .prefabMap   = prefabMap,
@@ -469,6 +464,16 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
         .globalStats = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
         .setEnv      = ecs_view_write_t(globalItr, SceneSetEnvComp),
     };
+
+    ui_canvas_reset(canvas);
+
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+      if (panelComp->mode == PrefabPanelMode_Create) {
+        prefab_create_cancel(&ctx);
+      }
+      continue;
+    }
+
     switch (panelComp->mode) {
     case PrefabPanelMode_Create:
       prefab_create_update(&ctx);
