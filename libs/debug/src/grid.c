@@ -17,6 +17,7 @@
 // clang-format off
 
 static const String g_tooltipShow       = string_static("Should the grid be shown?");
+static const String g_tooltipHeightAuto = string_static("Automatically adjust the height based on the selection.");
 static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
 static const String g_tooltipHeight     = string_static("Height to draw the grid at.");
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
@@ -29,10 +30,11 @@ static const f32    g_gridDefaultHeight = 0.0f;
 // clang-format on
 
 typedef enum {
-  DebugGridFlags_None = 0,
-  DebugGridFlags_Show = 1 << 0,
+  DebugGridFlags_None       = 0,
+  DebugGridFlags_Show       = 1 << 0,
+  DebugGridFlags_HeightAuto = 1 << 1,
 
-  DebugGridFlags_Default = DebugGridFlags_Show,
+  DebugGridFlags_Default = DebugGridFlags_Show | DebugGridFlags_HeightAuto,
 } DebugGridFlags;
 
 typedef struct {
@@ -180,7 +182,7 @@ static void grid_panel_draw(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
@@ -204,6 +206,11 @@ static void grid_panel_draw(
           .tooltip = g_tooltipCellSize)) {
     grid_notify_cell_size(stats, grid->cellSize);
   }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Height Auto"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, &grid->flags, DebugGridFlags_HeightAuto, .tooltip = g_tooltipHeightAuto);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Height"));
@@ -274,9 +281,11 @@ ecs_system_define(DebugGridUpdateSys) {
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
+    if (grid->flags & DebugGridFlags_HeightAuto) {
+      grid->height = debug_selection_height(setEnv, transformView);
+    }
     if (input_triggered_lit(input, "DebugGridShow")) {
       grid->flags ^= DebugGridFlags_Show;
-      grid->height = debug_selection_height(setEnv, transformView);
       grid_notify_show(stats, (grid->flags & DebugGridFlags_Show) != 0);
     }
     if (input_triggered_lit(input, "DebugGridScaleUp")) {
@@ -366,7 +375,7 @@ EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugGridPanelComp,
-      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(330, 200)),
+      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(350, 220)),
       .window = window);
   return panelEntity;
 }
