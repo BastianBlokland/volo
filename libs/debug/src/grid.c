@@ -31,8 +31,9 @@ static const f32    g_gridDefaultHeight = 0.0f;
 
 typedef enum {
   DebugGridFlags_None       = 0,
-  DebugGridFlags_Show       = 1 << 0,
-  DebugGridFlags_HeightAuto = 1 << 1,
+  DebugGridFlags_Draw       = 1 << 0,
+  DebugGridFlags_Show       = 1 << 1,
+  DebugGridFlags_HeightAuto = 1 << 2,
 
   DebugGridFlags_Default = DebugGridFlags_Show | DebugGridFlags_HeightAuto,
 } DebugGridFlags;
@@ -135,7 +136,7 @@ ecs_system_define(DebugGridDrawSys) {
   EcsView* gridView = ecs_world_view_t(world, GridReadView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
     const DebugGridComp* grid = ecs_view_read_t(itr, DebugGridComp);
-    if (!(grid->flags & DebugGridFlags_Show)) {
+    if (!(grid->flags & DebugGridFlags_Draw)) {
       continue;
     }
 
@@ -297,6 +298,12 @@ ecs_system_define(DebugGridUpdateSys) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
       grid->flags |= DebugGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
+    }
+    // NOTE: Only draw grid when requested and when in debug mode.
+    if (grid->flags & DebugGridFlags_Show && input_layer_active(input, string_hash_lit("Debug"))) {
+      grid->flags |= DebugGridFlags_Draw;
+    } else {
+      grid->flags &= ~DebugGridFlags_Draw;
     }
   }
 
