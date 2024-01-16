@@ -28,6 +28,13 @@ static const f32    g_gridDefaultHeight = 0.0f;
 
 // clang-format on
 
+typedef enum {
+  DebugGridFlags_None = 0,
+  DebugGridFlags_Show = 1 << 0,
+
+  DebugGridFlags_Default = DebugGridFlags_Show,
+} DebugGridFlags;
+
 typedef struct {
   ALIGNAS(16)
   f16 cellSize;
@@ -41,13 +48,13 @@ ASSERT(sizeof(DebugGridData) == 16, "Size needs to match the size defined in gls
 ASSERT(alignof(DebugGridData) == 16, "Alignment needs to match the glsl alignment");
 
 ecs_comp_define(DebugGridComp) {
-  EcsEntityId drawEntity;
-  bool        show;
-  f32         cellSize;
-  f32         height;
-  f32         highlightInterval;
-  f32         segmentCount;
-  f32         fadeFraction;
+  EcsEntityId    drawEntity;
+  DebugGridFlags flags;
+  f32            cellSize;
+  f32            height;
+  f32            highlightInterval;
+  f32            segmentCount;
+  f32            fadeFraction;
 };
 
 ecs_comp_define(DebugGridPanelComp) {
@@ -99,7 +106,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       world,
       entity,
       DebugGridComp,
-      .show              = true,
+      .flags             = DebugGridFlags_Default,
       .drawEntity        = drawEntity,
       .segmentCount      = 750,
       .height            = g_gridDefaultHeight,
@@ -126,7 +133,7 @@ ecs_system_define(DebugGridDrawSys) {
   EcsView* gridView = ecs_world_view_t(world, GridReadView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
     const DebugGridComp* grid = ecs_view_read_t(itr, DebugGridComp);
-    if (!grid->show) {
+    if (!(grid->flags & DebugGridFlags_Show)) {
       continue;
     }
 
@@ -179,9 +186,10 @@ static void grid_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Show"));
   ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &grid->show, .tooltip = g_tooltipShow)) {
+  if (ui_toggle_flag(canvas, &grid->flags, DebugGridFlags_Show, .tooltip = g_tooltipShow)) {
+    const bool show = (grid->flags & DebugGridFlags_Show) != 0;
     debug_stats_notify(
-        stats, string_lit("Grid show"), grid->show ? string_lit("true") : string_lit("false"));
+        stats, string_lit("Grid show"), show ? string_lit("true") : string_lit("false"));
   }
 
   ui_table_next_row(canvas, &table);
@@ -267,18 +275,18 @@ ecs_system_define(DebugGridUpdateSys) {
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
     if (input_triggered_lit(input, "DebugGridShow")) {
-      grid->show ^= 1;
+      grid->flags ^= DebugGridFlags_Show;
       grid->height = debug_selection_height(setEnv, transformView);
-      grid_notify_show(stats, grid->show);
+      grid_notify_show(stats, (grid->flags & DebugGridFlags_Show) != 0);
     }
     if (input_triggered_lit(input, "DebugGridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
-      grid->show     = true;
+      grid->flags |= DebugGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
     if (input_triggered_lit(input, "DebugGridScaleDown")) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
-      grid->show     = true;
+      grid->flags |= DebugGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
   }
@@ -336,7 +344,7 @@ ecs_module_init(debug_grid_module) {
 }
 
 void debug_grid_show(DebugGridComp* comp, const f32 height) {
-  comp->show   = true;
+  comp->flags |= DebugGridFlags_Show;
   comp->height = height;
 }
 
