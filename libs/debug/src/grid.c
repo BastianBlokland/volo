@@ -98,7 +98,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       world,
       entity,
       DebugGridComp,
-      .show              = false,
+      .show              = true,
       .drawEntity        = drawEntity,
       .segmentCount      = 750,
       .cellSize          = 1.0f,
