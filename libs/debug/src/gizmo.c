@@ -448,7 +448,6 @@ static bool gizmo_update_interaction_translation(
     if (terrain) {
       scene_terrain_snap(terrain, &data->result);
     }
-    debug_grid_show(grid, data->result.y);
   }
 
   const f32 statDeltaMag = geo_vector_mag(geo_vector_sub(data->result, data->basePos));
