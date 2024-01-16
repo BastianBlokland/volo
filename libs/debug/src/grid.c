@@ -24,6 +24,7 @@ static const String g_tooltipSegments   = string_static("How many segments the g
 static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
 static const f32    g_gridCellSizeMin   = 0.25f;
 static const f32    g_gridCellSizeMax   = 4.0f;
+static const f32    g_gridDefaultHeight = 0.0f;
 
 // clang-format on
 
@@ -101,6 +102,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       .show              = true,
       .drawEntity        = drawEntity,
       .segmentCount      = 750,
+      .height            = g_gridDefaultHeight,
       .cellSize          = 1.0f,
       .highlightInterval = 5,
       .fadeFraction      = 0.5);
@@ -246,7 +248,7 @@ static f32 debug_selection_height(const SceneSetEnvComp* setEnv, EcsView* transf
       ++entryCount;
     }
   }
-  return entryCount ? (averageHeight / entryCount) : 0.0f;
+  return entryCount ? (averageHeight / entryCount) : g_gridDefaultHeight;
 }
 
 ecs_system_define(DebugGridUpdateSys) {
