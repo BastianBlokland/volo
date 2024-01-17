@@ -15,10 +15,11 @@
 
 #define VOLO_RVK_MEM_DEBUG 0
 #define VOLO_RVK_MEM_LOGGING 0
+#define VOLO_RVK_MEM_RELEASE_EMPTY_CHUNKS 1
 
 #define rvk_mem_chunk_size (64 * usize_mebibyte)
 
-typedef u16 RvkChunkId;
+typedef u32 RvkChunkId;
 
 struct sRvkMemChunk {
   RvkMemPool*    pool;
@@ -134,6 +135,10 @@ static u32 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
  */
 static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
   return chunk->size - rvk_mem_chunk_size_free(chunk);
+}
+
+MAYBE_UNUSED static bool rvk_mem_chunk_empty(const RvkMemChunk* chunk) {
+  return rvk_mem_chunk_size_free(chunk) == chunk->size;
 }
 
 /**
@@ -360,6 +365,15 @@ static void rvk_mem_chunk_flush(RvkMemChunk* chunk, const u32 offset, const u32 
   rvk_call(vkFlushMappedMemoryRanges, chunk->pool->vkDev, 1, &mappedMemoryRange);
 }
 
+MAYBE_UNUSED static RvkMemChunk* rvk_mem_pool_chunk_prev(RvkMemPool* pool, RvkMemChunk* chunk) {
+  for (RvkMemChunk* prev = pool->chunkHead; prev; prev = prev->next) {
+    if (prev->next == chunk) {
+      return prev;
+    }
+  }
+  return null;
+}
+
 RvkMemPool* rvk_mem_pool_create(
     const VkDevice                         vkDev,
     const VkPhysicalDeviceMemoryProperties props,
@@ -440,10 +454,33 @@ Done:
 void rvk_mem_free(const RvkMem mem) {
   diag_assert(rvk_mem_valid(mem));
 
-  // NOTE: Add per chunk locks would prevent needing to lock the entire pool here.
-  thread_mutex_lock(mem.chunk->pool->lock);
-  rvk_mem_chunk_free(mem.chunk, mem);
-  thread_mutex_unlock(mem.chunk->pool->lock);
+  RvkMemChunk* chunk = mem.chunk;
+  RvkMemPool*  pool  = chunk->pool;
+
+  thread_mutex_lock(pool->lock);
+
+  rvk_mem_chunk_free(chunk, mem);
+
+#if VOLO_RVK_MEM_RELEASE_EMPTY_CHUNKS
+  if (rvk_mem_chunk_empty(chunk)) {
+    RvkMemChunk* prev = rvk_mem_pool_chunk_prev(pool, chunk);
+    if (prev) {
+      prev->next = chunk->next;
+    }
+    if (pool->chunkHead == chunk) {
+      pool->chunkHead = chunk->next;
+    }
+    if (pool->chunkTail == chunk) {
+      pool->chunkTail = prev;
+    }
+#if VOLO_RVK_MEM_LOGGING
+    log_d("Vulkan memory chunk released", log_param("id", fmt_int(chunk->id)));
+#endif
+    rvk_mem_chunk_destroy(chunk);
+  }
+#endif
+
+  thread_mutex_unlock(pool->lock);
 }
 
 void rvk_mem_bind_buffer(const RvkMem mem, const VkBuffer vkBuffer) {
