@@ -20,11 +20,6 @@ bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32v4 out_color;
 
-f32v3 clip_to_world(const f32v3 clipPos) {
-  const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
-  return v.xyz / v.w;
-}
-
 f32v3 fog_map_coord(const f32v3 worldPos) {
   const f32v4 clipPos = u_draw.fogViewProj * f32v4(worldPos, 1.0);
   return f32v3(clipPos.xy * 0.5 + 0.5, clipPos.z);
@@ -41,7 +36,7 @@ f32 fog_frac(const f32v3 worldPos) {
 void main() {
   const f32   depth    = texture(u_texGeoDepth, in_texcoord).r;
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos = clip_to_world(clipPos);
+  const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
 
   const f32 fogFrac = fog_frac(worldPos);
   out_color         = f32v4(c_fogColor.rgb, c_fogColor.a * fogFrac);
