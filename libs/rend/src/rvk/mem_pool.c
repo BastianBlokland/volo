@@ -365,6 +365,15 @@ static void rvk_mem_chunk_flush(RvkMemChunk* chunk, const u32 offset, const u32 
   rvk_call(vkFlushMappedMemoryRanges, chunk->pool->vkDev, 1, &mappedMemoryRange);
 }
 
+MAYBE_UNUSED static RvkMemChunk* rvk_mem_pool_chunk_prev(RvkMemPool* pool, RvkMemChunk* chunk) {
+  for (RvkMemChunk* prev = pool->chunkHead; prev; prev = prev->next) {
+    if (prev->next == chunk) {
+      return prev;
+    }
+  }
+  return null;
+}
+
 RvkMemPool* rvk_mem_pool_create(
     const VkDevice                         vkDev,
     const VkPhysicalDeviceMemoryProperties props,
@@ -454,17 +463,15 @@ void rvk_mem_free(const RvkMem mem) {
 
 #if VOLO_RVK_MEM_RELEASE_EMPTY_CHUNKS
   if (rvk_mem_chunk_empty(chunk)) {
+    RvkMemChunk* prev = rvk_mem_pool_chunk_prev(pool, chunk);
+    if (prev) {
+      prev->next = chunk->next;
+    }
     if (pool->chunkHead == chunk) {
       pool->chunkHead = chunk->next;
     }
-    for (RvkMemChunk* prev = pool->chunkHead; prev; prev = prev->next) {
-      if (prev->next == chunk) {
-        prev->next = chunk->next;
-        if (pool->chunkTail == chunk) {
-          pool->chunkTail = prev;
-        }
-        break;
-      }
+    if (pool->chunkTail == chunk) {
+      pool->chunkTail = prev;
     }
 #if VOLO_RVK_MEM_LOGGING
     log_d("Vulkan memory chunk released", log_param("id", fmt_int(chunk->id)));
