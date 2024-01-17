@@ -32,6 +32,7 @@
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -148,6 +149,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -986,6 +988,18 @@ static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSetEnvComp*
   }
 }
 
+static void debug_inspector_tool_drop(
+    EcsWorld* world, const SceneSetEnvComp* setEnv, const SceneTerrainComp* terrain) {
+  const StringHash s   = g_sceneSetSelected;
+  EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
+    if (!ecs_view_maybe_jump(itr, *e)) {
+      continue; // Selected entity is missing required components.
+    }
+    scene_terrain_snap(terrain, &ecs_view_write_t(itr, SceneTransformComp)->position);
+  }
+}
+
 static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSetEnvComp* setEnv) {
   const StringHash s = g_sceneSetSelected;
 
@@ -1162,11 +1176,12 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const InputManagerComp*     input  = ecs_view_read_t(globalItr, InputManagerComp);
-  SceneSetEnvComp*            setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  DebugGizmoComp*             gizmo  = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugInspectorSettingsComp* set    = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*       stats  = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp*     input   = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneTerrainComp*     terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
+  SceneSetEnvComp*            setEnv  = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DebugGizmoComp*             gizmo   = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugInspectorSettingsComp* set     = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
+  DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
     set->tool = DebugInspectorTool_None;
@@ -1186,6 +1201,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     debug_inspector_tool_destroy(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
+  }
+  if (input_triggered_lit(input, "DebugInspectorDrop")) {
+    debug_inspector_tool_drop(world, setEnv, terrain);
+    debug_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
   if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
     debug_inspector_tool_duplicate(world, setEnv);

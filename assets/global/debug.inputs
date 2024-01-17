@@ -210,6 +210,14 @@
       ]
     },
     {
+      "name": "DebugInspectorDrop",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "PageDown" },
+        { "type": "Pressed", "key": "F", "requiredModifiers": [ "Control" ] }
+      ]
+    },
+    {
       "name": "DebugInspectorDuplicate",
       "blockers": [ "TextInput" ],
       "bindings": [

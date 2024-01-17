@@ -7,14 +7,12 @@
       "shaderId": "shaders/debug/grid.frag.spv"
     }
   ],
-  "samplers": [],
+  "samplers": [ ],
   "renderOrder": 50,
   "topology": "Lines",
   "lineWidth": 2,
   "rasterizer": "Lines",
   "blend": "Alpha",
-  "depth": "LessNoWrite",
-  "depthBiasConstant": 1,
-  "depthBiasSlope": 1.5,
+  "depth": "AlwaysNoWrite",
   "cull": "None"
 }

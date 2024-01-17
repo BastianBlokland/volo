@@ -16,20 +16,13 @@ bind_internal(0) out f32v2 out_distortion;
 
 f32v2 current_clip_pos() { return in_fragCoord.xy / u_global.resolution.xy * 2.0 - 1.0; }
 
-f32v2 world_to_clip_pos(const f32v3 worldPos) {
-  const f32v4 v = u_global.viewProj * f32v4(worldPos, 1);
-  return v.xy / v.w;
-}
-
-f32v3 view_to_world_dir(const f32v3 viewDir) { return (u_global.viewInv * f32v4(viewDir, 0)).xyz; }
-
 void main() {
   const f32v4 texSample       = texture(u_atlas, in_texcoord);
-  const f32v3 distortNormal   = view_to_world_dir(normal_tex_decode(texSample.rgb));
+  const f32v3 distortNormal   = view_to_world_dir(u_global, normal_tex_decode(texSample.rgb));
   const f32   distortStrength = texSample.a * in_color.a;
 
   const f32v3 distortWorldPos = in_worldPosition + distortNormal * distortStrength;
-  const f32v2 distortClipPos  = world_to_clip_pos(distortWorldPos);
+  const f32v2 distortClipPos  = world_to_clip_pos(u_global, distortWorldPos);
 
   out_distortion = distortClipPos - current_clip_pos();
 }

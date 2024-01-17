@@ -47,11 +47,6 @@ bind_internal(8) in flat u32 in_excludeTags;
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
 
-f32v3 clip_to_world(const f32v3 clipPos) {
-  const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
-  return v.xyz / v.w;
-}
-
 f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
   const f32v2 texcoord = atlasMeta.xy + (f32v2(decalPos.x, -decalPos.y) + 0.5) * atlasMeta.z;
@@ -75,7 +70,7 @@ void main() {
   const u32   tags     = tags_tex_decode(geoData1.w);
 
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos = clip_to_world(clipPos);
+  const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
 
   // Transform back to coordinates local to the unit cube.
   const f32v3 localPos = quat_rotate(quat_inverse(in_rotation), worldPos - in_position) / in_scale;
