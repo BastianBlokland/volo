@@ -189,7 +189,7 @@ static void grid_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Show"));
   ui_table_next_column(canvas, &table);
-  if (ui_toggle_flag(canvas, &grid->flags, DebugGridFlags_Show, .tooltip = g_tooltipShow)) {
+  if (ui_toggle_flag(canvas, (u32*)&grid->flags, DebugGridFlags_Show, .tooltip = g_tooltipShow)) {
     const bool show = (grid->flags & DebugGridFlags_Show) != 0;
     debug_stats_notify(
         stats, string_lit("Grid show"), show ? string_lit("true") : string_lit("false"));
@@ -211,7 +211,8 @@ static void grid_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Height Auto"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &grid->flags, DebugGridFlags_HeightAuto, .tooltip = g_tooltipHeightAuto);
+  ui_toggle_flag(
+      canvas, (u32*)&grid->flags, DebugGridFlags_HeightAuto, .tooltip = g_tooltipHeightAuto);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Height"));
