@@ -137,6 +137,23 @@
       "scale": 1
     },
     {
+      "id": 24599064,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 7.5416,
+        "y": 0.5068,
+        "z": -18.193
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 31405950,
       "prefab": "PropPlant",
       "faction": "None",
@@ -549,9 +566,9 @@
       "prefab": "StructureBarracks",
       "faction": "A",
       "position": {
-        "x": 16.4831,
-        "y": 0.4421,
-        "z": -10.7165
+        "x": 14,
+        "y": 0.4037,
+        "z": -11
       },
       "rotation": {
         "x": 0,
@@ -902,6 +919,23 @@
       "scale": 1
     },
     {
+      "id": 223760174,
+      "prefab": "PropTrafficBlockade",
+      "faction": "A",
+      "position": {
+        "x": -10.0238,
+        "y": 1.0444,
+        "z": -20.4172
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 244694503,
       "prefab": "PropWreck",
       "faction": "None",
@@ -1008,15 +1042,66 @@
       "prefab": "PropRock",
       "faction": "None",
       "position": {
-        "x": 27.4678,
-        "y": 0.4492,
-        "z": 18.1096
+        "x": 30.6237,
+        "y": 0.1924,
+        "z": 5.5679
       },
       "rotation": {
         "x": 0,
         "y": -0.5621,
         "z": 0,
         "w": 0.8271
+      },
+      "scale": 1
+    },
+    {
+      "id": 273553655,
+      "prefab": "PropBarrel",
+      "faction": "A",
+      "position": {
+        "x": -23.2294,
+        "y": 0.5397,
+        "z": -2.9348
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
+      "id": 275409789,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 17.8432,
+        "y": 0.3203,
+        "z": 15.5196
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
+      "id": 276026769,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": -3
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
       },
       "scale": 1
     },
@@ -1085,6 +1170,23 @@
         "y": -0.3171,
         "z": 0,
         "w": 0.9484
+      },
+      "scale": 1
+    },
+    {
+      "id": 292591603,
+      "prefab": "StructureTurretGun",
+      "faction": "A",
+      "position": {
+        "x": -17.8538,
+        "y": 0.5798,
+        "z": -18.8971
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.9239,
+        "z": 0,
+        "w": 0.3827
       },
       "scale": 1
     },
@@ -1514,6 +1616,23 @@
       "scale": 1
     },
     {
+      "id": 389966091,
+      "prefab": "PropContainer",
+      "faction": "A",
+      "position": {
+        "x": -5.2121,
+        "y": 0.5282,
+        "z": -21.1832
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 390038122,
       "prefab": "PropTree",
       "faction": "None",
@@ -1544,6 +1663,23 @@
         "y": -0.32,
         "z": 0,
         "w": 0.9474
+      },
+      "scale": 1
+    },
+    {
+      "id": 400576054,
+      "prefab": "InfantryRocket",
+      "faction": "A",
+      "position": {
+        "x": -13.7736,
+        "y": 0.5008,
+        "z": -1.8906
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.8751,
+        "z": 0,
+        "w": 0.4839
       },
       "scale": 1
     },
@@ -1803,6 +1939,23 @@
       "scale": 1
     },
     {
+      "id": 438210858,
+      "prefab": "LogicSwitch",
+      "faction": "A",
+      "position": {
+        "x": 0.448,
+        "y": 0.7636,
+        "z": -21.5103
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 444329259,
       "prefab": "PropPlant",
       "faction": "None",
@@ -1854,6 +2007,23 @@
       "scale": 1
     },
     {
+      "id": 453792952,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 7,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 458291941,
       "prefab": "PropWreck",
       "faction": "None",
@@ -1901,6 +2071,23 @@
         "y": 0.3675,
         "z": 0,
         "w": 0.93
+      },
+      "scale": 1
+    },
+    {
+      "id": 473008688,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 11.5,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
       },
       "scale": 1
     },
@@ -2075,6 +2262,23 @@
       "scale": 1
     },
     {
+      "id": 530365125,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": -15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
+      },
+      "scale": 1
+    },
+    {
       "id": 530384728,
       "prefab": "PropPlant",
       "faction": "None",
@@ -2245,6 +2449,23 @@
       "scale": 1
     },
     {
+      "id": 563930780,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -5,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 564795598,
       "prefab": "PropRock",
       "faction": "None",
@@ -2398,6 +2619,23 @@
       "scale": 1
     },
     {
+      "id": 609602398,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 14.5,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 611241672,
       "prefab": "PropPlant",
       "faction": "None",
@@ -2534,6 +2772,23 @@
       "scale": 1
     },
     {
+      "id": 621919161,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -5.3723,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 622485092,
       "prefab": "PropPlant",
       "faction": "None",
@@ -2619,19 +2874,19 @@
       "scale": 1
     },
     {
-      "id": 644427527,
-      "prefab": "StructureFactory",
+      "id": 639814396,
+      "prefab": "PropFence",
       "faction": "A",
       "position": {
-        "x": 2.7254,
-        "y": 0.3009,
-        "z": 2.1083
+        "x": 26,
+        "y": 0.3515,
+        "z": 3
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -1,
         "z": 0,
-        "w": 1
+        "w": -0
       },
       "scale": 1
     },
@@ -2806,6 +3061,23 @@
       "scale": 1
     },
     {
+      "id": 698083156,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 22,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 700286319,
       "prefab": "PropRock",
       "faction": "None",
@@ -2879,7 +3151,7 @@
       "faction": "None",
       "position": {
         "x": 15.5342,
-        "y": 0.5922,
+        "y": 0.4288,
         "z": 9.021
       },
       "rotation": {
@@ -2940,6 +3212,23 @@
         "w": 0.9244
       },
       "scale": 1
+    },
+    {
+      "id": 713146560,
+      "prefab": "DecalScorch",
+      "faction": "A",
+      "position": {
+        "x": -10.7834,
+        "y": 0.8892,
+        "z": -10.1966
+      },
+      "rotation": {
+        "x": -0.0572,
+        "y": -0.0002,
+        "z": -0.0042,
+        "w": 0.9984
+      },
+      "scale": 3.6557
     },
     {
       "id": 715234150,
@@ -3061,6 +3350,40 @@
       "scale": 1
     },
     {
+      "id": 737271202,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": -15
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
+      "id": 738841602,
+      "prefab": "PropTent",
+      "faction": "A",
+      "position": {
+        "x": -6.6832,
+        "y": 0.5522,
+        "z": -17.0668
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 738914108,
       "prefab": "PropPlant",
       "faction": "None",
@@ -3074,6 +3397,23 @@
         "y": 0.5898,
         "z": 0,
         "w": 0.8075
+      },
+      "scale": 1
+    },
+    {
+      "id": 741193177,
+      "prefab": "InfantryFlame",
+      "faction": "A",
+      "position": {
+        "x": -3.4851,
+        "y": 0.5805,
+        "z": -7.6055
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.6901,
+        "z": 0,
+        "w": 0.7237
       },
       "scale": 1
     },
@@ -3146,6 +3486,23 @@
       "scale": 1
     },
     {
+      "id": 758638278,
+      "prefab": "StructureTurretMissile",
+      "faction": "A",
+      "position": {
+        "x": -14.9244,
+        "y": 0.8157,
+        "z": -6.0363
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 759221173,
       "prefab": "PropPlant",
       "faction": "None",
@@ -3161,6 +3518,23 @@
         "w": 0.7267
       },
       "scale": 1
+    },
+    {
+      "id": 760988402,
+      "prefab": "DecalTextVolo",
+      "faction": "A",
+      "position": {
+        "x": -5.3104,
+        "y": 3.1046,
+        "z": -21.2377
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 2.5923
     },
     {
       "id": 763584566,
@@ -3193,6 +3567,23 @@
         "y": 0.6057,
         "z": 0,
         "w": 0.7957
+      },
+      "scale": 1
+    },
+    {
+      "id": 769695846,
+      "prefab": "InfantryFlame",
+      "faction": "A",
+      "position": {
+        "x": 21.5726,
+        "y": 0.6282,
+        "z": 7.5192
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.255,
+        "z": 0,
+        "w": 0.9669
       },
       "scale": 1
     },
@@ -3367,6 +3758,23 @@
       "scale": 1
     },
     {
+      "id": 796412164,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": {
+        "x": -22.1,
+        "y": 0.5564,
+        "z": -2.5293
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.2476,
+        "z": 0,
+        "w": 0.9689
+      },
+      "scale": 1
+    },
+    {
       "id": 808593941,
       "prefab": "PropRock",
       "faction": "None",
@@ -3435,6 +3843,23 @@
       "scale": 1
     },
     {
+      "id": 839083784,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 8.5,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 845556825,
       "prefab": "PropRock",
       "faction": "None",
@@ -3448,6 +3873,23 @@
         "y": -0.4563,
         "z": 0,
         "w": 0.8898
+      },
+      "scale": 1
+    },
+    {
+      "id": 846015391,
+      "prefab": "StructureTurretGun",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.3249,
+        "z": 13
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.5888,
+        "z": 0,
+        "w": 0.8082
       },
       "scale": 1
     },
@@ -3503,6 +3945,23 @@
       "scale": 1
     },
     {
+      "id": 861254281,
+      "prefab": "PropPressurePlate",
+      "faction": "A",
+      "position": {
+        "x": 8.1878,
+        "y": 0.6835,
+        "z": -23.964
+      },
+      "rotation": {
+        "x": 0.0521,
+        "y": 0,
+        "z": 0,
+        "w": 0.9986
+      },
+      "scale": 1
+    },
+    {
       "id": 861465353,
       "prefab": "PropRock",
       "faction": "None",
@@ -3533,6 +3992,23 @@
         "y": 0.2349,
         "z": 0,
         "w": 0.972
+      },
+      "scale": 1
+    },
+    {
+      "id": 863639994,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 8.1279,
+        "y": 0.5091,
+        "z": -19.0129
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -3741,6 +4217,23 @@
       "scale": 1
     },
     {
+      "id": 925472280,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": {
+        "x": -22.1,
+        "y": 0.5436,
+        "z": -3.7258
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.856,
+        "z": 0,
+        "w": 0.517
+      },
+      "scale": 1
+    },
+    {
       "id": 927032458,
       "prefab": "PropWreck",
       "faction": "None",
@@ -3932,9 +4425,9 @@
       "prefab": "PropWreck",
       "faction": "None",
       "position": {
-        "x": 28.2023,
-        "y": 0.8288,
-        "z": 17.2921
+        "x": 31.3582,
+        "y": 0.572,
+        "z": 4.7504
       },
       "rotation": {
         "x": -0.0878,
@@ -4030,6 +4523,23 @@
       "scale": 1
     },
     {
+      "id": 975059231,
+      "prefab": "StructureTurretMissile",
+      "faction": "A",
+      "position": {
+        "x": -1.4051,
+        "y": 1.0197,
+        "z": -15.5544
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 977492904,
       "prefab": "PropPlant",
       "faction": "None",
@@ -4094,6 +4604,40 @@
         "y": 0.693,
         "z": 0,
         "w": 0.7209
+      },
+      "scale": 1
+    },
+    {
+      "id": 1001612437,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": {
+        "x": -24.3407,
+        "y": 0.5353,
+        "z": -3.0258
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
+      "id": 1005512470,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 1,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
       },
       "scale": 1
     },
@@ -4472,6 +5016,23 @@
       "scale": 1
     },
     {
+      "id": 1076711908,
+      "prefab": "InfantryFlame",
+      "faction": "A",
+      "position": {
+        "x": -2.1653,
+        "y": 0.4467,
+        "z": -7.6921
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.0673,
+        "z": 0,
+        "w": 0.9977
+      },
+      "scale": 1
+    },
+    {
       "id": 1083878971,
       "prefab": "PropPlant",
       "faction": "None",
@@ -4659,6 +5220,23 @@
       "scale": 1
     },
     {
+      "id": 1147954947,
+      "prefab": "InfantryFlame",
+      "faction": "A",
+      "position": {
+        "x": 21.8851,
+        "y": 0.5147,
+        "z": 6.3561
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 1149512699,
       "prefab": "PropPlant",
       "faction": "None",
@@ -4672,6 +5250,23 @@
         "y": 0.6816,
         "z": 0,
         "w": 0.7317
+      },
+      "scale": 1
+    },
+    {
+      "id": 1154263369,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": -9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -4714,15 +5309,15 @@
       "prefab": "PropRock",
       "faction": "A",
       "position": {
-        "x": -0.5648,
-        "y": 0.8743,
-        "z": -10.837
+        "x": -5.7288,
+        "y": 0.2744,
+        "z": -24.1959
       },
       "rotation": {
         "x": 0,
-        "y": 0.4757,
+        "y": 0.1191,
         "z": 0,
-        "w": 0.8796
+        "w": 0.9929
       },
       "scale": 1
     },
@@ -4846,6 +5441,23 @@
       "scale": 1
     },
     {
+      "id": 1187455766,
+      "prefab": "DecalRust",
+      "faction": "A",
+      "position": {
+        "x": -10.0925,
+        "y": 0.5093,
+        "z": 0.6408
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 2.6487
+    },
+    {
       "id": 1189493562,
       "prefab": "PropRock",
       "faction": "None",
@@ -4944,6 +5556,23 @@
         "y": 0.5812,
         "z": 0,
         "w": 0.8138
+      },
+      "scale": 1
+    },
+    {
+      "id": 1214055160,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 19,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
       },
       "scale": 1
     },
@@ -5135,6 +5764,23 @@
       "scale": 1
     },
     {
+      "id": 1267099700,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": 9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 1268157784,
       "prefab": "PropPlant",
       "faction": "None",
@@ -5165,6 +5811,23 @@
         "y": 0.0989,
         "z": 0,
         "w": 0.9951
+      },
+      "scale": 1
+    },
+    {
+      "id": 1273823799,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": {
+        "x": 25.4095,
+        "y": 1.0375,
+        "z": -1.8261
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -5454,6 +6117,23 @@
         "y": -0.6855,
         "z": 0,
         "w": 0.7281
+      },
+      "scale": 1
+    },
+    {
+      "id": 1349114067,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": -12
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
       },
       "scale": 1
     },
@@ -5764,6 +6444,23 @@
       "scale": 1
     },
     {
+      "id": 1478035959,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -11,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 1479083713,
       "prefab": "PropPlant",
       "faction": "None",
@@ -5862,6 +6559,23 @@
         "y": 0.0284,
         "z": 0,
         "w": 0.9996
+      },
+      "scale": 1
+    },
+    {
+      "id": 1500315273,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 17.7143,
+        "y": 0.4048,
+        "z": 16.4098
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -6083,6 +6797,23 @@
         "y": -0.1784,
         "z": 0,
         "w": 0.984
+      },
+      "scale": 1
+    },
+    {
+      "id": 1570220399,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": {
+        "x": 6.0968,
+        "y": 0.9368,
+        "z": -26.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1,
+        "z": 0,
+        "w": -0.0099
       },
       "scale": 1
     },
@@ -6359,6 +7090,23 @@
       "scale": 1
     },
     {
+      "id": 1611317758,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 17.5949,
+        "y": 1.5006,
+        "z": 16.0846
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 1612714887,
       "prefab": "PropRock",
       "faction": "None",
@@ -6389,6 +7137,23 @@
         "y": -0.5833,
         "z": 0,
         "w": 0.8122
+      },
+      "scale": 1
+    },
+    {
+      "id": 1628501999,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -6869,6 +7634,23 @@
       "scale": 1
     },
     {
+      "id": 1788246729,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": 9
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
+      },
+      "scale": 1
+    },
+    {
       "id": 1789233056,
       "prefab": "PropPlant",
       "faction": "None",
@@ -6933,6 +7715,23 @@
         "y": 0.6815,
         "z": 0,
         "w": 0.7318
+      },
+      "scale": 1
+    },
+    {
+      "id": 1814464824,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -8.3722,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
       },
       "scale": 1
     },
@@ -7787,6 +8586,40 @@
       "scale": 1
     },
     {
+      "id": 2061823194,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
+      },
+      "scale": 1
+    },
+    {
+      "id": 2063581322,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 13,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 2065731355,
       "prefab": "PropPlant",
       "faction": "None",
@@ -7885,6 +8718,23 @@
         "y": -0.6958,
         "z": 0,
         "w": 0.7182
+      },
+      "scale": 1
+    },
+    {
+      "id": 2080952908,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": {
+        "x": 25.1837,
+        "y": 0.8707,
+        "z": -0.7925
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -8178,6 +9028,23 @@
       "scale": 1
     },
     {
+      "id": 2124698986,
+      "prefab": "PropGate",
+      "faction": "A",
+      "position": {
+        "x": 4.5412,
+        "y": 0.5774,
+        "z": -19.3119
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 2127564796,
       "prefab": "PropRock",
       "faction": "None",
@@ -8242,6 +9109,23 @@
         "y": -0.0783,
         "z": 0,
         "w": 0.9969
+      },
+      "scale": 1
+    },
+    {
+      "id": 2133492123,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": -3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -8807,6 +9691,23 @@
       "scale": 1
     },
     {
+      "id": 2283916773,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": -9
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
+      },
+      "scale": 1
+    },
+    {
       "id": 2286977805,
       "prefab": "PropPlant",
       "faction": "None",
@@ -8837,6 +9738,23 @@
         "y": -0.0155,
         "z": 0,
         "w": 0.9999
+      },
+      "scale": 1
+    },
+    {
+      "id": 2292372494,
+      "prefab": "StructureTurretGun",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.7747,
+        "z": -19
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.9239,
+        "z": 0,
+        "w": 0.3827
       },
       "scale": 1
     },
@@ -9011,6 +9929,23 @@
       "scale": 1
     },
     {
+      "id": 2355512279,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": {
+        "x": 24.2117,
+        "y": 0.6526,
+        "z": 0.2842
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.1068,
+        "z": 0,
+        "w": 0.9943
+      },
+      "scale": 1
+    },
+    {
       "id": 2355577265,
       "prefab": "PropPlant",
       "faction": "None",
@@ -9058,6 +9993,23 @@
         "y": -0.0714,
         "z": 0,
         "w": 0.9974
+      },
+      "scale": 1
+    },
+    {
+      "id": 2370380751,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 16.167,
+        "y": 0.4037,
+        "z": 16.1129
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -9368,6 +10320,23 @@
       "scale": 1
     },
     {
+      "id": 2422961074,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": -6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
+      },
+      "scale": 1
+    },
+    {
       "id": 2424398777,
       "prefab": "PropPlant",
       "faction": "None",
@@ -9398,6 +10367,23 @@
         "y": 0.0696,
         "z": 0,
         "w": 0.9976
+      },
+      "scale": 1
+    },
+    {
+      "id": 2435417727,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 16.7489,
+        "y": 1.5006,
+        "z": 16.0846
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -9772,6 +10758,23 @@
         "y": 0.1997,
         "z": 0,
         "w": 0.9799
+      },
+      "scale": 1
+    },
+    {
+      "id": 2502772733,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": {
+        "x": 3.9999,
+        "y": 0.8824,
+        "z": -26.0303
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.8676,
+        "z": 0,
+        "w": -0.4973
       },
       "scale": 1
     },
@@ -10252,19 +11255,19 @@
       "scale": 1
     },
     {
-      "id": 2633017676,
-      "prefab": "PropPlant",
-      "faction": "None",
+      "id": 2631308915,
+      "prefab": "PropFence",
+      "faction": "A",
       "position": {
-        "x": -0.7207,
-        "y": 0.4258,
-        "z": -6.3571
+        "x": 17.5,
+        "y": 0.5611,
+        "z": -19.6761
       },
       "rotation": {
         "x": 0,
-        "y": 0.0305,
+        "y": -0.7071,
         "z": 0,
-        "w": 0.9995
+        "w": 0.7071
       },
       "scale": 1
     },
@@ -10541,6 +11544,23 @@
       "scale": 1
     },
     {
+      "id": 2664938002,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 7.2183,
+        "y": 0.5073,
+        "z": -19.0213
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 2669922709,
       "prefab": "PropRock",
       "faction": "None",
@@ -10575,6 +11595,40 @@
       "scale": 1
     },
     {
+      "id": 2673175237,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 20.5,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
+      "id": 2674046222,
+      "prefab": "PropTrafficBlockade",
+      "faction": "A",
+      "position": {
+        "x": -11.9484,
+        "y": 1.0444,
+        "z": -20.4172
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 2679225870,
       "prefab": "PropPlant",
       "faction": "None",
@@ -10588,6 +11642,23 @@
         "y": -0.1057,
         "z": 0,
         "w": 0.9944
+      },
+      "scale": 1
+    },
+    {
+      "id": 2688941070,
+      "prefab": "PropTower",
+      "faction": "A",
+      "position": {
+        "x": -19.4208,
+        "y": 0.9699,
+        "z": 2.538
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -11068,6 +12139,23 @@
       "scale": 1
     },
     {
+      "id": 2798780354,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": -6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 2800712603,
       "prefab": "PropPlant",
       "faction": "None",
@@ -11081,6 +12169,23 @@
         "y": -0.6761,
         "z": 0,
         "w": 0.7368
+      },
+      "scale": 1
+    },
+    {
+      "id": 2801220086,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 16.8779,
+        "y": 0.4043,
+        "z": 15.8226
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -11136,6 +12241,23 @@
       "scale": 1
     },
     {
+      "id": 2811995384,
+      "prefab": "PropAlarm",
+      "faction": "A",
+      "position": {
+        "x": 24.3516,
+        "y": 0.8734,
+        "z": -4.6824
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 2818980294,
       "prefab": "PropRock",
       "faction": "None",
@@ -11149,6 +12271,23 @@
         "y": -0.8692,
         "z": 0.1553,
         "w": -0.3653
+      },
+      "scale": 1
+    },
+    {
+      "id": 2821024007,
+      "prefab": "StructureTurretGun",
+      "faction": "A",
+      "position": {
+        "x": 27,
+        "y": 0.6268,
+        "z": 13
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.3827,
+        "z": 0,
+        "w": 0.9239
       },
       "scale": 1
     },
@@ -11217,6 +12356,23 @@
         "y": 0.4681,
         "z": 0,
         "w": 0.8837
+      },
+      "scale": 1
+    },
+    {
+      "id": 2838598995,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 16.7654,
+        "y": 0.404,
+        "z": 16.7566
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -11370,6 +12526,23 @@
         "y": -0.2416,
         "z": 0,
         "w": 0.9704
+      },
+      "scale": 1
+    },
+    {
+      "id": 2874636673,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 16,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
       },
       "scale": 1
     },
@@ -11540,6 +12713,23 @@
         "y": 0.2135,
         "z": 0,
         "w": 0.9769
+      },
+      "scale": 1
+    },
+    {
+      "id": 2917792538,
+      "prefab": "PropGasTank",
+      "faction": "A",
+      "position": {
+        "x": -3,
+        "y": 0.5955,
+        "z": 14
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7071,
+        "z": 0,
+        "w": 0.7071
       },
       "scale": 1
     },
@@ -11799,6 +12989,23 @@
       "scale": 1
     },
     {
+      "id": 3019142245,
+      "prefab": "PropFloorLight",
+      "faction": "A",
+      "position": {
+        "x": 7.4015,
+        "y": 1.4299,
+        "z": -19.8512
+      },
+      "rotation": {
+        "x": -0.5,
+        "y": -0.5,
+        "z": 0.5,
+        "w": 0.5
+      },
+      "scale": 1
+    },
+    {
       "id": 3023688025,
       "prefab": "PropPlant",
       "faction": "None",
@@ -11884,6 +13091,57 @@
       "scale": 1
     },
     {
+      "id": 3031800911,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": 3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
+      "id": 3033748754,
+      "prefab": "PropTires",
+      "faction": "A",
+      "position": {
+        "x": -6.3824,
+        "y": 0.5468,
+        "z": 14.3509
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
+      "id": 3034677784,
+      "prefab": "PropContainer",
+      "faction": "A",
+      "position": {
+        "x": -16,
+        "y": 0.3035,
+        "z": 2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 3035380074,
       "prefab": "PropRock",
       "faction": "None",
@@ -11965,6 +13223,23 @@
         "y": 0.2986,
         "z": 0,
         "w": 0.9544
+      },
+      "scale": 1
+    },
+    {
+      "id": 3048523037,
+      "prefab": "InfantryRocket",
+      "faction": "A",
+      "position": {
+        "x": -13.6002,
+        "y": 0.5011,
+        "z": -0.3029
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -12152,6 +13427,23 @@
         "y": -0.6744,
         "z": 0,
         "w": 0.7384
+      },
+      "scale": 1
+    },
+    {
+      "id": 3089095364,
+      "prefab": "PropBarrel",
+      "faction": "A",
+      "position": {
+        "x": 2.0011,
+        "y": 0.6247,
+        "z": 14.3172
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -12462,6 +13754,23 @@
       "scale": 1
     },
     {
+      "id": 3157191094,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": {
+        "x": 25.3008,
+        "y": 1.0372,
+        "z": -2.8042
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.1188,
+        "z": 0,
+        "w": 0.9929
+      },
+      "scale": 1
+    },
+    {
       "id": 3158890471,
       "prefab": "PropWreck",
       "faction": "None",
@@ -12615,6 +13924,23 @@
       "scale": 1
     },
     {
+      "id": 3186196818,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": {
+        "x": 4.196,
+        "y": 0.9538,
+        "z": -28.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.856,
+        "z": 0,
+        "w": 0.517
+      },
+      "scale": 1
+    },
+    {
       "id": 3194755327,
       "prefab": "PropPlant",
       "faction": "None",
@@ -12628,6 +13954,23 @@
         "y": -0.3789,
         "z": 0,
         "w": 0.9254
+      },
+      "scale": 1
+    },
+    {
+      "id": 3195037461,
+      "prefab": "StructureTurretMissile",
+      "faction": "A",
+      "position": {
+        "x": 21.1791,
+        "y": 0.8323,
+        "z": -2.8235
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -12870,6 +14213,23 @@
       "scale": 1
     },
     {
+      "id": 3244488057,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": {
+        "x": 7.5568,
+        "y": 1.6849,
+        "z": -18.6355
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 3245493073,
       "prefab": "PropPlant",
       "faction": "None",
@@ -13036,6 +14396,23 @@
         "y": -0.1243,
         "z": 0,
         "w": 0.9922
+      },
+      "scale": 1
+    },
+    {
+      "id": 3294331988,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": {
+        "x": 25.2991,
+        "y": 0.653,
+        "z": 0.9499
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.0616,
+        "z": 0,
+        "w": 0.9981
       },
       "scale": 1
     },
@@ -13257,6 +14634,23 @@
         "y": -0.694,
         "z": 0,
         "w": 0.7199
+      },
+      "scale": 1
+    },
+    {
+      "id": 3381259437,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 10,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
       },
       "scale": 1
     },
@@ -13877,9 +15271,9 @@
       "prefab": "PropPlant",
       "faction": "None",
       "position": {
-        "x": 31.1776,
-        "y": 0.8431,
-        "z": 19.5049
+        "x": 34.3335,
+        "y": 0.5863,
+        "z": 6.9632
       },
       "rotation": {
         "x": 0,
@@ -13924,6 +15318,23 @@
       "scale": 1
     },
     {
+      "id": 3546188303,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 4,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 3548046816,
       "prefab": "PropPlant",
       "faction": "None",
@@ -13962,9 +15373,9 @@
       "prefab": "PropPlant",
       "faction": "None",
       "position": {
-        "x": 5.0707,
+        "x": 5.7142,
         "y": 0.5389,
-        "z": 6.8271
+        "z": 8.6367
       },
       "rotation": {
         "x": 0,
@@ -14043,6 +15454,23 @@
       "scale": 1
     },
     {
+      "id": 3560594327,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -11.3722,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 3561397584,
       "prefab": "PropPlant",
       "faction": "None",
@@ -14056,6 +15484,23 @@
         "y": -0.6738,
         "z": 0,
         "w": 0.7389
+      },
+      "scale": 1
+    },
+    {
+      "id": 3561745021,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": -12
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -14099,8 +15544,8 @@
       "faction": "A",
       "position": {
         "x": 7.3234,
-        "y": 0.6191,
-        "z": -18.8051
+        "y": 0.6514,
+        "z": -16.4812
       },
       "rotation": {
         "x": 0,
@@ -14876,6 +16321,23 @@
       "scale": 1
     },
     {
+      "id": 3746156964,
+      "prefab": "DecalOilSplatter",
+      "faction": "A",
+      "position": {
+        "x": -3.0702,
+        "y": 0.6094,
+        "z": 12.9497
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 2.317
+    },
+    {
       "id": 3748907742,
       "prefab": "PropPlant",
       "faction": "None",
@@ -14966,8 +16428,8 @@
       "faction": "None",
       "position": {
         "x": 21.3399,
-        "y": 0.5847,
-        "z": -19.5273
+        "y": 0.617,
+        "z": -17.2034
       },
       "rotation": {
         "x": 0,
@@ -15068,8 +16530,8 @@
       "faction": "None",
       "position": {
         "x": 9.8253,
-        "y": 0.4874,
-        "z": -21.1336
+        "y": 0.5197,
+        "z": -18.8097
       },
       "rotation": {
         "x": 0,
@@ -15182,6 +16644,23 @@
       "scale": 1
     },
     {
+      "id": 3822072053,
+      "prefab": "InfantryFlame",
+      "faction": "A",
+      "position": {
+        "x": -2.547,
+        "y": 0.5227,
+        "z": -7.2311
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.3973,
+        "z": 0,
+        "w": 0.9177
+      },
+      "scale": 1
+    },
+    {
       "id": 3822824846,
       "prefab": "PropPlant",
       "faction": "None",
@@ -15229,6 +16708,23 @@
         "y": 0.3393,
         "z": 0,
         "w": 0.9407
+      },
+      "scale": 1
+    },
+    {
+      "id": 3828043405,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -8,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
       },
       "scale": 1
     },
@@ -15560,9 +17056,9 @@
       "prefab": "PropPlant",
       "faction": "None",
       "position": {
-        "x": -17.6583,
+        "x": -19.8205,
         "y": 0.4627,
-        "z": -16.8189
+        "z": -16.0993
       },
       "rotation": {
         "x": 0,
@@ -15811,6 +17307,40 @@
       "scale": 1
     },
     {
+      "id": 3987042974,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": {
+        "x": 24.268,
+        "y": 0.8704,
+        "z": -1.2338
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.1023,
+        "z": 0,
+        "w": 0.9948
+      },
+      "scale": 1
+    },
+    {
+      "id": 3988259703,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -2.3723,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
+      },
+      "scale": 1
+    },
+    {
       "id": 3991298542,
       "prefab": "PropWreck",
       "faction": "None",
@@ -15841,6 +17371,23 @@
         "y": -0.2181,
         "z": 0,
         "w": 0.9759
+      },
+      "scale": 1
+    },
+    {
+      "id": 3998489326,
+      "prefab": "InfantryFlame",
+      "faction": "A",
+      "position": {
+        "x": -2.7651,
+        "y": 0.5902,
+        "z": -6.6738
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.6929,
+        "z": 0,
+        "w": 0.7211
       },
       "scale": 1
     },
@@ -15909,6 +17456,23 @@
         "y": -0.6594,
         "z": 0,
         "w": 0.7518
+      },
+      "scale": 1
+    },
+    {
+      "id": 4009217169,
+      "prefab": "StructureFactory",
+      "faction": "A",
+      "position": {
+        "x": 2,
+        "y": 0.2843,
+        "z": 4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -15998,6 +17562,23 @@
       "scale": 1
     },
     {
+      "id": 4041922142,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -18,
+        "y": 0.4059,
+        "z": 6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 4042012925,
       "prefab": "PropPlant",
       "faction": "None",
@@ -16062,6 +17643,40 @@
         "y": -0.5411,
         "z": 0,
         "w": 0.841
+      },
+      "scale": 1
+    },
+    {
+      "id": 4057919216,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": -2,
+        "y": 0.3898,
+        "z": 15
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": -0.7071
+      },
+      "scale": 1
+    },
+    {
+      "id": 4058267132,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 0.6277,
+        "y": 0.5611,
+        "z": -19.6761
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7071,
+        "z": 0,
+        "w": 0.7071
       },
       "scale": 1
     },
@@ -16283,6 +17898,23 @@
         "y": 0.6133,
         "z": 0,
         "w": 0.7899
+      },
+      "scale": 1
+    },
+    {
+      "id": 4106241579,
+      "prefab": "PropFence",
+      "faction": "A",
+      "position": {
+        "x": 26,
+        "y": 0.3515,
+        "z": 6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": -0
       },
       "scale": 1
     },
@@ -16555,6 +18187,23 @@
         "y": 0.3758,
         "z": 0,
         "w": 0.9267
+      },
+      "scale": 1
+    },
+    {
+      "id": 4166595625,
+      "prefab": "PropBarrel",
+      "faction": "A",
+      "position": {
+        "x": 15.1756,
+        "y": 0.7043,
+        "z": -18.9267
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
@@ -16861,6 +18510,23 @@
         "y": -0.2628,
         "z": 0,
         "w": 0.9648
+      },
+      "scale": 1
+    },
+    {
+      "id": 4229491250,
+      "prefab": "PropBarrel",
+      "faction": "A",
+      "position": {
+        "x": 4.0113,
+        "y": 0.976,
+        "z": -27.2655
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "scale": 1
     },
