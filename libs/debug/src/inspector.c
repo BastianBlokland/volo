@@ -42,6 +42,13 @@
 #include "widget_internal.h"
 
 typedef enum {
+  DebugInspectorSpace_Local,
+  DebugInspectorSpace_World,
+
+  DebugInspectorSpace_Count,
+} DebugInspectorSpace;
+
+typedef enum {
   DebugInspectorTool_None,
   DebugInspectorTool_Translation,
   DebugInspectorTool_Rotation,
@@ -79,6 +86,12 @@ typedef enum {
   DebugInspectorVisMode_Default = DebugInspectorVisMode_SelectedOnly,
 } DebugInspectorVisMode;
 
+static const String g_spaceNames[] = {
+    [DebugInspectorSpace_Local] = string_static("Local"),
+    [DebugInspectorSpace_World] = string_static("World"),
+};
+ASSERT(array_elems(g_spaceNames) == DebugInspectorSpace_Count, "Missing space name");
+
 static const String g_toolNames[] = {
     [DebugInspectorTool_None]        = string_static("None"),
     [DebugInspectorTool_Translation] = string_static("Translation"),
@@ -114,6 +127,7 @@ static const String g_visModeNames[] = {
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 ecs_comp_define(DebugInspectorSettingsComp) {
+  DebugInspectorSpace   space;
   DebugInspectorTool    tool;
   DebugInspectorVisMode visMode;
   u32                   visFlags;
@@ -802,6 +816,13 @@ static void inspector_panel_draw_settings(
   inspector_panel_next(canvas, panelComp, table);
   if (inspector_panel_section(canvas, string_lit("Settings"))) {
     inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Space"));
+    ui_table_next_column(canvas, table);
+    if (ui_select(canvas, (i32*)&settings->space, g_spaceNames, array_elems(g_spaceNames))) {
+      debug_stats_notify(stats, string_lit("Space"), g_spaceNames[settings->space]);
+    }
+
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Tool"));
     ui_table_next_column(canvas, table);
     if (ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
@@ -1085,9 +1106,10 @@ static void debug_inspector_tool_group_update(
   const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
-  const GeoVector pos   = debug_inspector_tool_pivot(world, setEnv);
-  const GeoQuat   rot   = mainTrans->rotation;
-  const f32       scale = mainScale ? mainScale->scale : 1.0f;
+  const GeoVector pos    = debug_inspector_tool_pivot(world, setEnv);
+  const GeoQuat   rot    = mainTrans->rotation;
+  const GeoQuat   rotRef = set->space == DebugInspectorSpace_Local ? rot : geo_quat_ident;
+  const f32       scale  = mainScale ? mainScale->scale : 1.0f;
 
   static const DebugGizmoId g_groupGizmoId = 1234567890;
 
@@ -1097,7 +1119,7 @@ static void debug_inspector_tool_group_update(
   bool      posDirty = false, rotDirty = false, scaleDirty = false;
   switch (set->tool) {
   case DebugInspectorTool_Translation:
-    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rot);
+    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rotRef);
     break;
   case DebugInspectorTool_Rotation:
     rotDirty |= debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
@@ -1150,9 +1172,13 @@ static void debug_inspector_tool_individual_update(
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
       SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
+
+      const bool    localSpace = set->space == DebugInspectorSpace_Local;
+      const GeoQuat rotRef     = localSpace ? transform->rotation : geo_quat_ident;
+
       switch (set->tool) {
       case DebugInspectorTool_Translation:
-        debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
+        debug_gizmo_translation(gizmo, gizmoId, &transform->position, rotRef);
         break;
       case DebugInspectorTool_Rotation:
         debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
