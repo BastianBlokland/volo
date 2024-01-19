@@ -1106,10 +1106,12 @@ static void debug_inspector_tool_group_update(
   const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
-  const GeoVector pos    = debug_inspector_tool_pivot(world, setEnv);
-  const GeoQuat   rot    = mainTrans->rotation;
-  const GeoQuat   rotRef = set->space == DebugInspectorSpace_Local ? rot : geo_quat_ident;
-  const f32       scale  = mainScale ? mainScale->scale : 1.0f;
+  const GeoVector pos   = debug_inspector_tool_pivot(world, setEnv);
+  const GeoQuat   rot   = mainTrans->rotation;
+  const f32       scale = mainScale ? mainScale->scale : 1.0f;
+
+  const bool    localSpace = set->space == DebugInspectorSpace_Local;
+  const GeoQuat rotRef     = localSpace ? mainTrans->rotation : geo_quat_ident;
 
   static const DebugGizmoId g_groupGizmoId = 1234567890;
 
