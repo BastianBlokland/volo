@@ -1224,6 +1224,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Scale);
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
+  if (input_triggered_lit(input, "DebugInspectorToggleSpace")) {
+    set->space = (set->space + 1) % DebugInspectorSpace_Count;
+    debug_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
+  }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     debug_inspector_tool_destroy(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
@@ -1676,7 +1680,6 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
       [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
-      [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
     const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
