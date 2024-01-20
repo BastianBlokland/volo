@@ -37,6 +37,7 @@ typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId);
 static const struct {
   String        name;
   u32           iconShape;
+  bool          autoOpen;
   ChildOpenFunc openFunc;
   String        hotkeyName;
 } g_menuChildConfig[] = {
@@ -45,12 +46,14 @@ static const struct {
         .iconShape  = UiShape_ViewInAr,
         .openFunc   = debug_inspector_panel_open,
         .hotkeyName = string_static("DebugPanelInspector"),
+        .autoOpen   = true,
     },
     {
         .name       = string_static("Prefab"),
         .iconShape  = UiShape_Construction,
         .openFunc   = debug_prefab_panel_open,
         .hotkeyName = string_static("DebugPanelPrefab"),
+        .autoOpen   = true,
     },
     {
         .name       = string_static("Level"),
@@ -269,6 +272,13 @@ ecs_module_init(debug_menu_module) {
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = debug_panel_create(world, window);
-  ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
+  DebugMenuComp*    menu = ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
+
+  for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
+    if (g_menuChildConfig[childIndex].autoOpen) {
+      menu_child_open(world, menu, menuEntity, childIndex);
+    }
+  }
+
   return menuEntity;
 }
