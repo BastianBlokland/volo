@@ -1174,28 +1174,33 @@ static void debug_inspector_tool_individual_update(
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   const StringHash s   = g_sceneSetSelected;
 
-  bool anyRotEdit = false;
+  bool rotActive = false;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
       SceneTransformComp* trans     = ecs_view_write_t(itr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
 
+      GeoQuat rotRef;
       if (set->space == DebugInspectorSpace_Local) {
-        set->toolRotation = trans->rotation;
+        rotRef = trans->rotation;
+      } else if (debug_gizmo_interacting(gizmo, gizmoId)) {
+        rotRef = set->toolRotation;
+      } else {
+        rotRef = geo_quat_ident;
       }
-      GeoQuat rotEdit = set->toolRotation;
+      GeoQuat rotEdit = rotRef;
 
       switch (set->tool) {
       case DebugInspectorTool_Translation:
-        debug_gizmo_translation(gizmo, gizmoId, &trans->position, set->toolRotation);
+        debug_gizmo_translation(gizmo, gizmoId, &trans->position, rotRef);
         break;
       case DebugInspectorTool_Rotation:
         if (debug_gizmo_rotation(gizmo, gizmoId, trans->position, &rotEdit)) {
-          const GeoQuat rotDelta = geo_quat_from_to(set->toolRotation, rotEdit);
+          const GeoQuat rotDelta = geo_quat_from_to(rotRef, rotEdit);
           scene_transform_rotate_around(trans, trans->position, rotDelta);
           set->toolRotation = rotEdit;
-          anyRotEdit        = true;
+          rotActive         = true;
         }
         break;
       case DebugInspectorTool_Scale:
@@ -1208,7 +1213,7 @@ static void debug_inspector_tool_individual_update(
       }
     }
   }
-  if (!anyRotEdit) {
+  if (!rotActive) {
     set->toolRotation = geo_quat_ident;
   }
 }
