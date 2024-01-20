@@ -176,6 +176,12 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
 
     ctx->app->mode ^= AppMode_Debug;
     cmd_push_deselect_all(ctx->cmd);
+
+    if (ctx->app->mode == AppMode_Debug) {
+      ctx->timeSet->flags |= SceneTimeFlags_Paused;
+    } else {
+      ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
+    }
   }
 }
 
