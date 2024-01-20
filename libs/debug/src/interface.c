@@ -64,7 +64,7 @@ static void interface_panel_draw(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   bool dirty = false;
@@ -113,6 +113,8 @@ static void interface_panel_draw(
     panelComp->defaultColorIndex = 0;
   }
   ui_table_next_column(canvas, &table);
+  ui_layout_push(canvas);
+  ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(200, 0), UiBase_Absolute, Ui_X);
   if (ui_button(
           canvas,
           .label      = string_lit("Apply"),
@@ -121,6 +123,7 @@ static void interface_panel_draw(
           .tooltip    = g_tooltipApply)) {
     settings->scale = panelComp->newScale;
   }
+  ui_layout_pop(canvas);
 
   ui_panel_end(canvas, &panelComp->panel);
 }
@@ -175,7 +178,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(330, 190)),
+      .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 190)),
       .window = window);
   return panelEntity;
 }
