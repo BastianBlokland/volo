@@ -139,10 +139,6 @@ ecs_view_define(PanelUpdateView) {
 }
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
 
-static bool debug_panel_is_open(EcsWorld* world, const EcsEntityId panel) {
-  return panel && ecs_world_exists(world, panel);
-}
-
 static void debug_notify_panel_state(
     DebugStatsGlobalComp* statsGlobal, const u32 panelIndex, const String state) {
   debug_stats_notify(
@@ -151,14 +147,27 @@ static void debug_notify_panel_state(
       state);
 }
 
+static bool debug_panel_is_open(EcsWorld* world, const DebugMenuComp* menu, const u32 panelIndex) {
+  const EcsEntityId panelEntity = menu->panelEntities[panelIndex];
+  return panelEntity && ecs_world_exists(world, panelEntity);
+}
+
+static void debug_panel_open(
+    EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 panelIndex) {
+  const EcsEntityId e = g_debugPanelConfig[panelIndex].openFunc(world, menu->window);
+  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
+  menu->panelEntities[panelIndex] = e;
+}
+
 static EcsEntityId debug_panel_topmost(EcsWorld* world, const DebugMenuComp* menu) {
   EcsEntityId topmost      = 0;
   i32         topmostOrder = i32_min;
-  array_for_t(menu->panelEntities, EcsEntityId, panelEntity) {
-    if (debug_panel_is_open(world, *panelEntity)) {
-      const UiCanvasComp* canvas = ecs_utils_read_t(world, CanvasView, *panelEntity, UiCanvasComp);
+  for (u32 panelIndex = 0; panelIndex != array_elems(menu->panelEntities); ++panelIndex) {
+    if (debug_panel_is_open(world, menu, panelIndex)) {
+      const EcsEntityId   panelEntity = menu->panelEntities[panelIndex];
+      const UiCanvasComp* canvas = ecs_utils_read_t(world, CanvasView, panelEntity, UiCanvasComp);
       if (ui_canvas_order(canvas) >= topmostOrder) {
-        topmost      = *panelEntity;
+        topmost      = panelEntity;
         topmostOrder = ui_canvas_order(canvas);
       }
     }
@@ -186,30 +195,28 @@ static void debug_action_bar_draw(
   ui_canvas_draw_glyph(canvas, UiShape_Bug, 0, UiFlags_Interactable);
 
   // Panel open / close.
-  for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
+  for (u32 panelIndex = 0; panelIndex != array_elems(g_debugPanelConfig); ++panelIndex) {
     ui_table_next_row(canvas, &table);
-    const bool isOpen = debug_panel_is_open(world, menu->panelEntities[i]);
+    const bool isOpen = debug_panel_is_open(world, menu, panelIndex);
 
     const bool hotkeyPressed =
-        windowActive && !string_is_empty(g_debugPanelConfig[i].hotkeyName) &&
-        input_triggered_hash(input, string_hash(g_debugPanelConfig[i].hotkeyName));
+        windowActive && !string_is_empty(g_debugPanelConfig[panelIndex].hotkeyName) &&
+        input_triggered_hash(input, string_hash(g_debugPanelConfig[panelIndex].hotkeyName));
 
     if (ui_button(
             canvas,
-            .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
+            .label      = ui_shape_scratch(g_debugPanelConfig[panelIndex].iconShape),
             .fontSize   = 25,
-            .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
+            .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[panelIndex].name, isOpen),
             .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal,
             .activate   = hotkeyPressed)) {
 
       if (isOpen) {
-        ecs_world_entity_destroy(world, menu->panelEntities[i]);
-        debug_notify_panel_state(statsGlobal, i, string_lit("closed"));
+        ecs_world_entity_destroy(world, menu->panelEntities[panelIndex]);
+        debug_notify_panel_state(statsGlobal, panelIndex, string_lit("closed"));
       } else {
-        const EcsEntityId panelEntity = g_debugPanelConfig[i].openFunc(world, winEntity);
-        ecs_world_add_t(world, panelEntity, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
-        menu->panelEntities[i] = panelEntity;
-        debug_notify_panel_state(statsGlobal, i, string_lit("open"));
+        debug_panel_open(world, menu, menuEntity, panelIndex);
+        debug_notify_panel_state(statsGlobal, panelIndex, string_lit("open"));
       }
     }
   }
@@ -261,7 +268,7 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(world, panelEntity, DebugMenuComp, .window = window);
-  return panelEntity;
+  const EcsEntityId menuEntity = debug_panel_create(world, window);
+  ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
+  return menuEntity;
 }
