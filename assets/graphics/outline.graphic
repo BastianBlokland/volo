@@ -8,6 +8,7 @@
     }
   ],
   "vertexCount": 3,
+  "renderOrder": 1100,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Additive",

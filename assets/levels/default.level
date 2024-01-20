@@ -562,6 +562,23 @@
       "scale": 1
     },
     {
+      "id": 102378623,
+      "prefab": "Ambiance",
+      "faction": "A",
+      "position": {
+        "x": 14.2394,
+        "y": 0.6724,
+        "z": 0.685
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "scale": 1
+    },
+    {
       "id": 103038075,
       "prefab": "PropPlant",
       "faction": "None",
@@ -7247,9 +7264,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 4.196,
-        "y": 0.9538,
-        "z": -28.3
+        "x": 4.6998,
+        "y": 0.9916,
+        "z": -28.1431
       },
       "rotation": {
         "x": 0,
@@ -13078,9 +13095,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -41.9008,
-        "y": 0.6009,
-        "z": -8.0956
+        "x": -41.9294,
+        "y": 0.5702,
+        "z": -8.4949
       },
       "rotation": {
         "x": 0,
@@ -17141,9 +17158,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -41.8999,
-        "y": 0.6547,
-        "z": -7.4994
+        "x": -41.975,
+        "y": 0.6234,
+        "z": -7.8996
       },
       "rotation": {
         "x": 0,

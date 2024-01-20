@@ -179,8 +179,10 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
 
     if (ctx->app->mode == AppMode_Debug) {
       ctx->timeSet->flags |= SceneTimeFlags_Paused;
+      ctx->rendSetWin->skyMode = RendSkyMode_Gradient;
     } else {
       ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
+      ctx->rendSetWin->skyMode = RendSkyMode_None;
     }
   }
 }

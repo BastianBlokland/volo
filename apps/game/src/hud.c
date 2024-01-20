@@ -67,9 +67,9 @@ ecs_comp_define(HudComp) {
 };
 
 ecs_view_define(GlobalView) {
+  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneSetEnvComp);
-  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
 }
@@ -421,6 +421,7 @@ static void hud_minimap_update(
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
+  const f32 terrainSize = terrain ? scene_terrain_size(terrain) : 500;
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;
@@ -429,7 +430,7 @@ static void hud_minimap_update(
   rendSettings->minimapRect[2] = (hud->minimapRect.width + 0.5f) / res.width;
   rendSettings->minimapRect[3] = (hud->minimapRect.height + 0.5f) / res.height;
   rendSettings->minimapAlpha   = g_hudMinimapAlpha;
-  rendSettings->minimapZoom    = scene_terrain_size(terrain) / g_hudMinimapPlaySize;
+  rendSettings->minimapZoom    = terrainSize / g_hudMinimapPlaySize;
 }
 
 static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSize) {
