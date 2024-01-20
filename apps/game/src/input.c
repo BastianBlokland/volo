@@ -494,15 +494,18 @@ static void input_order(
     return;
   }
   /**
-   * Order a move when clicking the terrain.
+   * Order a move when clicking the terrain / ground plane.
    */
+  f32 rayT = -1.0f;
   if (terrain) {
-    const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
-    if (rayT > g_inputMinInteractDist) {
-      const GeoVector targetPos = geo_ray_position(inputRay, rayT);
-      input_order_move(world, cmdController, setEnv, nav, debugStats, targetPos);
-      return;
-    }
+    rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
+  } else {
+    rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
+  }
+  if (rayT > g_inputMinInteractDist) {
+    const GeoVector targetPos = geo_ray_position(inputRay, rayT);
+    input_order_move(world, cmdController, setEnv, nav, debugStats, targetPos);
+    return;
   }
 }
 
