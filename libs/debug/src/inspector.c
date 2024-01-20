@@ -42,6 +42,13 @@
 #include "widget_internal.h"
 
 typedef enum {
+  DebugInspectorSpace_Local,
+  DebugInspectorSpace_World,
+
+  DebugInspectorSpace_Count,
+} DebugInspectorSpace;
+
+typedef enum {
   DebugInspectorTool_None,
   DebugInspectorTool_Translation,
   DebugInspectorTool_Rotation,
@@ -79,6 +86,12 @@ typedef enum {
   DebugInspectorVisMode_Default = DebugInspectorVisMode_SelectedOnly,
 } DebugInspectorVisMode;
 
+static const String g_spaceNames[] = {
+    [DebugInspectorSpace_Local] = string_static("Local"),
+    [DebugInspectorSpace_World] = string_static("World"),
+};
+ASSERT(array_elems(g_spaceNames) == DebugInspectorSpace_Count, "Missing space name");
+
 static const String g_toolNames[] = {
     [DebugInspectorTool_None]        = string_static("None"),
     [DebugInspectorTool_Translation] = string_static("Translation"),
@@ -114,10 +127,12 @@ static const String g_visModeNames[] = {
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 ecs_comp_define(DebugInspectorSettingsComp) {
+  DebugInspectorSpace   space;
   DebugInspectorTool    tool;
   DebugInspectorVisMode visMode;
   u32                   visFlags;
   bool                  drawVisInGame;
+  GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
@@ -802,6 +817,13 @@ static void inspector_panel_draw_settings(
   inspector_panel_next(canvas, panelComp, table);
   if (inspector_panel_section(canvas, string_lit("Settings"))) {
     inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Space"));
+    ui_table_next_column(canvas, table);
+    if (ui_select(canvas, (i32*)&settings->space, g_spaceNames, array_elems(g_spaceNames))) {
+      debug_stats_notify(stats, string_lit("Space"), g_spaceNames[settings->space]);
+    }
+
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Tool"));
     ui_table_next_column(canvas, table);
     if (ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
@@ -929,8 +951,10 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
       world,
       global,
       DebugInspectorSettingsComp,
-      .visFlags = defaultVisFlags,
-      .visMode  = DebugInspectorVisMode_Default);
+      .visFlags     = defaultVisFlags,
+      .visMode      = DebugInspectorVisMode_Default,
+      .tool         = DebugInspectorTool_Translation,
+      .toolRotation = geo_quat_ident);
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
@@ -1086,18 +1110,21 @@ static void debug_inspector_tool_group_update(
   const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
   const GeoVector pos   = debug_inspector_tool_pivot(world, setEnv);
-  const GeoQuat   rot   = mainTrans->rotation;
   const f32       scale = mainScale ? mainScale->scale : 1.0f;
+
+  if (set->space == DebugInspectorSpace_Local) {
+    set->toolRotation = mainTrans->rotation;
+  }
 
   static const DebugGizmoId g_groupGizmoId = 1234567890;
 
   GeoVector posEdit   = pos;
-  GeoQuat   rotEdit   = rot;
+  GeoQuat   rotEdit   = set->toolRotation;
   f32       scaleEdit = scale;
   bool      posDirty = false, rotDirty = false, scaleDirty = false;
   switch (set->tool) {
   case DebugInspectorTool_Translation:
-    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rot);
+    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, set->toolRotation);
     break;
   case DebugInspectorTool_Rotation:
     rotDirty |= debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
@@ -1114,10 +1141,9 @@ static void debug_inspector_tool_group_update(
   default:
     break;
   }
-
-  if (posDirty || rotDirty || scaleDirty) {
+  if (posDirty | rotDirty | scaleDirty) {
     const GeoVector  posDelta   = geo_vector_sub(posEdit, pos);
-    const GeoQuat    rotDelta   = geo_quat_from_to(rot, rotEdit);
+    const GeoQuat    rotDelta   = geo_quat_from_to(set->toolRotation, rotEdit);
     const f32        scaleDelta = scaleEdit / scale;
     const StringHash s          = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
@@ -1135,6 +1161,9 @@ static void debug_inspector_tool_group_update(
         }
       }
     }
+    set->toolRotation = rotEdit;
+  } else {
+    set->toolRotation = geo_quat_ident;
   }
 }
 
@@ -1145,28 +1174,48 @@ static void debug_inspector_tool_individual_update(
     DebugGizmoComp*             gizmo) {
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   const StringHash s   = g_sceneSetSelected;
+
+  bool rotActive = false;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
-      SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
+      SceneTransformComp* trans     = ecs_view_write_t(itr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
+
+      GeoQuat rotRef;
+      if (set->space == DebugInspectorSpace_Local) {
+        rotRef = trans->rotation;
+      } else if (debug_gizmo_interacting(gizmo, gizmoId)) {
+        rotRef = set->toolRotation;
+      } else {
+        rotRef = geo_quat_ident;
+      }
+      GeoQuat rotEdit = rotRef;
+
       switch (set->tool) {
       case DebugInspectorTool_Translation:
-        debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
+        debug_gizmo_translation(gizmo, gizmoId, &trans->position, rotRef);
         break;
       case DebugInspectorTool_Rotation:
-        debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
+        if (debug_gizmo_rotation(gizmo, gizmoId, trans->position, &rotEdit)) {
+          const GeoQuat rotDelta = geo_quat_from_to(rotRef, rotEdit);
+          scene_transform_rotate_around(trans, trans->position, rotDelta);
+          set->toolRotation = rotEdit;
+          rotActive         = true;
+        }
         break;
       case DebugInspectorTool_Scale:
         if (scaleComp) {
-          const GeoVector position = transform ? transform->position : geo_vector(0);
-          debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
+          debug_gizmo_scale_uniform(gizmo, gizmoId, trans->position, &scaleComp->scale);
         }
         break;
       default:
         break;
       }
     }
+  }
+  if (!rotActive) {
+    set->toolRotation = geo_quat_ident;
   }
 }
 
@@ -1184,7 +1233,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
-    set->tool = DebugInspectorTool_None;
+    return; // Gizmos are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
@@ -1197,6 +1246,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (input_triggered_lit(input, "DebugInspectorToolScale")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Scale);
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+  }
+  if (input_triggered_lit(input, "DebugInspectorToggleSpace")) {
+    set->space = (set->space + 1) % DebugInspectorSpace_Count;
+    debug_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     debug_inspector_tool_destroy(world, setEnv);
@@ -1650,7 +1703,6 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
       [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
-      [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
     const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
@@ -1763,7 +1815,7 @@ EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel         = ui_panel(.position = ui_vector(0.2f, 0.5f), .size = ui_vector(500, 500)),
+      .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
       .setNameBuffer = dynstring_create(g_alloc_heap, 0));
   return panelEntity;
 }

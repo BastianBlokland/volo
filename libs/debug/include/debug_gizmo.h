@@ -11,6 +11,11 @@ typedef u64 DebugGizmoId;
 
 ecs_comp_extern(DebugGizmoComp);
 
+/**
+ * Check if the given gizmo is being interacted with.
+ */
+bool debug_gizmo_interacting(const DebugGizmoComp*, DebugGizmoId);
+
 // clang-format off
 
 /**

@@ -68,7 +68,7 @@ static void time_panel_draw(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   const bool isPaused = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
@@ -190,6 +190,6 @@ EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugTimePanelComp,
-      .panel = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(375, 250)));
+      .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
   return panelEntity;
 }

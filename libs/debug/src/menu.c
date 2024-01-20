@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "debug_animation.h"
 #include "debug_asset.h"
@@ -25,32 +26,35 @@
 
 // clang-format off
 
-static const String  g_tooltipPanelOpen       = string_static("Open the \a.b{}\ar panel.");
-static const String  g_tooltipPanelClose      = string_static("Close the \a.b{}\ar panel.");
-static const UiColor g_panelFrameColorNormal  = {32, 32, 32, 192};
-static const UiColor g_panelFrameColorOpen    = {96, 96, 96, 255};
+static const String  g_menuChildTooltipOpen       = string_static("Open the \a.b{}\ar panel.");
+static const String  g_menuChildTooltipClose      = string_static("Close the \a.b{}\ar panel.");
+static const UiColor g_menuChildFrameColorNormal  = {32, 32, 32, 192};
+static const UiColor g_menuChildFrameColorOpen    = {96, 96, 96, 255};
 
 // clang-format on
 
-typedef EcsEntityId (*PanelOpenFunc)(EcsWorld*, EcsEntityId);
+typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId);
 
 static const struct {
   String        name;
   u32           iconShape;
-  PanelOpenFunc openFunc;
+  bool          autoOpen;
+  ChildOpenFunc openFunc;
   String        hotkeyName;
-} g_debugPanelConfig[] = {
+} g_menuChildConfig[] = {
     {
         .name       = string_static("Inspector"),
         .iconShape  = UiShape_ViewInAr,
         .openFunc   = debug_inspector_panel_open,
         .hotkeyName = string_static("DebugPanelInspector"),
+        .autoOpen   = true,
     },
     {
         .name       = string_static("Prefab"),
         .iconShape  = UiShape_Construction,
         .openFunc   = debug_prefab_panel_open,
         .hotkeyName = string_static("DebugPanelPrefab"),
+        .autoOpen   = true,
     },
     {
         .name       = string_static("Level"),
@@ -118,14 +122,14 @@ static const struct {
     },
 };
 
-static String debug_panel_tooltip_scratch(const String panelName, const bool open) {
+static String menu_child_tooltip_scratch(const String name, const bool open) {
   return format_write_formatted_scratch(
-      open ? g_tooltipPanelClose : g_tooltipPanelOpen, fmt_args(fmt_text(panelName)));
+      open ? g_menuChildTooltipClose : g_menuChildTooltipOpen, fmt_args(fmt_text(name)));
 }
 
 ecs_comp_define(DebugMenuComp) {
   EcsEntityId window;
-  EcsEntityId panelEntities[array_elems(g_debugPanelConfig)];
+  EcsEntityId childEntities[array_elems(g_menuChildConfig)];
 };
 
 ecs_view_define(GlobalView) {
@@ -139,26 +143,37 @@ ecs_view_define(PanelUpdateView) {
 }
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
 
-static bool debug_panel_is_open(EcsWorld* world, const EcsEntityId panel) {
-  return panel && ecs_world_exists(world, panel);
-}
-
-static void debug_notify_panel_state(
-    DebugStatsGlobalComp* statsGlobal, const u32 panelIndex, const String state) {
+static void menu_notify_child_state(
+    DebugStatsGlobalComp* statsGlobal, const u32 childIndex, const String state) {
   debug_stats_notify(
       statsGlobal,
-      fmt_write_scratch("Panel {}", fmt_text(g_debugPanelConfig[panelIndex].name)),
+      fmt_write_scratch("Panel {}", fmt_text(g_menuChildConfig[childIndex].name)),
       state);
 }
 
-static EcsEntityId debug_panel_topmost(EcsWorld* world, const DebugMenuComp* menu) {
+static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const u32 childIndex) {
+  const EcsEntityId childEntity = menu->childEntities[childIndex];
+  return childEntity && ecs_world_exists(world, childEntity);
+}
+
+static void menu_child_open(
+    EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
+  diag_assert(!menu->childEntities[childIndex]);
+
+  const EcsEntityId e = g_menuChildConfig[childIndex].openFunc(world, menu->window);
+  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
+  menu->childEntities[childIndex] = e;
+}
+
+static EcsEntityId menu_child_topmost(EcsWorld* world, const DebugMenuComp* menu) {
   EcsEntityId topmost      = 0;
   i32         topmostOrder = i32_min;
-  array_for_t(menu->panelEntities, EcsEntityId, panelEntity) {
-    if (debug_panel_is_open(world, *panelEntity)) {
-      const UiCanvasComp* canvas = ecs_utils_read_t(world, CanvasView, *panelEntity, UiCanvasComp);
+  for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
+    if (menu_child_is_open(world, menu, childIndex)) {
+      const EcsEntityId   childEntity = menu->childEntities[childIndex];
+      const UiCanvasComp* canvas = ecs_utils_read_t(world, CanvasView, childEntity, UiCanvasComp);
       if (ui_canvas_order(canvas) >= topmostOrder) {
-        topmost      = *panelEntity;
+        topmost      = childEntity;
         topmostOrder = ui_canvas_order(canvas);
       }
     }
@@ -166,7 +181,7 @@ static EcsEntityId debug_panel_topmost(EcsWorld* world, const DebugMenuComp* men
   return topmost;
 }
 
-static void debug_action_bar_draw(
+static void menu_action_bar_draw(
     EcsWorld*               world,
     const EcsEntityId       menuEntity,
     UiCanvasComp*           canvas,
@@ -179,37 +194,36 @@ static void debug_action_bar_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 45);
 
   const bool windowActive = input_active_window(input) == winEntity;
-  const u32  rows         = 1 /* Icon */ + array_elems(g_debugPanelConfig) /* Panels */;
+  const u32  rows         = 1 /* Icon */ + array_elems(g_menuChildConfig) /* Panels */;
   ui_table_draw_bg(canvas, &table, rows, ui_color(178, 0, 0, 192));
 
   ui_table_next_row(canvas, &table);
   ui_canvas_draw_glyph(canvas, UiShape_Bug, 0, UiFlags_Interactable);
 
   // Panel open / close.
-  for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
+  for (u32 childIndex = 0; childIndex != array_elems(g_menuChildConfig); ++childIndex) {
     ui_table_next_row(canvas, &table);
-    const bool isOpen = debug_panel_is_open(world, menu->panelEntities[i]);
+    const bool isOpen = menu_child_is_open(world, menu, childIndex);
 
     const bool hotkeyPressed =
-        windowActive && !string_is_empty(g_debugPanelConfig[i].hotkeyName) &&
-        input_triggered_hash(input, string_hash(g_debugPanelConfig[i].hotkeyName));
+        windowActive && !string_is_empty(g_menuChildConfig[childIndex].hotkeyName) &&
+        input_triggered_hash(input, string_hash(g_menuChildConfig[childIndex].hotkeyName));
 
     if (ui_button(
             canvas,
-            .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
+            .label      = ui_shape_scratch(g_menuChildConfig[childIndex].iconShape),
             .fontSize   = 25,
-            .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
-            .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal,
+            .tooltip    = menu_child_tooltip_scratch(g_menuChildConfig[childIndex].name, isOpen),
+            .frameColor = isOpen ? g_menuChildFrameColorOpen : g_menuChildFrameColorNormal,
             .activate   = hotkeyPressed)) {
 
       if (isOpen) {
-        ecs_world_entity_destroy(world, menu->panelEntities[i]);
-        debug_notify_panel_state(statsGlobal, i, string_lit("closed"));
+        ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
+        menu->childEntities[childIndex] = 0;
+        menu_notify_child_state(statsGlobal, childIndex, string_lit("closed"));
       } else {
-        const EcsEntityId panelEntity = g_debugPanelConfig[i].openFunc(world, winEntity);
-        ecs_world_add_t(world, panelEntity, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
-        menu->panelEntities[i] = panelEntity;
-        debug_notify_panel_state(statsGlobal, i, string_lit("open"));
+        menu_child_open(world, menu, menuEntity, childIndex);
+        menu_notify_child_state(statsGlobal, childIndex, string_lit("open"));
       }
     }
   }
@@ -234,13 +248,13 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
       continue;
     }
-    debug_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window);
+    menu_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window);
 
     if (input_triggered_lit(input, "DebugPanelClose")) {
-      const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
-      if (topmostPanel) {
+      const EcsEntityId topmostChild = menu_child_topmost(world, menu);
+      if (topmostChild) {
         ui_canvas_sound(canvas, UiSoundType_ClickAlt);
-        ecs_world_entity_destroy(world, topmostPanel);
+        ecs_world_entity_destroy(world, topmostChild);
       }
     }
   }
@@ -261,7 +275,14 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(world, panelEntity, DebugMenuComp, .window = window);
-  return panelEntity;
+  const EcsEntityId menuEntity = debug_panel_create(world, window);
+  DebugMenuComp*    menu = ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
+
+  for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
+    if (g_menuChildConfig[childIndex].autoOpen) {
+      menu_child_open(world, menu, menuEntity, childIndex);
+    }
+  }
+
+  return menuEntity;
 }

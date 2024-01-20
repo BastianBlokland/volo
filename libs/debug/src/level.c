@@ -122,7 +122,7 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
   }
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 275);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -268,6 +268,6 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       .flags       = DebugLevelFlags_Default,
       .idFilter    = dynstring_create(g_alloc_heap, 32),
       .levelAssets = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
-      .panel       = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(400, 250)));
+      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
   return panelEntity;
 }
