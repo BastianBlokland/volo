@@ -861,6 +861,10 @@ ecs_module_init(debug_gizmo_module) {
   ecs_order(DebugGizmoRenderSys, DebugOrder_GizmoRender);
 }
 
+bool debug_gizmo_interacting(const DebugGizmoComp* comp, const DebugGizmoId id) {
+  return gizmo_is_interacting(comp, id);
+}
+
 bool debug_gizmo_translation(
     DebugGizmoComp* comp, const DebugGizmoId id, GeoVector* translation, const GeoQuat rotation) {
 
