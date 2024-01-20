@@ -268,6 +268,6 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       .flags       = DebugLevelFlags_Default,
       .idFilter    = dynstring_create(g_alloc_heap, 32),
       .levelAssets = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
-      .panel       = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(400, 250)));
+      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(400, 250)));
   return panelEntity;
 }

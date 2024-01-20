@@ -190,6 +190,6 @@ EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugTimePanelComp,
-      .panel = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(375, 250)));
+      .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(375, 250)));
   return panelEntity;
 }
