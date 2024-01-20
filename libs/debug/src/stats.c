@@ -16,7 +16,7 @@
 #include "ui.h"
 #include "ui_stats.h"
 
-static const f32 g_statsLabelWidth       = 220;
+static const f32 g_statsLabelWidth       = 210;
 static const u8  g_statsBgAlpha          = 150;
 static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
@@ -402,7 +402,7 @@ static void debug_stats_draw_interface(
     const UiStatsComp*             uiStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(510, 25), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(500, 25), UiBase_Absolute, Ui_XY);
 
   // clang-format off
   stats_draw_frametime(canvas, stats);
