@@ -132,6 +132,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorVisMode visMode;
   u32                   visFlags;
   bool                  drawVisInGame;
+  GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
@@ -950,8 +951,9 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
       world,
       global,
       DebugInspectorSettingsComp,
-      .visFlags = defaultVisFlags,
-      .visMode  = DebugInspectorVisMode_Default);
+      .visFlags     = defaultVisFlags,
+      .visMode      = DebugInspectorVisMode_Default,
+      .toolRotation = geo_quat_ident);
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
@@ -1107,21 +1109,21 @@ static void debug_inspector_tool_group_update(
   const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
   const GeoVector pos   = debug_inspector_tool_pivot(world, setEnv);
-  const GeoQuat   rot   = mainTrans->rotation;
   const f32       scale = mainScale ? mainScale->scale : 1.0f;
 
-  const bool    localSpace = set->space == DebugInspectorSpace_Local;
-  const GeoQuat rotRef     = localSpace ? mainTrans->rotation : geo_quat_ident;
+  if (set->space == DebugInspectorSpace_Local) {
+    set->toolRotation = mainTrans->rotation;
+  }
 
   static const DebugGizmoId g_groupGizmoId = 1234567890;
 
   GeoVector posEdit   = pos;
-  GeoQuat   rotEdit   = rot;
+  GeoQuat   rotEdit   = set->toolRotation;
   f32       scaleEdit = scale;
   bool      posDirty = false, rotDirty = false, scaleDirty = false;
   switch (set->tool) {
   case DebugInspectorTool_Translation:
-    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rotRef);
+    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, set->toolRotation);
     break;
   case DebugInspectorTool_Rotation:
     rotDirty |= debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
@@ -1138,10 +1140,9 @@ static void debug_inspector_tool_group_update(
   default:
     break;
   }
-
-  if (posDirty || rotDirty || scaleDirty) {
+  if (posDirty | rotDirty | scaleDirty) {
     const GeoVector  posDelta   = geo_vector_sub(posEdit, pos);
-    const GeoQuat    rotDelta   = geo_quat_from_to(rot, rotEdit);
+    const GeoQuat    rotDelta   = geo_quat_from_to(set->toolRotation, rotEdit);
     const f32        scaleDelta = scaleEdit / scale;
     const StringHash s          = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
@@ -1159,6 +1160,9 @@ static void debug_inspector_tool_group_update(
         }
       }
     }
+    set->toolRotation = rotEdit;
+  } else {
+    set->toolRotation = geo_quat_ident;
   }
 }
 
@@ -1169,32 +1173,43 @@ static void debug_inspector_tool_individual_update(
     DebugGizmoComp*             gizmo) {
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   const StringHash s   = g_sceneSetSelected;
+
+  bool anyRotEdit = false;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
-      SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
+      SceneTransformComp* trans     = ecs_view_write_t(itr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
 
-      const bool    localSpace = set->space == DebugInspectorSpace_Local;
-      const GeoQuat rotRef     = localSpace ? transform->rotation : geo_quat_ident;
+      if (set->space == DebugInspectorSpace_Local) {
+        set->toolRotation = trans->rotation;
+      }
+      GeoQuat rotEdit = set->toolRotation;
 
       switch (set->tool) {
       case DebugInspectorTool_Translation:
-        debug_gizmo_translation(gizmo, gizmoId, &transform->position, rotRef);
+        debug_gizmo_translation(gizmo, gizmoId, &trans->position, set->toolRotation);
         break;
       case DebugInspectorTool_Rotation:
-        debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
+        if (debug_gizmo_rotation(gizmo, gizmoId, trans->position, &rotEdit)) {
+          const GeoQuat rotDelta = geo_quat_from_to(set->toolRotation, rotEdit);
+          scene_transform_rotate_around(trans, trans->position, rotDelta);
+          set->toolRotation = rotEdit;
+          anyRotEdit        = true;
+        }
         break;
       case DebugInspectorTool_Scale:
         if (scaleComp) {
-          const GeoVector position = transform ? transform->position : geo_vector(0);
-          debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
+          debug_gizmo_scale_uniform(gizmo, gizmoId, trans->position, &scaleComp->scale);
         }
         break;
       default:
         break;
       }
     }
+  }
+  if (!anyRotEdit) {
+    set->toolRotation = geo_quat_ident;
   }
 }
 
