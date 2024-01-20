@@ -953,6 +953,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
       DebugInspectorSettingsComp,
       .visFlags     = defaultVisFlags,
       .visMode      = DebugInspectorVisMode_Default,
+      .tool         = DebugInspectorTool_Translation,
       .toolRotation = geo_quat_ident);
 }
 
@@ -1232,7 +1233,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
-    set->tool = DebugInspectorTool_None;
+    return; // Gizmos are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
