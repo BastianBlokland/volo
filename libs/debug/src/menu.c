@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "debug_animation.h"
 #include "debug_asset.h"
@@ -157,6 +158,8 @@ static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const
 
 static void menu_child_open(
     EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
+  diag_assert(!menu->childEntities[childIndex]);
+
   const EcsEntityId e = g_menuChildConfig[childIndex].openFunc(world, menu->window);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
   menu->childEntities[childIndex] = e;
@@ -216,6 +219,7 @@ static void menu_action_bar_draw(
 
       if (isOpen) {
         ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
+        menu->childEntities[childIndex] = 0;
         menu_notify_child_state(statsGlobal, childIndex, string_lit("closed"));
       } else {
         menu_child_open(world, menu, menuEntity, childIndex);
