@@ -40,25 +40,13 @@
       ]
     },
     "AssetDecalAxis": {
-      "enum": [
-        "LocalY",
-        "LocalZ",
-        "WorldY"
-      ]
+      "enum": [ "LocalY", "LocalZ", "WorldY" ]
     },
     "AssetDecalNormal": {
-      "enum": [
-        "GBuffer",
-        "DepthBuffer",
-        "DecalTransform"
-      ]
+      "enum": [ "GBuffer", "DepthBuffer", "DecalTransform" ]
     },
     "AssetDecalMask": {
-      "enum": [
-        "Geometry",
-        "Terrain",
-        "Unit"
-      ]
+      "enum": [ "Geometry", "Terrain", "Unit" ]
     }
   }
 }

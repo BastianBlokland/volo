@@ -12,9 +12,7 @@
           "items": { "title": "AssetInputActionDef", "$ref": "#/$defs/AssetInputActionDef" }
         }
       },
-      "required": [
-        "actions"
-      ],
+      "required": [ "actions" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"actions\": []\n}" }
       ]
@@ -34,10 +32,7 @@
           "items": { "title": "AssetInputBindingDef", "$ref": "#/$defs/AssetInputBindingDef" }
         }
       },
-      "required": [
-        "name",
-        "bindings"
-      ],
+      "required": [ "name", "bindings" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"bindings\": [\n    {\n      \"type\": \"Pressed\",\n      \"key\": \"MouseLeft\"\n    }\n  ]\n}" }
       ]
@@ -66,20 +61,13 @@
           "items": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
         }
       },
-      "required": [
-        "type",
-        "key"
-      ],
+      "required": [ "type", "key" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"type\": \"Pressed\",\n  \"key\": \"MouseLeft\"\n}" }
       ]
     },
     "AssetInputType": {
-      "enum": [
-        "Pressed",
-        "Released",
-        "Down"
-      ]
+      "enum": [ "Pressed", "Released", "Down" ]
     },
     "AssetInputKey": {
       "enum": [
@@ -162,11 +150,7 @@
       ]
     },
     "AssetInputModifier": {
-      "enum": [
-        "Shift",
-        "Control",
-        "Alt"
-      ]
+      "enum": [ "Shift", "Control", "Alt" ]
     }
   }
 }

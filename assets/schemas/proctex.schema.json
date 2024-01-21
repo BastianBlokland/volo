@@ -41,17 +41,10 @@
       ]
     },
     "AssetTextureType": {
-      "enum": [
-        "U8",
-        "U16",
-        "F32"
-      ]
+      "enum": [ "U8", "U16", "F32" ]
     },
     "AssetTextureChannels": {
-      "enum": [
-        "One",
-        "Four"
-      ]
+      "enum": [ "One", "Four" ]
     }
   }
 }

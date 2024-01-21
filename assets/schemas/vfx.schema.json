@@ -12,9 +12,7 @@
           "items": { "title": "VfxEmitterDef", "description": "Particle emitter settings.", "$ref": "#/$defs/VfxEmitterDef" }
         }
       },
-      "required": [
-        "emitters"
-      ],
+      "required": [ "emitters" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"emitters\": []\n}" }
       ]
@@ -82,10 +80,7 @@
       ]
     },
     "AssetVfxSpace": {
-      "enum": [
-        "Local",
-        "World"
-      ]
+      "enum": [ "Local", "World" ]
     },
     "VfxSpriteDef": {
       "type": "object",
@@ -111,10 +106,7 @@
         "shadowCaster": { "title": "bool", "type": "boolean" },
         "distortion": { "title": "bool", "type": "boolean" }
       },
-      "required": [
-        "atlasEntry",
-        "size"
-      ],
+      "required": [ "atlasEntry", "size" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"atlasEntry\": \"placeholder\",\n  \"size\": {}\n}" }
       ]
@@ -128,29 +120,16 @@
         "b": { "title": "f32", "type": "number" },
         "a": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "r",
-        "g",
-        "b",
-        "a"
-      ],
+      "required": [ "r", "g", "b", "a" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
       ]
     },
     "AssetVfxBlend": {
-      "enum": [
-        "None",
-        "Alpha",
-        "Additive"
-      ]
+      "enum": [ "None", "Alpha", "Additive" ]
     },
     "AssetVfxFacing": {
-      "enum": [
-        "Local",
-        "BillboardSphere",
-        "BillboardCylinder"
-      ]
+      "enum": [ "Local", "BillboardSphere", "BillboardCylinder" ]
     },
     "VfxVec2Def": {
       "type": "object",

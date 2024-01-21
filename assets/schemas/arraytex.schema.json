@@ -17,21 +17,13 @@
           "items": { "title": "String", "type": "string" }
         }
       },
-      "required": [
-        "type",
-        "textures"
-      ],
+      "required": [ "type", "textures" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"type\": \"Array\",\n  \"textures\": [\n    \"\"\n  ]\n}" }
       ]
     },
     "ArrayTexType": {
-      "enum": [
-        "Array",
-        "Cube",
-        "CubeDiffIrradiance",
-        "CubeSpecIrradiance"
-      ]
+      "enum": [ "Array", "Cube", "CubeDiffIrradiance", "CubeSpecIrradiance" ]
     }
   }
 }

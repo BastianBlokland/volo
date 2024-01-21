@@ -11,9 +11,7 @@
           "items": { "title": "AssetProductSetDef", "$ref": "#/$defs/AssetProductSetDef" }
         }
       },
-      "required": [
-        "sets"
-      ],
+      "required": [ "sets" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"sets\": []\n}" }
       ]
@@ -29,10 +27,7 @@
           "items": { "title": "AssetProductDef", "$ref": "#/$defs/AssetProductDef" }
         }
       },
-      "required": [
-        "name",
-        "products"
-      ],
+      "required": [ "name", "products" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"products\": [\n    {\n      \"\\$type\": \"AssetProduct_Unit\",\n      \"unitPrefab\": \"placeholder\"\n    }\n  ]\n}" }
       ]
@@ -48,10 +43,7 @@
             "unitPrefab": { "title": "String", "type": "string", "minLength": 1 },
             "unitCount": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 }
           },
-          "required": [
-            "$type",
-            "unitPrefab"
-          ]
+          "required": [ "$type", "unitPrefab" ]
         },
         {
           "type": "object",
@@ -62,10 +54,7 @@
             "prefab": { "title": "String", "type": "string", "minLength": 1 },
             "soundBlocked": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" }
           },
-          "required": [
-            "$type",
-            "prefab"
-          ]
+          "required": [ "$type", "prefab" ]
         }
       ],
       "defaultSnippets": [
@@ -100,9 +89,7 @@
         "assetId": { "title": "String", "type": "string", "minLength": 1 },
         "gain": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "assetId"
-      ],
+      "required": [ "assetId" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"assetId\": \"placeholder\"\n}" }
       ]

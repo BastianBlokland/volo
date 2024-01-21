@@ -11,9 +11,7 @@
           "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }
         }
       },
-      "required": [
-        "objects"
-      ],
+      "required": [ "objects" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"objects\": []\n}" }
       ]
@@ -29,11 +27,7 @@
         "rotation": { "title": "GeoQuat", "$ref": "#/$defs/GeoQuat" },
         "scale": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "prefab",
-        "position",
-        "rotation"
-      ],
+      "required": [ "prefab", "position", "rotation" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"prefab\": \"placeholder\",\n  \"position\": {},\n  \"rotation\": {}\n}" }
       ]

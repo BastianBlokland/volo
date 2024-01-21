@@ -38,10 +38,7 @@
         "spacing": { "title": "f32", "type": "number" },
         "characters": { "title": "String", "type": "string", "minLength": 1 }
       },
-      "required": [
-        "id",
-        "characters"
-      ],
+      "required": [ "id", "characters" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"id\": \"placeholder\",\n  \"characters\": \"placeholder\"\n}" }
       ]

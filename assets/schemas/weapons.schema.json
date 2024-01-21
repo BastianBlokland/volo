@@ -11,9 +11,7 @@
           "items": { "title": "AssetWeaponDef", "$ref": "#/$defs/AssetWeaponDef" }
         }
       },
-      "required": [
-        "weapons"
-      ],
+      "required": [ "weapons" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"weapons\": []\n}" }
       ]
@@ -92,12 +90,7 @@
             "applyBurning": { "title": "bool", "type": "boolean" },
             "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type",
-            "originJoint",
-            "delay",
-            "radius"
-          ]
+          "required": [ "$type", "originJoint", "delay", "radius" ]
         },
         {
           "type": "object",
@@ -111,12 +104,7 @@
             "speed": { "title": "f32", "type": "number" },
             "durationMax": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "layer",
-            "delay",
-            "speed"
-          ]
+          "required": [ "$type", "layer", "delay", "speed" ]
         },
         {
           "type": "object",

@@ -30,9 +30,7 @@
         "depth": { "title": "AssetGraphicDepth", "$ref": "#/$defs/AssetGraphicDepth" },
         "cull": { "title": "AssetGraphicCull", "$ref": "#/$defs/AssetGraphicCull" }
       },
-      "required": [
-        "shaders"
-      ],
+      "required": [ "shaders" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}" }
       ]
@@ -47,9 +45,7 @@
           "items": { "title": "AssetGraphicOverride", "$ref": "#/$defs/AssetGraphicOverride" }
         }
       },
-      "required": [
-        "shaderId"
-      ],
+      "required": [ "shaderId" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"shaderId\": \"placeholder\"\n}" }
       ]
@@ -62,11 +58,7 @@
         "binding": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 },
         "value": { "title": "f64", "type": "number" }
       },
-      "required": [
-        "name",
-        "binding",
-        "value"
-      ],
+      "required": [ "name", "binding", "value" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"binding\": 0,\n  \"value\": 0\n}" }
       ]
@@ -81,25 +73,16 @@
         "anisotropy": { "title": "AssetGraphicAniso", "$ref": "#/$defs/AssetGraphicAniso" },
         "mipBlending": { "title": "bool", "type": "boolean" }
       },
-      "required": [
-        "textureId"
-      ],
+      "required": [ "textureId" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"textureId\": \"placeholder\"\n}" }
       ]
     },
     "AssetGraphicWrap": {
-      "enum": [
-        "Clamp",
-        "Repeat",
-        "Zero"
-      ]
+      "enum": [ "Clamp", "Repeat", "Zero" ]
     },
     "AssetGraphicFilter": {
-      "enum": [
-        "Linear",
-        "Nearest"
-      ]
+      "enum": [ "Linear", "Nearest" ]
     },
     "AssetGraphicAniso": {
       "enum": [
@@ -121,11 +104,7 @@
       ]
     },
     "AssetGraphicRasterizer": {
-      "enum": [
-        "Fill",
-        "Lines",
-        "Points"
-      ]
+      "enum": [ "Fill", "Lines", "Points" ]
     },
     "AssetGraphicBlend": {
       "enum": [
@@ -153,11 +132,7 @@
       ]
     },
     "AssetGraphicCull": {
-      "enum": [
-        "None",
-        "Back",
-        "Front"
-      ]
+      "enum": [ "None", "Back", "Front" ]
     }
   }
 }

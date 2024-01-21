@@ -11,9 +11,7 @@
           "items": { "title": "AssetPrefabDef", "$ref": "#/$defs/AssetPrefabDef" }
         }
       },
-      "required": [
-        "prefabs"
-      ],
+      "required": [ "prefabs" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"prefabs\": []\n}" }
       ]
@@ -29,10 +27,7 @@
           "items": { "title": "AssetPrefabTraitDef", "$ref": "#/$defs/AssetPrefabTraitDef" }
         }
       },
-      "required": [
-        "name",
-        "traits"
-      ],
+      "required": [ "name", "traits" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"traits\": []\n}" }
       ]
@@ -46,10 +41,7 @@
             "$type": { "const": "AssetPrefabTrait_Name" },
             "name": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type",
-            "name"
-          ]
+          "required": [ "$type", "name" ]
         },
         {
           "type": "object",
@@ -62,10 +54,7 @@
               "items": { "title": "String", "type": "string" }
             }
           },
-          "required": [
-            "$type",
-            "sets"
-          ]
+          "required": [ "$type", "sets" ]
         },
         {
           "type": "object",
@@ -74,10 +63,7 @@
             "$type": { "const": "AssetPrefabTrait_Renderable" },
             "graphicId": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type",
-            "graphicId"
-          ]
+          "required": [ "$type", "graphicId" ]
         },
         {
           "type": "object",
@@ -86,10 +72,7 @@
             "$type": { "const": "AssetPrefabTrait_Vfx" },
             "assetId": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type",
-            "assetId"
-          ]
+          "required": [ "$type", "assetId" ]
         },
         {
           "type": "object",
@@ -98,10 +81,7 @@
             "$type": { "const": "AssetPrefabTrait_Decal" },
             "assetId": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type",
-            "assetId"
-          ]
+          "required": [ "$type", "assetId" ]
         },
         {
           "type": "object",
@@ -120,10 +100,7 @@
             "looping": { "title": "bool", "type": "boolean" },
             "persistent": { "title": "bool", "type": "boolean" }
           },
-          "required": [
-            "$type",
-            "assetIds"
-          ]
+          "required": [ "$type", "assetIds" ]
         },
         {
           "type": "object",
@@ -133,11 +110,7 @@
             "radiance": { "title": "AssetPrefabColorDef", "$ref": "#/$defs/AssetPrefabColorDef" },
             "radius": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "radiance",
-            "radius"
-          ]
+          "required": [ "$type", "radiance", "radius" ]
         },
         {
           "type": "object",
@@ -148,10 +121,7 @@
             "shadows": { "title": "bool", "type": "boolean" },
             "coverage": { "title": "bool", "type": "boolean" }
           },
-          "required": [
-            "$type",
-            "radiance"
-          ]
+          "required": [ "$type", "radiance" ]
         },
         {
           "type": "object",
@@ -160,10 +130,7 @@
             "$type": { "const": "AssetPrefabTrait_LightAmbient" },
             "intensity": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "intensity"
-          ]
+          "required": [ "$type", "intensity" ]
         },
         {
           "type": "object",
@@ -172,10 +139,7 @@
             "$type": { "const": "AssetPrefabTrait_Lifetime" },
             "duration": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "duration"
-          ]
+          "required": [ "$type", "duration" ]
         },
         {
           "type": "object",
@@ -222,11 +186,7 @@
             "deathDestroyDelay": { "title": "f32", "type": "number" },
             "deathEffectPrefab": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type",
-            "amount",
-            "deathDestroyDelay"
-          ]
+          "required": [ "$type", "amount", "deathDestroyDelay" ]
         },
         {
           "type": "object",
@@ -243,11 +203,7 @@
             "targetExcludeUnreachable": { "title": "bool", "type": "boolean" },
             "targetExcludeObscured": { "title": "bool", "type": "boolean" }
           },
-          "required": [
-            "$type",
-            "weaponId",
-            "targetRangeMax"
-          ]
+          "required": [ "$type", "weaponId", "targetRangeMax" ]
         },
         {
           "type": "object",
@@ -257,11 +213,7 @@
             "navBlocker": { "title": "bool", "type": "boolean" },
             "shape": { "title": "AssetPrefabShapeDef", "$ref": "#/$defs/AssetPrefabShapeDef" }
           },
-          "required": [
-            "$type",
-            "navBlocker",
-            "shape"
-          ]
+          "required": [ "$type", "navBlocker", "shape" ]
         },
         {
           "type": "object",
@@ -274,10 +226,7 @@
               "items": { "title": "AssetPrefabValueDef", "$ref": "#/$defs/AssetPrefabValueDef" }
             }
           },
-          "required": [
-            "$type",
-            "scriptId"
-          ]
+          "required": [ "$type", "scriptId" ]
         },
         {
           "type": "object",
@@ -288,9 +237,7 @@
             "barkDeathPrefab": { "title": "String", "type": "string", "minLength": 1 },
             "barkConfirmPrefab": { "title": "String", "type": "string", "minLength": 1 }
           },
-          "required": [
-            "$type"
-          ]
+          "required": [ "$type" ]
         },
         {
           "type": "object",
@@ -299,9 +246,7 @@
             "$type": { "const": "AssetPrefabTrait_Location" },
             "aimTarget": { "title": "AssetPrefabShapeBoxDef", "$ref": "#/$defs/AssetPrefabShapeBoxDef" }
           },
-          "required": [
-            "$type"
-          ]
+          "required": [ "$type" ]
         },
         {
           "type": "object",
@@ -311,9 +256,7 @@
             "effectJoint": { "title": "String", "type": "string", "minLength": 1 },
             "burnable": { "title": "bool", "type": "boolean" }
           },
-          "required": [
-            "$type"
-          ]
+          "required": [ "$type" ]
         },
         {
           "type": "object",
@@ -322,10 +265,7 @@
             "$type": { "const": "AssetPrefabTrait_Vision" },
             "radius": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "radius"
-          ]
+          "required": [ "$type", "radius" ]
         },
         {
           "type": "object",
@@ -339,10 +279,7 @@
             "productSetId": { "title": "String", "type": "string", "minLength": 1 },
             "placementRadius": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "productSetId"
-          ]
+          "required": [ "$type", "productSetId" ]
         },
         {
           "type": "object",
@@ -350,9 +287,7 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Scalable" }
           },
-          "required": [
-            "$type"
-          ]
+          "required": [ "$type" ]
         }
       ],
       "defaultSnippets": [
@@ -389,12 +324,7 @@
         "b": { "title": "f32", "type": "number" },
         "a": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "r",
-        "g",
-        "b",
-        "a"
-      ],
+      "required": [ "r", "g", "b", "a" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
       ]
@@ -409,10 +339,7 @@
             "offset": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
             "radius": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "radius"
-          ]
+          "required": [ "$type", "radius" ]
         },
         {
           "type": "object",
@@ -423,11 +350,7 @@
             "radius": { "title": "f32", "type": "number" },
             "height": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "radius",
-            "height"
-          ]
+          "required": [ "$type", "radius", "height" ]
         },
         {
           "type": "object",
@@ -437,11 +360,7 @@
             "min": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
             "max": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" }
           },
-          "required": [
-            "$type",
-            "min",
-            "max"
-          ]
+          "required": [ "$type", "min", "max" ]
         }
       ],
       "defaultSnippets": [
@@ -473,11 +392,7 @@
             "$name": { "type": "string" },
             "$data": { "title": "f64", "type": "number" }
           },
-          "required": [
-            "$type",
-            "$name",
-            "$data"
-          ]
+          "required": [ "$type", "$name", "$data" ]
         },
         {
           "type": "object",
@@ -487,11 +402,7 @@
             "$name": { "type": "string" },
             "$data": { "title": "bool", "type": "boolean" }
           },
-          "required": [
-            "$type",
-            "$name",
-            "$data"
-          ]
+          "required": [ "$type", "$name", "$data" ]
         },
         {
           "type": "object",
@@ -503,10 +414,7 @@
             "y": { "title": "f32", "type": "number" },
             "z": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "$name"
-          ]
+          "required": [ "$type", "$name" ]
         },
         {
           "type": "object",
@@ -536,11 +444,7 @@
             "$name": { "type": "string" },
             "$data": { "title": "String", "type": "string" }
           },
-          "required": [
-            "$type",
-            "$name",
-            "$data"
-          ]
+          "required": [ "$type", "$name", "$data" ]
         },
         {
           "type": "object",
@@ -550,11 +454,7 @@
             "$name": { "type": "string" },
             "$data": { "title": "String", "type": "string" }
           },
-          "required": [
-            "$type",
-            "$name",
-            "$data"
-          ]
+          "required": [ "$type", "$name", "$data" ]
         },
         {
           "type": "object",
@@ -565,11 +465,7 @@
             "assetId": { "title": "String", "type": "string", "minLength": 1 },
             "persistent": { "title": "bool", "type": "boolean" }
           },
-          "required": [
-            "$type",
-            "$name",
-            "assetId"
-          ]
+          "required": [ "$type", "$name", "assetId" ]
         }
       ],
       "defaultSnippets": [
@@ -589,10 +485,7 @@
         "min": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
         "max": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" }
       },
-      "required": [
-        "min",
-        "max"
-      ],
+      "required": [ "min", "max" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"min\": {},\n  \"max\": {}\n}" }
       ]
