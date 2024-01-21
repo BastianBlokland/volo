@@ -1,22 +1,12 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/vfx/particle.vert.spv"
-    },
-    {
-      "shaderId": "shaders/vfx/particle_distortion.frag.spv"
-    }
+    { "shaderId": "shaders/vfx/particle.vert.spv" },
+    { "shaderId": "shaders/vfx/particle_distortion.frag.spv" }
   ],
   "samplers": [
-    {
-      "textureId": "textures/vfx/particle.atlas",
-      "wrap": "Clamp",
-      "filter": "Linear"
-    }
+    { "textureId": "textures/vfx/particle.atlas" }
   ],
   "vertexCount": 6,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
   "blend": "Additive",
   "depth": "LessNoWrite",
   "cull": "None"

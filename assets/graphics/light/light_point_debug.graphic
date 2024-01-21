@@ -1,17 +1,10 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/light/light_point.vert.spv"
-    },
-    {
-      "shaderId": "shaders/light/light_point_debug.frag.spv"
-    }
+    { "shaderId": "shaders/light/light_point.vert.spv" },
+    { "shaderId": "shaders/light/light_point_debug.frag.spv" }
   ],
   "meshId": "meshes/light/light_point.procmesh",
   "renderOrder": -90,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
   "depth": "AlwaysNoWrite",
   "cull": "Front"
 }

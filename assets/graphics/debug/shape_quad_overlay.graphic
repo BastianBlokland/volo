@@ -1,16 +1,10 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/debug/shape_mesh.vert.spv"
-    },
-    {
-      "shaderId": "shaders/debug/shape.frag.spv"
-    }
+    { "shaderId": "shaders/debug/shape_mesh.vert.spv" },
+    { "shaderId": "shaders/debug/shape.frag.spv" }
   ],
   "meshId": "meshes/debug/shape_quad.procmesh",
   "renderOrder": 164,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
   "blend": "Alpha",
   "depth": "AlwaysNoWrite",
   "cull": "None"

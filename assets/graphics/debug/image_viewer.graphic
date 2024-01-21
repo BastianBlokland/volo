@@ -1,17 +1,11 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/debug/dyn_image_viewer.vert.spv"
-    },
-    {
-      "shaderId": "shaders/debug/dyn_image_viewer.frag.spv"
-    }
+    { "shaderId": "shaders/debug/dyn_image_viewer.vert.spv" },
+    { "shaderId": "shaders/debug/dyn_image_viewer.frag.spv" }
   ],
   "vertexCount": 4,
   "renderOrder": 1,
   "topology": "TriangleFan",
-  "rasterizer": "Fill",
-  "blend": "None",
   "depth": "AlwaysNoWrite",
   "cull": "None"
 }

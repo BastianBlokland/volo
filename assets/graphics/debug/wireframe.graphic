@@ -1,18 +1,11 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/dyn_depth_standard.vert.spv"
-    },
-    {
-      "shaderId": "shaders/solid_white.frag.spv"
-    }
+    { "shaderId": "shaders/dyn_depth_standard.vert.spv" },
+    { "shaderId": "shaders/solid_white.frag.spv" }
   ],
   "renderOrder": 10,
-  "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
-  "blend": "None",
   "depth": "LessOrEqualNoWrite",
-  "depthBiasConstant": 1000,
-  "cull": "Back"
+  "depthBiasConstant": 1000
 }

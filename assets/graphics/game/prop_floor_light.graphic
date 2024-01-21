@@ -1,56 +1,20 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/standard.vert.spv"
-    },
+    { "shaderId": "shaders/standard.vert.spv" },
     {
       "shaderId": "shaders/standard.frag.spv",
       "overrides": [
-        {
-          "name": "normalMap",
-          "binding": 0,
-          "value": 1
-        },
-        {
-          "name": "emissiveMap",
-          "binding": 2,
-          "value": 1
-        },
-        {
-          "name": "maskMap",
-          "binding": 3,
-          "value": 1
-        }
+        { "name": "normalMap", "binding": 0, "value": 1 },
+        { "name": "emissiveMap", "binding": 2, "value": 1 },
+        { "name": "maskMap", "binding": 3, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    {
-      "textureId": "external/floor_light/floor_light_color_rough.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    },
-    {
-      "textureId": "external/floor_light/floor_light_normal_emissive.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    },
-    {
-      "textureId": "textures/zero.proctex"
-    },
-    {
-      "textureId": "external/floor_light/floor_light_mask.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    }
+    { "textureId": "external/floor_light/floor_light_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/floor_light/floor_light_normal_emissive.tga", "anisotropy": "x2" },
+    { "textureId": "textures/zero.proctex" },
+    { "textureId": "external/floor_light/floor_light_mask.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/floor_light/floor_light.gltf",
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
-  "depth": "Less",
-  "cull": "Back"
+  "meshId": "external/floor_light/floor_light.gltf"
 }

@@ -1,17 +1,10 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/vfx/decal.vert.spv"
-    },
-    {
-      "shaderId": "shaders/vfx/decal_debug.frag.spv"
-    }
+    { "shaderId": "shaders/vfx/decal.vert.spv" },
+    { "shaderId": "shaders/vfx/decal_debug.frag.spv" }
   ],
   "meshId": "meshes/vfx/decal_box.procmesh",
   "renderOrder": 100,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
   "blend": "Alpha",
-  "depth": "LessNoWrite",
-  "cull": "Back"
+  "depth": "LessNoWrite"
 }

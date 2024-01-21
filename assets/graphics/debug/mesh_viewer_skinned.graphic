@@ -1,17 +1,11 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/debug/dyn_mesh_viewer_skinned.vert.spv"
-    },
-    {
-      "shaderId": "shaders/solid_white.frag.spv"
-    }
+    { "shaderId": "shaders/debug/dyn_mesh_viewer_skinned.vert.spv" },
+    { "shaderId": "shaders/solid_white.frag.spv" }
   ],
   "renderOrder": 1,
-  "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
-  "blend": "None",
   "depth": "AlwaysNoWrite",
   "cull": "None"
 }

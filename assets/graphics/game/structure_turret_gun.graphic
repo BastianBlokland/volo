@@ -6,32 +6,13 @@
     {
       "shaderId": "shaders/standard.frag.spv",
       "overrides": [
-        {
-          "name": "normalMap",
-          "binding": 0,
-          "value": 1
-        }
+        { "name": "normalMap", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    {
-      "textureId": "external/turret/turret_4_color_rough.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    },
-    {
-      "textureId": "external/turret/turret_2_nrm.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    }
+    { "textureId": "external/turret/turret_4_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/turret/turret_2_nrm.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/turret/turret_big.gltf",
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
-  "depth": "Less",
-  "cull": "Back"
+  "meshId": "external/turret/turret_big.gltf"
 }

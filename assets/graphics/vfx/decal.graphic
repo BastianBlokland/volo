@@ -1,32 +1,15 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/vfx/decal.vert.spv"
-    },
-    {
-      "shaderId": "shaders/vfx/decal.frag.spv"
-    }
+    { "shaderId": "shaders/vfx/decal.vert.spv" },
+    { "shaderId": "shaders/vfx/decal.frag.spv" }
   ],
   "samplers": [
-    {
-      "textureId": "textures/vfx/decal_color.atlas",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x4"
-    },
-    {
-      "textureId": "textures/vfx/decal_normal.atlas",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x4"
-    }
+    { "textureId": "textures/vfx/decal_color.atlas", "anisotropy": "x4" },
+    { "textureId": "textures/vfx/decal_normal.atlas", "anisotropy": "x4" }
   ],
   "meshId": "meshes/vfx/decal_box.procmesh",
-  "topology": "Triangles",
-  "rasterizer": "Fill",
   "blend": "AlphaConstant",
   "blendConstant": 0,
   "blendAux": "Alpha",
-  "depth": "LessNoWrite",
-  "cull": "Back"
+  "depth": "LessNoWrite"
 }
