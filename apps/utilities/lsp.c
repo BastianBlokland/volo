@@ -447,7 +447,7 @@ static void lsp_update_trace_config(LspContext* ctx, const JsonVal traceValue) {
 }
 
 static void lsp_send_json(LspContext* ctx, const JsonVal val) {
-  const JsonWriteOpts writeOpts = json_write_opts(.flags = JsonWriteFlags_None);
+  const JsonWriteOpts writeOpts = json_write_opts(.mode = JsonWriteMode_Minimal);
   json_write(ctx->writeBuffer, ctx->jDoc, val, &writeOpts);
 
   const usize  contentSize = ctx->writeBuffer->size;
@@ -1028,9 +1028,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(doc->scriptSyms, callSym),
-          .doc       = script_sym_doc(doc->scriptSyms, callSym),
-          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+      .label     = script_sym_label(doc->scriptSyms, callSym),
+      .doc       = script_sym_doc(doc->scriptSyms, callSym),
+      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);

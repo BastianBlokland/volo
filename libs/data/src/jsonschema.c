@@ -165,9 +165,10 @@ static String schema_snippet_stringify_scratch(const JsonSchemaCtx* ctx, const J
    * Escape dollar-signs as those are used for variable replacement in the VSCode snippet syntax.
    * https://code.visualstudio.com/docs/editor/userdefinedsnippets#_variables
    */
-  const JsonWriteFlags jsonWriteFlags = JsonWriteFlags_Pretty | JsonWriteFlags_EscapeDollarSign;
+  const JsonWriteFlags jFlags = JsonWriteFlags_EscapeDollarSign;
+  const JsonWriteMode  jMode  = JsonWriteMode_Verbose;
 
-  json_write(&str, ctx->doc, val, &json_write_opts(.flags = jsonWriteFlags));
+  json_write(&str, ctx->doc, val, &json_write_opts(.flags = jFlags, .mode = jMode));
 
   return dynstring_view(&str);
 }
@@ -505,6 +506,6 @@ void data_jsonschema_write(const DataReg* reg, DynString* str, const DataMeta me
     json_add_field_lit(doc, rootObj, "$defs", defsObj);
   }
 
-  json_write(str, doc, rootObj, &json_write_opts());
+  json_write(str, doc, rootObj, &json_write_opts(.mode = JsonWriteMode_Verbose));
   json_destroy(doc);
 }
