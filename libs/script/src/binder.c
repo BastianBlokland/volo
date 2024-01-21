@@ -230,7 +230,7 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   const JsonVal obj = json_add_object(doc);
   json_add_field_lit(doc, obj, "functions", funcsArr);
 
-  json_write(str, doc, obj, &json_write_opts(.mode = JsonWriteMode_Verbose));
+  json_write(str, doc, obj, &json_write_opts(.mode = JsonWriteMode_Compact));
   json_destroy(doc);
 }
 

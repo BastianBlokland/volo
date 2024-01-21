@@ -6,10 +6,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -22,10 +19,7 @@
           "vec3"
         ],
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "type",
             "mask": [
@@ -45,10 +39,7 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -58,14 +49,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "start",
-            "mask": "vec3"
-          },
-          {
-            "name": "end",
-            "mask": "vec3"
-          },
+          { "name": "start", "mask": "vec3" },
+          { "name": "end", "mask": "vec3" },
           {
             "name": "color",
             "mask": [
@@ -82,14 +67,8 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "radius", "mask": "num" },
           {
             "name": "layer",
             "mask": [
@@ -116,10 +95,7 @@
           "vec3"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -129,18 +105,9 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radiance",
-            "mask": "color"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
-          }
+          { "name": "pos", "mask": "vec3" },
+          { "name": "radiance", "mask": "color" },
+          { "name": "radius", "mask": "num" }
         ]
       }
     },
@@ -153,14 +120,8 @@
           "bool"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
             "mask": [
@@ -180,10 +141,7 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -193,11 +151,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -210,14 +164,8 @@
           "num"
         ],
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "size",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "size", "mask": "vec3" },
           {
             "name": "rot",
             "mask": [
@@ -245,10 +193,7 @@
           "str"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -261,10 +206,7 @@
           "num"
         ],
         "args": [
-          {
-            "name": "set",
-            "mask": "str"
-          }
+          { "name": "set", "mask": "str" }
         ]
       }
     },
@@ -277,14 +219,8 @@
           "bool"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "activity",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "activity", "mask": "str" }
         ]
       }
     },
@@ -294,10 +230,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -307,10 +240,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "delay",
             "mask": [
@@ -330,10 +260,7 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -343,10 +270,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "target",
             "mask": [
@@ -366,14 +290,8 @@
           "bool"
         ],
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "asset", "mask": "entity" },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "rot",
             "mask": [
@@ -415,10 +333,7 @@
           "entity"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -428,14 +343,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
           {
             "name": "size",
             "mask": [
@@ -455,10 +364,7 @@
           "entity"
         ],
         "args": [
-          {
-            "name": "query",
-            "mask": "num"
-          }
+          { "name": "query", "mask": "num" }
         ]
       }
     },
@@ -471,10 +377,7 @@
           "entity"
         ],
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
+          { "name": "asset", "mask": "entity" },
           {
             "name": "pos",
             "mask": [
@@ -515,10 +418,7 @@
           "entity"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -528,14 +428,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "amount",
-            "mask": "num"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "amount", "mask": "num" }
         ]
       }
     },
@@ -548,10 +442,7 @@
           "entity"
         ],
         "args": [
-          {
-            "name": "query",
-            "mask": "num"
-          }
+          { "name": "query", "mask": "num" }
         ]
       }
     },
@@ -564,10 +455,7 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -577,11 +465,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -591,11 +475,7 @@
       "sig": {
         "ret": "any",
         "args": [
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -608,10 +488,7 @@
           "entity"
         ],
         "args": [
-          {
-            "name": "prefabId",
-            "mask": "str"
-          },
+          { "name": "prefabId", "mask": "str" },
           {
             "name": "pos",
             "mask": [
@@ -652,14 +529,8 @@
           "bool"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "capability",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "capability", "mask": "str" }
         ]
       }
     },
@@ -672,10 +543,7 @@
           "vec3"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -688,14 +556,8 @@
           "vec3"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "joint",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "joint", "mask": "str" }
         ]
       }
     },
@@ -724,14 +586,8 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
             "mask": [
@@ -751,10 +607,7 @@
           "quat"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -764,14 +617,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "size",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "size", "mask": "vec3" },
           {
             "name": "rot",
             "mask": [
@@ -795,14 +642,8 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "size",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "size", "mask": "vec3" },
           {
             "name": "rot",
             "mask": [
@@ -833,10 +674,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "radius",
             "mask": [
@@ -860,10 +698,7 @@
       "sig": {
         "ret": "bool",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "faction",
             "mask": [
@@ -880,18 +715,9 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
+          { "name": "asset", "mask": "entity" },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
           {
             "name": "alpha",
             "mask": [
@@ -911,14 +737,8 @@
           "bool"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "type",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "type", "mask": "str" },
           {
             "name": "enable",
             "mask": [
@@ -938,10 +758,7 @@
           "str"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -951,14 +768,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "target",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "target", "mask": "entity" },
           {
             "name": "jointName",
             "mask": [
@@ -982,18 +793,9 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "this",
-            "mask": "entity"
-          },
-          {
-            "name": "target",
-            "mask": "entity"
-          },
-          {
-            "name": "key",
-            "mask": "str"
-          }
+          { "name": "this", "mask": "entity" },
+          { "name": "target", "mask": "entity" },
+          { "name": "key", "mask": "str" }
         ]
       }
     },
@@ -1006,14 +808,8 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
             "mask": [
@@ -1030,23 +826,10 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "color",
-            "mask": "color"
-          },
-          {
-            "name": "size",
-            "mask": "num"
-          },
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "pos", "mask": "vec3" },
+          { "name": "color", "mask": "color" },
+          { "name": "size", "mask": "num" },
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -1064,10 +847,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "target",
             "mask": [
@@ -1084,10 +864,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "pos",
             "mask": [
@@ -1114,14 +891,8 @@
           "num"
         ],
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "radius", "mask": "num" },
           {
             "name": "layers",
             "mask": [
@@ -1150,14 +921,8 @@
           "num"
         ],
         "args": [
-          {
-            "name": "src",
-            "mask": "entity"
-          },
-          {
-            "name": "dst",
-            "mask": "entity"
-          },
+          { "name": "src", "mask": "entity" },
+          { "name": "dst", "mask": "entity" },
           {
             "name": "radius",
             "mask": [
@@ -1174,14 +939,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "type",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "type", "mask": "str" }
         ]
       }
     },
@@ -1191,10 +950,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -1207,14 +963,8 @@
           "bool"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "set",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "set", "mask": "str" },
           {
             "name": "add",
             "mask": [
@@ -1231,18 +981,9 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
+          { "name": "asset", "mask": "entity" },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
           {
             "name": "alpha",
             "mask": [
@@ -1259,14 +1000,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "start",
-            "mask": "vec3"
-          },
-          {
-            "name": "end",
-            "mask": "vec3"
-          },
+          { "name": "start", "mask": "vec3" },
+          { "name": "end", "mask": "vec3" },
           {
             "name": "radius",
             "mask": [
@@ -1293,14 +1028,8 @@
           "num"
         ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
             "mask": [
@@ -1317,22 +1046,10 @@
       "sig": {
         "ret": "any",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "layer",
-            "mask": "str"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
-          {
-            "name": "value",
-            "mask": "any"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "layer", "mask": "str" },
+          { "name": "param", "mask": "str" },
+          { "name": "value", "mask": "any" }
         ]
       }
     },
@@ -1361,18 +1078,9 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "target",
-            "mask": "entity"
-          },
-          {
-            "name": "key",
-            "mask": "str"
-          },
-          {
-            "name": "value",
-            "mask": "any"
-          }
+          { "name": "target", "mask": "entity" },
+          { "name": "key", "mask": "str" },
+          { "name": "value", "mask": "any" }
         ]
       }
     }
