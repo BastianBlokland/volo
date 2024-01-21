@@ -9,6 +9,9 @@
 #include "scene_register.h"
 #include "scene_transform.h"
 
+// Forward declare from 'scene_camera.h'.
+ecs_comp_extern(SceneCameraComp);
+
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 ASSERT(geo_query_max_hits == scene_query_max_hits, "Mismatching maximum query hits");
 ASSERT(scene_query_stat_count == GeoQueryStat_Count, "Mismatching collision query stat count");
@@ -114,10 +117,14 @@ ecs_system_define(SceneCollisionUpdateSys) {
    */
   if (!(env->ignoreMask & SceneLayer_Debug)) {
     for (EcsIterator* itr = ecs_view_itr(transformView); ecs_view_walk(itr);) {
+      const EcsEntityId e = ecs_view_entity(itr);
+      if (ecs_world_has_t(world, e, SceneCameraComp)) {
+        // NOTE: Hacky but we want to avoid the camera having collision as it will block queries.
+        continue;
+      }
       const SceneTransformComp* trans  = ecs_view_read_t(itr, SceneTransformComp);
       const GeoSphere           sphere = {.point = trans->position, .radius = 0.25f};
-      const u64                 id     = (u64)ecs_view_entity(itr);
-      geo_query_insert_sphere(env->queryEnv, sphere, id, (GeoQueryLayer)SceneLayer_Debug);
+      geo_query_insert_sphere(env->queryEnv, sphere, (u64)e, (GeoQueryLayer)SceneLayer_Debug);
     }
   }
 }
