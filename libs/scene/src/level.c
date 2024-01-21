@@ -12,9 +12,6 @@
 #include "scene_prefab.h"
 #include "scene_transform.h"
 
-ASSERT((i32)AssetLevelFaction_Count == (i32)SceneFaction_Count, "Mismatching faction counts");
-ASSERT((i32)AssetLevelFaction_None == (i32)SceneFaction_None, "Mismatching faction sentinel");
-
 typedef enum {
   LevelLoadState_Start,
   LevelLoadState_Unload,
@@ -40,6 +37,40 @@ ecs_comp_define(SceneLevelRequestSaveComp) { EcsEntityId levelAsset; };
 
 static i8 level_compare_object_id(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetLevelObject, id), field_ptr(b, AssetLevelObject, id));
+}
+
+static AssetLevelFaction scene_to_asset_faction(const SceneFaction sceneFaction) {
+  switch (sceneFaction) {
+  case SceneFaction_A:
+    return AssetLevelFaction_A;
+  case SceneFaction_B:
+    return AssetLevelFaction_B;
+  case SceneFaction_C:
+    return AssetLevelFaction_C;
+  case SceneFaction_D:
+    return AssetLevelFaction_D;
+  case SceneFaction_None:
+    return AssetLevelFaction_None;
+  default:
+    UNREACHABLE
+  }
+}
+
+static SceneFaction scene_from_asset_faction(const AssetLevelFaction assetFaction) {
+  switch (assetFaction) {
+  case AssetLevelFaction_A:
+    return SceneFaction_A;
+  case AssetLevelFaction_B:
+    return SceneFaction_B;
+  case AssetLevelFaction_C:
+    return SceneFaction_C;
+  case AssetLevelFaction_D:
+    return SceneFaction_D;
+  case AssetLevelFaction_None:
+    return SceneFaction_None;
+  default:
+    UNREACHABLE
+  }
 }
 
 ecs_view_define(InstanceView) {
@@ -71,7 +102,7 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
             .position = obj->position,
             .rotation = geo_quat_norm_or_ident(obj->rotation),
             .scale    = obj->scale,
-            .faction  = (SceneFaction)obj->faction,
+            .faction  = scene_from_asset_faction(obj->faction),
         });
   }
   log_i("Level loaded", log_param("objects", fmt_int(level->objects.count)));
@@ -220,7 +251,7 @@ static void scene_level_object_push(
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
       .scale    = maybeScale ? maybeScale->scale : 1.0f,
-      .faction  = (AssetLevelFaction)(maybeFaction ? maybeFaction->id : SceneFaction_None),
+      .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
 
   // Guarantee unique object id.
