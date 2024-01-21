@@ -41,8 +41,8 @@ typedef enum {
 } AssetGraphicWrap;
 
 typedef enum {
-  AssetGraphicFilter_Linear,  // Choose one of the pixels (sometimes known as 'point' filtering).
-  AssetGraphicFilter_Nearest, // Linearly blend between neighboring pixels.
+  AssetGraphicFilter_Linear,  // Linearly blend between neighboring pixels.
+  AssetGraphicFilter_Nearest, // Choose one of the pixels (sometimes known as 'point' filtering).
 } AssetGraphicFilter;
 
 typedef enum {
