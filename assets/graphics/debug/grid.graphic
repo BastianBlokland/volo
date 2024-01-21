@@ -1,13 +1,8 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/debug/grid.vert.spv"
-    },
-    {
-      "shaderId": "shaders/debug/grid.frag.spv"
-    }
+    { "shaderId": "shaders/debug/grid.vert.spv" },
+    { "shaderId": "shaders/debug/grid.frag.spv" }
   ],
-  "samplers": [ ],
   "renderOrder": 50,
   "topology": "Lines",
   "lineWidth": 2,

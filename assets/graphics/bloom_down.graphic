@@ -1,16 +1,9 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/fullscreen.vert.spv"
-    },
-    {
-      "shaderId": "shaders/bloom_down.frag.spv"
-    }
+    { "shaderId": "shaders/fullscreen.vert.spv" },
+    { "shaderId": "shaders/bloom_down.frag.spv" }
   ],
   "vertexCount": 3,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
   "depth": "AlwaysNoWrite",
   "cull": "None"
 }

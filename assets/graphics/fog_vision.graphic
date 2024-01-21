@@ -1,16 +1,8 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/fog_vision.vert.spv"
-    },
-    {
-      "shaderId": "shaders/fog_vision.frag.spv"
-    }
+    { "shaderId": "shaders/fog_vision.vert.spv" },
+    { "shaderId": "shaders/fog_vision.frag.spv" }
   ],
   "meshId": "meshes/sphere.procmesh",
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
-  "depth": "AlwaysNoWrite",
-  "cull": "Back"
+  "depth": "AlwaysNoWrite"
 }

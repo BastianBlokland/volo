@@ -1,11 +1,7 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/debug/shape_line.vert.spv"
-    },
-    {
-      "shaderId": "shaders/debug/shape.frag.spv"
-    }
+    { "shaderId": "shaders/debug/shape_line.vert.spv" },
+    { "shaderId": "shaders/debug/shape.frag.spv" }
   ],
   "vertexCount": 2,
   "renderOrder": 163,
@@ -13,6 +9,5 @@
   "topology": "Lines",
   "rasterizer": "Lines",
   "blend": "Alpha",
-  "depth": "AlwaysNoWrite",
-  "cull": "Back"
+  "depth": "AlwaysNoWrite"
 }

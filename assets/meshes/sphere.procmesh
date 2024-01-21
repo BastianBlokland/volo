@@ -3,10 +3,6 @@
   "axis": "Up",
   "subdivisions": 16,
   "length": 0,
-  "scaleX": 1,
-  "scaleY": 1,
-  "scaleZ": 1,
-  "offsetX": 0,
-  "offsetY": 0,
-  "offsetZ": 0
+  "scaleX": 1, "scaleY": 1, "scaleZ": 1,
+  "offsetX": 0, "offsetY": 0, "offsetZ": 0
 }

@@ -46,13 +46,13 @@ static void graphic_datareg_init() {
     data_reg_const_t(reg, AssetGraphicBlend, PreMultiplied);
 
     data_reg_enum_t(reg, AssetGraphicWrap);
-    data_reg_const_t(reg, AssetGraphicWrap, Repeat);
     data_reg_const_t(reg, AssetGraphicWrap, Clamp);
+    data_reg_const_t(reg, AssetGraphicWrap, Repeat);
     data_reg_const_t(reg, AssetGraphicWrap, Zero);
 
     data_reg_enum_t(reg, AssetGraphicFilter);
-    data_reg_const_t(reg, AssetGraphicFilter, Nearest);
     data_reg_const_t(reg, AssetGraphicFilter, Linear);
+    data_reg_const_t(reg, AssetGraphicFilter, Nearest);
 
     data_reg_enum_t(reg, AssetGraphicAniso);
     data_reg_const_t(reg, AssetGraphicAniso, None);
