@@ -51,8 +51,8 @@ static void graphic_datareg_init() {
     data_reg_const_t(reg, AssetGraphicWrap, Zero);
 
     data_reg_enum_t(reg, AssetGraphicFilter);
-    data_reg_const_t(reg, AssetGraphicFilter, Nearest);
     data_reg_const_t(reg, AssetGraphicFilter, Linear);
+    data_reg_const_t(reg, AssetGraphicFilter, Nearest);
 
     data_reg_enum_t(reg, AssetGraphicAniso);
     data_reg_const_t(reg, AssetGraphicAniso, None);
