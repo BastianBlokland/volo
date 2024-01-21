@@ -24,7 +24,7 @@ typedef struct {
 static void mocha_write_json(JsonDoc* doc, JsonVal rootObj, File* file) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
 
-  json_write(&dynString, doc, rootObj, &json_write_opts(.mode = JsonWriteMode_Verbose));
+  json_write(&dynString, doc, rootObj, &json_write_opts(.mode = JsonWriteMode_Compact));
 
   const FileResult writeRes = file_write_sync(file, dynstring_view(&dynString));
   if (writeRes != FileResult_Success) {
