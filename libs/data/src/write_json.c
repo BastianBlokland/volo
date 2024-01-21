@@ -231,7 +231,7 @@ void data_write_json(
   };
   const JsonVal val = data_write_json_val(&ctx);
 
-  const JsonWriteMode jMode      = JsonWriteMode_Verbose;
+  const JsonWriteMode jMode      = opts->compact ? JsonWriteMode_Compact : JsonWriteMode_Verbose;
   const u8            jMaxDigits = opts->numberMaxDecDigits;
 
   const JsonWriteOpts jsonOpts = json_write_opts(.numberMaxDecDigits = jMaxDigits, .mode = jMode);
