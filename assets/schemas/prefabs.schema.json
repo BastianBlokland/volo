@@ -8,41 +8,25 @@
       "properties": {
         "prefabs": {
           "type": "array",
-          "items": {
-            "title": "AssetPrefabDef",
-            "$ref": "#/$defs/AssetPrefabDef"
-          }
+          "items": { "title": "AssetPrefabDef", "$ref": "#/$defs/AssetPrefabDef" }
         }
       },
       "required": [
         "prefabs"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"prefabs\": []\n}"
-        }
+        { "label": "New", "body": "^{\n  \"prefabs\": []\n}" }
       ]
     },
     "AssetPrefabDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "isVolatile": {
-          "title": "bool",
-          "type": "boolean"
-        },
+        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "isVolatile": { "title": "bool", "type": "boolean" },
         "traits": {
           "type": "array",
-          "items": {
-            "title": "AssetPrefabTraitDef",
-            "$ref": "#/$defs/AssetPrefabTraitDef"
-          }
+          "items": { "title": "AssetPrefabTraitDef", "$ref": "#/$defs/AssetPrefabTraitDef" }
         }
       },
       "required": [
@@ -50,10 +34,7 @@
         "traits"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"name\": \"placeholder\",\n  \"traits\": []\n}"
-        }
+        { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"traits\": []\n}" }
       ]
     },
     "AssetPrefabTraitDef": {
@@ -62,14 +43,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Name"
-            },
-            "name": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Name" },
+            "name": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -80,16 +55,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_SetMember"
-            },
+            "$type": { "const": "AssetPrefabTrait_SetMember" },
             "sets": {
               "type": "array",
               "minItems": 1,
-              "items": {
-                "title": "String",
-                "type": "string"
-              }
+              "items": { "title": "String", "type": "string" }
             }
           },
           "required": [
@@ -101,14 +71,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Renderable"
-            },
-            "graphicId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Renderable" },
+            "graphicId": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -119,14 +83,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Vfx"
-            },
-            "assetId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Vfx" },
+            "assetId": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -137,14 +95,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Decal"
-            },
-            "assetId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Decal" },
+            "assetId": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -155,41 +107,18 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Sound"
-            },
+            "$type": { "const": "AssetPrefabTrait_Sound" },
             "assetIds": {
               "type": "array",
               "minItems": 1,
-              "items": {
-                "title": "String",
-                "type": "string"
-              }
+              "items": { "title": "String", "type": "string" }
             },
-            "gainMin": {
-              "title": "f32",
-              "type": "number"
-            },
-            "gainMax": {
-              "title": "f32",
-              "type": "number"
-            },
-            "pitchMin": {
-              "title": "f32",
-              "type": "number"
-            },
-            "pitchMax": {
-              "title": "f32",
-              "type": "number"
-            },
-            "looping": {
-              "title": "bool",
-              "type": "boolean"
-            },
-            "persistent": {
-              "title": "bool",
-              "type": "boolean"
-            }
+            "gainMin": { "title": "f32", "type": "number" },
+            "gainMax": { "title": "f32", "type": "number" },
+            "pitchMin": { "title": "f32", "type": "number" },
+            "pitchMax": { "title": "f32", "type": "number" },
+            "looping": { "title": "bool", "type": "boolean" },
+            "persistent": { "title": "bool", "type": "boolean" }
           },
           "required": [
             "$type",
@@ -200,17 +129,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_LightPoint"
-            },
-            "radiance": {
-              "title": "AssetPrefabColorDef",
-              "$ref": "#/$defs/AssetPrefabColorDef"
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabTrait_LightPoint" },
+            "radiance": { "title": "AssetPrefabColorDef", "$ref": "#/$defs/AssetPrefabColorDef" },
+            "radius": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -222,21 +143,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_LightDir"
-            },
-            "radiance": {
-              "title": "AssetPrefabColorDef",
-              "$ref": "#/$defs/AssetPrefabColorDef"
-            },
-            "shadows": {
-              "title": "bool",
-              "type": "boolean"
-            },
-            "coverage": {
-              "title": "bool",
-              "type": "boolean"
-            }
+            "$type": { "const": "AssetPrefabTrait_LightDir" },
+            "radiance": { "title": "AssetPrefabColorDef", "$ref": "#/$defs/AssetPrefabColorDef" },
+            "shadows": { "title": "bool", "type": "boolean" },
+            "coverage": { "title": "bool", "type": "boolean" }
           },
           "required": [
             "$type",
@@ -247,13 +157,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_LightAmbient"
-            },
-            "intensity": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabTrait_LightAmbient" },
+            "intensity": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -264,13 +169,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Lifetime"
-            },
-            "duration": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabTrait_Lifetime" },
+            "duration": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -281,25 +181,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Movement"
-            },
-            "speed": {
-              "title": "f32",
-              "type": "number"
-            },
-            "rotationSpeed": {
-              "title": "f32",
-              "type": "number"
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            },
-            "moveAnimation": {
-              "title": "String",
-              "type": "string"
-            }
+            "$type": { "const": "AssetPrefabTrait_Movement" },
+            "speed": { "title": "f32", "type": "number" },
+            "rotationSpeed": { "title": "f32", "type": "number" },
+            "radius": { "title": "f32", "type": "number" },
+            "moveAnimation": { "title": "String", "type": "string" }
           },
           "required": [
             "$type",
@@ -313,29 +199,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Footstep"
-            },
-            "jointA": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "jointB": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "decalIdA": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "decalIdB": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Footstep" },
+            "jointA": { "title": "String", "type": "string", "minLength": 1 },
+            "jointB": { "title": "String", "type": "string", "minLength": 1 },
+            "decalIdA": { "title": "String", "type": "string", "minLength": 1 },
+            "decalIdB": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -349,22 +217,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Health"
-            },
-            "amount": {
-              "title": "f32",
-              "type": "number"
-            },
-            "deathDestroyDelay": {
-              "title": "f32",
-              "type": "number"
-            },
-            "deathEffectPrefab": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Health" },
+            "amount": { "title": "f32", "type": "number" },
+            "deathDestroyDelay": { "title": "f32", "type": "number" },
+            "deathEffectPrefab": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -376,48 +232,16 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Attack"
-            },
-            "weaponId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "aimJoint": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "aimSpeed": {
-              "title": "f32",
-              "type": "number"
-            },
-            "aimSoundId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "targetRangeMin": {
-              "title": "f32",
-              "type": "number"
-            },
-            "targetRangeMax": {
-              "title": "f32",
-              "type": "number"
-            },
-            "targetLineOfSightRadius": {
-              "title": "f32",
-              "type": "number"
-            },
-            "targetExcludeUnreachable": {
-              "title": "bool",
-              "type": "boolean"
-            },
-            "targetExcludeObscured": {
-              "title": "bool",
-              "type": "boolean"
-            }
+            "$type": { "const": "AssetPrefabTrait_Attack" },
+            "weaponId": { "title": "String", "type": "string", "minLength": 1 },
+            "aimJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "aimSpeed": { "title": "f32", "type": "number" },
+            "aimSoundId": { "title": "String", "type": "string", "minLength": 1 },
+            "targetRangeMin": { "title": "f32", "type": "number" },
+            "targetRangeMax": { "title": "f32", "type": "number" },
+            "targetLineOfSightRadius": { "title": "f32", "type": "number" },
+            "targetExcludeUnreachable": { "title": "bool", "type": "boolean" },
+            "targetExcludeObscured": { "title": "bool", "type": "boolean" }
           },
           "required": [
             "$type",
@@ -429,17 +253,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Collision"
-            },
-            "navBlocker": {
-              "title": "bool",
-              "type": "boolean"
-            },
-            "shape": {
-              "title": "AssetPrefabShapeDef",
-              "$ref": "#/$defs/AssetPrefabShapeDef"
-            }
+            "$type": { "const": "AssetPrefabTrait_Collision" },
+            "navBlocker": { "title": "bool", "type": "boolean" },
+            "shape": { "title": "AssetPrefabShapeDef", "$ref": "#/$defs/AssetPrefabShapeDef" }
           },
           "required": [
             "$type",
@@ -451,20 +267,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Script"
-            },
-            "scriptId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
+            "$type": { "const": "AssetPrefabTrait_Script" },
+            "scriptId": { "title": "String", "type": "string", "minLength": 1 },
             "knowledge": {
               "type": "array",
-              "items": {
-                "title": "AssetPrefabValueDef",
-                "$ref": "#/$defs/AssetPrefabValueDef"
-              }
+              "items": { "title": "AssetPrefabValueDef", "$ref": "#/$defs/AssetPrefabValueDef" }
             }
           },
           "required": [
@@ -476,25 +283,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Bark"
-            },
-            "priority": {
-              "title": "i32",
-              "type": "integer",
-              "minimum": -2147483648,
-              "maximum": 2147483647
-            },
-            "barkDeathPrefab": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "barkConfirmPrefab": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            }
+            "$type": { "const": "AssetPrefabTrait_Bark" },
+            "priority": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
+            "barkDeathPrefab": { "title": "String", "type": "string", "minLength": 1 },
+            "barkConfirmPrefab": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type"
@@ -504,13 +296,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Location"
-            },
-            "aimTarget": {
-              "title": "AssetPrefabShapeBoxDef",
-              "$ref": "#/$defs/AssetPrefabShapeBoxDef"
-            }
+            "$type": { "const": "AssetPrefabTrait_Location" },
+            "aimTarget": { "title": "AssetPrefabShapeBoxDef", "$ref": "#/$defs/AssetPrefabShapeBoxDef" }
           },
           "required": [
             "$type"
@@ -520,18 +307,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Status"
-            },
-            "effectJoint": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "burnable": {
-              "title": "bool",
-              "type": "boolean"
-            }
+            "$type": { "const": "AssetPrefabTrait_Status" },
+            "effectJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "burnable": { "title": "bool", "type": "boolean" }
           },
           "required": [
             "$type"
@@ -541,13 +319,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Vision"
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabTrait_Vision" },
+            "radius": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -558,34 +331,13 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Production"
-            },
-            "spawnPos": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
-            },
-            "rallyPos": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
-            },
-            "rallySoundId": {
-              "title": "String",
-              "type": "string"
-            },
-            "rallySoundGain": {
-              "title": "f32",
-              "type": "number"
-            },
-            "productSetId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "placementRadius": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabTrait_Production" },
+            "spawnPos": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
+            "rallyPos": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
+            "rallySoundId": { "title": "String", "type": "string" },
+            "rallySoundGain": { "title": "f32", "type": "number" },
+            "productSetId": { "title": "String", "type": "string", "minLength": 1 },
+            "placementRadius": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -596,9 +348,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Scalable"
-            }
+            "$type": { "const": "AssetPrefabTrait_Scalable" }
           },
           "required": [
             "$type"
@@ -606,116 +356,38 @@
         }
       ],
       "defaultSnippets": [
-        {
-          "label": "New AssetPrefabTrait_Name",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Name\",\n  \"name\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_SetMember",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\"\n  ]\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Renderable",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphicId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Vfx",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"assetId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Decal",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"assetId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Sound",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_LightPoint",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  },\n  \"radius\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_LightDir",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_LightAmbient",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Lifetime",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Lifetime\",\n  \"duration\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Movement",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1,\n  \"moveAnimation\": \"\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Footstep",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Footstep\",\n  \"jointA\": \"placeholder\",\n  \"jointB\": \"placeholder\",\n  \"decalIdA\": \"placeholder\",\n  \"decalIdB\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Health",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Health\",\n  \"amount\": 1,\n  \"deathDestroyDelay\": 0\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Attack",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetRangeMax\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Collision",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"radius\": 1\n  }\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Script",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Bark",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Bark\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Location",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Location\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Status",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Status\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Vision",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vision\",\n  \"radius\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Production",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Production\",\n  \"productSetId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Scalable",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}"
-        }
+        { "label": "New AssetPrefabTrait_Name", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Name\",\n  \"name\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_SetMember", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\"\n  ]\n}" },
+        { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphicId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"assetId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"assetId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}" },
+        { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  },\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}" },
+        { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },
+        { "label": "New AssetPrefabTrait_Lifetime", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Lifetime\",\n  \"duration\": 1\n}" },
+        { "label": "New AssetPrefabTrait_Movement", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1,\n  \"moveAnimation\": \"\"\n}" },
+        { "label": "New AssetPrefabTrait_Footstep", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Footstep\",\n  \"jointA\": \"placeholder\",\n  \"jointB\": \"placeholder\",\n  \"decalIdA\": \"placeholder\",\n  \"decalIdB\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Health", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Health\",\n  \"amount\": 1,\n  \"deathDestroyDelay\": 0\n}" },
+        { "label": "New AssetPrefabTrait_Attack", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetRangeMax\": 1\n}" },
+        { "label": "New AssetPrefabTrait_Collision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"radius\": 1\n  }\n}" },
+        { "label": "New AssetPrefabTrait_Script", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Bark", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Bark\"\n}" },
+        { "label": "New AssetPrefabTrait_Location", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Location\"\n}" },
+        { "label": "New AssetPrefabTrait_Status", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Status\"\n}" },
+        { "label": "New AssetPrefabTrait_Vision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vision\",\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabTrait_Production", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Production\",\n  \"productSetId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
     },
     "AssetPrefabColorDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "r": {
-          "title": "f32",
-          "type": "number"
-        },
-        "g": {
-          "title": "f32",
-          "type": "number"
-        },
-        "b": {
-          "title": "f32",
-          "type": "number"
-        },
-        "a": {
-          "title": "f32",
-          "type": "number"
-        }
+        "r": { "title": "f32", "type": "number" },
+        "g": { "title": "f32", "type": "number" },
+        "b": { "title": "f32", "type": "number" },
+        "a": { "title": "f32", "type": "number" }
       },
       "required": [
         "r",
@@ -724,10 +396,7 @@
         "a"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
-        }
+        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
       ]
     },
     "AssetPrefabShapeDef": {
@@ -736,17 +405,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabShape_Sphere"
-            },
-            "offset": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabShape_Sphere" },
+            "offset": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
+            "radius": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -757,21 +418,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabShape_Capsule"
-            },
-            "offset": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            },
-            "height": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabShape_Capsule" },
+            "offset": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
+            "radius": { "title": "f32", "type": "number" },
+            "height": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -783,17 +433,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabShape_Box"
-            },
-            "min": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
-            },
-            "max": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
-            }
+            "$type": { "const": "AssetPrefabShape_Box" },
+            "min": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
+            "max": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" }
           },
           "required": [
             "$type",
@@ -803,43 +445,22 @@
         }
       ],
       "defaultSnippets": [
-        {
-          "label": "New AssetPrefabShape_Sphere",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"radius\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabShape_Capsule",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"radius\": 1,\n  \"height\": 1\n}"
-        },
-        {
-          "label": "New AssetPrefabShape_Box",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}"
-        }
+        { "label": "New AssetPrefabShape_Sphere", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabShape_Capsule", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"radius\": 1,\n  \"height\": 1\n}" },
+        { "label": "New AssetPrefabShape_Box", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}" }
       ]
     },
     "AssetPrefabVec3Def": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "x": {
-          "title": "f32",
-          "type": "number"
-        },
-        "y": {
-          "title": "f32",
-          "type": "number"
-        },
-        "z": {
-          "title": "f32",
-          "type": "number"
-        }
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "AssetPrefabValueDef": {
@@ -848,16 +469,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_Number"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "$data": {
-              "title": "f64",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabValue_Number" },
+            "$name": { "type": "string" },
+            "$data": { "title": "f64", "type": "number" }
           },
           "required": [
             "$type",
@@ -869,16 +483,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_Bool"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "$data": {
-              "title": "bool",
-              "type": "boolean"
-            }
+            "$type": { "const": "AssetPrefabValue_Bool" },
+            "$name": { "type": "string" },
+            "$data": { "title": "bool", "type": "boolean" }
           },
           "required": [
             "$type",
@@ -890,24 +497,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_Vector3"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "x": {
-              "title": "f32",
-              "type": "number"
-            },
-            "y": {
-              "title": "f32",
-              "type": "number"
-            },
-            "z": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabValue_Vector3" },
+            "$name": { "type": "string" },
+            "x": { "title": "f32", "type": "number" },
+            "y": { "title": "f32", "type": "number" },
+            "z": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -918,28 +512,12 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_Color"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "r": {
-              "title": "f32",
-              "type": "number"
-            },
-            "g": {
-              "title": "f32",
-              "type": "number"
-            },
-            "b": {
-              "title": "f32",
-              "type": "number"
-            },
-            "a": {
-              "title": "f32",
-              "type": "number"
-            }
+            "$type": { "const": "AssetPrefabValue_Color" },
+            "$name": { "type": "string" },
+            "r": { "title": "f32", "type": "number" },
+            "g": { "title": "f32", "type": "number" },
+            "b": { "title": "f32", "type": "number" },
+            "a": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",
@@ -954,16 +532,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_String"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "$data": {
-              "title": "String",
-              "type": "string"
-            }
+            "$type": { "const": "AssetPrefabValue_String" },
+            "$name": { "type": "string" },
+            "$data": { "title": "String", "type": "string" }
           },
           "required": [
             "$type",
@@ -975,16 +546,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_Asset"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "$data": {
-              "title": "String",
-              "type": "string"
-            }
+            "$type": { "const": "AssetPrefabValue_Asset" },
+            "$name": { "type": "string" },
+            "$data": { "title": "String", "type": "string" }
           },
           "required": [
             "$type",
@@ -996,21 +560,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": {
-              "const": "AssetPrefabValue_Sound"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "assetId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "persistent": {
-              "title": "bool",
-              "type": "boolean"
-            }
+            "$type": { "const": "AssetPrefabValue_Sound" },
+            "$name": { "type": "string" },
+            "assetId": { "title": "String", "type": "string", "minLength": 1 },
+            "persistent": { "title": "bool", "type": "boolean" }
           },
           "required": [
             "$type",
@@ -1020,58 +573,28 @@
         }
       ],
       "defaultSnippets": [
-        {
-          "label": "New AssetPrefabValue_Number",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Number\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}"
-        },
-        {
-          "label": "New AssetPrefabValue_Bool",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}"
-        },
-        {
-          "label": "New AssetPrefabValue_Vector3",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}"
-        },
-        {
-          "label": "New AssetPrefabValue_Color",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\",\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
-        },
-        {
-          "label": "New AssetPrefabValue_String",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}"
-        },
-        {
-          "label": "New AssetPrefabValue_Asset",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}"
-        },
-        {
-          "label": "New AssetPrefabValue_Sound",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}"
-        }
+        { "label": "New AssetPrefabValue_Number", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Number\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
+        { "label": "New AssetPrefabValue_Bool", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
+        { "label": "New AssetPrefabValue_Vector3", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\",\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" },
+        { "label": "New AssetPrefabValue_String", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
+        { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
+        { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}" }
       ]
     },
     "AssetPrefabShapeBoxDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "min": {
-          "title": "AssetPrefabVec3Def",
-          "$ref": "#/$defs/AssetPrefabVec3Def"
-        },
-        "max": {
-          "title": "AssetPrefabVec3Def",
-          "$ref": "#/$defs/AssetPrefabVec3Def"
-        }
+        "min": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" },
+        "max": { "title": "AssetPrefabVec3Def", "$ref": "#/$defs/AssetPrefabVec3Def" }
       },
       "required": [
         "min",
         "max"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"min\": {},\n  \"max\": {}\n}"
-        }
+        { "label": "New", "body": "^{\n  \"min\": {},\n  \"max\": {}\n}" }
       ]
     }
   }

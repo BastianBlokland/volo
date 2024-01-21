@@ -6,46 +6,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "type": {
-          "title": "ProcTexType",
-          "$ref": "#/$defs/ProcTexType"
-        },
-        "pixelType": {
-          "title": "AssetTextureType",
-          "$ref": "#/$defs/AssetTextureType"
-        },
-        "channels": {
-          "title": "AssetTextureChannels",
-          "$ref": "#/$defs/AssetTextureChannels"
-        },
-        "mipmaps": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "uncompressed": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "size": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "frequency": {
-          "title": "f32",
-          "type": "number"
-        },
-        "power": {
-          "title": "f32",
-          "type": "number"
-        },
-        "seed": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        }
+        "type": { "title": "ProcTexType", "$ref": "#/$defs/ProcTexType" },
+        "pixelType": { "title": "AssetTextureType", "$ref": "#/$defs/AssetTextureType" },
+        "channels": { "title": "AssetTextureChannels", "$ref": "#/$defs/AssetTextureChannels" },
+        "mipmaps": { "title": "bool", "type": "boolean" },
+        "uncompressed": { "title": "bool", "type": "boolean" },
+        "size": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "frequency": { "title": "f32", "type": "number" },
+        "power": { "title": "f32", "type": "number" },
+        "seed": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 }
       },
       "required": [
         "type",
@@ -56,10 +25,7 @@
         "seed"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"type\": \"One\",\n  \"channels\": \"One\",\n  \"size\": 1,\n  \"frequency\": 1,\n  \"power\": 1,\n  \"seed\": 1\n}"
-        }
+        { "label": "New", "body": "^{\n  \"type\": \"One\",\n  \"channels\": \"One\",\n  \"size\": 1,\n  \"frequency\": 1,\n  \"power\": 1,\n  \"seed\": 1\n}" }
       ]
     },
     "ProcTexType": {

@@ -6,176 +6,79 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "ignoreTransformRotation": {
-          "title": "bool",
-          "type": "boolean"
-        },
+        "ignoreTransformRotation": { "title": "bool", "type": "boolean" },
         "emitters": {
           "type": "array",
-          "items": {
-            "title": "VfxEmitterDef",
-            "description": "Particle emitter settings.",
-            "$ref": "#/$defs/VfxEmitterDef"
-          }
+          "items": { "title": "VfxEmitterDef", "description": "Particle emitter settings.", "$ref": "#/$defs/VfxEmitterDef" }
         }
       },
       "required": [
         "emitters"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"emitters\": []\n}"
-        }
+        { "label": "New", "body": "^{\n  \"emitters\": []\n}" }
       ]
     },
     "VfxEmitterDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "cone": {
-          "title": "VfxConeDef",
-          "description": "3D Cone shape",
-          "$ref": "#/$defs/VfxConeDef"
-        },
-        "force": {
-          "title": "VfxVec3Def",
-          "description": "3D Vector (components default to 0)",
-          "$ref": "#/$defs/VfxVec3Def"
-        },
-        "space": {
-          "title": "AssetVfxSpace",
-          "description": "* Local: Particles are simulated relative to the entity transform.\n* World: Particles are simulated in world-space.",
-          "$ref": "#/$defs/AssetVfxSpace"
-        },
-        "sprite": {
-          "title": "VfxSpriteDef",
-          "description": "Optional sprite to render for each particle.",
-          "$ref": "#/$defs/VfxSpriteDef"
-        },
-        "light": {
-          "title": "VfxLightDef",
-          "description": "Optional point light to render for each particle.",
-          "$ref": "#/$defs/VfxLightDef"
-        },
-        "speed": {
-          "title": "VfxRangeScalarDef",
-          "$ref": "#/$defs/VfxRangeScalarDef"
-        },
-        "expandForce": {
-          "title": "f32",
-          "type": "number"
-        },
-        "count": {
-          "title": "u32",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
-        "interval": {
-          "title": "f32",
-          "type": "number"
-        },
-        "scale": {
-          "title": "VfxRangeScalarDef",
-          "$ref": "#/$defs/VfxRangeScalarDef"
-        },
-        "lifetime": {
-          "title": "VfxRangeDurationDef",
-          "$ref": "#/$defs/VfxRangeDurationDef"
-        },
-        "rotation": {
-          "title": "VfxRangeRotationDef",
-          "$ref": "#/$defs/VfxRangeRotationDef"
-        }
+        "cone": { "title": "VfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/VfxConeDef" },
+        "force": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
+        "space": { "title": "AssetVfxSpace", "description": "* Local: Particles are simulated relative to the entity transform.\n* World: Particles are simulated in world-space.", "$ref": "#/$defs/AssetVfxSpace" },
+        "sprite": { "title": "VfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/VfxSpriteDef" },
+        "light": { "title": "VfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/VfxLightDef" },
+        "speed": { "title": "VfxRangeScalarDef", "$ref": "#/$defs/VfxRangeScalarDef" },
+        "expandForce": { "title": "f32", "type": "number" },
+        "count": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "interval": { "title": "f32", "type": "number" },
+        "scale": { "title": "VfxRangeScalarDef", "$ref": "#/$defs/VfxRangeScalarDef" },
+        "lifetime": { "title": "VfxRangeDurationDef", "$ref": "#/$defs/VfxRangeDurationDef" },
+        "rotation": { "title": "VfxRangeRotationDef", "$ref": "#/$defs/VfxRangeRotationDef" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxConeDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "angle": {
-          "title": "f32",
-          "type": "number"
-        },
-        "radius": {
-          "title": "f32",
-          "type": "number"
-        },
-        "position": {
-          "title": "VfxVec3Def",
-          "description": "3D Vector (components default to 0)",
-          "$ref": "#/$defs/VfxVec3Def"
-        },
-        "rotation": {
-          "title": "VfxRotDef",
-          "description": "3D Rotation (components default to 0)",
-          "$ref": "#/$defs/VfxRotDef"
-        }
+        "angle": { "title": "f32", "type": "number" },
+        "radius": { "title": "f32", "type": "number" },
+        "position": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
+        "rotation": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxVec3Def": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "x": {
-          "title": "f32",
-          "type": "number"
-        },
-        "y": {
-          "title": "f32",
-          "type": "number"
-        },
-        "z": {
-          "title": "f32",
-          "type": "number"
-        }
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxRotDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "x": {
-          "title": "f32",
-          "type": "number"
-        },
-        "y": {
-          "title": "f32",
-          "type": "number"
-        },
-        "z": {
-          "title": "f32",
-          "type": "number"
-        }
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "AssetVfxSpace": {
@@ -188,109 +91,42 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "atlasEntry": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
+        "atlasEntry": { "title": "String", "type": "string", "minLength": 1 },
         "color": {
           "anyOf": [
-            {
-              "title": "VfxColorDef",
-              "description": "HDR Color definition (components default to 0)",
-              "$ref": "#/$defs/VfxColorDef"
-            },
-            {
-              "const": null,
-              "title": "VfxColorDef"
-            }
+            { "title": "VfxColorDef", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/VfxColorDef" },
+            { "const": null, "title": "VfxColorDef" }
           ]
         },
-        "blend": {
-          "title": "AssetVfxBlend",
-          "description": "* None: Sprites are not blended.\n* Alpha: Sprites are interpolated based on the alpha.\n* World: Sprites are additively blended.",
-          "$ref": "#/$defs/AssetVfxBlend"
-        },
-        "facing": {
-          "title": "AssetVfxFacing",
-          "description": "* Local: Sprites are facing in the particle orientation.\n* BillboardSphere: Sprites are camera facing.\n* BillboardCylinder: Sprites are camera facing on the Y axis.",
-          "$ref": "#/$defs/AssetVfxFacing"
-        },
-        "flipbookCount": {
-          "title": "u16",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65535
-        },
-        "flipbookTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "size": {
-          "title": "VfxVec2Def",
-          "description": "2D Vector (components default to 0)",
-          "$ref": "#/$defs/VfxVec2Def"
-        },
-        "fadeInTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "fadeOutTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "scaleInTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "scaleOutTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "geometryFade": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "shadowCaster": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "distortion": {
-          "title": "bool",
-          "type": "boolean"
-        }
+        "blend": { "title": "AssetVfxBlend", "description": "* None: Sprites are not blended.\n* Alpha: Sprites are interpolated based on the alpha.\n* World: Sprites are additively blended.", "$ref": "#/$defs/AssetVfxBlend" },
+        "facing": { "title": "AssetVfxFacing", "description": "* Local: Sprites are facing in the particle orientation.\n* BillboardSphere: Sprites are camera facing.\n* BillboardCylinder: Sprites are camera facing on the Y axis.", "$ref": "#/$defs/AssetVfxFacing" },
+        "flipbookCount": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
+        "flipbookTime": { "title": "f32", "type": "number" },
+        "size": { "title": "VfxVec2Def", "description": "2D Vector (components default to 0)", "$ref": "#/$defs/VfxVec2Def" },
+        "fadeInTime": { "title": "f32", "type": "number" },
+        "fadeOutTime": { "title": "f32", "type": "number" },
+        "scaleInTime": { "title": "f32", "type": "number" },
+        "scaleOutTime": { "title": "f32", "type": "number" },
+        "geometryFade": { "title": "bool", "type": "boolean" },
+        "shadowCaster": { "title": "bool", "type": "boolean" },
+        "distortion": { "title": "bool", "type": "boolean" }
       },
       "required": [
         "atlasEntry",
         "size"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"atlasEntry\": \"placeholder\",\n  \"size\": {}\n}"
-        }
+        { "label": "New", "body": "^{\n  \"atlasEntry\": \"placeholder\",\n  \"size\": {}\n}" }
       ]
     },
     "VfxColorDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "r": {
-          "title": "f32",
-          "type": "number"
-        },
-        "g": {
-          "title": "f32",
-          "type": "number"
-        },
-        "b": {
-          "title": "f32",
-          "type": "number"
-        },
-        "a": {
-          "title": "f32",
-          "type": "number"
-        }
+        "r": { "title": "f32", "type": "number" },
+        "g": { "title": "f32", "type": "number" },
+        "b": { "title": "f32", "type": "number" },
+        "a": { "title": "f32", "type": "number" }
       },
       "required": [
         "r",
@@ -299,10 +135,7 @@
         "a"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
-        }
+        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
       ]
     },
     "AssetVfxBlend": {
@@ -323,120 +156,63 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "x": {
-          "title": "f32",
-          "type": "number"
-        },
-        "y": {
-          "title": "f32",
-          "type": "number"
-        }
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxLightDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "radiance": {
-          "title": "VfxColorDef",
-          "description": "HDR Color definition (components default to 0)",
-          "$ref": "#/$defs/VfxColorDef"
-        },
-        "fadeInTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "fadeOutTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "radius": {
-          "title": "f32",
-          "type": "number"
-        },
-        "turbulenceFrequency": {
-          "title": "f32",
-          "type": "number"
-        }
+        "radiance": { "title": "VfxColorDef", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/VfxColorDef" },
+        "fadeInTime": { "title": "f32", "type": "number" },
+        "fadeOutTime": { "title": "f32", "type": "number" },
+        "radius": { "title": "f32", "type": "number" },
+        "turbulenceFrequency": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxRangeScalarDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "min": {
-          "title": "f32",
-          "type": "number"
-        },
-        "max": {
-          "title": "f32",
-          "type": "number"
-        }
+        "min": { "title": "f32", "type": "number" },
+        "max": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxRangeDurationDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "min": {
-          "title": "f32",
-          "type": "number"
-        },
-        "max": {
-          "title": "f32",
-          "type": "number"
-        }
+        "min": { "title": "f32", "type": "number" },
+        "max": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "VfxRangeRotationDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "base": {
-          "title": "VfxRotDef",
-          "description": "3D Rotation (components default to 0)",
-          "$ref": "#/$defs/VfxRotDef"
-        },
-        "random": {
-          "title": "VfxRotDef",
-          "description": "3D Rotation (components default to 0)",
-          "$ref": "#/$defs/VfxRotDef"
-        }
+        "base": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" },
+        "random": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     }
   }

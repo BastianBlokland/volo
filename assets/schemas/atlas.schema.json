@@ -6,51 +6,21 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "size": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "entrySize": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "entryPadding": {
-          "title": "u32",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
-        "mipmaps": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "srgb": {
-          "title": "bool",
-          "type": "boolean"
-        },
+        "size": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "entrySize": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "entryPadding": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "mipmaps": { "title": "bool", "type": "boolean" },
+        "srgb": { "title": "bool", "type": "boolean" },
         "paddingColor": {
           "anyOf": [
-            {
-              "title": "AtlasColor",
-              "$ref": "#/$defs/AtlasColor"
-            },
-            {
-              "const": null,
-              "title": "AtlasColor"
-            }
+            { "title": "AtlasColor", "$ref": "#/$defs/AtlasColor" },
+            { "const": null, "title": "AtlasColor" }
           ]
         },
         "entries": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "title": "AtlasEntryDef",
-            "$ref": "#/$defs/AtlasEntryDef"
-          }
+          "items": { "title": "AtlasEntryDef", "$ref": "#/$defs/AtlasEntryDef" }
         }
       },
       "required": [
@@ -60,40 +30,17 @@
         "entries"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"size\": 1,\n  \"entrySize\": 1,\n  \"entryPadding\": 0,\n  \"entries\": [\n    {\n      \"name\": \"placeholder\",\n      \"texture\": \"placeholder\"\n    }\n  ]\n}"
-        }
+        { "label": "New", "body": "^{\n  \"size\": 1,\n  \"entrySize\": 1,\n  \"entryPadding\": 0,\n  \"entries\": [\n    {\n      \"name\": \"placeholder\",\n      \"texture\": \"placeholder\"\n    }\n  ]\n}" }
       ]
     },
     "AtlasColor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "r": {
-          "title": "u8",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "g": {
-          "title": "u8",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "b": {
-          "title": "u8",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "a": {
-          "title": "u8",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        }
+        "r": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 },
+        "g": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 },
+        "b": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 },
+        "a": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 }
       },
       "required": [
         "r",
@@ -102,36 +49,22 @@
         "a"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
-        }
+        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
       ]
     },
     "AtlasEntryDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "texture": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        }
+        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "texture": { "title": "String", "type": "string", "minLength": 1 }
       },
       "required": [
         "name",
         "texture"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"name\": \"placeholder\",\n  \"texture\": \"placeholder\"\n}"
-        }
+        { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"texture\": \"placeholder\"\n}" }
       ]
     }
   }

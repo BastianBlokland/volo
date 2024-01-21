@@ -6,37 +6,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "type": {
-          "title": "ArrayTexType",
-          "$ref": "#/$defs/ArrayTexType"
-        },
-        "mipmaps": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "uncompressed": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "sizeX": {
-          "title": "u32",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
-        "sizeY": {
-          "title": "u32",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
+        "type": { "title": "ArrayTexType", "$ref": "#/$defs/ArrayTexType" },
+        "mipmaps": { "title": "bool", "type": "boolean" },
+        "uncompressed": { "title": "bool", "type": "boolean" },
+        "sizeX": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "sizeY": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "textures": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "title": "String",
-            "type": "string"
-          }
+          "items": { "title": "String", "type": "string" }
         }
       },
       "required": [
@@ -44,10 +22,7 @@
         "textures"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"type\": \"Array\",\n  \"textures\": [\n    \"\"\n  ]\n}"
-        }
+        { "label": "New", "body": "^{\n  \"type\": \"Array\",\n  \"textures\": [\n    \"\"\n  ]\n}" }
       ]
     },
     "ArrayTexType": {
