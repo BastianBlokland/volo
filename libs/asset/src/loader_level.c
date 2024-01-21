@@ -28,10 +28,10 @@ static void level_datareg_init() {
     data_reg_field_t(reg, GeoVector, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, GeoQuat);
-    data_reg_field_t(reg, GeoQuat, x, data_prim_t(f32));
-    data_reg_field_t(reg, GeoQuat, y, data_prim_t(f32));
-    data_reg_field_t(reg, GeoQuat, z, data_prim_t(f32));
-    data_reg_field_t(reg, GeoQuat, w, data_prim_t(f32));
+    data_reg_field_t(reg, GeoQuat, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, GeoQuat, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, GeoQuat, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_enum_t(reg, AssetLevelFaction);
     data_reg_const_t(reg, AssetLevelFaction, None);
