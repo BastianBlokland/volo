@@ -3,7 +3,6 @@
     {
       "id": 732732,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 94.6977,
         "y": 1.1265,
@@ -20,7 +19,6 @@
     {
       "id": 6516575,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 59.4009,
         "y": 0.5567,
@@ -37,7 +35,6 @@
     {
       "id": 6806325,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 125.3054,
         "y": 0.6222,
@@ -54,7 +51,6 @@
     {
       "id": 8193579,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 33.2915,
         "y": 1.2987,
@@ -73,9 +69,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -9.9212,
-        "y": 0.5968,
-        "z": 1.4264
+        "x": -8.5458,
+        "y": 0.683,
+        "z": 3.2081
       },
       "rotation": {
         "x": 0,
@@ -88,7 +84,6 @@
     {
       "id": 9745910,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.7363,
         "y": 0.9487,
@@ -105,7 +100,6 @@
     {
       "id": 13925080,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 86.3836,
         "y": 0.3431,
@@ -122,7 +116,6 @@
     {
       "id": 17628259,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -37.0076,
         "y": 0.7141,
@@ -139,7 +132,6 @@
     {
       "id": 20433740,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 26.781,
         "y": 0.6363,
@@ -190,7 +182,6 @@
     {
       "id": 31405950,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -49.8029,
         "y": 0.7817,
@@ -207,7 +198,6 @@
     {
       "id": 35445365,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 75.8656,
         "y": 0.6069,
@@ -224,7 +214,6 @@
     {
       "id": 39371674,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 33.4664,
         "y": 0.5619,
@@ -241,7 +230,6 @@
     {
       "id": 44547650,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -24.2585,
         "y": 0.6168,
@@ -258,7 +246,6 @@
     {
       "id": 44940929,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 116.4925,
         "y": 0.5098,
@@ -275,7 +262,6 @@
     {
       "id": 54067177,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -75.8875,
         "y": 0.5943,
@@ -292,7 +278,6 @@
     {
       "id": 62488197,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 90.1474,
         "y": 0.7799,
@@ -309,7 +294,6 @@
     {
       "id": 62505583,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 29.1853,
         "y": 0.8367,
@@ -343,7 +327,6 @@
     {
       "id": 64069820,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -48.1133,
         "y": 0.6764,
@@ -377,7 +360,6 @@
     {
       "id": 69705438,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -29.5823,
         "y": 0.4936,
@@ -394,7 +376,6 @@
     {
       "id": 72530746,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 2.0333,
         "y": 0.2964,
@@ -411,7 +392,6 @@
     {
       "id": 73237946,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -14.3092,
         "y": 0.8455,
@@ -428,7 +408,6 @@
     {
       "id": 77773618,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 86.6996,
         "y": 0.6025,
@@ -445,7 +424,6 @@
     {
       "id": 85122119,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -67.8579,
         "y": 0.6755,
@@ -462,7 +440,6 @@
     {
       "id": 86385494,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -113.4302,
         "y": 1.3891,
@@ -479,7 +456,6 @@
     {
       "id": 87761630,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -114.7977,
         "y": 0.3429,
@@ -496,7 +472,6 @@
     {
       "id": 91236204,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -128.9715,
         "y": 0.5564,
@@ -513,7 +488,6 @@
     {
       "id": 94252614,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -40.1475,
         "y": 0.82,
@@ -547,7 +521,6 @@
     {
       "id": 99803100,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -86.5741,
         "y": 0.7999,
@@ -564,7 +537,6 @@
     {
       "id": 100209567,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 36.0046,
         "y": 0.6497,
@@ -581,7 +553,6 @@
     {
       "id": 100262518,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -100.4463,
         "y": 0.9014,
@@ -598,7 +569,6 @@
     {
       "id": 103038075,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 128.9934,
         "y": 0.6043,
@@ -632,7 +602,6 @@
     {
       "id": 104729000,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -68.8083,
         "y": 0.3746,
@@ -649,7 +618,6 @@
     {
       "id": 116491055,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -9.0339,
         "y": 0.2499,
@@ -666,7 +634,6 @@
     {
       "id": 120146381,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 11.5031,
         "y": 0.5556,
@@ -700,7 +667,6 @@
     {
       "id": 121817334,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -105.8688,
         "y": 0.7404,
@@ -717,7 +683,6 @@
     {
       "id": 125962626,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 30.9965,
         "y": 0.8003,
@@ -734,7 +699,6 @@
     {
       "id": 127399043,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -23.213,
         "y": 0.874,
@@ -751,7 +715,6 @@
     {
       "id": 132841220,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -1.0467,
         "y": 0.9217,
@@ -768,7 +731,6 @@
     {
       "id": 133937993,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -43.7036,
         "y": 0.655,
@@ -802,7 +764,6 @@
     {
       "id": 135723752,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -129.2939,
         "y": 0.8079,
@@ -819,7 +780,6 @@
     {
       "id": 138105528,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 105.8384,
         "y": 0.2008,
@@ -853,7 +813,6 @@
     {
       "id": 151812269,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -30.0361,
         "y": 1.1296,
@@ -870,7 +829,6 @@
     {
       "id": 155612491,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 109.1246,
         "y": 0.271,
@@ -887,7 +845,6 @@
     {
       "id": 159568969,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 18.9429,
         "y": 0.8555,
@@ -904,7 +861,6 @@
     {
       "id": 163429700,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": -4.4499,
         "y": 0.6609,
@@ -972,7 +928,6 @@
     {
       "id": 176013362,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -20.9217,
         "y": 0.3977,
@@ -989,7 +944,6 @@
     {
       "id": 176487696,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 22.2676,
         "y": 0.7797,
@@ -1023,7 +977,6 @@
     {
       "id": 181341684,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 8.491,
         "y": 1.1572,
@@ -1040,7 +993,6 @@
     {
       "id": 195384398,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 99.4107,
         "y": 0.7303,
@@ -1059,9 +1011,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 11.4572,
-        "y": 0.6269,
-        "z": -14.9
+        "x": 10.4987,
+        "y": 0.6782,
+        "z": -15.0021
       },
       "rotation": {
         "x": 0,
@@ -1074,7 +1026,6 @@
     {
       "id": 202619115,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.4528,
         "y": 0.6246,
@@ -1108,7 +1059,6 @@
     {
       "id": 208339945,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 83.4709,
         "y": 0.3544,
@@ -1125,7 +1075,6 @@
     {
       "id": 209679242,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -107.9863,
         "y": 0.5406,
@@ -1142,7 +1091,6 @@
     {
       "id": 209881189,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 40.1797,
         "y": 0.7085,
@@ -1176,7 +1124,6 @@
     {
       "id": 220518103,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 31.7699,
         "y": 0.3284,
@@ -1210,7 +1157,6 @@
     {
       "id": 244694503,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 119.8779,
         "y": 0.6686,
@@ -1227,7 +1173,6 @@
     {
       "id": 245088416,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -57.4968,
         "y": 0.4766,
@@ -1278,7 +1223,6 @@
     {
       "id": 245891413,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -40.3951,
         "y": 0.699,
@@ -1312,7 +1256,6 @@
     {
       "id": 254354741,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 6.5517,
         "y": 0.2769,
@@ -1329,7 +1272,6 @@
     {
       "id": 266160262,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 73.7845,
         "y": 0.4564,
@@ -1363,7 +1305,6 @@
     {
       "id": 270098308,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 88.5263,
         "y": 0.6807,
@@ -1380,7 +1321,6 @@
     {
       "id": 270229983,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 27.4678,
         "y": 0.4492,
@@ -1397,7 +1337,6 @@
     {
       "id": 280757951,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -43.6437,
         "y": 1.1359,
@@ -1431,7 +1370,6 @@
     {
       "id": 284192406,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 40.397,
         "y": 0.376,
@@ -1448,7 +1386,6 @@
     {
       "id": 288377350,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -4.4866,
         "y": 0.6593,
@@ -1482,7 +1419,6 @@
     {
       "id": 290140277,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -30.7064,
         "y": 1.3963,
@@ -1499,7 +1435,6 @@
     {
       "id": 294076647,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -19.3471,
         "y": 0.5478,
@@ -1518,9 +1453,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -1.0892,
-        "y": 1.1711,
-        "z": 8.5042
+        "x": -0.8993,
+        "y": 0.9668,
+        "z": 8.6916
       },
       "rotation": {
         "x": 0,
@@ -1533,7 +1468,6 @@
     {
       "id": 295173515,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -12.9791,
         "y": 0.8702,
@@ -1550,7 +1484,6 @@
     {
       "id": 299929405,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 98.3563,
         "y": 0.7051,
@@ -1584,7 +1517,6 @@
     {
       "id": 305750325,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -101.6046,
         "y": 0.4454,
@@ -1601,7 +1533,6 @@
     {
       "id": 307428795,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -124.3685,
         "y": 0.6025,
@@ -1618,7 +1549,6 @@
     {
       "id": 308750905,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 117.5072,
         "y": 1.0914,
@@ -1686,7 +1616,6 @@
     {
       "id": 326425835,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 95.0941,
         "y": 0.3326,
@@ -1771,7 +1700,6 @@
     {
       "id": 341701521,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 112.7952,
         "y": 0.3045,
@@ -1788,7 +1716,6 @@
     {
       "id": 343204666,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -55.6381,
         "y": 0.5946,
@@ -1805,7 +1732,6 @@
     {
       "id": 344019433,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 77.9058,
         "y": 0.6698,
@@ -1822,7 +1748,6 @@
     {
       "id": 345141285,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 57.8467,
         "y": 0.501,
@@ -1839,7 +1764,6 @@
     {
       "id": 351094752,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 23.8695,
         "y": 0.2972,
@@ -1856,7 +1780,6 @@
     {
       "id": 351450029,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 47.3488,
         "y": 0.991,
@@ -1873,7 +1796,6 @@
     {
       "id": 359091077,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -29.7993,
         "y": 0.864,
@@ -1890,7 +1812,6 @@
     {
       "id": 361244937,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 7.695,
         "y": 1.7288,
@@ -1924,7 +1845,6 @@
     {
       "id": 362382153,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 132.564,
         "y": 0.6237,
@@ -1958,7 +1878,6 @@
     {
       "id": 374427507,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -123.5955,
         "y": 0.5404,
@@ -1975,7 +1894,6 @@
     {
       "id": 374668181,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.4056,
         "y": 0.8965,
@@ -1992,7 +1910,6 @@
     {
       "id": 375282775,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -38.1944,
         "y": 0.604,
@@ -2009,7 +1926,6 @@
     {
       "id": 375721251,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 75.9872,
         "y": 0.3385,
@@ -2026,7 +1942,6 @@
     {
       "id": 376146641,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 74.9993,
         "y": 0.8548,
@@ -2043,7 +1958,6 @@
     {
       "id": 379082237,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -132.1756,
         "y": 0.7205,
@@ -2060,7 +1974,6 @@
     {
       "id": 379629193,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -67.7835,
         "y": 0.4566,
@@ -2094,7 +2007,6 @@
     {
       "id": 383951071,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -97.0802,
         "y": 0.7947,
@@ -2111,7 +2023,6 @@
     {
       "id": 388588084,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 8.2657,
         "y": 0.4536,
@@ -2128,7 +2039,6 @@
     {
       "id": 390038122,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 18.9254,
         "y": 0.4697,
@@ -2145,7 +2055,6 @@
     {
       "id": 396270407,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -79.7144,
         "y": 0.731,
@@ -2162,7 +2071,6 @@
     {
       "id": 400651894,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -127.9407,
         "y": 0.5738,
@@ -2179,7 +2087,6 @@
     {
       "id": 402674728,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -18.27,
         "y": 0.4177,
@@ -2196,7 +2103,6 @@
     {
       "id": 404948141,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 42.5661,
         "y": 0.1582,
@@ -2213,7 +2119,6 @@
     {
       "id": 405487132,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.1035,
         "y": 0.6518,
@@ -2230,7 +2135,6 @@
     {
       "id": 411770011,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -68.0952,
         "y": 1.2191,
@@ -2247,7 +2151,6 @@
     {
       "id": 412243164,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 69.6487,
         "y": 0.867,
@@ -2281,7 +2184,6 @@
     {
       "id": 413378778,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -41.7367,
         "y": 0.8077,
@@ -2298,7 +2200,6 @@
     {
       "id": 413502938,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -62.6767,
         "y": 0.7962,
@@ -2315,7 +2216,6 @@
     {
       "id": 414348328,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -32.5191,
         "y": 0.9592,
@@ -2332,7 +2232,6 @@
     {
       "id": 419822325,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 120.3198,
         "y": 0.7115,
@@ -2349,7 +2248,6 @@
     {
       "id": 420988621,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -96.2155,
         "y": 0.9433,
@@ -2366,7 +2264,6 @@
     {
       "id": 427052281,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 55.3517,
         "y": 0.9946,
@@ -2383,7 +2280,6 @@
     {
       "id": 428019829,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -106.4147,
         "y": 0.6244,
@@ -2400,7 +2296,6 @@
     {
       "id": 431000609,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.043,
         "y": 0.9479,
@@ -2417,7 +2312,6 @@
     {
       "id": 432087378,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -1.1978,
         "y": 0.7429,
@@ -2451,7 +2345,6 @@
     {
       "id": 444329259,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -128.7228,
         "y": 0.5576,
@@ -2468,7 +2361,6 @@
     {
       "id": 445340054,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 61.047,
         "y": 0.5535,
@@ -2502,7 +2394,6 @@
     {
       "id": 447996496,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 4.5404,
         "y": 0.5812,
@@ -2519,7 +2410,6 @@
     {
       "id": 458291941,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -2.2707,
         "y": 0.6797,
@@ -2536,7 +2426,6 @@
     {
       "id": 467280068,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -114.3871,
         "y": 0.6578,
@@ -2553,7 +2442,6 @@
     {
       "id": 467732267,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -98.4841,
         "y": 0.8218,
@@ -2570,7 +2458,6 @@
     {
       "id": 475297305,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -45.6174,
         "y": 0.2746,
@@ -2621,7 +2508,6 @@
     {
       "id": 484402734,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -105.6612,
         "y": 0.7348,
@@ -2655,7 +2541,6 @@
     {
       "id": 484905627,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 31.8847,
         "y": 0.1961,
@@ -2672,7 +2557,6 @@
     {
       "id": 491714049,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -51.0454,
         "y": 1.0485,
@@ -2689,7 +2573,6 @@
     {
       "id": 499781728,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -0.3473,
         "y": 0.6031,
@@ -2723,7 +2606,6 @@
     {
       "id": 512895980,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 127.0706,
         "y": 0.7715,
@@ -2740,7 +2622,6 @@
     {
       "id": 513014148,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -37.0951,
         "y": 0.3628,
@@ -2757,7 +2638,6 @@
     {
       "id": 515785568,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -100.178,
         "y": 0.681,
@@ -2774,7 +2654,6 @@
     {
       "id": 519012065,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -74.2045,
         "y": 0.4176,
@@ -2808,7 +2687,6 @@
     {
       "id": 527606356,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -97.9919,
         "y": 0.5714,
@@ -2825,7 +2703,6 @@
     {
       "id": 530384728,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 61.6102,
         "y": 0.4963,
@@ -2842,7 +2719,6 @@
     {
       "id": 535983303,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 45.5334,
         "y": 0.9787,
@@ -2859,7 +2735,6 @@
     {
       "id": 538818371,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -63.2666,
         "y": 0.7295,
@@ -2876,7 +2751,6 @@
     {
       "id": 543240264,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 43.223,
         "y": 0.4296,
@@ -2910,7 +2784,6 @@
     {
       "id": 546139860,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 125.4547,
         "y": 0.6601,
@@ -2927,7 +2800,6 @@
     {
       "id": 547913792,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 73.0451,
         "y": 0.6748,
@@ -2944,7 +2816,6 @@
     {
       "id": 550354851,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -123.1057,
         "y": 0.4962,
@@ -2961,7 +2832,6 @@
     {
       "id": 559050521,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -97.7651,
         "y": 0.8811,
@@ -2978,7 +2848,6 @@
     {
       "id": 560911444,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -79.9047,
         "y": 0.5444,
@@ -2995,7 +2864,6 @@
     {
       "id": 562951584,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -94.4686,
         "y": 0.5674,
@@ -3012,7 +2880,6 @@
     {
       "id": 564795598,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -6.3697,
         "y": 0.7604,
@@ -3046,7 +2913,6 @@
     {
       "id": 567364980,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -79.6734,
         "y": 0.3677,
@@ -3063,7 +2929,6 @@
     {
       "id": 568057246,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 63.4689,
         "y": 0.7027,
@@ -3080,7 +2945,6 @@
     {
       "id": 568107421,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 20.2973,
         "y": 0.3504,
@@ -3097,7 +2961,6 @@
     {
       "id": 569047873,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 60.8821,
         "y": 0.5037,
@@ -3114,7 +2977,6 @@
     {
       "id": 569559560,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 32.0275,
         "y": 0.5132,
@@ -3148,7 +3010,6 @@
     {
       "id": 585724613,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -123.8101,
         "y": 0.7846,
@@ -3182,7 +3043,6 @@
     {
       "id": 599395319,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -128.2948,
         "y": 0.4538,
@@ -3199,7 +3059,6 @@
     {
       "id": 602744721,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 7.7409,
         "y": 0.5716,
@@ -3233,7 +3092,6 @@
     {
       "id": 607642152,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -84.2314,
         "y": 0.2607,
@@ -3250,7 +3108,6 @@
     {
       "id": 611241672,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 68.5402,
         "y": 0.5845,
@@ -3284,7 +3141,6 @@
     {
       "id": 613166959,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 99.1133,
         "y": 0.4552,
@@ -3301,7 +3157,6 @@
     {
       "id": 615762438,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -115.1276,
         "y": 0.9315,
@@ -3335,7 +3190,6 @@
     {
       "id": 616302893,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 26.6321,
         "y": 0.7499,
@@ -3352,7 +3206,6 @@
     {
       "id": 618235440,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -82.8352,
         "y": 0.3997,
@@ -3386,7 +3239,6 @@
     {
       "id": 618909111,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -106.103,
         "y": 1.1122,
@@ -3403,7 +3255,6 @@
     {
       "id": 621110630,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 23.8793,
         "y": 0.6453,
@@ -3420,7 +3271,6 @@
     {
       "id": 621251356,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -30.0111,
         "y": 0.4279,
@@ -3437,7 +3287,6 @@
     {
       "id": 622485092,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -45.9235,
         "y": 0.2128,
@@ -3454,7 +3303,6 @@
     {
       "id": 623345509,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 91.2948,
         "y": 0.2832,
@@ -3471,7 +3319,6 @@
     {
       "id": 631173879,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -114.2378,
         "y": 0.3292,
@@ -3488,7 +3335,6 @@
     {
       "id": 633697940,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.198,
         "y": 0.6199,
@@ -3505,7 +3351,6 @@
     {
       "id": 639223862,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.5983,
         "y": 0.8282,
@@ -3539,7 +3384,6 @@
     {
       "id": 648099181,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -6.2421,
         "y": 0.2595,
@@ -3556,7 +3400,6 @@
     {
       "id": 650978712,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -92.6623,
         "y": 0.9232,
@@ -3573,7 +3416,6 @@
     {
       "id": 652583812,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 36.4944,
         "y": 0.6477,
@@ -3607,7 +3449,6 @@
     {
       "id": 670521140,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 80.8969,
         "y": 0.4635,
@@ -3624,7 +3465,6 @@
     {
       "id": 671654094,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -15.6807,
         "y": 0.4755,
@@ -3641,7 +3481,6 @@
     {
       "id": 674023688,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -33.1606,
         "y": 0.7286,
@@ -3658,7 +3497,6 @@
     {
       "id": 674035910,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -89.7005,
         "y": 1.1867,
@@ -3692,7 +3530,6 @@
     {
       "id": 679069902,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -18.2876,
         "y": 0.5891,
@@ -3709,7 +3546,6 @@
     {
       "id": 682267737,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 46.3405,
         "y": 0.4057,
@@ -3726,7 +3562,6 @@
     {
       "id": 694508452,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -11.4461,
         "y": 0.5182,
@@ -3743,7 +3578,6 @@
     {
       "id": 700286319,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 119.3886,
         "y": 1.0505,
@@ -3760,7 +3594,6 @@
     {
       "id": 700395739,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -1.1534,
         "y": 0.2372,
@@ -3777,7 +3610,6 @@
     {
       "id": 701113439,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 50.8963,
         "y": 0.5215,
@@ -3794,7 +3626,6 @@
     {
       "id": 703998111,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -95.3654,
         "y": 0.6053,
@@ -3811,7 +3642,6 @@
     {
       "id": 704503381,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 15.5342,
         "y": 0.5922,
@@ -3828,7 +3658,6 @@
     {
       "id": 706265024,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 47.4248,
         "y": 0.1866,
@@ -3862,7 +3691,6 @@
     {
       "id": 709712167,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 9.3635,
         "y": 0.7048,
@@ -3879,7 +3707,6 @@
     {
       "id": 711693954,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -62.9409,
         "y": 0.5179,
@@ -3896,7 +3723,6 @@
     {
       "id": 715234150,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -38.9833,
         "y": 0.7496,
@@ -3913,7 +3739,6 @@
     {
       "id": 719367929,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 49.0227,
         "y": 0.7161,
@@ -3930,7 +3755,6 @@
     {
       "id": 721862305,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -69.7298,
         "y": 0.4002,
@@ -3947,7 +3771,6 @@
     {
       "id": 723784050,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 74.1473,
         "y": 0.687,
@@ -3964,7 +3787,6 @@
     {
       "id": 725433581,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 55.7422,
         "y": 0.8229,
@@ -3998,7 +3820,6 @@
     {
       "id": 729795702,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -21.5534,
         "y": 0.2268,
@@ -4015,7 +3836,6 @@
     {
       "id": 731833193,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 5.8051,
         "y": 0.0941,
@@ -4032,7 +3852,6 @@
     {
       "id": 738914108,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 95.8533,
         "y": 0.5328,
@@ -4049,7 +3868,6 @@
     {
       "id": 745958361,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -0.3773,
         "y": 0.4617,
@@ -4066,7 +3884,6 @@
     {
       "id": 750896282,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -103.6556,
         "y": 0.7186,
@@ -4083,7 +3900,6 @@
     {
       "id": 754438964,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -118.7429,
         "y": 1.1112,
@@ -4100,7 +3916,6 @@
     {
       "id": 757564317,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -57.9538,
         "y": 0.3914,
@@ -4117,7 +3932,6 @@
     {
       "id": 759221173,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -24.4042,
         "y": 0.3335,
@@ -4151,7 +3965,6 @@
     {
       "id": 763584566,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 14.5095,
         "y": 0.469,
@@ -4185,7 +3998,6 @@
     {
       "id": 768465317,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 125.2631,
         "y": 0.6832,
@@ -4202,7 +4014,6 @@
     {
       "id": 770923835,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 100.3452,
         "y": 0.6275,
@@ -4219,7 +4030,6 @@
     {
       "id": 771687014,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -14.7824,
         "y": 0.4554,
@@ -4236,7 +4046,6 @@
     {
       "id": 773184701,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 46.7597,
         "y": 0.1567,
@@ -4270,7 +4079,6 @@
     {
       "id": 782329978,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 128.6382,
         "y": 0.6121,
@@ -4304,7 +4112,6 @@
     {
       "id": 783080239,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -69.5409,
         "y": 0.7218,
@@ -4321,7 +4128,6 @@
     {
       "id": 788004422,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 76.3465,
         "y": 0.6775,
@@ -4338,7 +4144,6 @@
     {
       "id": 788777734,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 74.8934,
         "y": 0.5828,
@@ -4355,7 +4160,6 @@
     {
       "id": 788999430,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -50.5588,
         "y": 0.7099,
@@ -4372,7 +4176,6 @@
     {
       "id": 793681511,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 63.4129,
         "y": 0.3921,
@@ -4389,7 +4192,6 @@
     {
       "id": 795240910,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -20.8127,
         "y": 0.464,
@@ -4440,7 +4242,6 @@
     {
       "id": 808593941,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 110.2019,
         "y": 0.7942,
@@ -4457,7 +4258,6 @@
     {
       "id": 818214199,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -111.3063,
         "y": 0.6495,
@@ -4474,7 +4274,6 @@
     {
       "id": 827232438,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 43.9864,
         "y": 0.3889,
@@ -4491,7 +4290,6 @@
     {
       "id": 835939472,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -111.0009,
         "y": 0.2799,
@@ -4508,7 +4306,6 @@
     {
       "id": 845556825,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 92.2836,
         "y": 0.3776,
@@ -4525,7 +4322,6 @@
     {
       "id": 851971083,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -17.5248,
         "y": 0.9354,
@@ -4542,7 +4338,6 @@
     {
       "id": 854311328,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -20.6501,
         "y": 0.5182,
@@ -4559,7 +4354,6 @@
     {
       "id": 860143008,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 106.5905,
         "y": 0.9268,
@@ -4576,7 +4370,6 @@
     {
       "id": 861465353,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 19.8139,
         "y": 0.7727,
@@ -4593,7 +4386,6 @@
     {
       "id": 862066184,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 106.7629,
         "y": 0.8133,
@@ -4610,7 +4402,6 @@
     {
       "id": 865431559,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 128.6359,
         "y": 0.5786,
@@ -4627,7 +4418,6 @@
     {
       "id": 865541961,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -57.159,
         "y": 0.5043,
@@ -4695,7 +4485,6 @@
     {
       "id": 883512182,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 72.336,
         "y": 0.5119,
@@ -4746,7 +4535,6 @@
     {
       "id": 890224629,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -104.4948,
         "y": 0.5626,
@@ -4763,7 +4551,6 @@
     {
       "id": 893504209,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 86.7063,
         "y": 0.3866,
@@ -4797,7 +4584,6 @@
     {
       "id": 899453960,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 122.582,
         "y": 0.6519,
@@ -4814,7 +4600,6 @@
     {
       "id": 899860896,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 56.373,
         "y": 0.3828,
@@ -4831,7 +4616,6 @@
     {
       "id": 900427535,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -72.0272,
         "y": 0.6692,
@@ -4848,7 +4632,6 @@
     {
       "id": 909020577,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.4316,
         "y": 0.5085,
@@ -4882,7 +4665,6 @@
     {
       "id": 914677195,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 22.7455,
         "y": 0.5509,
@@ -4933,7 +4715,6 @@
     {
       "id": 921570851,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 61.0085,
         "y": 0.7509,
@@ -4950,7 +4731,6 @@
     {
       "id": 927032458,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -40.9154,
         "y": 2.0744,
@@ -4967,7 +4747,6 @@
     {
       "id": 931980056,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.0078,
         "y": 0.8533,
@@ -4984,7 +4763,6 @@
     {
       "id": 932140512,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -91.4449,
         "y": 0.2364,
@@ -5001,7 +4779,6 @@
     {
       "id": 934391489,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -81.8592,
         "y": 0.7182,
@@ -5018,7 +4795,6 @@
     {
       "id": 935310330,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 2.8534,
         "y": 0.5273,
@@ -5035,7 +4811,6 @@
     {
       "id": 941214017,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 60.4766,
         "y": 0.5943,
@@ -5052,7 +4827,6 @@
     {
       "id": 943343515,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 132.4806,
         "y": 1.0235,
@@ -5069,7 +4843,6 @@
     {
       "id": 946605341,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 114.593,
         "y": 0.418,
@@ -5086,7 +4859,6 @@
     {
       "id": 949061470,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -130.8781,
         "y": 0.6008,
@@ -5103,7 +4875,6 @@
     {
       "id": 950321594,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 65.7302,
         "y": 0.5546,
@@ -5120,7 +4891,6 @@
     {
       "id": 953978002,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -99.0799,
         "y": 0.281,
@@ -5137,7 +4907,6 @@
     {
       "id": 957834156,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 28.2023,
         "y": 0.8288,
@@ -5154,7 +4923,6 @@
     {
       "id": 958554200,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 81.2745,
         "y": 0.9388,
@@ -5205,7 +4973,6 @@
     {
       "id": 967987936,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 72.0796,
         "y": 0.4339,
@@ -5222,7 +4989,6 @@
     {
       "id": 970847573,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -132.7273,
         "y": 0.8232,
@@ -5239,7 +5005,6 @@
     {
       "id": 971224773,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -113.3538,
         "y": 0.4088,
@@ -5256,7 +5021,6 @@
     {
       "id": 971715363,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 37.4044,
         "y": 0.2621,
@@ -5273,7 +5037,6 @@
     {
       "id": 977492904,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -41.7813,
         "y": 1.1581,
@@ -5324,7 +5087,6 @@
     {
       "id": 981225122,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 117.1804,
         "y": 1.1629,
@@ -5341,7 +5103,6 @@
     {
       "id": 982087475,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -42.1116,
         "y": 0.8222,
@@ -5360,9 +5121,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 5.4934,
-        "y": 0.5227,
-        "z": -8.481
+        "x": 5.5042,
+        "y": 0.5226,
+        "z": -8.476
       },
       "rotation": {
         "x": 0,
@@ -5375,7 +5136,6 @@
     {
       "id": 997060534,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 97.7258,
         "y": 0.9647,
@@ -5426,7 +5186,6 @@
     {
       "id": 1015043108,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 49.6988,
         "y": 0.3806,
@@ -5443,7 +5202,6 @@
     {
       "id": 1019025460,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -25.4279,
         "y": 0.7068,
@@ -5460,7 +5218,6 @@
     {
       "id": 1019437209,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 100.8543,
         "y": 0.6335,
@@ -5494,7 +5251,6 @@
     {
       "id": 1020232026,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 110.3454,
         "y": 0.3108,
@@ -5511,7 +5267,6 @@
     {
       "id": 1022867358,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 40.9792,
         "y": 0.2565,
@@ -5530,9 +5285,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 13.7952,
-        "y": 0.5154,
-        "z": -1.5816
+        "x": 13.6236,
+        "y": 0.5193,
+        "z": -1.5764
       },
       "rotation": {
         "x": 0,
@@ -5545,7 +5300,6 @@
     {
       "id": 1023987476,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 54.8112,
         "y": 0.1251,
@@ -5562,7 +5316,6 @@
     {
       "id": 1027257374,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.3766,
         "y": 0.6089,
@@ -5579,7 +5332,6 @@
     {
       "id": 1031132073,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -78.5904,
         "y": 0.4698,
@@ -5596,7 +5348,6 @@
     {
       "id": 1035928271,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 32.6342,
         "y": 0.5345,
@@ -5613,7 +5364,6 @@
     {
       "id": 1046401870,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 0.7179,
         "y": 0.9261,
@@ -5630,7 +5380,6 @@
     {
       "id": 1055303870,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -112.5653,
         "y": 0.4713,
@@ -5664,7 +5413,6 @@
     {
       "id": 1057442747,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 127.757,
         "y": 0.6798,
@@ -5681,7 +5429,6 @@
     {
       "id": 1057546688,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 45.924,
         "y": 0.7315,
@@ -5698,7 +5445,6 @@
     {
       "id": 1058294001,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 125.9695,
         "y": 0.7112,
@@ -5715,7 +5461,6 @@
     {
       "id": 1059643039,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -84.646,
         "y": 1.0428,
@@ -5732,7 +5477,6 @@
     {
       "id": 1060057799,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 109.9598,
         "y": 1.061,
@@ -5749,7 +5493,6 @@
     {
       "id": 1060061777,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -45.6119,
         "y": 0.8828,
@@ -5766,7 +5509,6 @@
     {
       "id": 1063473171,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 87.4782,
         "y": 1.0249,
@@ -5783,7 +5525,6 @@
     {
       "id": 1065811621,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -106.6696,
         "y": 0.5519,
@@ -5800,7 +5541,6 @@
     {
       "id": 1069589376,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 27.4187,
         "y": 0.8841,
@@ -5817,7 +5557,6 @@
     {
       "id": 1075270631,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 89.9788,
         "y": 0.4206,
@@ -5834,7 +5573,6 @@
     {
       "id": 1076075287,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -97.6981,
         "y": 1.2256,
@@ -5885,7 +5623,6 @@
     {
       "id": 1083878971,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 73.4438,
         "y": 0.18,
@@ -5902,7 +5639,6 @@
     {
       "id": 1084045090,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -123.9708,
         "y": 0.1132,
@@ -5919,7 +5655,6 @@
     {
       "id": 1098731132,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 41.5314,
         "y": 0.1597,
@@ -5936,7 +5671,6 @@
     {
       "id": 1099445905,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -63.0036,
         "y": 0.6462,
@@ -5953,7 +5687,6 @@
     {
       "id": 1104861534,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -6.0985,
         "y": 0.3954,
@@ -5987,7 +5720,6 @@
     {
       "id": 1114693439,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 125.5512,
         "y": 0.6193,
@@ -6006,9 +5738,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -2.1845,
-        "y": 1.0363,
-        "z": 8.6877
+        "x": -2.1779,
+        "y": 1.1341,
+        "z": 8.7089
       },
       "rotation": {
         "x": 0,
@@ -6021,7 +5753,6 @@
     {
       "id": 1119897779,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 57.3632,
         "y": 0.2771,
@@ -6038,7 +5769,6 @@
     {
       "id": 1122074265,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -103.1584,
         "y": 0.7746,
@@ -6055,7 +5785,6 @@
     {
       "id": 1125976491,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -127.1854,
         "y": 0.4514,
@@ -6072,7 +5801,6 @@
     {
       "id": 1127686436,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -13.8789,
         "y": 0.5871,
@@ -6106,7 +5834,6 @@
     {
       "id": 1144185871,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 49.2531,
         "y": 0.7054,
@@ -6140,7 +5867,6 @@
     {
       "id": 1149512699,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -119.1962,
         "y": 0.8283,
@@ -6174,7 +5900,6 @@
     {
       "id": 1157097425,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -40.817,
         "y": 0.3794,
@@ -6208,7 +5933,6 @@
     {
       "id": 1162592297,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -72.6507,
         "y": 0.656,
@@ -6242,7 +5966,6 @@
     {
       "id": 1162995819,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 35.2004,
         "y": 1.8647,
@@ -6259,7 +5982,6 @@
     {
       "id": 1167491227,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -133.892,
         "y": 0.3809,
@@ -6276,7 +5998,6 @@
     {
       "id": 1169182966,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 101.9259,
         "y": 0.8823,
@@ -6293,7 +6014,6 @@
     {
       "id": 1172882299,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -47.1336,
         "y": 0.7322,
@@ -6310,7 +6030,6 @@
     {
       "id": 1176500264,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -126.8817,
         "y": 0.9882,
@@ -6327,7 +6046,6 @@
     {
       "id": 1177116569,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -16.6496,
         "y": 0.6915,
@@ -6344,7 +6062,6 @@
     {
       "id": 1183215568,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -23.879,
         "y": 0.2332,
@@ -6378,7 +6095,6 @@
     {
       "id": 1189493562,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -66.706,
         "y": 0.6338,
@@ -6395,7 +6111,6 @@
     {
       "id": 1193101275,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -63.1147,
         "y": 0.5373,
@@ -6412,7 +6127,6 @@
     {
       "id": 1196899304,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 81.477,
         "y": 1.0427,
@@ -6429,7 +6143,6 @@
     {
       "id": 1202548807,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 30.2025,
         "y": 0.434,
@@ -6463,7 +6176,6 @@
     {
       "id": 1205536812,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 41.5868,
         "y": 0.4673,
@@ -6480,7 +6192,6 @@
     {
       "id": 1212803341,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -93.6991,
         "y": 0.3024,
@@ -6497,7 +6208,6 @@
     {
       "id": 1215616968,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 22.8974,
         "y": 0.6629,
@@ -6548,7 +6258,6 @@
     {
       "id": 1219235800,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 33.8727,
         "y": 0.4501,
@@ -6565,7 +6274,6 @@
     {
       "id": 1219718811,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -114.8945,
         "y": 1.0181,
@@ -6582,7 +6290,6 @@
     {
       "id": 1234487488,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -54.8387,
         "y": 0.8451,
@@ -6599,7 +6306,6 @@
     {
       "id": 1241818421,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -127.761,
         "y": 0.4698,
@@ -6616,7 +6322,6 @@
     {
       "id": 1248508482,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -7.8682,
         "y": 0.8613,
@@ -6650,7 +6355,6 @@
     {
       "id": 1251019297,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -81.0686,
         "y": 0.6485,
@@ -6684,7 +6388,6 @@
     {
       "id": 1263037393,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -47.0865,
         "y": 0.5979,
@@ -6718,7 +6421,6 @@
     {
       "id": 1265083432,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -32.0291,
         "y": 1.2665,
@@ -6735,7 +6437,6 @@
     {
       "id": 1266347696,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -74.0478,
         "y": 0.6451,
@@ -6752,7 +6453,6 @@
     {
       "id": 1266804656,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 37.1067,
         "y": 0.704,
@@ -6769,7 +6469,6 @@
     {
       "id": 1268157784,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 132.0479,
         "y": 0.6014,
@@ -6786,7 +6485,6 @@
     {
       "id": 1271965411,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -42.353,
         "y": 0.9281,
@@ -6803,7 +6501,6 @@
     {
       "id": 1278213255,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 81.2335,
         "y": 0.3031,
@@ -6820,7 +6517,6 @@
     {
       "id": 1279558951,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 18.5327,
         "y": 0.3336,
@@ -6837,7 +6533,6 @@
     {
       "id": 1280668986,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 33.3794,
         "y": 0.4668,
@@ -6854,7 +6549,6 @@
     {
       "id": 1283788112,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 103.502,
         "y": 1.0684,
@@ -6907,9 +6601,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 11.1591,
-        "y": 0.4953,
-        "z": 4.7901
+        "x": 11.26,
+        "y": 0.5771,
+        "z": 4.7544
       },
       "rotation": {
         "x": 0,
@@ -6939,7 +6633,6 @@
     {
       "id": 1293513780,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -27.0167,
         "y": 0.7783,
@@ -6956,7 +6649,6 @@
     {
       "id": 1295753213,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -119.8087,
         "y": 0.5849,
@@ -6973,7 +6665,6 @@
     {
       "id": 1299623561,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -53.7118,
         "y": 0.5362,
@@ -6990,7 +6681,6 @@
     {
       "id": 1304128723,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.8819,
         "y": 0.7984,
@@ -7007,7 +6697,6 @@
     {
       "id": 1306093291,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 3.9327,
         "y": 0.1841,
@@ -7058,7 +6747,6 @@
     {
       "id": 1316276183,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -70.8653,
         "y": 0.5089,
@@ -7075,7 +6763,6 @@
     {
       "id": 1322912510,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 52.162,
         "y": 0.3259,
@@ -7109,7 +6796,6 @@
     {
       "id": 1328413656,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 104.3632,
         "y": 0.4737,
@@ -7126,7 +6812,6 @@
     {
       "id": 1334598102,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 47.618,
         "y": 0.1093,
@@ -7160,7 +6845,6 @@
     {
       "id": 1338423465,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 126.7412,
         "y": 0.341,
@@ -7177,7 +6861,6 @@
     {
       "id": 1340518320,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 102.2101,
         "y": 0.1532,
@@ -7194,7 +6877,6 @@
     {
       "id": 1340663705,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 71.5318,
         "y": 0.6508,
@@ -7211,7 +6893,6 @@
     {
       "id": 1342798705,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 30.0834,
         "y": 1.1433,
@@ -7245,7 +6926,6 @@
     {
       "id": 1349254002,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 10.7549,
         "y": 0.5176,
@@ -7262,7 +6942,6 @@
     {
       "id": 1349842006,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 18.1371,
         "y": 1.2147,
@@ -7296,7 +6975,6 @@
     {
       "id": 1357915356,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -4.7397,
         "y": 0.1183,
@@ -7313,7 +6991,6 @@
     {
       "id": 1359158669,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -43.0628,
         "y": 0.5403,
@@ -7330,7 +7007,6 @@
     {
       "id": 1372720693,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -2.1304,
         "y": 0.4444,
@@ -7398,7 +7074,6 @@
     {
       "id": 1394966694,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -116.0174,
         "y": 0.43,
@@ -7415,7 +7090,6 @@
     {
       "id": 1399946848,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.4062,
         "y": 0.7938,
@@ -7432,7 +7106,6 @@
     {
       "id": 1401844465,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 6.6832,
         "y": 0.3968,
@@ -7449,7 +7122,6 @@
     {
       "id": 1402481183,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -77.2117,
         "y": 0.8084,
@@ -7466,7 +7138,6 @@
     {
       "id": 1409052902,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -49.9566,
         "y": 1.1073,
@@ -7483,7 +7154,6 @@
     {
       "id": 1421457377,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 129.443,
         "y": 0.9234,
@@ -7500,7 +7170,6 @@
     {
       "id": 1421736474,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 67.4857,
         "y": 0.6772,
@@ -7517,7 +7186,6 @@
     {
       "id": 1422111968,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.3745,
         "y": 0.2074,
@@ -7551,7 +7219,6 @@
     {
       "id": 1432911010,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -49.5857,
         "y": 1.283,
@@ -7585,7 +7252,6 @@
     {
       "id": 1438481594,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 78.7552,
         "y": 0.9463,
@@ -7602,7 +7268,6 @@
     {
       "id": 1441774776,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 113.1737,
         "y": 0.4157,
@@ -7636,7 +7301,6 @@
     {
       "id": 1450585589,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 114.0344,
         "y": 0.5446,
@@ -7653,7 +7317,6 @@
     {
       "id": 1475219157,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.1159,
         "y": 0.8341,
@@ -7670,7 +7333,6 @@
     {
       "id": 1479083713,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 19.596,
         "y": 0.378,
@@ -7687,7 +7349,6 @@
     {
       "id": 1482562741,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 8.7555,
         "y": 0.8286,
@@ -7704,7 +7365,6 @@
     {
       "id": 1492796608,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -124.0323,
         "y": 0.8834,
@@ -7721,7 +7381,6 @@
     {
       "id": 1494294418,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 75.3302,
         "y": 0.8626,
@@ -7755,7 +7414,6 @@
     {
       "id": 1498034991,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 68.4991,
         "y": 1.2949,
@@ -7772,7 +7430,6 @@
     {
       "id": 1500149153,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -99.106,
         "y": 0.2713,
@@ -7789,7 +7446,6 @@
     {
       "id": 1504407264,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -133.4984,
         "y": 0.3941,
@@ -7806,7 +7462,6 @@
     {
       "id": 1510261986,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -36.5009,
         "y": 0.4868,
@@ -7823,7 +7478,6 @@
     {
       "id": 1511165037,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 118.9153,
         "y": 0.9171,
@@ -7840,7 +7494,6 @@
     {
       "id": 1514887623,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.2873,
         "y": 0.4943,
@@ -7874,7 +7527,6 @@
     {
       "id": 1521580882,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -40.2915,
         "y": 0.6298,
@@ -7908,7 +7560,6 @@
     {
       "id": 1529954655,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 7.9817,
         "y": 0.9082,
@@ -7942,7 +7593,6 @@
     {
       "id": 1542747508,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 93.056,
         "y": 0.5688,
@@ -7959,7 +7609,6 @@
     {
       "id": 1544968748,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -81.6686,
         "y": 1.1362,
@@ -7993,7 +7642,6 @@
     {
       "id": 1556292185,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -27.467,
         "y": 0.7203,
@@ -8010,7 +7658,6 @@
     {
       "id": 1559381660,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 126.5293,
         "y": 1.3918,
@@ -8027,7 +7674,6 @@
     {
       "id": 1559717822,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 129.9008,
         "y": 1.0599,
@@ -8061,7 +7707,6 @@
     {
       "id": 1566165172,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -90.9896,
         "y": 1.1058,
@@ -8078,7 +7723,6 @@
     {
       "id": 1566210406,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 89.0773,
         "y": 0.3152,
@@ -8095,7 +7739,6 @@
     {
       "id": 1570574098,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -35.3996,
         "y": 0.4752,
@@ -8112,7 +7755,6 @@
     {
       "id": 1570815377,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 75.2643,
         "y": 0.5506,
@@ -8129,7 +7771,6 @@
     {
       "id": 1577957415,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 132.7127,
         "y": 0.5841,
@@ -8146,7 +7787,6 @@
     {
       "id": 1582127788,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -69.7297,
         "y": 0.2375,
@@ -8180,7 +7820,6 @@
     {
       "id": 1587775368,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -37.077,
         "y": 0.4925,
@@ -8197,7 +7836,6 @@
     {
       "id": 1588019365,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -7.859,
         "y": 0.2533,
@@ -8214,7 +7852,6 @@
     {
       "id": 1588418554,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 85.8359,
         "y": 0.559,
@@ -8231,7 +7868,6 @@
     {
       "id": 1594104339,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 56.4938,
         "y": 0.4429,
@@ -8248,7 +7884,6 @@
     {
       "id": 1594711172,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -77.2611,
         "y": 0.9322,
@@ -8265,7 +7900,6 @@
     {
       "id": 1594894516,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 59.0985,
         "y": 0.995,
@@ -8282,7 +7916,6 @@
     {
       "id": 1596712503,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 124.3443,
         "y": 0.3782,
@@ -8299,7 +7932,6 @@
     {
       "id": 1599862764,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -107.5355,
         "y": 1.0284,
@@ -8316,7 +7948,6 @@
     {
       "id": 1602830164,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 14.0325,
         "y": 0.7179,
@@ -8333,7 +7964,6 @@
     {
       "id": 1604317141,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 1.6953,
         "y": 0.1044,
@@ -8350,7 +7980,6 @@
     {
       "id": 1610888408,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 111.7911,
         "y": 0.7029,
@@ -8367,7 +7996,6 @@
     {
       "id": 1611187474,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 119.0244,
         "y": 0.7775,
@@ -8384,7 +8012,6 @@
     {
       "id": 1612714887,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -115.8886,
         "y": 0.7884,
@@ -8401,7 +8028,6 @@
     {
       "id": 1623093985,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -90.9201,
         "y": 0.8236,
@@ -8418,7 +8044,6 @@
     {
       "id": 1628516773,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.8779,
         "y": 0.6863,
@@ -8435,7 +8060,6 @@
     {
       "id": 1631720824,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 132.3207,
         "y": 0.759,
@@ -8469,7 +8093,6 @@
     {
       "id": 1634374963,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 75.3561,
         "y": 0.6633,
@@ -8486,7 +8109,6 @@
     {
       "id": 1636776096,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 40.8533,
         "y": 0.1236,
@@ -8537,7 +8159,6 @@
     {
       "id": 1640872387,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 26.6081,
         "y": 0.244,
@@ -8571,7 +8192,6 @@
     {
       "id": 1645815576,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -37.0638,
         "y": 0.3699,
@@ -8588,7 +8208,6 @@
     {
       "id": 1653706968,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -29.3323,
         "y": 0.6406,
@@ -8622,7 +8241,6 @@
     {
       "id": 1658053684,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 47.1107,
         "y": 0.2499,
@@ -8639,7 +8257,6 @@
     {
       "id": 1665370880,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 63.8592,
         "y": 0.8149,
@@ -8656,7 +8273,6 @@
     {
       "id": 1667253293,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -122.898,
         "y": 0.3934,
@@ -8673,7 +8289,6 @@
     {
       "id": 1673086620,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 55.7542,
         "y": 0.6532,
@@ -8707,7 +8322,6 @@
     {
       "id": 1676975081,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -70.7287,
         "y": 1.0923,
@@ -8724,7 +8338,6 @@
     {
       "id": 1681329994,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 69.2757,
         "y": 0.5038,
@@ -8741,7 +8354,6 @@
     {
       "id": 1691548789,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -47.1155,
         "y": 0.5889,
@@ -8758,7 +8370,6 @@
     {
       "id": 1699815435,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 62.9518,
         "y": 0.2917,
@@ -8775,7 +8386,6 @@
     {
       "id": 1700806973,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -81.9455,
         "y": 0.7658,
@@ -8792,7 +8402,6 @@
     {
       "id": 1708307218,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 24.9508,
         "y": 0.7256,
@@ -8809,7 +8418,6 @@
     {
       "id": 1711246682,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -74.8227,
         "y": 0.692,
@@ -8843,7 +8451,6 @@
     {
       "id": 1713970292,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 23.0392,
         "y": 0.4814,
@@ -8911,7 +8518,6 @@
     {
       "id": 1738346253,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 22.9618,
         "y": 0.5474,
@@ -8928,7 +8534,6 @@
     {
       "id": 1742983194,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 7.1306,
         "y": 0.5338,
@@ -8945,7 +8550,6 @@
     {
       "id": 1747872913,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 91.3325,
         "y": 0.8704,
@@ -8962,7 +8566,6 @@
     {
       "id": 1748147441,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 11.8315,
         "y": 0.7173,
@@ -8979,7 +8582,6 @@
     {
       "id": 1752934931,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 84.2253,
         "y": 0.6733,
@@ -9013,7 +8615,6 @@
     {
       "id": 1757914608,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.3738,
         "y": 0.554,
@@ -9030,7 +8631,6 @@
     {
       "id": 1763126337,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -39.363,
         "y": 0.4329,
@@ -9047,7 +8647,6 @@
     {
       "id": 1770344764,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -93.8367,
         "y": 0.6323,
@@ -9064,7 +8663,6 @@
     {
       "id": 1770774193,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 7.381,
         "y": 0.4837,
@@ -9098,7 +8696,6 @@
     {
       "id": 1781469866,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 11.6307,
         "y": 0.4012,
@@ -9149,7 +8746,6 @@
     {
       "id": 1789233056,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -120.9519,
         "y": 0.7538,
@@ -9166,7 +8762,6 @@
     {
       "id": 1796828795,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.072,
         "y": 0.3787,
@@ -9200,7 +8795,6 @@
     {
       "id": 1813710233,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 32.4674,
         "y": 1.0361,
@@ -9217,7 +8811,6 @@
     {
       "id": 1813745663,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -15.0891,
         "y": 0.7309,
@@ -9234,7 +8827,6 @@
     {
       "id": 1816954839,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -16.7888,
         "y": 0.4806,
@@ -9251,7 +8843,6 @@
     {
       "id": 1819838348,
       "prefab": "Sun",
-      "faction": "None",
       "position": {
         "x": 22.9905,
         "y": 14.7639,
@@ -9268,7 +8859,6 @@
     {
       "id": 1823884254,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -17.3705,
         "y": 0.1924,
@@ -9302,7 +8892,6 @@
     {
       "id": 1827762209,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -115.5199,
         "y": 0.1386,
@@ -9336,7 +8925,6 @@
     {
       "id": 1831702730,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 110.1431,
         "y": 0.5835,
@@ -9353,7 +8941,6 @@
     {
       "id": 1833168423,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -61.4009,
         "y": 0.3743,
@@ -9421,7 +9008,6 @@
     {
       "id": 1841125857,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 116.5388,
         "y": 0.5878,
@@ -9440,9 +9026,9 @@
       "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
-        "x": 12.2861,
-        "y": 0.3989,
-        "z": 10.5058
+        "x": 12.2901,
+        "y": 0.433,
+        "z": 10.4961
       },
       "rotation": {
         "x": 0,
@@ -9472,7 +9058,6 @@
     {
       "id": 1848307742,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -51.4646,
         "y": 0.2431,
@@ -9506,7 +9091,6 @@
     {
       "id": 1866022090,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -47.6467,
         "y": 0.5572,
@@ -9523,7 +9107,6 @@
     {
       "id": 1866727892,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -101.3934,
         "y": 0.4726,
@@ -9540,7 +9123,6 @@
     {
       "id": 1867291928,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -109.225,
         "y": 0.3915,
@@ -9557,7 +9139,6 @@
     {
       "id": 1867877180,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -119.3725,
         "y": 0.6854,
@@ -9591,7 +9172,6 @@
     {
       "id": 1870271023,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -69.1783,
         "y": 0.6847,
@@ -9642,7 +9222,6 @@
     {
       "id": 1874670022,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -113.2208,
         "y": 0.4837,
@@ -9659,7 +9238,6 @@
     {
       "id": 1883428256,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -69.0436,
         "y": 0.4969,
@@ -9676,7 +9254,6 @@
     {
       "id": 1884637062,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -27.6832,
         "y": 0.5107,
@@ -9693,7 +9270,6 @@
     {
       "id": 1889871600,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -122.4138,
         "y": 0.958,
@@ -9727,7 +9303,6 @@
     {
       "id": 1895762102,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 23.0898,
         "y": 0.4595,
@@ -9744,7 +9319,6 @@
     {
       "id": 1898112339,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -43.0966,
         "y": 0.3754,
@@ -9761,7 +9335,6 @@
     {
       "id": 1911238316,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -55.593,
         "y": 0.9474,
@@ -9778,7 +9351,6 @@
     {
       "id": 1911426914,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -78.6298,
         "y": 0.5563,
@@ -9795,7 +9367,6 @@
     {
       "id": 1917265591,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -87.0986,
         "y": 0.6526,
@@ -9846,7 +9417,6 @@
     {
       "id": 1920507473,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 42.6744,
         "y": 0.4916,
@@ -9880,7 +9450,6 @@
     {
       "id": 1921654169,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 111.5535,
         "y": 0.6063,
@@ -9914,7 +9483,6 @@
     {
       "id": 1933320406,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 131.8153,
         "y": 0.6181,
@@ -9931,7 +9499,6 @@
     {
       "id": 1936337663,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 51.4326,
         "y": 0.5574,
@@ -9948,7 +9515,6 @@
     {
       "id": 1941317451,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 88.7746,
         "y": 0.3341,
@@ -9965,7 +9531,6 @@
     {
       "id": 1943431413,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -85.8411,
         "y": 0.5352,
@@ -9982,7 +9547,6 @@
     {
       "id": 1945931776,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -67.7549,
         "y": 0.699,
@@ -10016,7 +9580,6 @@
     {
       "id": 1951896886,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -76.2402,
         "y": 0.7651,
@@ -10033,7 +9596,6 @@
     {
       "id": 1951938921,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -6.5125,
         "y": 0.3121,
@@ -10067,7 +9629,6 @@
     {
       "id": 1955688928,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 96.1762,
         "y": 0.4484,
@@ -10084,7 +9645,6 @@
     {
       "id": 1968193259,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -3.194,
         "y": 0.3555,
@@ -10118,7 +9678,6 @@
     {
       "id": 1981039454,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 55.3884,
         "y": 0.4824,
@@ -10135,7 +9694,6 @@
     {
       "id": 1988730564,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -40.9041,
         "y": 1.0745,
@@ -10152,7 +9710,6 @@
     {
       "id": 1989821150,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 64.5822,
         "y": 1.3333,
@@ -10169,7 +9726,6 @@
     {
       "id": 1990540050,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 52.7023,
         "y": 0.3081,
@@ -10186,7 +9742,6 @@
     {
       "id": 1992341520,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 44.1462,
         "y": 0.3004,
@@ -10220,7 +9775,6 @@
     {
       "id": 1998873012,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 43.4452,
         "y": 1.033,
@@ -10237,7 +9791,6 @@
     {
       "id": 2011438952,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -39.5079,
         "y": 0.6541,
@@ -10271,7 +9824,6 @@
     {
       "id": 2014938750,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 94.8577,
         "y": 1.4089,
@@ -10288,7 +9840,6 @@
     {
       "id": 2015555609,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -113.3587,
         "y": 0.56,
@@ -10305,7 +9856,6 @@
     {
       "id": 2017363129,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 15.5884,
         "y": 0.718,
@@ -10339,7 +9889,6 @@
     {
       "id": 2029462824,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -22.8543,
         "y": 1.0545,
@@ -10373,7 +9922,6 @@
     {
       "id": 2031436755,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -38.7876,
         "y": 0.4361,
@@ -10407,7 +9955,6 @@
     {
       "id": 2039037524,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 16.2208,
         "y": 0.9147,
@@ -10424,7 +9971,6 @@
     {
       "id": 2045747612,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -133.3074,
         "y": 0.6302,
@@ -10458,7 +10004,6 @@
     {
       "id": 2049062993,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -131.9231,
         "y": 0.4257,
@@ -10475,7 +10020,6 @@
     {
       "id": 2049069935,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -52.5291,
         "y": 0.2559,
@@ -10509,7 +10053,6 @@
     {
       "id": 2057605263,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 86.4214,
         "y": 0.432,
@@ -10526,7 +10069,6 @@
     {
       "id": 2060191191,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 81.0523,
         "y": 0.7549,
@@ -10543,7 +10085,6 @@
     {
       "id": 2065731355,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -53.6363,
         "y": 0.496,
@@ -10560,7 +10101,6 @@
     {
       "id": 2071559972,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -80.7881,
         "y": 0.4175,
@@ -10577,7 +10117,6 @@
     {
       "id": 2071586638,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 45.859,
         "y": 0.5484,
@@ -10594,7 +10133,6 @@
     {
       "id": 2076592725,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -47.022,
         "y": 0.3179,
@@ -10611,7 +10149,6 @@
     {
       "id": 2078903952,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 119.2208,
         "y": 0.2322,
@@ -10628,7 +10165,6 @@
     {
       "id": 2080922445,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 119.7131,
         "y": 0.8926,
@@ -10645,7 +10181,6 @@
     {
       "id": 2081742640,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -30.7913,
         "y": 0.8688,
@@ -10679,7 +10214,6 @@
     {
       "id": 2085250372,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 118.0444,
         "y": 0.3075,
@@ -10696,7 +10230,6 @@
     {
       "id": 2085339318,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -45.6479,
         "y": 0.8945,
@@ -10730,7 +10263,6 @@
     {
       "id": 2087127243,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 124.5327,
         "y": 1.0496,
@@ -10747,7 +10279,6 @@
     {
       "id": 2091356852,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -49.4734,
         "y": 0.7076,
@@ -10764,7 +10295,6 @@
     {
       "id": 2092445144,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -89.7617,
         "y": 0.6489,
@@ -10781,7 +10311,6 @@
     {
       "id": 2093461619,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -98.2251,
         "y": 0.3578,
@@ -10798,7 +10327,6 @@
     {
       "id": 2094399887,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 5.9065,
         "y": 0.8269,
@@ -10815,7 +10343,6 @@
     {
       "id": 2094852526,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 79.7383,
         "y": 0.5776,
@@ -10832,7 +10359,6 @@
     {
       "id": 2095405522,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 31.2042,
         "y": 0.5807,
@@ -10866,7 +10392,6 @@
     {
       "id": 2097523182,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -105.0691,
         "y": 0.8902,
@@ -10883,7 +10408,6 @@
     {
       "id": 2100543504,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 30.4092,
         "y": 0.4197,
@@ -10917,7 +10441,6 @@
     {
       "id": 2106450005,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 91.0561,
         "y": 0.3196,
@@ -10934,7 +10457,6 @@
     {
       "id": 2107345302,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 20.2354,
         "y": 0.778,
@@ -10951,7 +10473,6 @@
     {
       "id": 2112252367,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 117.2536,
         "y": 0.8851,
@@ -10968,7 +10489,6 @@
     {
       "id": 2115946500,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 92.8604,
         "y": 0.2367,
@@ -11019,7 +10539,6 @@
     {
       "id": 2123126651,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 6.041,
         "y": 0.266,
@@ -11036,7 +10555,6 @@
     {
       "id": 2123763699,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 133.9963,
         "y": 0.337,
@@ -11053,7 +10571,6 @@
     {
       "id": 2127564796,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -118.0872,
         "y": 0.3495,
@@ -11070,7 +10587,6 @@
     {
       "id": 2128887973,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 91.5149,
         "y": 0.3598,
@@ -11087,7 +10603,6 @@
     {
       "id": 2132633166,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 36.2265,
         "y": 0.1107,
@@ -11104,7 +10619,6 @@
     {
       "id": 2132794173,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -44.1785,
         "y": 0.3597,
@@ -11138,7 +10652,6 @@
     {
       "id": 2135333533,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -81.62,
         "y": 0.4122,
@@ -11155,7 +10668,6 @@
     {
       "id": 2138665967,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -120.4411,
         "y": 0.4589,
@@ -11172,7 +10684,6 @@
     {
       "id": 2140900860,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 25.156,
         "y": 0.6479,
@@ -11189,7 +10700,6 @@
     {
       "id": 2148003034,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 109.3703,
         "y": 0.5903,
@@ -11206,7 +10716,6 @@
     {
       "id": 2148558447,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -51.9625,
         "y": 0.3684,
@@ -11223,7 +10732,6 @@
     {
       "id": 2149392068,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 61.0269,
         "y": 1.0091,
@@ -11240,7 +10748,6 @@
     {
       "id": 2151858398,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 102.9456,
         "y": 0.8971,
@@ -11257,7 +10764,6 @@
     {
       "id": 2159061041,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 3.7604,
         "y": 0.6346,
@@ -11291,7 +10797,6 @@
     {
       "id": 2163849236,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 41.8307,
         "y": 0.3786,
@@ -11308,7 +10813,6 @@
     {
       "id": 2169713603,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 124.7027,
         "y": 0.6376,
@@ -11325,7 +10829,6 @@
     {
       "id": 2175636509,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.1089,
         "y": 0.5507,
@@ -11359,7 +10862,6 @@
     {
       "id": 2180556107,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -90.0154,
         "y": 0.5726,
@@ -11393,7 +10895,6 @@
     {
       "id": 2186298317,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -106.6205,
         "y": 0.9139,
@@ -11410,7 +10911,6 @@
     {
       "id": 2189109211,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 12.5561,
         "y": 0.2827,
@@ -11461,7 +10961,6 @@
     {
       "id": 2199087536,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -17.0593,
         "y": 0.5894,
@@ -11478,7 +10977,6 @@
     {
       "id": 2201653609,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 51.9589,
         "y": 0.8871,
@@ -11495,7 +10993,6 @@
     {
       "id": 2202892393,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -60.9622,
         "y": 0.2959,
@@ -11512,7 +11009,6 @@
     {
       "id": 2212233321,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 24.8769,
         "y": 0.4655,
@@ -11529,7 +11025,6 @@
     {
       "id": 2214016540,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -4.0811,
         "y": 0.4519,
@@ -11580,7 +11075,6 @@
     {
       "id": 2222260326,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 2.453,
         "y": 0.8126,
@@ -11614,7 +11108,6 @@
     {
       "id": 2227550359,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 100.838,
         "y": 0.8351,
@@ -11648,7 +11141,6 @@
     {
       "id": 2234238292,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 80.7626,
         "y": 0.7418,
@@ -11665,7 +11157,6 @@
     {
       "id": 2240023384,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 84.087,
         "y": 0.3299,
@@ -11682,7 +11173,6 @@
     {
       "id": 2241444113,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -131.585,
         "y": 0.4791,
@@ -11699,7 +11189,6 @@
     {
       "id": 2243025522,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 69.0176,
         "y": 0.4259,
@@ -11716,7 +11205,6 @@
     {
       "id": 2246819533,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 46.7694,
         "y": 1.0804,
@@ -11733,7 +11221,6 @@
     {
       "id": 2251142139,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 63.3144,
         "y": 0.6503,
@@ -11767,7 +11254,6 @@
     {
       "id": 2259730385,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -62.1006,
         "y": 0.8966,
@@ -11784,7 +11270,6 @@
     {
       "id": 2262326649,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 26.7302,
         "y": 0.3055,
@@ -11801,7 +11286,6 @@
     {
       "id": 2264671459,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -126.4337,
         "y": 0.4256,
@@ -11818,7 +11302,6 @@
     {
       "id": 2272543293,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 94.1237,
         "y": 1.0467,
@@ -11835,7 +11318,6 @@
     {
       "id": 2277251724,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -8.2519,
         "y": 0.3404,
@@ -11852,7 +11334,6 @@
     {
       "id": 2282652179,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -109.4033,
         "y": 0.528,
@@ -11886,7 +11367,6 @@
     {
       "id": 2286977805,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 103.4755,
         "y": 0.3144,
@@ -11903,7 +11383,6 @@
     {
       "id": 2288877700,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 61.5916,
         "y": 0.4871,
@@ -11937,7 +11416,6 @@
     {
       "id": 2299812967,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -72.4872,
         "y": 1.0623,
@@ -11954,7 +11432,6 @@
     {
       "id": 2300218133,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -70.9068,
         "y": 0.5908,
@@ -11988,7 +11465,6 @@
     {
       "id": 2305297375,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.109,
         "y": 0.7956,
@@ -12005,7 +11481,6 @@
     {
       "id": 2314505540,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -21.6244,
         "y": 0.4087,
@@ -12039,7 +11514,6 @@
     {
       "id": 2319832949,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -59.9343,
         "y": 0.6446,
@@ -12056,7 +11530,6 @@
     {
       "id": 2321648852,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -28.6101,
         "y": 1.3187,
@@ -12107,7 +11580,6 @@
     {
       "id": 2331005167,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 3.479,
         "y": 0.9813,
@@ -12158,7 +11630,6 @@
     {
       "id": 2340787810,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 89.5566,
         "y": 0.5158,
@@ -12192,7 +11663,6 @@
     {
       "id": 2349817300,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 67.8609,
         "y": 0.3429,
@@ -12226,7 +11696,6 @@
     {
       "id": 2355577265,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -32.3142,
         "y": 1.0418,
@@ -12243,7 +11712,6 @@
     {
       "id": 2355916920,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -39.7817,
         "y": 0.6613,
@@ -12260,7 +11728,6 @@
     {
       "id": 2359070264,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -13.9438,
         "y": 0.2615,
@@ -12311,7 +11778,6 @@
     {
       "id": 2376686997,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -98.314,
         "y": 0.4503,
@@ -12345,7 +11811,6 @@
     {
       "id": 2379721458,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -40.0556,
         "y": 0.2917,
@@ -12362,7 +11827,6 @@
     {
       "id": 2381779214,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 22.2792,
         "y": 0.982,
@@ -12379,7 +11843,6 @@
     {
       "id": 2383012741,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 47.3441,
         "y": 1.0597,
@@ -12396,7 +11859,6 @@
     {
       "id": 2383521591,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -2.6241,
         "y": 0.7863,
@@ -12413,7 +11875,6 @@
     {
       "id": 2384057138,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 78.4885,
         "y": 0.9039,
@@ -12447,7 +11908,6 @@
     {
       "id": 2388520114,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 78.7473,
         "y": 0.7267,
@@ -12464,7 +11924,6 @@
     {
       "id": 2394756739,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -83.3615,
         "y": 0.3033,
@@ -12481,7 +11940,6 @@
     {
       "id": 2397110570,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 3.9021,
         "y": 0.6887,
@@ -12498,7 +11956,6 @@
     {
       "id": 2401722126,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 93.4437,
         "y": 0.6497,
@@ -12515,7 +11972,6 @@
     {
       "id": 2406124243,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -95.2341,
         "y": 0.6332,
@@ -12532,7 +11988,6 @@
     {
       "id": 2408510149,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 20.4129,
         "y": 1.1872,
@@ -12549,7 +12004,6 @@
     {
       "id": 2410726801,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.9933,
         "y": 1.0594,
@@ -12566,7 +12020,6 @@
     {
       "id": 2411762630,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 9.8503,
         "y": 0.3604,
@@ -12583,7 +12036,6 @@
     {
       "id": 2413270315,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -45.4626,
         "y": 0.4958,
@@ -12600,7 +12052,6 @@
     {
       "id": 2415611734,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 106.6257,
         "y": 1.2204,
@@ -12617,7 +12068,6 @@
     {
       "id": 2420244841,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -73.7531,
         "y": 0.453,
@@ -12636,9 +12086,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -9.2029,
-        "y": 0.7202,
-        "z": -3.6395
+        "x": -8.4761,
+        "y": 0.8157,
+        "z": -4.2899
       },
       "rotation": {
         "x": 0,
@@ -12651,7 +12101,6 @@
     {
       "id": 2420730298,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 57.1148,
         "y": 0.4042,
@@ -12668,7 +12117,6 @@
     {
       "id": 2424398777,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 101.7962,
         "y": 0.999,
@@ -12685,7 +12133,6 @@
     {
       "id": 2431654095,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": -10.1317,
         "y": 0.732,
@@ -12702,7 +12149,6 @@
     {
       "id": 2435192763,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 28.1047,
         "y": 0.9513,
@@ -12719,7 +12165,6 @@
     {
       "id": 2436776651,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -6.7843,
         "y": 0.6525,
@@ -12736,7 +12181,6 @@
     {
       "id": 2438310670,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 78.5251,
         "y": 0.4915,
@@ -12753,7 +12197,6 @@
     {
       "id": 2438934545,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 114.5262,
         "y": 0.8015,
@@ -12770,7 +12213,6 @@
     {
       "id": 2439373521,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -129.7444,
         "y": 0.2601,
@@ -12787,7 +12229,6 @@
     {
       "id": 2442849860,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -53.0419,
         "y": 0.4027,
@@ -12804,7 +12245,6 @@
     {
       "id": 2446127939,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 30.1403,
         "y": 1.1223,
@@ -12821,7 +12261,6 @@
     {
       "id": 2447094090,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 87.9155,
         "y": 0.2697,
@@ -12838,7 +12277,6 @@
     {
       "id": 2447241038,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -18.8503,
         "y": 0.8079,
@@ -12855,7 +12293,6 @@
     {
       "id": 2450766931,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 109.1477,
         "y": 0.6501,
@@ -12872,7 +12309,6 @@
     {
       "id": 2451161763,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -113.7021,
         "y": 0.6416,
@@ -12906,7 +12342,6 @@
     {
       "id": 2457589814,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -8.6788,
         "y": 0.8669,
@@ -12923,7 +12358,6 @@
     {
       "id": 2460039661,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -65.8082,
         "y": 0.8487,
@@ -12940,7 +12374,6 @@
     {
       "id": 2468524746,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 25.4645,
         "y": 0.5071,
@@ -12957,7 +12390,6 @@
     {
       "id": 2472840774,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 117.6274,
         "y": 0.7727,
@@ -12974,7 +12406,6 @@
     {
       "id": 2474142431,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 97.4636,
         "y": 0.7958,
@@ -12991,7 +12422,6 @@
     {
       "id": 2479011252,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -110.7061,
         "y": 1.1865,
@@ -13008,7 +12438,6 @@
     {
       "id": 2479543160,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 81.0287,
         "y": 0.345,
@@ -13042,7 +12471,6 @@
     {
       "id": 2487345880,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -58.6731,
         "y": 0.3575,
@@ -13059,7 +12487,6 @@
     {
       "id": 2488789604,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -10.1967,
         "y": 0.7216,
@@ -13076,7 +12503,6 @@
     {
       "id": 2491529628,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -5.7021,
         "y": 0.3765,
@@ -13110,7 +12536,6 @@
     {
       "id": 2498192563,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -121.8435,
         "y": 0.7894,
@@ -13144,7 +12569,6 @@
     {
       "id": 2501830886,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 69.5055,
         "y": 0.8503,
@@ -13195,7 +12619,6 @@
     {
       "id": 2511200988,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -128.4718,
         "y": 0.6788,
@@ -13212,7 +12635,6 @@
     {
       "id": 2515036450,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": -1.2796,
         "y": 0.4361,
@@ -13229,7 +12651,6 @@
     {
       "id": 2516549716,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 78.9091,
         "y": 0.4184,
@@ -13246,7 +12667,6 @@
     {
       "id": 2520752385,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 56.5228,
         "y": 0.4616,
@@ -13280,7 +12700,6 @@
     {
       "id": 2527835798,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 9.7898,
         "y": 0.9552,
@@ -13314,7 +12733,6 @@
     {
       "id": 2533902639,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 111.089,
         "y": 0.7663,
@@ -13331,7 +12749,6 @@
     {
       "id": 2538822552,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -54.9062,
         "y": 1.0108,
@@ -13348,7 +12765,6 @@
     {
       "id": 2538835073,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 85.0708,
         "y": 0.314,
@@ -13365,7 +12781,6 @@
     {
       "id": 2546321452,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 22.4473,
         "y": 0.7036,
@@ -13382,7 +12797,6 @@
     {
       "id": 2547579617,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 65.4353,
         "y": 0.6439,
@@ -13399,7 +12813,6 @@
     {
       "id": 2555591853,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -10.1904,
         "y": 0.7783,
@@ -13433,7 +12846,6 @@
     {
       "id": 2560609580,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.018,
         "y": 0.3972,
@@ -13450,7 +12862,6 @@
     {
       "id": 2564272550,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -35.3523,
         "y": 0.3825,
@@ -13467,7 +12878,6 @@
     {
       "id": 2564568997,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -103.0886,
         "y": 0.4508,
@@ -13501,7 +12911,6 @@
     {
       "id": 2576519096,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -5.7255,
         "y": 1.559,
@@ -13518,7 +12927,6 @@
     {
       "id": 2577913496,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -90.1888,
         "y": 1.1485,
@@ -13535,7 +12943,6 @@
     {
       "id": 2577963651,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -130.0298,
         "y": 0.4134,
@@ -13569,7 +12976,6 @@
     {
       "id": 2582760852,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 2.4658,
         "y": 1.0848,
@@ -13586,7 +12992,6 @@
     {
       "id": 2588846459,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 17.2817,
         "y": 0.5488,
@@ -13603,7 +13008,6 @@
     {
       "id": 2591458684,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 47.6415,
         "y": 0.3655,
@@ -13620,7 +13024,6 @@
     {
       "id": 2594975297,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -94.9941,
         "y": 0.708,
@@ -13637,7 +13040,6 @@
     {
       "id": 2597277102,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -108.7832,
         "y": 0.5166,
@@ -13654,7 +13056,6 @@
     {
       "id": 2599188698,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -74.4395,
         "y": 0.7982,
@@ -13671,7 +13072,6 @@
     {
       "id": 2599797503,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 2.0634,
         "y": 0.9473,
@@ -13688,7 +13088,6 @@
     {
       "id": 2603071442,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 107.5338,
         "y": 0.6314,
@@ -13705,7 +13104,6 @@
     {
       "id": 2603810678,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 74.2995,
         "y": 0.3135,
@@ -13722,7 +13120,6 @@
     {
       "id": 2604483860,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -95.0651,
         "y": 0.2031,
@@ -13739,7 +13136,6 @@
     {
       "id": 2605459591,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -13.1377,
         "y": 0.4183,
@@ -13773,7 +13169,6 @@
     {
       "id": 2618135970,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 37.0903,
         "y": 0.344,
@@ -13790,7 +13185,6 @@
     {
       "id": 2623328622,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -115.686,
         "y": 0.4278,
@@ -13807,7 +13201,6 @@
     {
       "id": 2633017676,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -0.7207,
         "y": 0.4258,
@@ -13824,7 +13217,6 @@
     {
       "id": 2633813178,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -117.3064,
         "y": 0.8237,
@@ -13841,7 +13233,6 @@
     {
       "id": 2636098059,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -78.6869,
         "y": 0.7745,
@@ -13858,7 +13249,6 @@
     {
       "id": 2636123835,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -25.3147,
         "y": 0.3032,
@@ -13875,7 +13265,6 @@
     {
       "id": 2639194928,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -11.79,
         "y": 0.8732,
@@ -13892,7 +13281,6 @@
     {
       "id": 2643555027,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 28.7588,
         "y": 0.6461,
@@ -13909,7 +13297,6 @@
     {
       "id": 2643940488,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 127.2482,
         "y": 0.9126,
@@ -13926,7 +13313,6 @@
     {
       "id": 2644497691,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.0839,
         "y": 0.4099,
@@ -13943,7 +13329,6 @@
     {
       "id": 2645450452,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -29.1163,
         "y": 0.2703,
@@ -13994,7 +13379,6 @@
     {
       "id": 2650261705,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -127.5456,
         "y": 0.3727,
@@ -14028,7 +13412,6 @@
     {
       "id": 2652233256,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -62.284,
         "y": 0.4962,
@@ -14045,7 +13428,6 @@
     {
       "id": 2652680807,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -54.7363,
         "y": 0.4696,
@@ -14062,7 +13444,6 @@
     {
       "id": 2653626805,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 28.4702,
         "y": 0.7407,
@@ -14079,7 +13460,6 @@
     {
       "id": 2653818720,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 87.9591,
         "y": 0.4593,
@@ -14096,7 +13476,6 @@
     {
       "id": 2658091568,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -11.1935,
         "y": 0.5798,
@@ -14113,7 +13492,6 @@
     {
       "id": 2659797430,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 27.8846,
         "y": 0.4849,
@@ -14130,7 +13508,6 @@
     {
       "id": 2661113633,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 7.3215,
         "y": 0.7336,
@@ -14147,7 +13524,6 @@
     {
       "id": 2669922709,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 98.555,
         "y": 1.0757,
@@ -14164,7 +13540,6 @@
     {
       "id": 2671460177,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 106.1271,
         "y": 0.7636,
@@ -14198,7 +13573,6 @@
     {
       "id": 2677519926,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 3.6473,
         "y": 0.7259,
@@ -14215,7 +13589,6 @@
     {
       "id": 2679225870,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 32.7642,
         "y": 0.493,
@@ -14249,7 +13622,6 @@
     {
       "id": 2689095861,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -126.047,
         "y": 0.3864,
@@ -14266,7 +13638,6 @@
     {
       "id": 2690572299,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -11.6338,
         "y": 0.8427,
@@ -14283,7 +13654,6 @@
     {
       "id": 2693037551,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 131.6711,
         "y": 0.5835,
@@ -14334,7 +13704,6 @@
     {
       "id": 2704917719,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -68.335,
         "y": 0.5404,
@@ -14351,7 +13720,6 @@
     {
       "id": 2706539883,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 85.8188,
         "y": 1.202,
@@ -14368,7 +13736,6 @@
     {
       "id": 2716665217,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -58.117,
         "y": 0.2882,
@@ -14385,7 +13752,6 @@
     {
       "id": 2717155153,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 86.9377,
         "y": 0.3644,
@@ -14402,7 +13768,6 @@
     {
       "id": 2717242175,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -77.0783,
         "y": 0.6128,
@@ -14436,7 +13801,6 @@
     {
       "id": 2722247965,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -121.517,
         "y": 1.0555,
@@ -14453,7 +13817,6 @@
     {
       "id": 2722264571,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 69.2112,
         "y": 0.6026,
@@ -14470,7 +13833,6 @@
     {
       "id": 2730860654,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -24.7123,
         "y": 0.2915,
@@ -14487,7 +13849,6 @@
     {
       "id": 2734812485,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 67.4276,
         "y": 0.5589,
@@ -14504,7 +13865,6 @@
     {
       "id": 2738089474,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -58.1803,
         "y": 0.2619,
@@ -14521,7 +13881,6 @@
     {
       "id": 2739001371,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 2.8625,
         "y": 0.8137,
@@ -14538,7 +13897,6 @@
     {
       "id": 2741156419,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -61.3085,
         "y": 0.4038,
@@ -14555,7 +13913,6 @@
     {
       "id": 2744391616,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 75.9465,
         "y": 0.1929,
@@ -14572,7 +13929,6 @@
     {
       "id": 2749047105,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -10.5333,
         "y": 0.3255,
@@ -14589,7 +13945,6 @@
     {
       "id": 2751430833,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -101.8699,
         "y": 0.4799,
@@ -14606,7 +13961,6 @@
     {
       "id": 2754519812,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 68.3325,
         "y": 0.2041,
@@ -14623,7 +13977,6 @@
     {
       "id": 2754802768,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -77.9456,
         "y": 0.8708,
@@ -14640,7 +13993,6 @@
     {
       "id": 2757191345,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.3415,
         "y": 0.885,
@@ -14657,7 +14009,6 @@
     {
       "id": 2760983394,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -96.1061,
         "y": 0.683,
@@ -14674,7 +14025,6 @@
     {
       "id": 2764440555,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -90.0466,
         "y": 0.5635,
@@ -14691,7 +14041,6 @@
     {
       "id": 2772610091,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 111.759,
         "y": 0.3136,
@@ -14708,7 +14057,6 @@
     {
       "id": 2777343314,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -0.7339,
         "y": 0.6644,
@@ -14725,7 +14073,6 @@
     {
       "id": 2783750251,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.376,
         "y": 0.6725,
@@ -14742,7 +14089,6 @@
     {
       "id": 2795933875,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -6.1076,
         "y": 0.6785,
@@ -14759,7 +14105,6 @@
     {
       "id": 2798656032,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 79.0945,
         "y": 0.5997,
@@ -14776,7 +14121,6 @@
     {
       "id": 2800712603,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -118.2124,
         "y": 0.451,
@@ -14793,7 +14137,6 @@
     {
       "id": 2804804340,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": -9.9173,
         "y": 0.6726,
@@ -14810,7 +14153,6 @@
     {
       "id": 2805050851,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 15.9076,
         "y": 1.0147,
@@ -14827,7 +14169,6 @@
     {
       "id": 2806084217,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -96.6676,
         "y": 0.422,
@@ -14844,7 +14185,6 @@
     {
       "id": 2810523985,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 86.0985,
         "y": 0.7662,
@@ -14878,7 +14218,6 @@
     {
       "id": 2818980294,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -9.5513,
         "y": 0.9676,
@@ -14895,7 +14234,6 @@
     {
       "id": 2821665351,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.1968,
         "y": 0.555,
@@ -14912,7 +14250,6 @@
     {
       "id": 2823022172,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 39.2573,
         "y": 0.6085,
@@ -14963,7 +14300,6 @@
     {
       "id": 2834247316,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.0363,
         "y": 0.6614,
@@ -14980,7 +14316,6 @@
     {
       "id": 2835576628,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 119.1331,
         "y": 0.5674,
@@ -15014,7 +14349,6 @@
     {
       "id": 2849796835,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -106.8851,
         "y": 0.6858,
@@ -15031,7 +14365,6 @@
     {
       "id": 2850277300,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 85.9906,
         "y": 0.6725,
@@ -15048,7 +14381,6 @@
     {
       "id": 2852512387,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -103.3275,
         "y": 0.781,
@@ -15065,7 +14397,6 @@
     {
       "id": 2857265944,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -116.5481,
         "y": 0.6999,
@@ -15082,7 +14413,6 @@
     {
       "id": 2862784141,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -121.4637,
         "y": 2.024,
@@ -15099,7 +14429,6 @@
     {
       "id": 2864497521,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 65.7706,
         "y": 0.5364,
@@ -15116,7 +14445,6 @@
     {
       "id": 2865430649,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 99.5546,
         "y": 0.7448,
@@ -15133,7 +14461,6 @@
     {
       "id": 2871286759,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -36.6627,
         "y": 0.5536,
@@ -15150,7 +14477,6 @@
     {
       "id": 2873140269,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 37.5018,
         "y": 0.4498,
@@ -15167,7 +14493,6 @@
     {
       "id": 2879150672,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -130.4332,
         "y": 0.5241,
@@ -15201,7 +14526,6 @@
     {
       "id": 2880125185,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -131.7042,
         "y": 0.7797,
@@ -15218,7 +14542,6 @@
     {
       "id": 2882452808,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 58.3341,
         "y": 0.9749,
@@ -15252,7 +14575,6 @@
     {
       "id": 2894832916,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -94.4574,
         "y": 1.4892,
@@ -15269,7 +14591,6 @@
     {
       "id": 2899510392,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 126.8498,
         "y": 0.6781,
@@ -15286,7 +14607,6 @@
     {
       "id": 2902773998,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 51.6338,
         "y": 1.0458,
@@ -15303,7 +14623,6 @@
     {
       "id": 2905941414,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -24.5989,
         "y": 0.5288,
@@ -15320,7 +14639,6 @@
     {
       "id": 2908624515,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -56.8401,
         "y": 0.9283,
@@ -15337,7 +14655,6 @@
     {
       "id": 2913873178,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -58.0176,
         "y": 0.3782,
@@ -15354,7 +14671,6 @@
     {
       "id": 2917661181,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 38.4401,
         "y": 0.9168,
@@ -15405,7 +14721,6 @@
     {
       "id": 2928931148,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 52.1833,
         "y": 0.8537,
@@ -15422,7 +14737,6 @@
     {
       "id": 2930123686,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -94.6924,
         "y": 0.8096,
@@ -15439,7 +14753,6 @@
     {
       "id": 2930228077,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -30.8178,
         "y": 0.6068,
@@ -15456,7 +14769,6 @@
     {
       "id": 2933283923,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -86.8934,
         "y": 0.3216,
@@ -15490,7 +14802,6 @@
     {
       "id": 2942178437,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 7.5347,
         "y": 1.3992,
@@ -15507,7 +14818,6 @@
     {
       "id": 2948166570,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 61.3889,
         "y": 0.4081,
@@ -15524,7 +14834,6 @@
     {
       "id": 2953998850,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -20.2299,
         "y": 0.5551,
@@ -15541,7 +14850,6 @@
     {
       "id": 2954943654,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -2.2599,
         "y": 0.8549,
@@ -15575,7 +14883,6 @@
     {
       "id": 2959601721,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 63.174,
         "y": 1.3025,
@@ -15592,7 +14899,6 @@
     {
       "id": 2963062161,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -117.79,
         "y": 0.5376,
@@ -15609,7 +14915,6 @@
     {
       "id": 2971150948,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -21.3705,
         "y": 0.6416,
@@ -15626,7 +14931,6 @@
     {
       "id": 2972574785,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -108.9908,
         "y": 0.7547,
@@ -15677,7 +14981,6 @@
     {
       "id": 2994187630,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 103.5994,
         "y": 0.438,
@@ -15694,7 +14997,6 @@
     {
       "id": 3003299819,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -42.7282,
         "y": 0.284,
@@ -15711,7 +15013,6 @@
     {
       "id": 3012207547,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -132.7842,
         "y": 0.5378,
@@ -15728,7 +15029,6 @@
     {
       "id": 3023688025,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 26.1428,
         "y": 0.8024,
@@ -15745,7 +15045,6 @@
     {
       "id": 3023971118,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 67.152,
         "y": 0.3061,
@@ -15762,7 +15061,6 @@
     {
       "id": 3026591615,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 0.0854,
         "y": 0.9982,
@@ -15779,7 +15077,6 @@
     {
       "id": 3029126163,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -55.3857,
         "y": 0.1581,
@@ -15796,7 +15093,6 @@
     {
       "id": 3030232383,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -59.5643,
         "y": 1.0488,
@@ -15830,7 +15126,6 @@
     {
       "id": 3035380074,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -107.3827,
         "y": 0.5687,
@@ -15847,7 +15142,6 @@
     {
       "id": 3040338527,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -29.3439,
         "y": 0.2388,
@@ -15881,7 +15175,6 @@
     {
       "id": 3041009504,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.4024,
         "y": 0.9091,
@@ -15898,7 +15191,6 @@
     {
       "id": 3041517245,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 60.9916,
         "y": 1.0128,
@@ -15915,7 +15207,6 @@
     {
       "id": 3044664485,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -20.6766,
         "y": 0.4773,
@@ -15932,7 +15223,6 @@
     {
       "id": 3051746464,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -75.7871,
         "y": 0.7343,
@@ -15949,7 +15239,6 @@
     {
       "id": 3058975134,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -76.6837,
         "y": 0.5747,
@@ -15966,7 +15255,6 @@
     {
       "id": 3060248427,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 71.5875,
         "y": 0.8781,
@@ -15983,7 +15271,6 @@
     {
       "id": 3061338621,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -2.9443,
         "y": 0.6525,
@@ -16000,7 +15287,6 @@
     {
       "id": 3062955019,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 19.2244,
         "y": 0.4976,
@@ -16017,7 +15303,6 @@
     {
       "id": 3064454273,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -85.5171,
         "y": 0.8709,
@@ -16034,7 +15319,6 @@
     {
       "id": 3071711968,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -100.5812,
         "y": 0.591,
@@ -16051,7 +15335,6 @@
     {
       "id": 3073542613,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -16.7212,
         "y": 0.4472,
@@ -16068,7 +15351,6 @@
     {
       "id": 3079866025,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 45.2694,
         "y": 0.6324,
@@ -16085,7 +15367,6 @@
     {
       "id": 3080705155,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 79.8046,
         "y": 0.5581,
@@ -16119,7 +15400,6 @@
     {
       "id": 3086051633,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -76.3197,
         "y": 0.8224,
@@ -16136,7 +15416,6 @@
     {
       "id": 3094945912,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -21.7182,
         "y": 0.6079,
@@ -16170,7 +15449,6 @@
     {
       "id": 3096134815,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -129.6764,
         "y": 0.4911,
@@ -16187,7 +15465,6 @@
     {
       "id": 3100807742,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -51.0327,
         "y": 0.3948,
@@ -16204,7 +15481,6 @@
     {
       "id": 3112129872,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -63.7895,
         "y": 0.5816,
@@ -16238,7 +15514,6 @@
     {
       "id": 3116877003,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 104.8205,
         "y": 0.6765,
@@ -16255,7 +15530,6 @@
     {
       "id": 3118259318,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 34.1255,
         "y": 0.9346,
@@ -16272,7 +15546,6 @@
     {
       "id": 3118532784,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 63.2952,
         "y": 0.2267,
@@ -16306,7 +15579,6 @@
     {
       "id": 3123469222,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -96.689,
         "y": 1.0232,
@@ -16323,7 +15595,6 @@
     {
       "id": 3127156519,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -133.9314,
         "y": 0.3013,
@@ -16340,7 +15611,6 @@
     {
       "id": 3129227003,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -133.5478,
         "y": 1.2787,
@@ -16357,7 +15627,6 @@
     {
       "id": 3130514955,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 129.9011,
         "y": 0.3436,
@@ -16391,7 +15660,6 @@
     {
       "id": 3134425301,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -44.1979,
         "y": 0.4643,
@@ -16408,7 +15676,6 @@
     {
       "id": 3134815893,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -70.0788,
         "y": 0.4595,
@@ -16425,7 +15692,6 @@
     {
       "id": 3135776307,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 27.4643,
         "y": 0.3281,
@@ -16442,7 +15708,6 @@
     {
       "id": 3137254610,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 104.1652,
         "y": 0.6479,
@@ -16459,7 +15724,6 @@
     {
       "id": 3140758865,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 66.6544,
         "y": 0.5438,
@@ -16493,7 +15757,6 @@
     {
       "id": 3148567416,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -67.0255,
         "y": 0.5286,
@@ -16510,7 +15773,6 @@
     {
       "id": 3153196069,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -114.1785,
         "y": 0.4515,
@@ -16544,7 +15806,6 @@
     {
       "id": 3158890471,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -112.9257,
         "y": 0.6475,
@@ -16561,7 +15822,6 @@
     {
       "id": 3162158750,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 82.012,
         "y": 0.5307,
@@ -16578,7 +15838,6 @@
     {
       "id": 3165002591,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 92.9464,
         "y": 0.7843,
@@ -16629,7 +15888,6 @@
     {
       "id": 3174226110,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 83.5936,
         "y": 0.4737,
@@ -16646,7 +15904,6 @@
     {
       "id": 3175706931,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -49.6501,
         "y": 0.4641,
@@ -16663,7 +15920,6 @@
     {
       "id": 3178571151,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -109.3067,
         "y": 0.7185,
@@ -16680,7 +15936,6 @@
     {
       "id": 3180136097,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -131.344,
         "y": 0.4767,
@@ -16697,7 +15952,6 @@
     {
       "id": 3184772907,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 29.95,
         "y": 1.2916,
@@ -16714,7 +15968,6 @@
     {
       "id": 3185337665,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 68.4724,
         "y": 0.3946,
@@ -16731,7 +15984,6 @@
     {
       "id": 3194755327,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -24.8645,
         "y": 0.4302,
@@ -16748,7 +16000,6 @@
     {
       "id": 3196621119,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -70.1849,
         "y": 0.5503,
@@ -16765,7 +16016,6 @@
     {
       "id": 3199604707,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 100.1688,
         "y": 0.6272,
@@ -16782,7 +16032,6 @@
     {
       "id": 3200305795,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -67.1797,
         "y": 0.4462,
@@ -16799,7 +16048,6 @@
     {
       "id": 3204404742,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -18.2265,
         "y": 0.5402,
@@ -16867,7 +16115,6 @@
     {
       "id": 3210260025,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 32.2419,
         "y": 0.5037,
@@ -16884,7 +16131,6 @@
     {
       "id": 3210992132,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 100.3862,
         "y": 0.4135,
@@ -16901,7 +16147,6 @@
     {
       "id": 3211087812,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 4.9084,
         "y": 0.2858,
@@ -16918,7 +16163,6 @@
     {
       "id": 3212382051,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -93.5954,
         "y": 0.3092,
@@ -16935,7 +16179,6 @@
     {
       "id": 3213840387,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -120.0934,
         "y": 0.6506,
@@ -16952,7 +16195,6 @@
     {
       "id": 3214195890,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 31.4492,
         "y": 0.5306,
@@ -16969,7 +16211,6 @@
     {
       "id": 3214416199,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -118.2812,
         "y": 1.0019,
@@ -17003,7 +16244,6 @@
     {
       "id": 3217196802,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 127.3297,
         "y": 0.726,
@@ -17020,7 +16260,6 @@
     {
       "id": 3224167373,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -88.8589,
         "y": 0.7274,
@@ -17037,7 +16276,6 @@
     {
       "id": 3231523318,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 134.3692,
         "y": 0.8514,
@@ -17054,7 +16292,6 @@
     {
       "id": 3231892193,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -108.2162,
         "y": 0.303,
@@ -17088,7 +16325,6 @@
     {
       "id": 3245493073,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -62.3457,
         "y": 0.4079,
@@ -17105,7 +16341,6 @@
     {
       "id": 3248894781,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 101.9528,
         "y": 0.4807,
@@ -17122,7 +16357,6 @@
     {
       "id": 3250958835,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 82.7837,
         "y": 0.3682,
@@ -17139,7 +16373,6 @@
     {
       "id": 3252773713,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -44.1755,
         "y": 0.1339,
@@ -17156,7 +16389,6 @@
     {
       "id": 3261648517,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -60.4714,
         "y": 0.6987,
@@ -17190,7 +16422,6 @@
     {
       "id": 3266923591,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -58.0694,
         "y": 0.784,
@@ -17207,7 +16438,6 @@
     {
       "id": 3269192575,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 50.7447,
         "y": 1.2164,
@@ -17224,7 +16454,6 @@
     {
       "id": 3273400980,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 125.3777,
         "y": 1.4678,
@@ -17243,9 +16472,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 9.908,
-        "y": 0.486,
-        "z": 4.6526
+        "x": 10.6947,
+        "y": 0.5157,
+        "z": 4.9542
       },
       "rotation": {
         "x": 0,
@@ -17275,7 +16504,6 @@
     {
       "id": 3278689257,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 73.5992,
         "y": 0.2399,
@@ -17292,7 +16520,6 @@
     {
       "id": 3282299592,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 6.8256,
         "y": 0.8242,
@@ -17309,7 +16536,6 @@
     {
       "id": 3295245365,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -92.9911,
         "y": 0.5495,
@@ -17326,7 +16552,6 @@
     {
       "id": 3295300162,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 121.539,
         "y": 0.4207,
@@ -17343,7 +16568,6 @@
     {
       "id": 3296224184,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 50.841,
         "y": 0.6379,
@@ -17360,7 +16584,6 @@
     {
       "id": 3297337164,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.7493,
         "y": 0.7225,
@@ -17394,7 +16617,6 @@
     {
       "id": 3327192264,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 122.0491,
         "y": 0.3677,
@@ -17411,7 +16633,6 @@
     {
       "id": 3333635700,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 80.106,
         "y": 0.7082,
@@ -17445,7 +16666,6 @@
     {
       "id": 3349506408,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 90.776,
         "y": 0.3916,
@@ -17462,7 +16682,6 @@
     {
       "id": 3355948282,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -78.9895,
         "y": 0.6298,
@@ -17479,7 +16698,6 @@
     {
       "id": 3359652685,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 115.2385,
         "y": 0.5168,
@@ -17496,7 +16714,6 @@
     {
       "id": 3364406709,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 72.8078,
         "y": 0.3696,
@@ -17513,7 +16730,6 @@
     {
       "id": 3367936196,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -80.0011,
         "y": 0.8262,
@@ -17530,7 +16746,6 @@
     {
       "id": 3372100347,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.3922,
         "y": 0.7351,
@@ -17547,7 +16762,6 @@
     {
       "id": 3379948735,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 98.129,
         "y": 0.813,
@@ -17581,7 +16795,6 @@
     {
       "id": 3383088874,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -98.5017,
         "y": 0.4692,
@@ -17598,7 +16811,6 @@
     {
       "id": 3386355515,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -54.0112,
         "y": 0.5496,
@@ -17615,7 +16827,6 @@
     {
       "id": 3404840206,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -43.6627,
         "y": 0.6355,
@@ -17632,7 +16843,6 @@
     {
       "id": 3405644813,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 78.1147,
         "y": 0.9062,
@@ -17649,7 +16859,6 @@
     {
       "id": 3406577120,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -54.8556,
         "y": 0.6373,
@@ -17666,7 +16875,6 @@
     {
       "id": 3407725616,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 55.532,
         "y": 0.6436,
@@ -17700,7 +16908,6 @@
     {
       "id": 3418693834,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -127.6531,
         "y": 0.2196,
@@ -17717,7 +16924,6 @@
     {
       "id": 3419389258,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -134.8176,
         "y": 0.2407,
@@ -17734,7 +16940,6 @@
     {
       "id": 3425937756,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -30.2526,
         "y": 0.8626,
@@ -17785,7 +16990,6 @@
     {
       "id": 3430878559,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 96.2063,
         "y": 0.5507,
@@ -17802,7 +17006,6 @@
     {
       "id": 3433099131,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -133.1259,
         "y": 0.7384,
@@ -17819,7 +17022,6 @@
     {
       "id": 3436108308,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -28.8814,
         "y": 0.228,
@@ -17836,7 +17038,6 @@
     {
       "id": 3438111114,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -96.2163,
         "y": 0.4749,
@@ -17853,7 +17054,6 @@
     {
       "id": 3439147536,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 24.9292,
         "y": 0.566,
@@ -17870,7 +17070,6 @@
     {
       "id": 3441418707,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -33.8723,
         "y": 0.5728,
@@ -17921,7 +17120,6 @@
     {
       "id": 3449785865,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 30.9933,
         "y": 0.7475,
@@ -17938,7 +17136,6 @@
     {
       "id": 3454071632,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -91.3183,
         "y": 1.2965,
@@ -17955,7 +17152,6 @@
     {
       "id": 3454469063,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -104.4833,
         "y": 0.8359,
@@ -17972,7 +17168,6 @@
     {
       "id": 3456184428,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 67.9835,
         "y": 1.1022,
@@ -17989,7 +17184,6 @@
     {
       "id": 3456206103,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -16.2531,
         "y": 0.4339,
@@ -18006,7 +17200,6 @@
     {
       "id": 3456264792,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -25.4265,
         "y": 0.5253,
@@ -18023,7 +17216,6 @@
     {
       "id": 3460435240,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -63.0231,
         "y": 0.6232,
@@ -18040,7 +17232,6 @@
     {
       "id": 3466821690,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 63.3174,
         "y": 0.8288,
@@ -18057,7 +17248,6 @@
     {
       "id": 3467746358,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -56.7183,
         "y": 0.8019,
@@ -18074,7 +17264,6 @@
     {
       "id": 3471233869,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -36.7288,
         "y": 0.736,
@@ -18091,7 +17280,6 @@
     {
       "id": 3474023255,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.491,
         "y": 0.9927,
@@ -18108,7 +17296,6 @@
     {
       "id": 3479922751,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -38.5014,
         "y": 0.5368,
@@ -18127,8 +17314,8 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -4.6406,
-        "y": 0.8739,
+        "x": -4.8224,
+        "y": 0.9022,
         "z": 6
       },
       "rotation": {
@@ -18159,7 +17346,6 @@
     {
       "id": 3489581055,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -8.4091,
         "y": 1.0059,
@@ -18193,7 +17379,6 @@
     {
       "id": 3494028106,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 73.8016,
         "y": 0.3432,
@@ -18227,7 +17412,6 @@
     {
       "id": 3497710692,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 11.3174,
         "y": 0.363,
@@ -18261,7 +17445,6 @@
     {
       "id": 3506495481,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 6.0046,
         "y": 0.3208,
@@ -18295,7 +17478,6 @@
     {
       "id": 3509327209,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 13.6695,
         "y": 0.8388,
@@ -18312,7 +17494,6 @@
     {
       "id": 3510608899,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 123.3622,
         "y": 0.5514,
@@ -18329,7 +17510,6 @@
     {
       "id": 3514379558,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 128.7555,
         "y": 0.6836,
@@ -18346,7 +17526,6 @@
     {
       "id": 3517957166,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 17.1985,
         "y": 0.4028,
@@ -18363,7 +17542,6 @@
     {
       "id": 3518143913,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 19.4718,
         "y": 0.3848,
@@ -18380,7 +17558,6 @@
     {
       "id": 3534588383,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 31.1776,
         "y": 0.8431,
@@ -18397,7 +17574,6 @@
     {
       "id": 3543889533,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -45.5835,
         "y": 0.8326,
@@ -18414,7 +17590,6 @@
     {
       "id": 3544587063,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -81.6479,
         "y": 0.2715,
@@ -18448,7 +17623,6 @@
     {
       "id": 3548046816,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 27.6329,
         "y": 0.6599,
@@ -18465,7 +17639,6 @@
     {
       "id": 3550207302,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 21.2735,
         "y": 0.651,
@@ -18499,7 +17672,6 @@
     {
       "id": 3552945044,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 5.0707,
         "y": 0.5389,
@@ -18516,7 +17688,6 @@
     {
       "id": 3553486526,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 5.4915,
         "y": 0.449,
@@ -18533,7 +17704,6 @@
     {
       "id": 3555592748,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 89.0258,
         "y": 0.6063,
@@ -18550,7 +17720,6 @@
     {
       "id": 3555747814,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -8.4905,
         "y": 1.208,
@@ -18567,7 +17736,6 @@
     {
       "id": 3558054489,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -11.5134,
         "y": 1.0807,
@@ -18584,7 +17752,6 @@
     {
       "id": 3561397584,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 4.3124,
         "y": 0.4959,
@@ -18618,7 +17785,6 @@
     {
       "id": 3563338991,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 126.9347,
         "y": 0.7482,
@@ -18635,7 +17801,6 @@
     {
       "id": 3563893926,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 133.9163,
         "y": 1.1466,
@@ -18686,7 +17851,6 @@
     {
       "id": 3589229251,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 64.9752,
         "y": 1.0342,
@@ -18703,7 +17867,6 @@
     {
       "id": 3591158272,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -111.5618,
         "y": 0.4315,
@@ -18720,7 +17883,6 @@
     {
       "id": 3592449822,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -86.8595,
         "y": 0.7182,
@@ -18737,7 +17899,6 @@
     {
       "id": 3596782051,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -118.0004,
         "y": 0.3435,
@@ -18771,7 +17932,6 @@
     {
       "id": 3603125034,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 132.352,
         "y": 1.1387,
@@ -18790,9 +17950,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": -9.4523,
-        "y": 0.6737,
-        "z": 2.7
+        "x": -9.3501,
+        "y": 0.633,
+        "z": 2.354
       },
       "rotation": {
         "x": 0,
@@ -18805,7 +17965,6 @@
     {
       "id": 3609976735,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -60.9153,
         "y": 0.7723,
@@ -18839,7 +17998,6 @@
     {
       "id": 3618998010,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -114.9215,
         "y": 0.879,
@@ -18856,7 +18014,6 @@
     {
       "id": 3620170206,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 12.6036,
         "y": 1.8089,
@@ -18873,7 +18030,6 @@
     {
       "id": 3622155837,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -36.6265,
         "y": 0.4987,
@@ -18890,7 +18046,6 @@
     {
       "id": 3624464066,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 26.3424,
         "y": 0.8416,
@@ -18907,7 +18062,6 @@
     {
       "id": 3625760260,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 8.1179,
         "y": 1.0192,
@@ -18924,7 +18078,6 @@
     {
       "id": 3627135146,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.1514,
         "y": 0.373,
@@ -18941,7 +18094,6 @@
     {
       "id": 3627207108,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -118.0494,
         "y": 0.774,
@@ -18958,7 +18110,6 @@
     {
       "id": 3631249133,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -88.0391,
         "y": 0.9145,
@@ -18975,7 +18126,6 @@
     {
       "id": 3632907150,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -91.184,
         "y": 0.7902,
@@ -18992,7 +18142,6 @@
     {
       "id": 3638967872,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -27.5914,
         "y": 0.4409,
@@ -19009,7 +18158,6 @@
     {
       "id": 3640164442,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -32.3492,
         "y": 0.3428,
@@ -19043,7 +18191,6 @@
     {
       "id": 3653524843,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -46.6651,
         "y": 1.1789,
@@ -19060,7 +18207,6 @@
     {
       "id": 3653871442,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -130.459,
         "y": 0.4489,
@@ -19077,7 +18223,6 @@
     {
       "id": 3654585281,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -32.4365,
         "y": 0.6929,
@@ -19094,7 +18239,6 @@
     {
       "id": 3655185279,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -107.6045,
         "y": 0.4831,
@@ -19111,7 +18255,6 @@
     {
       "id": 3655318524,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -69.8092,
         "y": 0.5256,
@@ -19128,7 +18271,6 @@
     {
       "id": 3660802969,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -10.9455,
         "y": 0.5532,
@@ -19162,7 +18304,6 @@
     {
       "id": 3661551315,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 45.2097,
         "y": 0.702,
@@ -19179,7 +18320,6 @@
     {
       "id": 3665142099,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 5.8675,
         "y": 1.2304,
@@ -19196,7 +18336,6 @@
     {
       "id": 3665917420,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -61.2824,
         "y": 0.4537,
@@ -19213,7 +18352,6 @@
     {
       "id": 3668628199,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 24.1859,
         "y": 0.3662,
@@ -19230,7 +18368,6 @@
     {
       "id": 3668842624,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 43.4118,
         "y": 0.8613,
@@ -19247,7 +18384,6 @@
     {
       "id": 3672540820,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -122.0085,
         "y": 0.2257,
@@ -19264,7 +18400,6 @@
     {
       "id": 3676646805,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -59.5208,
         "y": 0.5646,
@@ -19281,7 +18416,6 @@
     {
       "id": 3676702053,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -61.1158,
         "y": 0.4536,
@@ -19315,7 +18449,6 @@
     {
       "id": 3685900199,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 127.6961,
         "y": 0.7823,
@@ -19332,7 +18465,6 @@
     {
       "id": 3691674506,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 77.411,
         "y": 0.2586,
@@ -19349,7 +18481,6 @@
     {
       "id": 3694329468,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 119.6574,
         "y": 0.964,
@@ -19366,7 +18497,6 @@
     {
       "id": 3694544974,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 65.1734,
         "y": 0.7299,
@@ -19451,7 +18581,6 @@
     {
       "id": 3705362662,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -73.0604,
         "y": 1.799,
@@ -19485,7 +18614,6 @@
     {
       "id": 3712942235,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 15.8936,
         "y": 1.0968,
@@ -19502,7 +18630,6 @@
     {
       "id": 3718221073,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -86.2103,
         "y": 0.7939,
@@ -19553,7 +18680,6 @@
     {
       "id": 3735002079,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -115.7059,
         "y": 0.8861,
@@ -19570,7 +18696,6 @@
     {
       "id": 3735868161,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -18.1266,
         "y": 0.8067,
@@ -19587,7 +18712,6 @@
     {
       "id": 3739177477,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 56.5019,
         "y": 0.459,
@@ -19621,7 +18745,6 @@
     {
       "id": 3740409611,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -90.9881,
         "y": 0.6263,
@@ -19638,7 +18761,6 @@
     {
       "id": 3741893875,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 98.2992,
         "y": 1.2987,
@@ -19655,7 +18777,6 @@
     {
       "id": 3742093161,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 7.594,
         "y": 0.5331,
@@ -19672,7 +18793,6 @@
     {
       "id": 3743562566,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 35.9854,
         "y": 0.7236,
@@ -19723,7 +18843,6 @@
     {
       "id": 3748907742,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 65.9901,
         "y": 1.7716,
@@ -19757,7 +18876,6 @@
     {
       "id": 3751054984,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -133.7617,
         "y": 0.5249,
@@ -19774,7 +18892,6 @@
     {
       "id": 3754624326,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 40.1655,
         "y": 0.2649,
@@ -19791,7 +18908,6 @@
     {
       "id": 3762978838,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 97.1227,
         "y": 0.6884,
@@ -19808,7 +18924,6 @@
     {
       "id": 3764018418,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 41.7385,
         "y": 0.1703,
@@ -19825,7 +18940,6 @@
     {
       "id": 3767332725,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 21.3399,
         "y": 0.5847,
@@ -19842,7 +18956,6 @@
     {
       "id": 3781843270,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 60.5194,
         "y": 0.4315,
@@ -19859,7 +18972,6 @@
     {
       "id": 3781851385,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -60.9037,
         "y": 1.1367,
@@ -19893,7 +19005,6 @@
     {
       "id": 3786136496,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -134.4077,
         "y": 0.249,
@@ -19927,7 +19038,6 @@
     {
       "id": 3792376257,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -95.4781,
         "y": 0.9326,
@@ -19961,7 +19071,6 @@
     {
       "id": 3797553280,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -128.1492,
         "y": 0.3409,
@@ -19995,7 +19104,6 @@
     {
       "id": 3808668827,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 9.8253,
         "y": 0.4874,
@@ -20012,7 +19120,6 @@
     {
       "id": 3809136753,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 21.2988,
         "y": 0.5264,
@@ -20029,7 +19136,6 @@
     {
       "id": 3809436300,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -20.4116,
         "y": 1.0358,
@@ -20046,7 +19152,6 @@
     {
       "id": 3809912830,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 54.0945,
         "y": 0.9872,
@@ -20080,7 +19185,6 @@
     {
       "id": 3816321778,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 0.1588,
         "y": 0.0765,
@@ -20097,7 +19201,6 @@
     {
       "id": 3816719766,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -31.098,
         "y": 0.5278,
@@ -20131,7 +19234,6 @@
     {
       "id": 3821392725,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 64.8458,
         "y": 0.6669,
@@ -20148,7 +19250,6 @@
     {
       "id": 3822824846,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -72.4603,
         "y": 0.3209,
@@ -20165,7 +19266,6 @@
     {
       "id": 3826008931,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 96.9106,
         "y": 0.6078,
@@ -20182,7 +19282,6 @@
     {
       "id": 3826869867,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 38.8123,
         "y": 0.4982,
@@ -20216,7 +19315,6 @@
     {
       "id": 3831910192,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 88.567,
         "y": 0.7067,
@@ -20233,7 +19331,6 @@
     {
       "id": 3832131724,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -28.877,
         "y": 0.5231,
@@ -20250,7 +19347,6 @@
     {
       "id": 3832920378,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 102.1784,
         "y": 0.6015,
@@ -20284,7 +19380,6 @@
     {
       "id": 3834062227,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 82.5092,
         "y": 0.338,
@@ -20301,7 +19396,6 @@
     {
       "id": 3834247827,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -116.1381,
         "y": 0.6412,
@@ -20318,7 +19412,6 @@
     {
       "id": 3839481248,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -104.7125,
         "y": 0.4348,
@@ -20335,7 +19428,6 @@
     {
       "id": 3848661594,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -85.2051,
         "y": 0.4005,
@@ -20369,7 +19461,6 @@
     {
       "id": 3849843515,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -80.4669,
         "y": 0.5732,
@@ -20386,7 +19477,6 @@
     {
       "id": 3859848443,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -133.0252,
         "y": 0.5378,
@@ -20403,7 +19493,6 @@
     {
       "id": 3859887532,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -88.3778,
         "y": 0.6829,
@@ -20420,7 +19509,6 @@
     {
       "id": 3860336431,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -68.918,
         "y": 0.6606,
@@ -20437,7 +19525,6 @@
     {
       "id": 3862860320,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 132.3389,
         "y": 0.9732,
@@ -20471,7 +19558,6 @@
     {
       "id": 3867305989,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -109.6127,
         "y": 0.4823,
@@ -20488,7 +19574,6 @@
     {
       "id": 3868184242,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 54.4301,
         "y": 0.5948,
@@ -20505,7 +19590,6 @@
     {
       "id": 3869189761,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -30.876,
         "y": 0.3232,
@@ -20522,7 +19606,6 @@
     {
       "id": 3874554918,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -99.0452,
         "y": 0.6938,
@@ -20556,7 +19639,6 @@
     {
       "id": 3883877103,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 101.562,
         "y": 2.5543,
@@ -20590,7 +19672,6 @@
     {
       "id": 3887244763,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 118.0115,
         "y": 0.4299,
@@ -20607,7 +19688,6 @@
     {
       "id": 3888637632,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -98.6106,
         "y": 0.5327,
@@ -20624,7 +19704,6 @@
     {
       "id": 3890316900,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -17.6583,
         "y": 0.4627,
@@ -20641,7 +19720,6 @@
     {
       "id": 3893315057,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -68.8566,
         "y": 0.4302,
@@ -20658,7 +19736,6 @@
     {
       "id": 3897150635,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 22.8736,
         "y": 0.857,
@@ -20675,7 +19752,6 @@
     {
       "id": 3904387476,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -105.4165,
         "y": 0.4873,
@@ -20760,7 +19836,6 @@
     {
       "id": 3917398374,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 110.7791,
         "y": 0.5251,
@@ -20794,7 +19869,6 @@
     {
       "id": 3929789166,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 61.6254,
         "y": 0.4213,
@@ -20811,7 +19885,6 @@
     {
       "id": 3934915969,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -18.1754,
         "y": 0.2079,
@@ -20828,7 +19901,6 @@
     {
       "id": 3934945229,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 12.2362,
         "y": 0.7996,
@@ -20879,7 +19951,6 @@
     {
       "id": 3945265830,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -83.5614,
         "y": 0.4769,
@@ -20896,7 +19967,6 @@
     {
       "id": 3946935873,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -21.1495,
         "y": 0.8319,
@@ -20930,7 +20000,6 @@
     {
       "id": 3961118308,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -86.5599,
         "y": 0.8917,
@@ -20947,7 +20016,6 @@
     {
       "id": 3963028997,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 129.899,
         "y": 1.2124,
@@ -20998,7 +20066,6 @@
     {
       "id": 3980703046,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 8.1899,
         "y": 0.6458,
@@ -21015,7 +20082,6 @@
     {
       "id": 3980760126,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 103.135,
         "y": 0.5868,
@@ -21032,7 +20098,6 @@
     {
       "id": 3981882351,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 87.4411,
         "y": 0.5031,
@@ -21049,7 +20114,6 @@
     {
       "id": 3991298542,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": 75.1026,
         "y": 0.6678,
@@ -21066,7 +20130,6 @@
     {
       "id": 3993622195,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 30.0277,
         "y": 0.4469,
@@ -21100,7 +20163,6 @@
     {
       "id": 4000825484,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -15.0262,
         "y": 0.8407,
@@ -21117,7 +20179,6 @@
     {
       "id": 4002927496,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -67.3929,
         "y": 0.3797,
@@ -21134,7 +20195,6 @@
     {
       "id": 4004898239,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -122.5097,
         "y": 0.1762,
@@ -21151,7 +20211,6 @@
     {
       "id": 4007777063,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -6.4657,
         "y": 0.7829,
@@ -21185,7 +20244,6 @@
     {
       "id": 4022554627,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -108.4082,
         "y": 0.5856,
@@ -21202,7 +20260,6 @@
     {
       "id": 4024082841,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 104.3499,
         "y": 0.7553,
@@ -21219,7 +20276,6 @@
     {
       "id": 4030198958,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -115.325,
         "y": 0.4664,
@@ -21236,7 +20292,6 @@
     {
       "id": 4031742453,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 71.6758,
         "y": 0.5273,
@@ -21270,7 +20325,6 @@
     {
       "id": 4041104534,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -12.0378,
         "y": 0.5278,
@@ -21287,7 +20341,6 @@
     {
       "id": 4042012925,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -96.0124,
         "y": 0.7007,
@@ -21304,7 +20357,6 @@
     {
       "id": 4044377942,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -38.0416,
         "y": 0.6992,
@@ -21321,7 +20373,6 @@
     {
       "id": 4050048437,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 133.9834,
         "y": 0.5535,
@@ -21338,7 +20389,6 @@
     {
       "id": 4057132213,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -65.0467,
         "y": 0.9534,
@@ -21372,7 +20422,6 @@
     {
       "id": 4061261920,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 37.8386,
         "y": 0.8228,
@@ -21389,7 +20438,6 @@
     {
       "id": 4063657233,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 37.8307,
         "y": 0.2647,
@@ -21406,7 +20454,6 @@
     {
       "id": 4067908457,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 81.6994,
         "y": 0.3874,
@@ -21423,7 +20470,6 @@
     {
       "id": 4073272382,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -128.9867,
         "y": 0.5469,
@@ -21457,7 +20503,6 @@
     {
       "id": 4082524091,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 84.3031,
         "y": 0.3781,
@@ -21474,7 +20519,6 @@
     {
       "id": 4087282618,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 32.3081,
         "y": 0.2541,
@@ -21491,7 +20535,6 @@
     {
       "id": 4089896878,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -110.4873,
         "y": 0.7127,
@@ -21508,7 +20551,6 @@
     {
       "id": 4093129247,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 130.6614,
         "y": 0.4295,
@@ -21525,7 +20567,6 @@
     {
       "id": 4096486236,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -65.4697,
         "y": 0.3995,
@@ -21542,7 +20583,6 @@
     {
       "id": 4097340785,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -61.3636,
         "y": 0.9505,
@@ -21559,7 +20599,6 @@
     {
       "id": 4097686907,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 106.4856,
         "y": 1.1353,
@@ -21593,7 +20632,6 @@
     {
       "id": 4099790866,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -87.2337,
         "y": 1.3669,
@@ -21610,7 +20648,6 @@
     {
       "id": 4104721243,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 12.7809,
         "y": 0.9718,
@@ -21678,7 +20715,6 @@
     {
       "id": 4110764243,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -3.2215,
         "y": 0.8477,
@@ -21695,7 +20731,6 @@
     {
       "id": 4111027161,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -48.6753,
         "y": 0.6262,
@@ -21712,7 +20747,6 @@
     {
       "id": 4117947212,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 93.4256,
         "y": 0.8655,
@@ -21729,7 +20763,6 @@
     {
       "id": 4119416806,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 66.9037,
         "y": 0.8427,
@@ -21746,7 +20779,6 @@
     {
       "id": 4120477327,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -35.9461,
         "y": 0.4261,
@@ -21763,7 +20795,6 @@
     {
       "id": 4121949710,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -129.6173,
         "y": 0.5802,
@@ -21780,7 +20811,6 @@
     {
       "id": 4123049334,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -124.6901,
         "y": 0.7919,
@@ -21799,9 +20829,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 10.6728,
-        "y": 0.5147,
-        "z": -16.1397
+        "x": 10.3715,
+        "y": 0.5684,
+        "z": -16.2196
       },
       "rotation": {
         "x": 0,
@@ -21814,7 +20844,6 @@
     {
       "id": 4132670301,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 32.7678,
         "y": 0.4774,
@@ -21831,7 +20860,6 @@
     {
       "id": 4138546656,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 112.6486,
         "y": 0.4364,
@@ -21848,7 +20876,6 @@
     {
       "id": 4139245779,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -70.946,
         "y": 0.4727,
@@ -21865,7 +20892,6 @@
     {
       "id": 4140546893,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 59.7325,
         "y": 0.6234,
@@ -21882,7 +20908,6 @@
     {
       "id": 4142933884,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": 96.9268,
         "y": 1.2062,
@@ -21899,7 +20924,6 @@
     {
       "id": 4145081534,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 94.8021,
         "y": 0.5198,
@@ -21933,7 +20957,6 @@
     {
       "id": 4152960109,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 103.5045,
         "y": 0.5452,
@@ -21967,7 +20990,6 @@
     {
       "id": 4155345583,
       "prefab": "PropWreck",
-      "faction": "None",
       "position": {
         "x": -27.4448,
         "y": 0.4786,
@@ -21984,7 +21006,6 @@
     {
       "id": 4165956772,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -84.9822,
         "y": 0.7897,
@@ -22035,7 +21056,6 @@
     {
       "id": 4175063442,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -30.3271,
         "y": 1.3089,
@@ -22069,7 +21089,6 @@
     {
       "id": 4183679635,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 130.8,
         "y": 0.5442,
@@ -22086,7 +21105,6 @@
     {
       "id": 4183961148,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 88.6141,
         "y": 0.6986,
@@ -22103,7 +21121,6 @@
     {
       "id": 4184655243,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -68.9266,
         "y": 0.6942,
@@ -22120,7 +21137,6 @@
     {
       "id": 4185121951,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 10.4277,
         "y": 0.4174,
@@ -22154,7 +21170,6 @@
     {
       "id": 4190633922,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 131.4424,
         "y": 0.9832,
@@ -22171,7 +21186,6 @@
     {
       "id": 4190648245,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -130.0291,
         "y": 1.0724,
@@ -22188,7 +21202,6 @@
     {
       "id": 4194215456,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 11.4722,
         "y": 0.3568,
@@ -22205,7 +21218,6 @@
     {
       "id": 4196753410,
       "prefab": "PropBarrelExplosive",
-      "faction": "None",
       "position": {
         "x": 7.8078,
         "y": 0.6545,
@@ -22222,7 +21234,6 @@
     {
       "id": 4197982818,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -5.6652,
         "y": 1.0907,
@@ -22239,7 +21250,6 @@
     {
       "id": 4201116380,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -13.3037,
         "y": 0.8396,
@@ -22256,7 +21266,6 @@
     {
       "id": 4209259987,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 58.7597,
         "y": 0.801,
@@ -22273,7 +21282,6 @@
     {
       "id": 4209285306,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 34.6115,
         "y": 0.5768,
@@ -22290,7 +21298,6 @@
     {
       "id": 4210020705,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 96.7392,
         "y": 0.6234,
@@ -22324,7 +21331,6 @@
     {
       "id": 4215246533,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -70.8236,
         "y": 0.6504,
@@ -22341,7 +21347,6 @@
     {
       "id": 4215643401,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -41.4799,
         "y": 1.2214,
@@ -22358,7 +21363,6 @@
     {
       "id": 4217179590,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 134.7623,
         "y": 0.7222,
@@ -22375,7 +21379,6 @@
     {
       "id": 4219726025,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 58.0784,
         "y": 0.7271,
@@ -22392,7 +21395,6 @@
     {
       "id": 4228614776,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -134.1368,
         "y": 0.2111,
@@ -22409,7 +21411,6 @@
     {
       "id": 4232129448,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -31.1393,
         "y": 0.2675,
@@ -22426,7 +21427,6 @@
     {
       "id": 4239334334,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 118.0839,
         "y": 0.9709,
@@ -22443,7 +21443,6 @@
     {
       "id": 4248993432,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -59.9391,
         "y": 0.36,
@@ -22462,9 +21461,9 @@
       "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 2.2991,
-        "y": 0.313,
-        "z": -8.365
+        "x": 2.1911,
+        "y": 0.3202,
+        "z": -7.8993
       },
       "rotation": {
         "x": 0,
@@ -22477,7 +21476,6 @@
     {
       "id": 4256181597,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -85.3974,
         "y": 1.1756,
@@ -22494,7 +21492,6 @@
     {
       "id": 4256398788,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 4.7829,
         "y": 0.6755,
@@ -22528,7 +21525,6 @@
     {
       "id": 4261078480,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 31.0373,
         "y": 0.1714,
@@ -22545,7 +21541,6 @@
     {
       "id": 4268504034,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 115.5376,
         "y": 0.4742,
@@ -22562,7 +21557,6 @@
     {
       "id": 4269609147,
       "prefab": "PropTree",
-      "faction": "None",
       "position": {
         "x": -13.7987,
         "y": 0.4845,
@@ -22579,7 +21573,6 @@
     {
       "id": 4271684594,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -123.8826,
         "y": 0.5873,
@@ -22596,7 +21589,6 @@
     {
       "id": 4272155872,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": 107.7747,
         "y": 0.3644,
@@ -22613,7 +21605,6 @@
     {
       "id": 4272853764,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -24.425,
         "y": 0.7388,
@@ -22630,7 +21621,6 @@
     {
       "id": 4273301626,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 80.6348,
         "y": 0.517,
@@ -22647,7 +21637,6 @@
     {
       "id": 4276367430,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": -11.075,
         "y": 0.571,
@@ -22664,7 +21653,6 @@
     {
       "id": 4279617384,
       "prefab": "PropRock",
-      "faction": "None",
       "position": {
         "x": 123.0201,
         "y": 0.3802,
@@ -22681,7 +21669,6 @@
     {
       "id": 4285398717,
       "prefab": "PropPlant",
-      "faction": "None",
       "position": {
         "x": -109.0115,
         "y": 0.5194,
