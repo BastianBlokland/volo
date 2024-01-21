@@ -244,13 +244,14 @@ static void scene_level_object_push(
     log_w("Prefab name not found", log_param("prefab-id", fmt_int(prefabInst->prefabId)));
     return;
   }
+  const f32 scaleVal = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
       .prefab   = prefabName,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
-      .scale    = maybeScale ? maybeScale->scale : 0.0f, // Scale 0 is treated as unscaled (eg 1.0).
+      .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
 
