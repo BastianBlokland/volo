@@ -3,16 +3,22 @@
 #include "json_doc.h"
 
 typedef enum {
+  JsonWriteMode_Minimal,
+  JsonWriteMode_Compact,
+  JsonWriteMode_Verbose,
+} JsonWriteMode;
+
+typedef enum {
   JsonWriteFlags_None             = 0,
-  JsonWriteFlags_Pretty           = 1 << 0,
-  JsonWriteFlags_EscapeDollarSign = 1 << 1,
+  JsonWriteFlags_EscapeDollarSign = 1 << 0,
 } JsonWriteFlags;
 
 /**
  * Formatting options for writing a json value.
  */
 typedef struct {
-  JsonWriteFlags flags;
+  JsonWriteMode  mode : 8;
+  JsonWriteFlags flags : 8;
   u8             numberMaxDecDigits;
   String         indent;
   String         newline;
@@ -23,7 +29,8 @@ typedef struct {
  */
 #define json_write_opts(...)                                                                       \
   ((JsonWriteOpts){                                                                                \
-      .flags              = JsonWriteFlags_Pretty,                                                 \
+      .mode               = JsonWriteMode_Minimal,                                                 \
+      .flags              = JsonWriteFlags_None,                                                   \
       .numberMaxDecDigits = 10,                                                                    \
       .indent             = string_lit("  "),                                                      \
       .newline            = string_lit("\n"),                                                      \

@@ -171,6 +171,26 @@ spec(write_json) {
                    "}"));
   }
 
+  it("skips default values in a structure") {
+    typedef struct {
+      i32    valA;
+      String valB;
+      bool   valC;
+    } WriteJsonTestStruct;
+
+    data_reg_struct_t(reg, WriteJsonTestStruct);
+    data_reg_field_t(reg, WriteJsonTestStruct, valA, data_prim_t(i32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, WriteJsonTestStruct, valB, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, WriteJsonTestStruct, valC, data_prim_t(bool), .flags = DataFlags_Opt);
+
+    const WriteJsonTestStruct val = {
+        .valA = 0,
+        .valB = string_lit(""),
+        .valC = false,
+    };
+    test_write(_testCtx, reg, data_meta_t(t_WriteJsonTestStruct), mem_var(val), string_lit("{}"));
+  }
+
   it("can write a union of primitive types") {
     typedef enum {
       WriteJsonUnionTag_Int,

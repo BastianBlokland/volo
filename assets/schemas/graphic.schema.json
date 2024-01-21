@@ -9,199 +9,80 @@
         "shaders": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "title": "AssetGraphicShader",
-            "$ref": "#/$defs/AssetGraphicShader"
-          }
+          "items": { "title": "AssetGraphicShader", "$ref": "#/$defs/AssetGraphicShader" }
         },
         "samplers": {
           "type": "array",
-          "items": {
-            "title": "AssetGraphicSampler",
-            "$ref": "#/$defs/AssetGraphicSampler"
-          }
+          "items": { "title": "AssetGraphicSampler", "$ref": "#/$defs/AssetGraphicSampler" }
         },
-        "meshId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "vertexCount": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "renderOrder": {
-          "title": "i32",
-          "type": "integer",
-          "minimum": -2147483648,
-          "maximum": 2147483647
-        },
-        "topology": {
-          "title": "AssetGraphicTopology",
-          "$ref": "#/$defs/AssetGraphicTopology"
-        },
-        "rasterizer": {
-          "title": "AssetGraphicRasterizer",
-          "$ref": "#/$defs/AssetGraphicRasterizer"
-        },
-        "lineWidth": {
-          "title": "u16",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 65535
-        },
-        "depthClamp": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "depthBiasConstant": {
-          "title": "f32",
-          "type": "number"
-        },
-        "depthBiasSlope": {
-          "title": "f32",
-          "type": "number"
-        },
-        "blend": {
-          "title": "AssetGraphicBlend",
-          "$ref": "#/$defs/AssetGraphicBlend"
-        },
-        "blendAux": {
-          "title": "AssetGraphicBlend",
-          "$ref": "#/$defs/AssetGraphicBlend"
-        },
-        "blendConstant": {
-          "title": "f32",
-          "type": "number"
-        },
-        "depth": {
-          "title": "AssetGraphicDepth",
-          "$ref": "#/$defs/AssetGraphicDepth"
-        },
-        "cull": {
-          "title": "AssetGraphicCull",
-          "$ref": "#/$defs/AssetGraphicCull"
-        }
+        "meshId": { "title": "String", "type": "string", "minLength": 1 },
+        "vertexCount": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "renderOrder": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
+        "topology": { "title": "AssetGraphicTopology", "$ref": "#/$defs/AssetGraphicTopology" },
+        "rasterizer": { "title": "AssetGraphicRasterizer", "$ref": "#/$defs/AssetGraphicRasterizer" },
+        "lineWidth": { "title": "u16", "type": "integer", "exclusiveMinimum": 0, "maximum": 65535 },
+        "depthClamp": { "title": "bool", "type": "boolean" },
+        "depthBiasConstant": { "title": "f32", "type": "number" },
+        "depthBiasSlope": { "title": "f32", "type": "number" },
+        "blend": { "title": "AssetGraphicBlend", "$ref": "#/$defs/AssetGraphicBlend" },
+        "blendAux": { "title": "AssetGraphicBlend", "$ref": "#/$defs/AssetGraphicBlend" },
+        "blendConstant": { "title": "f32", "type": "number" },
+        "depth": { "title": "AssetGraphicDepth", "$ref": "#/$defs/AssetGraphicDepth" },
+        "cull": { "title": "AssetGraphicCull", "$ref": "#/$defs/AssetGraphicCull" }
       },
-      "required": [
-        "shaders"
-      ],
+      "required": [ "shaders" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}"
-        }
+        { "label": "New", "body": "^{\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}" }
       ]
     },
     "AssetGraphicShader": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "shaderId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
+        "shaderId": { "title": "String", "type": "string", "minLength": 1 },
         "overrides": {
           "type": "array",
-          "items": {
-            "title": "AssetGraphicOverride",
-            "$ref": "#/$defs/AssetGraphicOverride"
-          }
+          "items": { "title": "AssetGraphicOverride", "$ref": "#/$defs/AssetGraphicOverride" }
         }
       },
-      "required": [
-        "shaderId"
-      ],
+      "required": [ "shaderId" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"shaderId\": \"placeholder\"\n}"
-        }
+        { "label": "New", "body": "^{\n  \"shaderId\": \"placeholder\"\n}" }
       ]
     },
     "AssetGraphicOverride": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "binding": {
-          "title": "u8",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "value": {
-          "title": "f64",
-          "type": "number"
-        }
+        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "binding": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 },
+        "value": { "title": "f64", "type": "number" }
       },
-      "required": [
-        "name",
-        "binding",
-        "value"
-      ],
+      "required": [ "name", "binding", "value" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"name\": \"placeholder\",\n  \"binding\": 0,\n  \"value\": 0\n}"
-        }
+        { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"binding\": 0,\n  \"value\": 0\n}" }
       ]
     },
     "AssetGraphicSampler": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "textureId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "wrap": {
-          "title": "AssetGraphicWrap",
-          "$ref": "#/$defs/AssetGraphicWrap"
-        },
-        "filter": {
-          "title": "AssetGraphicFilter",
-          "$ref": "#/$defs/AssetGraphicFilter"
-        },
-        "anisotropy": {
-          "title": "AssetGraphicAniso",
-          "$ref": "#/$defs/AssetGraphicAniso"
-        },
-        "mipBlending": {
-          "title": "bool",
-          "type": "boolean"
-        }
+        "textureId": { "title": "String", "type": "string", "minLength": 1 },
+        "wrap": { "title": "AssetGraphicWrap", "$ref": "#/$defs/AssetGraphicWrap" },
+        "filter": { "title": "AssetGraphicFilter", "$ref": "#/$defs/AssetGraphicFilter" },
+        "anisotropy": { "title": "AssetGraphicAniso", "$ref": "#/$defs/AssetGraphicAniso" },
+        "mipBlending": { "title": "bool", "type": "boolean" }
       },
-      "required": [
-        "textureId"
-      ],
+      "required": [ "textureId" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"textureId\": \"placeholder\"\n}"
-        }
+        { "label": "New", "body": "^{\n  \"textureId\": \"placeholder\"\n}" }
       ]
     },
     "AssetGraphicWrap": {
-      "enum": [
-        "Clamp",
-        "Repeat",
-        "Zero"
-      ]
+      "enum": [ "Clamp", "Repeat", "Zero" ]
     },
     "AssetGraphicFilter": {
-      "enum": [
-        "Linear",
-        "Nearest"
-      ]
+      "enum": [ "Linear", "Nearest" ]
     },
     "AssetGraphicAniso": {
       "enum": [
@@ -223,11 +104,7 @@
       ]
     },
     "AssetGraphicRasterizer": {
-      "enum": [
-        "Fill",
-        "Lines",
-        "Points"
-      ]
+      "enum": [ "Fill", "Lines", "Points" ]
     },
     "AssetGraphicBlend": {
       "enum": [
@@ -255,11 +132,7 @@
       ]
     },
     "AssetGraphicCull": {
-      "enum": [
-        "None",
-        "Back",
-        "Front"
-      ]
+      "enum": [ "None", "Back", "Front" ]
     }
   }
 }

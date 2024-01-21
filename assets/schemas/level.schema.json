@@ -8,133 +8,64 @@
       "properties": {
         "objects": {
           "type": "array",
-          "items": {
-            "title": "AssetLevelObject",
-            "$ref": "#/$defs/AssetLevelObject"
-          }
+          "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }
         }
       },
-      "required": [
-        "objects"
-      ],
+      "required": [ "objects" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"objects\": []\n}"
-        }
+        { "label": "New", "body": "^{\n  \"objects\": []\n}" }
       ]
     },
     "AssetLevelObject": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "prefab": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "faction": {
-          "title": "AssetLevelFaction",
-          "$ref": "#/$defs/AssetLevelFaction"
-        },
-        "position": {
-          "title": "GeoVector",
-          "$ref": "#/$defs/GeoVector"
-        },
-        "rotation": {
-          "title": "GeoQuat",
-          "$ref": "#/$defs/GeoQuat"
-        },
-        "scale": {
-          "title": "f32",
-          "type": "number"
-        }
+        "id": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "prefab": { "title": "String", "type": "string", "minLength": 1 },
+        "faction": { "title": "AssetLevelFaction", "$ref": "#/$defs/AssetLevelFaction" },
+        "position": { "title": "GeoVector", "$ref": "#/$defs/GeoVector" },
+        "rotation": { "title": "GeoQuat", "$ref": "#/$defs/GeoQuat" },
+        "scale": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "prefab",
-        "faction",
-        "position",
-        "rotation"
-      ],
+      "required": [ "prefab", "position", "rotation" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"prefab\": \"placeholder\",\n  \"faction\": \"A\",\n  \"position\": {},\n  \"rotation\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0,\n    \"w\": 0\n  }\n}"
-        }
+        { "label": "New", "body": "^{\n  \"prefab\": \"placeholder\",\n  \"position\": {},\n  \"rotation\": {}\n}" }
       ]
     },
     "AssetLevelFaction": {
       "enum": [
+        "None",
         "A",
         "B",
         "C",
-        "D",
-        "None"
+        "D"
       ]
     },
     "GeoVector": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "x": {
-          "title": "f32",
-          "type": "number"
-        },
-        "y": {
-          "title": "f32",
-          "type": "number"
-        },
-        "z": {
-          "title": "f32",
-          "type": "number"
-        }
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "GeoQuat": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "x": {
-          "title": "f32",
-          "type": "number"
-        },
-        "y": {
-          "title": "f32",
-          "type": "number"
-        },
-        "z": {
-          "title": "f32",
-          "type": "number"
-        },
-        "w": {
-          "title": "f32",
-          "type": "number"
-        }
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" },
+        "w": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "x",
-        "y",
-        "z",
-        "w"
-      ],
+      "required": [],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"x\": 0,\n  \"y\": 0,\n  \"z\": 0,\n  \"w\": 0\n}"
-        }
+        { "label": "New", "body": "^{}" }
       ]
     }
   }

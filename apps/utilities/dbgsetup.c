@@ -61,7 +61,7 @@ typedef struct {
 
 static bool dbgsetup_write_json(String path, const JsonDoc* jsonDoc, const JsonVal jsonVal) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
-  json_write(&dynString, jsonDoc, jsonVal, &json_write_opts());
+  json_write(&dynString, jsonDoc, jsonVal, &json_write_opts(.mode = JsonWriteMode_Compact));
 
   FileResult res;
   if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {

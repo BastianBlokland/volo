@@ -6,39 +6,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "size": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "glyphSize": {
-          "title": "u32",
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 4294967295
-        },
-        "border": {
-          "title": "u32",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
-        "lineSpacing": {
-          "title": "f32",
-          "type": "number"
-        },
-        "baseline": {
-          "title": "f32",
-          "type": "number"
-        },
+        "size": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "glyphSize": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "border": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "lineSpacing": { "title": "f32", "type": "number" },
+        "baseline": { "title": "f32", "type": "number" },
         "fonts": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "title": "FontTexDefFont",
-            "$ref": "#/$defs/FontTexDefFont"
-          }
+          "items": { "title": "FontTexDefFont", "$ref": "#/$defs/FontTexDefFont" }
         }
       },
       "required": [
@@ -49,50 +25,22 @@
         "fonts"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"size\": 1,\n  \"glyphSize\": 1,\n  \"border\": 0,\n  \"baseline\": 0,\n  \"fonts\": [\n    {\n      \"id\": \"placeholder\",\n      \"characters\": \"placeholder\"\n    }\n  ]\n}"
-        }
+        { "label": "New", "body": "^{\n  \"size\": 1,\n  \"glyphSize\": 1,\n  \"border\": 0,\n  \"baseline\": 0,\n  \"fonts\": [\n    {\n      \"id\": \"placeholder\",\n      \"characters\": \"placeholder\"\n    }\n  ]\n}" }
       ]
     },
     "FontTexDefFont": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "variation": {
-          "title": "u8",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "yOffset": {
-          "title": "f32",
-          "type": "number"
-        },
-        "spacing": {
-          "title": "f32",
-          "type": "number"
-        },
-        "characters": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        }
+        "id": { "title": "String", "type": "string", "minLength": 1 },
+        "variation": { "title": "u8", "type": "integer", "minimum": 0, "maximum": 255 },
+        "yOffset": { "title": "f32", "type": "number" },
+        "spacing": { "title": "f32", "type": "number" },
+        "characters": { "title": "String", "type": "string", "minLength": 1 }
       },
-      "required": [
-        "id",
-        "characters"
-      ],
+      "required": [ "id", "characters" ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"id\": \"placeholder\",\n  \"characters\": \"placeholder\"\n}"
-        }
+        { "label": "New", "body": "^{\n  \"id\": \"placeholder\",\n  \"characters\": \"placeholder\"\n}" }
       ]
     }
   }

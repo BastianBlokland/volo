@@ -6,10 +6,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -17,21 +14,12 @@
       "name": "nav_find",
       "doc": "Find a navigation position.\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`",
       "sig": {
-        "ret": [
-          "null",
-          "vec3"
-        ],
+        "ret": [ "null", "vec3" ],
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "type",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           }
         ]
       }
@@ -40,15 +28,9 @@
       "name": "target_range_max",
       "doc": "Lookup the maximum targeting range of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -58,20 +40,11 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "start",
-            "mask": "vec3"
-          },
-          {
-            "name": "end",
-            "mask": "vec3"
-          },
+          { "name": "start", "mask": "vec3" },
+          { "name": "end", "mask": "vec3" },
           {
             "name": "color",
-            "mask": [
-              "null",
-              "color"
-            ]
+            "mask": [ "null", "color" ]
           }
         ]
       }
@@ -82,27 +55,15 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "radius", "mask": "num" },
           {
             "name": "layer",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           },
           {
             "name": "navBlocker",
-            "mask": [
-              "null",
-              "bool"
-            ]
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -111,15 +72,9 @@
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "vec3"
-        ],
+        "ret": [ "null", "vec3" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -129,18 +84,9 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radiance",
-            "mask": "color"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
-          }
+          { "name": "pos", "mask": "vec3" },
+          { "name": "radiance", "mask": "color" },
+          { "name": "radius", "mask": "num" }
         ]
       }
     },
@@ -148,25 +94,13 @@
       "name": "renderable_param",
       "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
       "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
+        "ret": [ "null", "bool" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -175,15 +109,9 @@
       "name": "target_range_min",
       "doc": "Lookup the minimum targeting range of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -193,11 +121,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -205,32 +129,17 @@
       "name": "query_box",
       "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "size",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "size", "mask": "vec3" },
           {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": [ "null", "quat" ]
           },
           {
             "name": "layers",
-            "mask": [
-              "null",
-              "str"
-            ],
+            "mask": [ "null", "str" ],
             "multi": true
           }
         ]
@@ -240,15 +149,9 @@
       "name": "name",
       "doc": "Lookup the name of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "str"
-        ],
+        "ret": [ "null", "str" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -256,15 +159,9 @@
       "name": "query_set",
       "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "set",
-            "mask": "str"
-          }
+          { "name": "set", "mask": "str" }
         ]
       }
     },
@@ -272,19 +169,10 @@
       "name": "active",
       "doc": "Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`",
       "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
+        "ret": [ "null", "bool" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "activity",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "activity", "mask": "str" }
         ]
       }
     },
@@ -294,10 +182,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -307,16 +192,10 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "delay",
-            "mask": [
-              "num",
-              "entity"
-            ]
+            "mask": [ "num", "entity" ]
           }
         ]
       }
@@ -325,15 +204,9 @@
       "name": "health",
       "doc": "Lookup the health points of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -343,16 +216,10 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "target",
-            "mask": [
-              "vec3",
-              "entity"
-            ]
+            "mask": [ "vec3", "entity" ]
           }
         ]
       }
@@ -361,46 +228,25 @@
       "name": "renderable_spawn",
       "doc": "Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.",
       "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
+        "ret": [ "null", "bool" ],
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "asset", "mask": "entity" },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": [ "null", "quat" ]
           },
           {
             "name": "scale",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           },
           {
             "name": "color",
-            "mask": [
-              "null",
-              "color"
-            ]
+            "mask": [ "null", "color" ]
           },
           {
             "name": "emissive",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -409,16 +255,9 @@
       "name": "nav_target",
       "doc": "Lookup the current navigation target of the given entity. Either a position or an entity.",
       "sig": {
-        "ret": [
-          "null",
-          "vec3",
-          "entity"
-        ],
+        "ret": [ "null", "vec3", "entity" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -428,20 +267,11 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
           {
             "name": "size",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -450,15 +280,9 @@
       "name": "query_pop",
       "doc": "Pops the first query value, returns null when reaching the end of the query.",
       "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
+        "ret": [ "null", "entity" ],
         "args": [
-          {
-            "name": "query",
-            "mask": "num"
-          }
+          { "name": "query", "mask": "num" }
         ]
       }
     },
@@ -466,42 +290,24 @@
       "name": "sound_spawn",
       "doc": "Spawn a sound instance.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.",
       "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
+        "ret": [ "null", "entity" ],
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
+          { "name": "asset", "mask": "entity" },
           {
             "name": "pos",
-            "mask": [
-              "null",
-              "vec3"
-            ]
+            "mask": [ "null", "vec3" ]
           },
           {
             "name": "gain",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           },
           {
             "name": "pitch",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           },
           {
             "name": "looping",
-            "mask": [
-              "null",
-              "bool"
-            ]
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -510,15 +316,9 @@
       "name": "target_primary",
       "doc": "Lookup the primary target of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
+        "ret": [ "null", "entity" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -528,14 +328,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "amount",
-            "mask": "num"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "amount", "mask": "num" }
         ]
       }
     },
@@ -543,15 +337,9 @@
       "name": "query_random",
       "doc": "Return a random remaining value in the given query, returns null when the current query is empty.",
       "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
+        "ret": [ "null", "entity" ],
         "args": [
-          {
-            "name": "query",
-            "mask": "num"
-          }
+          { "name": "query", "mask": "num" }
         ]
       }
     },
@@ -559,15 +347,9 @@
       "name": "scale",
       "doc": "Lookup the scale of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -577,11 +359,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -591,11 +369,7 @@
       "sig": {
         "ret": "any",
         "args": [
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -603,42 +377,24 @@
       "name": "prefab_spawn",
       "doc": "Spawn a prefab.\n\n*Note*: Resulting entity is not automatically destroyed.",
       "sig": {
-        "ret": [
-          "null",
-          "entity"
-        ],
+        "ret": [ "null", "entity" ],
         "args": [
-          {
-            "name": "prefabId",
-            "mask": "str"
-          },
+          { "name": "prefabId", "mask": "str" },
           {
             "name": "pos",
-            "mask": [
-              "null",
-              "vec3"
-            ]
+            "mask": [ "null", "vec3" ]
           },
           {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": [ "null", "quat" ]
           },
           {
             "name": "scale",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           },
           {
             "name": "faction",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           }
         ]
       }
@@ -647,19 +403,10 @@
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`",
       "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
+        "ret": [ "null", "bool" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "capability",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "capability", "mask": "str" }
         ]
       }
     },
@@ -667,15 +414,9 @@
       "name": "velocity",
       "doc": "Lookup the velocity of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "vec3"
-        ],
+        "ret": [ "null", "vec3" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -683,19 +424,10 @@
       "name": "joint_position",
       "doc": "Lookup the world position of a joint on the given entity.\n\n*Note*: Animation update from this frame is not taken into account.",
       "sig": {
-        "ret": [
-          "null",
-          "vec3"
-        ],
+        "ret": [ "null", "vec3" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "joint",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "joint", "mask": "str" }
         ]
       }
     },
@@ -707,10 +439,7 @@
         "args": [
           {
             "name": "v",
-            "mask": [
-              "null",
-              "entity"
-            ]
+            "mask": [ "null", "entity" ]
           }
         ]
       }
@@ -719,25 +448,13 @@
       "name": "sound_param",
       "doc": "Change or query a sound parameter on the given entity.\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -746,15 +463,9 @@
       "name": "rotation",
       "doc": "Lookup the rotation of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "quat"
-        ],
+        "ret": [ "null", "quat" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -764,27 +475,15 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "size",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "size", "mask": "vec3" },
           {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": [ "null", "quat" ]
           },
           {
             "name": "color",
-            "mask": [
-              "null",
-              "color"
-            ]
+            "mask": [ "null", "color" ]
           }
         ]
       }
@@ -795,34 +494,19 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "size",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "size", "mask": "vec3" },
           {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": [ "null", "quat" ]
           },
           {
             "name": "layer",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           },
           {
             "name": "navBlocker",
-            "mask": [
-              "null",
-              "bool"
-            ]
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -833,23 +517,14 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "radius",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           },
           {
             "name": "color",
-            "mask": [
-              "null",
-              "color"
-            ]
+            "mask": [ "null", "color" ]
           }
         ]
       }
@@ -860,16 +535,10 @@
       "sig": {
         "ret": "bool",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
+          { "name": "pos", "mask": "vec3" },
           {
             "name": "faction",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           }
         ]
       }
@@ -880,24 +549,12 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
+          { "name": "asset", "mask": "entity" },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
           {
             "name": "alpha",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -906,25 +563,13 @@
       "name": "status",
       "doc": "Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
       "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
+        "ret": [ "null", "bool" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "type",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "type", "mask": "str" },
           {
             "name": "enable",
-            "mask": [
-              "null",
-              "bool"
-            ]
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -933,15 +578,9 @@
       "name": "faction",
       "doc": "Lookup the faction of the given entity.",
       "sig": {
-        "ret": [
-          "null",
-          "str"
-        ],
+        "ret": [ "null", "str" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -951,27 +590,15 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "target",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "target", "mask": "entity" },
           {
             "name": "jointName",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           },
           {
             "name": "offset",
-            "mask": [
-              "null",
-              "vec3"
-            ]
+            "mask": [ "null", "vec3" ]
           }
         ]
       }
@@ -982,18 +609,9 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "this",
-            "mask": "entity"
-          },
-          {
-            "name": "target",
-            "mask": "entity"
-          },
-          {
-            "name": "key",
-            "mask": "str"
-          }
+          { "name": "this", "mask": "entity" },
+          { "name": "target", "mask": "entity" },
+          { "name": "key", "mask": "str" }
         ]
       }
     },
@@ -1001,25 +619,13 @@
       "name": "light_param",
       "doc": "Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [
-              "null",
-              "color"
-            ]
+            "mask": [ "null", "color" ]
           }
         ]
       }
@@ -1030,23 +636,10 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "color",
-            "mask": "color"
-          },
-          {
-            "name": "size",
-            "mask": "num"
-          },
-          {
-            "name": "values",
-            "mask": "any",
-            "multi": true
-          }
+          { "name": "pos", "mask": "vec3" },
+          { "name": "color", "mask": "color" },
+          { "name": "size", "mask": "num" },
+          { "name": "values", "mask": "any", "multi": true }
         ]
       }
     },
@@ -1064,16 +657,10 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "target",
-            "mask": [
-              "null",
-              "entity"
-            ]
+            "mask": [ "null", "entity" ]
           }
         ]
       }
@@ -1084,23 +671,14 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
+          { "name": "v", "mask": "entity" },
           {
             "name": "pos",
-            "mask": [
-              "null",
-              "vec3"
-            ]
+            "mask": [ "null", "vec3" ]
           },
           {
             "name": "rot",
-            "mask": [
-              "null",
-              "quat"
-            ]
+            "mask": [ "null", "quat" ]
           }
         ]
       }
@@ -1109,25 +687,13 @@
       "name": "query_sphere",
       "doc": "Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "radius",
-            "mask": "num"
-          },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "radius", "mask": "num" },
           {
             "name": "layers",
-            "mask": [
-              "null",
-              "str"
-            ],
+            "mask": [ "null", "str" ],
             "multi": true
           }
         ]
@@ -1145,25 +711,13 @@
       "name": "line_of_sight",
       "doc": "Test if there is a clear line of sight between the given entities.",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "src",
-            "mask": "entity"
-          },
-          {
-            "name": "dst",
-            "mask": "entity"
-          },
+          { "name": "src", "mask": "entity" },
+          { "name": "dst", "mask": "entity" },
           {
             "name": "radius",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -1174,14 +728,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "type",
-            "mask": "str"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "type", "mask": "str" }
         ]
       }
     },
@@ -1191,10 +739,7 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          }
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -1202,25 +747,13 @@
       "name": "set",
       "doc": "Change or query if the target entity is contained in the given set.",
       "sig": {
-        "ret": [
-          "null",
-          "bool"
-        ],
+        "ret": [ "null", "bool" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "set",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "set", "mask": "str" },
           {
             "name": "add",
-            "mask": [
-              "null",
-              "bool"
-            ]
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -1231,24 +764,12 @@
       "sig": {
         "ret": "entity",
         "args": [
-          {
-            "name": "asset",
-            "mask": "entity"
-          },
-          {
-            "name": "pos",
-            "mask": "vec3"
-          },
-          {
-            "name": "rot",
-            "mask": "quat"
-          },
+          { "name": "asset", "mask": "entity" },
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
           {
             "name": "alpha",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -1259,27 +780,15 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "start",
-            "mask": "vec3"
-          },
-          {
-            "name": "end",
-            "mask": "vec3"
-          },
+          { "name": "start", "mask": "vec3" },
+          { "name": "end", "mask": "vec3" },
           {
             "name": "radius",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           },
           {
             "name": "color",
-            "mask": [
-              "null",
-              "color"
-            ]
+            "mask": [ "null", "color" ]
           }
         ]
       }
@@ -1288,25 +797,13 @@
       "name": "vfx_param",
       "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
+          { "name": "v", "mask": "entity" },
+          { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [
-              "null",
-              "num"
-            ]
+            "mask": [ "null", "num" ]
           }
         ]
       }
@@ -1317,22 +814,10 @@
       "sig": {
         "ret": "any",
         "args": [
-          {
-            "name": "v",
-            "mask": "entity"
-          },
-          {
-            "name": "layer",
-            "mask": "str"
-          },
-          {
-            "name": "param",
-            "mask": "str"
-          },
-          {
-            "name": "value",
-            "mask": "any"
-          }
+          { "name": "v", "mask": "entity" },
+          { "name": "layer", "mask": "str" },
+          { "name": "param", "mask": "str" },
+          { "name": "value", "mask": "any" }
         ]
       }
     },
@@ -1340,17 +825,11 @@
       "name": "time",
       "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
       "sig": {
-        "ret": [
-          "null",
-          "num"
-        ],
+        "ret": [ "null", "num" ],
         "args": [
           {
             "name": "clock",
-            "mask": [
-              "null",
-              "str"
-            ]
+            "mask": [ "null", "str" ]
           }
         ]
       }
@@ -1361,18 +840,9 @@
       "sig": {
         "ret": "null",
         "args": [
-          {
-            "name": "target",
-            "mask": "entity"
-          },
-          {
-            "name": "key",
-            "mask": "str"
-          },
-          {
-            "name": "value",
-            "mask": "any"
-          }
+          { "name": "target", "mask": "entity" },
+          { "name": "key", "mask": "str" },
+          { "name": "value", "mask": "any" }
         ]
       }
     }

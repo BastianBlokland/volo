@@ -402,5 +402,7 @@ Error:
 
 void asset_texture_proc_jsonschema_write(DynString* str) {
   proctex_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataProcTexDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataProcTexDefMeta, schemaFlags);
 }

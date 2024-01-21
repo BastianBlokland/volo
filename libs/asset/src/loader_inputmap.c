@@ -230,10 +230,10 @@ static void asset_inputmap_build(
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-              .blockerBits  = asset_inputmap_blocker_bits(actionDef),
-              .bindingIndex = (u16)outBindings->size,
-              .bindingCount = (u16)bindingCount,
+        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+        .blockerBits  = asset_inputmap_blocker_bits(actionDef),
+        .bindingIndex = (u16)outBindings->size,
+        .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -353,5 +353,7 @@ asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash)
 
 void asset_inputmap_jsonschema_write(DynString* str) {
   inputmap_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataInputMapDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataInputMapDefMeta, schemaFlags);
 }

@@ -562,5 +562,7 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
 
 void asset_weapon_jsonschema_write(DynString* str) {
   weapon_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta, schemaFlags);
 }

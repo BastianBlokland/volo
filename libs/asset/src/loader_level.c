@@ -28,22 +28,22 @@ static void level_datareg_init() {
     data_reg_field_t(reg, GeoVector, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, GeoQuat);
-    data_reg_field_t(reg, GeoQuat, x, data_prim_t(f32));
-    data_reg_field_t(reg, GeoQuat, y, data_prim_t(f32));
-    data_reg_field_t(reg, GeoQuat, z, data_prim_t(f32));
-    data_reg_field_t(reg, GeoQuat, w, data_prim_t(f32));
+    data_reg_field_t(reg, GeoQuat, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, GeoQuat, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, GeoQuat, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_enum_t(reg, AssetLevelFaction);
+    data_reg_const_t(reg, AssetLevelFaction, None);
     data_reg_const_t(reg, AssetLevelFaction, A);
     data_reg_const_t(reg, AssetLevelFaction, B);
     data_reg_const_t(reg, AssetLevelFaction, C);
     data_reg_const_t(reg, AssetLevelFaction, D);
-    data_reg_const_t(reg, AssetLevelFaction, None);
 
     data_reg_struct_t(reg, AssetLevelObject);
     data_reg_field_t(reg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetLevelObject, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetLevelObject, faction, t_AssetLevelFaction);
+    data_reg_field_t(reg, AssetLevelObject, faction, t_AssetLevelFaction, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetLevelObject, position, t_GeoVector);
     data_reg_field_t(reg, AssetLevelObject, rotation, t_GeoQuat);
     data_reg_field_t(reg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -132,8 +132,8 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
   DynString dataBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
 
-  const DataWriteJsonOpts writeOpts = data_write_json_opts(.numberMaxDecDigits = 4);
-  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level), &writeOpts);
+  const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
+  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level), &jOpts);
 
   const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 
@@ -143,5 +143,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
 void asset_level_jsonschema_write(DynString* str) {
   level_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataLevelMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataLevelMeta, schemaFlags);
 }

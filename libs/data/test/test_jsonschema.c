@@ -8,7 +8,7 @@ static void test_jsonschema_write(
 
   Mem       buffer    = mem_stack(1024);
   DynString dynString = dynstring_create_over(buffer);
-  data_jsonschema_write(reg, &dynString, meta);
+  data_jsonschema_write(reg, &dynString, meta, DataJsonSchemaFlags_None);
 
   check_eq_string(dynstring_view(&dynString), expected);
 }

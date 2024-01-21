@@ -625,5 +625,7 @@ Done:
 
 void asset_mesh_proc_jsonschema_write(DynString* str) {
   procmesh_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataProcMeshDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataProcMeshDefMeta, schemaFlags);
 }
