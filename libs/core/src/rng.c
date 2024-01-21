@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "core_thread.h"
 #include "core_time.h"
 
 struct sRng {
@@ -68,8 +69,8 @@ THREAD_LOCAL struct RngXorWow g_rng_xorwow = {.api = {.next = rng_xorwow_next}};
 THREAD_LOCAL Rng*             g_rng;
 
 void rng_init_thread() {
-  const TimeReal clock = time_real_clock();
-  rng_xorwow_init(&g_rng_xorwow, clock ? clock : 42);
+  const TimeReal seed = time_real_clock() + g_thread_tid;
+  rng_xorwow_init(&g_rng_xorwow, seed ? seed : 42);
   g_rng = (Rng*)&g_rng_xorwow;
 }
 
