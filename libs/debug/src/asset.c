@@ -221,7 +221,7 @@ asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld*
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 325);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 375);
   ui_table_add_column(&table, UiTableColumn_Fixed, 120);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
@@ -319,7 +319,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugAssetPanelComp,
-      .panel      = ui_panel(.size = ui_vector(900, 500)),
+      .panel      = ui_panel(.size = ui_vector(950, 500)),
       .scrollview = ui_scrollview(),
       .idFilter   = dynstring_create(g_alloc_heap, 32),
       .sortMode   = DebugAssetSortMode_Status,
