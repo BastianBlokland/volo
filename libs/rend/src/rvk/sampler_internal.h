@@ -11,8 +11,8 @@ typedef enum {
 } RvkSamplerFlags;
 
 typedef enum {
-  RvkSamplerWrap_Repeat,
   RvkSamplerWrap_Clamp,
+  RvkSamplerWrap_Repeat,
   RvkSamplerWrap_Zero,
 
   RvkSamplerWrap_Count,

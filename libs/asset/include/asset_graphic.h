@@ -35,8 +35,8 @@ typedef enum {
 } AssetGraphicBlend;
 
 typedef enum {
-  AssetGraphicWrap_Repeat, // Repeat the texture when sampling outside.
   AssetGraphicWrap_Clamp,  // Use the edge pixel when sampling outside.
+  AssetGraphicWrap_Repeat, // Repeat the texture when sampling outside.
   AssetGraphicWrap_Zero,   // Return zero when sampling outside.
 } AssetGraphicWrap;
 

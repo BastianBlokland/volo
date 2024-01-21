@@ -138,10 +138,10 @@ MAYBE_UNUSED static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
 
 static RvkSamplerWrap rvk_graphic_wrap(const AssetGraphicWrap assetWrap) {
   switch (assetWrap) {
-  case AssetGraphicWrap_Repeat:
-    return RvkSamplerWrap_Repeat;
   case AssetGraphicWrap_Clamp:
     return RvkSamplerWrap_Clamp;
+  case AssetGraphicWrap_Repeat:
+    return RvkSamplerWrap_Repeat;
   case AssetGraphicWrap_Zero:
     return RvkSamplerWrap_Zero;
   }
@@ -744,10 +744,10 @@ void rvk_graphic_sampler_add(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-             .flags  = samplerFlags,
-             .wrap   = rvk_graphic_wrap(sampler->wrap),
-             .filter = rvk_graphic_filter(sampler->filter),
-             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          .flags  = samplerFlags,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }

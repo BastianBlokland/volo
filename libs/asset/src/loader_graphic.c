@@ -46,8 +46,8 @@ static void graphic_datareg_init() {
     data_reg_const_t(reg, AssetGraphicBlend, PreMultiplied);
 
     data_reg_enum_t(reg, AssetGraphicWrap);
-    data_reg_const_t(reg, AssetGraphicWrap, Repeat);
     data_reg_const_t(reg, AssetGraphicWrap, Clamp);
+    data_reg_const_t(reg, AssetGraphicWrap, Repeat);
     data_reg_const_t(reg, AssetGraphicWrap, Zero);
 
     data_reg_enum_t(reg, AssetGraphicFilter);
