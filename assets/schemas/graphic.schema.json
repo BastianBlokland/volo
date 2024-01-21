@@ -192,15 +192,15 @@
     },
     "AssetGraphicWrap": {
       "enum": [
-        "Repeat",
         "Clamp",
+        "Repeat",
         "Zero"
       ]
     },
     "AssetGraphicFilter": {
       "enum": [
-        "Nearest",
-        "Linear"
+        "Linear",
+        "Nearest"
       ]
     },
     "AssetGraphicAniso": {

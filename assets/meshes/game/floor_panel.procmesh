@@ -1,10 +1,6 @@
 {
   "type": "Cube",
   "axis": "Forward",
-  "scaleX": 3,
-  "scaleY": 0.01,
-  "scaleZ": 5,
-  "offsetX": 0,
-  "offsetY": 0,
-  "offsetZ": 0
+  "scaleX": 3, "scaleY": 0.01, "scaleZ": 5,
+  "offsetX": 0, "offsetY": 0, "offsetZ": 0
 }
