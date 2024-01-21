@@ -158,8 +158,6 @@ static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const
 
 static void menu_child_open(
     EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
-  diag_assert(!menu->childEntities[childIndex]);
-
   const EcsEntityId e = g_menuChildConfig[childIndex].openFunc(world, menu->window);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
   menu->childEntities[childIndex] = e;
