@@ -3,7 +3,8 @@
 #include "core_unicode.h"
 #include "json_write.h"
 
-#define json_object_compact_max_fields 4
+#define json_compact_array_max_elems 4
+#define json_compact_object_max_fields 4
 
 typedef struct {
   const JsonDoc*       doc;
@@ -40,6 +41,19 @@ static void json_state_write_outdent(JsonWriteState* s, const JsonWriteMode m, D
   json_state_write_separator(s, m, str);
 }
 
+static bool json_state_array_is_compact(JsonWriteState* s, const JsonVal val) {
+  if (json_elem_count(s->doc, val) > json_compact_array_max_elems) {
+    return false;
+  }
+  json_for_elems(s->doc, val, elem) {
+    const JsonType elemType = json_type(s->doc, elem);
+    if (elemType == JsonType_Object || elemType == JsonType_Array) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void json_state_write_array(JsonWriteState* s, DynString* str, const JsonVal val) {
   dynstring_append_char(str, '[');
 
@@ -53,7 +67,9 @@ static void json_state_write_array(JsonWriteState* s, DynString* str, const Json
   case JsonWriteMode_Minimal:
     mode = JsonWriteMode_Minimal;
     break;
-  case JsonWriteMode_Compact: // NOTE: Compact mode is not supported for arrays.
+  case JsonWriteMode_Compact:
+    mode = json_state_array_is_compact(s, val) ? JsonWriteMode_Compact : JsonWriteMode_Verbose;
+    break;
   case JsonWriteMode_Verbose:
     mode = JsonWriteMode_Verbose;
     break;
@@ -76,12 +92,12 @@ static void json_state_write_array(JsonWriteState* s, DynString* str, const Json
 }
 
 static bool json_state_object_is_compact(JsonWriteState* s, const JsonVal val) {
-  if (json_field_count(s->doc, val) > json_object_compact_max_fields) {
+  if (json_field_count(s->doc, val) > json_compact_object_max_fields) {
     return false;
   }
   json_for_fields(s->doc, val, field) {
-    const JsonType elemType = json_type(s->doc, field.value);
-    if (elemType == JsonType_Object || elemType == JsonType_Array) {
+    const JsonType fieldType = json_type(s->doc, field.value);
+    if (fieldType == JsonType_Object || fieldType == JsonType_Array) {
       return false;
     }
   }
