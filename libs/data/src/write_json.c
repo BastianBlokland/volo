@@ -12,15 +12,24 @@ typedef struct {
   JsonDoc*                 doc;
   const DataMeta           meta;
   Mem                      data;
+  bool                     skipOptional;
 } WriteCtx;
 
 static JsonVal data_write_json_val(const WriteCtx*);
 
 static JsonVal data_write_json_bool(const WriteCtx* ctx) {
-  return json_add_bool(ctx->doc, *mem_as_t(ctx->data, bool));
+  const bool val = *mem_as_t(ctx->data, bool);
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !val) {
+    return sentinel_u32;
+  }
+  return json_add_bool(ctx->doc, val);
 }
 
 static JsonVal data_write_json_number(const WriteCtx* ctx) {
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && mem_all(ctx->data, 0)) {
+    return sentinel_u32;
+  }
+
 #define RET_ADD_NUM(_T_)                                                                           \
   case DataKind_##_T_:                                                                             \
     return json_add_number(ctx->doc, (f64)*mem_as_t(ctx->data, _T_))
@@ -44,7 +53,11 @@ static JsonVal data_write_json_number(const WriteCtx* ctx) {
 }
 
 static JsonVal data_write_json_string(const WriteCtx* ctx) {
-  return json_add_string(ctx->doc, *mem_as_t(ctx->data, String));
+  const String val = *mem_as_t(ctx->data, String);
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && string_is_empty(val)) {
+    return sentinel_u32;
+  }
+  return json_add_string(ctx->doc, val);
 }
 
 static void data_write_json_struct_to_obj(const WriteCtx* ctx, const JsonVal jsonObj) {
@@ -52,12 +65,16 @@ static void data_write_json_struct_to_obj(const WriteCtx* ctx, const JsonVal jso
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const WriteCtx fieldCtx = {
-        .reg  = ctx->reg,
-        .doc  = ctx->doc,
-        .meta = fieldDecl->meta,
-        .data = data_field_mem(ctx->reg, fieldDecl, ctx->data),
+        .reg          = ctx->reg,
+        .doc          = ctx->doc,
+        .meta         = fieldDecl->meta,
+        .data         = data_field_mem(ctx->reg, fieldDecl, ctx->data),
+        .skipOptional = true,
     };
     const JsonVal fieldVal = data_write_json_val(&fieldCtx);
+    if (sentinel_check(fieldVal)) {
+      continue;
+    }
     json_add_field_str(ctx->doc, jsonObj, fieldDecl->id.name, fieldVal);
   }
 }
@@ -108,8 +125,12 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
 }
 
 static JsonVal data_write_json_enum(const WriteCtx* ctx) {
-  const i32       val  = *mem_as_t(ctx->data, i32);
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const i32       val  = *mem_as_t(ctx->data, i32);
+
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !val) {
+    return sentinel_u32;
+  }
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     if (constDecl->value == val) {
@@ -156,10 +177,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-      .reg  = ctx->reg,
-      .doc  = ctx->doc,
-      .meta = data_meta_base(ctx->meta),
-      .data = mem_create(ptr, decl->size),
+       .reg  = ctx->reg,
+       .doc  = ctx->doc,
+       .meta = data_meta_base(ctx->meta),
+       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }
