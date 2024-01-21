@@ -143,5 +143,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
 void asset_level_jsonschema_write(DynString* str) {
   level_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataLevelMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataLevelMeta, schemaFlags);
 }

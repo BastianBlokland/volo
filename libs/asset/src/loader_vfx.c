@@ -426,5 +426,7 @@ Cleanup:
 
 void asset_vfx_jsonschema_write(DynString* str) {
   vfx_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataVfxDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataVfxDefMeta, schemaFlags);
 }

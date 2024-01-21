@@ -239,5 +239,7 @@ void asset_load_graphic(
 
 void asset_graphic_jsonschema_write(DynString* str) {
   graphic_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataMeta, schemaFlags);
 }

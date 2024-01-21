@@ -443,5 +443,7 @@ const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const Str
 
 void asset_atlas_jsonschema_write(DynString* str) {
   atlas_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataAtlasDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataAtlasDefMeta, schemaFlags);
 }
