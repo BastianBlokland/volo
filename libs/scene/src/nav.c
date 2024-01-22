@@ -400,7 +400,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
-    for (u32 i = path->cellCount; i-- > path->currentTargetIndex;) {
+    for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
       if (!geo_nav_line_blocked(env->navGrid, fromCell, path->cells[i])) {
         path->currentTargetIndex = i;
         scene_nav_move_towards(env, loco, &goal, path->cells[i]);
