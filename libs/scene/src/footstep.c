@@ -14,7 +14,7 @@
 
 #define scene_footstep_lift_threshold 0.05f
 #define scene_footstep_decal_lifetime time_seconds(2)
-#define scene_footstep_max_per_tick 150
+#define scene_footstep_max_per_task 75
 
 ASSERT(scene_footstep_feet_max <= 8, "Feet state needs to be representable with 8 bits")
 
@@ -104,7 +104,7 @@ ecs_system_define(SceneFootstepUpdateSys) {
   u32 numFootsteps = 0;
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(updateView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneFootstepComp*  footstep  = ecs_view_read_t(itr, SceneFootstepComp);
     const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
@@ -134,9 +134,9 @@ ecs_system_define(SceneFootstepUpdateSys) {
       }
     }
 
-    if (numFootsteps >= scene_footstep_max_per_tick) {
+    if (numFootsteps >= scene_footstep_max_per_task) {
       /**
-       * Throttle the maximum amount of footsteps in a single tick.
+       * Throttle the maximum amount of footsteps in a single task.
        * As long as the feet are down for enough ticks no steps will be missed.
        */
       break;
@@ -154,4 +154,5 @@ ecs_module_init(scene_footstep_module) {
 
   ecs_register_system(SceneFootstepInitSys, ecs_view_id(InitView), ecs_view_id(GraphicView));
   ecs_register_system(SceneFootstepUpdateSys, ecs_view_id(UpdateView));
+  ecs_parallel(SceneFootstepUpdateSys, 2);
 }
