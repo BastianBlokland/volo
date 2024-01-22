@@ -148,7 +148,7 @@ static bool scene_nav_refresh_blockers(
       /**
        * A new blocker was registered.
        * NOTE: This doesn't necessarily mean any new cell get blocked that wasn't before so this
-       * dirtying is a conservative at the moment.
+       * dirtying is conservative at the moment.
        */
       blockersChanged = true;
     }
@@ -190,6 +190,17 @@ static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntit
   }
 }
 
+static void scene_nav_invalidate_blocked_paths(SceneNavEnvComp* env, EcsView* pathEntities) {
+  for (EcsIterator* itr = ecs_view_itr(pathEntities); ecs_view_walk(itr);) {
+    SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
+    for (u32 i = 0; i != path->cellCount; ++i) {
+      if (geo_nav_blocked(env->navGrid, path->cells[i])) {
+        path->nextRefreshTime = 0;
+      }
+    }
+  }
+}
+
 static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   const u32* gridStatsPtr = geo_nav_stats(grid);
 
@@ -218,6 +229,8 @@ ecs_view_define(OccupantEntityView) {
   ecs_access_with(SceneNavAgentComp);
 }
 
+ecs_view_define(PathEntityView) { ecs_access_write(SceneNavPathComp); }
+
 ecs_system_define(SceneNavInitSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
     scene_nav_env_create(world);
@@ -235,9 +248,12 @@ ecs_system_define(SceneNavInitSys) {
   bool gridUpdated = terrain && scene_nav_terrain_refresh(env, terrain);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
+  EcsView* pathEntities    = ecs_world_view_t(world, PathEntityView);
+
   gridUpdated |= scene_nav_refresh_blockers(env, blockerEntities, gridUpdated);
   if (gridUpdated) {
     geo_nav_compute_islands(env->navGrid);
+    scene_nav_invalidate_blocked_paths(env, pathEntities);
   }
 
   geo_nav_occupant_remove_all(env->navGrid);
@@ -394,9 +410,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       --pathQueriesRemaining;
     }
 
-      if (!path->cellCount) {
+    if (!path->cellCount) {
       // Waiting for path to be computed.
-        goto Done;
+      goto Done;
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
@@ -409,7 +425,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // No shortcut available; move to the current target cell in the path.
-      scene_nav_move_towards(env, loco, &goal, path->cells[path->currentTargetIndex]);
+    scene_nav_move_towards(env, loco, &goal, path->cells[path->currentTargetIndex]);
 
   Done:
     continue;
@@ -464,7 +480,8 @@ ecs_module_init(scene_nav_module) {
       SceneNavInitSys,
       ecs_register_view(InitGlobalView),
       ecs_register_view(BlockerEntityView),
-      ecs_register_view(OccupantEntityView));
+      ecs_register_view(OccupantEntityView),
+      ecs_register_view(PathEntityView));
 
   ecs_order(SceneNavInitSys, SceneOrder_NavInit);
 
