@@ -372,17 +372,17 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    /**
-     * TODO: We can potentially avoid pathing if there's a straight line to the target. Care must
-     * be taken however to avoid oscillating between the straight line and the path, which can
-     * easily happen when moving on the border of a nav cell.
-     */
-
     if (fromCell.data == goal.cell.data) {
       // In the same cell as the target; move in a straight line.
       scene_locomotion_move(loco, goal.position);
       goto Done;
     }
+
+    /**
+     * TODO: We can potentially avoid pathing if there's a straight line to the target. Care must
+     * be taken however to avoid oscillating between the straight line and the path, which can
+     * easily happen when moving on the border of a nav cell.
+     */
 
     // Compute a new path.
     if (pathQueriesRemaining && path_needs_refresh(path, goal.position, time)) {
