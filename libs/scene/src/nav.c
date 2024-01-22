@@ -392,11 +392,11 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->destination        = goal.position;
       path->currentTargetIndex = 1; // Path includes the start point; should be skipped.
       --pathQueriesRemaining;
+    }
 
-      // Stop if no path is possible at this time.
       if (!path->cellCount) {
+      // Waiting for path to be computed.
         goto Done;
-      }
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
@@ -409,12 +409,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // No shortcut available; move to the current target cell in the path.
-    if (path->cellCount > 1) {
       scene_nav_move_towards(env, loco, &goal, path->cells[path->currentTargetIndex]);
-      goto Done;
-    }
-
-    // Waiting for path to be computed.
 
   Done:
     continue;
