@@ -1,18 +1,9 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/dyn_depth_standard.vert.spv"
-    },
-    {
-      "shaderId": "shaders/dyn_depth.frag.spv"
-    }
+    { "shaderId": "shaders/dyn_depth_standard.vert.spv" },
+    { "shaderId": "shaders/dyn_depth.frag.spv" }
   ],
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
-  "depth": "Less",
   "depthClamp": true,
   "depthBiasConstant": -1,
-  "depthBiasSlope": -1.5,
-  "cull": "Back"
+  "depthBiasSlope": -1.5
 }

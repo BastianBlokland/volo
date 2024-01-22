@@ -6,83 +6,27 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "projectionAxis": {
-          "title": "AssetDecalAxis",
-          "$ref": "#/$defs/AssetDecalAxis"
-        },
-        "colorAtlasEntry": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "normalAtlasEntry": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "baseNormal": {
-          "title": "AssetDecalNormal",
-          "$ref": "#/$defs/AssetDecalNormal"
-        },
-        "fadeUsingDepthNormal": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "noColorOutput": {
-          "title": "bool",
-          "type": "boolean"
-        },
-        "randomRotation": {
-          "title": "bool",
-          "type": "boolean"
-        },
+        "projectionAxis": { "title": "AssetDecalAxis", "$ref": "#/$defs/AssetDecalAxis" },
+        "colorAtlasEntry": { "title": "String", "type": "string", "minLength": 1 },
+        "normalAtlasEntry": { "title": "String", "type": "string", "minLength": 1 },
+        "baseNormal": { "title": "AssetDecalNormal", "$ref": "#/$defs/AssetDecalNormal" },
+        "fadeUsingDepthNormal": { "title": "bool", "type": "boolean" },
+        "noColorOutput": { "title": "bool", "type": "boolean" },
+        "randomRotation": { "title": "bool", "type": "boolean" },
         "excludeMask": {
           "type": "array",
-          "items": {
-            "title": "AssetDecalMask",
-            "$ref": "#/$defs/AssetDecalMask"
-          }
+          "items": { "title": "AssetDecalMask", "$ref": "#/$defs/AssetDecalMask" }
         },
-        "roughness": {
-          "title": "f32",
-          "type": "number"
-        },
-        "alphaMin": {
-          "title": "f32",
-          "type": "number"
-        },
-        "alphaMax": {
-          "title": "f32",
-          "type": "number"
-        },
-        "width": {
-          "title": "f32",
-          "type": "number"
-        },
-        "height": {
-          "title": "f32",
-          "type": "number"
-        },
-        "thickness": {
-          "title": "f32",
-          "type": "number"
-        },
-        "scaleMin": {
-          "title": "f32",
-          "type": "number"
-        },
-        "scaleMax": {
-          "title": "f32",
-          "type": "number"
-        },
-        "fadeInTime": {
-          "title": "f32",
-          "type": "number"
-        },
-        "fadeOutTime": {
-          "title": "f32",
-          "type": "number"
-        }
+        "roughness": { "title": "f32", "type": "number" },
+        "alphaMin": { "title": "f32", "type": "number" },
+        "alphaMax": { "title": "f32", "type": "number" },
+        "width": { "title": "f32", "type": "number" },
+        "height": { "title": "f32", "type": "number" },
+        "thickness": { "title": "f32", "type": "number" },
+        "scaleMin": { "title": "f32", "type": "number" },
+        "scaleMax": { "title": "f32", "type": "number" },
+        "fadeInTime": { "title": "f32", "type": "number" },
+        "fadeOutTime": { "title": "f32", "type": "number" }
       },
       "required": [
         "projectionAxis",
@@ -92,32 +36,17 @@
         "height"
       ],
       "defaultSnippets": [
-        {
-          "label": "New",
-          "body": "^{\n  \"projectionAxis\": \"LocalY\",\n  \"colorAtlasEntry\": \"placeholder\",\n  \"roughness\": 0,\n  \"width\": 1,\n  \"height\": 1\n}"
-        }
+        { "label": "New", "body": "^{\n  \"projectionAxis\": \"LocalY\",\n  \"colorAtlasEntry\": \"placeholder\",\n  \"roughness\": 0,\n  \"width\": 1,\n  \"height\": 1\n}" }
       ]
     },
     "AssetDecalAxis": {
-      "enum": [
-        "LocalY",
-        "LocalZ",
-        "WorldY"
-      ]
+      "enum": [ "LocalY", "LocalZ", "WorldY" ]
     },
     "AssetDecalNormal": {
-      "enum": [
-        "GBuffer",
-        "DepthBuffer",
-        "DecalTransform"
-      ]
+      "enum": [ "GBuffer", "DepthBuffer", "DecalTransform" ]
     },
     "AssetDecalMask": {
-      "enum": [
-        "Geometry",
-        "Terrain",
-        "Unit"
-      ]
+      "enum": [ "Geometry", "Terrain", "Unit" ]
     }
   }
 }

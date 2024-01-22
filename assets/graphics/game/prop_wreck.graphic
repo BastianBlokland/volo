@@ -1,37 +1,16 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/standard.vert.spv"
-    },
+    { "shaderId": "shaders/standard.vert.spv" },
     {
       "shaderId": "shaders/standard.frag.spv",
       "overrides": [
-        {
-          "name": "normalMap",
-          "binding": 0,
-          "value": 1
-        }
+        { "name": "normalMap", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    {
-      "textureId": "external/car_wreck/car_wreck_2_color_rough.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    },
-    {
-      "textureId": "external/car_wreck/car_wreck_normal.tga",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "x2"
-    }
+    { "textureId": "external/car_wreck/car_wreck_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/car_wreck/car_wreck_normal.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/car_wreck/car_wreck.gltf",
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
-  "depth": "Less",
-  "cull": "Back"
+  "meshId": "external/car_wreck/car_wreck.gltf"
 }

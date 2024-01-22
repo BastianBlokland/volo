@@ -376,5 +376,7 @@ asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) 
 
 void asset_product_jsonschema_write(DynString* str) {
   product_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta, schemaFlags);
 }

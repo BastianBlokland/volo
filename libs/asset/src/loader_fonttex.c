@@ -515,5 +515,7 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
 
 void asset_fonttex_jsonschema_write(DynString* str) {
   fonttex_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataFontTexDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataFontTexDefMeta, schemaFlags);
 }

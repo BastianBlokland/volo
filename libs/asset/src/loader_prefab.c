@@ -758,12 +758,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
@@ -989,5 +989,7 @@ const AssetPrefabTrait* asset_prefab_trait_get(
 
 void asset_prefab_jsonschema_write(DynString* str) {
   prefab_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta, schemaFlags);
 }

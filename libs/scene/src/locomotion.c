@@ -82,11 +82,12 @@ ecs_system_define(SceneLocomotionMoveSys) {
     if (dt > 0) {
       /**
        * Push this entity away from other navigation agents and blockers.
+       * NOTE: Use current position instead of the next position to avoid two units moving in the
+       * same direction not pushing each other.
        */
       const bool      moving    = (loco->flags & SceneLocomotion_Moving) != 0;
-      const GeoVector sepPos    = geo_vector_add(pos, posDelta);
       const f32       sepRadius = loco->radius * scale;
-      const GeoVector force     = scene_nav_separate(navEnv, entity, sepPos, sepRadius, moving);
+      const GeoVector force     = scene_nav_separate(navEnv, entity, pos, sepRadius, moving);
       posDelta                  = geo_vector_add(posDelta, geo_vector_mul(force, dt));
       loco->lastSeparation      = force;
     }

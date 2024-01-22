@@ -438,7 +438,7 @@ setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduct
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
-  ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
+  ecs_world_add_t(w, e, SceneScaleComp, .scale = scale < f32_epsilon ? 1.0 : scale);
 }
 
 static void setup_trait(

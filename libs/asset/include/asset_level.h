@@ -10,13 +10,11 @@ typedef struct sDynArray DynString;
 ecs_comp_extern(AssetManagerComp);
 
 typedef enum {
+  AssetLevelFaction_None,
   AssetLevelFaction_A,
   AssetLevelFaction_B,
   AssetLevelFaction_C,
-  AssetLevelFaction_D,
-
-  AssetLevelFaction_Count,
-  AssetLevelFaction_None = sentinel_u32,
+  AssetLevelFaction_D
 } AssetLevelFaction;
 
 typedef struct {

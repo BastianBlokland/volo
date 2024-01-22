@@ -182,5 +182,7 @@ Cleanup:
 
 void asset_decal_jsonschema_write(DynString* str) {
   decal_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataDecalDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataDecalDefMeta, schemaFlags);
 }

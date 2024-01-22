@@ -1,35 +1,18 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/ui/canvas.vert.spv"
-    },
+    { "shaderId": "shaders/ui/canvas.vert.spv" },
     {
       "shaderId": "shaders/ui/canvas.frag.spv",
       "overrides": [
-        {
-          "name": "debug",
-          "binding": 0,
-          "value": 1
-        }
+        { "name": "debug", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    {
-      "textureId": "fonts/ui.fonttex",
-      "wrap": "Clamp",
-      "filter": "Linear"
-    },
-    {
-      "textureId": "textures/ui/image.atlas",
-      "wrap": "Clamp",
-      "filter": "Linear"
-    }
+    { "textureId": "fonts/ui.fonttex" },
+    { "textureId": "textures/ui/image.atlas" }
   ],
   "vertexCount": 6,
-  "renderOrder": 0,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
   "blend": "Alpha",
   "depth": "AlwaysNoWrite",
   "cull": "None"

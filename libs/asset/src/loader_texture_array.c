@@ -726,5 +726,7 @@ Error:
 
 void asset_texture_array_jsonschema_write(DynString* str) {
   arraytex_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataArrayTexDefMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataArrayTexDefMeta, schemaFlags);
 }

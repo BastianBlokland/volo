@@ -3,7 +3,8 @@
 #include "data_registry.h"
 
 typedef struct {
-  u8 numberMaxDecDigits;
+  u8   numberMaxDecDigits;
+  bool compact;
 } DataWriteJsonOpts;
 
 #define data_write_json_opts(...) ((DataWriteJsonOpts){.numberMaxDecDigits = 10, __VA_ARGS__})

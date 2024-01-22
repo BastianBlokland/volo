@@ -46,13 +46,13 @@ static void graphic_datareg_init() {
     data_reg_const_t(reg, AssetGraphicBlend, PreMultiplied);
 
     data_reg_enum_t(reg, AssetGraphicWrap);
-    data_reg_const_t(reg, AssetGraphicWrap, Repeat);
     data_reg_const_t(reg, AssetGraphicWrap, Clamp);
+    data_reg_const_t(reg, AssetGraphicWrap, Repeat);
     data_reg_const_t(reg, AssetGraphicWrap, Zero);
 
     data_reg_enum_t(reg, AssetGraphicFilter);
-    data_reg_const_t(reg, AssetGraphicFilter, Nearest);
     data_reg_const_t(reg, AssetGraphicFilter, Linear);
+    data_reg_const_t(reg, AssetGraphicFilter, Nearest);
 
     data_reg_enum_t(reg, AssetGraphicAniso);
     data_reg_const_t(reg, AssetGraphicAniso, None);
@@ -239,5 +239,7 @@ void asset_load_graphic(
 
 void asset_graphic_jsonschema_write(DynString* str) {
   graphic_datareg_init();
-  data_jsonschema_write(g_dataReg, str, g_dataMeta);
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, g_dataMeta, schemaFlags);
 }

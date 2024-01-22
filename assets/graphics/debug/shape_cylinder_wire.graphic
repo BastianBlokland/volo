@@ -1,15 +1,10 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/debug/shape_mesh.vert.spv"
-    },
-    {
-      "shaderId": "shaders/debug/shape.frag.spv"
-    }
+    { "shaderId": "shaders/debug/shape_mesh.vert.spv" },
+    { "shaderId": "shaders/debug/shape.frag.spv" }
   ],
   "meshId": "meshes/debug/shape_cylinder.procmesh",
   "renderOrder": 152,
-  "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "Alpha",

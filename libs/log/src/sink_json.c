@@ -77,7 +77,7 @@ static void log_sink_json_write(
 
   DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, log_sink_buffer_size, 1));
 
-  json_write(&str, doc, root, &json_write_opts(.flags = JsonWriteFlags_None));
+  json_write(&str, doc, root, &json_write_opts(.mode = JsonWriteMode_Minimal));
   dynstring_append_char(&str, '\n');
   file_write_sync(jsonSink->file, dynstring_view(&str));
 
@@ -97,15 +97,15 @@ LogSink*
 log_sink_json(Allocator* alloc, File* file, const LogMask mask, const LogSinkJsonFlags flags) {
   LogSinkJson* sink = alloc_alloc_t(alloc, LogSinkJson);
   *sink             = (LogSinkJson){
-                  .api =
-                      {
-                          .write   = log_sink_json_write,
-                          .destroy = log_sink_json_destroy,
+      .api =
+          {
+              .write   = log_sink_json_write,
+              .destroy = log_sink_json_destroy,
           },
-                  .alloc = alloc,
-                  .file  = file,
-                  .mask  = mask,
-                  .flags = flags,
+      .alloc = alloc,
+      .file  = file,
+      .mask  = mask,
+      .flags = flags,
   };
   return (LogSink*)sink;
 }

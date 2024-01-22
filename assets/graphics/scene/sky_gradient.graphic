@@ -1,18 +1,10 @@
 {
   "shaders": [
-    {
-      "shaderId": "shaders/scene/sky.vert.spv"
-    },
-    {
-      "shaderId": "shaders/scene/sky_gradient.frag.spv"
-    }
+    { "shaderId": "shaders/scene/sky.vert.spv" },
+    { "shaderId": "shaders/scene/sky_gradient.frag.spv" }
   ],
-  "samplers": [],
   "vertexCount": 3,
   "renderOrder": -1,
-  "topology": "Triangles",
-  "rasterizer": "Fill",
-  "blend": "None",
   "depth": "EqualNoWrite",
   "cull": "None"
 }
