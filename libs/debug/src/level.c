@@ -178,6 +178,17 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* 
   ui_layout_container_pop(c);
 }
 
+static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Name"));
+  ui_table_next_column(c, &table);
+  ui_label(c, scene_level_name(ctx->levelManager));
+}
+
 static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
   const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
   ui_panel_begin(
@@ -197,6 +208,7 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* a
       ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
       break;
     }
+    settings_panel_draw(c, ctx);
     break;
   }
 
