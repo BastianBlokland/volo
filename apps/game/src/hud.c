@@ -19,6 +19,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
@@ -69,6 +70,7 @@ ecs_comp_define(HudComp) {
 ecs_view_define(GlobalView) {
   ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
@@ -230,6 +232,23 @@ static UiColor hud_faction_color(const SceneFaction faction) {
     return ui_color_white;
   default:
     return ui_color(255, 0, 15, 255);
+  }
+}
+
+static void hud_level_draw(UiCanvasComp* c, const SceneLevelManagerComp* level) {
+  const String name = scene_level_name(level);
+  if (!string_is_empty(name)) {
+    ui_layout_push(c);
+    ui_layout_inner(c, UiBase_Canvas, UiAlign_TopCenter, ui_vector(200, 100), UiBase_Absolute);
+
+    ui_style_push(c);
+    ui_style_color(c, ui_color_white);
+    ui_style_outline(c, 5);
+
+    ui_label(c, name, .align = UiAlign_MiddleCenter, .fontSize = 40);
+
+    ui_style_pop(c);
+    ui_layout_pop(c);
   }
 }
 
@@ -866,6 +885,7 @@ ecs_system_define(HudDrawUiSys) {
   }
   CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneLevelManagerComp*   level     = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
@@ -910,6 +930,7 @@ ecs_system_define(HudDrawUiSys) {
 
     hud_minimap_update(hud, terrain, rendSettings, res);
 
+    hud_level_draw(c, level);
     hud_health_draw(c, hud, &viewProj, healthView, res);
     hud_groups_draw(c, cmd);
     hud_minimap_draw(c, hud, inputState, cam, camTrans, minimapMarkerView);
