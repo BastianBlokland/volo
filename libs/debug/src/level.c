@@ -11,8 +11,8 @@
 // clang-format off
 
 static const String g_tooltipReload     = string_static("Reload the current level.");
-static const String g_tooltipSave       = string_static("Save the current level.");
 static const String g_tooltipUnload     = string_static("Unload the current level.");
+static const String g_tooltipSave       = string_static("Save the current level.");
 static const String g_tooltipFilter     = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 static const String g_levelQueryPattern = string_static("levels/*.level");
 
@@ -22,7 +22,7 @@ typedef enum {
   DebugLevelFlags_RefreshAssets = 1 << 0,
   DebugLevelFlags_Reload        = 1 << 1,
   DebugLevelFlags_Unload        = 1 << 2,
-  DebugLevelFlags_SaveCurrent   = 1 << 3,
+  DebugLevelFlags_Save          = 1 << 3,
 
   DebugLevelFlags_None    = 0,
   DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
@@ -102,7 +102,7 @@ static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   }
   ui_table_next_column(c, &table);
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
-    ctx->panelComp->flags |= DebugLevelFlags_SaveCurrent;
+    ctx->panelComp->flags |= DebugLevelFlags_Save;
   }
   ui_table_next_column(c, &table);
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE9BA"), .tooltip = g_tooltipUnload)) {
@@ -250,9 +250,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       scene_level_unload(world);
       panelComp->flags &= ~DebugLevelFlags_Unload;
     }
-    if (panelComp->flags & DebugLevelFlags_SaveCurrent) {
+    if (panelComp->flags & DebugLevelFlags_Save) {
       scene_level_save(world, scene_level_asset(levelManager));
-      panelComp->flags &= ~DebugLevelFlags_SaveCurrent;
+      panelComp->flags &= ~DebugLevelFlags_Save;
     }
 
     ui_canvas_reset(canvas);
