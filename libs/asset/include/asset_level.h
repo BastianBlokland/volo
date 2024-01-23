@@ -32,6 +32,7 @@ typedef struct {
 } AssetLevelObjectArray;
 
 typedef struct {
+  String                name;
   AssetLevelObjectArray objects;
 } AssetLevel;
 
