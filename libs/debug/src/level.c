@@ -44,6 +44,7 @@ ASSERT(array_elems(g_levelTabNames) == DebugLevelTab_Count, "Incorrect number of
 ecs_comp_define(DebugLevelPanelComp) {
   DebugLevelFlags flags;
   DynString       idFilter;
+  DynString       nameBuffer;
   DynArray        levelAssets; // EcsEntityId[]
   UiPanel         panel;
   UiScrollview    scrollview;
@@ -53,16 +54,17 @@ ecs_comp_define(DebugLevelPanelComp) {
 static void ecs_destruct_level_panel(void* data) {
   DebugLevelPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
+  dynstring_destroy(&comp->nameBuffer);
   dynarray_destroy(&comp->levelAssets);
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 typedef struct {
-  EcsWorld*                    world;
-  DebugLevelPanelComp*         panelComp;
-  const SceneLevelManagerComp* levelManager;
-  AssetManagerComp*            assets;
+  EcsWorld*              world;
+  DebugLevelPanelComp*   panelComp;
+  SceneLevelManagerComp* levelManager;
+  AssetManagerComp*      assets;
 } DebugLevelContext;
 
 static void level_assets_refresh(DebugLevelContext* ctx) {
@@ -180,13 +182,19 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* 
 
 static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
   ui_label(c, string_lit("Name"));
   ui_table_next_column(c, &table);
-  ui_label(c, scene_level_name(ctx->levelManager));
+
+  dynstring_clear(&ctx->panelComp->nameBuffer);
+  dynstring_append(&ctx->panelComp->nameBuffer, scene_level_name(ctx->levelManager));
+
+  if (ui_textbox(c, &ctx->panelComp->nameBuffer, .maxTextLength = 32)) {
+    scene_level_name_update(ctx->levelManager, dynstring_view(&ctx->panelComp->nameBuffer));
+  }
 }
 
 static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
@@ -217,8 +225,8 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* a
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AssetManagerComp);
+  ecs_access_write(SceneLevelManagerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -233,9 +241,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*            assets       = ecs_view_write_t(globalItr, AssetManagerComp);
-  const InputManagerComp*      input        = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  AssetManagerComp*       assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
 
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -312,6 +320,7 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       DebugLevelPanelComp,
       .flags       = DebugLevelFlags_Default,
       .idFilter    = dynstring_create(g_alloc_heap, 32),
+      .nameBuffer  = dynstring_create(g_alloc_heap, 32),
       .levelAssets = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
       .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
   return panelEntity;
