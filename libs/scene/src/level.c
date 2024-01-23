@@ -23,6 +23,7 @@ typedef enum {
 ecs_comp_define(SceneLevelManagerComp) {
   bool        isLoading;
   EcsEntityId loadedLevelAsset;
+  String      loadedLevelName;
 };
 
 ecs_comp_define_public(SceneLevelInstanceComp);
@@ -34,6 +35,11 @@ ecs_comp_define(SceneLevelRequestLoadComp) {
 
 ecs_comp_define(SceneLevelRequestUnloadComp);
 ecs_comp_define(SceneLevelRequestSaveComp) { EcsEntityId levelAsset; };
+
+static void ecs_destruct_level_manager_comp(void* data) {
+  SceneLevelManagerComp* comp = data;
+  string_maybe_free(g_alloc_heap, comp->loadedLevelName);
+}
 
 static i8 level_compare_object_id(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetLevelObject, id), field_ptr(b, AssetLevelObject, id));
@@ -81,17 +87,31 @@ ecs_view_define(InstanceView) {
   ecs_access_maybe_read(ScenePrefabInstanceComp);
 }
 
-static void scene_level_process_unload(EcsWorld* world, EcsView* instView) {
-  u32 objectCount = 0;
-  for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
+static void
+scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsView* instanceView) {
+  u32 unloadedObjectCount = 0;
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_entity_destroy(world, entity);
-    ++objectCount;
+    ++unloadedObjectCount;
   }
-  log_i("Level unloaded", log_param("objects", fmt_int(objectCount)));
+
+  string_maybe_free(g_alloc_heap, manager->loadedLevelName);
+
+  manager->loadedLevelAsset = 0;
+  manager->loadedLevelName  = string_empty;
+
+  log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
 
-static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
+static void scene_level_process_load(
+    EcsWorld*              world,
+    SceneLevelManagerComp* manager,
+    const EcsEntityId      levelAsset,
+    const AssetLevel*      level) {
+  diag_assert(!ecs_entity_valid(manager->loadedLevelAsset));
+  diag_assert(string_is_empty(manager->loadedLevelName));
+
   array_ptr_for_t(level->objects, AssetLevelObject, obj) {
     const StringHash prefabId = string_hash(obj->prefab);
     scene_prefab_spawn(
@@ -105,7 +125,14 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
             .faction  = scene_from_asset_faction(obj->faction),
         });
   }
-  log_i("Level loaded", log_param("objects", fmt_int(level->objects.count)));
+
+  manager->loadedLevelAsset = levelAsset;
+  manager->loadedLevelName  = string_maybe_dup(g_alloc_heap, level->name);
+
+  log_i(
+      "Level loaded",
+      log_param("name", fmt_text(manager->loadedLevelName)),
+      log_param("objects", fmt_int(level->objects.count)));
 }
 
 ecs_view_define(LoadGlobalView) { ecs_access_maybe_write(SceneLevelManagerComp); }
@@ -153,7 +180,7 @@ ecs_system_define(SceneLevelLoadSys) {
       ++req->state;
       // Fallthrough.
     case LevelLoadState_Unload:
-      scene_level_process_unload(world, instanceView);
+      scene_level_process_unload(world, manager, instanceView);
       ++req->state;
       // Fallthrough.
     case LevelLoadState_AssetAcquire:
@@ -182,9 +209,8 @@ ecs_system_define(SceneLevelLoadSys) {
         manager->isLoading = false;
         goto Done;
       }
-      scene_level_process_load(world, &levelComp->level);
-      manager->isLoading        = false;
-      manager->loadedLevelAsset = req->levelAsset;
+      scene_level_process_load(world, manager, req->levelAsset, &levelComp->level);
+      manager->isLoading = false;
       goto Done;
     }
     diag_crash_msg("Unexpected load state");
@@ -216,8 +242,7 @@ ecs_system_define(SceneLevelUnloadSys) {
     if (manager->isLoading) {
       log_e("Level unload failed; load in progress");
     } else if (manager->loadedLevelAsset) {
-      scene_level_process_unload(world, instanceView);
-      manager->loadedLevelAsset = 0;
+      scene_level_process_unload(world, manager, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
@@ -264,17 +289,22 @@ static void scene_level_object_push(
   *dynarray_insert_sorted_t(objects, AssetLevelObject, level_compare_object_id, &obj) = obj;
 }
 
-static void scene_level_process_save(AssetManagerComp* assets, const String id, EcsView* instView) {
+static void scene_level_process_save(
+    const SceneLevelManagerComp* manager,
+    AssetManagerComp*            assets,
+    const String                 id,
+    EcsView*                     instanceView) {
   DynArray objects = dynarray_create_t(g_alloc_heap, AssetLevelObject, 1024);
-  for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
     scene_level_object_push(&objects, itr);
   }
 
   const AssetLevel level = {
+      .name           = manager->loadedLevelName,
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
-  asset_level_save(assets, id, level);
+  asset_level_save(assets, id, &level);
 
   log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objects.size)));
 
@@ -311,14 +341,14 @@ ecs_system_define(SceneLevelSaveSys) {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
 
-      scene_level_process_save(assets, assetId, instanceView);
+      scene_level_process_save(manager, assets, assetId, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
 }
 
 ecs_module_init(scene_level_module) {
-  ecs_register_comp(SceneLevelManagerComp);
+  ecs_register_comp(SceneLevelManagerComp, .destructor = ecs_destruct_level_manager_comp);
   ecs_register_comp_empty(SceneLevelInstanceComp);
   ecs_register_comp(SceneLevelRequestLoadComp);
   ecs_register_comp_empty(SceneLevelRequestUnloadComp);
@@ -352,6 +382,8 @@ bool scene_level_is_loading(const SceneLevelManagerComp* manager) { return manag
 EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) {
   return manager->loadedLevelAsset;
 }
+
+String scene_level_name(const SceneLevelManagerComp* manager) { return manager->loadedLevelName; }
 
 void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {
   diag_assert(ecs_entity_valid(levelAsset));
