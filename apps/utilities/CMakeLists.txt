@@ -9,8 +9,8 @@ target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(app_schemasetup)
 
 add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atlas.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/arraytex.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atlas.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/decal.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/fonttex.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/graphic.schema.json"
@@ -18,11 +18,12 @@ add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/level.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/prefabs.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/procmesh.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/products.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/proctex.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/products.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/script_binder.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/terrain.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/vfx.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/weapons.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/script_binder.json"
   VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: dbgsetup")

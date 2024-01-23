@@ -14,18 +14,19 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "*.atlas": "json",
     "*.arraytex": "json",
+    "*.atlas": "json",
     "*.decal": "json",
     "*.fonttex": "json",
     "*.graphic": "json",
     "*.inputs": "json",
     "*.level": "json",
     "*.prefabs": "json",
-    "*.procmesh": "json",
     "*.prefs": "json",
-    "*.products": "json",
+    "*.procmesh": "json",
     "*.proctex": "json",
+    "*.products": "json",
+    "*.terrain": "json",
     "*.vfx": "json",
     "*.weapons": "json"
   },
@@ -34,8 +35,8 @@
     "assets/**/*.spv": true
   },
   "json.schemas": [
-    { "fileMatch": [ "*.atlas" ], "url": "./assets/schemas/atlas.schema.json" },
     { "fileMatch": [ "*.arraytex" ], "url": "./assets/schemas/arraytex.schema.json" },
+    { "fileMatch": [ "*.atlas" ], "url": "./assets/schemas/atlas.schema.json" },
     { "fileMatch": [ "*.decal" ], "url": "./assets/schemas/decal.schema.json" },
     { "fileMatch": [ "*.fonttex" ], "url": "./assets/schemas/fonttex.schema.json" },
     { "fileMatch": [ "*.graphic" ], "url": "./assets/schemas/graphic.schema.json" },
@@ -43,8 +44,9 @@
     { "fileMatch": [ "*.level" ], "url": "./assets/schemas/level.schema.json" },
     { "fileMatch": [ "*.prefabs" ], "url": "./assets/schemas/prefabs.schema.json" },
     { "fileMatch": [ "*.procmesh" ], "url": "./assets/schemas/procmesh.schema.json" },
-    { "fileMatch": [ "*.products" ], "url": "./assets/schemas/products.schema.json" },
     { "fileMatch": [ "*.proctex" ], "url": "./assets/schemas/proctex.schema.json" },
+    { "fileMatch": [ "*.products" ], "url": "./assets/schemas/products.schema.json" },
+    { "fileMatch": [ "*.terrain" ], "url": "./assets/schemas/terrain.schema.json" },
     { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
     { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }
   ],
