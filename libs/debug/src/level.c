@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "debug_panel.h"
 #include "ecs_world.h"
@@ -23,6 +24,17 @@ typedef enum {
   DebugLevelFlags_None    = 0,
   DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
 } DebugLevelFlags;
+
+typedef enum {
+  DebugLevelTab_Manage,
+
+  DebugLevelTab_Count,
+} DebugLevelTab;
+
+static const String g_levelTabNames[] = {
+    string_static("Manage"),
+};
+ASSERT(array_elems(g_levelTabNames) == DebugLevelTab_Count, "Incorrect number of names");
 
 ecs_comp_define(DebugLevelPanelComp) {
   DebugLevelFlags flags;
@@ -67,7 +79,7 @@ static bool level_id_filter(DebugLevelContext* ctx, const String levelId) {
   return string_match_glob(levelId, filter, StringMatchFlags_IgnoreCase);
 }
 
-static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ctx) {
+static void manage_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
@@ -105,12 +117,8 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ct
   ui_layout_pop(canvas);
 }
 
-static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsView* assetView) {
-  const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
-  ui_panel_begin(
-      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
-
-  level_panel_options_draw(canvas, ctx);
+static void manage_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsView* assetView) {
+  manage_panel_options_draw(canvas, ctx);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -167,6 +175,24 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
 
   ui_style_pop(canvas);
   ui_layout_container_pop(canvas);
+}
+
+static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsView* assetView) {
+  const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
+  ui_panel_begin(
+      canvas,
+      &ctx->panelComp->panel,
+      .title       = title,
+      .tabNames    = g_levelTabNames,
+      .tabCount    = DebugLevelTab_Count,
+      .topBarColor = ui_color(100, 0, 0, 192));
+
+  switch (ctx->panelComp->panel.activeTab) {
+  case DebugLevelTab_Manage:
+    manage_panel_draw(canvas, ctx, assetView);
+    break;
+  }
+
   ui_panel_end(canvas, &ctx->panelComp->panel);
 }
 
@@ -268,6 +294,6 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       .flags       = DebugLevelFlags_Default,
       .idFilter    = dynstring_create(g_alloc_heap, 32),
       .levelAssets = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
-      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
+      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
   return panelEntity;
 }
