@@ -1,4 +1,5 @@
 {
+  "name": "Gate",
   "objects": [
     {
       "id": 732732,
@@ -485,7 +486,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 4.4263, "y": 0.6569, "z": -23.5773 },
-      "rotation": { "y": -0.9091, "w": 0.4166 }
+      "rotation": { "x": 0, "y": 0.9091, "w": -0.4166 }
     },
     {
       "id": 341701521,
@@ -748,7 +749,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 30.8325, "y": 0.858, "z": -15.6979 },
-      "rotation": { "y": -0.1596, "w": 0.9872 }
+      "rotation": { "y": 0.1596, "w": -0.9872 }
     },
     {
       "id": 475297305,
@@ -956,7 +957,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 28.4078, "y": 0.8692, "z": -16.4116 },
-      "rotation": { "y": -0.2918, "w": 0.9565 }
+      "rotation": { "y": 0.2918, "w": -0.9565 }
     },
     {
       "id": 613166959,
@@ -1017,7 +1018,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 9.2462, "y": 0.9514, "z": -26.079 },
-      "rotation": { "y": -0.2616, "w": 0.9652 }
+      "rotation": { "x": 0, "y": 0.2616, "w": -0.9652 }
     },
     {
       "id": 631173879,
@@ -1242,7 +1243,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 19.6292, "y": 0.6435, "z": -21.3158 },
-      "rotation": { "y": -0.1231, "w": 0.9924 }
+      "rotation": { "x": 0, "y": 0.1231, "w": -0.9924 }
     },
     {
       "id": 763584566,
@@ -1321,7 +1322,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 17.1987, "y": 0.7175, "z": -23.7027 },
-      "rotation": { "y": -0.0062, "w": -1 }
+      "rotation": { "y": 0.0062, "w": 1 }
     },
     {
       "id": 799132491,
@@ -1353,7 +1354,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 22.8814, "y": 0.6339, "z": -17.2944 },
-      "rotation": { "y": -0.3484, "w": 0.9374 }
+      "rotation": { "x": 0, "y": 0.3484, "w": -0.9374 }
     },
     {
       "id": 835939472,
@@ -1414,7 +1415,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 9.2959, "y": 0.7477, "z": -24.3728 },
-      "rotation": { "y": -0.7978, "w": 0.6029 }
+      "rotation": { "x": 0, "y": 0.7978, "w": -0.6029 }
     },
     {
       "id": 883512182,
@@ -1566,7 +1567,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 2.8371, "y": 0.7946, "z": -24.46 },
-      "rotation": { "y": -0.2736, "w": 0.9618 }
+      "rotation": { "x": 0, "y": 0.2736, "w": -0.9618 }
     },
     {
       "id": 970847573,
@@ -1585,7 +1586,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 2.7692, "y": 0.8669, "z": -28.3331 },
-      "rotation": { "y": -0.9769, "w": -0.2139 }
+      "rotation": { "y": 0.9769, "w": 0.2139 }
     },
     {
       "id": 971715363,
@@ -1870,7 +1871,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 5.1472, "y": 0.5746, "z": -21.1449 },
-      "rotation": { "y": -0.9279, "w": -0.3727 }
+      "rotation": { "y": 0.9279, "w": 0.3727 }
     },
     {
       "id": 1157097425,
@@ -2584,7 +2585,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 2.1236, "y": 0.7366, "z": -22.7882 },
-      "rotation": { "y": -0.7399, "w": 0.6727 }
+      "rotation": { "x": 0, "y": 0.7399, "w": -0.6727 }
     },
     {
       "id": 1665370880,
@@ -2841,7 +2842,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 0.5005, "y": 0.7869, "z": -27.5821 },
-      "rotation": { "y": -0.7667, "w": 0.642 }
+      "rotation": { "x": 0, "y": 0.7667, "w": -0.642 }
     },
     {
       "id": 1866022090,
@@ -2885,7 +2886,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 29.2107, "y": 0.9863, "z": -17.2289 },
-      "rotation": { "y": -0.1768, "w": 0.9842 }
+      "rotation": { "y": 0.1768, "w": -0.9842 }
     },
     {
       "id": 1874670022,
@@ -2943,7 +2944,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 31.5124, "y": 0.6375, "z": -26.0521 },
-      "rotation": { "y": 0.8821, "w": -0.471 }
+      "rotation": { "y": -0.8821, "w": 0.471 }
     },
     {
       "id": 1911238316,
@@ -3041,7 +3042,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": -0.4961, "y": 0.7843, "z": -21.89 },
-      "rotation": { "y": -0.9362, "w": -0.3514 }
+      "rotation": { "y": 0.9362, "w": 0.3514 }
     },
     {
       "id": 1968193259,
@@ -3097,7 +3098,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": -0.4378, "y": 0.899, "z": -20.2735 },
-      "rotation": { "y": -0.9895, "w": -0.1448 }
+      "rotation": { "y": 0.9895, "w": 0.1448 }
     },
     {
       "id": 1998873012,
@@ -3296,7 +3297,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 12.3908, "y": 0.5614, "z": -20.3838 },
-      "rotation": { "y": -0.9669, "w": -0.255 }
+      "rotation": { "y": 0.9669, "w": 0.255 }
     },
     {
       "id": 2112252367,
@@ -3393,7 +3394,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 15.5694, "y": 0.6631, "z": -25.1655 },
-      "rotation": { "y": -0.9349, "w": -0.355 }
+      "rotation": { "y": 0.9349, "w": 0.355 }
     },
     {
       "id": 2156091089,
@@ -3579,7 +3580,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 21.2472, "y": 0.5116, "z": -17.2276 },
-      "rotation": { "y": 0.4978, "w": -0.8673 }
+      "rotation": { "y": -0.4978, "w": 0.8673 }
     },
     {
       "id": 2282652179,
@@ -3711,7 +3712,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 9.1081, "y": 0.4749, "z": -19.6388 },
-      "rotation": { "w": -1 }
+      "rotation": { "w": 1 }
     },
     {
       "id": 2376686997,
@@ -5260,7 +5261,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 0.4382, "y": 0.5906, "z": -29.2298 },
-      "rotation": { "y": 0.4385, "w": -0.8987 }
+      "rotation": { "y": -0.4385, "w": 0.8987 }
     },
     {
       "id": 3261648517,
@@ -6066,7 +6067,7 @@
       "prefab": "InfantryEnemy",
       "faction": "B",
       "position": { "x": 33.186, "y": 1.0747, "z": -18.7719 },
-      "rotation": { "y": -0.9735, "w": -0.2286 }
+      "rotation": { "y": 0.9735, "w": 0.2286 }
     },
     {
       "id": 3781843270,
