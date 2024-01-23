@@ -385,6 +385,13 @@ EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) {
 
 String scene_level_name(const SceneLevelManagerComp* manager) { return manager->loadedLevelName; }
 
+void scene_level_name_update(SceneLevelManagerComp* manager, const String name) {
+  diag_assert_msg(manager->loadedLevelAsset, "Unable to update name: No level loaded");
+
+  string_maybe_free(g_alloc_heap, manager->loadedLevelName);
+  manager->loadedLevelName = string_maybe_dup(g_alloc_heap, name);
+}
+
 void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {
   diag_assert(ecs_entity_valid(levelAsset));
 
