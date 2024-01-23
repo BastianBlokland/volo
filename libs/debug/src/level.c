@@ -30,12 +30,14 @@ typedef enum {
 
 typedef enum {
   DebugLevelTab_Manage,
+  DebugLevelTab_Settings,
 
   DebugLevelTab_Count,
 } DebugLevelTab;
 
 static const String g_levelTabNames[] = {
     string_static("Manage"),
+    string_static("\uE8B8 Settings"),
 };
 ASSERT(array_elems(g_levelTabNames) == DebugLevelTab_Count, "Incorrect number of names");
 
@@ -189,6 +191,12 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* a
   switch (ctx->panelComp->panel.activeTab) {
   case DebugLevelTab_Manage:
     manage_panel_draw(c, ctx, assetView);
+    break;
+  case DebugLevelTab_Settings:
+    if (!ecs_entity_valid(scene_level_asset(ctx->levelManager))) {
+      ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
+      break;
+    }
     break;
   }
 
