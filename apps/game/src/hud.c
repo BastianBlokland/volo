@@ -239,7 +239,7 @@ static void hud_level_draw(UiCanvasComp* c, const SceneLevelManagerComp* level) 
   const String name = scene_level_name(level);
   if (!string_is_empty(name)) {
     ui_layout_push(c);
-    ui_layout_inner(c, UiBase_Canvas, UiAlign_TopCenter, ui_vector(200, 100), UiBase_Absolute);
+    ui_layout_inner(c, UiBase_Canvas, UiAlign_TopCenter, ui_vector(500, 100), UiBase_Absolute);
 
     ui_style_push(c);
     ui_style_color(c, ui_color_white);
