@@ -79,7 +79,7 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ct
 
   ui_table_next_row(canvas, &table);
 
-  const bool          levelIsLoaded    = scene_level_current(ctx->levelManager);
+  const bool          levelIsLoaded    = ecs_entity_valid(scene_level_current(ctx->levelManager));
   const UiWidgetFlags levelButtonFlags = levelIsLoaded ? 0 : UiWidget_Disabled;
 
   if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE5D5"))) {
