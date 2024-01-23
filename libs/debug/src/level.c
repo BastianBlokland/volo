@@ -195,6 +195,14 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   if (ui_textbox(c, &ctx->panelComp->nameBuffer, .maxTextLength = 32)) {
     scene_level_name_update(ctx->levelManager, dynstring_view(&ctx->panelComp->nameBuffer));
   }
+
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Container, UiAlign_BottomCenter, ui_vector(100, 22), UiBase_Absolute);
+  ui_layout_move_dir(c, Ui_Up, 8, UiBase_Absolute);
+  if (ui_button(c, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
+    ctx->panelComp->flags |= DebugLevelFlags_Save;
+  }
+  ui_layout_pop(c);
 }
 
 static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
