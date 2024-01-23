@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "debug_panel.h"
 #include "ecs_world.h"
@@ -9,6 +10,9 @@
 
 // clang-format off
 
+static const String g_tooltipReload     = string_static("Reload the current level.");
+static const String g_tooltipUnload     = string_static("Unload the current level.");
+static const String g_tooltipSave       = string_static("Save the current level.");
 static const String g_tooltipFilter     = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 static const String g_levelQueryPattern = string_static("levels/*.level");
 
@@ -18,15 +22,29 @@ typedef enum {
   DebugLevelFlags_RefreshAssets = 1 << 0,
   DebugLevelFlags_Reload        = 1 << 1,
   DebugLevelFlags_Unload        = 1 << 2,
-  DebugLevelFlags_SaveCurrent   = 1 << 3,
+  DebugLevelFlags_Save          = 1 << 3,
 
   DebugLevelFlags_None    = 0,
   DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
 } DebugLevelFlags;
 
+typedef enum {
+  DebugLevelTab_Manage,
+  DebugLevelTab_Settings,
+
+  DebugLevelTab_Count,
+} DebugLevelTab;
+
+static const String g_levelTabNames[] = {
+    string_static("Manage"),
+    string_static("\uE8B8 Settings"),
+};
+ASSERT(array_elems(g_levelTabNames) == DebugLevelTab_Count, "Incorrect number of names");
+
 ecs_comp_define(DebugLevelPanelComp) {
   DebugLevelFlags flags;
   DynString       idFilter;
+  DynString       nameBuffer;
   DynArray        levelAssets; // EcsEntityId[]
   UiPanel         panel;
   UiScrollview    scrollview;
@@ -36,16 +54,17 @@ ecs_comp_define(DebugLevelPanelComp) {
 static void ecs_destruct_level_panel(void* data) {
   DebugLevelPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
+  dynstring_destroy(&comp->nameBuffer);
   dynarray_destroy(&comp->levelAssets);
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 typedef struct {
-  EcsWorld*                    world;
-  DebugLevelPanelComp*         panelComp;
-  const SceneLevelManagerComp* levelManager;
-  AssetManagerComp*            assets;
+  EcsWorld*              world;
+  DebugLevelPanelComp*   panelComp;
+  SceneLevelManagerComp* levelManager;
+  AssetManagerComp*      assets;
 } DebugLevelContext;
 
 static void level_assets_refresh(DebugLevelContext* ctx) {
@@ -67,8 +86,8 @@ static bool level_id_filter(DebugLevelContext* ctx, const String levelId) {
   return string_match_glob(levelId, filter, StringMatchFlags_IgnoreCase);
 }
 
-static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ctx) {
-  ui_layout_push(canvas);
+static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
+  ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
@@ -77,48 +96,41 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ct
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  ui_table_next_row(canvas, &table);
+  ui_table_next_row(c, &table);
 
-  const bool          levelIsLoaded    = scene_level_current(ctx->levelManager);
-  const UiWidgetFlags levelButtonFlags = levelIsLoaded ? 0 : UiWidget_Disabled;
+  const bool          isLoaded = ecs_entity_valid(scene_level_asset(ctx->levelManager));
+  const UiWidgetFlags btnFlags = isLoaded ? 0 : UiWidget_Disabled;
 
-  if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE5D5"))) {
+  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE5D5"), .tooltip = g_tooltipReload)) {
     ctx->panelComp->flags |= DebugLevelFlags_Reload;
   }
-  ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE161"))) {
-    ctx->panelComp->flags |= DebugLevelFlags_SaveCurrent;
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
+    ctx->panelComp->flags |= DebugLevelFlags_Save;
   }
-  ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE9BA"))) {
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE9BA"), .tooltip = g_tooltipUnload)) {
     ctx->panelComp->flags |= DebugLevelFlags_Unload;
   }
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("Filter:"));
-  ui_table_next_column(canvas, &table);
+  ui_table_next_column(c, &table);
+  ui_label(c, string_lit("Filter:"));
+  ui_table_next_column(c, &table);
   ui_textbox(
-      canvas,
-      &ctx->panelComp->idFilter,
-      .placeholder = string_lit("*"),
-      .tooltip     = g_tooltipFilter);
+      c, &ctx->panelComp->idFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
 
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 }
 
-static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsView* assetView) {
-  const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
-  ui_panel_begin(
-      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
-
-  level_panel_options_draw(canvas, ctx);
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
+  manage_panel_options_draw(c, ctx);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None);
 
   const bool isLoading = scene_level_is_loading(ctx->levelManager);
   const bool disabled  = isLoading;
-  ui_style_push(canvas);
+  ui_style_push(c);
   if (disabled) {
-    ui_style_color_mult(canvas, 0.5f);
+    ui_style_color_mult(c, 0.5f);
   }
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
@@ -126,7 +138,7 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
-      canvas,
+      c,
       &table,
       (const UiTableColumnName[]){
           {string_lit("Level"), string_lit("Level identifier.")},
@@ -134,7 +146,7 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
       });
 
   const f32 totalHeight = ui_table_height(&table, ctx->panelComp->totalRows);
-  ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, totalHeight);
+  ui_scrollview_begin(c, &ctx->panelComp->scrollview, totalHeight);
   ctx->panelComp->totalRows = 0;
 
   EcsIterator* assetItr = ecs_view_itr(assetView);
@@ -143,37 +155,86 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
       continue;
     }
     const String id     = asset_id(ecs_view_read_t(assetItr, AssetComp));
-    const bool   loaded = scene_level_current(ctx->levelManager) == *levelAsset;
+    const bool   loaded = scene_level_asset(ctx->levelManager) == *levelAsset;
 
     if (!level_id_filter(ctx, id)) {
       continue;
     }
     ++ctx->panelComp->totalRows;
 
-    ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(
-        canvas, &table, loaded ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192));
+    ui_table_next_row(c, &table);
+    ui_table_draw_row_bg(c, &table, loaded ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192));
 
-    ui_label(canvas, id, .selectable = true);
-    ui_table_next_column(canvas, &table);
+    ui_label(c, id, .selectable = true);
+    ui_table_next_column(c, &table);
 
-    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(60, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(canvas, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("Load"))) {
+    ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(60, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("Load"))) {
       scene_level_load(ctx->world, *levelAsset);
     }
   }
 
-  ui_scrollview_end(canvas, &ctx->panelComp->scrollview);
+  ui_scrollview_end(c, &ctx->panelComp->scrollview);
 
-  ui_style_pop(canvas);
-  ui_layout_container_pop(canvas);
-  ui_panel_end(canvas, &ctx->panelComp->panel);
+  ui_style_pop(c);
+  ui_layout_container_pop(c);
+}
+
+static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Name"));
+  ui_table_next_column(c, &table);
+
+  dynstring_clear(&ctx->panelComp->nameBuffer);
+  dynstring_append(&ctx->panelComp->nameBuffer, scene_level_name(ctx->levelManager));
+
+  if (ui_textbox(c, &ctx->panelComp->nameBuffer, .maxTextLength = 32)) {
+    scene_level_name_update(ctx->levelManager, dynstring_view(&ctx->panelComp->nameBuffer));
+  }
+
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Container, UiAlign_BottomCenter, ui_vector(100, 22), UiBase_Absolute);
+  ui_layout_move_dir(c, Ui_Up, 8, UiBase_Absolute);
+  if (ui_button(c, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
+    ctx->panelComp->flags |= DebugLevelFlags_Save;
+  }
+  ui_layout_pop(c);
+}
+
+static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
+  const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
+  ui_panel_begin(
+      c,
+      &ctx->panelComp->panel,
+      .title       = title,
+      .tabNames    = g_levelTabNames,
+      .tabCount    = DebugLevelTab_Count,
+      .topBarColor = ui_color(100, 0, 0, 192));
+
+  switch (ctx->panelComp->panel.activeTab) {
+  case DebugLevelTab_Manage:
+    manage_panel_draw(c, ctx, assetView);
+    break;
+  case DebugLevelTab_Settings:
+    if (!ecs_entity_valid(scene_level_asset(ctx->levelManager))) {
+      ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
+      break;
+    }
+    settings_panel_draw(c, ctx);
+    break;
+  }
+
+  ui_panel_end(c, &ctx->panelComp->panel);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AssetManagerComp);
+  ecs_access_write(SceneLevelManagerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -188,15 +249,15 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*            assets       = ecs_view_write_t(globalItr, AssetManagerComp);
-  const InputManagerComp*      input        = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  AssetManagerComp*       assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
 
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
 
   if (input_triggered_lit(input, "SaveLevel")) {
-    const EcsEntityId currentLevelAsset = scene_level_current(levelManager);
+    const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
     if (currentLevelAsset) {
       scene_level_save(world, currentLevelAsset);
     }
@@ -225,9 +286,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       scene_level_unload(world);
       panelComp->flags &= ~DebugLevelFlags_Unload;
     }
-    if (panelComp->flags & DebugLevelFlags_SaveCurrent) {
-      scene_level_save(world, scene_level_current(levelManager));
-      panelComp->flags &= ~DebugLevelFlags_SaveCurrent;
+    if (panelComp->flags & DebugLevelFlags_Save) {
+      scene_level_save(world, scene_level_asset(levelManager));
+      panelComp->flags &= ~DebugLevelFlags_Save;
     }
 
     ui_canvas_reset(canvas);
@@ -267,7 +328,8 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       DebugLevelPanelComp,
       .flags       = DebugLevelFlags_Default,
       .idFilter    = dynstring_create(g_alloc_heap, 32),
+      .nameBuffer  = dynstring_create(g_alloc_heap, 32),
       .levelAssets = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
-      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
+      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
   return panelEntity;
 }

@@ -32,11 +32,12 @@ typedef struct {
 } AssetLevelObjectArray;
 
 typedef struct {
+  String                name;
   AssetLevelObjectArray objects;
 } AssetLevel;
 
 ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
-bool asset_level_save(AssetManagerComp*, String id, AssetLevel);
+bool asset_level_save(AssetManagerComp*, String id, const AssetLevel*);
 
 void asset_level_jsonschema_write(DynString*);

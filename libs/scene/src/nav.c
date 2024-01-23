@@ -196,6 +196,7 @@ static void scene_nav_invalidate_blocked_paths(SceneNavEnvComp* env, EcsView* pa
     for (u32 i = 0; i != path->cellCount; ++i) {
       if (geo_nav_blocked(env->navGrid, path->cells[i])) {
         path->nextRefreshTime = 0;
+        break;
       }
     }
   }

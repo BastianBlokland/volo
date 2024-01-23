@@ -6,6 +6,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "name": { "title": "String", "type": "string" },
         "objects": {
           "type": "array",
           "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }

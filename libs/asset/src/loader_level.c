@@ -49,6 +49,7 @@ static void level_datareg_init() {
     data_reg_field_t(reg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetLevel);
+    data_reg_field_t(reg, AssetLevel, name, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
     // clang-format on
 
@@ -117,7 +118,7 @@ Cleanup:
   asset_repo_source_close(src);
 }
 
-bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLevel level) {
+bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLevel* level) {
   String       idWithExtScratch = id;
   const String ext              = path_extension(id);
   if (string_is_empty(ext)) {
@@ -133,7 +134,8 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   DynString dataBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
 
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
-  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level), &jOpts);
+  const Mem               levelData = mem_create(level, sizeof(AssetLevel));
+  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, levelData, &jOpts);
 
   const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 
