@@ -387,6 +387,7 @@ String scene_level_name(const SceneLevelManagerComp* manager) { return manager->
 
 void scene_level_name_update(SceneLevelManagerComp* manager, const String name) {
   diag_assert_msg(manager->loadedLevelAsset, "Unable to update name: No level loaded");
+  diag_assert_msg(name.size <= 32, "Unable to update name: Too long");
 
   string_maybe_free(g_alloc_heap, manager->loadedLevelName);
   manager->loadedLevelName = string_maybe_dup(g_alloc_heap, name);
