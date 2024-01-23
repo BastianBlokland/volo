@@ -349,7 +349,7 @@ ecs_module_init(scene_level_module) {
 
 bool scene_level_is_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
 
-EcsEntityId scene_level_current(const SceneLevelManagerComp* manager) {
+EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) {
   return manager->loadedLevelAsset;
 }
 

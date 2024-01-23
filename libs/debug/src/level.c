@@ -79,7 +79,7 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ct
 
   ui_table_next_row(canvas, &table);
 
-  const bool          levelIsLoaded    = ecs_entity_valid(scene_level_current(ctx->levelManager));
+  const bool          levelIsLoaded    = ecs_entity_valid(scene_level_asset(ctx->levelManager));
   const UiWidgetFlags levelButtonFlags = levelIsLoaded ? 0 : UiWidget_Disabled;
 
   if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE5D5"))) {
@@ -143,7 +143,7 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
       continue;
     }
     const String id     = asset_id(ecs_view_read_t(assetItr, AssetComp));
-    const bool   loaded = scene_level_current(ctx->levelManager) == *levelAsset;
+    const bool   loaded = scene_level_asset(ctx->levelManager) == *levelAsset;
 
     if (!level_id_filter(ctx, id)) {
       continue;
@@ -196,7 +196,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
 
   if (input_triggered_lit(input, "SaveLevel")) {
-    const EcsEntityId currentLevelAsset = scene_level_current(levelManager);
+    const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
     if (currentLevelAsset) {
       scene_level_save(world, currentLevelAsset);
     }
@@ -226,7 +226,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       panelComp->flags &= ~DebugLevelFlags_Unload;
     }
     if (panelComp->flags & DebugLevelFlags_SaveCurrent) {
-      scene_level_save(world, scene_level_current(levelManager));
+      scene_level_save(world, scene_level_asset(levelManager));
       panelComp->flags &= ~DebugLevelFlags_SaveCurrent;
     }
 
