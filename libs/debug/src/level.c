@@ -10,11 +10,12 @@
 
 // clang-format off
 
-static const String g_tooltipReload     = string_static("Reload the current level.");
-static const String g_tooltipUnload     = string_static("Unload the current level.");
-static const String g_tooltipSave       = string_static("Save the current level.");
-static const String g_tooltipFilter     = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
-static const String g_queryPatternLevel = string_static("levels/*.level");
+static const String g_tooltipReload       = string_static("Reload the current level.");
+static const String g_tooltipUnload       = string_static("Unload the current level.");
+static const String g_tooltipSave         = string_static("Save the current level.");
+static const String g_tooltipFilter       = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_queryPatternLevel   = string_static("levels/*.level");
+static const String g_queryPatternTerrain = string_static("terrains/*.terrain");
 
 // clang-format on
 
@@ -45,7 +46,8 @@ ecs_comp_define(DebugLevelPanelComp) {
   DebugLevelFlags flags;
   DynString       idFilter;
   DynString       nameBuffer;
-  DynArray        levelAssets; // EcsEntityId[]
+  DynArray        assetsLevel;   // EcsEntityId[]
+  DynArray        assetsTerrain; // EcsEntityId[]
   UiPanel         panel;
   UiScrollview    scrollview;
   u32             totalRows;
@@ -55,7 +57,8 @@ static void ecs_destruct_level_panel(void* data) {
   DebugLevelPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
   dynstring_destroy(&comp->nameBuffer);
-  dynarray_destroy(&comp->levelAssets);
+  dynarray_destroy(&comp->assetsLevel);
+  dynarray_destroy(&comp->assetsTerrain);
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
@@ -67,13 +70,13 @@ typedef struct {
   AssetManagerComp*      assets;
 } DebugLevelContext;
 
-static void level_assets_refresh(DebugLevelContext* ctx) {
+static void level_assets_refresh(DebugLevelContext* ctx, const String pattern, DynString* out) {
   EcsEntityId assetEntities[asset_query_max_results];
-  const u32   assetCount = asset_query(ctx->world, ctx->assets, g_queryPatternLevel, assetEntities);
+  const u32   assetCount = asset_query(ctx->world, ctx->assets, pattern, assetEntities);
 
-  dynarray_clear(&ctx->panelComp->levelAssets);
+  dynarray_clear(out);
   for (u32 i = 0; i != assetCount; ++i) {
-    *dynarray_push_t(&ctx->panelComp->levelAssets, EcsEntityId) = assetEntities[i];
+    *dynarray_push_t(out, EcsEntityId) = assetEntities[i];
   }
 }
 
@@ -150,7 +153,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* 
   ctx->panelComp->totalRows = 0;
 
   EcsIterator* assetItr = ecs_view_itr(assetView);
-  dynarray_for_t(&ctx->panelComp->levelAssets, EcsEntityId, levelAsset) {
+  dynarray_for_t(&ctx->panelComp->assetsLevel, EcsEntityId, levelAsset) {
     if (!ecs_view_maybe_jump(assetItr, *levelAsset)) {
       continue;
     }
@@ -275,7 +278,8 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     };
 
     if (panelComp->flags & DebugLevelFlags_RefreshAssets) {
-      level_assets_refresh(&ctx);
+      level_assets_refresh(&ctx, g_queryPatternLevel, &panelComp->assetsLevel);
+      level_assets_refresh(&ctx, g_queryPatternTerrain, &panelComp->assetsTerrain);
       panelComp->flags &= ~DebugLevelFlags_RefreshAssets;
     }
     if (panelComp->flags & DebugLevelFlags_Reload) {
@@ -326,10 +330,11 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugLevelPanelComp,
-      .flags       = DebugLevelFlags_Default,
-      .idFilter    = dynstring_create(g_alloc_heap, 32),
-      .nameBuffer  = dynstring_create(g_alloc_heap, 32),
-      .levelAssets = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
-      .panel       = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
+      .flags         = DebugLevelFlags_Default,
+      .idFilter      = dynstring_create(g_alloc_heap, 32),
+      .nameBuffer    = dynstring_create(g_alloc_heap, 32),
+      .assetsLevel   = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
+      .assetsTerrain = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
+      .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
   return panelEntity;
 }
