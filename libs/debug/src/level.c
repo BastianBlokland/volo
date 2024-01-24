@@ -68,6 +68,7 @@ typedef struct {
   DebugLevelPanelComp*   panelComp;
   SceneLevelManagerComp* levelManager;
   AssetManagerComp*      assets;
+  EcsView*               assetView;
 } DebugLevelContext;
 
 static void level_assets_refresh(DebugLevelContext* ctx, const String pattern, DynString* out) {
@@ -78,6 +79,33 @@ static void level_assets_refresh(DebugLevelContext* ctx, const String pattern, D
   for (u32 i = 0; i != assetCount; ++i) {
     *dynarray_push_t(out, EcsEntityId) = assetEntities[i];
   }
+}
+
+static bool level_asset_select(
+    UiCanvasComp* c, DebugLevelContext* ctx, EcsEntityId* val, const DynArray* options) {
+  EcsIterator* assetItr     = ecs_view_itr(ctx->assetView);
+  String       names[32]    = {[0] = string_lit("< None >")};
+  EcsEntityId  entities[32] = {[0] = 0};
+  u32          count        = 1;
+  i32          index        = 0;
+  for (usize i = 0; i != options->size; ++i) {
+    if (count == array_elems(names)) {
+      break; // Max option count exceeded; Should we log a warning?
+    }
+    const EcsEntityId asset = *dynarray_at_t(options, i, EcsEntityId);
+    if (ecs_view_maybe_jump(assetItr, asset)) {
+      if (asset == *val) {
+        index = count;
+      }
+      entities[count] = asset;
+      names[count++]  = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    }
+  }
+  if (ui_select(c, &index, names, count)) {
+    *val = entities[index];
+    return true;
+  }
+  return false;
 }
 
 static bool level_id_filter(DebugLevelContext* ctx, const String levelId) {
@@ -124,7 +152,7 @@ static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_layout_pop(c);
 }
 
-static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
+static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   manage_panel_options_draw(c, ctx);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None);
@@ -152,7 +180,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* 
   ui_scrollview_begin(c, &ctx->panelComp->scrollview, totalHeight);
   ctx->panelComp->totalRows = 0;
 
-  EcsIterator* assetItr = ecs_view_itr(assetView);
+  EcsIterator* assetItr = ecs_view_itr(ctx->assetView);
   dynarray_for_t(&ctx->panelComp->assetsLevel, EcsEntityId, levelAsset) {
     if (!ecs_view_maybe_jump(assetItr, *levelAsset)) {
       continue;
@@ -199,6 +227,15 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
     scene_level_name_update(ctx->levelManager, dynstring_view(&ctx->panelComp->nameBuffer));
   }
 
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Terrain"));
+  ui_table_next_column(c, &table);
+
+  EcsEntityId terrain = scene_level_terrain(ctx->levelManager);
+  if (level_asset_select(c, ctx, &terrain, &ctx->panelComp->assetsTerrain)) {
+    scene_level_terrain_update(ctx->levelManager, terrain);
+  }
+
   ui_layout_push(c);
   ui_layout_inner(c, UiBase_Container, UiAlign_BottomCenter, ui_vector(100, 22), UiBase_Absolute);
   ui_layout_move_dir(c, Ui_Up, 8, UiBase_Absolute);
@@ -208,7 +245,7 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_layout_pop(c);
 }
 
-static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* assetView) {
+static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
   ui_panel_begin(
       c,
@@ -220,7 +257,7 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx, EcsView* a
 
   switch (ctx->panelComp->panel.activeTab) {
   case DebugLevelTab_Manage:
-    manage_panel_draw(c, ctx, assetView);
+    manage_panel_draw(c, ctx);
     break;
   case DebugLevelTab_Settings:
     if (!ecs_entity_valid(scene_level_asset(ctx->levelManager))) {
@@ -275,6 +312,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
         .panelComp    = panelComp,
         .levelManager = levelManager,
         .assets       = assets,
+        .assetView    = assetView,
     };
 
     if (panelComp->flags & DebugLevelFlags_RefreshAssets) {
@@ -299,7 +337,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
       continue;
     }
-    level_panel_draw(canvas, &ctx, assetView);
+    level_panel_draw(canvas, &ctx);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
