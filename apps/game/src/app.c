@@ -17,7 +17,6 @@
 #include "scene_product.h"
 #include "scene_register.h"
 #include "scene_sound.h"
-#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"
@@ -636,10 +635,6 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_prefab_init(world, string_lit("global/game.prefabs"));
   scene_weapon_init(world, string_lit("global/game.weapons"));
   scene_product_init(world, string_lit("global/game.products"));
-  scene_terrain_init(
-      world,
-      string_lit("graphics/scene/terrain.graphic"),
-      string_lit("external/terrain/terrain_3_height.r16"));
 }
 
 bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowView); }
