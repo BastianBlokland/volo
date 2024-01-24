@@ -35,12 +35,6 @@ ecs_comp_define(SceneTerrainComp) {
   AssetTextureType heightmapType;
 };
 
-static void ecs_destruct_terrain(void* data) {
-  SceneTerrainComp* comp = data;
-  string_free(g_alloc_heap, comp->graphicId);
-  string_free(g_alloc_heap, comp->heightmapId);
-}
-
 ecs_view_define(GlobalLoadView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(SceneTerrainComp);
@@ -216,7 +210,7 @@ ecs_system_define(SceneTerrainUnloadSys) {
 }
 
 ecs_module_init(scene_terrain_module) {
-  ecs_register_comp(SceneTerrainComp, .destructor = ecs_destruct_terrain);
+  ecs_register_comp(SceneTerrainComp);
 
   ecs_register_view(GlobalLoadView);
   ecs_register_view(GlobalUnloadView);
