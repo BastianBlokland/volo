@@ -14,7 +14,7 @@ static const String g_tooltipReload     = string_static("Reload the current leve
 static const String g_tooltipUnload     = string_static("Unload the current level.");
 static const String g_tooltipSave       = string_static("Save the current level.");
 static const String g_tooltipFilter     = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
-static const String g_levelQueryPattern = string_static("levels/*.level");
+static const String g_queryPatternLevel = string_static("levels/*.level");
 
 // clang-format on
 
@@ -69,7 +69,7 @@ typedef struct {
 
 static void level_assets_refresh(DebugLevelContext* ctx) {
   EcsEntityId assetEntities[asset_query_max_results];
-  const u32   assetCount = asset_query(ctx->world, ctx->assets, g_levelQueryPattern, assetEntities);
+  const u32   assetCount = asset_query(ctx->world, ctx->assets, g_queryPatternLevel, assetEntities);
 
   dynarray_clear(&ctx->panelComp->levelAssets);
   for (u32 i = 0; i != assetCount; ++i) {
