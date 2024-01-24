@@ -33,6 +33,7 @@ typedef struct {
 
 typedef struct {
   String                name;
+  String                terrainId;
   AssetLevelObjectArray objects;
 } AssetLevel;
 
