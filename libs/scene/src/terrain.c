@@ -222,17 +222,6 @@ ecs_module_init(scene_terrain_module) {
   ecs_register_system(SceneTerrainUnloadSys, ecs_view_id(GlobalUnloadView));
 }
 
-void scene_terrain_init(EcsWorld* world, const String graphicId, const String heightmapId) {
-  diag_assert_msg(heightmapId.size, "Invalid terrain heightmapId");
-
-  ecs_world_add_t(
-      world,
-      ecs_world_global(world),
-      SceneTerrainComp,
-      .graphicId   = string_dup(g_alloc_heap, graphicId),
-      .heightmapId = string_dup(g_alloc_heap, heightmapId));
-}
-
 bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
   return terrain && terrain->heightmapData.size;
 }

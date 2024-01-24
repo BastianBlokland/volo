@@ -6,8 +6,6 @@
 
 ecs_comp_extern(SceneTerrainComp);
 
-void scene_terrain_init(EcsWorld*, String graphicId, String heightmapId);
-
 /**
  * Check if the terrain is loaded.
  * NOTE: Returns false if a null terrain is provided.
