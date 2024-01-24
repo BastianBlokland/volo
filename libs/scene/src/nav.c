@@ -158,6 +158,7 @@ static bool scene_nav_refresh_blockers(
 
 static bool scene_nav_terrain_refresh(SceneNavEnvComp* env, const SceneTerrainComp* terrain) {
   if (!scene_terrain_loaded(terrain)) {
+    // TODO: Should we reset the height of all the nav cells to zero?
     return false; // Terrain not loaded.
   }
   if (env->terrainVersion == scene_terrain_version(terrain)) {
