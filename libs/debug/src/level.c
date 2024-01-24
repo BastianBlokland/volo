@@ -157,7 +157,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None);
 
-  const bool isLoading = scene_level_is_loading(ctx->levelManager);
+  const bool isLoading = scene_level_loading(ctx->levelManager);
   const bool disabled  = isLoading;
   ui_style_push(c);
   if (disabled) {

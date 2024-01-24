@@ -395,7 +395,7 @@ ecs_module_init(scene_level_module) {
       ecs_register_view(SaveRequestView));
 }
 
-bool scene_level_is_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
+bool scene_level_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
 
 EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) {
   return manager->loadedLevelAsset;
