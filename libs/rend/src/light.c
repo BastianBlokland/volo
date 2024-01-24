@@ -304,7 +304,7 @@ static GeoMatrix rend_light_dir_shadow_proj(
 
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
-  if (terrain) {
+  if (scene_terrain_loaded(terrain)) {
     const GeoBox terrainBounds = scene_terrain_bounds(terrain);
     const GeoBox worldBounds   = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
     rend_clip_frustum_far_to_bounds(frustum, &worldBounds);

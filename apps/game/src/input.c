@@ -285,7 +285,7 @@ static bool placement_update(
 
       // Update placement position.
       f32 rayT;
-      if (terrain) {
+      if (scene_terrain_loaded(terrain)) {
         rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
       } else {
         rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
@@ -497,7 +497,7 @@ static void input_order(
    * Order a move when clicking the terrain / ground plane.
    */
   f32 rayT = -1.0f;
-  if (terrain) {
+  if (scene_terrain_loaded(terrain)) {
     rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
   } else {
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);

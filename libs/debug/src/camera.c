@@ -285,7 +285,7 @@ static void debug_camera_draw_input_ray(
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
       debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
     }
-  } else {
+  } else if (scene_terrain_loaded(terrain)) {
     const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
     if (terrainHitT >= 0) {
       const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);

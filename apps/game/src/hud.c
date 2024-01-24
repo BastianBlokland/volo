@@ -440,7 +440,7 @@ static void hud_minimap_update(
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
-  const f32 terrainSize = terrain ? scene_terrain_size(terrain) : 500;
+  const f32 terrainSize = scene_terrain_loaded(terrain) ? scene_terrain_size(terrain) : 500;
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;
