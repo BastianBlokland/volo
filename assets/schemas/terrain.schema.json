@@ -1,0 +1,18 @@
+{
+  "title": "AssetTerrainComp",
+  "$ref": "#/$defs/AssetTerrainComp",
+  "$defs": {
+    "AssetTerrainComp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "graphicId": { "title": "String", "type": "string", "minLength": 1 },
+        "heightmapId": { "title": "String", "type": "string", "minLength": 1 }
+      },
+      "required": [ "graphicId", "heightmapId" ],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\"\n}" }
+      ]
+    }
+  }
+}
