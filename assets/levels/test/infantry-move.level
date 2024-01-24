@@ -1,4 +1,5 @@
 {
+  "terrainId": "terrains/desert.terrain",
   "objects": [
     {
       "id": 732732,
@@ -61,7 +62,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 16.6913, "y": 0.6795, "z": 66.7702 },
-      "rotation": { "y": -0.6501, "w": 0.7598 }
+      "rotation": { "x": 0, "y": 0.6501, "w": -0.7598 }
     },
     {
       "id": 13925080,
@@ -110,7 +111,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 58.8911, "y": 0.1766, "z": 30.95 },
-      "rotation": { "y": 0.2619, "w": -0.9651 }
+      "rotation": { "y": -0.2619, "w": 0.9651 }
     },
     {
       "id": 31405950,
@@ -138,7 +139,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 1.5234, "y": 0.4441, "z": 64.2239 },
-      "rotation": { "y": -0.4699, "w": 0.8827 }
+      "rotation": { "x": 0, "y": 0.4699, "w": -0.8827 }
     },
     {
       "id": 44547650,
@@ -180,7 +181,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 6.3556, "y": 0.4779, "z": 26.9384 },
-      "rotation": { "y": -0.2335, "w": 0.9724 }
+      "rotation": { "x": 0, "y": 0.2335, "w": -0.9724 }
     },
     {
       "id": 62488197,
@@ -215,7 +216,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 10.0463, "y": 0.5616, "z": -8.2335 },
-      "rotation": { "y": -0.6291, "w": 0.7773 }
+      "rotation": { "x": 0, "y": 0.6291, "w": -0.7773 }
     },
     {
       "id": 69705438,
@@ -306,7 +307,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 14.367, "y": 0.8852, "z": -57.5564 },
-      "rotation": { "y": -0.9375, "w": 0.3479 }
+      "rotation": { "y": 0.9375, "w": -0.3479 }
     },
     {
       "id": 94252614,
@@ -369,7 +370,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 0.5209, "y": 0.7434, "z": 40.7279 },
-      "rotation": { "y": 0.9996, "w": -0.0294 }
+      "rotation": { "y": -0.9996, "w": 0.0294 }
     },
     {
       "id": 103315850,
@@ -397,7 +398,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 82.1276, "y": 0.3724, "z": -39.6627 },
-      "rotation": { "y": -1, "w": -0.0088 }
+      "rotation": { "y": 1, "w": 0.0088 }
     },
     {
       "id": 109247545,
@@ -411,14 +412,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -22.4593, "y": 0.3478, "z": 60.3392 },
-      "rotation": { "y": 0.7905, "w": -0.6125 }
+      "rotation": { "x": 0, "y": 0.7905, "w": -0.6125 }
     },
     {
       "id": 111369379,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -12.0511, "y": 0.8016, "z": 64.1692 },
-      "rotation": { "y": 0.9958, "w": 0.0912 }
+      "rotation": { "y": -0.9958, "w": -0.0912 }
     },
     {
       "id": 111896432,
@@ -537,7 +538,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 31.5239, "y": 0.3984, "z": 54.2483 },
-      "rotation": { "x": 0, "y": 0.5587, "w": -0.8294 }
+      "rotation": { "y": 0.5587, "w": -0.8294 }
     },
     {
       "id": 157949574,
@@ -565,7 +566,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 35.2292, "y": 0.4038, "z": 13.8017 },
-      "rotation": { "x": 0, "y": 0.3284, "w": -0.9445 }
+      "rotation": { "y": -0.3284, "w": 0.9445 }
     },
     {
       "id": 172927524,
@@ -600,7 +601,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -42.9651, "y": 1.3595, "z": 42.154 },
-      "rotation": { "y": 0.8508, "w": -0.5255 }
+      "rotation": { "y": -0.8508, "w": 0.5255 }
     },
     {
       "id": 190535037,
@@ -670,14 +671,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 19.4688, "y": 0.6444, "z": 58.6319 },
-      "rotation": { "y": 0.9598, "w": 0.2808 }
+      "rotation": { "y": -0.9598, "w": -0.2808 }
     },
     {
       "id": 207720536,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 22.265, "y": 0.587, "z": 9.2102 },
-      "rotation": { "y": -0.971, "w": -0.2391 }
+      "rotation": { "y": 0.971, "w": 0.2391 }
     },
     {
       "id": 208339945,
@@ -754,7 +755,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 16.6081, "y": 0.7211, "z": -23.4674 },
-      "rotation": { "y": -1, "w": 0.0055 }
+      "rotation": { "y": 1, "w": -0.0055 }
     },
     {
       "id": 229931548,
@@ -775,7 +776,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -36.5671, "y": 0.544, "z": 69.1769 },
-      "rotation": { "y": -0.9977, "w": -0.0671 }
+      "rotation": { "y": 0.9977, "w": 0.0671 }
     },
     {
       "id": 236690155,
@@ -922,7 +923,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.69, "y": 0.5389, "z": 9.4102 },
-      "rotation": { "y": -0.1681, "w": 0.9858 }
+      "rotation": { "y": 0.1681, "w": -0.9858 }
     },
     {
       "id": 276809220,
@@ -1048,7 +1049,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -43.3747, "y": 0.5351, "z": 55.4147 },
-      "rotation": { "y": 1, "w": 0.004 }
+      "rotation": { "y": -1, "w": -0.004 }
     },
     {
       "id": 310523371,
@@ -1063,7 +1064,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -8.4319, "y": 1.0009, "z": -93.8196 },
-      "rotation": { "x": 0, "y": 0.6483, "w": -0.7613 }
+      "rotation": { "y": -0.6483, "w": 0.7613 }
     },
     {
       "id": 312612980,
@@ -1112,21 +1113,21 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 25.4701, "y": 0.7603, "z": 27.3291 },
-      "rotation": { "y": -1, "w": 0.0076 }
+      "rotation": { "y": 1, "w": -0.0076 }
     },
     {
       "id": 339095800,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -7.2839, "y": 0.6218, "z": 68.384 },
-      "rotation": { "x": 0, "y": 0.1373, "w": -0.9905 }
+      "rotation": { "y": -0.1373, "w": 0.9905 }
     },
     {
       "id": 339523896,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 121.1833, "y": 0.7327, "z": -29.7123 },
-      "rotation": { "y": -0.8842, "w": 0.4671 }
+      "rotation": { "x": 0, "y": 0.8842, "w": -0.4671 }
     },
     {
       "id": 341701521,
@@ -1182,7 +1183,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.3508, "y": 0.4108, "z": 16.5164 },
-      "rotation": { "y": -0.051, "w": 0.9987 }
+      "rotation": { "x": 0, "y": 0.051, "w": -0.9987 }
     },
     {
       "id": 353518636,
@@ -1273,7 +1274,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 56.3094, "y": 0.5361, "z": -62.4781 },
-      "rotation": { "x": 0, "y": 1, "w": -0.0079 }
+      "rotation": { "y": 1, "w": -0.0079 }
     },
     {
       "id": 383386658,
@@ -1287,7 +1288,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -27.5854, "y": 0.5781, "z": 45.1473 },
-      "rotation": { "y": 0.2591, "w": -0.9659 }
+      "rotation": { "y": -0.2591, "w": 0.9659 }
     },
     {
       "id": 383951071,
@@ -1343,7 +1344,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -47.2457, "y": 0.2112, "z": -26.9147 },
-      "rotation": { "y": -0.1223, "w": 0.9925 }
+      "rotation": { "x": 0, "y": 0.1223, "w": -0.9925 }
     },
     {
       "id": 402674728,
@@ -1490,7 +1491,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 91.368, "y": 0.4615, "z": -69.0231 },
-      "rotation": { "y": 0.0168, "w": -0.9999 }
+      "rotation": { "y": -0.0168, "w": 0.9999 }
     },
     {
       "id": 444329259,
@@ -1539,7 +1540,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 21.7566, "y": 0.7247, "z": -35.437 },
-      "rotation": { "y": -0.2107, "w": 0.9776 }
+      "rotation": { "y": 0.2107, "w": -0.9776 }
     },
     {
       "id": 464555018,
@@ -1630,7 +1631,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 59.2056, "y": 0.7474, "z": 14.6682 },
-      "rotation": { "y": 1, "w": -0.0001 }
+      "rotation": { "y": -1, "w": 0.0001 }
     },
     {
       "id": 483435103,
@@ -1721,7 +1722,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -7.7591, "y": 0.5162, "z": 14.5106 },
-      "rotation": { "y": -0.2502, "w": -0.9682 }
+      "rotation": { "y": 0.2502, "w": 0.9682 }
     },
     {
       "id": 511290713,
@@ -1735,7 +1736,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -108.5653, "y": 0.7739, "z": 6.967 },
-      "rotation": { "x": 0, "y": 0.363, "w": -0.9318 }
+      "rotation": { "y": 0.363, "w": -0.9318 }
     },
     {
       "id": 512315678,
@@ -1791,7 +1792,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -3.2957, "y": 0.3646, "z": 1.4176 },
-      "rotation": { "y": 0.9859, "w": -0.1675 }
+      "rotation": { "x": 0, "y": 0.9859, "w": -0.1675 }
     },
     {
       "id": 527606356,
@@ -1812,7 +1813,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -6.624, "y": 0.6411, "z": 19.4322 },
-      "rotation": { "x": 0, "y": 0.9172, "w": -0.3985 }
+      "rotation": { "y": -0.9172, "w": 0.3985 }
     },
     {
       "id": 530384728,
@@ -1840,7 +1841,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.5399, "y": 0.7051, "z": -24.7251 },
-      "rotation": { "x": 0, "y": 0.9903, "w": -0.1391 }
+      "rotation": { "y": -0.9903, "w": 0.1391 }
     },
     {
       "id": 535983303,
@@ -1868,14 +1869,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -61.4771, "y": 0.3476, "z": 26.4865 },
-      "rotation": { "y": -0.922, "w": 0.3873 }
+      "rotation": { "x": 0, "y": 0.922, "w": -0.3873 }
     },
     {
       "id": 541151283,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 5.4263, "y": 0.6572, "z": -2.1731 },
-      "rotation": { "y": -0.9918, "w": -0.1281 }
+      "rotation": { "y": 0.9918, "w": 0.1281 }
     },
     {
       "id": 543212932,
@@ -1924,7 +1925,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 45.4793, "y": 1.0527, "z": -49.0098 },
-      "rotation": { "y": -0.0006, "w": -1 }
+      "rotation": { "y": 0.0006, "w": 1 }
     },
     {
       "id": 550354851,
@@ -1938,14 +1939,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -17.2396, "y": 0.6437, "z": 77.8952 },
-      "rotation": { "y": 0.4014, "w": -0.9159 }
+      "rotation": { "x": 0, "y": 0.4014, "w": -0.9159 }
     },
     {
       "id": 554974129,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 48.5286, "y": 0.5027, "z": 7.8377 },
-      "rotation": { "y": 0.0119, "w": 0.9999 }
+      "rotation": { "y": -0.0119, "w": -0.9999 }
     },
     {
       "id": 556198605,
@@ -1966,7 +1967,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -45.7604, "y": 0.9722, "z": -15.697 },
-      "rotation": { "y": -0.298, "w": 0.9546 }
+      "rotation": { "x": 0, "y": 0.298, "w": -0.9546 }
     },
     {
       "id": 559050521,
@@ -2106,7 +2107,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 16.4199, "y": 0.8164, "z": 69.4018 },
-      "rotation": { "y": -0.8489, "w": 0.5285 }
+      "rotation": { "x": 0, "y": 0.8489, "w": -0.5285 }
     },
     {
       "id": 599395319,
@@ -2134,7 +2135,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 11.6954, "y": 0.865, "z": 43.8219 },
-      "rotation": { "y": 1, "w": 0.0018 }
+      "rotation": { "y": -1, "w": -0.0018 }
     },
     {
       "id": 607642152,
@@ -2239,14 +2240,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 43.5282, "y": 0.9392, "z": -51.7126 },
-      "rotation": { "y": -0.9589, "w": 0.2837 }
+      "rotation": { "y": 0.9589, "w": -0.2837 }
     },
     {
       "id": 627147559,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -44.3652, "y": 0.3974, "z": 34.2214 },
-      "rotation": { "y": -0.9999, "w": 0.0121 }
+      "rotation": { "x": 0, "y": 0.9999, "w": -0.0121 }
     },
     {
       "id": 630074378,
@@ -2365,7 +2366,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 19.2365, "y": 0.5008, "z": 40.1118 },
-      "rotation": { "x": 0, "y": 0.9903, "w": -0.1388 }
+      "rotation": { "y": -0.9903, "w": 0.1388 }
     },
     {
       "id": 670521140,
@@ -2421,14 +2422,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -8.2332, "y": 0.6485, "z": 3.0023 },
-      "rotation": { "x": 0, "y": 0.9319, "w": -0.3627 }
+      "rotation": { "y": -0.9319, "w": 0.3627 }
     },
     {
       "id": 681125187,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 14.6738, "y": 0.6158, "z": -12.6842 },
-      "rotation": { "y": -0.9869, "w": -0.1615 }
+      "rotation": { "y": 0.9869, "w": 0.1615 }
     },
     {
       "id": 681178986,
@@ -2456,7 +2457,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -59.5675, "y": 0.5767, "z": -93.4528 },
-      "rotation": { "x": 0, "y": 0.9574, "w": -0.2888 }
+      "rotation": { "y": -0.9574, "w": 0.2888 }
     },
     {
       "id": 694508452,
@@ -2491,7 +2492,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 15.6846, "y": 0.6809, "z": 18.4068 },
-      "rotation": { "y": -0.6275, "w": 0.7786 }
+      "rotation": { "x": 0, "y": 0.6275, "w": -0.7786 }
     },
     {
       "id": 703998111,
@@ -2540,7 +2541,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 20.618, "y": 0.5956, "z": -111.524 },
-      "rotation": { "x": 0, "y": 0.0836, "w": -0.9965 }
+      "rotation": { "y": -0.0836, "w": 0.9965 }
     },
     {
       "id": 709712167,
@@ -2554,7 +2555,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -6.3419, "y": 1.1931, "z": -52.7599 },
-      "rotation": { "y": 0.7955, "w": 0.606 }
+      "rotation": { "y": -0.7955, "w": -0.606 }
     },
     {
       "id": 711693954,
@@ -2645,7 +2646,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 5.4575, "y": 0.392, "z": 2.3284 },
-      "rotation": { "x": 0, "y": 0.8276, "w": -0.5613 }
+      "rotation": { "y": 0.8276, "w": -0.5613 }
     },
     {
       "id": 738914108,
@@ -2729,14 +2730,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -21.331, "y": 0.487, "z": -30.0733 },
-      "rotation": { "y": 0.9068, "w": 0.4215 }
+      "rotation": { "y": -0.9068, "w": -0.4215 }
     },
     {
       "id": 764102765,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 32.4623, "y": 0.0965, "z": 64.8635 },
-      "rotation": { "y": -0.9999, "w": -0.0109 }
+      "rotation": { "y": 0.9999, "w": 0.0109 }
     },
     {
       "id": 768280846,
@@ -2757,7 +2758,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 4.1527, "y": 0.3889, "z": 95.6431 },
-      "rotation": { "y": 0.9994, "w": -0.0357 }
+      "rotation": { "y": -0.9994, "w": 0.0357 }
     },
     {
       "id": 770923835,
@@ -2799,7 +2800,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -100.3669, "y": 0.4682, "z": 33.7488 },
-      "rotation": { "x": 0, "y": 0.9846, "w": -0.175 }
+      "rotation": { "y": 0.9846, "w": -0.175 }
     },
     {
       "id": 780516154,
@@ -2841,7 +2842,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -9.17, "y": 0.4993, "z": 68.4693 },
-      "rotation": { "y": 1, "w": -0.0022 }
+      "rotation": { "y": -1, "w": 0.0022 }
     },
     {
       "id": 788004422,
@@ -2890,7 +2891,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -47.3366, "y": 1.0558, "z": 45.5241 },
-      "rotation": { "y": -0.9258, "w": 0.3779 }
+      "rotation": { "y": 0.9258, "w": -0.3779 }
     },
     {
       "id": 793681511,
@@ -2911,14 +2912,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 3.0568, "y": 0.5174, "z": 55.6903 },
-      "rotation": { "y": -0.9283, "w": 0.3718 }
+      "rotation": { "y": 0.9283, "w": -0.3718 }
     },
     {
       "id": 808276436,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 8.2677, "y": 0.7398, "z": 84.7122 },
-      "rotation": { "y": 0.9271, "w": 0.3748 }
+      "rotation": { "y": -0.9271, "w": -0.3748 }
     },
     {
       "id": 808593941,
@@ -2946,7 +2947,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.9277, "y": 0.4583, "z": 7.9873 },
-      "rotation": { "y": -0.5799, "w": 0.8147 }
+      "rotation": { "y": 0.5799, "w": -0.8147 }
     },
     {
       "id": 818214199,
@@ -2960,14 +2961,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 36.3046, "y": 0.1304, "z": 68.5242 },
-      "rotation": { "y": -0.9696, "w": 0.2446 }
+      "rotation": { "y": 0.9696, "w": -0.2446 }
     },
     {
       "id": 824786015,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -38.1572, "y": 0.9175, "z": -89.375 },
-      "rotation": { "x": 0, "y": 0.5532, "w": -0.8331 }
+      "rotation": { "y": -0.5532, "w": 0.8331 }
     },
     {
       "id": 827232438,
@@ -3114,7 +3115,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 38.6014, "y": 0.6519, "z": -18.7533 },
-      "rotation": { "y": 0.0645, "w": 0.9979 }
+      "rotation": { "y": -0.0645, "w": -0.9979 }
     },
     {
       "id": 890224629,
@@ -3135,7 +3136,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -35.3593, "y": 0.6525, "z": 81.3539 },
-      "rotation": { "y": -0.9999, "w": -0.0158 }
+      "rotation": { "y": 0.9999, "w": 0.0158 }
     },
     {
       "id": 893504209,
@@ -3191,7 +3192,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -37.8713, "y": 0.3552, "z": -51.6779 },
-      "rotation": { "y": 0.9338, "w": 0.3577 }
+      "rotation": { "y": -0.9338, "w": -0.3577 }
     },
     {
       "id": 906700308,
@@ -3233,14 +3234,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 85.69, "y": 0.355, "z": -30.9619 },
-      "rotation": { "x": 0, "y": 0.3341, "w": -0.9425 }
+      "rotation": { "y": -0.3341, "w": 0.9425 }
     },
     {
       "id": 926891270,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -18.2303, "y": 0.8982, "z": 3.8913 },
-      "rotation": { "y": -0.0885, "w": -0.9961 }
+      "rotation": { "y": 0.0885, "w": 0.9961 }
     },
     {
       "id": 927032458,
@@ -3254,7 +3255,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -34.2836, "y": 0.4183, "z": -6.232 },
-      "rotation": { "y": -0.8513, "w": 0.5247 }
+      "rotation": { "x": 0, "y": 0.8513, "w": -0.5247 }
     },
     {
       "id": 930095343,
@@ -3268,14 +3269,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -34.9307, "y": 0.8473, "z": 43.571 },
-      "rotation": { "y": 0.9937, "w": 0.1118 }
+      "rotation": { "y": -0.9937, "w": -0.1118 }
     },
     {
       "id": 930947690,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 9.6504, "y": 0.7432, "z": -41.1004 },
-      "rotation": { "y": 0.0012, "w": -1 }
+      "rotation": { "y": -0.0012, "w": 1 }
     },
     {
       "id": 931662325,
@@ -3324,7 +3325,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 2.1339, "y": 0.3522, "z": 57.3091 },
-      "rotation": { "y": -0.8409, "w": 0.5411 }
+      "rotation": { "x": 0, "y": 0.8409, "w": -0.5411 }
     },
     {
       "id": 940817805,
@@ -3422,7 +3423,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 25.0551, "y": 0.4691, "z": 8.2178 },
-      "rotation": { "y": -0.9706, "w": 0.2408 }
+      "rotation": { "x": 0, "y": 0.9706, "w": -0.2408 }
     },
     {
       "id": 970847573,
@@ -3499,7 +3500,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -23.5012, "y": 0.5313, "z": -34.7413 },
-      "rotation": { "y": -0.9999, "w": 0.0143 }
+      "rotation": { "x": 0, "y": 0.9999, "w": -0.0143 }
     },
     {
       "id": 997060534,
@@ -3569,7 +3570,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 0.9652, "y": 0.8488, "z": 39.9205 },
-      "rotation": { "y": -0.9998, "w": -0.0203 }
+      "rotation": { "y": 0.9998, "w": 0.0203 }
     },
     {
       "id": 1022867358,
@@ -3667,7 +3668,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 6.3057, "y": 0.4132, "z": -62.7269 },
-      "rotation": { "y": -0.827, "w": 0.5621 }
+      "rotation": { "x": 0, "y": 0.827, "w": -0.5621 }
     },
     {
       "id": 1057442747,
@@ -3772,7 +3773,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 31.9646, "y": 0.3046, "z": 70.9704 },
-      "rotation": { "x": 0, "y": 0.6566, "w": -0.7543 }
+      "rotation": { "y": -0.6566, "w": 0.7543 }
     },
     {
       "id": 1076075287,
@@ -3793,7 +3794,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -23.5079, "y": 0.4285, "z": 16.1414 },
-      "rotation": { "y": -0.9812, "w": 0.1929 }
+      "rotation": { "x": 0, "y": 0.9812, "w": -0.1929 }
     },
     {
       "id": 1078660983,
@@ -3842,7 +3843,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 42.4837, "y": 0.611, "z": 25.0792 },
-      "rotation": { "x": 0, "y": 0.369, "w": -0.9294 }
+      "rotation": { "y": -0.369, "w": 0.9294 }
     },
     {
       "id": 1098731132,
@@ -3870,7 +3871,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -20.4007, "y": 0.533, "z": 82.5095 },
-      "rotation": { "y": 1, "w": 0.0062 }
+      "rotation": { "y": -1, "w": -0.0062 }
     },
     {
       "id": 1104861534,
@@ -3940,14 +3941,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -19.6174, "y": 0.4086, "z": 53.5372 },
-      "rotation": { "y": -0.9998, "w": 0.019 }
+      "rotation": { "x": 0, "y": 0.9998, "w": -0.019 }
     },
     {
       "id": 1140637558,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 26.8347, "y": 0.4364, "z": -10.1825 },
-      "rotation": { "x": 0, "y": 0.8948, "w": -0.4465 }
+      "rotation": { "y": -0.8948, "w": 0.4465 }
     },
     {
       "id": 1144185871,
@@ -3975,7 +3976,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 2.8515, "y": 0.8108, "z": -48.8419 },
-      "rotation": { "y": -0.9266, "w": 0.3761 }
+      "rotation": { "x": 0, "y": 0.9266, "w": -0.3761 }
     },
     {
       "id": 1162592297,
@@ -4094,7 +4095,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.7473, "y": 0.2633, "z": 38.1527 },
-      "rotation": { "y": 0.8583, "w": 0.5132 }
+      "rotation": { "y": -0.8583, "w": -0.5132 }
     },
     {
       "id": 1189493562,
@@ -4122,7 +4123,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -13.2343, "y": 0.5017, "z": -86.7738 },
-      "rotation": { "y": 0.0611, "w": -0.9981 }
+      "rotation": { "y": -0.0611, "w": 0.9981 }
     },
     {
       "id": 1202548807,
@@ -4171,7 +4172,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 49.1574, "y": 0.1945, "z": 17.0287 },
-      "rotation": { "y": 0.9951, "w": -0.0985 }
+      "rotation": { "y": -0.9951, "w": 0.0985 }
     },
     {
       "id": 1219062254,
@@ -4213,28 +4214,28 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 11.7196, "y": 0.6336, "z": -67.9575 },
-      "rotation": { "y": -0.1652, "w": -0.9863 }
+      "rotation": { "y": 0.1652, "w": 0.9863 }
     },
     {
       "id": 1236880138,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 2.827, "y": 0.7688, "z": -49.3763 },
-      "rotation": { "y": -0.5894, "w": -0.8079 }
+      "rotation": { "y": 0.5894, "w": 0.8079 }
     },
     {
       "id": 1237576046,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -52.5835, "y": 0.748, "z": -60.4114 },
-      "rotation": { "y": -0.5938, "w": 0.8046 }
+      "rotation": { "x": 0, "y": 0.5938, "w": -0.8046 }
     },
     {
       "id": 1238910004,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 9.7377, "y": 0.9253, "z": 38.2111 },
-      "rotation": { "y": -0.9944, "w": 0.1056 }
+      "rotation": { "y": 0.9944, "w": -0.1056 }
     },
     {
       "id": 1241818421,
@@ -4248,7 +4249,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -34.4878, "y": 0.6863, "z": -66.0631 },
-      "rotation": { "y": 0.0765, "w": 0.9971 }
+      "rotation": { "y": -0.0765, "w": -0.9971 }
     },
     {
       "id": 1248508482,
@@ -4332,14 +4333,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 28.3265, "y": 0.4386, "z": -10.4749 },
-      "rotation": { "y": -0.9921, "w": 0.1255 }
+      "rotation": { "y": 0.9921, "w": -0.1255 }
     },
     {
       "id": 1270830115,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -63.858, "y": 0.5566, "z": 37.642 },
-      "rotation": { "y": 0.9996, "w": -0.0279 }
+      "rotation": { "y": -0.9996, "w": 0.0279 }
     },
     {
       "id": 1271965411,
@@ -4381,7 +4382,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -50.6764, "y": 0.6262, "z": -16.1969 },
-      "rotation": { "y": 0.0327, "w": 0.9995 }
+      "rotation": { "y": -0.0327, "w": -0.9995 }
     },
     {
       "id": 1280465406,
@@ -4409,7 +4410,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -111.6262, "y": 0.5694, "z": -12.0755 },
-      "rotation": { "x": 0, "y": 1, "w": -0.0042 }
+      "rotation": { "y": 1, "w": -0.0042 }
     },
     {
       "id": 1293513780,
@@ -4472,7 +4473,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 6.2131, "y": 0.6799, "z": 43.6106 },
-      "rotation": { "y": -0.9998, "w": -0.0223 }
+      "rotation": { "y": 0.9998, "w": 0.0223 }
     },
     {
       "id": 1316149372,
@@ -4535,7 +4536,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 18.9068, "y": 0.6512, "z": -20.2755 },
-      "rotation": { "y": -0.1696, "w": 0.9855 }
+      "rotation": { "x": 0, "y": 0.1696, "w": -0.9855 }
     },
     {
       "id": 1334598102,
@@ -4661,14 +4662,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -2.0948, "y": 0.5929, "z": 79.4993 },
-      "rotation": { "y": 0.9998, "w": 0.0204 }
+      "rotation": { "y": -0.9998, "w": -0.0204 }
     },
     {
       "id": 1375684494,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -20.5369, "y": 0.1506, "z": 38.3296 },
-      "rotation": { "y": -1, "w": 0.0013 }
+      "rotation": { "y": 1, "w": -0.0013 }
     },
     {
       "id": 1376755014,
@@ -4682,7 +4683,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 75.8446, "y": 1.1936, "z": 42.546 },
-      "rotation": { "x": 0, "y": 0.9803, "w": -0.1976 }
+      "rotation": { "y": -0.9803, "w": 0.1976 }
     },
     {
       "id": 1381733613,
@@ -4745,7 +4746,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 77.9165, "y": 0.7192, "z": -21.4897 },
-      "rotation": { "y": -0.2282, "w": 0.9736 }
+      "rotation": { "y": 0.2282, "w": -0.9736 }
     },
     {
       "id": 1409052902,
@@ -4899,7 +4900,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -71.4129, "y": 0.6486, "z": -15.572 },
-      "rotation": { "y": 0.9988, "w": 0.0491 }
+      "rotation": { "y": -0.9988, "w": -0.0491 }
     },
     {
       "id": 1481300904,
@@ -4920,7 +4921,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 57.1515, "y": 0.615, "z": -54.4571 },
-      "rotation": { "x": 0, "y": 0.9909, "w": -0.1344 }
+      "rotation": { "y": -0.9909, "w": 0.1344 }
     },
     {
       "id": 1482562741,
@@ -4997,14 +4998,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -19.7923, "y": 0.5928, "z": 46.2598 },
-      "rotation": { "y": -0.2112, "w": 0.9774 }
+      "rotation": { "x": 0, "y": 0.2112, "w": -0.9774 }
     },
     {
       "id": 1509913853,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 27.6664, "y": 0.8042, "z": 13.1427 },
-      "rotation": { "y": -0.676, "w": 0.7369 }
+      "rotation": { "y": 0.676, "w": -0.7369 }
     },
     {
       "id": 1510261986,
@@ -5046,7 +5047,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -3.4333, "y": 0.4264, "z": 78.4657 },
-      "rotation": { "y": 0.3081, "w": 0.9514 }
+      "rotation": { "y": -0.3081, "w": -0.9514 }
     },
     {
       "id": 1527372412,
@@ -5060,7 +5061,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 60.462, "y": 0.1717, "z": 45.7049 },
-      "rotation": { "y": 0.9269, "w": -0.3754 }
+      "rotation": { "y": -0.9269, "w": 0.3754 }
     },
     {
       "id": 1528399561,
@@ -5095,7 +5096,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -38.2937, "y": 0.5458, "z": 81.7833 },
-      "rotation": { "x": 0, "y": 0.7285, "w": -0.6851 }
+      "rotation": { "y": 0.7285, "w": -0.6851 }
     },
     {
       "id": 1532336220,
@@ -5130,7 +5131,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 8.9262, "y": 0.922, "z": 84.112 },
-      "rotation": { "x": 0, "y": 0.505, "w": -0.8631 }
+      "rotation": { "y": -0.505, "w": 0.8631 }
     },
     {
       "id": 1544968748,
@@ -5305,7 +5306,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 76.3963, "y": 0.6095, "z": -19.24 },
-      "rotation": { "y": -0.2954, "w": -0.9554 }
+      "rotation": { "y": 0.2954, "w": 0.9554 }
     },
     {
       "id": 1596712503,
@@ -5319,7 +5320,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 31.9634, "y": 0.4899, "z": -7.1977 },
-      "rotation": { "x": 0, "y": 0.7653, "w": -0.6436 }
+      "rotation": { "y": -0.7653, "w": 0.6436 }
     },
     {
       "id": 1599862764,
@@ -5333,7 +5334,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -63.3745, "y": 0.5297, "z": -7.6729 },
-      "rotation": { "x": 0, "y": 0.9567, "w": -0.291 }
+      "rotation": { "y": 0.9567, "w": -0.291 }
     },
     {
       "id": 1602830164,
@@ -5368,7 +5369,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 11.705, "y": 0.8463, "z": 81.8143 },
-      "rotation": { "y": 0.9967, "w": 0.0806 }
+      "rotation": { "y": -0.9967, "w": -0.0806 }
     },
     {
       "id": 1612714887,
@@ -5410,7 +5411,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 47.7313, "y": 0.5935, "z": -86.4036 },
-      "rotation": { "y": -0.0014, "w": -1 }
+      "rotation": { "y": 0.0014, "w": 1 }
     },
     {
       "id": 1633601694,
@@ -5480,14 +5481,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 8.1206, "y": 0.6967, "z": -52.8839 },
-      "rotation": { "x": 0, "y": 0.9149, "w": -0.4037 }
+      "rotation": { "y": -0.9149, "w": 0.4037 }
     },
     {
       "id": 1661025593,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 46.1897, "y": 0.2779, "z": 44.6304 },
-      "rotation": { "y": 0.0484, "w": -0.9988 }
+      "rotation": { "y": -0.0484, "w": 0.9988 }
     },
     {
       "id": 1665370880,
@@ -5655,7 +5656,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -36.9261, "y": 0.122, "z": -48.682 },
-      "rotation": { "y": -0.0314, "w": -0.9995 }
+      "rotation": { "y": 0.0314, "w": 0.9995 }
     },
     {
       "id": 1718775516,
@@ -5676,7 +5677,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -20.3164, "y": 0.4127, "z": 74.5095 },
-      "rotation": { "y": -1, "w": 0.0025 }
+      "rotation": { "x": 0, "y": 1, "w": -0.0025 }
     },
     {
       "id": 1732286092,
@@ -5697,7 +5698,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 18.478, "y": 0.3309, "z": 61.5959 },
-      "rotation": { "y": -0.9986, "w": -0.0535 }
+      "rotation": { "y": 0.9986, "w": 0.0535 }
     },
     {
       "id": 1738303405,
@@ -5809,14 +5810,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -52.3487, "y": 0.6215, "z": -82.7186 },
-      "rotation": { "x": 0, "y": 0.9673, "w": -0.2535 }
+      "rotation": { "y": -0.9673, "w": 0.2535 }
     },
     {
       "id": 1768707139,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -31.3397, "y": 0.6275, "z": 103.1565 },
-      "rotation": { "y": -0.9996, "w": -0.0291 }
+      "rotation": { "y": 0.9996, "w": 0.0291 }
     },
     {
       "id": 1770344764,
@@ -5837,7 +5838,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 0.756, "y": 0.3173, "z": -36.3098 },
-      "rotation": { "x": 0, "y": 0.9375, "w": -0.3481 }
+      "rotation": { "y": -0.9375, "w": 0.3481 }
     },
     {
       "id": 1781469866,
@@ -5872,7 +5873,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 33.2825, "y": 0.5305, "z": -6.2399 },
-      "rotation": { "y": 0.9505, "w": 0.3108 }
+      "rotation": { "y": -0.9505, "w": -0.3108 }
     },
     {
       "id": 1793826037,
@@ -5893,7 +5894,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -41.2042, "y": 0.4453, "z": 12.1476 },
-      "rotation": { "y": -0.5561, "w": 0.8311 }
+      "rotation": { "x": 0, "y": 0.5561, "w": -0.8311 }
     },
     {
       "id": 1813710233,
@@ -6089,7 +6090,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 19.4978, "y": 0.536, "z": -74.6097 },
-      "rotation": { "y": -0.6331, "w": 0.7741 }
+      "rotation": { "x": 0, "y": 0.6331, "w": -0.7741 }
     },
     {
       "id": 1874670022,
@@ -6320,7 +6321,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -83.2506, "y": 0.6166, "z": 11.9059 },
-      "rotation": { "y": 0.8994, "w": 0.4372 }
+      "rotation": { "y": -0.8994, "w": -0.4372 }
     },
     {
       "id": 1972614244,
@@ -6376,7 +6377,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 66.3834, "y": 0.4802, "z": 1.4239 },
-      "rotation": { "y": -0.0239, "w": 0.9997 }
+      "rotation": { "y": 0.0239, "w": -0.9997 }
     },
     {
       "id": 1990540050,
@@ -6404,7 +6405,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 83.7331, "y": 1.0191, "z": 89.1191 },
-      "rotation": { "y": -1, "w": -0.0014 }
+      "rotation": { "y": 1, "w": 0.0014 }
     },
     {
       "id": 1998873012,
@@ -6453,7 +6454,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -21.4338, "y": 0.3477, "z": -56.3274 },
-      "rotation": { "y": -0.8962, "w": 0.4437 }
+      "rotation": { "x": 0, "y": 0.8962, "w": -0.4437 }
     },
     {
       "id": 2023306005,
@@ -6530,14 +6531,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -46.5888, "y": 0.4492, "z": -68.0087 },
-      "rotation": { "y": 0.9884, "w": 0.1517 }
+      "rotation": { "y": -0.9884, "w": -0.1517 }
     },
     {
       "id": 2053872623,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 23.2439, "y": 0.5055, "z": 97.8385 },
-      "rotation": { "y": 0.9342, "w": -0.3567 }
+      "rotation": { "y": -0.9342, "w": 0.3567 }
     },
     {
       "id": 2057605263,
@@ -6607,7 +6608,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -19.5249, "y": 0.4239, "z": 55.2827 },
-      "rotation": { "y": 0.9902, "w": -0.1395 }
+      "rotation": { "y": -0.9902, "w": 0.1395 }
     },
     {
       "id": 2078903952,
@@ -6691,7 +6692,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 44.0975, "y": 0.6419, "z": 5.3657 },
-      "rotation": { "x": 0, "y": 1, "w": -0.0053 }
+      "rotation": { "y": 1, "w": -0.0053 }
     },
     {
       "id": 2093461619,
@@ -6803,14 +6804,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -44.8759, "y": 0.4903, "z": 74.8429 },
-      "rotation": { "y": -0.9995, "w": -0.032 }
+      "rotation": { "y": 0.9995, "w": 0.032 }
     },
     {
       "id": 2122647830,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 82.1347, "y": 0.6111, "z": 19.091 },
-      "rotation": { "x": 0, "y": 0.8259, "w": -0.5638 }
+      "rotation": { "y": -0.8259, "w": 0.5638 }
     },
     {
       "id": 2123126651,
@@ -6887,7 +6888,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 1.6615, "y": 0.3387, "z": -6.3788 },
-      "rotation": { "y": -0.3694, "w": 0.9293 }
+      "rotation": { "x": 0, "y": 0.3694, "w": -0.9293 }
     },
     {
       "id": 2135333533,
@@ -6901,7 +6902,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -23.4041, "y": 0.1932, "z": 52.6997 },
-      "rotation": { "y": -0.9408, "w": -0.339 }
+      "rotation": { "y": 0.9408, "w": 0.339 }
     },
     {
       "id": 2137394999,
@@ -6978,7 +6979,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -19.1652, "y": 0.8165, "z": 5.8388 },
-      "rotation": { "y": 0.9974, "w": -0.0722 }
+      "rotation": { "y": -0.9974, "w": 0.0722 }
     },
     {
       "id": 2159061041,
@@ -7048,7 +7049,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 69.8803, "y": 0.8551, "z": 30.0146 },
-      "rotation": { "y": 0.9999, "w": -0.014 }
+      "rotation": { "y": -0.9999, "w": 0.014 }
     },
     {
       "id": 2180556107,
@@ -7083,7 +7084,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 54.0554, "y": 0.6623, "z": -0.4602 },
-      "rotation": { "x": 0, "y": 0.1117, "w": -0.9937 }
+      "rotation": { "y": 0.1117, "w": -0.9937 }
     },
     {
       "id": 2199087536,
@@ -7125,7 +7126,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -13.3422, "y": 0.5929, "z": -13.7393 },
-      "rotation": { "y": 0.0015, "w": -1 }
+      "rotation": { "y": -0.0015, "w": 1 }
     },
     {
       "id": 2211626251,
@@ -7307,7 +7308,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -69.2321, "y": 1.4153, "z": -1.3421 },
-      "rotation": { "y": 0.9864, "w": 0.1644 }
+      "rotation": { "y": -0.9864, "w": -0.1644 }
     },
     {
       "id": 2261667905,
@@ -7377,7 +7378,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 25.0996, "y": 0.7561, "z": 13.5626 },
-      "rotation": { "x": 0, "y": 1, "w": -0.007 }
+      "rotation": { "y": -1, "w": 0.007 }
     },
     {
       "id": 2282652179,
@@ -7433,7 +7434,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 15.5201, "y": 0.7406, "z": 78.9429 },
-      "rotation": { "y": -0.9995, "w": -0.032 }
+      "rotation": { "y": 0.9995, "w": 0.032 }
     },
     {
       "id": 2302067564,
@@ -7447,7 +7448,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 32.3845, "y": 0.6448, "z": 3.4462 },
-      "rotation": { "y": -0.8534, "w": 0.5212 }
+      "rotation": { "y": 0.8534, "w": -0.5212 }
     },
     {
       "id": 2305297375,
@@ -7510,7 +7511,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 23.6824, "y": 0.5798, "z": -83.2873 },
-      "rotation": { "y": -0.3932, "w": -0.9195 }
+      "rotation": { "y": 0.3932, "w": 0.9195 }
     },
     {
       "id": 2335822610,
@@ -7573,7 +7574,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.5005, "y": 0.6205, "z": -19.355 },
-      "rotation": { "y": 0.2646, "w": -0.9644 }
+      "rotation": { "y": -0.2646, "w": 0.9644 }
     },
     {
       "id": 2359070264,
@@ -7594,7 +7595,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -31.0364, "y": 0.6191, "z": -63.4146 },
-      "rotation": { "x": 0, "y": 0.8893, "w": -0.4574 }
+      "rotation": { "y": 0.8893, "w": -0.4574 }
     },
     {
       "id": 2369456283,
@@ -7706,7 +7707,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -16.0699, "y": 0.2803, "z": -66.2759 },
-      "rotation": { "y": -0.7762, "w": -0.6304 }
+      "rotation": { "y": 0.7762, "w": 0.6304 }
     },
     {
       "id": 2401722126,
@@ -7832,7 +7833,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -39.091, "y": 0.3788, "z": 53.6461 },
-      "rotation": { "y": -0.9803, "w": -0.1974 }
+      "rotation": { "y": 0.9803, "w": 0.1974 }
     },
     {
       "id": 2434682895,
@@ -7958,7 +7959,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -73.2321, "y": 0.5951, "z": -32.1776 },
-      "rotation": { "y": -0.2237, "w": -0.9747 }
+      "rotation": { "y": 0.2237, "w": 0.9747 }
     },
     {
       "id": 2457589814,
@@ -7979,7 +7980,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 3.3165, "y": 0.4663, "z": -11.5668 },
-      "rotation": { "y": -0.4519, "w": 0.8921 }
+      "rotation": { "x": 0, "y": 0.4519, "w": -0.8921 }
     },
     {
       "id": 2468524746,
@@ -8007,7 +8008,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -41.3551, "y": 0.5581, "z": 70.1517 },
-      "rotation": { "y": -0.9983, "w": 0.0583 }
+      "rotation": { "x": 0, "y": 0.9983, "w": -0.0583 }
     },
     {
       "id": 2471488042,
@@ -8119,7 +8120,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 13.0657, "y": 0.7727, "z": 53.6867 },
-      "rotation": { "x": 0, "y": 0.1623, "w": -0.9867 }
+      "rotation": { "y": -0.1623, "w": 0.9867 }
     },
     {
       "id": 2516549716,
@@ -8140,7 +8141,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 53.7353, "y": 0.4451, "z": -24.0827 },
-      "rotation": { "y": 0.9757, "w": -0.2189 }
+      "rotation": { "y": -0.9757, "w": 0.2189 }
     },
     {
       "id": 2522808501,
@@ -8322,7 +8323,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -38.5162, "y": 0.666, "z": 38.3742 },
-      "rotation": { "y": 0.8184, "w": -0.5747 }
+      "rotation": { "y": -0.8184, "w": 0.5747 }
     },
     {
       "id": 2590076351,
@@ -8392,7 +8393,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 27.5893, "y": 0.4627, "z": 20.748 },
-      "rotation": { "y": 0.8275, "w": -0.5614 }
+      "rotation": { "y": -0.8275, "w": 0.5614 }
     },
     {
       "id": 2603071442,
@@ -8483,7 +8484,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -18.5672, "y": 0.6187, "z": 49.5392 },
-      "rotation": { "y": -0.9996, "w": -0.028 }
+      "rotation": { "y": 0.9996, "w": 0.028 }
     },
     {
       "id": 2632154551,
@@ -8665,14 +8666,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -40.8823, "y": 0.987, "z": 27.6861 },
-      "rotation": { "y": 0.7573, "w": -0.653 }
+      "rotation": { "y": -0.7573, "w": 0.653 }
     },
     {
       "id": 2665313650,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -43.4746, "y": 0.9372, "z": 29.4795 },
-      "rotation": { "y": -0.9997, "w": 0.0242 }
+      "rotation": { "x": 0, "y": 0.9997, "w": -0.0242 }
     },
     {
       "id": 2668363363,
@@ -8777,7 +8778,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -45.0231, "y": 0.4856, "z": 36.9377 },
-      "rotation": { "x": 0, "y": 0.9996, "w": -0.0295 }
+      "rotation": { "y": 0.9996, "w": -0.0295 }
     },
     {
       "id": 2704917719,
@@ -8826,7 +8827,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -8.933, "y": 1.1576, "z": 7.5916 },
-      "rotation": { "y": 1, "w": 0.0017 }
+      "rotation": { "y": -1, "w": -0.0017 }
     },
     {
       "id": 2722247965,
@@ -8931,7 +8932,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 29.5743, "y": 0.1224, "z": 67.4624 },
-      "rotation": { "x": 0, "y": 0.4313, "w": -0.9022 }
+      "rotation": { "y": 0.4313, "w": -0.9022 }
     },
     {
       "id": 2754519812,
@@ -8966,7 +8967,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.4471, "y": 0.6069, "z": 77.7736 },
-      "rotation": { "x": 0, "y": 0.473, "w": -0.8811 }
+      "rotation": { "y": -0.473, "w": 0.8811 }
     },
     {
       "id": 2760983394,
@@ -9015,7 +9016,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 26.1129, "y": 0.8905, "z": -0.7273 },
-      "rotation": { "y": -0.051, "w": 0.9987 }
+      "rotation": { "x": 0, "y": 0.051, "w": -0.9987 }
     },
     {
       "id": 2777343314,
@@ -9029,7 +9030,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -37.3298, "y": 0.4758, "z": 23.9726 },
-      "rotation": { "x": 0, "y": 0.6705, "w": -0.7419 }
+      "rotation": { "y": -0.6705, "w": 0.7419 }
     },
     {
       "id": 2783606037,
@@ -9078,7 +9079,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -38.5926, "y": 0.9818, "z": 4.7443 },
-      "rotation": { "y": -0.8634, "w": 0.5045 }
+      "rotation": { "x": 0, "y": 0.8634, "w": -0.5045 }
     },
     {
       "id": 2805050851,
@@ -9148,7 +9149,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -0.1122, "y": 0.3214, "z": 17.6662 },
-      "rotation": { "y": -0.9979, "w": -0.0652 }
+      "rotation": { "y": 0.9979, "w": 0.0652 }
     },
     {
       "id": 2832348753,
@@ -9246,7 +9247,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -31.639, "y": 0.3059, "z": 64.9171 },
-      "rotation": { "y": -0.9978, "w": -0.067 }
+      "rotation": { "y": 0.9978, "w": 0.067 }
     },
     {
       "id": 2856290992,
@@ -9337,7 +9338,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -7.0796, "y": 0.7567, "z": 34.2451 },
-      "rotation": { "y": 0.0861, "w": 0.9963 }
+      "rotation": { "y": -0.0861, "w": -0.9963 }
     },
     {
       "id": 2885747602,
@@ -9400,7 +9401,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -127.5071, "y": 0.4495, "z": 46.8658 },
-      "rotation": { "y": -0.0058, "w": 1 }
+      "rotation": { "x": 0, "y": 0.0058, "w": -1 }
     },
     {
       "id": 2917661181,
@@ -9477,7 +9478,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 61.4872, "y": 0.5478, "z": -5.8599 },
-      "rotation": { "x": 0, "y": 0.6569, "w": -0.754 }
+      "rotation": { "y": -0.6569, "w": 0.754 }
     },
     {
       "id": 2942178437,
@@ -9491,7 +9492,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 10.1532, "y": 0.4362, "z": 50.418 },
-      "rotation": { "x": 0, "y": 0.9981, "w": -0.0611 }
+      "rotation": { "y": 0.9981, "w": -0.0611 }
     },
     {
       "id": 2948166570,
@@ -9512,7 +9513,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 61.5819, "y": 0.6607, "z": 55.2301 },
-      "rotation": { "y": 1, "w": 0.0002 }
+      "rotation": { "y": -1, "w": -0.0002 }
     },
     {
       "id": 2954943654,
@@ -9526,7 +9527,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -10.3645, "y": 0.6789, "z": 60.582 },
-      "rotation": { "y": -0.9999, "w": -0.0127 }
+      "rotation": { "y": 0.9999, "w": 0.0127 }
     },
     {
       "id": 2959601721,
@@ -9547,7 +9548,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 33.4884, "y": 0.4248, "z": 54.1239 },
-      "rotation": { "y": -1, "w": -0.0058 }
+      "rotation": { "y": 1, "w": 0.0058 }
     },
     {
       "id": 2969842433,
@@ -9616,7 +9617,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -53.3219, "y": 0.3507, "z": 62.8653 },
-      "rotation": { "x": 0, "y": 1, "w": -0.0084 }
+      "rotation": { "y": 1, "w": -0.0084 }
     },
     {
       "id": 3003299819,
@@ -9672,7 +9673,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -2.5991, "y": 0.4453, "z": 69.5698 },
-      "rotation": { "y": -1, "w": 0.0041 }
+      "rotation": { "x": 0, "y": 1, "w": -0.0041 }
     },
     {
       "id": 3029126163,
@@ -9693,7 +9694,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 22.1133, "y": 0.9109, "z": -40.6517 },
-      "rotation": { "y": 0.9638, "w": -0.2666 }
+      "rotation": { "y": -0.9638, "w": 0.2666 }
     },
     {
       "id": 3030232383,
@@ -9721,7 +9722,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 12.5361, "y": 0.8467, "z": -11.518 },
-      "rotation": { "y": -0.9999, "w": 0.0115 }
+      "rotation": { "x": 0, "y": 0.9999, "w": -0.0115 }
     },
     {
       "id": 3035380074,
@@ -9826,7 +9827,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 40.6086, "y": 0.5474, "z": -3.4614 },
-      "rotation": { "y": -0.7429, "w": 0.6694 }
+      "rotation": { "y": 0.7429, "w": -0.6694 }
     },
     {
       "id": 3062955019,
@@ -9861,7 +9862,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -25.9696, "y": 0.5174, "z": -4.045 },
-      "rotation": { "x": 0, "y": 0.9903, "w": -0.1386 }
+      "rotation": { "y": 0.9903, "w": -0.1386 }
     },
     {
       "id": 3073542613,
@@ -9875,7 +9876,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -42.2805, "y": 0.2054, "z": -47.3342 },
-      "rotation": { "y": 0.9962, "w": 0.087 }
+      "rotation": { "y": -0.9962, "w": -0.087 }
     },
     {
       "id": 3077167065,
@@ -9917,7 +9918,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 24.8343, "y": 0.8568, "z": -39.6148 },
-      "rotation": { "y": 0.0273, "w": -0.9996 }
+      "rotation": { "y": -0.0273, "w": 0.9996 }
     },
     {
       "id": 3090565876,
@@ -10120,14 +10121,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -45.7832, "y": 1.1381, "z": 25.2468 },
-      "rotation": { "y": 0.9998, "w": 0.0223 }
+      "rotation": { "y": -0.9998, "w": -0.0223 }
     },
     {
       "id": 3148006700,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 18.9062, "y": 0.5521, "z": 43.1116 },
-      "rotation": { "y": -0.9367, "w": -0.35 }
+      "rotation": { "y": 0.9367, "w": 0.35 }
     },
     {
       "id": 3148567416,
@@ -10176,7 +10177,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 12.3359, "y": 0.3439, "z": 49.0003 },
-      "rotation": { "y": -1, "w": 0.0017 }
+      "rotation": { "x": 0, "y": 1, "w": -0.0017 }
     },
     {
       "id": 3173144156,
@@ -10197,7 +10198,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 25.2684, "y": 0.634, "z": -82.1069 },
-      "rotation": { "y": -0.8936, "w": 0.4489 }
+      "rotation": { "x": 0, "y": 0.8936, "w": -0.4489 }
     },
     {
       "id": 3175706931,
@@ -10211,7 +10212,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -11.0874, "y": 0.4864, "z": 13.6051 },
-      "rotation": { "y": 0.4763, "w": -0.8793 }
+      "rotation": { "y": -0.4763, "w": 0.8793 }
     },
     {
       "id": 3178571151,
@@ -10232,7 +10233,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 50.2945, "y": 0.4088, "z": 20.8252 },
-      "rotation": { "y": -0.479, "w": 0.8778 }
+      "rotation": { "x": 0, "y": 0.479, "w": -0.8778 }
     },
     {
       "id": 3184772907,
@@ -10260,7 +10261,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 13.5305, "y": 0.7321, "z": 53.4452 },
-      "rotation": { "y": 0.9997, "w": -0.0257 }
+      "rotation": { "y": -0.9997, "w": 0.0257 }
     },
     {
       "id": 3196621119,
@@ -10351,7 +10352,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -60.7799, "y": 0.5417, "z": -52.3899 },
-      "rotation": { "y": 0.8081, "w": 0.589 }
+      "rotation": { "y": -0.8081, "w": -0.589 }
     },
     {
       "id": 3217196802,
@@ -10372,7 +10373,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 7.2071, "y": 0.5272, "z": 65.047 },
-      "rotation": { "x": 0, "y": 0.9974, "w": -0.0723 }
+      "rotation": { "y": 0.9974, "w": -0.0723 }
     },
     {
       "id": 3224167373,
@@ -10407,7 +10408,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -66.9731, "y": 1.0014, "z": 18.8183 },
-      "rotation": { "y": -0.9361, "w": -0.3518 }
+      "rotation": { "y": 0.9361, "w": 0.3518 }
     },
     {
       "id": 3234334533,
@@ -10477,7 +10478,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -18.8088, "y": 0.3224, "z": -55.644 },
-      "rotation": { "y": 0.1418, "w": 0.9899 }
+      "rotation": { "y": -0.1418, "w": -0.9899 }
     },
     {
       "id": 3261648517,
@@ -10617,7 +10618,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 11.7744, "y": 0.8446, "z": -57.0137 },
-      "rotation": { "y": -0.7945, "w": 0.6072 }
+      "rotation": { "x": 0, "y": 0.7945, "w": -0.6072 }
     },
     {
       "id": 3309969153,
@@ -10631,7 +10632,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -41.1101, "y": 0.3699, "z": -35.5048 },
-      "rotation": { "y": 1, "w": 0.0086 }
+      "rotation": { "y": -1, "w": -0.0086 }
     },
     {
       "id": 3312504465,
@@ -10757,7 +10758,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 7.0206, "y": 0.3854, "z": 47.707 },
-      "rotation": { "y": -1, "w": -0.0029 }
+      "rotation": { "y": 1, "w": 0.0029 }
     },
     {
       "id": 3373045154,
@@ -10834,7 +10835,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -6.8064, "y": 0.2702, "z": 41.2877 },
-      "rotation": { "y": -0.9989, "w": -0.0468 }
+      "rotation": { "y": 0.9989, "w": 0.0468 }
     },
     {
       "id": 3401432831,
@@ -10995,14 +10996,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -16.7236, "y": 0.7991, "z": 101.322 },
-      "rotation": { "y": 0.5084, "w": -0.8611 }
+      "rotation": { "x": 0, "y": 0.5084, "w": -0.8611 }
     },
     {
       "id": 3449688927,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 1.4693, "y": 0.7378, "z": 79.9995 },
-      "rotation": { "y": 0.9506, "w": 0.3104 }
+      "rotation": { "y": -0.9506, "w": -0.3104 }
     },
     {
       "id": 3449785865,
@@ -11016,7 +11017,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -42.2481, "y": 0.385, "z": 57.9029 },
-      "rotation": { "y": 0.8756, "w": -0.483 }
+      "rotation": { "x": 0, "y": 0.8756, "w": -0.483 }
     },
     {
       "id": 3454071632,
@@ -11058,7 +11059,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 15.2164, "y": 0.4475, "z": 73.9174 },
-      "rotation": { "x": 0, "y": 0.9999, "w": -0.0168 }
+      "rotation": { "y": 0.9999, "w": -0.0168 }
     },
     {
       "id": 3460268530,
@@ -11135,7 +11136,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 1.7023, "y": 1.0862, "z": 85.2041 },
-      "rotation": { "y": -0.9998, "w": 0.0218 }
+      "rotation": { "x": 0, "y": 0.9998, "w": -0.0218 }
     },
     {
       "id": 3485165491,
@@ -11198,14 +11199,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -47.3802, "y": 1.2514, "z": -3.1732 },
-      "rotation": { "y": -0.6446, "w": 0.7645 }
+      "rotation": { "x": 0, "y": 0.6446, "w": -0.7645 }
     },
     {
       "id": 3502993455,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -47.3001, "y": 0.2171, "z": -54.813 },
-      "rotation": { "y": -0.0216, "w": -0.9998 }
+      "rotation": { "y": 0.0216, "w": 0.9998 }
     },
     {
       "id": 3506495481,
@@ -11275,7 +11276,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -4.0412, "y": 0.5134, "z": 39.3043 },
-      "rotation": { "y": -0.9979, "w": -0.0646 }
+      "rotation": { "y": 0.9979, "w": 0.0646 }
     },
     {
       "id": 3524320462,
@@ -11296,7 +11297,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -47.7034, "y": 0.5624, "z": 33.4128 },
-      "rotation": { "y": 0.6943, "w": -0.7197 }
+      "rotation": { "y": -0.6943, "w": 0.7197 }
     },
     {
       "id": 3533120632,
@@ -11310,7 +11311,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -40.9292, "y": 0.6711, "z": 95.0806 },
-      "rotation": { "y": -0.9986, "w": -0.0531 }
+      "rotation": { "y": 0.9986, "w": 0.0531 }
     },
     {
       "id": 3534588383,
@@ -11366,7 +11367,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 66.8516, "y": 0.6861, "z": -42.3955 },
-      "rotation": { "x": 0, "y": 0.9558, "w": -0.294 }
+      "rotation": { "y": 0.9558, "w": -0.294 }
     },
     {
       "id": 3552945044,
@@ -11401,7 +11402,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -44.2767, "y": 0.4585, "z": -69.4807 },
-      "rotation": { "y": 0.9767, "w": 0.2144 }
+      "rotation": { "y": -0.9767, "w": -0.2144 }
     },
     {
       "id": 3558054489,
@@ -11450,7 +11451,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 10.4884, "y": 0.7592, "z": -56.3655 },
-      "rotation": { "y": -0.9959, "w": -0.0906 }
+      "rotation": { "y": 0.9959, "w": 0.0906 }
     },
     {
       "id": 3574525599,
@@ -11464,7 +11465,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 39.1276, "y": 0.2557, "z": -63.358 },
-      "rotation": { "y": 0.0004, "w": 1 }
+      "rotation": { "y": -0.0004, "w": -1 }
     },
     {
       "id": 3581881360,
@@ -11506,7 +11507,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -87.8847, "y": 0.6129, "z": 39.97 },
-      "rotation": { "y": 0.8656, "w": -0.5008 }
+      "rotation": { "y": -0.8656, "w": 0.5008 }
     },
     {
       "id": 3603125034,
@@ -11541,14 +11542,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 5.2528, "y": 0.5448, "z": 65.9933 },
-      "rotation": { "x": 0, "y": 0.9999, "w": -0.0149 }
+      "rotation": { "y": 0.9999, "w": -0.0149 }
     },
     {
       "id": 3616731113,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 4.9117, "y": 0.784, "z": 31.9232 },
-      "rotation": { "y": 0.3157, "w": -0.9489 }
+      "rotation": { "y": -0.3157, "w": 0.9489 }
     },
     {
       "id": 3618998010,
@@ -11604,7 +11605,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 6.1631, "y": 0.4113, "z": 57.7028 },
-      "rotation": { "y": -0.9997, "w": 0.0243 }
+      "rotation": { "y": 0.9997, "w": -0.0243 }
     },
     {
       "id": 3630479710,
@@ -11800,7 +11801,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -16.691, "y": 0.8995, "z": 80.2717 },
-      "rotation": { "y": -0.9998, "w": -0.0216 }
+      "rotation": { "y": 0.9998, "w": 0.0216 }
     },
     {
       "id": 3680526189,
@@ -11905,7 +11906,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -37.517, "y": 0.6024, "z": -0.0257 },
-      "rotation": { "x": 0, "y": 0.5303, "w": -0.8478 }
+      "rotation": { "y": 0.5303, "w": -0.8478 }
     },
     {
       "id": 3711327307,
@@ -11940,7 +11941,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -48.0995, "y": 0.7035, "z": -94.4024 },
-      "rotation": { "x": 0, "y": 0.2815, "w": -0.9596 }
+      "rotation": { "y": -0.2815, "w": 0.9596 }
     },
     {
       "id": 3718221073,
@@ -11954,14 +11955,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -26.0298, "y": 0.5905, "z": 89.1467 },
-      "rotation": { "y": -0.9999, "w": -0.0105 }
+      "rotation": { "y": 0.9999, "w": 0.0105 }
     },
     {
       "id": 3723657526,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -5.2981, "y": 0.1689, "z": 75.9607 },
-      "rotation": { "y": -0.3768, "w": -0.9263 }
+      "rotation": { "y": 0.3768, "w": 0.9263 }
     },
     {
       "id": 3725726502,
@@ -12024,7 +12025,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 69.9139, "y": 0.4612, "z": -19.9901 },
-      "rotation": { "y": -0.2483, "w": 0.9687 }
+      "rotation": { "y": 0.2483, "w": -0.9687 }
     },
     {
       "id": 3741893875,
@@ -12073,7 +12074,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -5.1466, "y": 0.3643, "z": 95.2029 },
-      "rotation": { "y": 0.9997, "w": 0.0257 }
+      "rotation": { "y": -0.9997, "w": -0.0257 }
     },
     {
       "id": 3751371733,
@@ -12171,7 +12172,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 84.4819, "y": 0.1852, "z": 49.8647 },
-      "rotation": { "y": -0.0036, "w": 1 }
+      "rotation": { "y": 0.0036, "w": -1 }
     },
     {
       "id": 3789977826,
@@ -12262,7 +12263,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 15.9962, "y": 0.982, "z": -38.4695 },
-      "rotation": { "y": 0.8487, "w": -0.5288 }
+      "rotation": { "y": -0.8487, "w": 0.5288 }
     },
     {
       "id": 3816321778,
@@ -12283,14 +12284,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 19.1924, "y": 0.4657, "z": 38.851 },
-      "rotation": { "y": -0.2811, "w": 0.9597 }
+      "rotation": { "y": 0.2811, "w": -0.9597 }
     },
     {
       "id": 3821192099,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -55.7861, "y": 0.5266, "z": 66.0998 },
-      "rotation": { "y": -0.4926, "w": 0.8703 }
+      "rotation": { "x": 0, "y": 0.4926, "w": -0.8703 }
     },
     {
       "id": 3821392725,
@@ -12311,7 +12312,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -34.0467, "y": 0.35, "z": 25.4697 },
-      "rotation": { "y": 0.9304, "w": -0.3666 }
+      "rotation": { "x": 0, "y": 0.9304, "w": -0.3666 }
     },
     {
       "id": 3822824846,
@@ -12374,7 +12375,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -2.1418, "y": 0.968, "z": 49.8303 },
-      "rotation": { "y": -0.7202, "w": 0.6937 }
+      "rotation": { "x": 0, "y": 0.7202, "w": -0.6937 }
     },
     {
       "id": 3834062227,
@@ -12395,7 +12396,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -31.7263, "y": 0.2613, "z": 66.2585 },
-      "rotation": { "y": -0.9978, "w": -0.0656 }
+      "rotation": { "y": 0.9978, "w": 0.0656 }
     },
     {
       "id": 3835772369,
@@ -12430,7 +12431,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -1.5986, "y": 0.8377, "z": 109.515 },
-      "rotation": { "y": -1, "w": -0.0083 }
+      "rotation": { "y": 1, "w": 0.0083 }
     },
     {
       "id": 3844888590,
@@ -12444,7 +12445,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 1.5276, "y": 0.9262, "z": -18.9083 },
-      "rotation": { "x": 0, "y": 0.5728, "w": -0.8197 }
+      "rotation": { "y": 0.5728, "w": -0.8197 }
     },
     {
       "id": 3848661594,
@@ -12472,14 +12473,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 34.9495, "y": 0.5789, "z": -25.4343 },
-      "rotation": { "x": 0, "y": 0.9999, "w": -0.0147 }
+      "rotation": { "y": 0.9999, "w": -0.0147 }
     },
     {
       "id": 3856715262,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 31.5899, "y": 0.3247, "z": 37.8418 },
-      "rotation": { "y": 0.9842, "w": -0.1772 }
+      "rotation": { "y": -0.9842, "w": 0.1772 }
     },
     {
       "id": 3857106618,
@@ -12605,7 +12606,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 8.5549, "y": 0.3591, "z": 73.2306 },
-      "rotation": { "y": 0.3389, "w": -0.9408 }
+      "rotation": { "x": 0, "y": 0.3389, "w": -0.9408 }
     },
     {
       "id": 3893315057,
@@ -12647,7 +12648,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -42.0375, "y": 0.6014, "z": -67.2072 },
-      "rotation": { "y": 0.9832, "w": 0.1826 }
+      "rotation": { "y": -0.9832, "w": -0.1826 }
     },
     {
       "id": 3910975547,
@@ -12661,7 +12662,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -16.3591, "y": 0.3544, "z": 71.436 },
-      "rotation": { "y": -0.9999, "w": 0.0107 }
+      "rotation": { "x": 0, "y": 0.9999, "w": -0.0107 }
     },
     {
       "id": 3912996646,
@@ -12675,7 +12676,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -19.1686, "y": 0.5807, "z": 47.0111 },
-      "rotation": { "y": 1, "w": -0.0025 }
+      "rotation": { "y": -1, "w": 0.0025 }
     },
     {
       "id": 3917398374,
@@ -12759,7 +12760,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -32.1195, "y": 0.2981, "z": -70.8119 },
-      "rotation": { "y": -0.1964, "w": 0.9805 }
+      "rotation": { "x": 0, "y": 0.1964, "w": -0.9805 }
     },
     {
       "id": 3945227989,
@@ -12829,7 +12830,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 103.2236, "y": 0.5334, "z": -36.4406 },
-      "rotation": { "y": -0.7077, "w": 0.7065 }
+      "rotation": { "y": 0.7077, "w": -0.7065 }
     },
     {
       "id": 3978221183,
@@ -12843,7 +12844,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -49.7202, "y": 0.4213, "z": -67.8396 },
-      "rotation": { "y": 0.0433, "w": -0.9991 }
+      "rotation": { "y": -0.0433, "w": 0.9991 }
     },
     {
       "id": 3980457603,
@@ -12920,7 +12921,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -7.5337, "y": 1.0769, "z": -47.1456 },
-      "rotation": { "y": -0.0109, "w": -0.9999 }
+      "rotation": { "y": 0.0109, "w": 0.9999 }
     },
     {
       "id": 3993622195,
@@ -12962,7 +12963,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -59.7267, "y": 0.4985, "z": 75.4382 },
-      "rotation": { "x": 0, "y": 0.9578, "w": -0.2874 }
+      "rotation": { "y": -0.9578, "w": 0.2874 }
     },
     {
       "id": 4004898239,
@@ -12990,14 +12991,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -7.7731, "y": 0.6521, "z": 13.0158 },
-      "rotation": { "y": -0.9671, "w": 0.2545 }
+      "rotation": { "y": 0.9671, "w": -0.2545 }
     },
     {
       "id": 4010367089,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -62.9453, "y": 0.728, "z": 70.6437 },
-      "rotation": { "x": 0, "y": 0.9879, "w": -0.1551 }
+      "rotation": { "y": 0.9879, "w": -0.1551 }
     },
     {
       "id": 4013329910,
@@ -13046,7 +13047,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 16.2743, "y": 0.7112, "z": 58.1634 },
-      "rotation": { "y": 0.8691, "w": 0.4947 }
+      "rotation": { "y": -0.8691, "w": -0.4947 }
     },
     {
       "id": 4030198958,
@@ -13130,7 +13131,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -24.7102, "y": 0.3654, "z": -30.9372 },
-      "rotation": { "y": -0.9985, "w": 0.0547 }
+      "rotation": { "x": 0, "y": 0.9985, "w": -0.0547 }
     },
     {
       "id": 4057132213,
@@ -13151,7 +13152,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 32.1814, "y": 0.5513, "z": -74.6213 },
-      "rotation": { "y": -0.6691, "w": 0.7432 }
+      "rotation": { "x": 0, "y": 0.6691, "w": -0.7432 }
     },
     {
       "id": 4063002196,
@@ -13172,7 +13173,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 79.2054, "y": 1.0811, "z": 28.4385 },
-      "rotation": { "y": 0.5823, "w": 0.813 }
+      "rotation": { "y": -0.5823, "w": -0.813 }
     },
     {
       "id": 4067908457,
@@ -13221,7 +13222,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 49.7977, "y": 0.7659, "z": 79.2544 },
-      "rotation": { "y": -0.9988, "w": -0.0483 }
+      "rotation": { "y": 0.9988, "w": 0.0483 }
     },
     {
       "id": 4089896878,
@@ -13235,7 +13236,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 35.8417, "y": 0.4333, "z": -9.6715 },
-      "rotation": { "x": 0, "y": 0.5898, "w": -0.8076 }
+      "rotation": { "y": 0.5898, "w": -0.8076 }
     },
     {
       "id": 4093129247,
@@ -13256,7 +13257,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 99.4333, "y": 0.9671, "z": 16.841 },
-      "rotation": { "y": 0.1969, "w": -0.9804 }
+      "rotation": { "y": -0.1969, "w": 0.9804 }
     },
     {
       "id": 4096486236,
@@ -13312,7 +13313,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 28.719, "y": 1.0438, "z": -18.4265 },
-      "rotation": { "y": -0.0538, "w": 0.9986 }
+      "rotation": { "y": 0.0538, "w": -0.9986 }
     },
     {
       "id": 4110764243,
@@ -13529,7 +13530,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 89.8367, "y": 0.3705, "z": 32.4264 },
-      "rotation": { "y": 0.9778, "w": 0.2097 }
+      "rotation": { "y": -0.9778, "w": -0.2097 }
     },
     {
       "id": 4170076543,
@@ -13662,7 +13663,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 34.5344, "y": 0.5327, "z": 86.5503 },
-      "rotation": { "x": 0, "y": 0.4715, "w": -0.8819 }
+      "rotation": { "y": -0.4715, "w": 0.8819 }
     },
     {
       "id": 4201116380,
@@ -13704,7 +13705,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 16.9758, "y": 0.7284, "z": -28.2822 },
-      "rotation": { "y": -0.2379, "w": 0.9713 }
+      "rotation": { "x": 0, "y": 0.2379, "w": -0.9713 }
     },
     {
       "id": 4209129910,
@@ -13809,7 +13810,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 39.4905, "y": 0.4736, "z": 64.367 },
-      "rotation": { "y": 0.9498, "w": 0.3128 }
+      "rotation": { "y": -0.9498, "w": -0.3128 }
     },
     {
       "id": 4228614776,
@@ -13823,14 +13824,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -19.9563, "y": 0.3027, "z": -57.8927 },
-      "rotation": { "y": -0.0043, "w": 1 }
+      "rotation": { "x": 0, "y": 0.0043, "w": -1 }
     },
     {
       "id": 4231540147,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -0.3664, "y": 0.4487, "z": 71.0266 },
-      "rotation": { "y": -0.9995, "w": -0.0314 }
+      "rotation": { "y": 0.9995, "w": 0.0314 }
     },
     {
       "id": 4232129448,
@@ -13844,14 +13845,14 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -35.1173, "y": 0.6973, "z": 80.8103 },
-      "rotation": { "y": 0.9986, "w": -0.0523 }
+      "rotation": { "y": -0.9986, "w": 0.0523 }
     },
     {
       "id": 4238138037,
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 23.8445, "y": 0.7064, "z": -25.1711 },
-      "rotation": { "y": -0.0167, "w": -0.9999 }
+      "rotation": { "y": 0.0167, "w": 0.9999 }
     },
     {
       "id": 4239334334,
@@ -13865,7 +13866,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 0.5231, "y": 1.0149, "z": -18.3863 },
-      "rotation": { "y": 0.999, "w": -0.0449 }
+      "rotation": { "x": 0, "y": 0.999, "w": -0.0449 }
     },
     {
       "id": 4242904028,
@@ -13886,7 +13887,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 65.8072, "y": 0.9115, "z": -1.0181 },
-      "rotation": { "x": 0, "y": 1, "w": -0.0016 }
+      "rotation": { "y": 1, "w": -0.0016 }
     },
     {
       "id": 4248223141,
@@ -13935,7 +13936,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": -5.4737, "y": 0.2592, "z": 71.4183 },
-      "rotation": { "x": 0, "y": 0.8851, "w": -0.4654 }
+      "rotation": { "y": 0.8851, "w": -0.4654 }
     },
     {
       "id": 4267500984,
@@ -13963,7 +13964,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 72.8927, "y": 0.7193, "z": -10.1983 },
-      "rotation": { "y": -0.8457, "w": 0.5337 }
+      "rotation": { "y": 0.8457, "w": -0.5337 }
     },
     {
       "id": 4271684594,
@@ -14005,7 +14006,7 @@
       "prefab": "InfantryTest",
       "faction": "A",
       "position": { "x": 52.0602, "y": 0.5608, "z": -47.5668 },
-      "rotation": { "y": 0.2004, "w": -0.9797 }
+      "rotation": { "y": -0.2004, "w": 0.9797 }
     },
     {
       "id": 4279617384,

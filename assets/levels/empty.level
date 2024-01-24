@@ -1,4 +1,5 @@
 {
+  "terrainId": "terrains/desert.terrain",
   "objects": [
     {
       "id": 732732,
