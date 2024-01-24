@@ -1,2 +1,4 @@
 {
+  "graphicId": "graphics/scene/terrain.graphic",
+  "heightmapId": "external/terrain/terrain_3_height.r16"
 }
