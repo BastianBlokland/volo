@@ -24,6 +24,7 @@ ecs_comp_define(SceneLevelManagerComp) {
   bool        isLoading;
   EcsEntityId loadedLevelAsset;
   String      loadedLevelName;
+  EcsEntityId loadedLevelTerrain;
 };
 
 ecs_comp_define_public(SceneLevelInstanceComp);
@@ -98,8 +99,9 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
 
   string_maybe_free(g_alloc_heap, manager->loadedLevelName);
 
-  manager->loadedLevelAsset = 0;
-  manager->loadedLevelName  = string_empty;
+  manager->loadedLevelAsset   = 0;
+  manager->loadedLevelName    = string_empty;
+  manager->loadedLevelTerrain = 0;
 
   log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
@@ -107,10 +109,12 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
 static void scene_level_process_load(
     EcsWorld*              world,
     SceneLevelManagerComp* manager,
+    AssetManagerComp*      assets,
     const EcsEntityId      levelAsset,
     const AssetLevel*      level) {
   diag_assert(!ecs_entity_valid(manager->loadedLevelAsset));
   diag_assert(string_is_empty(manager->loadedLevelName));
+  diag_assert(!ecs_entity_valid(manager->loadedLevelTerrain));
 
   array_ptr_for_t(level->objects, AssetLevelObject, obj) {
     const StringHash prefabId = string_hash(obj->prefab);
@@ -128,14 +132,21 @@ static void scene_level_process_load(
 
   manager->loadedLevelAsset = levelAsset;
   manager->loadedLevelName  = string_maybe_dup(g_alloc_heap, level->name);
+  if (!string_is_empty(level->terrainId)) {
+    manager->loadedLevelTerrain = asset_lookup(world, assets, level->terrainId);
+  }
 
   log_i(
       "Level loaded",
-      log_param("name", fmt_text(manager->loadedLevelName)),
+      log_param("name", fmt_text(level->name)),
+      log_param("terrain", fmt_text(level->terrainId)),
       log_param("objects", fmt_int(level->objects.count)));
 }
 
-ecs_view_define(LoadGlobalView) { ecs_access_maybe_write(SceneLevelManagerComp); }
+ecs_view_define(LoadGlobalView) {
+  ecs_access_maybe_write(SceneLevelManagerComp);
+  ecs_access_write(AssetManagerComp);
+}
 ecs_view_define(LoadAssetView) {
   ecs_access_read(AssetComp);
   ecs_access_maybe_read(AssetLevelComp);
@@ -148,7 +159,7 @@ ecs_system_define(SceneLevelLoadSys) {
   if (!globalItr) {
     return;
   }
-
+  AssetManagerComp*      assets  = ecs_view_write_t(globalItr, AssetManagerComp);
   SceneLevelManagerComp* manager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   if (!manager) {
     manager = ecs_world_add_t(world, ecs_world_global(world), SceneLevelManagerComp);
@@ -209,7 +220,7 @@ ecs_system_define(SceneLevelLoadSys) {
         manager->isLoading = false;
         goto Done;
       }
-      scene_level_process_load(world, manager, req->levelAsset, &levelComp->level);
+      scene_level_process_load(world, manager, assets, req->levelAsset, &levelComp->level);
       manager->isLoading = false;
       goto Done;
     }
@@ -289,9 +300,15 @@ static void scene_level_object_push(
   *dynarray_insert_sorted_t(objects, AssetLevelObject, level_compare_object_id, &obj) = obj;
 }
 
+static String scene_asset_id(EcsView* assetView, const EcsEntityId assetEntity) {
+  EcsIterator* itr = ecs_view_maybe_at(assetView, assetEntity);
+  return itr ? asset_id(ecs_view_read_t(itr, AssetComp)) : string_empty;
+}
+
 static void scene_level_process_save(
     const SceneLevelManagerComp* manager,
     AssetManagerComp*            assets,
+    EcsView*                     assetView,
     const String                 id,
     EcsView*                     instanceView) {
   DynArray objects = dynarray_create_t(g_alloc_heap, AssetLevelObject, 1024);
@@ -301,6 +318,7 @@ static void scene_level_process_save(
 
   const AssetLevel level = {
       .name           = manager->loadedLevelName,
+      .terrainId      = scene_asset_id(assetView, manager->loadedLevelTerrain),
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
@@ -341,7 +359,7 @@ ecs_system_define(SceneLevelSaveSys) {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
 
-      scene_level_process_save(manager, assets, assetId, instanceView);
+      scene_level_process_save(manager, assets, assetView, assetId, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
@@ -391,6 +409,15 @@ void scene_level_name_update(SceneLevelManagerComp* manager, const String name) 
 
   string_maybe_free(g_alloc_heap, manager->loadedLevelName);
   manager->loadedLevelName = string_maybe_dup(g_alloc_heap, name);
+}
+
+EcsEntityId scene_level_terrain(const SceneLevelManagerComp* manager) {
+  return manager->loadedLevelTerrain;
+}
+
+void scene_level_terrain_update(SceneLevelManagerComp* manager, const EcsEntityId terrainAsset) {
+  diag_assert_msg(manager->loadedLevelAsset, "Unable to update terrain: No level loaded");
+  manager->loadedLevelTerrain = terrainAsset;
 }
 
 void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {
