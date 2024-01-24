@@ -43,7 +43,7 @@ static void ecs_destruct_terrain(void* data) {
 
 ecs_view_define(GlobalLoadView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_write(SceneTerrainComp);
+  ecs_access_maybe_write(SceneTerrainComp);
 }
 
 ecs_view_define(GlobalUnloadView) { ecs_access_write(SceneTerrainComp); }
@@ -150,8 +150,13 @@ ecs_system_define(SceneTerrainLoadSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp* assets  = ecs_view_write_t(globalItr, AssetManagerComp);
   SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
+  if (!terrain) {
+    terrain              = ecs_world_add_t(world, ecs_world_global(world), SceneTerrainComp);
+    terrain->graphicId   = string_lit("graphics/scene/terrain.graphic");
+    terrain->heightmapId = string_lit("external/terrain/terrain_3_height.r16");
+  }
+  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
   if (!terrain->graphicEntity) {
     terrain->graphicEntity = asset_lookup(world, assets, terrain->graphicId);
