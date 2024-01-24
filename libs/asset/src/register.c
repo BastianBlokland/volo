@@ -20,6 +20,7 @@ void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_script_module);
   ecs_register_module(def, asset_shader_module);
   ecs_register_module(def, asset_sound_module);
+  ecs_register_module(def, asset_terrain_module);
   ecs_register_module(def, asset_texture_module);
   ecs_register_module(def, asset_vfx_module);
   ecs_register_module(def, asset_weapon_module);

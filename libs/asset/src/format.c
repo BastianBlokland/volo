@@ -25,6 +25,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("raw"),
       string_static("script"),
       string_static("spv"),
+      string_static("terrain"),
       string_static("tga"),
       string_static("ttf"),
       string_static("vfx"),

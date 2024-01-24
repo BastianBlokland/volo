@@ -11,8 +11,8 @@ AssetLoader asset_loader(const AssetFormat format) {
 
   // clang-format off
   switch (format) {
-  case AssetFormat_Atlas:     { RET_LOADER(atlas);      }
   case AssetFormat_ArrayTex:  { RET_LOADER(arraytex);   }
+  case AssetFormat_Atlas:     { RET_LOADER(atlas);      }
   case AssetFormat_Bin:       { RET_LOADER(raw);        }
   case AssetFormat_Decal:     { RET_LOADER(decal);      }
   case AssetFormat_FontTex:   { RET_LOADER(fonttex);    }
@@ -21,16 +21,17 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Inputs:    { RET_LOADER(inputs);     }
   case AssetFormat_Level:     { RET_LOADER(level);      }
   case AssetFormat_Obj:       { RET_LOADER(obj);        }
+  case AssetFormat_Ppm:       { RET_LOADER(ppm);        }
   case AssetFormat_Prefabs:   { RET_LOADER(prefabs);    }
   case AssetFormat_ProcMesh:  { RET_LOADER(procmesh);   }
-  case AssetFormat_Ppm:       { RET_LOADER(ppm);        }
-  case AssetFormat_Products:  { RET_LOADER(products);   }
   case AssetFormat_ProcTex:   { RET_LOADER(proctex);    }
+  case AssetFormat_Products:  { RET_LOADER(products);   }
   case AssetFormat_R16:       { RET_LOADER(r16);        }
   case AssetFormat_R32:       { RET_LOADER(r32);        }
   case AssetFormat_Raw:       { RET_LOADER(raw);        }
   case AssetFormat_Script:    { RET_LOADER(script);     }
   case AssetFormat_Spv:       { RET_LOADER(spv);        }
+  case AssetFormat_Terrain:   { RET_LOADER(terrain);    }
   case AssetFormat_Tga:       { RET_LOADER(tga);        }
   case AssetFormat_Ttf:       { RET_LOADER(ttf);        }
   case AssetFormat_Vfx:       { RET_LOADER(vfx);        }
