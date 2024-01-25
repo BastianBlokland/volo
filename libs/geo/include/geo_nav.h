@@ -62,6 +62,7 @@ GeoVector    geo_nav_cell_size(const GeoNavGrid*);
  * Update cell y coordinates.
  */
 void geo_nav_y_update(GeoNavGrid*, GeoNavCell, f32 y);
+void geo_nav_y_clear(GeoNavGrid*);
 
 /**
  * Lookup cell information.
