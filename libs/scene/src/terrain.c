@@ -88,10 +88,11 @@ static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, 
 }
 
 typedef struct {
-  EcsWorld*         world;
-  SceneTerrainComp* terrain;
-  EcsView*          assetTerrainView;
-  EcsView*          assetTextureView;
+  EcsWorld*                    world;
+  SceneTerrainComp*            terrain;
+  const SceneLevelManagerComp* levelManager;
+  EcsView*                     assetTerrainView;
+  EcsView*                     assetTextureView;
 } TerrainLoadContext;
 
 typedef enum {
@@ -148,6 +149,25 @@ static TerrainLoadResult terrain_heightmap_load(TerrainLoadContext* ctx) {
   return TerrainLoadResult_Done;
 }
 
+static bool terrain_should_unload(TerrainLoadContext* ctx) {
+  if (ctx->terrain->terrainAsset != scene_level_terrain(ctx->levelManager)) {
+    return true;
+  }
+  if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetChangedComp)) {
+    return true;
+  }
+  return false;
+}
+
+static void terrain_unload(TerrainLoadContext* ctx) {
+  ctx->terrain->terrainAsset   = 0;
+  ctx->terrain->graphicAsset   = 0;
+  ctx->terrain->heightmapAsset = 0;
+  ctx->terrain->heightmapData  = mem_empty;
+  ctx->terrain->heightmapSize  = 0;
+  ctx->terrain->state          = TerrainState_Idle;
+}
+
 ecs_system_define(SceneTerrainLoadSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalLoadView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -165,6 +185,7 @@ ecs_system_define(SceneTerrainLoadSys) {
   TerrainLoadContext ctx = {
       .world            = world,
       .terrain          = terrain,
+      .levelManager     = levelManager,
       .assetTextureView = assetTerrainView,
       .assetTextureView = ecs_world_view_t(world, AssetTextureReadView),
   };
@@ -217,25 +238,17 @@ ecs_system_define(SceneTerrainLoadSys) {
       break;
     }
     break;
-  case TerrainState_Loaded: {
-    const bool levelChanged = terrain->terrainAsset != scene_level_terrain(levelManager);
-    const bool assetChanged = ecs_world_has_t(world, terrain->terrainAsset, AssetChangedComp);
-    if (levelChanged || assetChanged) {
+  case TerrainState_Loaded:
+    if (terrain_should_unload(&ctx)) {
       asset_release(world, terrain->heightmapAsset);
-      terrain->heightmapData = mem_empty;
-      terrain->heightmapSize = 0;
-      terrain->state         = TerrainState_Idle;
+      terrain_unload(&ctx);
     }
-  } break;
-  case TerrainState_Error: {
-    const bool levelChanged = terrain->terrainAsset != scene_level_terrain(levelManager);
-    const bool assetChanged = ecs_world_has_t(world, terrain->terrainAsset, AssetChangedComp);
-    if (levelChanged || assetChanged) {
-      terrain->heightmapData = mem_empty;
-      terrain->heightmapSize = 0;
-      terrain->state         = TerrainState_Idle;
+    break;
+  case TerrainState_Error:
+    if (terrain_should_unload(&ctx)) {
+      terrain_unload(&ctx);
     }
-  } break;
+    break;
   }
 }
 
