@@ -53,6 +53,40 @@ ecs_view_define(AssetTextureReadView) {
   ecs_access_without(AssetChangedComp);
 }
 
+/**
+ * Sample the heightmap at the given coordinate.
+ * NOTE: Returns a normalized (0 - 1) float.
+ */
+static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, const f32 yNorm) {
+  if (UNLIKELY(xNorm < 0 || xNorm > 1 || yNorm < 0 || yNorm > 1)) {
+    return 0.0f;
+  }
+  if (UNLIKELY(!t->heightmapData.size)) {
+    return 0.0f; // No heightmap loaded at the moment.
+  }
+  diag_assert(t->heightmapType == AssetTextureType_U16);
+
+  static const f32 g_normMul = 1.0f / u16_max;
+
+  const u16* pixels = t->heightmapData.ptr;
+  const f32  x = xNorm * (t->heightmapSize - 1), y = yNorm * (t->heightmapSize - 1);
+
+  /**
+   * Bi-linearly interpolate 4 pixels around the required coordinate.
+   */
+  const f32 corner1x = math_min(t->heightmapSize - 2, math_round_down_f32(x));
+  const f32 corner1y = math_min(t->heightmapSize - 2, math_round_down_f32(y));
+  const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
+
+  const f32 p1 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner1x] * g_normMul;
+  const f32 p2 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner2x] * g_normMul;
+  const f32 p3 = pixels[(usize)corner2y * t->heightmapSize + (usize)corner1x] * g_normMul;
+  const f32 p4 = pixels[(usize)corner2y * t->heightmapSize + (usize)corner2x] * g_normMul;
+
+  const f32 tX = x - corner1x, tY = y - corner1y;
+  return math_lerp(math_lerp(p1, p2, tX), math_lerp(p3, p4, tX), tY);
+}
+
 static void terrain_heightmap_unsupported(const String error) {
   log_e("Unsupported terrain heightmap", log_param("error", fmt_text(error)));
 }
@@ -91,40 +125,6 @@ static bool terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTexture
       log_param("size", fmt_int(terrain->heightmapSize)));
 
   return true;
-}
-
-/**
- * Sample the heightmap at the given coordinate.
- * NOTE: Returns a normalized (0 - 1) float.
- */
-static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, const f32 yNorm) {
-  if (UNLIKELY(xNorm < 0 || xNorm > 1 || yNorm < 0 || yNorm > 1)) {
-    return 0.0f;
-  }
-  if (UNLIKELY(!t->heightmapData.size)) {
-    return 0.0f; // No heightmap loaded at the moment.
-  }
-  diag_assert(t->heightmapType == AssetTextureType_U16);
-
-  static const f32 g_normMul = 1.0f / u16_max;
-
-  const u16* pixels = t->heightmapData.ptr;
-  const f32  x = xNorm * (t->heightmapSize - 1), y = yNorm * (t->heightmapSize - 1);
-
-  /**
-   * Bi-linearly interpolate 4 pixels around the required coordinate.
-   */
-  const f32 corner1x = math_min(t->heightmapSize - 2, math_round_down_f32(x));
-  const f32 corner1y = math_min(t->heightmapSize - 2, math_round_down_f32(y));
-  const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
-
-  const f32 p1 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner1x] * g_normMul;
-  const f32 p2 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner2x] * g_normMul;
-  const f32 p3 = pixels[(usize)corner2y * t->heightmapSize + (usize)corner1x] * g_normMul;
-  const f32 p4 = pixels[(usize)corner2y * t->heightmapSize + (usize)corner2x] * g_normMul;
-
-  const f32 tX = x - corner1x, tY = y - corner1y;
-  return math_lerp(math_lerp(p1, p2, tX), math_lerp(p3, p4, tX), tY);
 }
 
 ecs_system_define(SceneTerrainLoadSys) {
