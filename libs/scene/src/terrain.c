@@ -101,6 +101,26 @@ typedef enum {
   TerrainLoadResult_Error,
 } TerrainLoadResult;
 
+static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
+  if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetFailedComp)) {
+    log_e("Failed to load terrain asset");
+    return TerrainLoadResult_Error;
+  }
+  if (!ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetLoadedComp)) {
+    return TerrainLoadResult_Busy;
+  }
+  EcsIterator* assetItr = ecs_view_maybe_at(ctx->assetTerrainView, ctx->terrain->terrainAsset);
+  if (!assetItr) {
+    log_e("Invalid terrain asset");
+    return TerrainLoadResult_Error;
+  }
+  const AssetTerrainComp* asset = ecs_view_read_t(assetItr, AssetTerrainComp);
+  ctx->terrain->graphicAsset    = asset->graphic;
+  ctx->terrain->heightmapAsset  = asset->heightmap;
+
+  return TerrainLoadResult_Done;
+}
+
 static TerrainLoadResult terrain_heightmap_load(TerrainLoadContext* ctx) {
   diag_assert_msg(!ctx->terrain->heightmapData.size, "Heightmap already loaded");
 
@@ -180,13 +200,11 @@ ecs_system_define(SceneTerrainLoadSys) {
     terrain = ecs_world_add_t(world, ecs_world_global(world), SceneTerrainComp);
   }
 
-  EcsView* assetTerrainView = ecs_world_view_t(world, AssetTerrainReadView);
-
   TerrainLoadContext ctx = {
       .world            = world,
       .terrain          = terrain,
       .levelManager     = levelManager,
-      .assetTextureView = assetTerrainView,
+      .assetTerrainView = ecs_world_view_t(world, AssetTerrainReadView),
       .assetTextureView = ecs_world_view_t(world, AssetTextureReadView),
   };
 
@@ -200,30 +218,21 @@ ecs_system_define(SceneTerrainLoadSys) {
       log_d("Loading terrain");
     }
   } break;
-  case TerrainState_AssetLoad: {
-    if (ecs_world_has_t(world, terrain->terrainAsset, AssetFailedComp)) {
-      log_e("Failed to load terrain asset");
-      asset_release(world, terrain->terrainAsset);
-      terrain->state = TerrainState_Error;
-      break;
-    }
-    if (ecs_world_has_t(world, terrain->terrainAsset, AssetLoadedComp)) {
-      EcsIterator* assetItr = ecs_view_maybe_at(assetTerrainView, terrain->terrainAsset);
-      if (!assetItr) {
-        log_e("Invalid terrain asset");
-        asset_release(world, terrain->terrainAsset);
-        terrain->state = TerrainState_Error;
-        break;
-      }
-      const AssetTerrainComp* terrainAsset = ecs_view_read_t(assetItr, AssetTerrainComp);
-      terrain->graphicAsset                = terrainAsset->graphic;
-      terrain->heightmapAsset              = terrainAsset->heightmap;
-
+  case TerrainState_AssetLoad:
+    switch (terrain_asset_load(&ctx)) {
+    case TerrainLoadResult_Done:
       asset_release(world, terrain->terrainAsset);
       asset_acquire(world, terrain->heightmapAsset);
       ++terrain->state;
+      break;
+    case TerrainLoadResult_Error:
+      asset_release(world, terrain->terrainAsset);
+      terrain->state = TerrainState_Error;
+      break;
+    case TerrainLoadResult_Busy:
+      break;
     }
-  } break;
+    break;
   case TerrainState_HeightmapLoad:
     switch (terrain_heightmap_load(&ctx)) {
     case TerrainLoadResult_Done:
