@@ -208,11 +208,17 @@ ecs_system_define(SceneTerrainLoadSys) {
       terrain->heightmapData = mem_empty;
       terrain->heightmapSize = 0;
       terrain->state         = TerrainState_Unloaded;
-      ++terrain->version;
     }
   } break;
-  case TerrainState_Error:
-    break;
+  case TerrainState_Error: {
+    const bool levelChanged = terrain->terrainAsset != scene_level_terrain(levelManager);
+    const bool assetChanged = ecs_world_has_t(world, terrain->terrainAsset, AssetChangedComp);
+    if (levelChanged || assetChanged) {
+      terrain->heightmapData = mem_empty;
+      terrain->heightmapSize = 0;
+      terrain->state         = TerrainState_Unloaded;
+    }
+  } break;
   }
 }
 
