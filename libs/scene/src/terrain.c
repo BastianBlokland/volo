@@ -146,11 +146,10 @@ ecs_system_define(SceneTerrainLoadSys) {
   case TerrainState_Unloaded: {
     const EcsEntityId levelAsset = scene_level_terrain(levelManager);
     if (levelAsset) {
-      diag_assert(!terrain->terrainAsset);
       terrain->terrainAsset = levelAsset;
-
       asset_acquire(world, levelAsset);
       ++terrain->state;
+      log_d("Loading terrain");
     }
   } break;
   case TerrainState_AssetLoad: {
@@ -169,10 +168,8 @@ ecs_system_define(SceneTerrainLoadSys) {
         break;
       }
       const AssetTerrainComp* terrainAsset = ecs_view_read_t(assetItr, AssetTerrainComp);
-
-      diag_assert(!terrain->graphicAsset && !terrain->heightmapAsset);
-      terrain->graphicAsset   = terrainAsset->graphic;
-      terrain->heightmapAsset = terrainAsset->heightmap;
+      terrain->graphicAsset                = terrainAsset->graphic;
+      terrain->heightmapAsset              = terrainAsset->heightmap;
 
       asset_release(world, terrain->terrainAsset);
       asset_acquire(world, terrain->heightmapAsset);
@@ -203,8 +200,15 @@ ecs_system_define(SceneTerrainLoadSys) {
       ++terrain->version;
     }
   } break;
-  case TerrainState_Loaded:
-    break;
+  case TerrainState_Loaded: {
+    if (terrain->terrainAsset != scene_level_terrain(levelManager)) {
+      asset_release(world, terrain->heightmapAsset);
+      terrain->heightmapData = mem_empty;
+      terrain->heightmapSize = 0;
+      terrain->state         = TerrainState_Unloaded;
+      ++terrain->version;
+    }
+  } break;
   case TerrainState_Error:
     break;
   }
