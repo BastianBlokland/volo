@@ -15,6 +15,7 @@
 #include "asset_script.h"
 #include "asset_shader.h"
 #include "asset_sound.h"
+#include "asset_terrain.h"
 #include "asset_texture.h"
 #include "asset_vfx.h"
 #include "asset_weapon.h"

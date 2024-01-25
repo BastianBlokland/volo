@@ -1,11 +1,11 @@
 #include "asset_manager.h"
+#include "asset_terrain.h"
 #include "asset_texture.h"
-#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
-#include "geo_plane.h"
 #include "log_logger.h"
+#include "scene_level.h"
 #include "scene_terrain.h"
 
 #define scene_terrain_size_axis 400.0f
@@ -16,98 +16,41 @@ static const f32 g_terrainSizeInv     = 1.0f / scene_terrain_size_axis;
 static const f32 g_terrainHeightScale = 3.0f;
 
 typedef enum {
-  Terrain_HeightmapAcquired    = 1 << 0,
-  Terrain_HeightmapUnloading   = 1 << 1,
-  Terrain_HeightmapUnsupported = 1 << 2,
-} TerrainFlags;
+  TerrainState_Idle,
+  TerrainState_AssetLoad,
+  TerrainState_HeightmapLoad,
+  TerrainState_Loaded,
+  TerrainState_Error,
+} TerrainState;
 
 ecs_comp_define(SceneTerrainComp) {
-  TerrainFlags flags;
+  TerrainState state;
   u32          version;
 
-  String      graphicId;
-  EcsEntityId graphicEntity;
+  EcsEntityId terrainAsset;
+  EcsEntityId graphicAsset;
 
-  String           heightmapId;
-  EcsEntityId      heightmapEntity;
+  EcsEntityId      heightmapAsset;
   Mem              heightmapData;
   u32              heightmapSize;
   AssetTextureType heightmapType;
 };
 
-static void ecs_destruct_terrain(void* data) {
-  SceneTerrainComp* comp = data;
-  string_free(g_alloc_heap, comp->graphicId);
-  string_free(g_alloc_heap, comp->heightmapId);
-}
-
 ecs_view_define(GlobalLoadView) {
-  ecs_access_write(AssetManagerComp);
-  ecs_access_write(SceneTerrainComp);
+  ecs_access_maybe_write(SceneTerrainComp);
+  ecs_access_read(SceneLevelManagerComp);
 }
 
-ecs_view_define(GlobalUnloadView) { ecs_access_write(SceneTerrainComp); }
-
-ecs_view_define(TextureReadView) {
-  ecs_access_read(AssetTextureComp);
+ecs_view_define(AssetTerrainReadView) {
+  ecs_access_read(AssetTerrainComp);
   ecs_access_with(AssetLoadedComp);
   ecs_access_without(AssetChangedComp);
 }
 
-static void terrain_heightmap_unsupported(SceneTerrainComp* terrain, const String error) {
-  log_e(
-      "Unsupported terrain heightmap",
-      log_param("error", fmt_text(error)),
-      log_param("id", fmt_text(terrain->heightmapId)));
-
-  terrain->flags |= Terrain_HeightmapUnsupported;
-}
-
-static bool terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTextureComp* tex) {
-  diag_assert_msg(!terrain->heightmapData.size, "Heightmap already loaded");
-
-  if (tex->flags & AssetTextureFlags_Srgb) {
-    terrain_heightmap_unsupported(terrain, string_lit("Srgb"));
-    return false;
-  }
-  if (tex->channels != AssetTextureChannels_One) {
-    terrain_heightmap_unsupported(terrain, string_lit("More then one channel"));
-    return false;
-  }
-  if (tex->width != tex->height) {
-    terrain_heightmap_unsupported(terrain, string_lit("Not square"));
-    return false;
-  }
-  if (tex->layers > 1) {
-    terrain_heightmap_unsupported(terrain, string_lit("Layer count greater than 1"));
-    return false;
-  }
-  if (tex->type != AssetTextureType_U16) {
-    // TODO: Support other types.
-    terrain_heightmap_unsupported(terrain, string_lit("Non-u16 format"));
-    return false;
-  }
-  ++terrain->version;
-  terrain->heightmapData = asset_texture_data(tex);
-  terrain->heightmapSize = tex->width;
-  terrain->heightmapType = tex->type;
-
-  log_d(
-      "Terrain heightmap loaded",
-      log_param("id", fmt_text(terrain->heightmapId)),
-      log_param("type", fmt_text(asset_texture_type_str(terrain->heightmapType))),
-      log_param("size", fmt_int(terrain->heightmapSize)));
-
-  return true;
-}
-
-static void terrain_heightmap_unload(SceneTerrainComp* terrain) {
-  ++terrain->version;
-  terrain->flags &= ~Terrain_HeightmapUnsupported;
-  terrain->heightmapData = mem_empty;
-  terrain->heightmapSize = 0;
-
-  log_d("Terrain heightmap unloaded", log_param("id", fmt_text(terrain->heightmapId)));
+ecs_view_define(AssetTextureReadView) {
+  ecs_access_read(AssetTextureComp);
+  ecs_access_with(AssetLoadedComp);
+  ecs_access_without(AssetChangedComp);
 }
 
 /**
@@ -144,104 +87,206 @@ static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, 
   return math_lerp(math_lerp(p1, p2, tX), math_lerp(p3, p4, tX), tY);
 }
 
+typedef struct {
+  EcsWorld*                    world;
+  SceneTerrainComp*            terrain;
+  const SceneLevelManagerComp* levelManager;
+  EcsView*                     assetTerrainView;
+  EcsView*                     assetTextureView;
+} TerrainLoadContext;
+
+typedef enum {
+  TerrainLoadResult_Done,
+  TerrainLoadResult_Busy,
+  TerrainLoadResult_Error,
+} TerrainLoadResult;
+
+static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
+  if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetFailedComp)) {
+    log_e("Failed to load terrain asset");
+    return TerrainLoadResult_Error;
+  }
+  if (!ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetLoadedComp)) {
+    return TerrainLoadResult_Busy;
+  }
+  EcsIterator* assetItr = ecs_view_maybe_at(ctx->assetTerrainView, ctx->terrain->terrainAsset);
+  if (!assetItr) {
+    log_e("Invalid terrain asset");
+    return TerrainLoadResult_Error;
+  }
+  const AssetTerrainComp* asset = ecs_view_read_t(assetItr, AssetTerrainComp);
+  ctx->terrain->graphicAsset    = asset->graphic;
+  ctx->terrain->heightmapAsset  = asset->heightmap;
+
+  return TerrainLoadResult_Done;
+}
+
+static TerrainLoadResult terrain_heightmap_load(TerrainLoadContext* ctx) {
+  diag_assert_msg(!ctx->terrain->heightmapData.size, "Heightmap already loaded");
+
+  if (ecs_world_has_t(ctx->world, ctx->terrain->heightmapAsset, AssetFailedComp)) {
+    log_e("Failed to load heightmap");
+    return TerrainLoadResult_Error;
+  }
+  if (!ecs_world_has_t(ctx->world, ctx->terrain->heightmapAsset, AssetLoadedComp)) {
+    return TerrainLoadResult_Busy;
+  }
+  EcsIterator* texItr = ecs_view_maybe_at(ctx->assetTextureView, ctx->terrain->heightmapAsset);
+  if (!texItr) {
+    log_e("Invalid heightmap asset");
+    return TerrainLoadResult_Error;
+  }
+  const AssetTextureComp* tex = ecs_view_read_t(texItr, AssetTextureComp);
+  if (tex->flags & AssetTextureFlags_Srgb) {
+    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Srgb")));
+    return TerrainLoadResult_Error;
+  }
+  if (tex->channels != AssetTextureChannels_One) {
+    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("More then one channel")));
+    return TerrainLoadResult_Error;
+  }
+  if (tex->width != tex->height) {
+    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Not square")));
+    return TerrainLoadResult_Error;
+  }
+  if (tex->layers > 1) {
+    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Layer count greater than 1")));
+    return TerrainLoadResult_Error;
+  }
+  if (tex->type != AssetTextureType_U16) {
+    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Non-u16 format")));
+    return TerrainLoadResult_Error;
+  }
+  ctx->terrain->heightmapData = asset_texture_data(tex);
+  ctx->terrain->heightmapSize = tex->width;
+  ctx->terrain->heightmapType = tex->type;
+
+  log_d(
+      "Terrain heightmap loaded",
+      log_param("type", fmt_text(asset_texture_type_str(tex->type))),
+      log_param("size", fmt_int(tex->width)));
+
+  return TerrainLoadResult_Done;
+}
+
+static bool terrain_should_unload(TerrainLoadContext* ctx) {
+  if (ctx->terrain->terrainAsset != scene_level_terrain(ctx->levelManager)) {
+    return true;
+  }
+  if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetChangedComp)) {
+    return true;
+  }
+  if (ecs_world_has_t(ctx->world, ctx->terrain->heightmapAsset, AssetChangedComp)) {
+    return true;
+  }
+  return false;
+}
+
+static void terrain_unload(TerrainLoadContext* ctx) {
+  ctx->terrain->terrainAsset   = 0;
+  ctx->terrain->graphicAsset   = 0;
+  ctx->terrain->heightmapAsset = 0;
+  ctx->terrain->heightmapData  = mem_empty;
+  ctx->terrain->heightmapSize  = 0;
+  ctx->terrain->state          = TerrainState_Idle;
+}
+
 ecs_system_define(SceneTerrainLoadSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalLoadView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  AssetManagerComp* assets  = ecs_view_write_t(globalItr, AssetManagerComp);
-  SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
-
-  if (!terrain->graphicEntity) {
-    terrain->graphicEntity = asset_lookup(world, assets, terrain->graphicId);
-  }
-  if (!terrain->heightmapEntity) {
-    terrain->heightmapEntity = asset_lookup(world, assets, terrain->heightmapId);
+  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  SceneTerrainComp*            terrain      = ecs_view_write_t(globalItr, SceneTerrainComp);
+  if (!terrain) {
+    terrain = ecs_world_add_t(world, ecs_world_global(world), SceneTerrainComp);
   }
 
-  if (!(terrain->flags & (Terrain_HeightmapAcquired | Terrain_HeightmapUnloading))) {
-    log_i("Acquiring terrain heightmap", log_param("id", fmt_text(terrain->heightmapId)));
-    asset_acquire(world, terrain->heightmapEntity);
-    terrain->flags |= Terrain_HeightmapAcquired;
-  }
+  TerrainLoadContext ctx = {
+      .world            = world,
+      .terrain          = terrain,
+      .levelManager     = levelManager,
+      .assetTerrainView = ecs_world_view_t(world, AssetTerrainReadView),
+      .assetTextureView = ecs_world_view_t(world, AssetTextureReadView),
+  };
 
-  enum { LoadBlockerFlags = Terrain_HeightmapUnloading | Terrain_HeightmapUnsupported };
-  const bool loadBlocked = (terrain->flags & LoadBlockerFlags) != 0;
-
-  if (terrain->heightmapData.size == 0 && !loadBlocked) {
-    EcsView*     textureView = ecs_world_view_t(world, TextureReadView);
-    EcsIterator* textureItr  = ecs_view_maybe_at(textureView, terrain->heightmapEntity);
-    if (textureItr) {
-      terrain_heightmap_load(terrain, ecs_view_read_t(textureItr, AssetTextureComp));
+  switch (terrain->state) {
+  case TerrainState_Idle: {
+    const EcsEntityId levelAsset = scene_level_terrain(levelManager);
+    if (levelAsset) {
+      terrain->terrainAsset = levelAsset;
+      asset_acquire(world, levelAsset);
+      ++terrain->state;
+      log_d("Loading terrain");
     }
-  }
-}
-
-ecs_system_define(SceneTerrainUnloadSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalUnloadView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
-  if (!terrain->heightmapEntity) {
-    return; // Heightmap entity not yet looked up.
-  }
-
-  const bool isLoaded   = ecs_world_has_t(world, terrain->heightmapEntity, AssetLoadedComp);
-  const bool isFailed   = ecs_world_has_t(world, terrain->heightmapEntity, AssetFailedComp);
-  const bool hasChanged = ecs_world_has_t(world, terrain->heightmapEntity, AssetChangedComp);
-
-  if (terrain->flags & Terrain_HeightmapAcquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading terrain heightmap",
-        log_param("id", fmt_text(terrain->heightmapId)),
-        log_param("reason", fmt_text_lit("Asset changed")));
-
-    asset_release(world, terrain->heightmapEntity);
-    terrain_heightmap_unload(terrain);
-
-    terrain->flags &= ~Terrain_HeightmapAcquired;
-    terrain->flags |= Terrain_HeightmapUnloading;
-  }
-  if (terrain->flags & Terrain_HeightmapUnloading && !isLoaded) {
-    terrain->flags &= ~Terrain_HeightmapUnloading;
+  } break;
+  case TerrainState_AssetLoad:
+    switch (terrain_asset_load(&ctx)) {
+    case TerrainLoadResult_Done:
+      asset_release(world, terrain->terrainAsset);
+      asset_acquire(world, terrain->heightmapAsset);
+      ++terrain->state;
+      break;
+    case TerrainLoadResult_Error:
+      asset_release(world, terrain->terrainAsset);
+      terrain->state = TerrainState_Error;
+      break;
+    case TerrainLoadResult_Busy:
+      break;
+    }
+    break;
+  case TerrainState_HeightmapLoad:
+    switch (terrain_heightmap_load(&ctx)) {
+    case TerrainLoadResult_Done:
+      ++terrain->state;
+      ++terrain->version;
+      break;
+    case TerrainLoadResult_Error:
+      asset_release(world, terrain->heightmapAsset);
+      terrain->state = TerrainState_Error;
+      break;
+    case TerrainLoadResult_Busy:
+      break;
+    }
+    break;
+  case TerrainState_Loaded:
+    if (terrain_should_unload(&ctx)) {
+      asset_release(world, terrain->heightmapAsset);
+      terrain_unload(&ctx);
+    }
+    break;
+  case TerrainState_Error:
+    if (terrain_should_unload(&ctx)) {
+      terrain_unload(&ctx);
+    }
+    break;
   }
 }
 
 ecs_module_init(scene_terrain_module) {
-  ecs_register_comp(SceneTerrainComp, .destructor = ecs_destruct_terrain);
+  ecs_register_comp(SceneTerrainComp);
 
   ecs_register_view(GlobalLoadView);
-  ecs_register_view(GlobalUnloadView);
-  ecs_register_view(TextureReadView);
+  ecs_register_view(AssetTextureReadView);
+  ecs_register_view(AssetTerrainReadView);
 
   ecs_register_system(
-      SceneTerrainLoadSys, ecs_view_id(GlobalLoadView), ecs_view_id(TextureReadView));
-  ecs_register_system(SceneTerrainUnloadSys, ecs_view_id(GlobalUnloadView));
-}
-
-void scene_terrain_init(EcsWorld* world, const String graphicId, const String heightmapId) {
-  diag_assert_msg(heightmapId.size, "Invalid terrain heightmapId");
-
-  ecs_world_add_t(
-      world,
-      ecs_world_global(world),
-      SceneTerrainComp,
-      .graphicId   = string_dup(g_alloc_heap, graphicId),
-      .heightmapId = string_dup(g_alloc_heap, heightmapId));
+      SceneTerrainLoadSys,
+      ecs_view_id(GlobalLoadView),
+      ecs_view_id(AssetTextureReadView),
+      ecs_view_id(AssetTerrainReadView));
 }
 
 bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
-  return terrain && terrain->heightmapData.size;
+  return terrain->state == TerrainState_Loaded;
 }
+
+EcsEntityId scene_terrain_asset(const SceneTerrainComp* terrain) { return terrain->terrainAsset; }
 
 u32 scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
 
-EcsEntityId scene_terrain_graphic(const SceneTerrainComp* terrain) {
-  return terrain->graphicEntity;
-}
+EcsEntityId scene_terrain_graphic(const SceneTerrainComp* terrain) { return terrain->graphicAsset; }
 
 f32 scene_terrain_size(const SceneTerrainComp* terrain) {
   (void)terrain;

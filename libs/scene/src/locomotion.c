@@ -16,7 +16,7 @@
 ecs_comp_define_public(SceneLocomotionComp);
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
 }
@@ -95,7 +95,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const f32 posDeltaMag = geo_vector_mag(posDelta);
     if (posDeltaMag > 1e-4f) {
       trans->position = geo_vector_add(trans->position, posDelta);
-      if (terrain) {
+      if (scene_terrain_loaded(terrain)) {
         scene_terrain_snap(terrain, &trans->position);
       }
     }

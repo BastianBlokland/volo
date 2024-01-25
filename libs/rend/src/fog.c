@@ -24,9 +24,9 @@ ecs_comp_define(RendFogComp) {
 };
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(RendFogComp);
   ecs_access_read(RendSettingsGlobalComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(AssetManagerComp);
 }
 
@@ -51,7 +51,7 @@ static EcsEntityId rend_fog_draw_create(EcsWorld* world, AssetManagerComp* asset
 
 static void rend_fog_update_proj(RendFogComp* fog, const SceneTerrainComp* terrain) {
   GeoBox bounds;
-  if (terrain) {
+  if (scene_terrain_loaded(terrain)) {
     const GeoBox terrainBounds = scene_terrain_bounds(terrain);
     bounds                     = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
   } else {

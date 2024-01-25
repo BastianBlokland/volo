@@ -22,8 +22,8 @@ ecs_comp_define_public(SceneProjectileComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
-  ecs_access_maybe_read(SceneTerrainComp);
 }
 
 ecs_view_define(ProjectileView) {
@@ -205,9 +205,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.
@@ -219,7 +219,7 @@ ecs_system_define(SceneProjectileSys) {
     }
 
     // Test collision with the terrain.
-    if (terrain) {
+    if (scene_terrain_loaded(terrain)) {
       const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, deltaDist);
       if (terrainHitT >= 0) {
         const EcsEntityId hitEntity      = 0;

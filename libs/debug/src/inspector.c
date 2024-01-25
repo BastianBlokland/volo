@@ -1014,6 +1014,9 @@ static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSetEnvComp*
 
 static void debug_inspector_tool_drop(
     EcsWorld* world, const SceneSetEnvComp* setEnv, const SceneTerrainComp* terrain) {
+  if (!scene_terrain_loaded(terrain)) {
+    return;
+  }
   const StringHash s   = g_sceneSetSelected;
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {

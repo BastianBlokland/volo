@@ -157,6 +157,10 @@ static bool scene_nav_refresh_blockers(
 }
 
 static bool scene_nav_terrain_refresh(SceneNavEnvComp* env, const SceneTerrainComp* terrain) {
+  if (!scene_terrain_loaded(terrain)) {
+    // TODO: Should we reset the height of all the nav cells to zero?
+    return false; // Terrain not loaded.
+  }
   if (env->terrainVersion == scene_terrain_version(terrain)) {
     return false; // Nav grid unchanged.
   }
@@ -212,7 +216,7 @@ static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
 }
 
 ecs_view_define(InitGlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(SceneNavEnvComp);
 }
 
@@ -246,7 +250,7 @@ ecs_system_define(SceneNavInitSys) {
   const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
   SceneNavEnvComp*        env     = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  bool gridUpdated = terrain && scene_nav_terrain_refresh(env, terrain);
+  bool gridUpdated = scene_nav_terrain_refresh(env, terrain);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
   EcsView* pathEntities    = ecs_world_view_t(world, PathEntityView);

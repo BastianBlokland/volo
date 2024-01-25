@@ -68,10 +68,10 @@ ecs_comp_define(HudComp) {
 };
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
 }
@@ -440,7 +440,7 @@ static void hud_minimap_update(
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
-  const f32 terrainSize = terrain ? scene_terrain_size(terrain) : 500;
+  const f32 terrainSize = scene_terrain_loaded(terrain) ? scene_terrain_size(terrain) : 500;
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;

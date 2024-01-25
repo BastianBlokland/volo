@@ -223,7 +223,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
       rayT = hit.time;
     }
   }
-  if (rayT < 0 && ctx->terrain) {
+  if (rayT < 0 && scene_terrain_loaded(ctx->terrain)) {
     rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay, g_createMaxInteractDist);
   }
   if (rayT < 0) {
@@ -414,8 +414,8 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_read(SceneCollisionEnvComp);
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(ScenePrefabEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(InputManagerComp);

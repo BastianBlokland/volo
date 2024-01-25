@@ -15,17 +15,18 @@
 # Override linguist language detection for custom extensions.
 *.vert linguist-language=GLSL
 *.frag linguist-language=GLSL
-*.atlas linguist-language=JSON
 *.arraytex linguist-language=JSON
+*.atlas linguist-language=JSON
 *.decal linguist-language=JSON
 *.fonttex linguist-language=JSON
 *.graphic linguist-language=JSON
 *.inputs linguist-language=JSON
 *.level linguist-language=JSON
 *.prefabs linguist-language=JSON
-*.procmesh linguist-language=JSON
 *.prefs linguist-language=JSON
-*.products linguist-language=JSON
+*.procmesh linguist-language=JSON
 *.proctex linguist-language=JSON
+*.products linguist-language=JSON
+*.terrain linguist-language=JSON
 *.vfx linguist-language=JSON
 *.weapons linguist-language=JSON

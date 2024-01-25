@@ -9,6 +9,7 @@
 #include "asset_prefab.h"
 #include "asset_product.h"
 #include "asset_script.h"
+#include "asset_terrain.h"
 #include "asset_texture.h"
 #include "asset_vfx.h"
 #include "asset_weapon.h"
@@ -36,8 +37,8 @@ typedef struct {
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("atlas.schema.json"),    .writer = asset_atlas_jsonschema_write,         },
     {.pattern = string_static("arraytex.schema.json"), .writer = asset_texture_array_jsonschema_write, },
+    {.pattern = string_static("atlas.schema.json"),    .writer = asset_atlas_jsonschema_write,         },
     {.pattern = string_static("decal.schema.json"),    .writer = asset_decal_jsonschema_write,         },
     {.pattern = string_static("fonttex.schema.json"),  .writer = asset_fonttex_jsonschema_write,       },
     {.pattern = string_static("graphic.schema.json"),  .writer = asset_graphic_jsonschema_write,       },
@@ -46,9 +47,10 @@ static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("prefabs.schema.json"),  .writer = asset_prefab_jsonschema_write,        },
     {.pattern = string_static("procmesh.schema.json"), .writer = asset_mesh_proc_jsonschema_write,     },
     {.pattern = string_static("proctex.schema.json"),  .writer = asset_texture_proc_jsonschema_write,  },
+    {.pattern = string_static("products.schema.json"), .writer = asset_product_jsonschema_write,       },
+    {.pattern = string_static("terrain.schema.json"),  .writer = asset_terrain_jsonschema_write,       },
     {.pattern = string_static("vfx.schema.json"),      .writer = asset_vfx_jsonschema_write,           },
     {.pattern = string_static("weapons.schema.json"),  .writer = asset_weapon_jsonschema_write,        },
-    {.pattern = string_static("products.schema.json"), .writer = asset_product_jsonschema_write,       },
     {.pattern = string_static("script_binder.json"),   .writer = asset_script_binder_write,            },
 };
 // clang-format on

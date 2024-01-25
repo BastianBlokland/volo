@@ -285,7 +285,7 @@ static bool placement_update(
 
       // Update placement position.
       f32 rayT;
-      if (terrain) {
+      if (scene_terrain_loaded(terrain)) {
         rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
       } else {
         rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
@@ -497,7 +497,7 @@ static void input_order(
    * Order a move when clicking the terrain / ground plane.
    */
   f32 rayT = -1.0f;
-  if (terrain) {
+  if (scene_terrain_loaded(terrain)) {
     rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
   } else {
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
@@ -622,10 +622,10 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(DebugStatsGlobalComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);

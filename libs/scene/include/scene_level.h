@@ -9,11 +9,14 @@ ecs_comp_extern(SceneLevelManagerComp);
  */
 ecs_comp_extern_public(SceneLevelInstanceComp);
 
-bool        scene_level_is_loading(const SceneLevelManagerComp*);
+bool        scene_level_loading(const SceneLevelManagerComp*);
 EcsEntityId scene_level_asset(const SceneLevelManagerComp*);
 
 String scene_level_name(const SceneLevelManagerComp*);
 void   scene_level_name_update(SceneLevelManagerComp*, String name);
+
+EcsEntityId scene_level_terrain(const SceneLevelManagerComp*);
+void        scene_level_terrain_update(SceneLevelManagerComp*, EcsEntityId terrainAsset);
 
 void scene_level_load(EcsWorld*, EcsEntityId levelAsset);
 void scene_level_reload(EcsWorld*);

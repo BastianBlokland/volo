@@ -116,6 +116,8 @@ ret:
 static void alloc_block_free(Allocator* allocator, Mem mem) {
   diag_assert(mem_valid(mem));
 
+  alloc_tag_free(mem, AllocMemType_Normal);
+
   AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
 
   alloc_block_lock(allocBlock);

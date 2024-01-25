@@ -25,6 +25,7 @@ add_library(lib_asset STATIC
   src/loader_shader.c
   src/loader_sound_wav.c
   src/loader_sound.c
+  src/loader_terrain.c
   src/loader_texture_array.c
   src/loader_texture_atlas.c
   src/loader_texture_height.c
@@ -60,6 +61,7 @@ add_executable(test_lib_asset
   test/test_loader_raw.c
   test/test_loader_script.c
   test/test_loader_shader_spv.c
+  test/test_loader_terrain.c
   test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
