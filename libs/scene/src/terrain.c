@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "geo_plane.h"
 #include "log_logger.h"
+#include "scene_level.h"
 #include "scene_terrain.h"
 
 #define scene_terrain_size_axis 400.0f
@@ -25,6 +26,8 @@ ecs_comp_define(SceneTerrainComp) {
   TerrainFlags flags;
   u32          version;
 
+  EcsEntityId terrainAsset;
+
   String      graphicId;
   EcsEntityId graphicEntity;
 
@@ -36,8 +39,9 @@ ecs_comp_define(SceneTerrainComp) {
 };
 
 ecs_view_define(GlobalLoadView) {
-  ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(SceneTerrainComp);
+  ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(GlobalUnloadView) { ecs_access_write(SceneTerrainComp); }
@@ -144,14 +148,21 @@ ecs_system_define(SceneTerrainLoadSys) {
   if (!globalItr) {
     return;
   }
-  SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
+  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  SceneTerrainComp*            terrain      = ecs_view_write_t(globalItr, SceneTerrainComp);
   if (!terrain) {
     terrain              = ecs_world_add_t(world, ecs_world_global(world), SceneTerrainComp);
     terrain->graphicId   = string_lit("graphics/scene/terrain.graphic");
     terrain->heightmapId = string_lit("external/terrain/terrain_3_height.r16");
   }
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
+  const EcsEntityId levelTerrainAsset = scene_level_terrain(levelManager);
+  if (!terrain->terrainAsset && levelTerrainAsset) {
+    terrain->terrainAsset = levelTerrainAsset;
+    asset_acquire(world, levelTerrainAsset);
+  }
+
+  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
   if (!terrain->graphicEntity) {
     terrain->graphicEntity = asset_lookup(world, assets, terrain->graphicId);
   }
@@ -224,6 +235,8 @@ ecs_module_init(scene_terrain_module) {
 bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
   return terrain->heightmapData.size != 0;
 }
+
+EcsEntityId scene_terrain_asset(const SceneTerrainComp* terrain) { return terrain->terrainAsset; }
 
 u32 scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
 

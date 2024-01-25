@@ -6,10 +6,8 @@
 
 ecs_comp_extern(SceneTerrainComp);
 
-/**
- * Check if the terrain is loaded.
- */
-bool scene_terrain_loaded(const SceneTerrainComp*);
+bool        scene_terrain_loaded(const SceneTerrainComp*);
+EcsEntityId scene_terrain_asset(const SceneTerrainComp*);
 
 /**
  * Retrieve the terrain's version number.
