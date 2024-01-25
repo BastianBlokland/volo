@@ -192,11 +192,12 @@ ecs_system_define(SceneTerrainLoadSys) {
         break;
       }
       const AssetTextureComp* heightmapAsset = ecs_view_read_t(assetItr, AssetTextureComp);
-      if (terrain_heightmap_load(terrain, heightmapAsset)) {
-        ++terrain->state;
-      } else {
-        // TODO: Handle heightmap load error.
+      if (!terrain_heightmap_load(terrain, heightmapAsset)) {
+        asset_release(world, terrain->heightmapAsset);
+        terrain->state = TerrainState_Error;
+        break;
       }
+      ++terrain->state;
       ++terrain->version;
     }
   } break;
