@@ -144,12 +144,12 @@ ecs_system_define(SceneTerrainLoadSys) {
 
   switch (terrain->state) {
   case TerrainState_Unloaded: {
-    const EcsEntityId asset = scene_level_terrain(levelManager);
-    if (asset) {
+    const EcsEntityId levelAsset = scene_level_terrain(levelManager);
+    if (levelAsset) {
       diag_assert(!terrain->terrainAsset);
-      terrain->terrainAsset = asset;
+      terrain->terrainAsset = levelAsset;
 
-      asset_acquire(world, asset);
+      asset_acquire(world, levelAsset);
       ++terrain->state;
     }
   } break;
@@ -186,8 +186,14 @@ ecs_system_define(SceneTerrainLoadSys) {
       terrain->state = TerrainState_Error;
       break;
     }
-    EcsIterator* assetItr = ecs_view_maybe_at(assetTextureView, terrain->heightmapAsset);
-    if (assetItr) {
+    if (ecs_world_has_t(world, terrain->heightmapAsset, AssetLoadedComp)) {
+      EcsIterator* assetItr = ecs_view_maybe_at(assetTextureView, terrain->heightmapAsset);
+      if (!assetItr) {
+        log_e("Invalid heightmap asset");
+        asset_release(world, terrain->heightmapAsset);
+        terrain->state = TerrainState_Error;
+        break;
+      }
       const AssetTextureComp* heightmapAsset = ecs_view_read_t(assetItr, AssetTextureComp);
       if (terrain_heightmap_load(terrain, heightmapAsset)) {
         ++terrain->state;
