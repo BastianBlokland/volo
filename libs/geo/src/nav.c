@@ -1025,6 +1025,21 @@ void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   }
 }
 
+void geo_nav_y_clear(GeoNavGrid* grid) {
+  for (u32 cellIndex = 0; cellIndex != grid->cellCountTotal; ++cellIndex) {
+    const bool wasBlocked = grid->cellY[cellIndex] >= grid->cellBlockHeight;
+
+    // Update y.
+    grid->cellY[cellIndex] = 0.0f;
+
+    // Clear blocked state.
+    if (wasBlocked) {
+      diag_assert_msg(grid->cellBlockerCount[cellIndex], "Expected the cell to be blocked");
+      --grid->cellBlockerCount[cellIndex];
+    }
+  }
+}
+
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_pos(grid, cell);

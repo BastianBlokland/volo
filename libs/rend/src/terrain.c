@@ -100,15 +100,14 @@ ecs_system_define(RendTerrainCreateDrawSys) {
   RendDrawComp* draw = ecs_utils_write_t(world, DrawView, rendTerrain->drawEntity, RendDrawComp);
 
   const SceneTerrainComp* sceneTerrain = ecs_view_read_t(globalItr, SceneTerrainComp);
-  if (!scene_terrain_loaded(sceneTerrain) || !scene_terrain_graphic(sceneTerrain)) {
-    rend_draw_clear(draw);
-    return; // No loaded terrain.
-  }
   if (rendTerrain->terrainVersion == scene_terrain_version(sceneTerrain)) {
     return; // Terrain not changed; no need to re-fill the draw.
   }
-
-  rend_terrain_draw_init(sceneTerrain, draw);
+  if (scene_terrain_graphic(sceneTerrain)) {
+    rend_terrain_draw_init(sceneTerrain, draw);
+  } else {
+    rend_draw_clear(draw);
+  }
   rendTerrain->terrainVersion = scene_terrain_version(sceneTerrain);
 }
 

@@ -13,7 +13,8 @@ EcsEntityId scene_terrain_asset(const SceneTerrainComp*);
  * Retrieve the terrain's version number.
  * Version is incremented when the terrain is updated and can be used to invalidate cached data.
  */
-u32 scene_terrain_version(const SceneTerrainComp*);
+u32  scene_terrain_version(const SceneTerrainComp*);
+bool scene_terrain_updated(const SceneTerrainComp*);
 
 EcsEntityId scene_terrain_graphic(const SceneTerrainComp*);
 f32         scene_terrain_size(const SceneTerrainComp*);
