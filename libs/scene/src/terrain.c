@@ -180,6 +180,12 @@ ecs_system_define(SceneTerrainLoadSys) {
     }
   } break;
   case TerrainState_HeightmapLoad: {
+    if (ecs_world_has_t(world, terrain->heightmapAsset, AssetFailedComp)) {
+      log_e("Failed to load heightmap");
+      asset_release(world, terrain->heightmapAsset);
+      terrain->state = TerrainState_Error;
+      break;
+    }
     EcsIterator* assetItr = ecs_view_maybe_at(assetTextureView, terrain->heightmapAsset);
     if (assetItr) {
       const AssetTextureComp* heightmapAsset = ecs_view_read_t(assetItr, AssetTextureComp);
