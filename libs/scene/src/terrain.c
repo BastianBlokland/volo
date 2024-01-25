@@ -20,6 +20,7 @@ typedef enum {
   TerrainState_AssetLoad,
   TerrainState_HeightmapLoad,
   TerrainState_Loaded,
+  TerrainState_Error,
 } TerrainState;
 
 ecs_comp_define(SceneTerrainComp) {
@@ -153,6 +154,12 @@ ecs_system_define(SceneTerrainLoadSys) {
     }
   } break;
   case TerrainState_AssetLoad: {
+    if (ecs_world_has_t(world, terrain->terrainAsset, AssetFailedComp)) {
+      log_e("Failed to load terrain asset");
+      asset_release(world, terrain->terrainAsset);
+      terrain->state = TerrainState_Error;
+      break;
+    }
     EcsIterator* assetItr = ecs_view_maybe_at(assetTerrainView, terrain->terrainAsset);
     if (assetItr) {
       const AssetTerrainComp* terrainAsset = ecs_view_read_t(assetItr, AssetTerrainComp);
@@ -179,6 +186,8 @@ ecs_system_define(SceneTerrainLoadSys) {
     }
   } break;
   case TerrainState_Loaded:
+    break;
+  case TerrainState_Error:
     break;
   }
 }
