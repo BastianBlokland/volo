@@ -160,8 +160,14 @@ ecs_system_define(SceneTerrainLoadSys) {
       terrain->state = TerrainState_Error;
       break;
     }
-    EcsIterator* assetItr = ecs_view_maybe_at(assetTerrainView, terrain->terrainAsset);
-    if (assetItr) {
+    if (ecs_world_has_t(world, terrain->terrainAsset, AssetLoadedComp)) {
+      EcsIterator* assetItr = ecs_view_maybe_at(assetTerrainView, terrain->terrainAsset);
+      if (!assetItr) {
+        log_e("Invalid terrain asset");
+        asset_release(world, terrain->terrainAsset);
+        terrain->state = TerrainState_Error;
+        break;
+      }
       const AssetTerrainComp* terrainAsset = ecs_view_read_t(assetItr, AssetTerrainComp);
 
       diag_assert(!terrain->graphicAsset && !terrain->heightmapAsset);
