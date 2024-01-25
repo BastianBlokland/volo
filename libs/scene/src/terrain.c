@@ -241,6 +241,7 @@ ecs_system_define(SceneTerrainLoadSys) {
     case TerrainLoadResult_Done:
       ++terrain->state;
       ++terrain->version;
+      log_i("Terrain loaded", log_param("version", fmt_int(terrain->version)));
       break;
     case TerrainLoadResult_Error:
       asset_release(world, terrain->heightmapAsset);
@@ -254,6 +255,15 @@ ecs_system_define(SceneTerrainLoadSys) {
     if (terrain_should_unload(&ctx)) {
       asset_release(world, terrain->heightmapAsset);
       terrain_unload(&ctx);
+
+      /**
+       * If there's no level terrain (meaning we will not immediately load another terrain), then
+       * bump the version so that other systems can update their cached data. Otherwise it can wait
+       * until we've loaded the next terrain.
+       */
+      if (!scene_level_terrain(ctx.levelManager)) {
+        ++terrain->version;
+      }
     }
     break;
   case TerrainState_Error:

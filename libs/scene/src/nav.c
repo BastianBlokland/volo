@@ -6,6 +6,7 @@
 #include "core_rng.h"
 #include "core_sentinel.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "scene_collision.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
@@ -157,22 +158,26 @@ static bool scene_nav_refresh_blockers(
 }
 
 static bool scene_nav_terrain_refresh(SceneNavEnvComp* env, const SceneTerrainComp* terrain) {
-  if (!scene_terrain_loaded(terrain)) {
-    // TODO: Should we reset the height of all the nav cells to zero?
-    return false; // Terrain not loaded.
-  }
   if (env->terrainVersion == scene_terrain_version(terrain)) {
     return false; // Nav grid unchanged.
   }
-  const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
-  for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
-    for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
-      const GeoNavCell cell          = {.x = x, .y = y};
-      const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
-      const f32        terrainHeight = scene_terrain_height(terrain, pos);
-      geo_nav_y_update(env->navGrid, cell, terrainHeight);
+
+  log_d("Refreshing terrain nav", log_param("version", fmt_int(scene_terrain_version(terrain))));
+
+  if (scene_terrain_loaded(terrain)) {
+    const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
+    for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
+      for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
+        const GeoNavCell cell          = {.x = x, .y = y};
+        const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
+        const f32        terrainHeight = scene_terrain_height(terrain, pos);
+        geo_nav_y_update(env->navGrid, cell, terrainHeight);
+      }
     }
+  } else {
+    geo_nav_y_clear(env->navGrid);
   }
+
   env->terrainVersion = scene_terrain_version(terrain);
   return true; // Nav grid updated.
 }
