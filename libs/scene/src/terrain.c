@@ -201,7 +201,9 @@ ecs_system_define(SceneTerrainLoadSys) {
     }
   } break;
   case TerrainState_Loaded: {
-    if (terrain->terrainAsset != scene_level_terrain(levelManager)) {
+    const bool levelChanged = terrain->terrainAsset != scene_level_terrain(levelManager);
+    const bool assetChanged = ecs_world_has_t(world, terrain->terrainAsset, AssetChangedComp);
+    if (levelChanged || assetChanged) {
       asset_release(world, terrain->heightmapAsset);
       terrain->heightmapData = mem_empty;
       terrain->heightmapSize = 0;
