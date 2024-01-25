@@ -22,8 +22,8 @@ ecs_comp_define_public(SceneProjectileComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
-  ecs_access_maybe_read(SceneTerrainComp);
 }
 
 ecs_view_define(ProjectileView) {

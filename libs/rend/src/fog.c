@@ -24,9 +24,9 @@ ecs_comp_define(RendFogComp) {
 };
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(RendFogComp);
   ecs_access_read(RendSettingsGlobalComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(AssetManagerComp);
 }
 

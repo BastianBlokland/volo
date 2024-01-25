@@ -216,7 +216,7 @@ static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
 }
 
 ecs_view_define(InitGlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(SceneNavEnvComp);
 }
 

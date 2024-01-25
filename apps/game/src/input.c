@@ -622,10 +622,10 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(DebugStatsGlobalComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);

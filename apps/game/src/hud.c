@@ -68,10 +68,10 @@ ecs_comp_define(HudComp) {
 };
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
 }

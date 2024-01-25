@@ -16,7 +16,7 @@
 ecs_comp_define_public(SceneLocomotionComp);
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
 }

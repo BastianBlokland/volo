@@ -222,7 +222,7 @@ ecs_module_init(scene_terrain_module) {
 }
 
 bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
-  return terrain && terrain->heightmapData.size;
+  return terrain->heightmapData.size != 0;
 }
 
 u32 scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }

@@ -414,8 +414,8 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_read(SceneCollisionEnvComp);
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(ScenePrefabEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(InputManagerComp);

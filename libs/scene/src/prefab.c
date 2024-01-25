@@ -73,7 +73,7 @@ ecs_view_define(GlobalResourceUpdateView) {
 }
 
 ecs_view_define(GlobalSpawnView) {
-  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(ScenePrefabEnvComp);
 }
 

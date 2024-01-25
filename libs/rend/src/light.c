@@ -94,10 +94,10 @@ static void ecs_destruct_light(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(RendLightComp);
   ecs_access_maybe_write(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(AssetManagerComp);
 }
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }

@@ -8,7 +8,6 @@ ecs_comp_extern(SceneTerrainComp);
 
 /**
  * Check if the terrain is loaded.
- * NOTE: Returns false if a null terrain is provided.
  */
 bool scene_terrain_loaded(const SceneTerrainComp*);
 
