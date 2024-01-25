@@ -100,7 +100,7 @@ ecs_system_define(RendTerrainCreateDrawSys) {
   RendDrawComp* draw = ecs_utils_write_t(world, DrawView, rendTerrain->drawEntity, RendDrawComp);
 
   const SceneTerrainComp* sceneTerrain = ecs_view_read_t(globalItr, SceneTerrainComp);
-  if (!scene_terrain_loaded(sceneTerrain)) {
+  if (!scene_terrain_loaded(sceneTerrain) || !scene_terrain_graphic(sceneTerrain)) {
     rend_draw_clear(draw);
     return; // No loaded terrain.
   }
