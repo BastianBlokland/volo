@@ -24,7 +24,8 @@ typedef enum {
 } TerrainState;
 
 ecs_comp_define(SceneTerrainComp) {
-  TerrainState state;
+  TerrainState state : 8;
+  bool         updated : 8;
   u32          version;
 
   EcsEntityId terrainAsset;
@@ -199,7 +200,9 @@ ecs_system_define(SceneTerrainLoadSys) {
   }
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   SceneTerrainComp*            terrain      = ecs_view_write_t(globalItr, SceneTerrainComp);
-  if (!terrain) {
+  if (terrain) {
+    terrain->updated = false;
+  } else {
     terrain = ecs_world_add_t(world, ecs_world_global(world), SceneTerrainComp);
   }
 
@@ -241,6 +244,7 @@ ecs_system_define(SceneTerrainLoadSys) {
     case TerrainLoadResult_Done:
       ++terrain->state;
       ++terrain->version;
+      terrain->updated = true;
       log_i("Terrain loaded", log_param("version", fmt_int(terrain->version)));
       break;
     case TerrainLoadResult_Error:
@@ -263,6 +267,7 @@ ecs_system_define(SceneTerrainLoadSys) {
        */
       if (!scene_level_terrain(ctx.levelManager)) {
         ++terrain->version;
+        terrain->updated = true;
       }
     }
     break;
@@ -293,9 +298,8 @@ bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
 }
 
 EcsEntityId scene_terrain_asset(const SceneTerrainComp* terrain) { return terrain->terrainAsset; }
-
-u32 scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
-
+u32         scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
+bool        scene_terrain_updated(const SceneTerrainComp* terrain) { return terrain->updated; }
 EcsEntityId scene_terrain_graphic(const SceneTerrainComp* terrain) { return terrain->graphicAsset; }
 
 f32 scene_terrain_size(const SceneTerrainComp* terrain) {
