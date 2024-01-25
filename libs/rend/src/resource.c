@@ -629,7 +629,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
       bool finished = true;
       if (unloadComp->flags & RendUnloadFlags_UnloadDependents) {
         dynarray_for_t(&resComp->dependents, EcsEntityId, dependent) {
-          if (ecs_world_has_t(world, *dependent, RendResFinishedComp)) {
+          if (ecs_world_has_t(world, *dependent, RendResComp)) {
             ecs_utils_maybe_add_t(world, *dependent, RendResUnloadComp);
             finished = false;
           }
