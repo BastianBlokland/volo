@@ -16,7 +16,7 @@ static const f32 g_terrainSizeInv     = 1.0f / scene_terrain_size_axis;
 static const f32 g_terrainHeightScale = 3.0f;
 
 typedef enum {
-  TerrainState_Unloaded,
+  TerrainState_Idle,
   TerrainState_AssetLoad,
   TerrainState_HeightmapLoad,
   TerrainState_Loaded,
@@ -143,7 +143,7 @@ ecs_system_define(SceneTerrainLoadSys) {
   EcsView* assetTextureView = ecs_world_view_t(world, AssetTextureReadView);
 
   switch (terrain->state) {
-  case TerrainState_Unloaded: {
+  case TerrainState_Idle: {
     const EcsEntityId levelAsset = scene_level_terrain(levelManager);
     if (levelAsset) {
       terrain->terrainAsset = levelAsset;
@@ -207,7 +207,7 @@ ecs_system_define(SceneTerrainLoadSys) {
       asset_release(world, terrain->heightmapAsset);
       terrain->heightmapData = mem_empty;
       terrain->heightmapSize = 0;
-      terrain->state         = TerrainState_Unloaded;
+      terrain->state         = TerrainState_Idle;
     }
   } break;
   case TerrainState_Error: {
@@ -216,7 +216,7 @@ ecs_system_define(SceneTerrainLoadSys) {
     if (levelChanged || assetChanged) {
       terrain->heightmapData = mem_empty;
       terrain->heightmapSize = 0;
-      terrain->state         = TerrainState_Unloaded;
+      terrain->state         = TerrainState_Idle;
     }
   } break;
   }
