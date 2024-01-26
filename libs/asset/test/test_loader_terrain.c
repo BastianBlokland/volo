@@ -12,6 +12,7 @@ static const AssetMemRecord g_testData[] = {
         .data = string_static("{"
                               "  \"graphicId\": \"test.graphic\","
                               "  \"heightmapId\": \"height.r16\","
+                              "  \"heightScale\": 1.0"
                               "}"),
     },
 };
