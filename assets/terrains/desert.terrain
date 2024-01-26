@@ -1,4 +1,5 @@
 {
   "graphicId": "graphics/scene/terrain.graphic",
-  "heightmapId": "external/terrain/terrain_3_height.r16"
+  "heightmapId": "external/terrain/terrain_3_height.r16",
+  "heightScale": 3.0
 }
