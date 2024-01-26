@@ -177,7 +177,8 @@ static bool terrain_should_unload(TerrainLoadContext* ctx) {
   if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetChangedComp)) {
     return true;
   }
-  if (ecs_world_has_t(ctx->world, ctx->terrain->heightmapAsset, AssetChangedComp)) {
+  const EcsEntityId heightmap = ctx->terrain->heightmapAsset;
+  if (heightmap && ecs_world_has_t(ctx->world, heightmap, AssetChangedComp)) {
     return true;
   }
   return false;
