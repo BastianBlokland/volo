@@ -10,10 +10,9 @@
 
 #define scene_terrain_size_axis 400.0f
 
-static const f32 g_terrainSize        = scene_terrain_size_axis;
-static const f32 g_terrainSizeHalf    = scene_terrain_size_axis * 0.5f;
-static const f32 g_terrainSizeInv     = 1.0f / scene_terrain_size_axis;
-static const f32 g_terrainHeightScale = 3.0f;
+static const f32 g_terrainSize     = scene_terrain_size_axis;
+static const f32 g_terrainSizeHalf = scene_terrain_size_axis * 0.5f;
+static const f32 g_terrainSizeInv  = 1.0f / scene_terrain_size_axis;
 
 typedef enum {
   TerrainState_Idle,
@@ -35,6 +34,8 @@ ecs_comp_define(SceneTerrainComp) {
   Mem              heightmapData;
   u32              heightmapSize;
   AssetTextureType heightmapType;
+
+  f32 heightScale;
 };
 
 ecs_view_define(GlobalLoadView) {
@@ -118,6 +119,7 @@ static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
   const AssetTerrainComp* asset = ecs_view_read_t(assetItr, AssetTerrainComp);
   ctx->terrain->graphicAsset    = asset->graphic;
   ctx->terrain->heightmapAsset  = asset->heightmap;
+  ctx->terrain->heightScale     = asset->heightScale;
 
   return TerrainLoadResult_Done;
 }
@@ -308,16 +310,13 @@ f32 scene_terrain_size(const SceneTerrainComp* terrain) {
   return g_terrainSize;
 }
 
-f32 scene_terrain_height_scale(const SceneTerrainComp* terrain) {
-  (void)terrain;
-  return g_terrainHeightScale;
-}
+f32 scene_terrain_height_scale(const SceneTerrainComp* terrain) { return terrain->heightScale; }
 
 GeoBox scene_terrain_bounds(const SceneTerrainComp* terrain) {
   (void)terrain;
   return (GeoBox){
       .min = geo_vector(-g_terrainSizeHalf, 0, -g_terrainSizeHalf),
-      .max = geo_vector(g_terrainSizeHalf, g_terrainHeightScale, g_terrainSizeHalf),
+      .max = geo_vector(g_terrainSizeHalf, terrain->heightScale, g_terrainSizeHalf),
   };
 }
 
@@ -393,14 +392,14 @@ GeoVector scene_terrain_normal(const SceneTerrainComp* terrain, const GeoVector 
   }
 
   const f32       xzScale = g_terrainSize / size;
-  const GeoVector dir     = {dX * g_terrainHeightScale, xzScale * 2, dY * g_terrainHeightScale};
+  const GeoVector dir     = {dX * terrain->heightScale, xzScale * 2, dY * terrain->heightScale};
   return geo_vector_norm(dir);
 }
 
 f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector position) {
   const f32 heightmapX = (position.x + g_terrainSizeHalf) * g_terrainSizeInv;
   const f32 heightmapY = (position.z + g_terrainSizeHalf) * g_terrainSizeInv;
-  return terrain_heightmap_sample(terrain, heightmapX, heightmapY) * g_terrainHeightScale;
+  return terrain_heightmap_sample(terrain, heightmapX, heightmapY) * terrain->heightScale;
 }
 
 void scene_terrain_snap(const SceneTerrainComp* terrain, GeoVector* position) {
