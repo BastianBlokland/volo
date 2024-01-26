@@ -7,11 +7,12 @@
       "additionalProperties": false,
       "properties": {
         "graphicId": { "title": "String", "type": "string", "minLength": 1 },
-        "heightmapId": { "title": "String", "type": "string", "minLength": 1 }
+        "heightmapId": { "title": "String", "type": "string", "minLength": 1 },
+        "heightScale": { "title": "f32", "type": "number" }
       },
-      "required": [ "graphicId", "heightmapId" ],
+      "required": [ "graphicId", "heightmapId", "heightScale" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\"\n}" }
+        { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\",\n  \"heightScale\": 0\n}" }
       ]
     }
   }

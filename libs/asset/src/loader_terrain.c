@@ -10,6 +10,8 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
+#define terrain_max_height_scale 50.0f
+
 static DataReg* g_dataReg;
 static DataMeta g_dataMeta;
 
@@ -26,6 +28,7 @@ static void terrain_datareg_init() {
     data_reg_struct_t(reg, AssetTerrainComp);
     data_reg_field_t(reg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetTerrainComp, heightScale, data_prim_t(f32));
     // clang-format on
 
     g_dataMeta = data_meta_t(t_AssetTerrainComp);
@@ -84,6 +87,11 @@ ecs_system_define(LoadTerrainAssetSys) {
         &result);
     if (result.error) {
       terrain_load_fail(world, entity, result.errorMsg);
+      goto Error;
+    }
+
+    if (terrainComp->heightScale < 0.0f || terrainComp->heightScale > terrain_max_height_scale) {
+      terrain_load_fail(world, entity, string_lit("Invalid terrain height scale"));
       goto Error;
     }
 
