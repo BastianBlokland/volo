@@ -211,7 +211,7 @@ static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const Ui
   UiRenderState* state = userCtx;
   switch (layer) {
   case UiLayer_Normal:
-    *rend_draw_add_instance_t(state->draw, UiAtomData, SceneTags_None, (GeoBox){0}) = data;
+    *rend_draw_add_instance_t(state->draw, UiAtomData, SceneTags_None, geo_box_inverted3()) = data;
     break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
@@ -510,13 +510,13 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-         .settings      = settings,
-         .atlasFont     = atlasFont,
-         .atlasImage    = atlasImage,
-         .renderer      = renderer,
-         .draw          = draw,
-         .clipRects[0]  = {.size = canvasSize},
-         .clipRectCount = 1,
+        .settings      = settings,
+        .atlasFont     = atlasFont,
+        .atlasImage    = atlasImage,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -584,7 +584,7 @@ ecs_system_define(UiRenderSys) {
 
     // Add the overlay atoms, at this stage all the normal atoms have already been added.
     dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
-      *rend_draw_add_instance_t(draw, UiAtomData, SceneTags_None, (GeoBox){0}) = *atom;
+      *rend_draw_add_instance_t(draw, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
     }
     dynarray_clear(&renderer->overlayAtoms);
 
@@ -752,7 +752,7 @@ UiStatus ui_canvas_group_block_status(const UiCanvasComp* comp) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
