@@ -449,6 +449,9 @@ static void hud_minimap_update(
   };
 
   // Fill the minimap background draw.
+  if (!scene_terrain_loaded(terrain)) {
+    return; // Terrain data is required to draw the minimap.
+  }
   ecs_view_jump(drawItr, hud->drawMinimap);
   RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
@@ -460,8 +463,12 @@ static void hud_minimap_update(
     f32 unused[2];
   } MinimapData;
 
-  const f32 terrainSize = scene_terrain_loaded(terrain) ? scene_terrain_size(terrain) : 500.0f;
-  const f32 zoom        = terrainSize / g_hudMinimapPlaySize;
+  const f32 zoom = scene_terrain_size(terrain) / g_hudMinimapPlaySize;
+
+  const EcsEntityId heightmap = scene_terrain_resource_heightmap(terrain);
+  diag_assert(heightmap);
+
+  rend_draw_set_resource(draw, RendDrawResource_Texture, heightmap);
 
   *rend_draw_add_instance_t(draw, MinimapData, SceneTags_None, geo_box_inverted3()) = (MinimapData){
       .rect[0] = (hud->minimapRect.x - 0.5f) / res.width,
