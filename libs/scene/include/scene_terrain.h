@@ -18,7 +18,7 @@ bool scene_terrain_updated(const SceneTerrainComp*);
 
 EcsEntityId scene_terrain_graphic(const SceneTerrainComp*);
 f32         scene_terrain_size(const SceneTerrainComp*);
-f32         scene_terrain_height_scale(const SceneTerrainComp*);
+f32         scene_terrain_height_max(const SceneTerrainComp*);
 GeoBox      scene_terrain_bounds(const SceneTerrainComp*);
 
 /**

@@ -42,7 +42,7 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   const f32 patchScale    = 1.0f / g_terrainPatchCountAxis;
   const f32 patchSize     = size * patchScale;
   const f32 patchHalfSize = patchSize * 0.5f;
-  const f32 heightScale   = scene_terrain_height_scale(terrain);
+  const f32 heightScale   = scene_terrain_height_max(terrain);
 
   // Set global terrain meta.
   rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));

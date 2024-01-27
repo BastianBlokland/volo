@@ -8,11 +8,12 @@
       "properties": {
         "graphicId": { "title": "String", "type": "string", "minLength": 1 },
         "heightmapId": { "title": "String", "type": "string", "minLength": 1 },
-        "heightScale": { "title": "f32", "type": "number" }
+        "size": { "title": "f32", "type": "number" },
+        "heightMax": { "title": "f32", "type": "number" }
       },
-      "required": [ "graphicId", "heightmapId", "heightScale" ],
+      "required": [ "graphicId", "heightmapId", "size", "heightMax" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\",\n  \"heightScale\": 0\n}" }
+        { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\",\n  \"size\": 0,\n  \"heightMax\": 0\n}" }
       ]
     }
   }
