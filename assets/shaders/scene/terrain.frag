@@ -11,7 +11,8 @@ bind_spec(0) const f32 s_heightNormalIntensity = 1.0;
 bind_spec(1) const f32 s_splat1UvScale         = 50;
 bind_spec(2) const f32 s_splat2UvScale         = 50;
 
-bind_graphic_img(0) uniform sampler2D u_texHeight;
+bind_draw_img(0) uniform sampler2D u_texHeight;
+
 bind_graphic_img(1) uniform sampler2D u_texSplat;
 bind_graphic_img(2) uniform sampler2D u_tex1ColorRough;
 bind_graphic_img(3) uniform sampler2D u_tex1Normal;

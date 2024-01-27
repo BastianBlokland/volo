@@ -136,7 +136,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
                                             : RendDrawFlags_StandardGeometry;
       ecs_world_add_empty_t(world, renderable->graphic, RendInstanceDrawComp);
       RendDrawComp* draw = rend_draw_create(world, renderable->graphic, flags);
-      rend_draw_set_graphic(draw, renderable->graphic);
+      rend_draw_set_resource(draw, RendDrawResource_Graphic, renderable->graphic);
       continue;
     }
 

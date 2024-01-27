@@ -39,7 +39,7 @@ vfx_draw_create(EcsWorld* world, AssetManagerComp* assets, const VfxDrawType typ
   const EcsEntityId entity = asset_lookup(world, assets, g_vfxDrawGraphics[type]);
   ecs_world_add(world, entity, *g_vfxDrawTags[type], mem_empty);
   RendDrawComp* draw = rend_draw_create(world, entity, g_vfxDrawFlags[type]);
-  rend_draw_set_graphic(draw, entity); // Graphic is on the same entity as the draw.
+  rend_draw_set_resource(draw, RendDrawResource_Graphic, entity); // Graphic is on the same entity.
   return entity;
 }
 

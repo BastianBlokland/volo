@@ -25,6 +25,13 @@ typedef enum {
   RendDrawFlags_Sorted   = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,
 } RendDrawFlags;
 
+typedef enum {
+  RendDrawResource_Graphic,
+  RendDrawResource_Texture,
+
+  RendDrawResource_Count,
+} RendDrawResource;
+
 /**
  * Low level api for submitting draws.
  * In most cases the scene apis should be preferred (SceneRenderableComp).
@@ -40,16 +47,16 @@ RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendDrawFlags);
  * Query information about this draw.
  */
 RendDrawFlags rend_draw_flags(const RendDrawComp*);
-EcsEntityId   rend_draw_graphic(const RendDrawComp*);
+EcsEntityId   rend_draw_resource(const RendDrawComp*, RendDrawResource);
 u32           rend_draw_instance_count(const RendDrawComp*);
 u32           rend_draw_data_size(const RendDrawComp*);
 u32           rend_draw_data_inst_size(const RendDrawComp*);
 SceneTags     rend_draw_tag_mask(const RendDrawComp*);
 
 /**
- * Update the graphic asset used for the draw.
+ * Update a draw resource
  */
-void rend_draw_set_graphic(RendDrawComp*, EcsEntityId graphic);
+void rend_draw_set_resource(RendDrawComp*, RendDrawResource, EcsEntityId asset);
 
 /**
  * Set a camera filter so only that specific camera will render this draw.

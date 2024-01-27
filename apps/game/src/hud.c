@@ -130,7 +130,7 @@ static EcsEntityId hud_indicator_draw_create(
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = window);
 
   RendDrawComp* draw = rend_draw_create(world, e, RendDrawFlags_None);
-  rend_draw_set_graphic(draw, asset_lookup(world, assets, graphic));
+  rend_draw_set_resource(draw, RendDrawResource_Graphic, asset_lookup(world, assets, graphic));
   rend_draw_set_camera_filter(draw, window);
   return e;
 }

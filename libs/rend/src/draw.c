@@ -10,6 +10,7 @@
 #include "draw_internal.h"
 #include "reset_internal.h"
 #include "resource_internal.h"
+#include "rvk/texture_internal.h"
 
 #if defined(VOLO_MSVC)
 #include <string.h>
@@ -28,7 +29,7 @@ typedef struct {
 } RendDrawSortKey;
 
 ecs_comp_define(RendDrawComp) {
-  EcsEntityId graphic;
+  EcsEntityId resources[RendDrawResource_Count];
   EcsEntityId cameraFilter;
 
   RendDrawFlags flags;
@@ -130,29 +131,29 @@ rend_draw_copy_to_output(const RendDrawComp* draw, const u32 instIndex, const u3
   intrinsic_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
 }
 
-static bool rend_graphic_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
+static bool rend_resource_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
   return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
 }
 
 /**
- * Request the given graphic entity to be loaded.
+ * Request the given resource to be loaded.
  */
-static void rend_draw_request_graphic(
-    EcsWorld* world, const EcsEntityId entity, EcsIterator* graphicItr, u32* numRequests) {
+static void rend_draw_resource_request(
+    EcsWorld* world, const EcsEntityId entity, EcsIterator* resItr, u32* numRequests) {
   /**
-   * If the graphic resource is already loaded then tell the resource system we're still using it
-   * (so it won't be unloaded). If its not loaded then start loading it.
+   * If the resource is already loaded then tell the resource system we're still using it (so it
+   * won't be unloaded). If its not loaded then start loading it.
    */
-  if (LIKELY(ecs_view_maybe_jump(graphicItr, entity))) {
-    rend_res_mark_used(ecs_view_write_t(graphicItr, RendResComp));
+  if (LIKELY(ecs_view_maybe_jump(resItr, entity))) {
+    rend_res_mark_used(ecs_view_write_t(resItr, RendResComp));
     return;
   }
 
   if (++*numRequests < rend_max_res_requests) {
-    if (LIKELY(rend_graphic_asset_valid(world, entity))) {
+    if (LIKELY(rend_resource_asset_valid(world, entity))) {
       rend_res_request(world, entity);
     } else {
-      log_e("Invalid draw graphic asset entity");
+      log_e("Invalid draw resource asset entity");
     }
   }
 }
@@ -171,21 +172,26 @@ ecs_system_define(RendClearDrawsSys) {
   }
 }
 
-ecs_system_define(RendDrawRequestGraphicSys) {
+ecs_system_define(RendDrawResourceRequestSys) {
   if (rend_will_reset(world)) {
     return;
   }
 
   u32 numRequests = 0;
 
-  EcsIterator* graphicResItr = ecs_view_itr(ecs_world_view_t(world, ResourceView));
+  EcsIterator* resItr = ecs_view_itr(ecs_world_view_t(world, ResourceView));
 
-  // Request the graphic resource for all draw's to be loaded.
+  // Request the resources for all draw's to be loaded.
   EcsView* drawView = ecs_world_view_t(world, DrawReadView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
-    if ((comp->instCount || (comp->flags & RendDrawFlags_Preload)) && comp->graphic) {
-      rend_draw_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
+    if (!comp->instCount && !(comp->flags & RendDrawFlags_Preload)) {
+      continue; // Draw unused and not required to be pre-loaded.
+    }
+    for (u32 i = 0; i != RendDrawResource_Count; ++i) {
+      if (comp->resources[i]) {
+        rend_draw_resource_request(world, comp->resources[i], resItr, &numRequests);
+      }
     }
   }
 }
@@ -199,10 +205,10 @@ ecs_module_init(rend_draw_module) {
 
   ecs_register_system(RendClearDrawsSys, ecs_view_id(DrawWriteView));
   ecs_register_system(
-      RendDrawRequestGraphicSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
+      RendDrawResourceRequestSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
-  ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 10);
+  ecs_order(RendDrawResourceRequestSys, RendOrder_DrawCollect + 10);
 }
 
 RendDrawComp*
@@ -215,11 +221,15 @@ rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags 
 }
 
 RendDrawFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
-EcsEntityId   rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
-u32           rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
-u32           rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
-u32           rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
-SceneTags     rend_draw_tag_mask(const RendDrawComp* draw) { return draw->tagMask; }
+
+EcsEntityId rend_draw_resource(const RendDrawComp* draw, const RendDrawResource id) {
+  return draw->resources[id];
+}
+
+u32       rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
+u32       rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
+u32       rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
+SceneTags rend_draw_tag_mask(const RendDrawComp* draw) { return draw->tagMask; }
 
 static RendDrawSortKey* rend_draw_sort_key(const RendDrawComp* draw, const u32 outputIndex) {
   return bits_ptr_offset(draw->sortKeyMem.ptr, outputIndex * sizeof(RendDrawSortKey));
@@ -309,7 +319,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   return draw->outputInstCount != 0;
 }
 
-RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
+RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic, RvkTexture* texture) {
   u32 instCount;
   Mem instData;
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
@@ -323,14 +333,17 @@ RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
       .graphic             = graphic,
       .vertexCountOverride = draw->vertexCountOverride,
       .drawData            = mem_slice(draw->dataMem, 0, draw->dataSize),
+      .drawImage           = texture ? &texture->image : null,
+      .drawSampler         = {0}, // TODO: Support customizing per-draw texture sampling.
       .instCount           = instCount,
       .instData            = instData,
       .instDataStride      = draw->instDataSize,
   };
 }
 
-void rend_draw_set_graphic(RendDrawComp* comp, const EcsEntityId graphic) {
-  comp->graphic = graphic;
+void rend_draw_set_resource(
+    RendDrawComp* comp, const RendDrawResource id, const EcsEntityId asset) {
+  comp->resources[id] = asset;
 }
 
 void rend_draw_set_camera_filter(RendDrawComp* comp, const EcsEntityId camera) {

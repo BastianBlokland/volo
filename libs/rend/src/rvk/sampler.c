@@ -33,8 +33,8 @@ MAYBE_UNUSED static String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
 
 MAYBE_UNUSED static String rvk_sampler_filter_str(const RvkSamplerFilter filter) {
   static const String g_names[] = {
-      string_static("Nearest"),
       string_static("Linear"),
+      string_static("Nearest"),
   };
   ASSERT(
       array_elems(g_names) == RvkSamplerFilter_Count, "Incorrect number of sampler-filter names");
@@ -55,10 +55,10 @@ MAYBE_UNUSED static String rvk_sampler_aniso_str(const RvkSamplerAniso aniso) {
 
 static VkFilter rvk_sampler_vkfilter(const RvkSamplerFilter filter) {
   switch (filter) {
-  case RvkSamplerFilter_Nearest:
-    return VK_FILTER_NEAREST;
   case RvkSamplerFilter_Linear:
     return VK_FILTER_LINEAR;
+  case RvkSamplerFilter_Nearest:
+    return VK_FILTER_NEAREST;
   case RvkSamplerFilter_Count:
     break;
   }

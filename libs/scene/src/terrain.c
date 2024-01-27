@@ -298,12 +298,23 @@ bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
   return terrain->state == TerrainState_Loaded;
 }
 
-EcsEntityId scene_terrain_asset(const SceneTerrainComp* terrain) { return terrain->terrainAsset; }
-u32         scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
-bool        scene_terrain_updated(const SceneTerrainComp* terrain) { return terrain->updated; }
-EcsEntityId scene_terrain_graphic(const SceneTerrainComp* terrain) { return terrain->graphicAsset; }
-f32         scene_terrain_size(const SceneTerrainComp* terrain) { return terrain->size; }
-f32         scene_terrain_height_max(const SceneTerrainComp* terrain) { return terrain->heightMax; }
+u32  scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
+bool scene_terrain_updated(const SceneTerrainComp* terrain) { return terrain->updated; }
+
+EcsEntityId scene_terrain_resource_asset(const SceneTerrainComp* terrain) {
+  return terrain->terrainAsset;
+}
+
+EcsEntityId scene_terrain_resource_graphic(const SceneTerrainComp* terrain) {
+  return terrain->graphicAsset;
+}
+
+EcsEntityId scene_terrain_resource_heightmap(const SceneTerrainComp* terrain) {
+  return terrain->heightmapAsset;
+}
+
+f32 scene_terrain_size(const SceneTerrainComp* terrain) { return terrain->size; }
+f32 scene_terrain_height_max(const SceneTerrainComp* terrain) { return terrain->heightMax; }
 
 GeoBox scene_terrain_bounds(const SceneTerrainComp* terrain) {
   return (GeoBox){
