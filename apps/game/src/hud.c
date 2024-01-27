@@ -1010,8 +1010,8 @@ void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId camer
   const EcsEntityId drawIndicatorRing = hud_draw_create(
       world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"), false);
 
-  const EcsEntityId drawMinimap =
-      hud_draw_create(world, assets, cameraEntity, string_lit("graphics/minimap.graphic"), true);
+  const EcsEntityId drawMinimap = hud_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"), true);
 
   ecs_world_add_t(
       world,

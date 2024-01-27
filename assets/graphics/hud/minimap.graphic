@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/minimap.vert.spv" },
-    { "shaderId": "shaders/minimap.frag.spv" }
+    { "shaderId": "shaders/hud/minimap.vert.spv" },
+    { "shaderId": "shaders/hud/minimap.frag.spv" }
   ],
   "samplers": [
     { "textureId": "external/terrain/terrain_3_height.r16" },
