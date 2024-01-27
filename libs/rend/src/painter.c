@@ -333,16 +333,21 @@ static SceneTags painter_push_draws_simple(
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
+
+    // Retrieve and prepare the draw's graphic.
     const EcsEntityId graphicResource = rend_draw_resource(draw, RendDrawResource_Graphic);
     RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
     if (!graphic || !rvk_pass_prepare(ctx->pass, graphic)) {
       continue; // Graphic not ready to be drawn.
     }
+
+    // If the draw uses a 'per draw' texture then retrieve and prepare it.
     const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
     RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
     if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
-      continue; // Draw uses a texture which is not ready.
+      continue; // Draw uses a 'per draw' texture which is not ready.
     }
+
     painter_push(ctx, rend_draw_output(draw, graphic, texture));
     tagMask |= rend_draw_tag_mask(draw);
   }
