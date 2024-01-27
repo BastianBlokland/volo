@@ -37,17 +37,22 @@ static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
   return e;
 }
 
-static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp* draw) {
-  const f32 size           = scene_terrain_size(terrain);
+static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDrawComp* draw) {
+  const EcsEntityId graphic = scene_terrain_graphic(sceneTerrain);
+  if (!graphic) {
+    rend_draw_clear(draw);
+    return;
+  }
+  const f32 size           = scene_terrain_size(sceneTerrain);
   const f32 halfSize       = size * 0.5f;
   const u32 patchCountAxis = (u32)math_round_up_f32(size / g_terrainPatchTargetSize);
   const f32 patchScale     = 1.0f / patchCountAxis;
   const f32 patchSize      = size * patchScale;
   const f32 patchHalfSize  = patchSize * 0.5f;
-  const f32 heightScale    = scene_terrain_height_max(terrain);
+  const f32 heightScale    = scene_terrain_height_max(sceneTerrain);
 
   // Set global terrain meta.
-  rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));
+  rend_draw_set_graphic(draw, graphic);
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
       .size        = size,
       .heightScale = heightScale,
@@ -102,15 +107,10 @@ ecs_system_define(RendTerrainCreateDrawSys) {
   RendDrawComp* draw = ecs_utils_write_t(world, DrawView, rendTerrain->drawEntity, RendDrawComp);
 
   const SceneTerrainComp* sceneTerrain = ecs_view_read_t(globalItr, SceneTerrainComp);
-  if (rendTerrain->terrainVersion == scene_terrain_version(sceneTerrain)) {
-    return; // Terrain not changed; no need to re-fill the draw.
-  }
-  if (scene_terrain_graphic(sceneTerrain)) {
+  if (rendTerrain->terrainVersion != scene_terrain_version(sceneTerrain)) {
     rend_terrain_draw_init(sceneTerrain, draw);
-  } else {
-    rend_draw_clear(draw);
+    rendTerrain->terrainVersion = scene_terrain_version(sceneTerrain);
   }
-  rendTerrain->terrainVersion = scene_terrain_version(sceneTerrain);
 }
 
 ecs_module_init(rend_terrain_module) {
