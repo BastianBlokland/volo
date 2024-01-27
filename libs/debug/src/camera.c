@@ -274,7 +274,13 @@ static void debug_camera_draw_input_ray(
   SceneRayHit            hit;
   const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllNonDebug};
   const f32              maxDist = 1e5f;
-  if (scene_query_ray(collisionEnv, &ray, maxDist, &filter, &hit)) {
+
+  f32 terrainHitT = -1.0f;
+  if (scene_terrain_loaded(terrain)) {
+    terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
+  }
+
+  if (scene_query_ray(collisionEnv, &ray, maxDist, &filter, &hit) && hit.time < terrainHitT) {
     debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
     debug_arrow(shape, hit.position, lineEnd, 0.04f, geo_color_green);
@@ -285,19 +291,16 @@ static void debug_camera_draw_input_ray(
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
       debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
     }
-  } else if (scene_terrain_loaded(terrain)) {
-    const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
-    if (terrainHitT >= 0) {
-      const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
-      const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
+  } else if (terrainHitT >= 0.0f) {
+    const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
+    const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
 
-      debug_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
-      const GeoVector lineEnd = geo_vector_add(terrainHitPos, geo_vector_mul(terrainNormal, 0.5f));
-      debug_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
+    debug_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
+    const GeoVector lineEnd = geo_vector_add(terrainHitPos, geo_vector_mul(terrainNormal, 0.5f));
+    debug_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
 
-      const GeoVector textPos = geo_vector_add(terrainHitPos, geo_vector_mul(geo_up, 0.1f));
-      debug_text(text, textPos, string_lit("terrain"));
-    }
+    const GeoVector textPos = geo_vector_add(terrainHitPos, geo_vector_mul(geo_up, 0.1f));
+    debug_text(text, textPos, string_lit("terrain"));
   }
 }
 

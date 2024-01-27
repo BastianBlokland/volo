@@ -8,7 +8,7 @@ typedef struct sDynArray DynString;
 ecs_comp_extern_public(AssetTerrainComp) {
   String      graphicId, heightmapId;
   EcsEntityId graphic, heightmap;
-  f32         heightScale;
+  f32         size, heightMax;
 };
 
 void asset_terrain_jsonschema_write(DynString*);
