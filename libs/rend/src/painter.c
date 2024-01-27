@@ -524,7 +524,7 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
 }
 
-static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
+static void painter_push_minimap(RendPaintContext* ctx) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_MinimapGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
@@ -543,11 +543,9 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
     data->zoomInv = ctx->settings->minimapZoom > 0 ? 1.0f / ctx->settings->minimapZoom : 1.0f;
 
     const RvkPassDraw draw = {
-        .graphic     = graphic,
-        .drawImage   = fogBuffer,
-        .drawSampler = {0},
-        .instCount   = 1,
-        .drawData    = mem_create(data, sizeof(MinimapData)),
+        .graphic   = graphic,
+        .instCount = 1,
+        .drawData  = mem_create(data, sizeof(MinimapData)),
     };
     painter_push(ctx, draw);
   }
@@ -866,6 +864,8 @@ static bool rend_canvas_paint(
     painter_push_draws_simple(
         &ctx, drawView, resourceView, RendDrawFlags_FogVision, RendDrawFlags_None);
     painter_flush(&ctx);
+  } else {
+    rvk_canvas_img_clear_color(painter->canvas, fogBuffer, geo_color_clear);
   }
 
   // Fog-blur pass.
@@ -1068,11 +1068,12 @@ static bool rend_canvas_paint(
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_image(postPass, distBuffer, 2);
+    rvk_pass_stage_global_image(postPass, fogBuffer, 3);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     if (set->flags & RendFlags_Minimap) {
-      painter_push_minimap(&ctx, fogBuffer);
+      painter_push_minimap(&ctx);
     }
     painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
 

@@ -12,11 +12,12 @@ const f32v3 c_terrainColor[] = {
 const f32 c_terrainHeightSteps    = 6.0;
 const f32 c_terrainHeightStepsInv = 1.0 / c_terrainHeightSteps;
 
+bind_global_img(3) uniform sampler2D u_texFogBuffer;
+
 bind_graphic_img(0) uniform sampler2D u_texTerrainHeight;
 bind_graphic_img(1) uniform sampler2D u_texTerrainSplat;
 
 bind_draw_data(0) readonly uniform Draw { MinimapData u_draw; };
-bind_draw_img(0) uniform sampler2D u_texFogBuffer;
 
 bind_internal(0) in f32v2 in_texcoord;
 
