@@ -27,6 +27,7 @@ typedef enum {
 
 typedef enum {
   RendDrawResource_Graphic,
+  RendDrawResource_Texture,
 
   RendDrawResource_Count,
 } RendDrawResource;

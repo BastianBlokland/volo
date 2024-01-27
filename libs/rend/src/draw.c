@@ -10,6 +10,7 @@
 #include "draw_internal.h"
 #include "reset_internal.h"
 #include "resource_internal.h"
+#include "rvk/texture_internal.h"
 
 #if defined(VOLO_MSVC)
 #include <string.h>
@@ -318,7 +319,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   return draw->outputInstCount != 0;
 }
 
-RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
+RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic, RvkTexture* texture) {
   u32 instCount;
   Mem instData;
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
@@ -332,6 +333,8 @@ RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
       .graphic             = graphic,
       .vertexCountOverride = draw->vertexCountOverride,
       .drawData            = mem_slice(draw->dataMem, 0, draw->dataSize),
+      .drawImage           = texture ? &texture->image : null,
+      .drawSampler         = {0}, // TODO: Support customizing per-draw texture sampling.
       .instCount           = instCount,
       .instData            = instData,
       .instDataStride      = draw->instDataSize,

@@ -294,6 +294,17 @@ static RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntity
   return graphicResource->graphic;
 }
 
+static RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntityId resource) {
+  if (!ecs_view_maybe_jump(resourceItr, resource)) {
+    return null; // Resource not loaded.
+  }
+  RendResTextureComp* textureResource = ecs_view_write_t(resourceItr, RendResTextureComp);
+  if (!textureResource) {
+    return null; // Resource is not a texture. TODO: Should we report an error here?
+  }
+  return textureResource->texture;
+}
+
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
   RvkRepository* repo    = rvk_canvas_repository(ctx->painter->canvas);
   RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
@@ -324,10 +335,16 @@ static SceneTags painter_push_draws_simple(
     }
     const EcsEntityId graphicResource = rend_draw_resource(draw, RendDrawResource_Graphic);
     RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
-    if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic));
-      tagMask |= rend_draw_tag_mask(draw);
+    if (!graphic || !rvk_pass_prepare(ctx->pass, graphic)) {
+      continue; // Graphic not ready to be drawn.
     }
+    const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
+    RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
+    if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
+      continue; // Draw uses a texture which is not ready.
+    }
+    painter_push(ctx, rend_draw_output(draw, graphic, texture));
+    tagMask |= rend_draw_tag_mask(draw);
   }
 
   return tagMask;
@@ -384,7 +401,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       continue; // Shadow graphic not loaded.
     }
     if (rvk_pass_prepare(ctx->pass, shadowGraphic)) {
-      RvkPassDraw drawSpec = rend_draw_output(draw, shadowGraphic);
+      RvkPassDraw drawSpec = rend_draw_output(draw, shadowGraphic, null);
       drawSpec.drawMesh    = drawMesh;
       drawSpec.drawImage   = drawAlphaImg;
       drawSpec.drawSampler = (RvkSamplerSpec){
@@ -697,7 +714,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
       continue; // Wireframe graphic not loaded.
     }
     if (rvk_pass_prepare(ctx->pass, graphicWireframe) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
-      RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe);
+      RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe, null);
       drawSpec.drawMesh    = mesh;
       painter_push(ctx, drawSpec);
     }
@@ -731,7 +748,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawView, EcsView* r
     diag_assert(mesh);
 
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
-      RvkPassDraw drawSpec = rend_draw_output(draw, debugGraphic);
+      RvkPassDraw drawSpec = rend_draw_output(draw, debugGraphic, null);
       drawSpec.drawMesh    = mesh;
       painter_push(ctx, drawSpec);
     }
