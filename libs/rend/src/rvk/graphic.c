@@ -543,7 +543,10 @@ static void rvk_graphic_set_missing_sampler(
                                      : RvkRepositoryId_MissingTexture;
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
-  graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){.filter = RvkSamplerFilter_Nearest};
+  graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
+         .wrap   = RvkSamplerWrap_Repeat,
+         .filter = RvkSamplerFilter_Nearest,
+  };
 }
 
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
@@ -744,10 +747,10 @@ void rvk_graphic_sampler_add(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-          .flags  = samplerFlags,
-          .wrap   = rvk_graphic_wrap(sampler->wrap),
-          .filter = rvk_graphic_filter(sampler->filter),
-          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+             .flags  = samplerFlags,
+             .wrap   = rvk_graphic_wrap(sampler->wrap),
+             .filter = rvk_graphic_filter(sampler->filter),
+             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }

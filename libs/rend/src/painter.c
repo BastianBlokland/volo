@@ -404,11 +404,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       RvkPassDraw drawSpec = rend_draw_output(draw, shadowGraphic, null);
       drawSpec.drawMesh    = drawMesh;
       drawSpec.drawImage   = drawAlphaImg;
-      drawSpec.drawSampler = (RvkSamplerSpec){
-          .wrap   = RvkSamplerWrap_Clamp,
-          .filter = RvkSamplerFilter_Linear,
-          .aniso  = RvkSamplerAniso_x8,
-      };
+      drawSpec.drawSampler = (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8};
       painter_push(ctx, drawSpec);
     }
   }
@@ -432,7 +428,7 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
     const RvkPassDraw draw = {
         .graphic     = graphic,
         .drawImage   = fogMap,
-        .drawSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
+        .drawSampler = {0},
         .instCount   = 1,
         .drawData    = mem_create(data, sizeof(FogData)),
     };
@@ -544,7 +540,7 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
     const RvkPassDraw draw = {
         .graphic     = graphic,
         .drawImage   = fogBuffer,
-        .drawSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = RvkSamplerFilter_Linear},
+        .drawSampler = {0},
         .instCount   = 1,
         .drawData    = mem_create(data, sizeof(MinimapData)),
     };
@@ -608,7 +604,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     const RvkPassDraw draw = {
         .graphic     = graphic,
         .drawImage   = image,
-        .drawSampler = {.wrap = RvkSamplerWrap_Clamp, .filter = filter},
+        .drawSampler = {.filter = filter},
         .instCount   = 1,
         .drawData    = mem_create(data, sizeof(ImageViewerData)),
     };

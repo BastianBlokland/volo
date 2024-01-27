@@ -19,8 +19,8 @@ typedef enum {
 } RvkSamplerWrap;
 
 typedef enum {
-  RvkSamplerFilter_Nearest,
   RvkSamplerFilter_Linear,
+  RvkSamplerFilter_Nearest,
 
   RvkSamplerFilter_Count,
 } RvkSamplerFilter;

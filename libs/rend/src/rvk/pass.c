@@ -793,16 +793,7 @@ static void rvk_pass_stage_global_image_internal(
 }
 
 void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  rvk_pass_stage_global_image_internal(
-      pass,
-      image,
-      imageIndex,
-      (RvkSamplerSpec){
-          .flags  = RvkSamplerFlags_None,
-          .wrap   = RvkSamplerWrap_Clamp,
-          .filter = RvkSamplerFilter_Linear,
-          .aniso  = RvkSamplerAniso_None,
-      });
+  rvk_pass_stage_global_image_internal(pass, image, imageIndex, (RvkSamplerSpec){0});
 }
 
 void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
@@ -811,10 +802,8 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
       image,
       imageIndex,
       (RvkSamplerSpec){
-          .flags  = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
-          .wrap   = RvkSamplerWrap_Zero,
-          .filter = RvkSamplerFilter_Linear,
-          .aniso  = RvkSamplerAniso_None,
+          .flags = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+          .wrap  = RvkSamplerWrap_Zero,
       });
 }
 
