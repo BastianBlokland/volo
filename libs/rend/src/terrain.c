@@ -38,7 +38,7 @@ static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
 }
 
 static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDrawComp* draw) {
-  const EcsEntityId graphic = scene_terrain_graphic(sceneTerrain);
+  const EcsEntityId graphic = scene_terrain_resource_graphic(sceneTerrain);
   if (!graphic) {
     rend_draw_clear(draw);
     return;

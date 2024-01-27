@@ -6,8 +6,7 @@
 
 ecs_comp_extern(SceneTerrainComp);
 
-bool        scene_terrain_loaded(const SceneTerrainComp*);
-EcsEntityId scene_terrain_asset(const SceneTerrainComp*);
+bool scene_terrain_loaded(const SceneTerrainComp*);
 
 /**
  * Retrieve the terrain's version number.
@@ -16,10 +15,13 @@ EcsEntityId scene_terrain_asset(const SceneTerrainComp*);
 u32  scene_terrain_version(const SceneTerrainComp*);
 bool scene_terrain_updated(const SceneTerrainComp*);
 
-EcsEntityId scene_terrain_graphic(const SceneTerrainComp*);
-f32         scene_terrain_size(const SceneTerrainComp*);
-f32         scene_terrain_height_max(const SceneTerrainComp*);
-GeoBox      scene_terrain_bounds(const SceneTerrainComp*);
+EcsEntityId scene_terrain_resource_asset(const SceneTerrainComp*);
+EcsEntityId scene_terrain_resource_graphic(const SceneTerrainComp*);
+EcsEntityId scene_terrain_resource_heightmap(const SceneTerrainComp*);
+
+f32    scene_terrain_size(const SceneTerrainComp*);
+f32    scene_terrain_height_max(const SceneTerrainComp*);
+GeoBox scene_terrain_bounds(const SceneTerrainComp*);
 
 /**
  * Compute the intersection of the given ray with the terrain.
