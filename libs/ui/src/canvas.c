@@ -498,11 +498,14 @@ ecs_system_define(UiRenderSys) {
     }
 
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
+
+    EcsEntityId graphic;
     if (settings->flags & UiSettingFlags_DebugShading) {
-      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes, UiGraphicRes_Debug));
+      graphic = ui_resource_graphic(globalRes, UiGraphicRes_Debug);
     } else {
-      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes, UiGraphicRes_Normal));
+      graphic = ui_resource_graphic(globalRes, UiGraphicRes_Normal);
     }
+    rend_draw_set_resource(draw, RendDrawResource_Graphic, graphic);
 
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);

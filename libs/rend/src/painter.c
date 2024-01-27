@@ -316,7 +316,7 @@ static SceneTags painter_push_draws_simple(
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_resource(draw, RendDrawResource_Graphic))) {
       continue; // Graphic not loaded.
     }
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
@@ -347,7 +347,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_resource(draw, RendDrawResource_Graphic))) {
       continue; // Graphic not loaded.
     }
     const bool  isParticle      = (rend_draw_flags(draw) & RendDrawFlags_Particle) != 0;
@@ -669,7 +669,7 @@ static void painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawVie
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_resource(draw, RendDrawResource_Graphic))) {
       continue; // Graphic not loaded.
     }
     RvkGraphic* graphicOriginal = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
@@ -714,7 +714,7 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawVie,
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_resource(draw, RendDrawResource_Graphic))) {
       continue; // Graphic not loaded.
     }
     RvkGraphic* graphicOriginal = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;

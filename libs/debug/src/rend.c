@@ -605,8 +605,7 @@ static void rend_draw_info_query(DebugRendPanelComp* panelComp, EcsWorld* world)
 
       String graphicName = string_lit("< unknown >");
       i32    renderOrder = 0;
-      if (ecs_view_contains(graphicView, rend_draw_graphic(drawComp))) {
-        ecs_view_jump(graphicItr, rend_draw_graphic(drawComp));
+      if (ecs_view_maybe_jump(graphicItr, rend_draw_resource(drawComp, RendDrawResource_Graphic))) {
         const AssetComp*          graphicAssetComp = ecs_view_read_t(graphicItr, AssetComp);
         const RendResGraphicComp* graphicComp = ecs_view_read_t(graphicItr, RendResGraphicComp);
         graphicName                           = asset_id(graphicAssetComp);
