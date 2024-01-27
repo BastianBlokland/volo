@@ -124,12 +124,21 @@ ecs_view_define(ProductionView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
-static EcsEntityId hud_indicator_draw_create(
-    EcsWorld* world, AssetManagerComp* assets, const EcsEntityId window, const String graphic) {
+static EcsEntityId hud_draw_create(
+    EcsWorld*         world,
+    AssetManagerComp* assets,
+    const EcsEntityId window,
+    const String      graphic,
+    const bool        post /* To be drawn in the post pass */) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = window);
 
-  RendDrawComp* draw = rend_draw_create(world, e, RendDrawFlags_None);
+  RendDrawFlags flags = RendDrawFlags_Preload;
+  if (post) {
+    flags |= RendDrawFlags_Post;
+  }
+
+  RendDrawComp* draw = rend_draw_create(world, e, flags);
   rend_draw_set_resource(draw, RendDrawResource_Graphic, asset_lookup(world, assets, graphic));
   rend_draw_set_camera_filter(draw, window);
   return e;
@@ -988,13 +997,13 @@ ecs_module_init(game_hud_module) {
 void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
-  const EcsEntityId indicatorRingDraw = hud_indicator_draw_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"));
+  const EcsEntityId drawIndicatorRing = hud_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"), false);
 
   ecs_world_add_t(
       world,
       cameraEntity,
       HudComp,
       .uiCanvas          = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None),
-      .drawIndicatorRing = indicatorRingDraw);
+      .drawIndicatorRing = drawIndicatorRing);
 }
