@@ -162,7 +162,10 @@ static void hud_indicator_ring_draw(
     u32     padding[2];
   } RingData;
 
-  const u32       vertexCount  = 200;
+  const f32 g_vertDensity  = 15.0f;
+  const u32 g_vertCountMin = 30;
+
+  const u32       vertexCount  = math_max(g_vertCountMin, (u32)(radius / 3.0f * g_vertDensity) * 3);
   const f32       maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
   const SceneTags tags         = SceneTags_Vfx;
   const GeoBox    bounds       = geo_box_from_center(
