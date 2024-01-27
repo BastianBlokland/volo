@@ -3,9 +3,6 @@
     { "shaderId": "shaders/hud/minimap.vert.spv" },
     { "shaderId": "shaders/hud/minimap.frag.spv" }
   ],
-  "samplers": [
-    { "textureId": "external/terrain/terrain_3_splat.tga" }
-  ],
   "vertexCount": 6,
   "renderOrder": -10,
   "blend": "Alpha",

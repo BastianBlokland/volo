@@ -15,7 +15,6 @@ const f32 c_terrainHeightStepsInv = 1.0 / c_terrainHeightSteps;
 bind_global_img(3) uniform sampler2D u_texFogBuffer;
 
 bind_draw_img(0) uniform sampler2D u_texTerrainHeight;
-bind_graphic_img(0) uniform sampler2D u_texTerrainSplat;
 
 bind_instance_data(0) readonly uniform Instance { MinimapData u_instance; };
 
@@ -26,18 +25,13 @@ bind_internal(0) out f32v4 out_color;
 void main() {
   const f32v2 terrainCoord  = in_texcoord; // TODO: Compute proper terrain texcoord.
   const f32   terrainHeight = texture(u_texTerrainHeight, terrainCoord).r;
-  const f32v4 terrainSplat  = texture(u_texTerrainSplat, terrainCoord);
   const f32   fog           = texture(u_texFogBuffer, terrainCoord).r;
+  const f32   alpha         = u_instance.data2.x;
 
-  f32v3     color = f32v3(0);
-  const f32 alpha = u_instance.data2.x;
-
-  // Add color based on the type of terrain.
-  color += terrainSplat.r * c_terrainColor[0];
-  color += terrainSplat.g * c_terrainColor[1];
+  const f32 heightStepFrac = round(terrainHeight * c_terrainHeightSteps) * c_terrainHeightStepsInv;
 
   // Basic shading to indicate (banded) elevation, like a topographic map.
-  color *= mix(0.5, 2.0, round(terrainHeight * c_terrainHeightSteps) * c_terrainHeightStepsInv);
+  f32v3 color = mix(c_terrainColor[0], c_terrainColor[1], heightStepFrac);
 
   // Fog of war.
   color *= mix(0.25, 1.0, fog);
