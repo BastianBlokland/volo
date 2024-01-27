@@ -699,9 +699,10 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
       continue; // Graphic not loaded.
     }
     RvkMesh* mesh = graphicOriginal->mesh;
-    if (!mesh) {
-      continue; // Graphic does not have a mesh to draw a wireframe for.
+    if (!mesh || !rvk_pass_prepare_mesh(ctx->pass, mesh)) {
+      continue; // Graphic does not have a mesh to draw a wireframe for (or its not ready).
     }
+
     RvkRepositoryId graphicId;
     if (rend_draw_flags(draw) & RendDrawFlags_Terrain) {
       graphicId = RvkRepositoryId_DebugWireframeTerrainGraphic;
@@ -711,14 +712,21 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
       graphicId = RvkRepositoryId_DebugWireframeGraphic;
     }
     RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
-    if (!graphicWireframe) {
+    if (!graphicWireframe || !rvk_pass_prepare(ctx->pass, graphicWireframe)) {
       continue; // Wireframe graphic not loaded.
     }
-    if (rvk_pass_prepare(ctx->pass, graphicWireframe) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
-      RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe, null);
-      drawSpec.drawMesh    = mesh;
-      painter_push(ctx, drawSpec);
+
+    // If the draw uses a 'per draw' texture then retrieve and prepare it.
+    // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
+    const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
+    RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
+    if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
+      continue; // Draw uses a 'per draw' texture which is not ready.
     }
+
+    RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe, texture);
+    drawSpec.drawMesh    = mesh;
+    painter_push(ctx, drawSpec);
   }
 }
 

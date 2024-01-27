@@ -3,9 +3,6 @@
     { "shaderId": "shaders/scene/terrain_position.vert.spv" },
     { "shaderId": "shaders/solid_white.frag.spv" }
   ],
-  "samplers": [
-    { "textureId": "external/terrain/terrain_3_height.r16" }
-  ],
   "meshId": "meshes/scene/terrain_patch.procmesh",
   "renderOrder": 10,
   "rasterizer": "Lines",
