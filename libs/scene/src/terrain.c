@@ -335,6 +335,7 @@ f32 scene_terrain_intersect_ray(
   if (planeZeroT < 0) {
     return -1.0f;
   }
+  static const f32 g_searchEpsilon   = 0.001f;
   static const f32 g_heightThreshold = 0.05f;
   f32              tMin = 0.0f, tMax = math_min(planeZeroT, maxDist);
   while (tMin < tMax) {
@@ -348,7 +349,7 @@ f32 scene_terrain_intersect_ray(
     if (heightDiff > 0) {
       tMax = tPos;
     } else {
-      tMin = tPos + g_heightThreshold;
+      tMin = tPos + g_searchEpsilon;
     }
   }
   return -1.0f;
