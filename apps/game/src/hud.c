@@ -13,7 +13,6 @@
 #include "gap_input.h"
 #include "input_manager.h"
 #include "rend_draw.h"
-#include "rend_settings.h"
 #include "scene_attack.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -64,7 +63,7 @@ ecs_comp_define(HudComp) {
   UiRect       minimapRect;
   UiScrollview productionScrollView;
 
-  EcsEntityId drawIndicatorRing;
+  EcsEntityId drawMinimap, drawIndicatorRing;
 };
 
 ecs_view_define(GlobalView) {
@@ -81,7 +80,6 @@ ecs_view_define(HudView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_write(HudComp);
   ecs_access_write(InputStateComp);
-  ecs_access_write(RendSettingsComp);
 }
 
 ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
@@ -443,25 +441,36 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
 }
 
 static void hud_minimap_update(
-    HudComp*                hud,
-    const SceneTerrainComp* terrain,
-    RendSettingsComp*       rendSettings,
-    const UiVector          res) {
+    HudComp* hud, EcsIterator* drawItr, const SceneTerrainComp* terrain, const UiVector res) {
   // Compute minimap rect.
   hud->minimapRect = (UiRect){
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
-  const f32 terrainSize = scene_terrain_loaded(terrain) ? scene_terrain_size(terrain) : 500;
 
-  // Update renderer minimap settings.
-  rendSettings->flags |= RendFlags_Minimap;
-  rendSettings->minimapRect[0] = (hud->minimapRect.x - 0.5f) / res.width;
-  rendSettings->minimapRect[1] = (hud->minimapRect.y - 0.5f) / res.height;
-  rendSettings->minimapRect[2] = (hud->minimapRect.width + 0.5f) / res.width;
-  rendSettings->minimapRect[3] = (hud->minimapRect.height + 0.5f) / res.height;
-  rendSettings->minimapAlpha   = g_hudMinimapAlpha;
-  rendSettings->minimapZoom    = terrainSize / g_hudMinimapPlaySize;
+  // Fill the minimap background draw.
+  ecs_view_jump(drawItr, hud->drawMinimap);
+  RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+
+  typedef struct {
+    ALIGNAS(16)
+    f32 rect[4]; // x, y, width, height.
+    f32 alpha;
+    f32 zoomInv;
+    f32 unused[2];
+  } MinimapData;
+
+  const f32 terrainSize = scene_terrain_loaded(terrain) ? scene_terrain_size(terrain) : 500.0f;
+  const f32 zoom        = terrainSize / g_hudMinimapPlaySize;
+
+  *rend_draw_add_instance_t(draw, MinimapData, SceneTags_None, geo_box_inverted3()) = (MinimapData){
+      .rect[0] = (hud->minimapRect.x - 0.5f) / res.width,
+      .rect[1] = (hud->minimapRect.y - 0.5f) / res.height,
+      .rect[2] = (hud->minimapRect.width + 0.5f) / res.width,
+      .rect[3] = (hud->minimapRect.height + 0.5f) / res.height,
+      .alpha   = g_hudMinimapAlpha,
+      .zoomInv = zoom > 0.0f ? (1.0f / zoom) : 1.0f,
+  };
 }
 
 static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSize) {
@@ -918,11 +927,10 @@ ecs_system_define(HudDrawUiSys) {
   EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
-    InputStateComp*           inputState   = ecs_view_write_t(itr, InputStateComp);
-    const SceneCameraComp*    cam          = ecs_view_read_t(itr, SceneCameraComp);
-    const SceneTransformComp* camTrans     = ecs_view_read_t(itr, SceneTransformComp);
-    RendSettingsComp*         rendSettings = ecs_view_write_t(itr, RendSettingsComp);
-    HudComp*                  hud          = ecs_view_write_t(itr, HudComp);
+    InputStateComp*           inputState = ecs_view_write_t(itr, InputStateComp);
+    const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
+    HudComp*                  hud        = ecs_view_write_t(itr, HudComp);
     if (!ecs_view_maybe_jump(canvasItr, hud->uiCanvas)) {
       continue;
     }
@@ -931,7 +939,6 @@ ecs_system_define(HudDrawUiSys) {
 
     ui_canvas_reset(c);
     if (input_layer_active(input, string_hash_lit("Debug"))) {
-      rendSettings->flags &= ~RendFlags_Minimap;
       continue;
     }
     const UiVector res = ui_canvas_resolution(c);
@@ -940,7 +947,7 @@ ecs_system_define(HudDrawUiSys) {
     }
     ui_canvas_to_back(c);
 
-    hud_minimap_update(hud, terrain, rendSettings, res);
+    hud_minimap_update(hud, drawItr, terrain, res);
 
     hud_level_draw(c, level);
     hud_health_draw(c, hud, &viewProj, healthView, res);
@@ -1003,10 +1010,14 @@ void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId camer
   const EcsEntityId drawIndicatorRing = hud_draw_create(
       world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"), false);
 
+  const EcsEntityId drawMinimap =
+      hud_draw_create(world, assets, cameraEntity, string_lit("graphics/minimap.graphic"), true);
+
   ecs_world_add_t(
       world,
       cameraEntity,
       HudComp,
       .uiCanvas          = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None),
+      .drawMinimap       = drawMinimap,
       .drawIndicatorRing = drawIndicatorRing);
 }

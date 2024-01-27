@@ -17,7 +17,7 @@ bind_global_img(3) uniform sampler2D u_texFogBuffer;
 bind_graphic_img(0) uniform sampler2D u_texTerrainHeight;
 bind_graphic_img(1) uniform sampler2D u_texTerrainSplat;
 
-bind_draw_data(0) readonly uniform Draw { MinimapData u_draw; };
+bind_instance_data(0) readonly uniform Instance { MinimapData u_instance; };
 
 bind_internal(0) in f32v2 in_texcoord;
 
@@ -30,7 +30,7 @@ void main() {
   const f32   fog           = texture(u_texFogBuffer, terrainCoord).r;
 
   f32v3     color = f32v3(0);
-  const f32 alpha = u_draw.data2.x;
+  const f32 alpha = u_instance.data2.x;
 
   // Add color based on the type of terrain.
   color += terrainSplat.r * c_terrainColor[0];
