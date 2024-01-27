@@ -8,12 +8,13 @@
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
+
 bind_draw_data(0) readonly uniform Draw { TerrainData u_terrain; };
+bind_draw_img(0) uniform sampler2D u_texHeight;
+
 bind_instance_data(0) readonly uniform Instance {
   TerrainPatchData[c_terrainMaxPatches] u_patches;
 };
-
-bind_graphic_img(0) uniform sampler2D u_texHeight;
 
 bind_internal(0) out flat f32 out_size;
 bind_internal(1) out flat f32 out_heightScale;

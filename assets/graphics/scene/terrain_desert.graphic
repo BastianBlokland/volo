@@ -10,7 +10,6 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/terrain/terrain_3_height.r16" },
     { "textureId": "external/terrain/terrain_3_splat.tga" },
     { "textureId": "external/tiling/sand_2_color_rough.tga", "wrap": "Repeat" },
     { "textureId": "external/tiling/sand_4_normal.tga", "wrap": "Repeat" },

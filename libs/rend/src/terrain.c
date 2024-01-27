@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -43,6 +44,9 @@ static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDra
     rend_draw_clear(draw);
     return;
   }
+  const EcsEntityId heightmap = scene_terrain_resource_heightmap(sceneTerrain);
+  diag_assert(heightmap);
+
   const f32 size           = scene_terrain_size(sceneTerrain);
   const f32 halfSize       = size * 0.5f;
   const u32 patchCountAxis = (u32)math_round_up_f32(size / g_terrainPatchTargetSize);
@@ -53,6 +57,7 @@ static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDra
 
   // Set global terrain meta.
   rend_draw_set_resource(draw, RendDrawResource_Graphic, graphic);
+  rend_draw_set_resource(draw, RendDrawResource_Texture, heightmap);
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
       .size        = size,
       .heightScale = heightScale,
