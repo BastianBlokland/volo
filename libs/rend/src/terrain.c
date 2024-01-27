@@ -1,9 +1,10 @@
+#include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "scene_terrain.h"
 
-static const u32 g_terrainPatchCountAxis = 16;
+static const f32 g_terrainPatchTargetSize = 25.0f;
 
 typedef struct {
   ALIGNAS(16)
@@ -37,12 +38,13 @@ static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
 }
 
 static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp* draw) {
-  const f32 size          = scene_terrain_size(terrain);
-  const f32 halfSize      = size * 0.5f;
-  const f32 patchScale    = 1.0f / g_terrainPatchCountAxis;
-  const f32 patchSize     = size * patchScale;
-  const f32 patchHalfSize = patchSize * 0.5f;
-  const f32 heightScale   = scene_terrain_height_max(terrain);
+  const f32 size           = scene_terrain_size(terrain);
+  const f32 halfSize       = size * 0.5f;
+  const u32 patchCountAxis = (u32)math_round_up_f32(size / g_terrainPatchTargetSize);
+  const f32 patchScale     = 1.0f / patchCountAxis;
+  const f32 patchSize      = size * patchScale;
+  const f32 patchHalfSize  = patchSize * 0.5f;
+  const f32 heightScale    = scene_terrain_height_max(terrain);
 
   // Set global terrain meta.
   rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));
@@ -57,8 +59,8 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
 
   // Add patch instances.
   const SceneTags patchTags = SceneTags_Terrain;
-  for (u32 x = 0; x != g_terrainPatchCountAxis; ++x) {
-    for (u32 z = 0; z != g_terrainPatchCountAxis; ++z) {
+  for (u32 x = 0; x != patchCountAxis; ++x) {
+    for (u32 z = 0; z != patchCountAxis; ++z) {
       const RendTerrainPatchData patchData = {
           .posX = x * patchSize - halfSize + patchHalfSize,
           .posZ = z * patchSize - halfSize + patchHalfSize,
