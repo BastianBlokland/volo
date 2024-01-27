@@ -347,7 +347,7 @@ f32 scene_terrain_intersect_ray(
       return tPos;
     }
     if (heightDiff > 0) {
-      tMax = tPos;
+      tMax = tPos - g_searchEpsilon;
     } else {
       tMin = tPos + g_searchEpsilon;
     }
