@@ -343,9 +343,12 @@ static SceneTags painter_push_draws_simple(
 
     // If the draw uses a 'per draw' texture then retrieve and prepare it.
     const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
-    RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
-    if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
-      continue; // Draw uses a 'per draw' texture which is not ready.
+    RvkTexture*       texture         = null;
+    if (textureResource) {
+      texture = painter_get_texture(resourceItr, textureResource);
+      if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
+        continue; // Draw uses a 'per draw' texture which is not ready.
+      }
     }
 
     painter_push(ctx, rend_draw_output(draw, graphic, texture));
@@ -690,9 +693,12 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
     // If the draw uses a 'per draw' texture then retrieve and prepare it.
     // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
     const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
-    RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
-    if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
-      continue; // Draw uses a 'per draw' texture which is not ready.
+    RvkTexture*       texture         = null;
+    if (textureResource) {
+      texture = painter_get_texture(resourceItr, textureResource);
+      if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
+        continue; // Draw uses a 'per draw' texture which is not ready.
+      }
     }
 
     RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe, texture);
