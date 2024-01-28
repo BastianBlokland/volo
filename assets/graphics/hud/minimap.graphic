@@ -1,0 +1,11 @@
+{
+  "shaders": [
+    { "shaderId": "shaders/hud/minimap.vert.spv" },
+    { "shaderId": "shaders/hud/minimap.frag.spv" }
+  ],
+  "vertexCount": 6,
+  "renderOrder": -10,
+  "blend": "Alpha",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

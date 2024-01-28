@@ -343,9 +343,12 @@ static SceneTags painter_push_draws_simple(
 
     // If the draw uses a 'per draw' texture then retrieve and prepare it.
     const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
-    RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
-    if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
-      continue; // Draw uses a 'per draw' texture which is not ready.
+    RvkTexture*       texture         = null;
+    if (textureResource) {
+      texture = painter_get_texture(resourceItr, textureResource);
+      if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
+        continue; // Draw uses a 'per draw' texture which is not ready.
+      }
     }
 
     painter_push(ctx, rend_draw_output(draw, graphic, texture));
@@ -524,35 +527,6 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
 }
 
-static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = RvkRepositoryId_MinimapGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    typedef struct {
-      ALIGNAS(16)
-      f32 rect[4]; // x, y, width, height.
-      f32 alpha;
-      f32 zoomInv;
-      f32 unused[2];
-    } MinimapData;
-
-    MinimapData* data = alloc_alloc_t(g_alloc_scratch, MinimapData);
-    mem_cpy(mem_var(data->rect), mem_var(ctx->settings->minimapRect));
-    data->alpha   = ctx->settings->minimapAlpha;
-    data->zoomInv = ctx->settings->minimapZoom > 0 ? 1.0f / ctx->settings->minimapZoom : 1.0f;
-
-    const RvkPassDraw draw = {
-        .graphic     = graphic,
-        .drawImage   = fogBuffer,
-        .drawSampler = {0},
-        .instCount   = 1,
-        .drawData    = mem_create(data, sizeof(MinimapData)),
-    };
-    painter_push(ctx, draw);
-  }
-}
-
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
   RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
@@ -719,9 +693,12 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
     // If the draw uses a 'per draw' texture then retrieve and prepare it.
     // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
     const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
-    RvkTexture*       texture         = painter_get_texture(resourceItr, textureResource);
-    if (texture && !rvk_pass_prepare_texture(ctx->pass, texture)) {
-      continue; // Draw uses a 'per draw' texture which is not ready.
+    RvkTexture*       texture         = null;
+    if (textureResource) {
+      texture = painter_get_texture(resourceItr, textureResource);
+      if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
+        continue; // Draw uses a 'per draw' texture which is not ready.
+      }
     }
 
     RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe, texture);
@@ -866,6 +843,8 @@ static bool rend_canvas_paint(
     painter_push_draws_simple(
         &ctx, drawView, resourceView, RendDrawFlags_FogVision, RendDrawFlags_None);
     painter_flush(&ctx);
+  } else {
+    rvk_canvas_img_clear_color(painter->canvas, fogBuffer, geo_color_clear);
   }
 
   // Fog-blur pass.
@@ -1068,12 +1047,10 @@ static bool rend_canvas_paint(
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_image(postPass, distBuffer, 2);
+    rvk_pass_stage_global_image(postPass, fogBuffer, 3);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
-    if (set->flags & RendFlags_Minimap) {
-      painter_push_minimap(&ctx, fogBuffer);
-    }
     painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
 
     if (set->flags & RendFlags_DebugFog) {

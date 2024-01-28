@@ -250,6 +250,15 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
 #endif
 }
 
+GeoColor geo_color_srgb_to_linear(const GeoColor srgb) {
+  return (GeoColor){
+      .r = math_pow_f32(srgb.r, 2.233333333f),
+      .g = math_pow_f32(srgb.g, 2.233333333f),
+      .b = math_pow_f32(srgb.b, 2.233333333f),
+      .a = srgb.a,
+  };
+}
+
 GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value, const f32 alpha) {
   diag_assert(hue >= 0.0f && hue <= 1.0f);
   diag_assert(saturation >= 0.0f && saturation <= 1.0f);

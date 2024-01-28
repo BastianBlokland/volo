@@ -13,16 +13,15 @@ typedef enum {
   RendFlags_Shadows              = 1 << 3,
   RendFlags_Bloom                = 1 << 4,
   RendFlags_Fog                  = 1 << 5,
-  RendFlags_Minimap              = 1 << 6,
-  RendFlags_Distortion           = 1 << 7,
-  RendFlags_Decals               = 1 << 8,
-  RendFlags_ParticleShadows      = 1 << 9,
-  RendFlags_DebugWireframe       = 1 << 10,
-  RendFlags_DebugCamera          = 1 << 11,
-  RendFlags_DebugSkinning        = 1 << 12,
-  RendFlags_DebugFog             = 1 << 13,
-  RendFlags_DebugShadow          = 1 << 14,
-  RendFlags_DebugDistortion      = 1 << 15,
+  RendFlags_Distortion           = 1 << 6,
+  RendFlags_Decals               = 1 << 7,
+  RendFlags_ParticleShadows      = 1 << 8,
+  RendFlags_DebugWireframe       = 1 << 9,
+  RendFlags_DebugCamera          = 1 << 10,
+  RendFlags_DebugSkinning        = 1 << 11,
+  RendFlags_DebugFog             = 1 << 12,
+  RendFlags_DebugShadow          = 1 << 13,
+  RendFlags_DebugDistortion      = 1 << 14,
 
   RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
@@ -111,8 +110,6 @@ ecs_comp_extern_public(RendSettingsComp) {
   u32                  bloomSteps;
   f32                  bloomRadius;
   f32                  distortionResolutionScale;
-  f32                  minimapRect[4]; // x, y, width, height. Normalized screen coordinates.
-  f32                  minimapAlpha, minimapZoom;
   EcsEntityId          debugViewerResource; // Resource entity to visualize for debug purposes.
   f32                  debugViewerLod;      // Level-of-detail to use for the debug-viewer.
   RendDebugViewerFlags debugViewerFlags;    // Flags to use for the debug-viewer.

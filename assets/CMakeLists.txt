@@ -12,8 +12,8 @@ configure_shaders(volo_shaders
     shaders/bloom_down.frag
     shaders/bloom_up.frag
     shaders/blur.frag
-    shaders/debug/dyn_image_viewer.frag
     shaders/debug/dyn_image_viewer_cube.frag
+    shaders/debug/dyn_image_viewer.frag
     shaders/debug/dyn_image_viewer.vert
     shaders/debug/dyn_mesh_viewer_skinned.vert
     shaders/debug/dyn_mesh_viewer.vert
@@ -34,13 +34,13 @@ configure_shaders(volo_shaders
     shaders/fullscreen.vert
     shaders/hud/indicator_ring.vert
     shaders/hud/indicator.frag
+    shaders/hud/minimap.frag
+    shaders/hud/minimap.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
     shaders/light/light_point_debug.frag
     shaders/light/light_point.frag
     shaders/light/light_point.vert
-    shaders/minimap.frag
-    shaders/minimap.vert
     shaders/outline.frag
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_gradient.frag

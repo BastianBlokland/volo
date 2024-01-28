@@ -2,6 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_box.h"
+#include "geo_color.h"
 #include "geo_ray.h"
 
 ecs_comp_extern(SceneTerrainComp);
@@ -18,6 +19,9 @@ bool scene_terrain_updated(const SceneTerrainComp*);
 EcsEntityId scene_terrain_resource_asset(const SceneTerrainComp*);
 EcsEntityId scene_terrain_resource_graphic(const SceneTerrainComp*);
 EcsEntityId scene_terrain_resource_heightmap(const SceneTerrainComp*);
+
+GeoColor scene_terrain_minimap_color_low(const SceneTerrainComp*);
+GeoColor scene_terrain_minimap_color_high(const SceneTerrainComp*);
 
 f32    scene_terrain_size(const SceneTerrainComp*);
 f32    scene_terrain_height_max(const SceneTerrainComp*);

@@ -5,10 +5,20 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
+/**
+ * NOTE: Colors are srgb encoded.
+ */
+typedef struct {
+  f32 r, g, b;
+} AssetTerrainColor;
+
 ecs_comp_extern_public(AssetTerrainComp) {
   String      graphicId, heightmapId;
   EcsEntityId graphic, heightmap;
-  f32         size, heightMax;
+
+  f32 size, heightMax;
+
+  AssetTerrainColor minimapColorLow, minimapColorHigh;
 };
 
 void asset_terrain_jsonschema_write(DynString*);

@@ -121,11 +121,12 @@ GeoColor geo_color_clamp_comps(GeoColor, GeoColor min, GeoColor max);
 GeoColor geo_color_with_alpha(GeoColor, f32 alpha);
 
 /**
- * Apply the srgb encoding curve.
+ * Apply the srgb encoding / decoding curve.
  * More info: https://en.wikipedia.org/wiki/SRGB.
  * NOTE: Only defined for values within the 0 - 1 range.
  */
 GeoColor geo_color_linear_to_srgb(GeoColor);
+GeoColor geo_color_srgb_to_linear(GeoColor);
 
 /**
  * Construct a color from HueSaturationValue.
