@@ -31,6 +31,8 @@ ecs_comp_define(SceneTerrainComp) {
 
   f32 size, sizeHalf, sizeInv;
   f32 heightMax;
+
+  GeoColor minimapColorLow, minimapColorHigh;
 };
 
 ecs_view_define(GlobalLoadView) {
@@ -98,6 +100,10 @@ typedef enum {
   TerrainLoadResult_Error,
 } TerrainLoadResult;
 
+static GeoColor terrain_color_load(const AssetTerrainColor* color) {
+  return geo_color(color->r, color->g, color->b, 1.0);
+}
+
 static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
   if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetFailedComp)) {
     log_e("Failed to load terrain asset");
@@ -111,13 +117,15 @@ static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
     log_e("Invalid terrain asset");
     return TerrainLoadResult_Error;
   }
-  const AssetTerrainComp* asset = ecs_view_read_t(assetItr, AssetTerrainComp);
-  ctx->terrain->graphicAsset    = asset->graphic;
-  ctx->terrain->heightmapAsset  = asset->heightmap;
-  ctx->terrain->size            = asset->size;
-  ctx->terrain->sizeHalf        = asset->size * 0.5f;
-  ctx->terrain->sizeInv         = 1.0f / asset->size;
-  ctx->terrain->heightMax       = asset->heightMax;
+  const AssetTerrainComp* asset  = ecs_view_read_t(assetItr, AssetTerrainComp);
+  ctx->terrain->graphicAsset     = asset->graphic;
+  ctx->terrain->heightmapAsset   = asset->heightmap;
+  ctx->terrain->size             = asset->size;
+  ctx->terrain->sizeHalf         = asset->size * 0.5f;
+  ctx->terrain->sizeInv          = 1.0f / asset->size;
+  ctx->terrain->heightMax        = asset->heightMax;
+  ctx->terrain->minimapColorLow  = terrain_color_load(&asset->minimapColorLow);
+  ctx->terrain->minimapColorHigh = terrain_color_load(&asset->minimapColorHigh);
 
   return TerrainLoadResult_Done;
 }
@@ -311,6 +319,14 @@ EcsEntityId scene_terrain_resource_graphic(const SceneTerrainComp* terrain) {
 
 EcsEntityId scene_terrain_resource_heightmap(const SceneTerrainComp* terrain) {
   return terrain->heightmapAsset;
+}
+
+GeoColor scene_terrain_minimap_color_low(const SceneTerrainComp* terrain) {
+  return terrain->minimapColorLow;
+}
+
+GeoColor scene_terrain_minimap_color_high(const SceneTerrainComp* terrain) {
+  return terrain->minimapColorHigh;
 }
 
 f32 scene_terrain_size(const SceneTerrainComp* terrain) { return terrain->size; }

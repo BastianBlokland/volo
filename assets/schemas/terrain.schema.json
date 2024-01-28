@@ -9,11 +9,26 @@
         "graphicId": { "title": "String", "type": "string", "minLength": 1 },
         "heightmapId": { "title": "String", "type": "string", "minLength": 1 },
         "size": { "title": "f32", "type": "number" },
-        "heightMax": { "title": "f32", "type": "number" }
+        "heightMax": { "title": "f32", "type": "number" },
+        "minimapColorLow": { "title": "AssetTerrainColor", "$ref": "#/$defs/AssetTerrainColor" },
+        "minimapColorHigh": { "title": "AssetTerrainColor", "$ref": "#/$defs/AssetTerrainColor" }
       },
       "required": [ "graphicId", "heightmapId", "size", "heightMax" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\",\n  \"size\": 0,\n  \"heightMax\": 0\n}" }
+      ]
+    },
+    "AssetTerrainColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "r": { "title": "f32", "type": "number" },
+        "g": { "title": "f32", "type": "number" },
+        "b": { "title": "f32", "type": "number" }
+      },
+      "required": [ "r", "g", "b" ],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0\n}" }
       ]
     }
   }

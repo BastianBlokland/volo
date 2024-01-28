@@ -26,11 +26,18 @@ static void terrain_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(reg, AssetTerrainColor);
+    data_reg_field_t(reg, AssetTerrainColor, r, data_prim_t(f32));
+    data_reg_field_t(reg, AssetTerrainColor, g, data_prim_t(f32));
+    data_reg_field_t(reg, AssetTerrainColor, b, data_prim_t(f32));
+
     data_reg_struct_t(reg, AssetTerrainComp);
     data_reg_field_t(reg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetTerrainComp, size, data_prim_t(f32));
     data_reg_field_t(reg, AssetTerrainComp, heightMax, data_prim_t(f32));
+    data_reg_field_t(reg, AssetTerrainComp, minimapColorLow, t_AssetTerrainColor, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataMeta = data_meta_t(t_AssetTerrainComp);
