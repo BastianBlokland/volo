@@ -13,6 +13,7 @@ static const AssetMemRecord g_testData[] = {
                               "  \"graphicId\": \"test.graphic\","
                               "  \"heightmapId\": \"height.r16\","
                               "  \"size\": 100.0,"
+                              "  \"playSize\": 50.0,"
                               "  \"heightMax\": 1.0"
                               "}"),
     },

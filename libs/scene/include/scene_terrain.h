@@ -24,6 +24,7 @@ GeoColor scene_terrain_minimap_color_low(const SceneTerrainComp*);  // In linear
 GeoColor scene_terrain_minimap_color_high(const SceneTerrainComp*); // In linear color space.
 
 f32    scene_terrain_size(const SceneTerrainComp*);
+f32    scene_terrain_play_size(const SceneTerrainComp*);
 f32    scene_terrain_height_max(const SceneTerrainComp*);
 GeoBox scene_terrain_bounds(const SceneTerrainComp*);
 
