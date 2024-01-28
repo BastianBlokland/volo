@@ -11,7 +11,7 @@
 #include "jobs_executor.h"
 #include "log_logger.h"
 
-#define geo_nav_workers_max 64
+#define geo_nav_workers_max 8
 #define geo_nav_occupants_max 4096
 #define geo_nav_occupants_per_cell 5
 #define geo_nav_blockers_max 2048
