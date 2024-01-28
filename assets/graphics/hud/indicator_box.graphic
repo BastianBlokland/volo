@@ -1,0 +1,12 @@
+{
+  "shaders": [
+    { "shaderId": "shaders/hud/indicator_box.vert.spv" },
+    { "shaderId": "shaders/hud/indicator.frag.spv" }
+  ],
+  "renderOrder": 1100,
+  "vertexCount": 10,
+  "topology": "TriangleStrip",
+  "blend": "Alpha",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

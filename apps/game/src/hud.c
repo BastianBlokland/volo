@@ -62,7 +62,7 @@ ecs_comp_define(HudComp) {
   UiRect       minimapRect;
   UiScrollview productionScrollView;
 
-  EcsEntityId drawMinimap, drawIndicatorRing;
+  EcsEntityId drawMinimap, drawIndicatorRing, drawIndicatorBox;
 };
 
 ecs_view_define(GlobalView) {
@@ -164,18 +164,47 @@ static void hud_indicator_ring_draw(
   const u32 vertexCount = 200;
   rend_draw_set_vertex_count(draw, vertexCount);
 
-  const f32       maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
-  const SceneTags tags         = SceneTags_Vfx;
-  const GeoBox    bounds       = geo_box_from_center(
+  const f32    maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
+  const GeoBox bounds       = geo_box_from_center(
       center, geo_vector((radius + maxThickness) * 2.0f, 1.0f, (radius + maxThickness) * 2.0f));
 
-  *rend_draw_add_instance_t(draw, RingData, tags, bounds) = (RingData){
+  *rend_draw_add_instance_t(draw, RingData, SceneTags_Vfx, bounds) = (RingData){
       .center[0]   = center.x,
       .center[1]   = center.y,
       .center[2]   = center.z,
       .radius      = radius,
       .vertexCount = vertexCount,
       .color       = color,
+  };
+}
+
+static void hud_indicator_box_draw(
+    const HudComp* hud, EcsIterator* drawItr, const GeoBox* box, const UiColor color) {
+  ecs_view_jump(drawItr, hud->drawIndicatorBox);
+  RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+
+  typedef struct {
+    ALIGNAS(16)
+    f32     center[3];
+    f32     padding1;
+    f32     width;
+    f32     height;
+    UiColor color;
+    f32     padding2;
+  } BoxData;
+
+  const f32       maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
+  const GeoVector center       = geo_box_center(box);
+  const GeoVector size         = geo_box_size(box);
+  const GeoBox    bounds       = geo_box_dilate(box, geo_vector(maxThickness, 1.0f, maxThickness));
+
+  *rend_draw_add_instance_t(draw, BoxData, SceneTags_Vfx, bounds) = (BoxData){
+      .center[0] = center.x,
+      .center[1] = center.y,
+      .center[2] = center.z,
+      .width     = size.x,
+      .height    = size.z,
+      .color     = color,
   };
 }
 
@@ -1021,11 +1050,14 @@ ecs_module_init(game_hud_module) {
 void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
+  const EcsEntityId drawMinimap = hud_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"), true);
+
   const EcsEntityId drawIndicatorRing = hud_draw_create(
       world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"), false);
 
-  const EcsEntityId drawMinimap = hud_draw_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"), true);
+  const EcsEntityId drawIndicatorBox = hud_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_box.graphic"), false);
 
   ecs_world_add_t(
       world,
@@ -1033,5 +1065,6 @@ void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId camer
       HudComp,
       .uiCanvas          = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None),
       .drawMinimap       = drawMinimap,
-      .drawIndicatorRing = drawIndicatorRing);
+      .drawIndicatorRing = drawIndicatorRing,
+      .drawIndicatorBox  = drawIndicatorBox);
 }
