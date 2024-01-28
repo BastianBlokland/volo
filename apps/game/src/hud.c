@@ -990,6 +990,11 @@ ecs_system_define(HudDrawUiSys) {
     }
     ui_canvas_to_back(c);
 
+    if (scene_terrain_loaded(terrain)) {
+      const GeoBox playArea = scene_terrain_play_bounds(terrain);
+      hud_indicator_box_draw(hud, drawItr, &playArea, ui_color(64, 64, 64, 64));
+    }
+
     hud_minimap_update(hud, drawItr, terrain, res);
 
     hud_level_draw(c, level);
