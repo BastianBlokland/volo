@@ -565,8 +565,8 @@ static void hud_minimap_draw(
     EcsView*                  markerView) {
   const UiVector  canvasRes    = ui_canvas_resolution(c);
   const f32       canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
-  const f32       playSize     = scene_terrain_play_size(terrain);
-  const GeoVector playArea     = geo_vector(playSize, 0, playSize);
+  const f32       playSize = scene_terrain_loaded(terrain) ? scene_terrain_play_size(terrain) : 250;
+  const GeoVector playArea = geo_vector(playSize, 0, playSize);
 
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
