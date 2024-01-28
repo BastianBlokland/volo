@@ -563,10 +563,15 @@ static void hud_minimap_draw(
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
     EcsView*                  markerView) {
-  const UiVector  canvasRes    = ui_canvas_resolution(c);
-  const f32       canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
-  const f32       playSize = scene_terrain_loaded(terrain) ? scene_terrain_play_size(terrain) : 250;
-  const GeoVector playArea = geo_vector(playSize, 0, playSize);
+  const UiVector canvasRes    = ui_canvas_resolution(c);
+  const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
+
+  GeoVector areaSize;
+  if (scene_terrain_loaded(terrain)) {
+    areaSize = geo_vector(scene_terrain_play_size(terrain), 0, scene_terrain_play_size(terrain));
+  } else {
+    areaSize = geo_vector(250.0f, 0.0f, 250.0f);
+  }
 
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
@@ -585,8 +590,8 @@ static void hud_minimap_draw(
   }
   if (frameStatus >= UiStatus_Pressed) {
     const UiVector uiPos = ui_canvas_input_pos(c);
-    const f32 x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * playArea.x;
-    const f32 z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * playArea.z;
+    const f32 x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * areaSize.x;
+    const f32 z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * areaSize.z;
     input_camera_center(inputState, geo_vector(x, 0, z));
   }
 
@@ -597,7 +602,7 @@ static void hud_minimap_draw(
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];
-  const u32        markerCount = hud_minimap_marker_collect(markerView, playArea, markers);
+  const u32        markerCount = hud_minimap_marker_collect(markerView, areaSize, markers);
 
   // Draw marker outlines.
   ui_style_outline(c, 2);
@@ -618,7 +623,7 @@ static void hud_minimap_draw(
   // Draw camera frustum.
   ui_style_outline(c, 0);
   UiVector camFrustumPoints[4];
-  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, playArea, camFrustumPoints)) {
+  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, areaSize, camFrustumPoints)) {
     ui_style_color(c, ui_color_white);
     ui_line_with_opts(c, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
     ui_line_with_opts(c, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
