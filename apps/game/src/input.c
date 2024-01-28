@@ -510,8 +510,9 @@ static void input_order(
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
   }
   if (rayT > g_inputMinInteractDist) {
-    const GeoVector targetPos = geo_ray_position(inputRay, rayT);
-    input_order_move(world, cmdController, setEnv, nav, debugStats, targetPos);
+    const GeoVector targetPos        = geo_ray_position(inputRay, rayT);
+    const GeoVector targetPosClamped = input_clamp_to_play_area(terrain, targetPos);
+    input_order_move(world, cmdController, setEnv, nav, debugStats, targetPosClamped);
     return;
   }
 }
