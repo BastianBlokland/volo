@@ -5,6 +5,9 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
+/**
+ * NOTE: Colors are srgb encoded.
+ */
 typedef struct {
   f32 r, g, b;
 } AssetTerrainColor;

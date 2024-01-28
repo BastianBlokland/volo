@@ -30,6 +30,7 @@ static void terrain_datareg_init() {
     data_reg_field_t(reg, AssetTerrainColor, r, data_prim_t(f32));
     data_reg_field_t(reg, AssetTerrainColor, g, data_prim_t(f32));
     data_reg_field_t(reg, AssetTerrainColor, b, data_prim_t(f32));
+    data_reg_comment_t(reg, AssetTerrainColor, "Srgb encoded color value");
 
     data_reg_struct_t(reg, AssetTerrainComp);
     data_reg_field_t(reg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -72,6 +73,19 @@ ecs_view_define(UnloadView) {
   ecs_access_without(AssetLoadedComp);
 }
 
+static bool terrain_color_validate(const AssetTerrainColor* color) {
+  if (color->r < 0.0f || color->r > 1.0f) {
+    return false;
+  }
+  if (color->g < 0.0f || color->g > 1.0f) {
+    return false;
+  }
+  if (color->b < 0.0f || color->b > 1.0f) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Load terrain-assets.
  */
@@ -105,6 +119,14 @@ ecs_system_define(LoadTerrainAssetSys) {
     }
     if (terrainComp->heightMax < 0.0f || terrainComp->heightMax > terrain_max_height) {
       terrain_load_fail(world, entity, string_lit("Invalid terrain maximum height"));
+      goto Error;
+    }
+    if (!terrain_color_validate(&terrainComp->minimapColorLow)) {
+      terrain_load_fail(world, entity, string_lit("Invalid minimap color low"));
+      goto Error;
+    }
+    if (!terrain_color_validate(&terrainComp->minimapColorHigh)) {
+      terrain_load_fail(world, entity, string_lit("Invalid minimap color high"));
       goto Error;
     }
 

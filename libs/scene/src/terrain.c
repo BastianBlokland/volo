@@ -101,7 +101,8 @@ typedef enum {
 } TerrainLoadResult;
 
 static GeoColor terrain_color_load(const AssetTerrainColor* color) {
-  return geo_color(color->r, color->g, color->b, 1.0);
+  const GeoColor colorSrgb = {color->r, color->g, color->b, 1.0};
+  return geo_color_srgb_to_linear(colorSrgb);
 }
 
 static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
