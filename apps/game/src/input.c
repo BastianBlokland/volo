@@ -120,10 +120,11 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
 }
 
 static GeoVector input_clamp_to_play_area(const SceneTerrainComp* terrain, const GeoVector pos) {
-  const GeoVector center = geo_vector(0, 0, 0);
-  const f32       size   = scene_terrain_loaded(terrain) ? scene_terrain_play_size(terrain) : 250;
-  const GeoBox    area   = geo_box_from_center(center, geo_vector(size, 0, size));
-  return geo_box_closest_point(&area, pos);
+  if (scene_terrain_loaded(terrain)) {
+    const GeoBox area = scene_terrain_play_bounds(terrain);
+    return geo_box_closest_point(&area, pos);
+  }
+  return pos;
 }
 
 static void update_group_input(

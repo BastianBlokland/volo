@@ -30,7 +30,7 @@ ecs_comp_define(SceneTerrainComp) {
   AssetTextureType heightmapType;
 
   f32 size, sizeHalf, sizeInv;
-  f32 playSize;
+  f32 playSize, playSizeHalf;
   f32 heightMax;
 
   GeoColor minimapColorLow, minimapColorHigh;
@@ -126,6 +126,7 @@ static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
   ctx->terrain->sizeHalf         = asset->size * 0.5f;
   ctx->terrain->sizeInv          = 1.0f / asset->size;
   ctx->terrain->playSize         = asset->playSize;
+  ctx->terrain->playSizeHalf     = asset->playSize * 0.5f;
   ctx->terrain->heightMax        = asset->heightMax;
   ctx->terrain->minimapColorLow  = terrain_color_load(&asset->minimapColorLow);
   ctx->terrain->minimapColorHigh = terrain_color_load(&asset->minimapColorHigh);
@@ -340,6 +341,13 @@ GeoBox scene_terrain_bounds(const SceneTerrainComp* terrain) {
   return (GeoBox){
       .min = geo_vector(-terrain->sizeHalf, 0, -terrain->sizeHalf),
       .max = geo_vector(terrain->sizeHalf, terrain->heightMax, terrain->sizeHalf),
+  };
+}
+
+GeoBox scene_terrain_play_bounds(const SceneTerrainComp* terrain) {
+  return (GeoBox){
+      .min = geo_vector(-terrain->playSizeHalf, 0, -terrain->playSizeHalf),
+      .max = geo_vector(terrain->playSizeHalf, terrain->heightMax, terrain->playSizeHalf),
   };
 }
 
