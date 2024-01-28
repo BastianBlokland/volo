@@ -32,6 +32,7 @@ configure_shaders(volo_shaders
     shaders/fog_vision.vert
     shaders/fog.frag
     shaders/fullscreen.vert
+    shaders/hud/indicator_box.vert
     shaders/hud/indicator_ring.vert
     shaders/hud/indicator.frag
     shaders/hud/minimap.frag

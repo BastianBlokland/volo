@@ -36,6 +36,7 @@ static void terrain_datareg_init() {
     data_reg_field_t(reg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetTerrainComp, size, data_prim_t(f32));
+    data_reg_field_t(reg, AssetTerrainComp, playSize, data_prim_t(f32));
     data_reg_field_t(reg, AssetTerrainComp, heightMax, data_prim_t(f32));
     data_reg_field_t(reg, AssetTerrainComp, minimapColorLow, t_AssetTerrainColor, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
@@ -115,6 +116,10 @@ ecs_system_define(LoadTerrainAssetSys) {
 
     if (terrainComp->size < 1.0f || terrainComp->size > terrain_max_size) {
       terrain_load_fail(world, entity, string_lit("Invalid terrain size"));
+      goto Error;
+    }
+    if (terrainComp->playSize < 1.0f || terrainComp->playSize > terrainComp->size) {
+      terrain_load_fail(world, entity, string_lit("Invalid terrain play size"));
       goto Error;
     }
     if (terrainComp->heightMax < 0.0f || terrainComp->heightMax > terrain_max_height) {

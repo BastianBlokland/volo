@@ -20,12 +20,14 @@ EcsEntityId scene_terrain_resource_asset(const SceneTerrainComp*);
 EcsEntityId scene_terrain_resource_graphic(const SceneTerrainComp*);
 EcsEntityId scene_terrain_resource_heightmap(const SceneTerrainComp*);
 
-GeoColor scene_terrain_minimap_color_low(const SceneTerrainComp*);
-GeoColor scene_terrain_minimap_color_high(const SceneTerrainComp*);
+GeoColor scene_terrain_minimap_color_low(const SceneTerrainComp*);  // In linear color space.
+GeoColor scene_terrain_minimap_color_high(const SceneTerrainComp*); // In linear color space.
 
 f32    scene_terrain_size(const SceneTerrainComp*);
+f32    scene_terrain_play_size(const SceneTerrainComp*);
 f32    scene_terrain_height_max(const SceneTerrainComp*);
 GeoBox scene_terrain_bounds(const SceneTerrainComp*);
+GeoBox scene_terrain_play_bounds(const SceneTerrainComp*);
 
 /**
  * Compute the intersection of the given ray with the terrain.

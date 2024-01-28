@@ -21,23 +21,22 @@
 #include "cmd_internal.h"
 #include "input_internal.h"
 
-static const f32    g_inputMinInteractDist       = 1.0f;
-static const f32    g_inputMaxInteractDist       = 250.0f;
-static const f32    g_inputCamDistMin            = 20.0f;
-static const f32    g_inputCamDistMax            = 85.0f;
-static const f32    g_inputCamPanCursorMult      = 100.0f;
-static const f32    g_inputCamPanTriggeredMult   = 50.0f;
-static const f32    g_inputCamPanMaxZoomMult     = 0.4f;
-static const f32    g_inputCamPosEaseSpeed       = 20.0f;
-static const f32    g_inputCamRotX               = 65.0f * math_deg_to_rad;
-static const f32    g_inputCamRotYMult           = 5.0f;
-static const f32    g_inputCamRotYEaseSpeed      = 20.0f;
-static const f32    g_inputCamZoomMult           = 0.1f;
-static const f32    g_inputCamZoomEaseSpeed      = 15.0f;
-static const f32    g_inputCamCursorPanThreshold = 0.0025f;
-static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
-static const f32    g_inputDragThreshold         = 0.005f; // In normalized screen-space coords.
-static StringHash   g_inputGroupActions[cmd_group_count];
+static const f32  g_inputMinInteractDist       = 1.0f;
+static const f32  g_inputMaxInteractDist       = 250.0f;
+static const f32  g_inputCamDistMin            = 20.0f;
+static const f32  g_inputCamDistMax            = 85.0f;
+static const f32  g_inputCamPanCursorMult      = 100.0f;
+static const f32  g_inputCamPanTriggeredMult   = 50.0f;
+static const f32  g_inputCamPanMaxZoomMult     = 0.4f;
+static const f32  g_inputCamPosEaseSpeed       = 20.0f;
+static const f32  g_inputCamRotX               = 65.0f * math_deg_to_rad;
+static const f32  g_inputCamRotYMult           = 5.0f;
+static const f32  g_inputCamRotYEaseSpeed      = 20.0f;
+static const f32  g_inputCamZoomMult           = 0.1f;
+static const f32  g_inputCamZoomEaseSpeed      = 15.0f;
+static const f32  g_inputCamCursorPanThreshold = 0.0025f;
+static const f32  g_inputDragThreshold         = 0.005f; // In normalized screen-space coords.
+static StringHash g_inputGroupActions[cmd_group_count];
 
 typedef enum {
   InputFlags_AllowZoomOverUi = 1 << 0,
@@ -120,6 +119,14 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
   scene_attach_to_entity(world, effectEntity, target);
 }
 
+static GeoVector input_clamp_to_play_area(const SceneTerrainComp* terrain, const GeoVector pos) {
+  if (scene_terrain_loaded(terrain)) {
+    const GeoBox area = scene_terrain_play_bounds(terrain);
+    return geo_box_closest_point(&area, pos);
+  }
+  return pos;
+}
+
 static void update_group_input(
     InputStateComp*        state,
     CmdControllerComp*     cmdController,
@@ -158,10 +165,11 @@ static void update_group_input(
 }
 
 static void update_camera_movement(
-    InputStateComp*      state,
-    InputManagerComp*    input,
-    const SceneTimeComp* time,
-    SceneTransformComp*  camTrans) {
+    InputStateComp*         state,
+    InputManagerComp*       input,
+    const SceneTimeComp*    time,
+    const SceneTerrainComp* terrain,
+    SceneTransformComp*     camTrans) {
   const f32     deltaSeconds = scene_real_delta_seconds(time);
   const GeoQuat camRotYOld   = geo_quat_from_euler(geo_vector(0, state->camRotY, 0));
   bool          lockCursor   = false;
@@ -195,7 +203,7 @@ static void update_camera_movement(
   panDeltaRel = geo_vector_mul(panDeltaRel, math_lerp(1, g_inputCamPanMaxZoomMult, state->camZoom));
   const f32 camPosEaseDelta = math_min(deltaSeconds * g_inputCamPosEaseSpeed, 1.0f);
   state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
-  state->camPosTgt = geo_box_closest_point(&g_inputCamArea, state->camPosTgt);
+  state->camPosTgt = input_clamp_to_play_area(terrain, state->camPosTgt);
   state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
 
   // Update Y rotation.
@@ -503,8 +511,9 @@ static void input_order(
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
   }
   if (rayT > g_inputMinInteractDist) {
-    const GeoVector targetPos = geo_ray_position(inputRay, rayT);
-    input_order_move(world, cmdController, setEnv, nav, debugStats, targetPos);
+    const GeoVector targetPos        = geo_ray_position(inputRay, rayT);
+    const GeoVector targetPosClamped = input_clamp_to_play_area(terrain, targetPos);
+    input_order_move(world, cmdController, setEnv, nav, debugStats, targetPosClamped);
     return;
   }
 }
@@ -683,7 +692,7 @@ ecs_system_define(InputUpdateSys) {
       if (input_layer_active(input, string_hash_lit("Debug"))) {
         update_camera_movement_debug(input, time, cam, camTrans);
       } else {
-        update_camera_movement(state, input, time, camTrans);
+        update_camera_movement(state, input, time, terrain, camTrans);
       }
       update_camera_interact(
           world,

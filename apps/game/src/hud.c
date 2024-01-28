@@ -51,7 +51,6 @@ static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
-static const f32      g_hudMinimapPlaySize  = 225.0f;
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
@@ -63,7 +62,7 @@ ecs_comp_define(HudComp) {
   UiRect       minimapRect;
   UiScrollview productionScrollView;
 
-  EcsEntityId drawMinimap, drawIndicatorRing;
+  EcsEntityId drawMinimap, drawIndicatorRing, drawIndicatorBox;
 };
 
 ecs_view_define(GlobalView) {
@@ -160,23 +159,52 @@ static void hud_indicator_ring_draw(
     u32     padding[2];
   } RingData;
 
-  const f32 g_vertDensity  = 15.0f;
-  const u32 g_vertCountMin = 30;
+  // NOTE: Vertex count can unfortunately not be dynamic as the renderer only supports specifying a
+  // custom vertex count per draw, and not per instance.
+  const u32 vertexCount = 200;
+  rend_draw_set_vertex_count(draw, vertexCount);
 
-  const u32       vertexCount  = math_max(g_vertCountMin, (u32)(radius / 3.0f * g_vertDensity) * 3);
-  const f32       maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
-  const SceneTags tags         = SceneTags_Vfx;
-  const GeoBox    bounds       = geo_box_from_center(
+  const f32    maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
+  const GeoBox bounds       = geo_box_from_center(
       center, geo_vector((radius + maxThickness) * 2.0f, 1.0f, (radius + maxThickness) * 2.0f));
 
-  rend_draw_set_vertex_count(draw, vertexCount);
-  *rend_draw_add_instance_t(draw, RingData, tags, bounds) = (RingData){
+  *rend_draw_add_instance_t(draw, RingData, SceneTags_Vfx, bounds) = (RingData){
       .center[0]   = center.x,
       .center[1]   = center.y,
       .center[2]   = center.z,
       .radius      = radius,
       .vertexCount = vertexCount,
       .color       = color,
+  };
+}
+
+static void hud_indicator_box_draw(
+    const HudComp* hud, EcsIterator* drawItr, const GeoBox* box, const UiColor color) {
+  ecs_view_jump(drawItr, hud->drawIndicatorBox);
+  RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+
+  typedef struct {
+    ALIGNAS(16)
+    f32     center[3];
+    f32     padding1;
+    f32     width;
+    f32     height;
+    UiColor color;
+    f32     padding2;
+  } BoxData;
+
+  const f32       maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
+  const GeoVector center       = geo_box_center(box);
+  const GeoVector size         = geo_box_size(box);
+  const GeoBox    bounds       = geo_box_dilate(box, geo_vector(maxThickness, 1.0f, maxThickness));
+
+  *rend_draw_add_instance_t(draw, BoxData, SceneTags_Vfx, bounds) = (BoxData){
+      .center[0] = center.x,
+      .center[1] = center.y,
+      .center[2] = center.z,
+      .width     = size.x,
+      .height    = size.z,
+      .color     = color,
   };
 }
 
@@ -459,12 +487,10 @@ static void hud_minimap_update(
     ALIGNAS(16)
     f32      rect[4]; // x, y, width, height.
     f32      alpha;
-    f32      zoomInv;
+    f32      terrainFrac;
     f32      unused[2];
     GeoColor colorLow, colorHigh;
   } MinimapData;
-
-  const f32 zoom = scene_terrain_size(terrain) / g_hudMinimapPlaySize;
 
   const EcsEntityId heightmap = scene_terrain_resource_heightmap(terrain);
   diag_assert(heightmap);
@@ -472,14 +498,14 @@ static void hud_minimap_update(
   rend_draw_set_resource(draw, RendDrawResource_Texture, heightmap);
 
   *rend_draw_add_instance_t(draw, MinimapData, SceneTags_None, geo_box_inverted3()) = (MinimapData){
-      .rect[0]   = (hud->minimapRect.x - 0.5f) / res.width,
-      .rect[1]   = (hud->minimapRect.y - 0.5f) / res.height,
-      .rect[2]   = (hud->minimapRect.width + 0.5f) / res.width,
-      .rect[3]   = (hud->minimapRect.height + 0.5f) / res.height,
-      .alpha     = g_hudMinimapAlpha,
-      .zoomInv   = zoom > 0.0f ? (1.0f / zoom) : 1.0f,
-      .colorLow  = scene_terrain_minimap_color_low(terrain),
-      .colorHigh = scene_terrain_minimap_color_high(terrain),
+      .rect[0]     = (hud->minimapRect.x - 0.5f) / res.width,
+      .rect[1]     = (hud->minimapRect.y - 0.5f) / res.height,
+      .rect[2]     = (hud->minimapRect.width + 0.5f) / res.width,
+      .rect[3]     = (hud->minimapRect.height + 0.5f) / res.height,
+      .alpha       = g_hudMinimapAlpha,
+      .terrainFrac = scene_terrain_play_size(terrain) / scene_terrain_size(terrain),
+      .colorLow    = scene_terrain_minimap_color_low(terrain),
+      .colorHigh   = scene_terrain_minimap_color_high(terrain),
   };
 }
 
@@ -562,12 +588,19 @@ static void hud_minimap_draw(
     UiCanvasComp*             c,
     HudComp*                  hud,
     InputStateComp*           inputState,
+    const SceneTerrainComp*   terrain,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
     EcsView*                  markerView) {
-  const UiVector  canvasRes    = ui_canvas_resolution(c);
-  const f32       canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
-  const GeoVector area         = geo_vector(g_hudMinimapPlaySize, 0, g_hudMinimapPlaySize);
+  const UiVector canvasRes    = ui_canvas_resolution(c);
+  const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
+
+  GeoVector areaSize;
+  if (scene_terrain_loaded(terrain)) {
+    areaSize = geo_vector(scene_terrain_play_size(terrain), 0, scene_terrain_play_size(terrain));
+  } else {
+    areaSize = geo_vector(250.0f, 0.0f, 250.0f);
+  }
 
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
@@ -586,8 +619,8 @@ static void hud_minimap_draw(
   }
   if (frameStatus >= UiStatus_Pressed) {
     const UiVector uiPos = ui_canvas_input_pos(c);
-    const f32      x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * area.x;
-    const f32      z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * area.z;
+    const f32 x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * areaSize.x;
+    const f32 z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * areaSize.z;
     input_camera_center(inputState, geo_vector(x, 0, z));
   }
 
@@ -598,7 +631,7 @@ static void hud_minimap_draw(
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];
-  const u32        markerCount = hud_minimap_marker_collect(markerView, area, markers);
+  const u32        markerCount = hud_minimap_marker_collect(markerView, areaSize, markers);
 
   // Draw marker outlines.
   ui_style_outline(c, 2);
@@ -619,7 +652,7 @@ static void hud_minimap_draw(
   // Draw camera frustum.
   ui_style_outline(c, 0);
   UiVector camFrustumPoints[4];
-  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, area, camFrustumPoints)) {
+  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, areaSize, camFrustumPoints)) {
     ui_style_color(c, ui_color_white);
     ui_line_with_opts(c, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
     ui_line_with_opts(c, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
@@ -957,12 +990,17 @@ ecs_system_define(HudDrawUiSys) {
     }
     ui_canvas_to_back(c);
 
+    if (scene_terrain_loaded(terrain)) {
+      const GeoBox playArea = scene_terrain_play_bounds(terrain);
+      hud_indicator_box_draw(hud, drawItr, &playArea, ui_color(64, 64, 64, 64));
+    }
+
     hud_minimap_update(hud, drawItr, terrain, res);
 
     hud_level_draw(c, level);
     hud_health_draw(c, hud, &viewProj, healthView, res);
     hud_groups_draw(c, cmd);
-    hud_minimap_draw(c, hud, inputState, cam, camTrans, minimapMarkerView);
+    hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
 
     if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_production_draw(c, hud, input, drawItr, productionItr);
@@ -1017,11 +1055,14 @@ ecs_module_init(game_hud_module) {
 void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
+  const EcsEntityId drawMinimap = hud_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"), true);
+
   const EcsEntityId drawIndicatorRing = hud_draw_create(
       world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"), false);
 
-  const EcsEntityId drawMinimap = hud_draw_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"), true);
+  const EcsEntityId drawIndicatorBox = hud_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_box.graphic"), false);
 
   ecs_world_add_t(
       world,
@@ -1029,5 +1070,6 @@ void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId camer
       HudComp,
       .uiCanvas          = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None),
       .drawMinimap       = drawMinimap,
-      .drawIndicatorRing = drawIndicatorRing);
+      .drawIndicatorRing = drawIndicatorRing,
+      .drawIndicatorBox  = drawIndicatorBox);
 }
