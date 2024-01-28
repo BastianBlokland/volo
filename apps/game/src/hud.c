@@ -457,10 +457,11 @@ static void hud_minimap_update(
 
   typedef struct {
     ALIGNAS(16)
-    f32 rect[4]; // x, y, width, height.
-    f32 alpha;
-    f32 zoomInv;
-    f32 unused[2];
+    f32      rect[4]; // x, y, width, height.
+    f32      alpha;
+    f32      zoomInv;
+    f32      unused[2];
+    GeoColor colorLow, colorHigh;
   } MinimapData;
 
   const f32 zoom = scene_terrain_size(terrain) / g_hudMinimapPlaySize;
@@ -471,12 +472,14 @@ static void hud_minimap_update(
   rend_draw_set_resource(draw, RendDrawResource_Texture, heightmap);
 
   *rend_draw_add_instance_t(draw, MinimapData, SceneTags_None, geo_box_inverted3()) = (MinimapData){
-      .rect[0] = (hud->minimapRect.x - 0.5f) / res.width,
-      .rect[1] = (hud->minimapRect.y - 0.5f) / res.height,
-      .rect[2] = (hud->minimapRect.width + 0.5f) / res.width,
-      .rect[3] = (hud->minimapRect.height + 0.5f) / res.height,
-      .alpha   = g_hudMinimapAlpha,
-      .zoomInv = zoom > 0.0f ? (1.0f / zoom) : 1.0f,
+      .rect[0]   = (hud->minimapRect.x - 0.5f) / res.width,
+      .rect[1]   = (hud->minimapRect.y - 0.5f) / res.height,
+      .rect[2]   = (hud->minimapRect.width + 0.5f) / res.width,
+      .rect[3]   = (hud->minimapRect.height + 0.5f) / res.height,
+      .alpha     = g_hudMinimapAlpha,
+      .zoomInv   = zoom > 0.0f ? (1.0f / zoom) : 1.0f,
+      .colorLow  = scene_terrain_minimap_color_low(terrain),
+      .colorHigh = scene_terrain_minimap_color_high(terrain),
   };
 }
 
