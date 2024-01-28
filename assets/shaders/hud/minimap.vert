@@ -17,7 +17,7 @@ const f32v2 c_unitPositions[c_vertexCount] = {
 
 bind_instance_data(0) readonly uniform Instance { MinimapData u_instance; };
 
-bind_internal(0) out f32v2 out_texcoord;
+bind_internal(0) out f32v2 out_terrainCoord;
 
 void main() {
   const f32v2 pos     = u_instance.data1.xy;
@@ -28,5 +28,5 @@ void main() {
   const f32v2 uiPos   = pos + unitPos * size;
 
   out_vertexPosition = ui_norm_to_ndc(uiPos);
-  out_texcoord       = (unitPos - f32v2(0.5, 0.5)) * zoomInv + f32v2(0.5, 0.5);
+  out_terrainCoord   = (unitPos - f32v2(0.5, 0.5)) * zoomInv + f32v2(0.5, 0.5);
 }
