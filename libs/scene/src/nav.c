@@ -51,7 +51,7 @@ static void ecs_destruct_nav_path_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, comp->cells, path_max_cells);
 }
 
-static void scene_nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
+static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
   if (env->navGrid) {
     geo_nav_grid_destroy(env->navGrid);
   }
@@ -59,18 +59,18 @@ static void scene_nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
       g_alloc_heap, size, g_sceneNavDensity, g_sceneNavCellHeight, g_sceneNavCellBlockHeight);
 }
 
-static void scene_nav_env_create(EcsWorld* world) {
+static void nav_env_create(EcsWorld* world) {
   SceneNavEnvComp* env = ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp);
 
   // TODO: Currently we always initialize the grid with the fallback size first, in theory this can
   // be avoided when we know we will load a level immediately after.
-  scene_nav_env_grid_init(env, g_sceneNavFallbackSize);
+  nav_env_grid_init(env, g_sceneNavFallbackSize);
 
   ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
 }
 
 static GeoNavBlockerId
-scene_nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
+nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
     /**
      * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
@@ -81,12 +81,12 @@ scene_nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRota
   return geo_nav_blocker_add_box_rotated(env->navGrid, id, boxRot);
 }
 
-static bool scene_nav_blocker_remove_pred(const void* ctx, const u64 userId) {
+static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   const EcsView* blockerEntities = ctx;
   return !ecs_view_contains(blockerEntities, (EcsEntityId)userId);
 }
 
-static u32 scene_nav_blocker_hash(
+static u32 nav_blocker_hash(
     const SceneCollisionComp* collision,
     const SceneTransformComp* trans,
     const SceneScaleComp*     scale) {
@@ -109,8 +109,8 @@ typedef enum {
   NavChange_PathInvalidated = 1 << 3,
 } NavChange;
 
-static void scene_nav_refresh_terrain(
-    SceneNavEnvComp* env, const SceneTerrainComp* terrain, NavChange* change) {
+static void
+nav_refresh_terrain(SceneNavEnvComp* env, const SceneTerrainComp* terrain, NavChange* change) {
   if (env->terrainVersion == scene_terrain_version(terrain)) {
     return; // Terrain unchanged.
   }
@@ -130,7 +130,7 @@ static void scene_nav_refresh_terrain(
       log_param("reinit", fmt_bool((*change & NavChange_Reinit) != 0)));
 
   if (*change & NavChange_Reinit) {
-    scene_nav_env_grid_init(env, newSize);
+    nav_env_grid_init(env, newSize);
   }
 
   if (scene_terrain_loaded(terrain)) {
@@ -155,7 +155,7 @@ static void scene_nav_refresh_terrain(
 }
 
 static void
-scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* change) {
+nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* change) {
 
   const bool reinit = (*change & NavChange_Reinit) != 0;
   if (reinit) {
@@ -163,7 +163,7 @@ scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavCh
       *change |= NavChange_BlockerRemoved;
     }
   } else {
-    if (geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities)) {
+    if (geo_nav_blocker_remove_pred(env->navGrid, nav_blocker_remove_pred, blockerEntities)) {
       *change |= NavChange_BlockerRemoved;
     }
   }
@@ -174,7 +174,7 @@ scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavCh
     const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
     SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
 
-    const u32 newHash = scene_nav_blocker_hash(collision, trans, scale);
+    const u32 newHash = nav_blocker_hash(collision, trans, scale);
 
     if (!reinit && blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
       if (newHash != blockerComp->hash) {
@@ -200,11 +200,11 @@ scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavCh
        */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      blockerComp->blockerId      = scene_nav_block_box_rotated(env, userId, &cBounds);
+      blockerComp->blockerId      = nav_block_box_rotated(env, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated b  = scene_collision_world_box(&collision->box, trans, scale);
-      blockerComp->blockerId = scene_nav_block_box_rotated(env, userId, &b);
+      blockerComp->blockerId = nav_block_box_rotated(env, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
@@ -220,8 +220,7 @@ scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavCh
   }
 }
 
-static void
-scene_nav_refresh_paths(SceneNavEnvComp* env, EcsView* pathEntities, NavChange* change) {
+static void nav_refresh_paths(SceneNavEnvComp* env, EcsView* pathEntities, NavChange* change) {
   if (*change & NavChange_Reinit) {
     /**
      * The navigation grid was reinitialized; we cannot re-use any of the existing paths (as when
@@ -254,7 +253,7 @@ scene_nav_refresh_paths(SceneNavEnvComp* env, EcsView* pathEntities, NavChange* 
   }
 }
 
-static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
+static void nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*      scale = ecs_view_read_t(itr, SceneScaleComp);
@@ -271,7 +270,7 @@ static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntit
   }
 }
 
-static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
+static void nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   const u32* gridStatsPtr = geo_nav_stats(grid);
 
   // Copy the grid stats into the stats component.
@@ -303,7 +302,7 @@ ecs_view_define(PathEntityView) { ecs_access_write(SceneNavPathComp); }
 
 ecs_system_define(SceneNavInitSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
-    scene_nav_env_create(world);
+    nav_env_create(world);
     return;
   }
 
@@ -315,21 +314,21 @@ ecs_system_define(SceneNavInitSys) {
   const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
   SceneNavEnvComp*        env     = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
-  EcsView* pathEntities    = ecs_world_view_t(world, PathEntityView);
+  EcsView* blockerEntities  = ecs_world_view_t(world, BlockerEntityView);
+  EcsView* pathEntities     = ecs_world_view_t(world, PathEntityView);
+  EcsView* occupantEntities = ecs_world_view_t(world, OccupantEntityView);
 
   NavChange change = 0;
-  scene_nav_refresh_terrain(env, terrain, &change);
-  scene_nav_refresh_blockers(env, blockerEntities, &change);
-  scene_nav_refresh_paths(env, pathEntities, &change);
+  nav_refresh_terrain(env, terrain, &change);
+  nav_refresh_blockers(env, blockerEntities, &change);
+  nav_refresh_paths(env, pathEntities, &change);
 
   if (change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
     geo_nav_compute_islands(env->navGrid);
   }
 
   geo_nav_occupant_remove_all(env->navGrid);
-  EcsView* occupantEntities = ecs_world_view_t(world, OccupantEntityView);
-  scene_nav_add_occupants(env, occupantEntities);
+  nav_add_occupants(env, occupantEntities);
 }
 
 ecs_view_define(UpdateAgentGlobalView) {
@@ -372,8 +371,8 @@ typedef struct {
   GeoVector  position;
 } SceneNavGoal;
 
-static SceneNavGoal scene_nav_goal_pos(
-    const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVector targetPos) {
+static SceneNavGoal
+nav_goal_pos(const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVector targetPos) {
   const GeoNavCell targetCell = geo_nav_at_position(env->navGrid, targetPos);
   if (geo_nav_reachable(env->navGrid, fromCell, targetCell)) {
     return (SceneNavGoal){.cell = targetCell, .position = targetPos};
@@ -383,18 +382,18 @@ static SceneNavGoal scene_nav_goal_pos(
   return (SceneNavGoal){.cell = reachableCell, .position = reachablePos};
 }
 
-static SceneNavGoal scene_nav_goal_entity(
-    const SceneNavEnvComp* env, const GeoNavCell fromCell, EcsIterator* targetItr) {
+static SceneNavGoal
+nav_goal_entity(const SceneNavEnvComp* env, const GeoNavCell fromCell, EcsIterator* targetItr) {
   const SceneTransformComp*  targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneNavBlockerComp* blocker     = ecs_view_read_t(targetItr, SceneNavBlockerComp);
   if (blocker && !sentinel_check(blocker->blockerId)) {
     const GeoNavCell closest = geo_nav_blocker_closest(env->navGrid, blocker->blockerId, fromCell);
     return (SceneNavGoal){.cell = closest, .position = geo_nav_position(env->navGrid, closest)};
   }
-  return scene_nav_goal_pos(env, fromCell, targetTrans->position);
+  return nav_goal_pos(env, fromCell, targetTrans->position);
 }
 
-static void scene_nav_move_towards(
+static void nav_move_towards(
     const SceneNavEnvComp* env,
     SceneLocomotionComp*   loco,
     const SceneNavGoal*    goal,
@@ -441,9 +440,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       if (!ecs_view_maybe_jump(targetItr, agent->targetEntity)) {
         goto Stop; // Target entity not valid (anymore).
       }
-      goal = scene_nav_goal_entity(env, fromCell, targetItr);
+      goal = nav_goal_entity(env, fromCell, targetItr);
     } else {
-      goal = scene_nav_goal_pos(env, fromCell, agent->targetPos);
+      goal = nav_goal_pos(env, fromCell, agent->targetPos);
     }
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
@@ -490,13 +489,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
       if (!geo_nav_line_blocked(env->navGrid, fromCell, path->cells[i])) {
         path->currentTargetIndex = i;
-        scene_nav_move_towards(env, loco, &goal, path->cells[i]);
+        nav_move_towards(env, loco, &goal, path->cells[i]);
         goto Done;
       }
     }
 
     // No shortcut available; move to the current target cell in the path.
-    scene_nav_move_towards(env, loco, &goal, path->cells[path->currentTargetIndex]);
+    nav_move_towards(env, loco, &goal, path->cells[path->currentTargetIndex]);
 
   Done:
     continue;
@@ -517,7 +516,7 @@ ecs_system_define(SceneNavUpdateStatsSys) {
   SceneNavEnvComp*   env   = ecs_view_write_t(globalItr, SceneNavEnvComp);
   SceneNavStatsComp* stats = ecs_view_write_t(globalItr, SceneNavStatsComp);
 
-  scene_nav_stats_update(stats, env->navGrid);
+  nav_stats_update(stats, env->navGrid);
 }
 
 ecs_view_define(NavRequestsView) {
