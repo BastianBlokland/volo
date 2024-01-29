@@ -17,12 +17,12 @@ ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
  */
 
 typedef enum {
-  SceneNavBlockerFlags_RegisteredBlocker = 1 << 0,
+  SceneNavBlockerFlags_Registered = 1 << 0,
 } SceneNavBlockerFlags;
 
 ecs_comp_extern_public(SceneNavBlockerComp) {
-  SceneNavBlockerFlags flags;
-  u32                  hash;      // Hash to detect a dirty blocker; automatically generated
+  u32                  hash; // Hash to detect a dirty blocker; automatically generated.
+  SceneNavBlockerFlags flags : 16;
   GeoNavBlockerId      blockerId; // Registered blocker id; automatically generated.
 };
 

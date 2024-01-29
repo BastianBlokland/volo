@@ -55,6 +55,7 @@ void geo_nav_grid_destroy(GeoNavGrid*);
 /**
  * Get the region covering the entire navigation grid.
  */
+f32          geo_nav_size(const GeoNavGrid*);
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
 GeoVector    geo_nav_cell_size(const GeoNavGrid*);
 

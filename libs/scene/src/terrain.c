@@ -183,6 +183,11 @@ static TerrainLoadResult terrain_heightmap_load(TerrainLoadContext* ctx) {
 }
 
 static bool terrain_should_unload(TerrainLoadContext* ctx) {
+  if (scene_level_loading(ctx->levelManager)) {
+    // Delay terrain unload until level loading is done, this avoids reloading terrain when the next
+    // level uses the same terrain.
+    return false;
+  }
   if (ctx->terrain->terrainAsset != scene_level_terrain(ctx->levelManager)) {
     return true;
   }
