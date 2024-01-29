@@ -83,7 +83,7 @@ jobs:
       CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DSANITIZE=On -DFAST=${{matrix.config.fast}} -DLTO=${{matrix.config.lto}}"
     steps:
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -122,7 +122,7 @@ jobs:
         mingw32-make -k all test
 
     - name: archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
         name: archive-${{matrix.config.name}}
