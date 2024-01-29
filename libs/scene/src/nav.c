@@ -176,7 +176,7 @@ nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* 
 
     const u32 newHash = nav_blocker_hash(collision, trans, scale);
 
-    if (!reinit && blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
+    if (!reinit && blockerComp->flags & SceneNavBlockerFlags_Registered) {
       if (newHash != blockerComp->hash) {
         geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId);
         *change |= NavChange_BlockerRemoved;
@@ -185,7 +185,7 @@ nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* 
       }
     }
     blockerComp->hash = newHash;
-    blockerComp->flags |= SceneNavBlockerFlags_RegisteredBlocker;
+    blockerComp->flags |= SceneNavBlockerFlags_Registered;
 
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
@@ -666,7 +666,7 @@ bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, cons
 
 bool scene_nav_reachable_blocker(
     const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
-  if (!(blocker->flags & SceneNavBlockerFlags_RegisteredBlocker)) {
+  if (!(blocker->flags & SceneNavBlockerFlags_Registered)) {
     return false;
   }
   return geo_nav_blocker_reachable(env->navGrid, blocker->blockerId, from);

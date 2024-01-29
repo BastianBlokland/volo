@@ -17,7 +17,7 @@ ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
  */
 
 typedef enum {
-  SceneNavBlockerFlags_RegisteredBlocker = 1 << 0,
+  SceneNavBlockerFlags_Registered = 1 << 0,
 } SceneNavBlockerFlags;
 
 ecs_comp_extern_public(SceneNavBlockerComp) {
