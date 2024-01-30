@@ -22,7 +22,6 @@ static const String g_tooltipHeightAuto = string_static("Automatically adjust th
 static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
 static const String g_tooltipHeight     = string_static("Height to draw the grid at.");
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
-static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
 static const f32    g_gridCellSizeMin   = 0.25f;
 static const f32    g_gridCellSizeMax   = 4.0f;
 static const f32    g_gridDefaultHeight = 0.0f;
@@ -44,7 +43,7 @@ typedef struct {
   f16 height;
   u32 segmentCount;
   u32 highlightInterval;
-  f32 fadeFraction;
+  f32 padding;
 } DebugGridData;
 
 ASSERT(sizeof(DebugGridData) == 16, "Size needs to match the size defined in glsl");
@@ -57,7 +56,6 @@ ecs_comp_define(DebugGridComp) {
   f32            height;
   f32            highlightInterval;
   f32            segmentCount;
-  f32            fadeFraction;
 };
 
 ecs_comp_define(DebugGridPanelComp) {
@@ -115,8 +113,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       .segmentCount      = 750,
       .height            = g_gridDefaultHeight,
       .cellSize          = 1.0f,
-      .highlightInterval = 5,
-      .fadeFraction      = 0.5);
+      .highlightInterval = 5);
 }
 
 ecs_system_define(DebugGridCreateSys) {
@@ -161,7 +158,6 @@ ecs_system_define(DebugGridDrawSys) {
             .height            = float_f32_to_f16(grid->height),
             .segmentCount      = segmentCount,
             .highlightInterval = (u32)grid->highlightInterval,
-            .fadeFraction      = grid->fadeFraction,
         };
   }
 }
@@ -244,11 +240,6 @@ static void grid_panel_draw(
       .max     = 10,
       .step    = 1,
       .tooltip = g_tooltipHighlight);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Fade"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &grid->fadeFraction, .tooltip = g_tooltipFade);
 
   ui_panel_end(canvas, &panelComp->panel);
 }

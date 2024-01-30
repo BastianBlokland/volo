@@ -9,7 +9,6 @@ struct GridData {
   f16 height;
   u32 segmentCount;
   u32 highlightInterval;
-  f32 fadeFraction;
 };
 
 const f32v4 c_colorNormal      = f32v4(0.2, 0.2, 0.2, 0.6);
@@ -19,10 +18,7 @@ const f32   c_highlightYOffset = 0.0005;
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance { GridData u_instance; };
 
-bind_internal(0) out f32v3 out_worldGridPos;
-bind_internal(1) out flat f32 out_gridHalfSize;
-bind_internal(2) out flat f32v4 out_color;
-bind_internal(3) out flat f32 out_fadeFraction;
+bind_internal(0) out flat f32v4 out_color;
 
 void main() {
   const f32 cellSize     = f32(u_instance.cellSize);
@@ -33,7 +29,7 @@ void main() {
   const i32 halfSegments = segments / 2;
 
   // First half of the vertices we draw horizontal lines and the other half vertical lines.
-  const bool isHorizontal = in_vertexIndex < segments * 2;
+  const bool hor = in_vertexIndex < segments * 2;
 
   // From -halfSegments to +halfSegments increasing by one every 2 vertices.
   const i32 a = ((in_vertexIndex / 2) % segments) - halfSegments;
@@ -41,17 +37,13 @@ void main() {
   // Every vertex ping-pong between -halfSegments and + halfSegments.
   const i32 b = (in_vertexIndex & 1) * segments - halfSegments;
 
-  const f32 x      = (centerX + (isHorizontal ? b : a)) * cellSize;
-  const f32 z      = (centerZ + (isHorizontal ? a : b)) * cellSize;
-  out_worldGridPos = f32v3(x, 0, z);
-  out_gridHalfSize = segments * cellSize * 0.5;
+  const f32 x = (centerX + (hor ? b : a)) * cellSize;
+  const f32 z = (centerZ + (hor ? a : b)) * cellSize;
 
-  const bool isHighlight =
-      (abs((isHorizontal ? centerZ : centerX) + a) % u_instance.highlightInterval) == 0;
-  out_color = isHighlight ? c_colorHighlight : c_colorNormal;
+  const bool highlight = (abs((hor ? centerZ : centerX) + a) % u_instance.highlightInterval) == 0;
+  out_color            = highlight ? c_colorHighlight : c_colorNormal;
 
-  const f32 y = f32(u_instance.height) + f32(isHighlight) * c_highlightYOffset;
+  const f32 y = f32(u_instance.height) + f32(highlight) * c_highlightYOffset;
 
   out_vertexPosition = u_global.viewProj * f32v4(x, y, z, 1);
-  out_fadeFraction   = u_instance.fadeFraction;
 }
