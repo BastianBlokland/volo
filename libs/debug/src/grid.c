@@ -147,7 +147,8 @@ ecs_system_define(DebugGridDrawSys) {
     ecs_view_jump(drawItr, grid->drawEntity);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
-    const u32 cellCount    = (u32)math_round_up_f32(size / grid->cellSize);
+    u32 cellCount = (u32)math_round_nearest_f32(size / grid->cellSize);
+    cellCount += cellCount % 2; // Align to be divisible by two (makes the grid even on both sides).
     const u32 segmentCount = cellCount + 1; // +1 for the lines to 'close' the last row and column.
 
     rend_draw_set_vertex_count(draw, segmentCount * 4);
