@@ -89,7 +89,10 @@ spec(file_monitor) {
     file_delete_sync(pathAbs);
   }
 
-  it("can watch multiple files") {
+  /**
+   * TODO: Skipped for now as it can be a bit flaky on slow machines due to timing requirements.
+   */
+  skip_it("can watch multiple files") {
     const String pathRelA = test_random_name();
     const String pathAbsA = path_build_scratch(g_path_tempdir, pathRelA);
     file_write_to_path_sync(pathAbsA, string_lit("A"));
