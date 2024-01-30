@@ -41,7 +41,7 @@ typedef struct {
   ALIGNAS(16)
   f16 cellSize;
   f16 height;
-  u32 segmentCount;
+  u32 cellCount;
   u32 highlightInterval;
   f32 padding;
 } DebugGridData;
@@ -55,7 +55,6 @@ ecs_comp_define(DebugGridComp) {
   f32            cellSize;
   f32            height;
   f32            highlightInterval;
-  f32            segmentCount;
 };
 
 ecs_comp_define(DebugGridPanelComp) {
@@ -110,7 +109,6 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       DebugGridComp,
       .flags             = DebugGridFlags_Default,
       .drawEntity        = drawEntity,
-      .segmentCount      = 750,
       .height            = g_gridDefaultHeight,
       .cellSize          = 1.0f,
       .highlightInterval = 5);
@@ -149,14 +147,15 @@ ecs_system_define(DebugGridDrawSys) {
     ecs_view_jump(drawItr, grid->drawEntity);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
-    const u32 segmentCount = (u32)math_round_up_f32(size / grid->cellSize);
+    const u32 cellCount    = (u32)math_round_up_f32(size / grid->cellSize);
+    const u32 segmentCount = cellCount + 1; // +1 for the lines to 'close' the last row and column.
 
     rend_draw_set_vertex_count(draw, segmentCount * 4);
     *rend_draw_add_instance_t(draw, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
         (DebugGridData){
             .cellSize          = float_f32_to_f16(grid->cellSize),
             .height            = float_f32_to_f16(grid->height),
-            .segmentCount      = segmentCount,
+            .cellCount         = cellCount,
             .highlightInterval = (u32)grid->highlightInterval,
         };
   }

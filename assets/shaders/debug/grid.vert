@@ -7,7 +7,7 @@
 struct GridData {
   f16 cellSize;
   f16 height;
-  u32 segmentCount;
+  u32 cellCount;
   u32 highlightInterval;
 };
 
@@ -23,7 +23,7 @@ bind_internal(0) out flat f32v4 out_color;
 void main() {
   const f32 cellSize     = f32(u_instance.cellSize);
   const f32 invCellSize  = 1.0 / cellSize;
-  const i32 segments     = i32(u_instance.segmentCount);
+  const i32 segments     = i32(u_instance.cellCount) + 1; // +1 'close' the last row and column.
   const i32 halfSegments = segments / 2;
 
   // First half of the vertices we draw horizontal lines and the other half vertical lines.
@@ -32,8 +32,8 @@ void main() {
   // From -halfSegments to +halfSegments increasing by one every 2 vertices.
   const i32 a = ((in_vertexIndex / 2) % segments) - halfSegments;
 
-  // Every vertex ping-pong between -halfSegments and +halfSegments.
-  const i32 b = (in_vertexIndex & 1) * segments - halfSegments;
+  // Every vertex ping-pong between -halfSegments and (+halfSegments - 1).
+  const i32 b = (in_vertexIndex & 1) * segments - halfSegments - (in_vertexIndex & 1);
 
   const f32 x = (horizontal ? b : a) * cellSize;
   const f32 z = (horizontal ? a : b) * cellSize;
