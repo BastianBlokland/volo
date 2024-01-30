@@ -32,7 +32,7 @@ void main() {
   // From -halfSegments to +halfSegments increasing by one every 2 vertices.
   const i32 a = ((in_vertexIndex / 2) % segments) - halfSegments;
 
-  // Every vertex ping-pong between -halfSegments and + halfSegments.
+  // Every vertex ping-pong between -halfSegments and +halfSegments.
   const i32 b = (in_vertexIndex & 1) * segments - halfSegments;
 
   const f32 x = (horizontal ? b : a) * cellSize;
