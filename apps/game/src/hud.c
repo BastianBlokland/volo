@@ -991,7 +991,8 @@ ecs_system_define(HudDrawUiSys) {
     ui_canvas_to_back(c);
 
     if (scene_terrain_loaded(terrain)) {
-      const GeoBox playArea = scene_terrain_play_bounds(terrain);
+      GeoBox playArea = scene_terrain_play_bounds(terrain);
+      playArea.min.y = playArea.max.y = 0; // Draw the play area at height zero.
       hud_indicator_box_draw(hud, drawItr, &playArea, ui_color(64, 64, 64, 64));
     }
 
