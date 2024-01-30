@@ -11,6 +11,7 @@
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -21,7 +22,6 @@ static const String g_tooltipHeightAuto = string_static("Automatically adjust th
 static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
 static const String g_tooltipHeight     = string_static("Height to draw the grid at.");
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
-static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
 static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
 static const f32    g_gridCellSizeMin   = 0.25f;
 static const f32    g_gridCellSizeMax   = 4.0f;
@@ -74,6 +74,7 @@ ecs_view_define(GridCreateView) {
 
 ecs_view_define(GridReadView) { ecs_access_read(DebugGridComp); }
 ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
+ecs_view_define(DrawGlobalView) { ecs_access_read(SceneTerrainComp); }
 ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 
@@ -131,6 +132,14 @@ ecs_system_define(DebugGridCreateSys) {
 }
 
 ecs_system_define(DebugGridDrawSys) {
+  EcsView*     globalView = ecs_world_view_t(world, DrawGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const f32 size = scene_terrain_loaded(terrain) ? scene_terrain_play_size(terrain) : 500.0f;
+
   EcsIterator* drawItr = ecs_view_itr(ecs_world_view_t(world, DrawWriteView));
 
   EcsView* gridView = ecs_world_view_t(world, GridReadView);
@@ -143,12 +152,14 @@ ecs_system_define(DebugGridDrawSys) {
     ecs_view_jump(drawItr, grid->drawEntity);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
-    rend_draw_set_vertex_count(draw, (u32)grid->segmentCount * 4);
+    const u32 segmentCount = (u32)math_round_up_f32(size / grid->cellSize);
+
+    rend_draw_set_vertex_count(draw, segmentCount * 4);
     *rend_draw_add_instance_t(draw, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
         (DebugGridData){
             .cellSize          = float_f32_to_f16(grid->cellSize),
             .height            = float_f32_to_f16(grid->height),
-            .segmentCount      = (u32)grid->segmentCount,
+            .segmentCount      = segmentCount,
             .highlightInterval = (u32)grid->highlightInterval,
             .fadeFraction      = grid->fadeFraction,
         };
@@ -233,17 +244,6 @@ static void grid_panel_draw(
       .max     = 10,
       .step    = 1,
       .tooltip = g_tooltipHighlight);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Segments"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(
-      canvas,
-      &grid->segmentCount,
-      .min     = 50,
-      .max     = 1000,
-      .step    = 50,
-      .tooltip = g_tooltipSegments);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fade"));
@@ -342,6 +342,7 @@ ecs_module_init(debug_grid_module) {
   ecs_register_view(GridCreateView);
   ecs_register_view(GridReadView);
   ecs_register_view(GridWriteView);
+  ecs_register_view(DrawGlobalView);
   ecs_register_view(DrawWriteView);
   ecs_register_view(TransformReadView);
   ecs_register_view(UpdateGlobalView);
@@ -350,7 +351,11 @@ ecs_module_init(debug_grid_module) {
   ecs_register_system(
       DebugGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridCreateView));
 
-  ecs_register_system(DebugGridDrawSys, ecs_view_id(GridReadView), ecs_view_id(DrawWriteView));
+  ecs_register_system(
+      DebugGridDrawSys,
+      ecs_view_id(DrawGlobalView),
+      ecs_view_id(GridReadView),
+      ecs_view_id(DrawWriteView));
 
   ecs_register_system(
       DebugGridUpdateSys,
