@@ -125,8 +125,8 @@ static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
   ctx->terrain->size             = asset->size;
   ctx->terrain->sizeHalf         = asset->size * 0.5f;
   ctx->terrain->sizeInv          = 1.0f / asset->size;
-  ctx->terrain->playSize         = asset->playSize;
-  ctx->terrain->playSizeHalf     = asset->playSize * 0.5f;
+  ctx->terrain->playSize         = (f32)asset->playSize;
+  ctx->terrain->playSizeHalf     = (f32)asset->playSize * 0.5f;
   ctx->terrain->heightMax        = asset->heightMax;
   ctx->terrain->minimapColorLow  = terrain_color_load(&asset->minimapColorLow);
   ctx->terrain->minimapColorHigh = terrain_color_load(&asset->minimapColorHigh);

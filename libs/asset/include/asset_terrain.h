@@ -16,8 +16,8 @@ ecs_comp_extern_public(AssetTerrainComp) {
   String      graphicId, heightmapId;
   EcsEntityId graphic, heightmap;
 
-  f32 size;
-  f32 playSize;
+  u32 size;
+  u32 playSize;
   f32 heightMax;
 
   AssetTerrainColor minimapColorLow, minimapColorHigh;
