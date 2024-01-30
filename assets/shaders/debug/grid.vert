@@ -23,13 +23,11 @@ bind_internal(0) out flat f32v4 out_color;
 void main() {
   const f32 cellSize     = f32(u_instance.cellSize);
   const f32 invCellSize  = 1.0 / cellSize;
-  const i32 centerX      = i32(u_global.camPosition.x * invCellSize);
-  const i32 centerZ      = i32(u_global.camPosition.z * invCellSize);
   const i32 segments     = i32(u_instance.segmentCount);
   const i32 halfSegments = segments / 2;
 
   // First half of the vertices we draw horizontal lines and the other half vertical lines.
-  const bool hor = in_vertexIndex < segments * 2;
+  const bool horizontal = in_vertexIndex < segments * 2;
 
   // From -halfSegments to +halfSegments increasing by one every 2 vertices.
   const i32 a = ((in_vertexIndex / 2) % segments) - halfSegments;
@@ -37,10 +35,10 @@ void main() {
   // Every vertex ping-pong between -halfSegments and + halfSegments.
   const i32 b = (in_vertexIndex & 1) * segments - halfSegments;
 
-  const f32 x = (centerX + (hor ? b : a)) * cellSize;
-  const f32 z = (centerZ + (hor ? a : b)) * cellSize;
+  const f32 x = (horizontal ? b : a) * cellSize;
+  const f32 z = (horizontal ? a : b) * cellSize;
 
-  const bool highlight = (abs((hor ? centerZ : centerX) + a) % u_instance.highlightInterval) == 0;
+  const bool highlight = (abs(a) % u_instance.highlightInterval) == 0;
   out_color            = highlight ? c_colorHighlight : c_colorNormal;
 
   const f32 y = f32(u_instance.height) + f32(highlight) * c_highlightYOffset;
