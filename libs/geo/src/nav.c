@@ -208,8 +208,11 @@ static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
 }
 
 static GeoBox nav_cell_box(const GeoNavGrid* grid, const GeoNavCell cell) {
+  // Shrink by a tiny bit to avoid blockers that are touching a cell from immediately blocking it.
+  static const f32 g_overlapEpsilon = 1e-4f;
+
   const GeoVector center       = nav_cell_pos(grid, cell);
-  const f32       cellHalfSize = grid->cellSize * 0.5f;
+  const f32       cellHalfSize = (grid->cellSize - g_overlapEpsilon) * 0.5f;
   return (GeoBox){
       .min = geo_vector_sub(center, geo_vector(cellHalfSize, 0, cellHalfSize)),
       .max = geo_vector_add(center, geo_vector(cellHalfSize, grid->cellHeight, cellHalfSize)),
@@ -244,8 +247,11 @@ static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos)
 }
 
 static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) {
-  const GeoNavMapResult resMin = nav_cell_map(grid, box->min);
-  GeoNavMapResult       resMax = nav_cell_map(grid, box->max);
+  // Shrink by a tiny bit to avoid blockers that are touching a cell from immediately blocking it.
+  static const GeoVector g_overlapEpsilon = {.x = 1e-4f, .z = 1e-4f};
+
+  const GeoNavMapResult resMin = nav_cell_map(grid, geo_vector_add(box->min, g_overlapEpsilon));
+  GeoNavMapResult       resMax = nav_cell_map(grid, geo_vector_sub(box->max, g_overlapEpsilon));
   if (LIKELY((resMin.flags & resMax.flags & GeoNavMap_ClampedX) == 0)) {
     ++resMax.cell.x; // +1 because max is exclusive.
   }
