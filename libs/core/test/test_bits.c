@@ -149,12 +149,37 @@ spec(bits) {
     check_eq_int(bits_padding_32(3, 4), 1);
   }
 
+  it("can compute the amount of padding required to align a 64 bit integer") {
+    check_eq_int(bits_padding_64(u64_lit(0), 4), 0);
+    check_eq_int(bits_padding_64(u64_lit(1), 1), 0);
+    check_eq_int(bits_padding_64(u64_lit(4), 4), 0);
+    check_eq_int(bits_padding_64(u64_lit(1), 4), 3);
+    check_eq_int(bits_padding_64(u64_lit(2), 4), 2);
+    check_eq_int(bits_padding_64(u64_lit(3), 4), 1);
+    check_eq_int(bits_padding_64(u64_lit(9223372036854775807), 4), 1);
+    check_eq_int(bits_padding_64(u64_lit(9223372036854775807), 1024), 1);
+    check_eq_int(bits_padding_64(u64_lit(9223372036854775808), 1024), 0);
+  }
+
   it("can align a 32 bit integer") {
     check_eq_int(bits_align_32(0, 4), 0);
     check_eq_int(bits_align_32(1, 4), 4);
     check_eq_int(bits_align_32(4, 4), 4);
     check_eq_int(bits_align_32(5, 4), 8);
     check_eq_int(bits_align_32(31, 4), 32);
+  }
+
+  it("can align a 64 bit integer") {
+    check_eq_int(bits_align_64(u64_lit(0), 4), 0);
+    check_eq_int(bits_align_64(u64_lit(1), 4), 4);
+    check_eq_int(bits_align_64(u64_lit(4), 4), 4);
+    check_eq_int(bits_align_64(u64_lit(5), 4), 8);
+    check_eq_int(bits_align_64(u64_lit(31), 4), 32);
+    check_eq_int(bits_align_64(u64_lit(31), 4), 32);
+    check_eq_int(bits_align_64(u64_lit(68719476735), 4), u64_lit(68719476736));
+    check_eq_int(bits_align_64(u64_lit(68719476736), 4), u64_lit(68719476736));
+    check_eq_int(bits_align_64(u64_lit(9223372036854775807), 4), u64_lit(9223372036854775808));
+    check_eq_int(bits_align_64(u64_lit(9223372036854775808), 4), u64_lit(9223372036854775808));
   }
 
   it("can align a pointer") {

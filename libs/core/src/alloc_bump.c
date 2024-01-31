@@ -14,10 +14,17 @@ struct AllocatorBump {
   u8*       tail;
 };
 
+/**
+ * Pre-condition: bits_ispow2(_ALIGN_)
+ */
+INLINE_HINT static u8* alloc_bump_align_ptr(u8* ptr, const usize align) {
+  return (u8*)((uptr)ptr + ((~(uptr)ptr + 1) & (align - 1)));
+}
+
 static Mem alloc_bump_alloc(Allocator* allocator, const usize size, const usize align) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
 
-  u8* alignedHead = bits_align_ptr(allocatorBump->head, align);
+  u8* alignedHead = alloc_bump_align_ptr(allocatorBump->head, align);
 
   if (UNLIKELY((usize)(allocatorBump->tail - alignedHead) < size)) {
     // Too little space remaining.

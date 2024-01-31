@@ -95,16 +95,14 @@ u32 bits_padding_32(const u32 val, const u32 align) {
   diag_assert(align != 0);
   diag_assert(bits_ispow2_32(align));
 
-  const u32 rem = val & (align - 1);
-  return rem ? align - rem : 0;
+  return (~val + 1) & (align - 1);
 }
 
 u64 bits_padding_64(const u64 val, const u64 align) {
   diag_assert(align != 0);
   diag_assert(bits_ispow2_64(align));
 
-  const u64 rem = val & (align - 1);
-  return rem ? align - rem : 0;
+  return (~val + 1) & (align - 1);
 }
 
 u32 bits_align_32(const u32 val, const u32 align) { return val + bits_padding_32(val, align); }

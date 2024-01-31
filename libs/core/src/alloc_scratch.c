@@ -16,6 +16,13 @@ typedef struct {
 } AllocatorScratch;
 
 /**
+ * Pre-condition: bits_ispow2(_ALIGN_)
+ */
+INLINE_HINT static u8* alloc_scratch_align_ptr(u8* ptr, const usize align) {
+  return (u8*)((uptr)ptr + ((~(uptr)ptr + 1) & (align - 1)));
+}
+
+/**
  * Tag a fixed-size region in-front of the scratch write head. This aids in detecting when the
  * application holds onto scratch memory for too long (and thus is about to be overwritten).
  */
@@ -38,11 +45,11 @@ static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usi
     return mem_create(null, size);
   }
 
-  u8* alignedHead = bits_align_ptr(allocScratch->head, align);
+  u8* alignedHead = alloc_scratch_align_ptr(allocScratch->head, align);
 
   if (UNLIKELY(alignedHead + size > mem_end(allocScratch->memory))) {
     // Wrap around the scratch buffer.
-    alignedHead = bits_align_ptr(mem_begin(allocScratch->memory), align);
+    alignedHead = alloc_scratch_align_ptr(mem_begin(allocScratch->memory), align);
   }
 
   allocScratch->head = alignedHead + size;
