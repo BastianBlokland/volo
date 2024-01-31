@@ -946,9 +946,12 @@ GeoNavGrid* geo_nav_grid_create(
   diag_assert(height > 1e-4f);
   diag_assert(blockHeight > 1e-4f);
 
-  GeoNavGrid* grid           = alloc_alloc_t(alloc, GeoNavGrid);
-  const u32   cellCountAxis  = (u32)math_round_nearest_f32(size * density);
-  const u32   cellCountTotal = cellCountAxis * cellCountAxis;
+  GeoNavGrid* grid = alloc_alloc_t(alloc, GeoNavGrid);
+
+  u32 cellCountAxis = (u32)math_round_nearest_f32(size * density);
+  cellCountAxis += !(cellCountAxis % 2); // Align to be odd (so there's always a center cell).
+
+  const u32 cellCountTotal = cellCountAxis * cellCountAxis;
 
   *grid = (GeoNavGrid){
       .size             = size,
