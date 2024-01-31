@@ -1,6 +1,6 @@
 {
   "name": "Gate",
-  "terrainId": "terrains/desert.terrain",
+  "terrainId": "terrains/desert_small.terrain",
   "objects": [
     {
       "id": 732732,

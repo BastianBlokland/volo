@@ -1,6 +1,6 @@
 {
   "name": "Playground",
-  "terrainId": "terrains/desert.terrain",
+  "terrainId": "terrains/desert_big.terrain",
   "objects": [
     {
       "id": 732732,
