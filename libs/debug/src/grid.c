@@ -110,7 +110,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       .flags             = DebugGridFlags_Default,
       .drawEntity        = drawEntity,
       .height            = g_gridDefaultHeight,
-      .cellSize          = 1.0f,
+      .cellSize          = 0.5f,
       .highlightInterval = 5);
 }
 

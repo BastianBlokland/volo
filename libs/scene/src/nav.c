@@ -18,7 +18,7 @@
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
 static const f32 g_sceneNavFallbackSize    = 500.0f;
-static const f32 g_sceneNavDensity         = 1.25f;
+static const f32 g_sceneNavDensity         = 1.0f;
 static const f32 g_sceneNavCellHeight      = 5.0f;
 static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
@@ -612,10 +612,6 @@ GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {
 
 GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_position(env->navGrid, cell);
-}
-
-GeoBox scene_nav_box(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_box(env->navGrid, cell);
 }
 
 GeoNavRegion scene_nav_region(const SceneNavEnvComp* env, const GeoNavCell cell, const u16 radius) {
