@@ -3,8 +3,6 @@
 #include "ui_shape.h"
 
 String ui_shape_scratch(const Unicode cp) {
-  Mem       scratch   = alloc_alloc(g_alloc_scratch, 4, 1);
-  DynString dynString = dynstring_create_over(scratch);
-  utf8_cp_write_to(&dynString, cp);
-  return dynstring_view(&dynString);
+  u8* scratch = alloc_alloc(g_alloc_scratch, 4, 1).ptr;
+  return (String){.ptr = scratch, .size = utf8_cp_write(scratch, cp)};
 }
