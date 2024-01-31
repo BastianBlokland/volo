@@ -614,10 +614,6 @@ GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) 
   return geo_nav_position(env->navGrid, cell);
 }
 
-GeoBox scene_nav_box(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_box(env->navGrid, cell);
-}
-
 GeoNavRegion scene_nav_region(const SceneNavEnvComp* env, const GeoNavCell cell, const u16 radius) {
   return geo_nav_region(env->navGrid, cell, radius);
 }
