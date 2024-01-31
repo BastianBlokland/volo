@@ -179,7 +179,7 @@ void debug_text_with_opts(
     return;
   }
   // TODO: Report error when the transient allocator runs out of space.
-  *dynarray_push_t(&comp->entries, DebugText3D) = (DebugText3D){
+  *((DebugText3D*)dynarray_push(&comp->entries, 1).ptr) = (DebugText3D){
       .pos      = pos,
       .text     = string_dup(comp->allocTransient, text),
       .fontSize = opts->fontSize,
