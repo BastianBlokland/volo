@@ -32,7 +32,8 @@ usize utf8_cp_bytes_from_first(u8);
 /**
  * Write a utf8 string (1 - 4 bytes) for a Unicode codepoint.
  */
-void utf8_cp_write_to(DynString*, Unicode);
+usize utf8_cp_write(u8 buffer[PARAM_ARRAY_SIZE(4)], Unicode);
+void  utf8_cp_write_to(DynString*, Unicode);
 
 /**
  * Read the next Unicode codepoint from the given utf8 string.
