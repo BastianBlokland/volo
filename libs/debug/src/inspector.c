@@ -946,6 +946,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   defaultVisFlags |= 1 << DebugInspectorVis_Collision;
   defaultVisFlags |= 1 << DebugInspectorVis_Locomotion;
   defaultVisFlags |= 1 << DebugInspectorVis_NavigationPath;
+  defaultVisFlags |= 1 << DebugInspectorVis_NavigationGrid;
 
   return ecs_world_add_t(
       world,
@@ -1605,15 +1606,15 @@ static void inspector_vis_draw_navigation_grid(
 
       GeoColor color;
       if (blocked) {
-        color = geo_color(1, 0, 0, highlight ? 0.5f : 0.3f);
+        color = geo_color(1, 0, 0, highlight ? 0.25f : 0.2f);
       } else if (scene_nav_occupied_moving(nav, cell)) {
-        color = geo_color(1, 0, 1, highlight ? 0.3f : 0.2f);
+        color = geo_color(1, 0, 1, highlight ? 0.15f : 0.1f);
       } else if (scene_nav_occupied(nav, cell)) {
-        color = geo_color(0, 0, 1, highlight ? 0.2f : 0.1f);
+        color = geo_color(0, 0, 1, highlight ? 0.15f : 0.1f);
       } else if (island == 1) {
         continue; // Skip drawing unblocked and occupied cells on the main island.
       } else {
-        color = geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
+        color = geo_color(0, 1, 0, highlight ? 0.075f : 0.05f);
       }
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
 
