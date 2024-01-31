@@ -99,7 +99,7 @@ usize utf8_cp_bytes_from_first(const u8 c) {
   return 0; // Invalid utf8 char.
 }
 
-void utf8_cp_write(DynString* str, const Unicode cp) {
+void utf8_cp_write_to(DynString* str, const Unicode cp) {
   /**
    * Encode a Unicode codepoint as either 1, 2, 3 or 4 bytes.
    * Description of the encoding: https://en.wikipedia.org/wiki/UTF-8#Encoding

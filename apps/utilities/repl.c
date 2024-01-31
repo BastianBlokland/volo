@@ -362,7 +362,7 @@ static void repl_edit_prev(const ReplEditor* editor) {
 static void repl_edit_clear(const ReplEditor* editor) { dynstring_clear(editor->editBuffer); }
 
 static void repl_edit_insert(const ReplEditor* editor, const Unicode cp) {
-  utf8_cp_write(editor->editBuffer, cp);
+  utf8_cp_write_to(editor->editBuffer, cp);
 }
 
 static void repl_edit_delete(const ReplEditor* editor) {

@@ -1679,7 +1679,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
 
   if (icon) {
     DynString textBuffer = dynstring_create_over(mem_stack(4));
-    utf8_cp_write(&textBuffer, icon);
+    utf8_cp_write_to(&textBuffer, icon);
 
     const String str = dynstring_view(&textBuffer);
     debug_text(text, transformComp->position, str, .fontSize = size, .color = color);

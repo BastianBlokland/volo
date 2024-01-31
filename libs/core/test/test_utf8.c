@@ -80,7 +80,7 @@ spec(utf8) {
     DynString string = dynstring_create_over(mem_stack(128));
     for (usize i = 0; i != array_elems(data); ++i) {
       dynstring_clear(&string);
-      utf8_cp_write(&string, data[i].cp);
+      utf8_cp_write_to(&string, data[i].cp);
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);
