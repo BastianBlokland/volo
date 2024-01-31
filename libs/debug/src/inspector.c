@@ -1598,24 +1598,29 @@ static void inspector_vis_draw_navigation_grid(
   const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
     for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
-      const GeoNavCell   cell      = {.x = x, .y = y};
-      const GeoVector    pos       = scene_nav_position(nav, cell);
-      const bool         highlight = (x & 1) == (y & 1);
-      const bool         blocked   = scene_nav_blocked(nav, cell);
-      const GeoNavIsland island    = scene_nav_island(nav, cell);
+      const GeoNavCell   cell     = {.x = x, .y = y};
+      const GeoNavIsland island   = scene_nav_island(nav, cell);
+      const bool         occupied = scene_nav_occupied(nav, cell);
+
+      if (island == 1 && !occupied) {
+        continue; // Skip drawing unblocked and un-occupied cells on the main island.
+      }
+
+      const bool occupiedMoving = scene_nav_occupied_moving(nav, cell);
+      const bool blocked        = scene_nav_blocked(nav, cell);
+      const bool highlight      = (x & 1) == (y & 1);
 
       GeoColor color;
       if (blocked) {
         color = geo_color(1, 0, 0, highlight ? 0.25f : 0.2f);
-      } else if (scene_nav_occupied_moving(nav, cell)) {
+      } else if (occupiedMoving) {
         color = geo_color(1, 0, 1, highlight ? 0.15f : 0.1f);
-      } else if (scene_nav_occupied(nav, cell)) {
+      } else if (occupied) {
         color = geo_color(0, 0, 1, highlight ? 0.15f : 0.1f);
-      } else if (island == 1) {
-        continue; // Skip drawing unblocked and occupied cells on the main island.
       } else {
         color = geo_color(0, 1, 0, highlight ? 0.075f : 0.05f);
       }
+      const GeoVector pos = scene_nav_position(nav, cell);
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
 
       if (!blocked) {
