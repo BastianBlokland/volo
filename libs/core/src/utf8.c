@@ -99,37 +99,45 @@ usize utf8_cp_bytes_from_first(const u8 c) {
   return 0; // Invalid utf8 char.
 }
 
-void utf8_cp_write(DynString* str, const Unicode cp) {
+usize utf8_cp_write(u8 buffer[PARAM_ARRAY_SIZE(4)], const Unicode cp) {
   /**
    * Encode a Unicode codepoint as either 1, 2, 3 or 4 bytes.
    * Description of the encoding: https://en.wikipedia.org/wiki/UTF-8#Encoding
    */
   if (!utf8_cp_valid(cp)) {
     // Unicode replacement char encoded as utf8.
-    dynstring_append_char(str, 0xEF);
-    dynstring_append_char(str, 0xBF);
-    dynstring_append_char(str, 0xBD);
-    return;
+    buffer[0] = 0xEF;
+    buffer[1] = 0xBF;
+    buffer[2] = 0xBD;
+    return 3;
   }
   if (cp <= utf8_cp_single_char) {
-    dynstring_append_char(str, (u8)cp);
-    return;
+    buffer[0] = (u8)cp;
+    return 1;
   }
   if (cp <= utf8_cp_double_char) {
-    dynstring_append_char(str, (u8)(((cp >> 6) & 0x1F) | 0xC0));
-    dynstring_append_char(str, (u8)((cp & 0x3F) | 0x80));
-    return;
+    buffer[0] = (u8)(((cp >> 6) & 0x1F) | 0xC0);
+    buffer[1] = (u8)((cp & 0x3F) | 0x80);
+    return 2;
   }
   if (cp <= utf8_cp_triple_char) {
-    dynstring_append_char(str, (u8)(((cp >> 12) & 0x0F) | 0xE0));
-    dynstring_append_char(str, (u8)(((cp >> 6) & 0x3F) | 0x80));
-    dynstring_append_char(str, (u8)((cp & 0x3F) | 0x80));
-    return;
+    buffer[0] = (u8)(((cp >> 12) & 0x0F) | 0xE0);
+    buffer[1] = (u8)(((cp >> 6) & 0x3F) | 0x80);
+    buffer[2] = (u8)((cp & 0x3F) | 0x80);
+    return 3;
   }
-  dynstring_append_char(str, (u8)(((cp >> 18) & 0x07) | 0xF0));
-  dynstring_append_char(str, (u8)(((cp >> 12) & 0x3F) | 0x80));
-  dynstring_append_char(str, (u8)(((cp >> 6) & 0x3F) | 0x80));
-  dynstring_append_char(str, (u8)((cp & 0x3F) | 0x80));
+  buffer[0] = (u8)(((cp >> 18) & 0x07) | 0xF0);
+  buffer[1] = (u8)(((cp >> 12) & 0x3F) | 0x80);
+  buffer[2] = (u8)(((cp >> 6) & 0x3F) | 0x80);
+  buffer[3] = (u8)((cp & 0x3F) | 0x80);
+  return 4;
+}
+
+void utf8_cp_write_to(DynString* str, const Unicode cp) {
+  const usize initialSize = str->size;
+  u8*         buffer      = dynstring_push(str, 4).ptr;
+  const usize charCount   = utf8_cp_write(buffer, cp);
+  str->size               = initialSize + charCount;
 }
 
 String utf8_cp_read(String utf8, Unicode* out) {

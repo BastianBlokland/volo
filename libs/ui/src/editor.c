@@ -335,7 +335,7 @@ static void editor_select_word(UiEditor* editor) {
 
 static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   DynString buffer = dynstring_create_over(mem_stack(4));
-  utf8_cp_write(&buffer, cp);
+  utf8_cp_write_to(&buffer, cp);
 
   if (UNLIKELY((editor->text.size + buffer.size) > editor->maxTextLength)) {
     return;

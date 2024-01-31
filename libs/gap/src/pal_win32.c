@@ -648,7 +648,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
      * WParam contains the utf-16 unicode value.
      * TODO: Figure out how to handle utf-16 surrogate pairs, should we resolve them at this level?
      */
-    utf8_cp_write(&window->inputText, (Unicode)wParam);
+    utf8_cp_write_to(&window->inputText, (Unicode)wParam);
     return true;
   }
   case WM_SETCURSOR: {
