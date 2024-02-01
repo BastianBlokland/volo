@@ -14,8 +14,10 @@
 #include "debug_stats.h"
 #include "debug_text.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "input_manager.h"
 #include "scene_bounds.h"
+#include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
@@ -210,6 +212,12 @@ ecs_view_define(SubjectView) {
 }
 
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
+
+ecs_view_define(CameraView) {
+  ecs_access_read(GapWindowComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_read(SceneTransformComp);
+}
 
 static void inspector_notify_vis(
     DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const DebugInspectorVis vis) {
@@ -1063,8 +1071,6 @@ static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSetEnvComp* set
   dynarray_destroy(&newEntities);
 }
 
-ecs_comp_extern(SceneCameraComp);
-
 static void debug_inspector_tool_select_all(EcsWorld* world, SceneSetEnvComp* setEnv) {
   const u32    compCount       = ecs_def_comp_count(ecs_world_def(world));
   const BitSet ignoredCompMask = mem_stack(bits_to_bytes(compCount) + 1);
@@ -1588,16 +1594,60 @@ static void inspector_vis_draw_subject(
   }
 }
 
+static GeoNavRegion inspector_nav_encapsulate(const GeoNavRegion region, const GeoNavCell cell) {
+  return (GeoNavRegion){
+      .min.x = math_min(region.min.x, cell.x),
+      .min.y = math_min(region.min.y, cell.y),
+      .max.x = math_max(region.max.x, cell.x + 1), // +1 because max is exclusive.
+      .max.y = math_max(region.max.y, cell.y + 1), // +1 because max is exclusive.
+  };
+}
+
+static GeoNavRegion inspector_nav_visible_region(const SceneNavEnvComp* nav, EcsView* cameraView) {
+  static const GeoPlane  g_groundPlane     = {.normal = geo_up};
+  static const GeoVector g_screenCorners[] = {
+      {.x = 0, .y = 0},
+      {.x = 0, .y = 1},
+      {.x = 1, .y = 1},
+      {.x = 1, .y = 0},
+  };
+
+  GeoNavRegion result      = {.min = {.x = u16_max, .y = u16_max}};
+  bool         resultValid = false;
+
+  for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
+    const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
+    const SceneCameraComp*    cam   = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
+
+    const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+    if (!winSize.width || !winSize.height) {
+      continue; // Window is zero sized; has no visible nav region.
+    }
+    const f32 winAspect = (f32)winSize.width / (f32)winSize.height;
+
+    for (u32 i = 0; i != array_elems(g_screenCorners); ++i) {
+      const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect, g_screenCorners[i]);
+      f32             rayT = geo_plane_intersect_ray(&g_groundPlane, &ray);
+      const GeoVector pos  = geo_ray_position(&ray, rayT < f32_epsilon ? 1e4f : rayT);
+      result               = inspector_nav_encapsulate(result, scene_nav_at_position(nav, pos));
+    }
+    resultValid = true;
+  }
+
+  return resultValid ? result : (GeoNavRegion){0};
+}
+
 static void inspector_vis_draw_navigation_grid(
-    DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav) {
+    DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav, EcsView* cameraView) {
 
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
-  const GeoNavRegion   bounds    = scene_nav_bounds(nav);
+  const GeoNavRegion   region    = inspector_nav_visible_region(nav, cameraView);
   const GeoVector      cellSize  = scene_nav_cell_size(nav);
   const DebugShapeMode shapeMode = DebugShape_Overlay;
-  for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
-    for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell   cell     = {.x = x, .y = y};
       const GeoNavIsland island   = scene_nav_island(nav, cell);
       const bool         occupied = scene_nav_occupied(nav, cell);
@@ -1735,10 +1785,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
   EcsView*     transformView = ecs_world_view_t(world, TransformView);
   EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
+  EcsView*     cameraView    = ecs_world_view_t(world, CameraView);
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    inspector_vis_draw_navigation_grid(shape, text, nav);
+    inspector_vis_draw_navigation_grid(shape, text, nav, cameraView);
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
@@ -1796,6 +1847,7 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(GlobalVisDrawView);
   ecs_register_view(SubjectView);
   ecs_register_view(TransformView);
+  ecs_register_view(CameraView);
 
   ecs_register_system(
       DebugInspectorUpdatePanelSys,
@@ -1811,7 +1863,8 @@ ecs_module_init(debug_inspector_module) {
       DebugInspectorVisDrawSys,
       ecs_view_id(GlobalVisDrawView),
       ecs_view_id(SubjectView),
-      ecs_view_id(TransformView));
+      ecs_view_id(TransformView),
+      ecs_view_id(CameraView));
 
   ecs_order(DebugInspectorToolUpdateSys, DebugOrder_InspectorToolUpdate);
   ecs_order(DebugInspectorVisDrawSys, DebugOrder_InspectorDebugDraw);
