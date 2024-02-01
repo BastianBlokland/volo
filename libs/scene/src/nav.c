@@ -178,8 +178,9 @@ nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* 
 
     if (!reinit && blockerComp->flags & SceneNavBlockerFlags_Registered) {
       if (newHash != blockerComp->hash) {
-        geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId);
-        *change |= NavChange_BlockerRemoved;
+        if (geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId)) {
+          *change |= NavChange_BlockerRemoved;
+        }
       } else {
         continue; // Terrain not changed, not dirty and already registered; nothing to do.
       }
