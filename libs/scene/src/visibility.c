@@ -7,6 +7,11 @@
 #include "scene_visibility.h"
 
 #define scene_vision_areas_max 2048
+#define scene_vision_simd_enable 1
+
+#if scene_vision_simd_enable
+#include "core_simd.h"
+#endif
 
 ecs_comp_define(SceneVisibilityEnvComp) {
   SceneVisibilitySettings settings;
@@ -48,12 +53,24 @@ visibility_env_insert(SceneVisibilityEnvComp* env, const GeoVector pos, const f3
 
 static bool visiblity_env_visible(const SceneVisibilityEnvComp* env, const GeoVector pos) {
   // TODO: This could use some kind of acceleration structure.
+#if scene_vision_simd_enable
+  const SimdVec posVec = simd_vec_load(pos.comps);
+  for (u32 i = 0; i != env->visionCount; ++i) {
+    const SimdVec delta        = simd_vec_sub(posVec, simd_vec_load(env->visionPositions[i].comps));
+    const SimdVec squaredDist  = simd_vec_dot4(delta, delta);
+    const SimdVec squaredRadii = simd_vec_broadcast(env->visionSquaredRadii[i]);
+    if (simd_vec_mask_u32(simd_vec_greater(squaredRadii, squaredDist))) {
+      return true;
+    }
+  }
+#else
   for (u32 i = 0; i != env->visionCount; ++i) {
     const GeoVector delta = geo_vector_sub(pos, env->visionPositions[i]);
     if (geo_vector_mag_sqr(delta) <= env->visionSquaredRadii[i]) {
       return true;
     }
   }
+#endif
   return false;
 }
 
