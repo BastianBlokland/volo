@@ -520,7 +520,7 @@ static bool hud_minimap_camera_frustum(
     const f32                 camAspect,
     const GeoVector           areaSize,
     UiVector                  out[PARAM_ARRAY_SIZE(4)]) {
-  static const GeoPlane  g_groundPlane     = {.normal = geo_up};
+  static const GeoPlane  g_groundPlane     = {.normal = {.y = 1.0f}};
   static const GeoVector g_screenCorners[] = {
       {.x = 0, .y = 0},
       {.x = 0, .y = 1},
