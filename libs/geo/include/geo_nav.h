@@ -141,6 +141,7 @@ typedef enum {
   GeoNavStat_BlockerAddCount,
   GeoNavStat_OccupantCount,
   GeoNavStat_IslandCount,
+  GeoNavStat_IslandComputes,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
   GeoNavStat_PathItrCells,
