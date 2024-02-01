@@ -520,8 +520,7 @@ static bool hud_minimap_camera_frustum(
     const f32                 camAspect,
     const GeoVector           areaSize,
     UiVector                  out[PARAM_ARRAY_SIZE(4)]) {
-  const GeoPlane groundPlane = {.normal = geo_up};
-
+  static const GeoPlane  g_groundPlane     = {.normal = geo_up};
   static const GeoVector g_screenCorners[] = {
       {.x = 0, .y = 0},
       {.x = 0, .y = 1},
@@ -531,7 +530,7 @@ static bool hud_minimap_camera_frustum(
 
   for (u32 i = 0; i != array_elems(g_screenCorners); ++i) {
     const GeoRay ray  = scene_camera_ray(cam, camTrans, camAspect, g_screenCorners[i]);
-    const f32    rayT = geo_plane_intersect_ray(&groundPlane, &ray);
+    const f32    rayT = geo_plane_intersect_ray(&g_groundPlane, &ray);
     if (rayT < f32_epsilon) {
       return false;
     }
