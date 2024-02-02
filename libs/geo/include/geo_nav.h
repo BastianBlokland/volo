@@ -69,7 +69,6 @@ void geo_nav_y_clear(GeoNavGrid*);
  * Lookup cell information.
  */
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
-f32          geo_nav_distance(const GeoNavGrid*, GeoNavCell a, GeoNavCell b);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
 bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
