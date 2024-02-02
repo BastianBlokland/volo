@@ -605,8 +605,6 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity
   return ecs_world_add_t(world, entity, SceneNavAgentComp);
 }
 
-GeoNavRegion scene_nav_bounds(const SceneNavEnvComp* env) { return geo_nav_bounds(env->navGrid); }
-
 GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {
   return geo_nav_cell_size(env->navGrid);
 }

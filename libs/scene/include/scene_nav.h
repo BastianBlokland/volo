@@ -67,8 +67,7 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId);
 /**
  * Retrieve global navigation settings.
  */
-GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
-GeoVector    scene_nav_cell_size(const SceneNavEnvComp*);
+GeoVector scene_nav_cell_size(const SceneNavEnvComp*);
 
 /**
  * Query cell information.
