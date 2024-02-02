@@ -70,7 +70,6 @@ void geo_nav_y_clear(GeoNavGrid*);
  */
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
 f32          geo_nav_distance(const GeoNavGrid*, GeoNavCell a, GeoNavCell b);
-GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
 bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);

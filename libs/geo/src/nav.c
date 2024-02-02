@@ -1072,11 +1072,6 @@ f32 geo_nav_distance(const GeoNavGrid* grid, const GeoNavCell a, const GeoNavCel
   return geo_vector_mag(localDelta) * grid->cellSize;
 }
 
-GeoNavRegion geo_nav_region(const GeoNavGrid* grid, const GeoNavCell cell, const u16 radius) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_cell_grow(grid, cell, radius);
-}
-
 bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_pred_blocked(grid, null, cell);
