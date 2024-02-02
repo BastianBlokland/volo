@@ -73,7 +73,6 @@ GeoVector scene_nav_cell_size(const SceneNavEnvComp*);
  * Query cell information.
  */
 GeoVector    scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
-GeoVector    scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_blocked_box(const SceneNavEnvComp*, const GeoBoxRotated*);
 bool         scene_nav_blocked_sphere(const SceneNavEnvComp*, const GeoSphere*);
