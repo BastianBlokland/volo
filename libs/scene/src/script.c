@@ -684,20 +684,21 @@ static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptEr
   if (UNLIKELY(err->kind)) {
     return script_null();
   }
+  const GeoNavGrid*         grid          = scene_nav_grid(navEnv, SceneNavLayer_Normal);
   GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
   const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
   if (args.count == 1) {
-    return script_vec3(scene_nav_position(navEnv, cell));
+    return script_vec3(geo_nav_position(grid, cell));
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumNavFind, err)) {
   case 0 /* ClosestCell */:
-    return script_vec3(scene_nav_position(navEnv, cell));
+    return script_vec3(geo_nav_position(grid, cell));
   case 1 /* UnblockedCell */:
     scene_nav_closest_unblocked_n(navEnv, cell, cellContainer);
-    return script_vec3(scene_nav_position(navEnv, cell));
+    return script_vec3(geo_nav_position(grid, cell));
   case 2 /* FreeCell */:
     scene_nav_closest_free_n(navEnv, cell, cellContainer);
-    return script_vec3(scene_nav_position(navEnv, cell));
+    return script_vec3(geo_nav_position(grid, cell));
   }
   return script_null();
 }

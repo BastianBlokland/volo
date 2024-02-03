@@ -84,7 +84,6 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);
 /**
  * Query cell information.
  */
-GeoVector    scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_blocked_box(const SceneNavEnvComp*, const GeoBoxRotated*);
 bool         scene_nav_blocked_sphere(const SceneNavEnvComp*, const GeoSphere*);

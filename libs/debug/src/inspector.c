@@ -1381,9 +1381,10 @@ static void inspector_vis_draw_navigation_path(
     const SceneNavEnvComp*   nav,
     const SceneNavAgentComp* agent,
     const SceneNavPathComp*  path) {
+  const GeoNavGrid* grid = scene_nav_grid(nav, path->layer);
   for (u32 i = 1; i < path->cellCount; ++i) {
-    const GeoVector posA = scene_nav_position(nav, path->cells[i - 1]);
-    const GeoVector posB = scene_nav_position(nav, path->cells[i]);
+    const GeoVector posA = geo_nav_position(grid, path->cells[i - 1]);
+    const GeoVector posB = geo_nav_position(grid, path->cells[i]);
     debug_line(shape, posA, posB, geo_color_white);
   }
   if (agent->flags & SceneNavAgent_Traveling) {
@@ -1644,6 +1645,7 @@ static void inspector_vis_draw_navigation_grid(
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
   const SceneNavLayer  layer     = SceneNavLayer_Normal;
+  const GeoNavGrid*    grid      = scene_nav_grid(nav, layer);
   const GeoNavRegion   region    = inspector_nav_visible_region(nav, cameraView);
   const f32            cellSize  = scene_nav_cell_size(nav, layer);
   const DebugShapeMode shapeMode = DebugShape_Overlay;
@@ -1671,7 +1673,7 @@ static void inspector_vis_draw_navigation_grid(
       } else {
         color = geo_color(0, 1, 0, highlight ? 0.075f : 0.05f);
       }
-      const GeoVector pos = scene_nav_position(nav, cell);
+      const GeoVector pos = geo_nav_position(grid, cell);
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize, cellSize, color, shapeMode);
 
       if (!blocked) {

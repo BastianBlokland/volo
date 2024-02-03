@@ -673,10 +673,6 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer
   return env->grids[layer];
 }
 
-GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_position(env->grids[SceneNavLayer_Normal], cell);
-}
-
 bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_blocked(env->grids[SceneNavLayer_Normal], cell);
 }

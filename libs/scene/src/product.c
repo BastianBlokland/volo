@@ -61,9 +61,10 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
 }
 
 static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
-  GeoNavCell cell = scene_nav_at_position(nav, pos);
+  const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
+  GeoNavCell        cell = scene_nav_at_position(nav, pos);
   scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
-  return scene_nav_position(nav, cell);
+  return geo_nav_position(grid, cell);
 }
 
 static void product_sound_play(EcsWorld* world, const EcsEntityId asset, const f32 gain) {
@@ -275,10 +276,11 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
 
   const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
 
-  const u32        spawnCount = product->data_unit.unitCount;
-  const GeoVector  spawnPos   = product_spawn_pos(ctx->itr, ctx->nav);
-  const GeoVector  rallyPos   = product_rally_pos(ctx->itr);
-  const GeoNavCell rallyCell  = scene_nav_at_position(ctx->nav, rallyPos);
+  const GeoNavGrid* grid       = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
+  const u32         spawnCount = product->data_unit.unitCount;
+  const GeoVector   spawnPos   = product_spawn_pos(ctx->itr, ctx->nav);
+  const GeoVector   rallyPos   = product_rally_pos(ctx->itr);
+  const GeoNavCell  rallyCell  = scene_nav_at_position(ctx->nav, rallyPos);
 
   GeoNavCell                targetCells[32];
   const GeoNavCellContainer targetCellContainer = {
@@ -305,7 +307,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
     GeoVector pos;
     if (LIKELY(i < targetCellCnt)) {
       const bool sameCellAsRallPos = targetCells[i].data == rallyCell.data;
-      pos = sameCellAsRallPos ? rallyPos : scene_nav_position(ctx->nav, targetCells[i]);
+      pos = sameCellAsRallPos ? rallyPos : geo_nav_position(grid, targetCells[i]);
     } else {
       // We didn't find a unblocked cell for this entity; just move to the raw rallyPos.
       pos = rallyPos;

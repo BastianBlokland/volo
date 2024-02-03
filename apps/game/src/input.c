@@ -438,6 +438,8 @@ static void input_order_move(
   input_indicator_move(world, targetPos);
   input_report_command(debugStats, string_lit("Move"));
 
+  const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
+
   // Find unblocked cells on the nav-grid to move to.
   const u32                 selectionCount = scene_set_count(setEnv, g_sceneSetSelected);
   GeoNavCell                navCells[1024];
@@ -455,7 +457,7 @@ static void input_order_move(
     GeoVector         pos;
     if (LIKELY(i < unblockedCount)) {
       const bool sameCellAsTargetPos = navCells[i].data == targetNavCell.data;
-      pos = sameCellAsTargetPos ? targetPos : scene_nav_position(nav, navCells[i]);
+      pos = sameCellAsTargetPos ? targetPos : geo_nav_position(grid, navCells[i]);
     } else {
       // We didn't find a free cell for this entity; just move to the raw targetPos.
       pos = targetPos;
