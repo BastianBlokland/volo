@@ -39,6 +39,7 @@ ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect numb
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
   u32         terrainVersion;
+  f32         terrainSize;
   u32         gridStats[SceneNavLayer_Count][GeoNavStat_Count];
 };
 
@@ -123,7 +124,7 @@ nav_refresh_terrain(SceneNavEnvComp* env, const SceneTerrainComp* terrain, NavCh
   if (scene_terrain_loaded(terrain)) {
     newSize = scene_terrain_play_size(terrain);
   }
-  if (newSize != geo_nav_size(env->navGrid)) {
+  if (newSize != env->terrainSize) {
     *change |= NavChange_Reinit;
   }
 
@@ -156,6 +157,7 @@ nav_refresh_terrain(SceneNavEnvComp* env, const SceneTerrainComp* terrain, NavCh
   }
 
   env->terrainVersion = scene_terrain_version(terrain);
+  env->terrainSize    = newSize;
 }
 
 static void
