@@ -358,14 +358,14 @@ ecs_view_define(UpdateAgentGlobalView) {
   ecs_access_read(SceneTimeComp);
 }
 
-ecs_view_define(AgentEntityView) {
+ecs_view_define(AgentView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneLocomotionComp);
   ecs_access_write(SceneNavAgentComp);
   ecs_access_write(SceneNavPathComp);
 }
 
-ecs_view_define(TargetEntityView) {
+ecs_view_define(TargetView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneNavBlockerComp);
 }
@@ -375,17 +375,17 @@ static bool path_needs_refresh(
     const SceneNavPathComp*  path,
     const GeoVector          targetPos,
     const SceneTimeComp*     time) {
-  if (agent->layer != path->layer) {
-    return true; // Agent changed layer.
-  }
   if (time->time >= path->nextRefreshTime) {
-    return true; // Enough time has elapsed.
+    return true; // Too much time has elapsed.
   }
   const f32 distToDestSqr = geo_vector_mag_sqr(geo_vector_sub(path->destination, targetPos));
   if (distToDestSqr > (path_refresh_max_dist * path_refresh_max_dist)) {
     return true; // New destination is too far from the old destination.
   }
-  return false;
+  if (agent->layer != path->layer) {
+    return true; // Agent changed layer.
+  }
+  return false; // Path still valid.
 }
 
 static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
@@ -447,9 +447,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
   // Limit the amount of path queries per-frame.
   u32      pathQueriesRemaining = path_max_queries_per_task;
-  EcsView* agentsView           = ecs_world_view_t(world, AgentEntityView);
+  EcsView* agentsView           = ecs_world_view_t(world, AgentView);
 
-  EcsView*     targetView = ecs_world_view_t(world, TargetEntityView);
+  EcsView*     targetView = ecs_world_view_t(world, TargetView);
   EcsIterator* targetItr  = ecs_view_itr(targetView);
 
   for (EcsIterator* itr = ecs_view_itr_step(agentsView, parCount, parIndex); ecs_view_walk(itr);) {
@@ -511,8 +511,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     if (!path->cellCount || path->layer != agent->layer) {
-      // Waiting for path to be computed.
-      goto Done;
+      goto Done; // Waiting for path to be computed.
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
@@ -598,8 +597,8 @@ ecs_module_init(scene_nav_module) {
   ecs_register_system(
       SceneNavUpdateAgentsSys,
       ecs_register_view(UpdateAgentGlobalView),
-      ecs_register_view(AgentEntityView),
-      ecs_register_view(TargetEntityView));
+      ecs_register_view(AgentView),
+      ecs_register_view(TargetView));
 
   ecs_parallel(SceneNavUpdateAgentsSys, 4);
 
