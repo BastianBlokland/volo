@@ -25,7 +25,7 @@ ecs_comp_extern(SceneNavEnvComp);
  */
 
 typedef enum {
-  SceneNavBlockerFlags_Registered = 1 << 0,
+  SceneNavBlockerFlags_Dirty = 1 << 0,
 } SceneNavBlockerFlags;
 
 ecs_comp_extern_public(SceneNavBlockerComp) {

@@ -91,22 +91,6 @@ static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   return !ecs_view_contains(blockerEntities, (EcsEntityId)userId);
 }
 
-static u32 nav_blocker_hash(
-    const SceneCollisionComp* collision,
-    const SceneTransformComp* trans,
-    const SceneScaleComp*     scale) {
-  u32 hash = bits_hash_32(mem_create(collision, sizeof(SceneCollisionComp)));
-  if (trans) {
-    const u32 transHash = bits_hash_32(mem_create(trans, sizeof(SceneTransformComp)));
-    hash                = bits_hash_32_combine(hash, transHash);
-  }
-  if (scale) {
-    const u32 scaleHash = bits_hash_32(mem_create(scale, sizeof(SceneScaleComp)));
-    hash                = bits_hash_32_combine(hash, scaleHash);
-  }
-  return hash;
-}
-
 typedef enum {
   NavChange_Reinit          = 1 << 0,
   NavChange_BlockerRemoved  = 1 << 1,
@@ -180,19 +164,15 @@ nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* 
     const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
     SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
 
-    const u32 newHash = nav_blocker_hash(collision, trans, scale);
-
-    if (!reinit && blockerComp->flags & SceneNavBlockerFlags_Registered) {
-      if (newHash != blockerComp->hash) {
-        if (geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId)) {
-          *change |= NavChange_BlockerRemoved;
-        }
-      } else {
-        continue; // Terrain not changed, not dirty and already registered; nothing to do.
-      }
+    if (!reinit && !(blockerComp->flags & SceneNavBlockerFlags_Dirty)) {
+      continue; // Blocker not dirty; nothing do to.
     }
-    blockerComp->hash = newHash;
-    blockerComp->flags |= SceneNavBlockerFlags_Registered;
+
+    if (!reinit && geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId)) {
+      *change |= NavChange_BlockerRemoved;
+    }
+
+    blockerComp->flags &= ~SceneNavBlockerFlags_Dirty;
 
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
@@ -277,11 +257,6 @@ static void nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   }
 }
 
-ecs_view_define(InitGlobalView) {
-  ecs_access_read(SceneTerrainComp);
-  ecs_access_write(SceneNavEnvComp);
-}
-
 ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -297,6 +272,44 @@ ecs_view_define(OccupantEntityView) {
 }
 
 ecs_view_define(PathEntityView) { ecs_access_write(SceneNavPathComp); }
+
+static u32 nav_blocker_hash(
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale) {
+  u32 hash = bits_hash_32(mem_create(collision, sizeof(SceneCollisionComp)));
+  if (trans) {
+    const u32 transHash = bits_hash_32(mem_create(trans, sizeof(SceneTransformComp)));
+    hash                = bits_hash_32_combine(hash, transHash);
+  }
+  if (scale) {
+    const u32 scaleHash = bits_hash_32(mem_create(scale, sizeof(SceneScaleComp)));
+    hash                = bits_hash_32_combine(hash, scaleHash);
+  }
+  return hash;
+}
+
+ecs_system_define(SceneNavBlockerDirtySys) {
+  EcsView* blockerView = ecs_world_view_t(world, BlockerEntityView);
+
+  for (EcsIterator* itr = ecs_view_itr_step(blockerView, parCount, parIndex); ecs_view_walk(itr);) {
+    const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+    SceneNavBlockerComp*      blocker   = ecs_view_write_t(itr, SceneNavBlockerComp);
+
+    const u32 newHash = nav_blocker_hash(collision, trans, scale);
+    if (newHash != blocker->hash) {
+      blocker->flags |= SceneNavBlockerFlags_Dirty;
+      blocker->hash = newHash;
+    }
+  }
+}
+
+ecs_view_define(InitGlobalView) {
+  ecs_access_read(SceneTerrainComp);
+  ecs_access_write(SceneNavEnvComp);
+}
 
 ecs_system_define(SceneNavInitSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
@@ -546,12 +559,20 @@ ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
   ecs_register_comp(SceneNavRequestComp);
 
+  ecs_register_view(BlockerEntityView);
+  ecs_register_view(OccupantEntityView);
+  ecs_register_view(PathEntityView);
+
+  ecs_register_system(SceneNavBlockerDirtySys, ecs_view_id(BlockerEntityView));
+  ecs_order(SceneNavBlockerDirtySys, SceneOrder_NavInit - 1);
+  ecs_parallel(SceneNavBlockerDirtySys, 2);
+
   ecs_register_system(
       SceneNavInitSys,
       ecs_register_view(InitGlobalView),
-      ecs_register_view(BlockerEntityView),
-      ecs_register_view(OccupantEntityView),
-      ecs_register_view(PathEntityView));
+      ecs_view_id(BlockerEntityView),
+      ecs_view_id(OccupantEntityView),
+      ecs_view_id(PathEntityView));
 
   ecs_order(SceneNavInitSys, SceneOrder_NavInit);
 
@@ -592,7 +613,12 @@ void scene_nav_stop(SceneNavAgentComp* agent) {
 }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_t(world, entity, SceneNavBlockerComp);
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneNavBlockerComp,
+      .flags     = SceneNavBlockerFlags_Dirty,
+      .blockerId = geo_blocker_invalid);
 }
 
 SceneNavAgentComp*
@@ -662,9 +688,6 @@ bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, cons
 
 bool scene_nav_reachable_blocker(
     const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
-  if (!(blocker->flags & SceneNavBlockerFlags_Registered)) {
-    return false;
-  }
   return geo_nav_blocker_reachable(env->navGrid, blocker->blockerId, from);
 }
 
