@@ -138,11 +138,12 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
 
 static bool
 target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsIterator* targetItr) {
-  const GeoNavGrid*          grid             = scene_nav_grid(nav, SceneNavLayer_Normal);
+  const SceneNavLayer        layer            = SceneNavLayer_Normal;
+  const GeoNavGrid*          grid             = scene_nav_grid(nav, layer);
   const GeoNavCell           finderNavCell    = geo_nav_at_position(grid, finderPos);
   const SceneNavBlockerComp* targetNavBlocker = ecs_view_read_t(targetItr, SceneNavBlockerComp);
   if (targetNavBlocker) {
-    return scene_nav_reachable_blocker(nav, finderNavCell, targetNavBlocker);
+    return geo_nav_blocker_reachable(grid, targetNavBlocker->ids[layer], finderNavCell);
   }
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   return geo_nav_reachable(grid, finderNavCell, geo_nav_at_position(grid, targetTrans->position));

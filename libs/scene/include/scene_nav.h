@@ -79,7 +79,6 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
  */
 const u32*        scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
 const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);
-bool scene_nav_reachable_blocker(const SceneNavEnvComp*, GeoNavCell, const SceneNavBlockerComp*);
 
 /**
  * Compute a separation force from blockers and other agents.

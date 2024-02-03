@@ -667,12 +667,6 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer
   return env->grids[layer];
 }
 
-bool scene_nav_reachable_blocker(
-    const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
-  const SceneNavLayer layer = SceneNavLayer_Normal;
-  return geo_nav_blocker_reachable(env->grids[SceneNavLayer_Normal], blocker->ids[layer], from);
-}
-
 GeoVector scene_nav_separate(
     const SceneNavEnvComp* env,
     const EcsEntityId      entity,
@@ -683,6 +677,7 @@ GeoVector scene_nav_separate(
   if (moving) {
     flags |= GeoNavOccupantFlags_Moving;
   }
-  const u64 occupantId = (u64)entity;
-  return geo_nav_separate(env->grids[SceneNavLayer_Normal], occupantId, position, radius, flags);
+  const GeoNavGrid* grid       = env->grids[SceneNavLayer_Normal];
+  const u64         occupantId = (u64)entity;
+  return geo_nav_separate(grid, occupantId, position, radius, flags);
 }
