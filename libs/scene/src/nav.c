@@ -37,10 +37,10 @@ const String g_sceneNavLayerNames[] = {
 ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect number of names");
 
 ecs_comp_define(SceneNavEnvComp) {
-  GeoNavGrid* navGrid;
+  GeoNavGrid* grids[SceneNavLayer_Count];
+  u32         gridStats[SceneNavLayer_Count][GeoNavStat_Count];
   f32         gridSize;
   u32         terrainVersion;
-  u32         gridStats[SceneNavLayer_Count][GeoNavStat_Count];
 };
 
 ecs_comp_define_public(SceneNavBlockerComp);
@@ -50,7 +50,9 @@ ecs_comp_define_public(SceneNavRequestComp);
 
 static void ecs_destruct_nav_env_comp(void* data) {
   SceneNavEnvComp* comp = data;
-  geo_nav_grid_destroy(comp->navGrid);
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    geo_nav_grid_destroy(comp->grids[layer]);
+  }
 }
 
 static void ecs_destruct_nav_path_comp(void* data) {
@@ -59,12 +61,14 @@ static void ecs_destruct_nav_path_comp(void* data) {
 }
 
 static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
-  if (env->navGrid) {
-    geo_nav_grid_destroy(env->navGrid);
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    if (env->grids[layer]) {
+      geo_nav_grid_destroy(env->grids[layer]);
+    }
+    env->gridSize     = size;
+    env->grids[layer] = geo_nav_grid_create(
+        g_alloc_heap, size, g_sceneNavCellSize, g_sceneNavCellHeight, g_sceneNavCellBlockHeight);
   }
-  env->gridSize = size;
-  env->navGrid  = geo_nav_grid_create(
-      g_alloc_heap, size, g_sceneNavCellSize, g_sceneNavCellHeight, g_sceneNavCellBlockHeight);
 }
 
 static void nav_env_create(EcsWorld* world) {
@@ -75,16 +79,16 @@ static void nav_env_create(EcsWorld* world) {
   nav_env_grid_init(env, g_sceneNavFallbackSize);
 }
 
-static GeoNavBlockerId
-nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
+static GeoNavBlockerId nav_block_box_rotated(
+    SceneNavEnvComp* env, const SceneNavLayer layer, const u64 id, const GeoBoxRotated* boxRot) {
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
     /**
      * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
      * much faster to insert.
      */
-    return geo_nav_blocker_add_box(env->navGrid, id, &boxRot->box);
+    return geo_nav_blocker_add_box(env->grids[layer], id, &boxRot->box);
   }
-  return geo_nav_blocker_add_box_rotated(env->navGrid, id, boxRot);
+  return geo_nav_blocker_add_box_rotated(env->grids[layer], id, boxRot);
 }
 
 static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
@@ -129,19 +133,20 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   }
 
   if (scene_terrain_loaded(ctx->terrain)) {
-    const GeoNavRegion bounds = geo_nav_bounds(ctx->env->navGrid);
+    GeoNavGrid*        grid   = ctx->env->grids[SceneNavLayer_Normal];
+    const GeoNavRegion bounds = geo_nav_bounds(grid);
     for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
       for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
         const GeoNavCell cell          = {.x = x, .y = y};
-        const GeoVector  pos           = geo_nav_position(ctx->env->navGrid, cell);
+        const GeoVector  pos           = geo_nav_position(grid, cell);
         const f32        terrainHeight = scene_terrain_height(ctx->terrain, pos);
-        geo_nav_y_update(ctx->env->navGrid, cell, terrainHeight);
+        geo_nav_y_update(grid, cell, terrainHeight);
       }
     }
     // Conservatively indicate a blocker-update as new cells can be blocked on the updated terrain.
     ctx->change |= NavChange_BlockerRemoved | NavChange_BlockerAdded;
   } else {
-    geo_nav_y_clear(ctx->env->navGrid);
+    geo_nav_y_clear(ctx->env->grids[SceneNavLayer_Normal]);
     // Conservatively indicate a blocker was removed.
     ctx->change |= NavChange_BlockerRemoved;
   }
@@ -151,13 +156,14 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
 
 static void
 nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLayer layer) {
-  const bool reinit = (ctx->change & NavChange_Reinit) != 0;
+  GeoNavGrid* grid   = ctx->env->grids[SceneNavLayer_Normal];
+  const bool  reinit = (ctx->change & NavChange_Reinit) != 0;
   if (reinit) {
-    if (geo_nav_blocker_remove_all(ctx->env->navGrid)) {
+    if (geo_nav_blocker_remove_all(grid)) {
       ctx->change |= NavChange_BlockerRemoved;
     }
   } else {
-    if (geo_nav_blocker_remove_pred(ctx->env->navGrid, nav_blocker_remove_pred, blockerView)) {
+    if (geo_nav_blocker_remove_pred(grid, nav_blocker_remove_pred, blockerView)) {
       ctx->change |= NavChange_BlockerRemoved;
     }
   }
@@ -172,7 +178,7 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
       continue; // Blocker not dirty; nothing do to.
     }
 
-    if (!reinit && geo_nav_blocker_remove(ctx->env->navGrid, blocker->ids[layer])) {
+    if (!reinit && geo_nav_blocker_remove(grid, blocker->ids[layer])) {
       ctx->change |= NavChange_BlockerRemoved;
     }
 
@@ -180,7 +186,7 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
       const GeoSphere s   = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      blocker->ids[layer] = geo_nav_blocker_add_sphere(ctx->env->navGrid, userId, &s);
+      blocker->ids[layer] = geo_nav_blocker_add_sphere(grid, userId, &s);
     } break;
     case SceneCollisionType_Capsule: {
       /**
@@ -189,11 +195,11 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
        */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      blocker->ids[layer]         = nav_block_box_rotated(ctx->env, userId, &cBounds);
+      blocker->ids[layer]         = nav_block_box_rotated(ctx->env, layer, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
-      blocker->ids[layer]   = nav_block_box_rotated(ctx->env, userId, &b);
+      blocker->ids[layer]   = nav_block_box_rotated(ctx->env, layer, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
@@ -238,7 +244,7 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const Scen
         continue;
       }
       for (u32 i = 0; i != path->cellCount; ++i) {
-        if (geo_nav_blocked(ctx->env->navGrid, path->cells[i])) {
+        if (geo_nav_blocked(ctx->env->grids[layer], path->cells[i])) {
           path->nextRefreshTime = 0;
           ctx->change |= NavChange_PathInvalidated;
           break;
@@ -249,6 +255,7 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const Scen
 }
 
 static void nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantView) {
+  GeoNavGrid* grid = env->grids[SceneNavLayer_Normal];
   for (EcsIterator* itr = ecs_view_itr(occupantView); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*      scale = ecs_view_read_t(itr, SceneScaleComp);
@@ -261,7 +268,7 @@ static void nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantView) {
     if (loco->flags & SceneLocomotion_Moving) {
       occupantFlags |= GeoNavOccupantFlags_Moving;
     }
-    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, radius, occupantFlags);
+    geo_nav_occupant_add(grid, occupantId, trans->position, radius, occupantFlags);
   }
 }
 
@@ -346,10 +353,10 @@ ecs_system_define(SceneNavInitSys) {
   nav_refresh_paths(&ctx, pathView, SceneNavLayer_Normal);
 
   if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
-    geo_nav_compute_islands(env->navGrid);
+    geo_nav_compute_islands(env->grids[SceneNavLayer_Normal]);
   }
 
-  geo_nav_occupant_remove_all(env->navGrid);
+  geo_nav_occupant_remove_all(env->grids[SceneNavLayer_Normal]);
   nav_add_occupants(env, occupantView);
 }
 
@@ -401,23 +408,25 @@ typedef struct {
 
 static SceneNavGoal
 nav_goal_pos(const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVector targetPos) {
-  const GeoNavCell targetCell = geo_nav_at_position(env->navGrid, targetPos);
-  if (geo_nav_reachable(env->navGrid, fromCell, targetCell)) {
+  const GeoNavGrid* grid       = env->grids[SceneNavLayer_Normal];
+  const GeoNavCell  targetCell = geo_nav_at_position(grid, targetPos);
+  if (geo_nav_reachable(grid, fromCell, targetCell)) {
     return (SceneNavGoal){.cell = targetCell, .position = targetPos};
   }
-  const GeoNavCell reachableCell = geo_nav_closest_reachable(env->navGrid, fromCell, targetCell);
-  const GeoVector  reachablePos  = geo_nav_position(env->navGrid, reachableCell);
+  const GeoNavCell reachableCell = geo_nav_closest_reachable(grid, fromCell, targetCell);
+  const GeoVector  reachablePos  = geo_nav_position(grid, reachableCell);
   return (SceneNavGoal){.cell = reachableCell, .position = reachablePos};
 }
 
 static SceneNavGoal
 nav_goal_entity(const SceneNavEnvComp* env, const GeoNavCell fromCell, EcsIterator* targetItr) {
+  const GeoNavGrid*          grid        = env->grids[SceneNavLayer_Normal];
   const SceneNavLayer        layer       = SceneNavLayer_Normal;
   const SceneTransformComp*  targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneNavBlockerComp* blocker     = ecs_view_read_t(targetItr, SceneNavBlockerComp);
   if (blocker && !sentinel_check(blocker->ids[layer])) {
-    const GeoNavCell closest = geo_nav_blocker_closest(env->navGrid, blocker->ids[layer], fromCell);
-    return (SceneNavGoal){.cell = closest, .position = geo_nav_position(env->navGrid, closest)};
+    const GeoNavCell closest = geo_nav_blocker_closest(grid, blocker->ids[layer], fromCell);
+    return (SceneNavGoal){.cell = closest, .position = geo_nav_position(grid, closest)};
   }
   return nav_goal_pos(env, fromCell, targetTrans->position);
 }
@@ -431,7 +440,7 @@ static void nav_move_towards(
   if (cell.data == goal->cell.data) {
     locoPos = goal->position;
   } else {
-    locoPos = geo_nav_position(env->navGrid, cell);
+    locoPos = geo_nav_position(env->grids[SceneNavLayer_Normal], cell);
   }
   scene_locomotion_move(loco, locoPos);
 }
@@ -463,8 +472,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    const GeoNavCell fromCell = geo_nav_at_position(env->navGrid, trans->position);
-    SceneNavGoal     goal;
+    const GeoNavGrid* grid     = env->grids[agent->layer];
+    const GeoNavCell  fromCell = geo_nav_at_position(grid, trans->position);
+    SceneNavGoal      goal;
     if (agent->targetEntity) {
       if (!ecs_view_maybe_jump(targetItr, agent->targetEntity)) {
         goto Stop; // Target entity not valid (anymore).
@@ -502,11 +512,11 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     // Compute a new path.
     if (pathQueriesRemaining && path_needs_refresh(agent, path, goal.position, time)) {
       const GeoNavCellContainer container = {.cells = path->cells, .capacity = path_max_cells};
-      path->cellCount          = geo_nav_path(env->navGrid, fromCell, goal.cell, container);
-      path->nextRefreshTime    = path_next_refresh_time(time);
-      path->destination        = goal.position;
-      path->currentTargetIndex = 1; // Path includes the start point; should be skipped.
-      path->layer              = agent->layer;
+      path->cellCount                     = geo_nav_path(grid, fromCell, goal.cell, container);
+      path->nextRefreshTime               = path_next_refresh_time(time);
+      path->destination                   = goal.position;
+      path->currentTargetIndex            = 1; // Path includes the start point; should be skipped.
+      path->layer                         = agent->layer;
       --pathQueriesRemaining;
     }
 
@@ -516,7 +526,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
-      if (!geo_nav_line_blocked(env->navGrid, fromCell, path->cells[i])) {
+      if (!geo_nav_line_blocked(grid, fromCell, path->cells[i])) {
         path->currentTargetIndex = i;
         nav_move_towards(env, loco, &goal, path->cells[i]);
         goto Done;
@@ -541,14 +551,17 @@ ecs_system_define(SceneNavUpdateStatsSys) {
   }
   SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  const u32* statsSrc = geo_nav_stats(env->navGrid);
-  u32*       statsDst = env->gridStats[SceneNavLayer_Normal];
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    GeoNavGrid* grid     = env->grids[layer];
+    const u32*  statsSrc = geo_nav_stats(grid);
+    u32*        statsDst = env->gridStats[layer];
 
-  // Copy the grid stats into the stats component.
-  const usize statsSize = sizeof(u32) * GeoNavStat_Count;
-  mem_cpy(mem_create(statsDst, statsSize), mem_create(statsSrc, statsSize));
+    // Copy the grid stats into the stats component.
+    const usize statsSize = sizeof(u32) * GeoNavStat_Count;
+    mem_cpy(mem_create(statsDst, statsSize), mem_create(statsSrc, statsSize));
 
-  geo_nav_stats_reset(env->navGrid);
+    geo_nav_stats_reset(grid);
+  }
 }
 
 ecs_view_define(NavRequestsView) {
@@ -657,55 +670,55 @@ f32 scene_nav_cell_size(const SceneNavEnvComp* env) {
 }
 
 GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_position(env->navGrid, cell);
+  return geo_nav_position(env->grids[SceneNavLayer_Normal], cell);
 }
 
 bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_blocked(env->navGrid, cell);
+  return geo_nav_blocked(env->grids[SceneNavLayer_Normal], cell);
 }
 
 bool scene_nav_blocked_box(const SceneNavEnvComp* env, const GeoBoxRotated* boxRotated) {
-  return geo_nav_blocked_box_rotated(env->navGrid, boxRotated);
+  return geo_nav_blocked_box_rotated(env->grids[SceneNavLayer_Normal], boxRotated);
 }
 
 bool scene_nav_blocked_sphere(const SceneNavEnvComp* env, const GeoSphere* sphere) {
-  return geo_nav_blocked_sphere(env->navGrid, sphere);
+  return geo_nav_blocked_sphere(env->grids[SceneNavLayer_Normal], sphere);
 }
 
 bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_occupied(env->navGrid, cell);
+  return geo_nav_occupied(env->grids[SceneNavLayer_Normal], cell);
 }
 
 bool scene_nav_occupied_moving(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_occupied_moving(env->navGrid, cell);
+  return geo_nav_occupied_moving(env->grids[SceneNavLayer_Normal], cell);
 }
 
 GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
-  return geo_nav_at_position(env->navGrid, pos);
+  return geo_nav_at_position(env->grids[SceneNavLayer_Normal], pos);
 }
 
 GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_island(env->navGrid, cell);
+  return geo_nav_island(env->grids[SceneNavLayer_Normal], cell);
 }
 
 u32 scene_nav_closest_unblocked_n(
     const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
-  return geo_nav_closest_unblocked_n(env->navGrid, cell, out);
+  return geo_nav_closest_unblocked_n(env->grids[SceneNavLayer_Normal], cell, out);
 }
 
 u32 scene_nav_closest_free_n(
     const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
-  return geo_nav_closest_free_n(env->navGrid, cell, out);
+  return geo_nav_closest_free_n(env->grids[SceneNavLayer_Normal], cell, out);
 }
 
 bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
-  return geo_nav_reachable(env->navGrid, from, to);
+  return geo_nav_reachable(env->grids[SceneNavLayer_Normal], from, to);
 }
 
 bool scene_nav_reachable_blocker(
     const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
   const SceneNavLayer layer = SceneNavLayer_Normal;
-  return geo_nav_blocker_reachable(env->navGrid, blocker->ids[layer], from);
+  return geo_nav_blocker_reachable(env->grids[SceneNavLayer_Normal], blocker->ids[layer], from);
 }
 
 GeoVector scene_nav_separate(
@@ -719,5 +732,5 @@ GeoVector scene_nav_separate(
     flags |= GeoNavOccupantFlags_Moving;
   }
   const u64 occupantId = (u64)entity;
-  return geo_nav_separate(env->navGrid, occupantId, position, radius, flags);
+  return geo_nav_separate(env->grids[SceneNavLayer_Normal], occupantId, position, radius, flags);
 }
