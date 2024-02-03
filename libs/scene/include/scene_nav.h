@@ -88,7 +88,6 @@ bool scene_nav_blocked_sphere(const SceneNavEnvComp*, const GeoSphere*);
 u32  scene_nav_closest_unblocked_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
 u32  scene_nav_closest_free_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
 
-bool scene_nav_reachable(const SceneNavEnvComp*, GeoNavCell from, GeoNavCell to);
 bool scene_nav_reachable_blocker(const SceneNavEnvComp*, GeoNavCell, const SceneNavBlockerComp*);
 
 /**

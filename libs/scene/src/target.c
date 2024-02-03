@@ -145,7 +145,7 @@ target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsItera
     return scene_nav_reachable_blocker(nav, finderNavCell, targetNavBlocker);
   }
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-  return scene_nav_reachable(nav, finderNavCell, geo_nav_at_position(grid, targetTrans->position));
+  return geo_nav_reachable(grid, finderNavCell, geo_nav_at_position(grid, targetTrans->position));
 }
 
 static f32 target_score(

@@ -685,10 +685,6 @@ u32 scene_nav_closest_free_n(
   return geo_nav_closest_free_n(env->grids[SceneNavLayer_Normal], cell, out);
 }
 
-bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
-  return geo_nav_reachable(env->grids[SceneNavLayer_Normal], from, to);
-}
-
 bool scene_nav_reachable_blocker(
     const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
   const SceneNavLayer layer = SceneNavLayer_Normal;
