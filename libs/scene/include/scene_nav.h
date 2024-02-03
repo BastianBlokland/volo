@@ -19,7 +19,6 @@ extern const String g_sceneNavLayerNames[SceneNavLayer_Count];
  * Global navigation environment.
  */
 ecs_comp_extern(SceneNavEnvComp);
-ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
 
 /**
  * Navigation blocker.
@@ -77,7 +76,8 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
 /**
  * Retrieve global navigation settings.
  */
-GeoVector scene_nav_cell_size(const SceneNavEnvComp*);
+const u32* scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
+GeoVector  scene_nav_cell_size(const SceneNavEnvComp*);
 
 /**
  * Query cell information.

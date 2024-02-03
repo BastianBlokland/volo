@@ -38,9 +38,8 @@ ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect numb
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
   u32         terrainVersion;
+  u32         gridStats[GeoNavStat_Count];
 };
-
-ecs_comp_define_public(SceneNavStatsComp);
 
 ecs_comp_define_public(SceneNavBlockerComp);
 ecs_comp_define_public(SceneNavAgentComp);
@@ -71,8 +70,6 @@ static void nav_env_create(EcsWorld* world) {
   // TODO: Currently we always initialize the grid with the fallback size first, in theory this can
   // be avoided when we know we will load a level immediately after.
   nav_env_grid_init(env, g_sceneNavFallbackSize);
-
-  ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
 }
 
 static GeoNavBlockerId
@@ -275,15 +272,6 @@ static void nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
     }
     geo_nav_occupant_add(env->navGrid, occupantId, trans->position, radius, occupantFlags);
   }
-}
-
-static void nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
-  const u32* gridStatsPtr = geo_nav_stats(grid);
-
-  // Copy the grid stats into the stats component.
-  mem_cpy(array_mem(stats->gridStats), mem_create(gridStatsPtr, sizeof(u32) * GeoNavStat_Count));
-
-  geo_nav_stats_reset(grid);
 }
 
 ecs_view_define(InitGlobalView) {
@@ -509,10 +497,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   }
 }
 
-ecs_view_define(UpdateStatsGlobalView) {
-  ecs_access_write(SceneNavEnvComp);
-  ecs_access_write(SceneNavStatsComp);
-}
+ecs_view_define(UpdateStatsGlobalView) { ecs_access_write(SceneNavEnvComp); }
 
 ecs_system_define(SceneNavUpdateStatsSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateStatsGlobalView);
@@ -520,10 +505,14 @@ ecs_system_define(SceneNavUpdateStatsSys) {
   if (!globalItr) {
     return;
   }
-  SceneNavEnvComp*   env   = ecs_view_write_t(globalItr, SceneNavEnvComp);
-  SceneNavStatsComp* stats = ecs_view_write_t(globalItr, SceneNavStatsComp);
+  SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  nav_stats_update(stats, env->navGrid);
+  const u32* gridStatsPtr = geo_nav_stats(env->navGrid);
+
+  // Copy the grid stats into the stats component.
+  mem_cpy(array_mem(env->gridStats), mem_create(gridStatsPtr, sizeof(u32) * GeoNavStat_Count));
+
+  geo_nav_stats_reset(env->navGrid);
 }
 
 ecs_view_define(NavRequestsView) {
@@ -547,7 +536,6 @@ ecs_system_define(SceneNavApplyRequestsSys) {
 
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
-  ecs_register_comp(SceneNavStatsComp);
   ecs_register_comp(SceneNavBlockerComp);
   ecs_register_comp(SceneNavAgentComp);
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
@@ -609,6 +597,11 @@ scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const SceneNavLay
   ecs_world_add_t(world, entity, SceneNavPathComp, .cells = pathCells);
 
   return ecs_world_add_t(world, entity, SceneNavAgentComp, .layer = layer);
+}
+
+const u32* scene_nav_grid_stats(const SceneNavEnvComp* env, const SceneNavLayer layer) {
+  (void)layer;
+  return env->gridStats;
 }
 
 GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {

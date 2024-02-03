@@ -50,12 +50,12 @@ static void test_check_path(
 
 ecs_view_define(LocomotionView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(PathView) { ecs_access_read(SceneNavPathComp); }
-ecs_view_define(StatsView) { ecs_access_read(SceneNavStatsComp); }
+ecs_view_define(EnvView) { ecs_access_read(SceneNavEnvComp); }
 
 ecs_module_init(nav_test_module) {
   ecs_register_view(LocomotionView);
   ecs_register_view(PathView);
-  ecs_register_view(StatsView);
+  ecs_register_view(EnvView);
 }
 
 spec(nav) {
@@ -117,13 +117,14 @@ spec(nav) {
         },
         7);
 
-    const SceneNavStatsComp* stats = ecs_utils_read_t(world, StatsView, global, SceneNavStatsComp);
-    (void)stats;
+    const SceneNavEnvComp* env          = ecs_utils_read_t(world, EnvView, global, SceneNavEnvComp);
+    const u32*             navGridStats = scene_nav_grid_stats(env, SceneNavLayer_Normal);
+    (void)navGridStats;
     // TODO: The exact frame the path is queried is not deterministic atm so we cannot assert this.
-    // check_eq_int(stats->gridStats[GeoNavStat_PathCount], 1);
-    // check_eq_int(stats->gridStats[GeoNavStat_PathItrCells], 7);
-    // check_eq_int(stats->gridStats[GeoNavStat_PathOutputCells], 7);
-    // check_eq_int(stats->gridStats[GeoNavStat_PathItrEnqueues], 16);
+    // check_eq_int(navGridStats[GeoNavStat_PathCount], 1);
+    // check_eq_int(navGridStats[GeoNavStat_PathItrCells], 7);
+    // check_eq_int(navGridStats[GeoNavStat_PathOutputCells], 7);
+    // check_eq_int(navGridStats[GeoNavStat_PathItrEnqueues], 16);
   }
 
   teardown() {
