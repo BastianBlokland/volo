@@ -775,7 +775,7 @@ static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
   const usize index = bitset_next(grid->blockerFreeSet, 0);
   if (UNLIKELY(sentinel_check(index))) {
     log_e("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   bitset_clear(grid->blockerFreeSet, index);
   return (GeoNavBlockerId)index;
@@ -1221,12 +1221,12 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
-    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
@@ -1259,12 +1259,12 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
-    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
@@ -1296,12 +1296,12 @@ geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* 
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
-    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;

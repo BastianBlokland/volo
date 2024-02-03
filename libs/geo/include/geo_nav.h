@@ -95,6 +95,8 @@ u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavCellCo
 typedef u16 GeoNavBlockerId;
 typedef bool (*GeoNavBlockerPredicate)(const void* context, u64 id);
 
+#define geo_blocker_invalid sentinel_u16
+
 GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
 GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);
 GeoNavBlockerId geo_nav_blocker_add_sphere(GeoNavGrid*, u64 userId, const GeoSphere*);
