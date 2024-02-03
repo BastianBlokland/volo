@@ -609,8 +609,9 @@ const u32* scene_nav_grid_stats(const SceneNavEnvComp* env, const SceneNavLayer 
   return env->gridStats[layer];
 }
 
-GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {
-  return geo_nav_cell_size(env->navGrid);
+f32 scene_nav_cell_size(const SceneNavEnvComp* env) {
+  (void)env;
+  return g_sceneNavCellSize;
 }
 
 GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {

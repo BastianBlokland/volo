@@ -1016,10 +1016,6 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
   return (GeoNavRegion){.max = {.x = grid->cellCountAxis, .y = grid->cellCountAxis}};
 }
 
-GeoVector geo_nav_cell_size(const GeoNavGrid* grid) {
-  return geo_vector(grid->cellSize, grid->cellHeight, grid->cellSize);
-}
-
 void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 

@@ -23,10 +23,6 @@ spec(nav) {
     check_eq_int(region.max.y, (u16)math_round_nearest_f32(size * density));
   }
 
-  it("can retrieve the cell size") {
-    check_eq_vector(geo_nav_cell_size(grid), geo_vector(cellSize, height, cellSize));
-  }
-
   it("can convert between coordinates and cells") {
     const GeoVector posA = geo_nav_position(grid, (GeoNavCell){.x = 0, .y = 0});
     check_eq_vector(posA, geo_vector(+size * -0.5f, 0, size * -0.5f));

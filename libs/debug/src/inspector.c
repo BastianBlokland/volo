@@ -1644,7 +1644,7 @@ static void inspector_vis_draw_navigation_grid(
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
   const GeoNavRegion   region    = inspector_nav_visible_region(nav, cameraView);
-  const GeoVector      cellSize  = scene_nav_cell_size(nav);
+  const f32            cellSize  = scene_nav_cell_size(nav);
   const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
@@ -1671,7 +1671,7 @@ static void inspector_vis_draw_navigation_grid(
         color = geo_color(0, 1, 0, highlight ? 0.075f : 0.05f);
       }
       const GeoVector pos = scene_nav_position(nav, cell);
-      debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
+      debug_quad(shape, pos, geo_quat_up_to_forward, cellSize, cellSize, color, shapeMode);
 
       if (!blocked) {
         dynstring_clear(&textBuffer);
