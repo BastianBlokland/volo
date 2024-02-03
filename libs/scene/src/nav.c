@@ -93,67 +93,72 @@ static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
 }
 
 typedef enum {
-  NavChange_Reinit          = 1 << 0,
-  NavChange_BlockerRemoved  = 1 << 1,
-  NavChange_BlockerAdded    = 1 << 2,
-  NavChange_PathInvalidated = 1 << 3,
-} NavChange;
+  NavInit_Reinit          = 1 << 0,
+  NavInit_BlockerRemoved  = 1 << 1,
+  NavInit_BlockerAdded    = 1 << 2,
+  NavInit_PathInvalidated = 1 << 3,
+} NavInitFlags;
 
-static void
-nav_refresh_terrain(SceneNavEnvComp* env, const SceneTerrainComp* terrain, NavChange* change) {
-  if (env->terrainVersion == scene_terrain_version(terrain)) {
+typedef struct {
+  SceneNavEnvComp*        env;
+  const SceneTerrainComp* terrain;
+  NavInitFlags            flags;
+} NavInitContext;
+
+static void nav_refresh_terrain(NavInitContext* ctx) {
+  if (ctx->env->terrainVersion == scene_terrain_version(ctx->terrain)) {
     return; // Terrain unchanged.
   }
 
   f32 newSize = g_sceneNavFallbackSize;
-  if (scene_terrain_loaded(terrain)) {
-    newSize = scene_terrain_play_size(terrain);
+  if (scene_terrain_loaded(ctx->terrain)) {
+    newSize = scene_terrain_play_size(ctx->terrain);
   }
-  if (newSize != env->gridSize) {
-    *change |= NavChange_Reinit;
-  }
+  const bool reinit = newSize != ctx->env->gridSize;
 
   log_d(
       "Refreshing navigation terrain",
-      log_param("version", fmt_int(scene_terrain_version(terrain))),
+      log_param("version", fmt_int(scene_terrain_version(ctx->terrain))),
       log_param("size", fmt_float(newSize)),
-      log_param("reinit", fmt_bool((*change & NavChange_Reinit) != 0)));
+      log_param("reinit", fmt_bool(reinit)));
 
-  if (*change & NavChange_Reinit) {
-    nav_env_grid_init(env, newSize);
+  if (reinit) {
+    nav_env_grid_init(ctx->env, newSize);
+
+    ctx->flags |= NavInit_Reinit;
   }
 
-  if (scene_terrain_loaded(terrain)) {
-    const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
+  if (scene_terrain_loaded(ctx->terrain)) {
+    const GeoNavRegion bounds = geo_nav_bounds(ctx->env->navGrid);
     for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
       for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
         const GeoNavCell cell          = {.x = x, .y = y};
-        const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
-        const f32        terrainHeight = scene_terrain_height(terrain, pos);
-        geo_nav_y_update(env->navGrid, cell, terrainHeight);
+        const GeoVector  pos           = geo_nav_position(ctx->env->navGrid, cell);
+        const f32        terrainHeight = scene_terrain_height(ctx->terrain, pos);
+        geo_nav_y_update(ctx->env->navGrid, cell, terrainHeight);
       }
     }
     // Conservatively indicate a blocker-update as new cells can be blocked on the updated terrain.
-    *change |= NavChange_BlockerRemoved | NavChange_BlockerAdded;
+    ctx->flags |= NavInit_BlockerRemoved | NavInit_BlockerAdded;
   } else {
-    geo_nav_y_clear(env->navGrid);
+    geo_nav_y_clear(ctx->env->navGrid);
     // Conservatively indicate a blocker was removed.
-    *change |= NavChange_BlockerRemoved;
+    ctx->flags |= NavInit_BlockerRemoved;
   }
 
-  env->terrainVersion = scene_terrain_version(terrain);
+  ctx->env->terrainVersion = scene_terrain_version(ctx->terrain);
 }
 
-static void nav_refresh_blockers(
-    SceneNavEnvComp* env, EcsView* blockerView, NavChange* change, const SceneNavLayer layer) {
-  const bool reinit = (*change & NavChange_Reinit) != 0;
+static void
+nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLayer layer) {
+  const bool reinit = (ctx->flags & NavInit_Reinit) != 0;
   if (reinit) {
-    if (geo_nav_blocker_remove_all(env->navGrid)) {
-      *change |= NavChange_BlockerRemoved;
+    if (geo_nav_blocker_remove_all(ctx->env->navGrid)) {
+      ctx->flags |= NavInit_BlockerRemoved;
     }
   } else {
-    if (geo_nav_blocker_remove_pred(env->navGrid, nav_blocker_remove_pred, blockerView)) {
-      *change |= NavChange_BlockerRemoved;
+    if (geo_nav_blocker_remove_pred(ctx->env->navGrid, nav_blocker_remove_pred, blockerView)) {
+      ctx->flags |= NavInit_BlockerRemoved;
     }
   }
 
@@ -167,15 +172,15 @@ static void nav_refresh_blockers(
       continue; // Blocker not dirty; nothing do to.
     }
 
-    if (!reinit && geo_nav_blocker_remove(env->navGrid, blocker->ids[layer])) {
-      *change |= NavChange_BlockerRemoved;
+    if (!reinit && geo_nav_blocker_remove(ctx->env->navGrid, blocker->ids[layer])) {
+      ctx->flags |= NavInit_BlockerRemoved;
     }
 
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
       const GeoSphere s   = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      blocker->ids[layer] = geo_nav_blocker_add_sphere(env->navGrid, userId, &s);
+      blocker->ids[layer] = geo_nav_blocker_add_sphere(ctx->env->navGrid, userId, &s);
     } break;
     case SceneCollisionType_Capsule: {
       /**
@@ -184,11 +189,11 @@ static void nav_refresh_blockers(
        */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      blocker->ids[layer]         = nav_block_box_rotated(env, userId, &cBounds);
+      blocker->ids[layer]         = nav_block_box_rotated(ctx->env, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
-      blocker->ids[layer]   = nav_block_box_rotated(env, userId, &b);
+      blocker->ids[layer]   = nav_block_box_rotated(ctx->env, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
@@ -199,13 +204,13 @@ static void nav_refresh_blockers(
        * NOTE: This doesn't necessarily mean any new cell got blocked that wasn't before so this
        * dirtying is conservative at the moment.
        */
-      *change |= NavChange_BlockerAdded;
+      ctx->flags |= NavInit_BlockerAdded;
     }
   }
 }
 
-static void nav_refresh_paths(SceneNavEnvComp* env, EcsView* pathView, NavChange* change) {
-  if (*change & NavChange_Reinit) {
+static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
+  if (ctx->flags & NavInit_Reinit) {
     /**
      * The navigation grid was reinitialized; we cannot re-use any of the existing paths (as when
      * the size changes the cell coordinates change).
@@ -214,9 +219,9 @@ static void nav_refresh_paths(SceneNavEnvComp* env, EcsView* pathView, NavChange
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
       path->cellCount        = 0;
       path->nextRefreshTime  = 0;
-      *change |= NavChange_PathInvalidated;
+      ctx->flags |= NavInit_PathInvalidated;
     }
-  } else if (*change & NavChange_BlockerAdded) {
+  } else if (ctx->flags & NavInit_BlockerAdded) {
     /**
      * A blocker was added; we need to check if any of the existing paths now cross a blocked
      * cell, if so: mark it for refresh.
@@ -227,9 +232,9 @@ static void nav_refresh_paths(SceneNavEnvComp* env, EcsView* pathView, NavChange
     for (EcsIterator* itr = ecs_view_itr(pathView); ecs_view_walk(itr);) {
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
       for (u32 i = 0; i != path->cellCount; ++i) {
-        if (geo_nav_blocked(env->navGrid, path->cells[i])) {
+        if (geo_nav_blocked(ctx->env->navGrid, path->cells[i])) {
           path->nextRefreshTime = 0;
-          *change |= NavChange_PathInvalidated;
+          ctx->flags |= NavInit_PathInvalidated;
           break;
         }
       }
@@ -328,12 +333,13 @@ ecs_system_define(SceneNavInitSys) {
   EcsView* pathView     = ecs_world_view_t(world, PathView);
   EcsView* occupantView = ecs_world_view_t(world, OccupantView);
 
-  NavChange change = 0;
-  nav_refresh_terrain(env, terrain, &change);
-  nav_refresh_blockers(env, blockerView, &change, SceneNavLayer_Normal);
-  nav_refresh_paths(env, pathView, &change);
+  NavInitContext ctx = {.env = env, .terrain = terrain};
 
-  if (change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
+  nav_refresh_terrain(&ctx);
+  nav_refresh_blockers(&ctx, blockerView, SceneNavLayer_Normal);
+  nav_refresh_paths(&ctx, pathView);
+
+  if (ctx.flags & (NavInit_BlockerRemoved | NavInit_BlockerAdded)) {
     geo_nav_compute_islands(env->navGrid);
   }
 
