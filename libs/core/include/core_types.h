@@ -19,10 +19,10 @@ typedef float    f32;
 typedef double   f64;
 
 typedef u8 bool;
-#define true 1
-#define false 0
+#define true UINT8_C(1)
+#define false UINT8_C(0)
 
-#define null 0
+#define null ((void*)0)
 
 #define u8_lit(_LITERAL_) UINT8_C(_LITERAL_)
 #define i8_lit(_LITERAL_) INT8_C(_LITERAL_)
