@@ -51,11 +51,12 @@ ecs_comp_extern_public(SceneNavAgentComp) {
 };
 
 ecs_comp_extern_public(SceneNavPathComp) {
-  GeoNavCell*  cells;
-  u32          cellCount;
-  u32          currentTargetIndex; // Index in the path we are currently moving towards.
-  GeoVector    destination;
-  TimeDuration nextRefreshTime;
+  GeoNavCell*   cells;
+  u32           cellCount;
+  SceneNavLayer layer;
+  u32           currentTargetIndex; // Index in the path we are currently moving towards.
+  TimeDuration  nextRefreshTime;
+  GeoVector     destination;
 };
 
 ecs_comp_extern_public(SceneNavRequestComp) {

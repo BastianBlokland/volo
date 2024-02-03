@@ -209,7 +209,7 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
   }
 }
 
-static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
+static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const SceneNavLayer layer) {
   if (ctx->change & NavChange_Reinit) {
     /**
      * The navigation grid was reinitialized; we cannot re-use any of the existing paths (as when
@@ -217,8 +217,11 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
      */
     for (EcsIterator* itr = ecs_view_itr(pathView); ecs_view_walk(itr);) {
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
-      path->cellCount        = 0;
-      path->nextRefreshTime  = 0;
+      if (path->layer != layer) {
+        continue;
+      }
+      path->cellCount       = 0;
+      path->nextRefreshTime = 0;
       ctx->change |= NavChange_PathInvalidated;
     }
   } else if (ctx->change & NavChange_BlockerAdded) {
@@ -231,6 +234,9 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
      */
     for (EcsIterator* itr = ecs_view_itr(pathView); ecs_view_walk(itr);) {
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
+      if (path->layer != layer) {
+        continue;
+      }
       for (u32 i = 0; i != path->cellCount; ++i) {
         if (geo_nav_blocked(ctx->env->navGrid, path->cells[i])) {
           path->nextRefreshTime = 0;
@@ -337,7 +343,7 @@ ecs_system_define(SceneNavInitSys) {
 
   nav_refresh_terrain(&ctx);
   nav_refresh_blockers(&ctx, blockerView, SceneNavLayer_Normal);
-  nav_refresh_paths(&ctx, pathView);
+  nav_refresh_paths(&ctx, pathView, SceneNavLayer_Normal);
 
   if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
     geo_nav_compute_islands(env->navGrid);
@@ -494,6 +500,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->nextRefreshTime    = path_next_refresh_time(time);
       path->destination        = goal.position;
       path->currentTargetIndex = 1; // Path includes the start point; should be skipped.
+      path->layer              = agent->layer;
       --pathQueriesRemaining;
     }
 
