@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
@@ -38,7 +39,7 @@ ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect numb
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
   u32         terrainVersion;
-  u32         gridStats[GeoNavStat_Count];
+  u32         gridStats[SceneNavLayer_Count][GeoNavStat_Count];
 };
 
 ecs_comp_define_public(SceneNavBlockerComp);
@@ -507,10 +508,12 @@ ecs_system_define(SceneNavUpdateStatsSys) {
   }
   SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  const u32* gridStatsPtr = geo_nav_stats(env->navGrid);
+  const u32* statsSrc = geo_nav_stats(env->navGrid);
+  u32*       statsDst = env->gridStats[SceneNavLayer_Normal];
 
   // Copy the grid stats into the stats component.
-  mem_cpy(array_mem(env->gridStats), mem_create(gridStatsPtr, sizeof(u32) * GeoNavStat_Count));
+  const usize statsSize = sizeof(u32) * GeoNavStat_Count;
+  mem_cpy(mem_create(statsDst, statsSize), mem_create(statsSrc, statsSize));
 
   geo_nav_stats_reset(env->navGrid);
 }
@@ -600,8 +603,8 @@ scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const SceneNavLay
 }
 
 const u32* scene_nav_grid_stats(const SceneNavEnvComp* env, const SceneNavLayer layer) {
-  (void)layer;
-  return env->gridStats;
+  diag_assert(layer < SceneNavLayer_Count);
+  return env->gridStats[layer];
 }
 
 GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {
