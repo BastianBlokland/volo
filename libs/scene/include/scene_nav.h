@@ -78,7 +78,6 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
  * Retrieve navigation layer data.
  */
 const u32*        scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
-f32               scene_nav_cell_size(const SceneNavEnvComp*, SceneNavLayer);
 const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);
 
 /**

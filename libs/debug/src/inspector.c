@@ -1640,14 +1640,13 @@ static GeoNavRegion inspector_nav_visible_region(const GeoNavGrid* grid, EcsView
 }
 
 static void inspector_vis_draw_navigation_grid(
-    DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav, EcsView* cameraView) {
+    DebugShapeComp* shape, DebugTextComp* text, const GeoNavGrid* grid, EcsView* cameraView) {
 
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
-  const SceneNavLayer  layer     = SceneNavLayer_Normal;
-  const GeoNavGrid*    grid      = scene_nav_grid(nav, layer);
-  const GeoNavRegion   region    = inspector_nav_visible_region(grid, cameraView);
-  const f32            cellSize  = scene_nav_cell_size(nav, layer);
+  const f32          cellSize = geo_nav_cell_size(grid);
+  const GeoNavRegion region   = inspector_nav_visible_region(grid, cameraView);
+
   const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
@@ -1792,7 +1791,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    inspector_vis_draw_navigation_grid(shape, text, nav, cameraView);
+    const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
+    inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
