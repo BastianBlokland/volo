@@ -92,17 +92,17 @@ static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   return !ecs_view_contains(blockerView, (EcsEntityId)userId);
 }
 
-typedef enum {
-  NavInit_Reinit          = 1 << 0,
-  NavInit_BlockerRemoved  = 1 << 1,
-  NavInit_BlockerAdded    = 1 << 2,
-  NavInit_PathInvalidated = 1 << 3,
-} NavInitFlags;
+enum {
+  NavChange_Reinit          = 1 << 0,
+  NavChange_BlockerRemoved  = 1 << 1,
+  NavChange_BlockerAdded    = 1 << 2,
+  NavChange_PathInvalidated = 1 << 3,
+};
 
 typedef struct {
   SceneNavEnvComp*        env;
   const SceneTerrainComp* terrain;
-  NavInitFlags            flags;
+  u8                      change;
 } NavInitContext;
 
 static void nav_refresh_terrain(NavInitContext* ctx) {
@@ -125,7 +125,7 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   if (reinit) {
     nav_env_grid_init(ctx->env, newSize);
 
-    ctx->flags |= NavInit_Reinit;
+    ctx->change |= NavChange_Reinit;
   }
 
   if (scene_terrain_loaded(ctx->terrain)) {
@@ -139,11 +139,11 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
       }
     }
     // Conservatively indicate a blocker-update as new cells can be blocked on the updated terrain.
-    ctx->flags |= NavInit_BlockerRemoved | NavInit_BlockerAdded;
+    ctx->change |= NavChange_BlockerRemoved | NavChange_BlockerAdded;
   } else {
     geo_nav_y_clear(ctx->env->navGrid);
     // Conservatively indicate a blocker was removed.
-    ctx->flags |= NavInit_BlockerRemoved;
+    ctx->change |= NavChange_BlockerRemoved;
   }
 
   ctx->env->terrainVersion = scene_terrain_version(ctx->terrain);
@@ -151,14 +151,14 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
 
 static void
 nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLayer layer) {
-  const bool reinit = (ctx->flags & NavInit_Reinit) != 0;
+  const bool reinit = (ctx->change & NavChange_Reinit) != 0;
   if (reinit) {
     if (geo_nav_blocker_remove_all(ctx->env->navGrid)) {
-      ctx->flags |= NavInit_BlockerRemoved;
+      ctx->change |= NavChange_BlockerRemoved;
     }
   } else {
     if (geo_nav_blocker_remove_pred(ctx->env->navGrid, nav_blocker_remove_pred, blockerView)) {
-      ctx->flags |= NavInit_BlockerRemoved;
+      ctx->change |= NavChange_BlockerRemoved;
     }
   }
 
@@ -173,7 +173,7 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
     }
 
     if (!reinit && geo_nav_blocker_remove(ctx->env->navGrid, blocker->ids[layer])) {
-      ctx->flags |= NavInit_BlockerRemoved;
+      ctx->change |= NavChange_BlockerRemoved;
     }
 
     const u64 userId = (u64)ecs_view_entity(itr);
@@ -204,13 +204,13 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
        * NOTE: This doesn't necessarily mean any new cell got blocked that wasn't before so this
        * dirtying is conservative at the moment.
        */
-      ctx->flags |= NavInit_BlockerAdded;
+      ctx->change |= NavChange_BlockerAdded;
     }
   }
 }
 
 static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
-  if (ctx->flags & NavInit_Reinit) {
+  if (ctx->change & NavChange_Reinit) {
     /**
      * The navigation grid was reinitialized; we cannot re-use any of the existing paths (as when
      * the size changes the cell coordinates change).
@@ -219,9 +219,9 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
       path->cellCount        = 0;
       path->nextRefreshTime  = 0;
-      ctx->flags |= NavInit_PathInvalidated;
+      ctx->change |= NavChange_PathInvalidated;
     }
-  } else if (ctx->flags & NavInit_BlockerAdded) {
+  } else if (ctx->change & NavChange_BlockerAdded) {
     /**
      * A blocker was added; we need to check if any of the existing paths now cross a blocked
      * cell, if so: mark it for refresh.
@@ -234,7 +234,7 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
       for (u32 i = 0; i != path->cellCount; ++i) {
         if (geo_nav_blocked(ctx->env->navGrid, path->cells[i])) {
           path->nextRefreshTime = 0;
-          ctx->flags |= NavInit_PathInvalidated;
+          ctx->change |= NavChange_PathInvalidated;
           break;
         }
       }
@@ -339,7 +339,7 @@ ecs_system_define(SceneNavInitSys) {
   nav_refresh_blockers(&ctx, blockerView, SceneNavLayer_Normal);
   nav_refresh_paths(&ctx, pathView);
 
-  if (ctx.flags & (NavInit_BlockerRemoved | NavInit_BlockerAdded)) {
+  if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
     geo_nav_compute_islands(env->navGrid);
   }
 
