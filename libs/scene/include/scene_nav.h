@@ -29,9 +29,9 @@ typedef enum {
 } SceneNavBlockerFlags;
 
 ecs_comp_extern_public(SceneNavBlockerComp) {
-  u32                  hash; // Hash to detect a dirty blocker; automatically generated.
-  SceneNavBlockerFlags flags : 16;
-  GeoNavBlockerId      blockerId; // Registered blocker id; automatically generated.
+  SceneNavBlockerFlags flags;
+  u32                  hash;                     // For dirty detection; automatically generated.
+  GeoNavBlockerId      ids[SceneNavLayer_Count]; // Registered blocker ids; automatically generated.
 };
 
 /**

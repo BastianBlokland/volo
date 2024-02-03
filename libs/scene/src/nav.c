@@ -144,8 +144,8 @@ nav_refresh_terrain(SceneNavEnvComp* env, const SceneTerrainComp* terrain, NavCh
   env->terrainVersion = scene_terrain_version(terrain);
 }
 
-static void nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerView, NavChange* change) {
-
+static void nav_refresh_blockers(
+    SceneNavEnvComp* env, EcsView* blockerView, NavChange* change, const SceneNavLayer layer) {
   const bool reinit = (*change & NavChange_Reinit) != 0;
   if (reinit) {
     if (geo_nav_blocker_remove_all(env->navGrid)) {
@@ -158,24 +158,24 @@ static void nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerView, Nav
   }
 
   for (EcsIterator* itr = ecs_view_itr(blockerView); ecs_view_walk(itr);) {
-    const SceneCollisionComp* collision   = ecs_view_read_t(itr, SceneCollisionComp);
-    const SceneTransformComp* trans       = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
-    SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
+    const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+    SceneNavBlockerComp*      blocker   = ecs_view_write_t(itr, SceneNavBlockerComp);
 
-    if (!reinit && !(blockerComp->flags & SceneNavBlockerFlags_Dirty)) {
+    if (!reinit && !(blocker->flags & SceneNavBlockerFlags_Dirty)) {
       continue; // Blocker not dirty; nothing do to.
     }
 
-    if (!reinit && geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId)) {
+    if (!reinit && geo_nav_blocker_remove(env->navGrid, blocker->ids[layer])) {
       *change |= NavChange_BlockerRemoved;
     }
 
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
-      const GeoSphere s      = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      blockerComp->blockerId = geo_nav_blocker_add_sphere(env->navGrid, userId, &s);
+      const GeoSphere s   = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      blocker->ids[layer] = geo_nav_blocker_add_sphere(env->navGrid, userId, &s);
     } break;
     case SceneCollisionType_Capsule: {
       /**
@@ -184,16 +184,16 @@ static void nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerView, Nav
        */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      blockerComp->blockerId      = nav_block_box_rotated(env, userId, &cBounds);
+      blocker->ids[layer]         = nav_block_box_rotated(env, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated b  = scene_collision_world_box(&collision->box, trans, scale);
-      blockerComp->blockerId = nav_block_box_rotated(env, userId, &b);
+      const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
+      blocker->ids[layer]   = nav_block_box_rotated(env, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
     }
-    if (!sentinel_check(blockerComp->blockerId)) {
+    if (!sentinel_check(blocker->ids[layer])) {
       /**
        * A new blocker was registered.
        * NOTE: This doesn't necessarily mean any new cell got blocked that wasn't before so this
@@ -330,7 +330,7 @@ ecs_system_define(SceneNavInitSys) {
 
   NavChange change = 0;
   nav_refresh_terrain(env, terrain, &change);
-  nav_refresh_blockers(env, blockerView, &change);
+  nav_refresh_blockers(env, blockerView, &change, SceneNavLayer_Normal);
   nav_refresh_paths(env, pathView, &change);
 
   if (change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
@@ -394,10 +394,11 @@ nav_goal_pos(const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVec
 
 static SceneNavGoal
 nav_goal_entity(const SceneNavEnvComp* env, const GeoNavCell fromCell, EcsIterator* targetItr) {
+  const SceneNavLayer        layer       = SceneNavLayer_Normal;
   const SceneTransformComp*  targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneNavBlockerComp* blocker     = ecs_view_read_t(targetItr, SceneNavBlockerComp);
-  if (blocker && !sentinel_check(blocker->blockerId)) {
-    const GeoNavCell closest = geo_nav_blocker_closest(env->navGrid, blocker->blockerId, fromCell);
+  if (blocker && !sentinel_check(blocker->ids[layer])) {
+    const GeoNavCell closest = geo_nav_blocker_closest(env->navGrid, blocker->ids[layer], fromCell);
     return (SceneNavGoal){.cell = closest, .position = geo_nav_position(env->navGrid, closest)};
   }
   return nav_goal_pos(env, fromCell, targetTrans->position);
@@ -612,7 +613,10 @@ void scene_nav_stop(SceneNavAgentComp* agent) {
 }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_t(world, entity, SceneNavBlockerComp, .blockerId = geo_blocker_invalid);
+  SceneNavBlockerComp* blocker = ecs_world_add_t(world, entity, SceneNavBlockerComp);
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    blocker->ids[layer] = geo_blocker_invalid;
+  }
 }
 
 SceneNavAgentComp*
@@ -682,7 +686,8 @@ bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, cons
 
 bool scene_nav_reachable_blocker(
     const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
-  return geo_nav_blocker_reachable(env->navGrid, blocker->blockerId, from);
+  const SceneNavLayer layer = SceneNavLayer_Normal;
+  return geo_nav_blocker_reachable(env->navGrid, blocker->ids[layer], from);
 }
 
 GeoVector scene_nav_separate(
