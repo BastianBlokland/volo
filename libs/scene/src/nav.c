@@ -29,6 +29,12 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_refresh_max_dist 0.5f
 #define path_arrive_threshold 0.15f
 
+const String g_sceneNavLayerNames[] = {
+    [SceneNavLayer_Normal] = string_static("Normal"),
+    [SceneNavLayer_Large]  = string_static("Large"),
+};
+ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect number of names");
+
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
   u32         terrainVersion;

@@ -53,7 +53,8 @@ ecs_comp_define(DebugStatsComp) {
   f32           frameFreqAvg;
   TimeDuration  frameDurDesired;
 
-  RendPass passInspect; // Pass to show stats for.
+  RendPass      passInspect;     // Pass to show stats for.
+  SceneNavLayer navLayerInspect; // Navigation layer to show stats for.
 
   // Cpu frame fractions.
   f32 rendWaitForGpuFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
@@ -380,6 +381,30 @@ static void stats_draw_renderer_pass_dropdown(UiCanvasComp* canvas, const DebugS
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
+static void stats_draw_nav_layer_dropdown(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+  stats_draw_bg(canvas, DebugBgFlags_None);
+  stats_draw_label(canvas, string_lit("Layer"));
+  {
+    ui_layout_push(canvas);
+    ui_style_push(canvas);
+
+    ui_layout_grow(
+        canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+
+    ui_select(
+        canvas,
+        (i32*)&stats->navLayerInspect,
+        g_sceneNavLayerNames,
+        SceneNavLayer_Count,
+        .frameColor     = ui_color(24, 24, 24, 128),
+        .dropFrameColor = ui_color(24, 24, 24, 225));
+
+    ui_style_pop(canvas);
+    ui_layout_pop(canvas);
+  }
+  ui_layout_next(canvas, Ui_Down, 0);
+}
+
 static void
 stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* statsGlobal) {
   dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
@@ -477,6 +502,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
   }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
+    stats_draw_nav_layer_dropdown(canvas, stats);
     stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats->gridStats[GeoNavStat_CellCountTotal]), fmt_int(navStats->gridStats[GeoNavStat_CellCountAxis])));
     stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_GridDataSize])));
     stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_WorkerDataSize])));

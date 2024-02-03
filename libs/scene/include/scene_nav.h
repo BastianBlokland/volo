@@ -6,18 +6,20 @@
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
 
-/**
- * Global navigation environment.
- */
-ecs_comp_extern(SceneNavEnvComp);
-ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
-
 typedef enum {
   SceneNavLayer_Normal,
   SceneNavLayer_Large,
 
   SceneNavLayer_Count,
 } SceneNavLayer;
+
+extern const String g_sceneNavLayerNames[SceneNavLayer_Count];
+
+/**
+ * Global navigation environment.
+ */
+ecs_comp_extern(SceneNavEnvComp);
+ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
 
 /**
  * Navigation blocker.
