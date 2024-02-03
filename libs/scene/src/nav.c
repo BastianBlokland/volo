@@ -371,7 +371,13 @@ ecs_view_define(TargetEntityView) {
 }
 
 static bool path_needs_refresh(
-    const SceneNavPathComp* path, const GeoVector targetPos, const SceneTimeComp* time) {
+    const SceneNavAgentComp* agent,
+    const SceneNavPathComp*  path,
+    const GeoVector          targetPos,
+    const SceneTimeComp*     time) {
+  if (agent->layer != path->layer) {
+    return true; // Agent changed layer.
+  }
   if (time->time >= path->nextRefreshTime) {
     return true; // Enough time has elapsed.
   }
@@ -494,7 +500,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
      */
 
     // Compute a new path.
-    if (pathQueriesRemaining && path_needs_refresh(path, goal.position, time)) {
+    if (pathQueriesRemaining && path_needs_refresh(agent, path, goal.position, time)) {
       const GeoNavCellContainer container = {.cells = path->cells, .capacity = path_max_cells};
       path->cellCount          = geo_nav_path(env->navGrid, fromCell, goal.cell, container);
       path->nextRefreshTime    = path_next_refresh_time(time);
@@ -504,7 +510,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       --pathQueriesRemaining;
     }
 
-    if (!path->cellCount) {
+    if (!path->cellCount || path->layer != agent->layer) {
       // Waiting for path to be computed.
       goto Done;
     }
