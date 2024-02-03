@@ -75,10 +75,11 @@ void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
 
 /**
- * Retrieve global navigation settings.
+ * Retrieve navigation layer data.
  */
-const u32* scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
-f32        scene_nav_cell_size(const SceneNavEnvComp*);
+const u32*        scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
+f32               scene_nav_cell_size(const SceneNavEnvComp*, SceneNavLayer);
+const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);
 
 /**
  * Query cell information.

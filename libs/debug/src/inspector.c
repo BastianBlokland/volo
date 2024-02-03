@@ -1643,8 +1643,9 @@ static void inspector_vis_draw_navigation_grid(
 
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
+  const SceneNavLayer  layer     = SceneNavLayer_Normal;
   const GeoNavRegion   region    = inspector_nav_visible_region(nav, cameraView);
-  const f32            cellSize  = scene_nav_cell_size(nav);
+  const f32            cellSize  = scene_nav_cell_size(nav, layer);
   const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {

@@ -660,13 +660,17 @@ scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const SceneNavLay
 }
 
 const u32* scene_nav_grid_stats(const SceneNavEnvComp* env, const SceneNavLayer layer) {
-  diag_assert(layer < SceneNavLayer_Count);
   return env->gridStats[layer];
 }
 
-f32 scene_nav_cell_size(const SceneNavEnvComp* env) {
+f32 scene_nav_cell_size(const SceneNavEnvComp* env, const SceneNavLayer layer) {
   (void)env;
+  (void)layer;
   return g_sceneNavCellSize;
+}
+
+const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer layer) {
+  return env->grids[layer];
 }
 
 GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
