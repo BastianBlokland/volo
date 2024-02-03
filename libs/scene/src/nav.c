@@ -673,10 +673,6 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer
   return env->grids[layer];
 }
 
-bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_blocked(env->grids[SceneNavLayer_Normal], cell);
-}
-
 bool scene_nav_blocked_box(const SceneNavEnvComp* env, const GeoBoxRotated* boxRotated) {
   return geo_nav_blocked_box_rotated(env->grids[SceneNavLayer_Normal], boxRotated);
 }
@@ -685,20 +681,8 @@ bool scene_nav_blocked_sphere(const SceneNavEnvComp* env, const GeoSphere* spher
   return geo_nav_blocked_sphere(env->grids[SceneNavLayer_Normal], sphere);
 }
 
-bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_occupied(env->grids[SceneNavLayer_Normal], cell);
-}
-
-bool scene_nav_occupied_moving(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_occupied_moving(env->grids[SceneNavLayer_Normal], cell);
-}
-
 GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
   return geo_nav_at_position(env->grids[SceneNavLayer_Normal], pos);
-}
-
-GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell) {
-  return geo_nav_island(env->grids[SceneNavLayer_Normal], cell);
 }
 
 u32 scene_nav_closest_unblocked_n(

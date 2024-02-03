@@ -1652,15 +1652,15 @@ static void inspector_vis_draw_navigation_grid(
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell   cell     = {.x = x, .y = y};
-      const GeoNavIsland island   = scene_nav_island(nav, cell);
-      const bool         occupied = scene_nav_occupied(nav, cell);
+      const GeoNavIsland island   = geo_nav_island(grid, cell);
+      const bool         occupied = geo_nav_occupied(grid, cell);
 
       if (island == 1 && !occupied) {
         continue; // Skip drawing unblocked and un-occupied cells on the main island.
       }
 
-      const bool occupiedMoving = scene_nav_occupied_moving(nav, cell);
-      const bool blocked        = scene_nav_blocked(nav, cell);
+      const bool occupiedMoving = geo_nav_occupied_moving(grid, cell);
+      const bool blocked        = geo_nav_blocked(grid, cell);
       const bool highlight      = (x & 1) == (y & 1);
 
       GeoColor color;

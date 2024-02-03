@@ -84,15 +84,11 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);
 /**
  * Query cell information.
  */
-bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
-bool         scene_nav_blocked_box(const SceneNavEnvComp*, const GeoBoxRotated*);
-bool         scene_nav_blocked_sphere(const SceneNavEnvComp*, const GeoSphere*);
-bool         scene_nav_occupied(const SceneNavEnvComp*, GeoNavCell);
-bool         scene_nav_occupied_moving(const SceneNavEnvComp*, GeoNavCell);
-GeoNavCell   scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
-GeoNavIsland scene_nav_island(const SceneNavEnvComp*, GeoNavCell);
-u32          scene_nav_closest_unblocked_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
-u32          scene_nav_closest_free_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
+bool       scene_nav_blocked_box(const SceneNavEnvComp*, const GeoBoxRotated*);
+bool       scene_nav_blocked_sphere(const SceneNavEnvComp*, const GeoSphere*);
+GeoNavCell scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
+u32        scene_nav_closest_unblocked_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
+u32        scene_nav_closest_free_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
 
 bool scene_nav_reachable(const SceneNavEnvComp*, GeoNavCell from, GeoNavCell to);
 bool scene_nav_reachable_blocker(const SceneNavEnvComp*, GeoNavCell, const SceneNavBlockerComp*);
