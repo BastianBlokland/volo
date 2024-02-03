@@ -172,8 +172,6 @@ nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities, NavChange* 
       *change |= NavChange_BlockerRemoved;
     }
 
-    blockerComp->flags &= ~SceneNavBlockerFlags_Dirty;
-
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
@@ -299,7 +297,9 @@ ecs_system_define(SceneNavBlockerDirtySys) {
     SceneNavBlockerComp*      blocker   = ecs_view_write_t(itr, SceneNavBlockerComp);
 
     const u32 newHash = nav_blocker_hash(collision, trans, scale);
-    if (newHash != blocker->hash) {
+    if (newHash == blocker->hash) {
+      blocker->flags &= ~SceneNavBlockerFlags_Dirty;
+    } else {
       blocker->flags |= SceneNavBlockerFlags_Dirty;
       blocker->hash = newHash;
     }
@@ -613,12 +613,7 @@ void scene_nav_stop(SceneNavAgentComp* agent) {
 }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneNavBlockerComp,
-      .flags     = SceneNavBlockerFlags_Dirty,
-      .blockerId = geo_blocker_invalid);
+  ecs_world_add_t(world, entity, SceneNavBlockerComp, .blockerId = geo_blocker_invalid);
 }
 
 SceneNavAgentComp*
