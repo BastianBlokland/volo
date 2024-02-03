@@ -681,10 +681,6 @@ bool scene_nav_blocked_sphere(const SceneNavEnvComp* env, const GeoSphere* spher
   return geo_nav_blocked_sphere(env->grids[SceneNavLayer_Normal], sphere);
 }
 
-GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
-  return geo_nav_at_position(env->grids[SceneNavLayer_Normal], pos);
-}
-
 u32 scene_nav_closest_unblocked_n(
     const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
   return geo_nav_closest_unblocked_n(env->grids[SceneNavLayer_Normal], cell, out);

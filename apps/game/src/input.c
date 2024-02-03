@@ -447,7 +447,7 @@ static void input_order_move(
       .cells    = navCells,
       .capacity = math_min(selectionCount, array_elems(navCells)),
   };
-  const GeoNavCell targetNavCell = scene_nav_at_position(nav, targetPos);
+  const GeoNavCell targetNavCell = geo_nav_at_position(grid, targetPos);
   const u32 unblockedCount = scene_nav_closest_unblocked_n(nav, targetNavCell, navCellContainer);
 
   // Push the move commands.

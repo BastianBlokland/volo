@@ -685,7 +685,7 @@ static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptEr
     return script_null();
   }
   const GeoNavGrid*         grid          = scene_nav_grid(navEnv, SceneNavLayer_Normal);
-  GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
+  GeoNavCell                cell          = geo_nav_at_position(grid, pos);
   const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
   if (args.count == 1) {
     return script_vec3(geo_nav_position(grid, cell));

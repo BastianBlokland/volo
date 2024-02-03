@@ -1604,7 +1604,7 @@ static GeoNavRegion inspector_nav_encapsulate(const GeoNavRegion region, const G
   };
 }
 
-static GeoNavRegion inspector_nav_visible_region(const SceneNavEnvComp* nav, EcsView* cameraView) {
+static GeoNavRegion inspector_nav_visible_region(const GeoNavGrid* grid, EcsView* cameraView) {
   static const GeoPlane  g_groundPlane     = {.normal = {.y = 1.0f}};
   static const GeoVector g_screenCorners[] = {
       {.x = 0, .y = 0},
@@ -1631,7 +1631,7 @@ static GeoNavRegion inspector_nav_visible_region(const SceneNavEnvComp* nav, Ecs
       const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect, g_screenCorners[i]);
       f32             rayT = geo_plane_intersect_ray(&g_groundPlane, &ray);
       const GeoVector pos  = geo_ray_position(&ray, rayT < f32_epsilon ? 1e4f : rayT);
-      result               = inspector_nav_encapsulate(result, scene_nav_at_position(nav, pos));
+      result               = inspector_nav_encapsulate(result, geo_nav_at_position(grid, pos));
     }
     resultValid = true;
   }
@@ -1646,7 +1646,7 @@ static void inspector_vis_draw_navigation_grid(
 
   const SceneNavLayer  layer     = SceneNavLayer_Normal;
   const GeoNavGrid*    grid      = scene_nav_grid(nav, layer);
-  const GeoNavRegion   region    = inspector_nav_visible_region(nav, cameraView);
+  const GeoNavRegion   region    = inspector_nav_visible_region(grid, cameraView);
   const f32            cellSize  = scene_nav_cell_size(nav, layer);
   const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = region.min.y; y != region.max.y; ++y) {

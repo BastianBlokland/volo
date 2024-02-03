@@ -62,7 +62,7 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
 
 static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
   const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
-  GeoNavCell        cell = scene_nav_at_position(nav, pos);
+  GeoNavCell        cell = geo_nav_at_position(grid, pos);
   scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
   return geo_nav_position(grid, cell);
 }
@@ -280,7 +280,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
   const u32         spawnCount = product->data_unit.unitCount;
   const GeoVector   spawnPos   = product_spawn_pos(ctx->itr, ctx->nav);
   const GeoVector   rallyPos   = product_rally_pos(ctx->itr);
-  const GeoNavCell  rallyCell  = scene_nav_at_position(ctx->nav, rallyPos);
+  const GeoNavCell  rallyCell  = geo_nav_at_position(grid, rallyPos);
 
   GeoNavCell                targetCells[32];
   const GeoNavCellContainer targetCellContainer = {
