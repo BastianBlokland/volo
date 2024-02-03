@@ -19,7 +19,7 @@
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
 static const f32 g_sceneNavFallbackSize    = 500.0f;
-static const f32 g_sceneNavDensity         = 1.0f;
+static const f32 g_sceneNavCellSize        = 1.0f;
 static const f32 g_sceneNavCellHeight      = 5.0f;
 static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
@@ -63,7 +63,7 @@ static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
     geo_nav_grid_destroy(env->navGrid);
   }
   env->navGrid = geo_nav_grid_create(
-      g_alloc_heap, size, g_sceneNavDensity, g_sceneNavCellHeight, g_sceneNavCellBlockHeight);
+      g_alloc_heap, size, g_sceneNavCellSize, g_sceneNavCellHeight, g_sceneNavCellBlockHeight);
 }
 
 static void nav_env_create(EcsWorld* world) {

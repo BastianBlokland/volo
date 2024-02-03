@@ -52,7 +52,7 @@ typedef struct {
 
 struct sGeoNavGrid {
   u32           cellCountAxis, cellCountTotal;
-  f32           cellDensity, cellSize;
+  f32           cellSize, cellDensity;
   f32           cellHeight;
   f32           cellBlockHeight;
   GeoVector     cellOffset;
@@ -949,15 +949,15 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
 }
 
 GeoNavGrid* geo_nav_grid_create(
-    Allocator* alloc, const f32 size, const f32 density, const f32 height, const f32 blockHeight) {
+    Allocator* alloc, const f32 size, const f32 cellSize, const f32 height, const f32 blockHeight) {
   diag_assert(size > 1e-4f && size < 1e4f);
-  diag_assert(density > 1e-4f && density < 1e4f);
+  diag_assert(cellSize > 1e-4f && cellSize < 1e4f);
   diag_assert(height > 1e-4f);
   diag_assert(blockHeight > 1e-4f);
 
   GeoNavGrid* grid = alloc_alloc_t(alloc, GeoNavGrid);
 
-  u32 cellCountAxis = (u32)math_round_nearest_f32(size * density);
+  u32 cellCountAxis = (u32)math_round_nearest_f32(size / cellSize);
   cellCountAxis += !(cellCountAxis % 2); // Align to be odd (so there's always a center cell).
 
   const u32 cellCountTotal = cellCountAxis * cellCountAxis;
@@ -965,8 +965,8 @@ GeoNavGrid* geo_nav_grid_create(
   *grid = (GeoNavGrid){
       .cellCountAxis    = cellCountAxis,
       .cellCountTotal   = cellCountTotal,
-      .cellDensity      = density,
-      .cellSize         = 1.0f / density,
+      .cellSize         = cellSize,
+      .cellDensity      = 1.0f / cellSize,
       .cellHeight       = height,
       .cellBlockHeight  = blockHeight,
       .cellOffset       = geo_vector(size * -0.5f, 0, size * -0.5f),
