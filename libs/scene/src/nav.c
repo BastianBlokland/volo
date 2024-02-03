@@ -596,13 +596,13 @@ void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_t(world, entity, SceneNavBlockerComp);
 }
 
-SceneNavAgentComp* scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneNavPathComp,
-      .cells = alloc_array_t(g_alloc_heap, GeoNavCell, path_max_cells));
-  return ecs_world_add_t(world, entity, SceneNavAgentComp);
+SceneNavAgentComp*
+scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const SceneNavLayer layer) {
+
+  GeoNavCell* pathCells = alloc_array_t(g_alloc_heap, GeoNavCell, path_max_cells);
+  ecs_world_add_t(world, entity, SceneNavPathComp, .cells = pathCells);
+
+  return ecs_world_add_t(world, entity, SceneNavAgentComp, .layer = layer);
 }
 
 GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {

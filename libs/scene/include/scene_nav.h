@@ -12,6 +12,13 @@ typedef i64 TimeDuration;
 ecs_comp_extern(SceneNavEnvComp);
 ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
 
+typedef enum {
+  SceneNavLayer_Normal,
+  SceneNavLayer_Large,
+
+  SceneNavLayer_Count,
+} SceneNavLayer;
+
 /**
  * Navigation blocker.
  */
@@ -37,6 +44,7 @@ typedef enum {
 
 ecs_comp_extern_public(SceneNavAgentComp) {
   SceneNavAgentFlags flags;
+  SceneNavLayer      layer;
   EcsEntityId        targetEntity;
   GeoVector          targetPos;
 };
@@ -62,7 +70,7 @@ void scene_nav_stop(SceneNavAgentComp*);
  * Initialize navigation agents and blockers.
  */
 void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
-SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId);
+SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
 
 /**
  * Retrieve global navigation settings.
