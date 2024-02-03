@@ -75,17 +75,10 @@ void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
 
 /**
- * Retrieve navigation layer data.
+ * Query navigation data.
  */
 const u32*        scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
 const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);
-
-/**
- * Query cell information.
- */
-u32 scene_nav_closest_unblocked_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
-u32 scene_nav_closest_free_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
-
 bool scene_nav_reachable_blocker(const SceneNavEnvComp*, GeoNavCell, const SceneNavBlockerComp*);
 
 /**

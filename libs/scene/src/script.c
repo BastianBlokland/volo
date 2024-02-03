@@ -694,10 +694,10 @@ static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptEr
   case 0 /* ClosestCell */:
     return script_vec3(geo_nav_position(grid, cell));
   case 1 /* UnblockedCell */:
-    scene_nav_closest_unblocked_n(navEnv, cell, cellContainer);
+    geo_nav_closest_unblocked_n(grid, cell, cellContainer);
     return script_vec3(geo_nav_position(grid, cell));
   case 2 /* FreeCell */:
-    scene_nav_closest_free_n(navEnv, cell, cellContainer);
+    geo_nav_closest_free_n(grid, cell, cellContainer);
     return script_vec3(geo_nav_position(grid, cell));
   }
   return script_null();

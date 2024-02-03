@@ -448,7 +448,7 @@ static void input_order_move(
       .capacity = math_min(selectionCount, array_elems(navCells)),
   };
   const GeoNavCell targetNavCell = geo_nav_at_position(grid, targetPos);
-  const u32 unblockedCount = scene_nav_closest_unblocked_n(nav, targetNavCell, navCellContainer);
+  const u32 unblockedCount = geo_nav_closest_unblocked_n(grid, targetNavCell, navCellContainer);
 
   // Push the move commands.
   const EcsEntityId* selection = scene_set_begin(setEnv, g_sceneSetSelected);

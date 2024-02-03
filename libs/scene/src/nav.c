@@ -667,16 +667,6 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer
   return env->grids[layer];
 }
 
-u32 scene_nav_closest_unblocked_n(
-    const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
-  return geo_nav_closest_unblocked_n(env->grids[SceneNavLayer_Normal], cell, out);
-}
-
-u32 scene_nav_closest_free_n(
-    const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
-  return geo_nav_closest_free_n(env->grids[SceneNavLayer_Normal], cell, out);
-}
-
 bool scene_nav_reachable_blocker(
     const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
   const SceneNavLayer layer = SceneNavLayer_Normal;
