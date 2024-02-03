@@ -667,14 +667,6 @@ const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer
   return env->grids[layer];
 }
 
-bool scene_nav_blocked_box(const SceneNavEnvComp* env, const GeoBoxRotated* boxRotated) {
-  return geo_nav_blocked_box_rotated(env->grids[SceneNavLayer_Normal], boxRotated);
-}
-
-bool scene_nav_blocked_sphere(const SceneNavEnvComp* env, const GeoSphere* sphere) {
-  return geo_nav_blocked_sphere(env->grids[SceneNavLayer_Normal], sphere);
-}
-
 u32 scene_nav_closest_unblocked_n(
     const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
   return geo_nav_closest_unblocked_n(env->grids[SceneNavLayer_Normal], cell, out);

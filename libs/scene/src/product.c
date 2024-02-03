@@ -358,6 +358,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   const SceneTransformComp* transComp   = ecs_view_read_t(ctx->itr, SceneTransformComp);
   const SceneFactionComp*   factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
   const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_A;
+  const GeoNavGrid*         grid        = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
@@ -389,7 +390,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector offset = shape->data_sphere.offset;
     const GeoVector point  = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
-    return scene_nav_blocked_sphere(ctx->nav, &sphereWorld);
+    return geo_nav_blocked_sphere(grid, &sphereWorld);
   }
   case AssetPrefabShape_Capsule: {
     static const GeoVector  g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
@@ -401,12 +402,12 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
     const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);
-    return scene_nav_blocked_box(ctx->nav, &boxWorld);
+    return geo_nav_blocked_box_rotated(grid, &boxWorld);
   }
   case AssetPrefabShape_Box: {
     const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
     const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
-    return scene_nav_blocked_box(ctx->nav, &boxWorld);
+    return geo_nav_blocked_box_rotated(grid, &boxWorld);
   }
   }
   diag_crash_msg("Unsupported product collision shape");
