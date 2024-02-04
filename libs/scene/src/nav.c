@@ -66,18 +66,16 @@ static void ecs_destruct_nav_path_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, comp->cells, path_max_cells);
 }
 
-static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
-  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
-    if (env->grids[layer]) {
-      geo_nav_grid_destroy(env->grids[layer]);
-    }
-    const f32 cellSize    = g_sceneNavCellSize[layer];
-    const f32 cellHeight  = g_sceneNavCellHeight[layer];
-    const f32 blockHeight = g_sceneNavCellBlockHeight;
-
-    env->gridSize     = size;
-    env->grids[layer] = geo_nav_grid_create(g_alloc_heap, size, cellSize, cellHeight, blockHeight);
+static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size, const SceneNavLayer layer) {
+  if (env->grids[layer]) {
+    geo_nav_grid_destroy(env->grids[layer]);
   }
+  const f32 cellSize    = g_sceneNavCellSize[layer];
+  const f32 cellHeight  = g_sceneNavCellHeight[layer];
+  const f32 blockHeight = g_sceneNavCellBlockHeight;
+
+  env->gridSize     = size;
+  env->grids[layer] = geo_nav_grid_create(g_alloc_heap, size, cellSize, cellHeight, blockHeight);
 }
 
 static void nav_env_create(EcsWorld* world) {
@@ -85,7 +83,9 @@ static void nav_env_create(EcsWorld* world) {
 
   // TODO: Currently we always initialize the grid with the fallback size first, in theory this can
   // be avoided when we know we will load a level immediately after.
-  nav_env_grid_init(env, g_sceneNavFallbackSize);
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    nav_env_grid_init(env, g_sceneNavFallbackSize, layer);
+  }
 }
 
 static GeoNavBlockerId nav_block_box_rotated(
@@ -133,12 +133,12 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   log_d(
       "Refreshing navigation terrain",
       log_param("version", fmt_int(scene_terrain_version(ctx->terrain))),
+      log_param("layer", fmt_text(g_sceneNavLayerNames[ctx->layer])),
       log_param("size", fmt_float(newSize)),
       log_param("reinit", fmt_bool(reinit)));
 
   if (reinit) {
-    nav_env_grid_init(ctx->env, newSize);
-
+    nav_env_grid_init(ctx->env, newSize, ctx->layer);
     ctx->change |= NavChange_Reinit;
   }
 
