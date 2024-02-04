@@ -538,6 +538,23 @@ static void inspector_panel_draw_target(
   }
 }
 
+static void inspector_panel_draw_nav_agent(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  const SceneNavAgentComp* agent = subject ? ecs_view_read_t(subject, SceneNavAgentComp) : null;
+  if (agent) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Navigation Agent"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Layer"));
+      ui_table_next_column(canvas, table);
+      ui_select(canvas, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
+    }
+  }
+}
+
 static void inspector_panel_draw_renderable(
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
@@ -907,6 +924,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_target(time, canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_nav_agent(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
