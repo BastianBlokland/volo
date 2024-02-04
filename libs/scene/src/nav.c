@@ -107,14 +107,15 @@ typedef enum {
 } NavChange;
 
 typedef struct {
-  SceneNavLayer           layer;
   GeoNavGrid*             grid;
   const SceneTerrainComp* terrain;
-  NavChange               change;
+  u32                     terrainVersion;
+  SceneNavLayer           layer : 16;
+  NavChange               change : 16;
 } NavInitContext;
 
-static void nav_refresh_terrain(NavInitContext* ctx, SceneNavEnvComp* env) {
-  if (env->terrainVersion == scene_terrain_version(ctx->terrain)) {
+static void nav_refresh_terrain(NavInitContext* ctx) {
+  if (ctx->terrainVersion == scene_terrain_version(ctx->terrain)) {
     return; // Terrain unchanged.
   }
 
@@ -133,8 +134,7 @@ static void nav_refresh_terrain(NavInitContext* ctx, SceneNavEnvComp* env) {
 
   if (reinit) {
     geo_nav_grid_destroy(ctx->grid);
-    ctx->grid              = nav_grid_create(newSize, ctx->layer);
-    env->grids[ctx->layer] = ctx->grid;
+    ctx->grid = nav_grid_create(newSize, ctx->layer);
     ctx->change |= NavChange_Reinit;
   }
 
@@ -155,8 +155,6 @@ static void nav_refresh_terrain(NavInitContext* ctx, SceneNavEnvComp* env) {
     // Conservatively indicate a blocker was removed.
     ctx->change |= NavChange_BlockerRemoved;
   }
-
-  env->terrainVersion = scene_terrain_version(ctx->terrain);
 }
 
 static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
@@ -350,9 +348,15 @@ ecs_system_define(SceneNavInitSys) {
   EcsView* occupantView = ecs_world_view_t(world, OccupantView);
 
   const SceneNavLayer layer = SceneNavLayer_Normal;
-  NavInitContext      ctx   = {.layer = layer, .grid = env->grids[layer], .terrain = terrain};
 
-  nav_refresh_terrain(&ctx, env);
+  NavInitContext ctx = {
+      .grid           = env->grids[layer],
+      .terrain        = terrain,
+      .terrainVersion = env->terrainVersion,
+      .layer          = layer,
+  };
+
+  nav_refresh_terrain(&ctx);
   nav_refresh_blockers(&ctx, blockerView);
   nav_refresh_paths(&ctx, pathView);
   nav_refresh_occupants(&ctx, occupantView);
@@ -360,6 +364,9 @@ ecs_system_define(SceneNavInitSys) {
   if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
     geo_nav_compute_islands(ctx.grid);
   }
+
+  env->grids[layer]   = ctx.grid;
+  env->terrainVersion = scene_terrain_version(terrain);
 }
 
 ecs_view_define(UpdateAgentGlobalView) {
