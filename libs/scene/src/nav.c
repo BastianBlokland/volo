@@ -105,19 +105,19 @@ static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   return !ecs_view_contains(blockerView, (EcsEntityId)userId);
 }
 
-enum {
+typedef enum {
   NavChange_Reinit          = 1 << 0,
   NavChange_BlockerRemoved  = 1 << 1,
   NavChange_BlockerAdded    = 1 << 2,
   NavChange_PathInvalidated = 1 << 3,
-};
+} NavChange;
 
 typedef struct {
   SceneNavLayer           layer;
   GeoNavGrid*             grid;
   SceneNavEnvComp*        env;
   const SceneTerrainComp* terrain;
-  u8                      change;
+  NavChange               change;
 } NavInitContext;
 
 static void nav_refresh_terrain(NavInitContext* ctx) {
