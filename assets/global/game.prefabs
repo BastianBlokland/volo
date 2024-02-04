@@ -253,6 +253,37 @@
       ]
     },
     {
+      "name": "VehicleTank",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Tank" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 1000,
+          "deathDestroyDelay": 2.5
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": false,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": { "x": -1.35, "y": 0, "z": -2.8 },
+            "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
+          }
+        },
+        {
+          "$type": "AssetPrefabTrait_Location",
+          "aimTarget": {
+            "min": { "x": -1.15, "y": 0.25, "z": -2.5 },
+            "max": { "x": 1.15, "y": 1.5, "z": 2.5 }
+          }
+        },
+        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+      ]
+    },
+    {
       "name": "StructureTurretGun",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
