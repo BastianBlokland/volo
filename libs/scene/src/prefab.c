@@ -152,6 +152,22 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
       UNREACHABLE
     }
   }
+  if (flags & AssetPrefabFlags_Vehicle) {
+    switch (faction) {
+    case SceneFaction_A:
+      return SceneLayer_VehicleFactionA;
+    case SceneFaction_B:
+      return SceneLayer_VehicleFactionB;
+    case SceneFaction_C:
+      return SceneLayer_VehicleFactionC;
+    case SceneFaction_D:
+      return SceneLayer_VehicleFactionD;
+    case SceneFaction_None:
+      return SceneLayer_VehicleFactionNone;
+    default:
+      UNREACHABLE
+    }
+  }
   if (flags & AssetPrefabFlags_Structure) {
     switch (faction) {
     case SceneFaction_A:

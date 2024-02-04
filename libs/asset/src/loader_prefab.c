@@ -25,6 +25,7 @@ static struct {
   AssetPrefabFlags flags;
 } g_prefabSetFlags[] = {
     {.setName = string_static("infantry"), .flags = AssetPrefabFlags_Infantry},
+    {.setName = string_static("vehicle"), .flags = AssetPrefabFlags_Vehicle},
     {.setName = string_static("structure"), .flags = AssetPrefabFlags_Structure},
     {.setName = string_static("destructible"), .flags = AssetPrefabFlags_Destructible},
 };

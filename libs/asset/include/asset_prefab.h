@@ -209,9 +209,10 @@ typedef struct {
 
 typedef enum {
   AssetPrefabFlags_Infantry     = 1 << 0,
-  AssetPrefabFlags_Structure    = 1 << 1,
-  AssetPrefabFlags_Destructible = 1 << 2,
-  AssetPrefabFlags_Volatile     = 1 << 3, // Prefab should not be persisted.
+  AssetPrefabFlags_Vehicle      = 1 << 1,
+  AssetPrefabFlags_Structure    = 1 << 2,
+  AssetPrefabFlags_Destructible = 1 << 3,
+  AssetPrefabFlags_Volatile     = 1 << 4, // Prefab should not be persisted.
 } AssetPrefabFlags;
 
 typedef struct {

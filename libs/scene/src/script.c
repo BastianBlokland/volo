@@ -143,6 +143,7 @@ static void eval_enum_init_layer() {
   script_enum_push(&g_scriptEnumLayer, string_lit("Environment"),       SceneLayer_Environment);
   script_enum_push(&g_scriptEnumLayer, string_lit("Destructible"),      SceneLayer_Destructible);
   script_enum_push(&g_scriptEnumLayer, string_lit("Infantry"),          SceneLayer_Infantry);
+  script_enum_push(&g_scriptEnumLayer, string_lit("Vehicle"),           SceneLayer_Vehicle);
   script_enum_push(&g_scriptEnumLayer, string_lit("Structure"),         SceneLayer_Structure);
   script_enum_push(&g_scriptEnumLayer, string_lit("Unit"),              SceneLayer_Unit);
   script_enum_push(&g_scriptEnumLayer, string_lit("Debug"),             SceneLayer_Debug);
