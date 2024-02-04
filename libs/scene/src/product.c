@@ -94,6 +94,16 @@ static GeoVector product_rally_pos(EcsIterator* itr) {
   return production->rallyPos;
 }
 
+static SceneNavLayer product_nav_layer(const AssetPrefabMapComp* map, const AssetPrefab* prefab) {
+  const AssetPrefabTrait* t = asset_prefab_trait_get(map, prefab, AssetPrefabTrait_Movement);
+  if (t) {
+    const f32 radius = t->data_movement.radius;
+    // NOTE: This needs to match the logic in 'setup_movement' of 'prefab.c'.
+    return radius > 1.0f ? SceneNavLayer_Large : SceneNavLayer_Normal;
+  }
+  return SceneNavLayer_Normal;
+}
+
 static bool product_queues_init(SceneProductionComp* production, const AssetProductMapComp* map) {
   diag_assert(!production->queues);
   diag_assert(production->productSetId);
@@ -273,13 +283,19 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
   const AssetProduct* product = ctx->queue->product;
   diag_assert(product->type == AssetProduct_Unit);
 
-  const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+  const StringHash   prefabId = product->data_unit.unitPrefab;
+  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  if (!prefab) {
+    return true; // TODO: Report error?
+  }
+  const SceneNavLayer navLayer = product_nav_layer(ctx->prefabMap, prefab);
+  const GeoNavGrid*   grid     = scene_nav_grid(ctx->nav, navLayer);
 
-  const GeoNavGrid* grid       = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
-  const u32         spawnCount = product->data_unit.unitCount;
-  const GeoVector   spawnPos   = product_spawn_pos(ctx->itr, grid);
-  const GeoVector   rallyPos   = product_rally_pos(ctx->itr);
-  const GeoNavCell  rallyCell  = geo_nav_at_position(grid, rallyPos);
+  const u32               spawnCount  = product->data_unit.unitCount;
+  const GeoVector         spawnPos    = product_spawn_pos(ctx->itr, grid);
+  const GeoVector         rallyPos    = product_rally_pos(ctx->itr);
+  const GeoNavCell        rallyCell   = geo_nav_at_position(grid, rallyPos);
+  const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
 
   GeoNavCell                targetCells[32];
   const GeoNavCellContainer targetCellContainer = {
@@ -297,7 +313,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
     const EcsEntityId e = scene_prefab_spawn(
         ctx->world,
         &(ScenePrefabSpec){
-            .prefabId = product->data_unit.unitPrefab,
+            .prefabId = prefabId,
             .position = spawnPos,
             .rotation = geo_quat_look(forward, geo_up),
             .scale    = 1.0f,
