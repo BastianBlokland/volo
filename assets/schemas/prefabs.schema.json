@@ -151,13 +151,7 @@
             "radius": { "title": "f32", "type": "number" },
             "moveAnimation": { "title": "String", "type": "string" }
           },
-          "required": [
-            "$type",
-            "speed",
-            "rotationSpeed",
-            "radius",
-            "moveAnimation"
-          ]
+          "required": [ "$type", "speed", "rotationSpeed", "radius" ]
         },
         {
           "type": "object",
@@ -301,7 +295,7 @@
         { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}" },
         { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },
         { "label": "New AssetPrefabTrait_Lifetime", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Lifetime\",\n  \"duration\": 1\n}" },
-        { "label": "New AssetPrefabTrait_Movement", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1,\n  \"moveAnimation\": \"\"\n}" },
+        { "label": "New AssetPrefabTrait_Movement", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1\n}" },
         { "label": "New AssetPrefabTrait_Footstep", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Footstep\",\n  \"jointA\": \"placeholder\",\n  \"jointB\": \"placeholder\",\n  \"decalIdA\": \"placeholder\",\n  \"decalIdB\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Health", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Health\",\n  \"amount\": 1,\n  \"deathDestroyDelay\": 0\n}" },
         { "label": "New AssetPrefabTrait_Attack", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetRangeMax\": 1\n}" },
