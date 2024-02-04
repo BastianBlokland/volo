@@ -407,9 +407,8 @@ typedef struct {
 } SceneNavGoal;
 
 static SceneNavGoal
-nav_goal_pos(const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVector targetPos) {
-  const GeoNavGrid* grid       = env->grids[SceneNavLayer_Normal];
-  const GeoNavCell  targetCell = geo_nav_at_position(grid, targetPos);
+nav_goal_pos(const GeoNavGrid* grid, const GeoNavCell fromCell, const GeoVector targetPos) {
+  const GeoNavCell targetCell = geo_nav_at_position(grid, targetPos);
   if (geo_nav_reachable(grid, fromCell, targetCell)) {
     return (SceneNavGoal){.cell = targetCell, .position = targetPos};
   }
@@ -418,29 +417,30 @@ nav_goal_pos(const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVec
   return (SceneNavGoal){.cell = reachableCell, .position = reachablePos};
 }
 
-static SceneNavGoal
-nav_goal_entity(const SceneNavEnvComp* env, const GeoNavCell fromCell, EcsIterator* targetItr) {
-  const GeoNavGrid*          grid        = env->grids[SceneNavLayer_Normal];
-  const SceneNavLayer        layer       = SceneNavLayer_Normal;
+static SceneNavGoal nav_goal_entity(
+    const GeoNavGrid*   grid,
+    const SceneNavLayer layer,
+    const GeoNavCell    fromCell,
+    EcsIterator*        targetItr) {
   const SceneTransformComp*  targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneNavBlockerComp* blocker     = ecs_view_read_t(targetItr, SceneNavBlockerComp);
   if (blocker && !sentinel_check(blocker->ids[layer])) {
     const GeoNavCell closest = geo_nav_blocker_closest(grid, blocker->ids[layer], fromCell);
     return (SceneNavGoal){.cell = closest, .position = geo_nav_position(grid, closest)};
   }
-  return nav_goal_pos(env, fromCell, targetTrans->position);
+  return nav_goal_pos(grid, fromCell, targetTrans->position);
 }
 
 static void nav_move_towards(
-    const SceneNavEnvComp* env,
-    SceneLocomotionComp*   loco,
-    const SceneNavGoal*    goal,
-    const GeoNavCell       cell) {
+    const GeoNavGrid*    grid,
+    SceneLocomotionComp* loco,
+    const SceneNavGoal*  goal,
+    const GeoNavCell     cell) {
   GeoVector locoPos;
   if (cell.data == goal->cell.data) {
     locoPos = goal->position;
   } else {
-    locoPos = geo_nav_position(env->grids[SceneNavLayer_Normal], cell);
+    locoPos = geo_nav_position(grid, cell);
   }
   scene_locomotion_move(loco, locoPos);
 }
@@ -479,9 +479,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       if (!ecs_view_maybe_jump(targetItr, agent->targetEntity)) {
         goto Stop; // Target entity not valid (anymore).
       }
-      goal = nav_goal_entity(env, fromCell, targetItr);
+      goal = nav_goal_entity(grid, agent->layer, fromCell, targetItr);
     } else {
-      goal = nav_goal_pos(env, fromCell, agent->targetPos);
+      goal = nav_goal_pos(grid, fromCell, agent->targetPos);
     }
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
@@ -528,13 +528,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
       if (!geo_nav_line_blocked(grid, fromCell, path->cells[i])) {
         path->currentTargetIndex = i;
-        nav_move_towards(env, loco, &goal, path->cells[i]);
+        nav_move_towards(grid, loco, &goal, path->cells[i]);
         goto Done;
       }
     }
 
     // No shortcut available; move to the current target cell in the path.
-    nav_move_towards(env, loco, &goal, path->cells[path->currentTargetIndex]);
+    nav_move_towards(grid, loco, &goal, path->cells[path->currentTargetIndex]);
 
   Done:
     continue;
