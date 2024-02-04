@@ -263,8 +263,10 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const Scen
   }
 }
 
-static void nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantView) {
-  GeoNavGrid* grid = env->grids[SceneNavLayer_Normal];
+static void
+nav_refresh_occupants(SceneNavEnvComp* env, EcsView* occupantView, const SceneNavLayer layer) {
+  GeoNavGrid* grid = env->grids[layer];
+  geo_nav_occupant_remove_all(grid);
   for (EcsIterator* itr = ecs_view_itr(occupantView); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*      scale = ecs_view_read_t(itr, SceneScaleComp);
@@ -360,13 +362,11 @@ ecs_system_define(SceneNavInitSys) {
   nav_refresh_terrain(&ctx);
   nav_refresh_blockers(&ctx, blockerView, SceneNavLayer_Normal);
   nav_refresh_paths(&ctx, pathView, SceneNavLayer_Normal);
+  nav_refresh_occupants(env, occupantView, SceneNavLayer_Normal);
 
   if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
     geo_nav_compute_islands(env->grids[SceneNavLayer_Normal]);
   }
-
-  geo_nav_occupant_remove_all(env->grids[SceneNavLayer_Normal]);
-  nav_add_occupants(env, occupantView);
 }
 
 ecs_view_define(UpdateAgentGlobalView) {
