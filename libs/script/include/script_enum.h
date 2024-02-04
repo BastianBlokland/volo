@@ -4,7 +4,7 @@
 // Forward declare from 'script_error.h'.
 typedef struct sScriptError ScriptError;
 
-#define script_enum_max_entries 8
+#define script_enum_max_entries 10
 
 typedef struct sScriptEnum {
   u32        count;
