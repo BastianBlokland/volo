@@ -438,6 +438,8 @@ static void input_order_move(
   input_indicator_move(world, targetPos);
   input_report_command(debugStats, string_lit("Move"));
 
+  // NOTE: Always using a single normal nav layer cell per unit, so there potentially too little
+  // space for large units.
   const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
 
   // Find unblocked cells on the nav-grid to move to.
