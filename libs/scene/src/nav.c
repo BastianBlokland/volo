@@ -45,7 +45,6 @@ ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect numb
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* grids[SceneNavLayer_Count];
   u32         gridStats[SceneNavLayer_Count][GeoNavStat_Count];
-  f32         gridSize;
   u32         terrainVersion;
 };
 
@@ -78,7 +77,6 @@ static void nav_env_create(EcsWorld* world) {
 
   // TODO: Currently we always initialize the grid with the fallback size first, in theory this can
   // be avoided when we know we will load a level immediately after.
-  env->gridSize = g_sceneNavFallbackSize;
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
     env->grids[layer] = nav_grid_create(g_sceneNavFallbackSize, layer);
   }
@@ -124,7 +122,7 @@ static void nav_refresh_terrain(NavInitContext* ctx, SceneNavEnvComp* env) {
   if (scene_terrain_loaded(ctx->terrain)) {
     newSize = scene_terrain_play_size(ctx->terrain);
   }
-  const bool reinit = newSize != env->gridSize;
+  const bool reinit = newSize != geo_nav_size(ctx->grid);
 
   log_d(
       "Refreshing navigation terrain",

@@ -51,6 +51,7 @@ typedef struct {
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
+  f32           size;
   u32           cellCountAxis, cellCountTotal;
   f32           cellSize, cellDensity;
   f32           cellHeight;
@@ -963,6 +964,7 @@ GeoNavGrid* geo_nav_grid_create(
   const u32 cellCountTotal = cellCountAxis * cellCountAxis;
 
   *grid = (GeoNavGrid){
+      .size             = size,
       .cellCountAxis    = cellCountAxis,
       .cellCountTotal   = cellCountTotal,
       .cellSize         = cellSize,
@@ -1016,6 +1018,7 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
   return (GeoNavRegion){.max = {.x = grid->cellCountAxis, .y = grid->cellCountAxis}};
 }
 
+f32 geo_nav_size(const GeoNavGrid* grid) { return grid->size; }
 f32 geo_nav_cell_size(const GeoNavGrid* grid) { return grid->cellSize; }
 
 void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
