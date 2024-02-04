@@ -113,6 +113,7 @@ enum {
 };
 
 typedef struct {
+  SceneNavLayer           layer;
   SceneNavEnvComp*        env;
   const SceneTerrainComp* terrain;
   u8                      change;
@@ -142,7 +143,7 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   }
 
   if (scene_terrain_loaded(ctx->terrain)) {
-    GeoNavGrid*        grid   = ctx->env->grids[SceneNavLayer_Normal];
+    GeoNavGrid*        grid   = ctx->env->grids[ctx->layer];
     const GeoNavRegion bounds = geo_nav_bounds(grid);
     for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
       for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
@@ -155,7 +156,7 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
     // Conservatively indicate a blocker-update as new cells can be blocked on the updated terrain.
     ctx->change |= NavChange_BlockerRemoved | NavChange_BlockerAdded;
   } else {
-    geo_nav_y_clear(ctx->env->grids[SceneNavLayer_Normal]);
+    geo_nav_y_clear(ctx->env->grids[ctx->layer]);
     // Conservatively indicate a blocker was removed.
     ctx->change |= NavChange_BlockerRemoved;
   }
@@ -163,9 +164,8 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   ctx->env->terrainVersion = scene_terrain_version(ctx->terrain);
 }
 
-static void
-nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLayer layer) {
-  GeoNavGrid* grid   = ctx->env->grids[SceneNavLayer_Normal];
+static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
+  GeoNavGrid* grid   = ctx->env->grids[ctx->layer];
   const bool  reinit = (ctx->change & NavChange_Reinit) != 0;
   if (reinit) {
     if (geo_nav_blocker_remove_all(grid)) {
@@ -187,15 +187,15 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
       continue; // Blocker not dirty; nothing do to.
     }
 
-    if (!reinit && geo_nav_blocker_remove(grid, blocker->ids[layer])) {
+    if (!reinit && geo_nav_blocker_remove(grid, blocker->ids[ctx->layer])) {
       ctx->change |= NavChange_BlockerRemoved;
     }
 
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
-      const GeoSphere s   = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      blocker->ids[layer] = geo_nav_blocker_add_sphere(grid, userId, &s);
+      const GeoSphere s        = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      blocker->ids[ctx->layer] = geo_nav_blocker_add_sphere(grid, userId, &s);
     } break;
     case SceneCollisionType_Capsule: {
       /**
@@ -204,16 +204,16 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
        */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      blocker->ids[layer]         = nav_block_box_rotated(ctx->env, layer, userId, &cBounds);
+      blocker->ids[ctx->layer]    = nav_block_box_rotated(ctx->env, ctx->layer, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
-      blocker->ids[layer]   = nav_block_box_rotated(ctx->env, layer, userId, &b);
+      const GeoBoxRotated b    = scene_collision_world_box(&collision->box, trans, scale);
+      blocker->ids[ctx->layer] = nav_block_box_rotated(ctx->env, ctx->layer, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
     }
-    if (!sentinel_check(blocker->ids[layer])) {
+    if (!sentinel_check(blocker->ids[ctx->layer])) {
       /**
        * A new blocker was registered.
        * NOTE: This doesn't necessarily mean any new cell got blocked that wasn't before so this
@@ -224,7 +224,7 @@ nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView, const SceneNavLa
   }
 }
 
-static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const SceneNavLayer layer) {
+static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
   if (ctx->change & NavChange_Reinit) {
     /**
      * The navigation grid was reinitialized; we cannot re-use any of the existing paths (as when
@@ -232,7 +232,7 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const Scen
      */
     for (EcsIterator* itr = ecs_view_itr(pathView); ecs_view_walk(itr);) {
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
-      if (path->layer != layer) {
+      if (path->layer != ctx->layer) {
         continue;
       }
       path->cellCount       = 0;
@@ -249,11 +249,11 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const Scen
      */
     for (EcsIterator* itr = ecs_view_itr(pathView); ecs_view_walk(itr);) {
       SceneNavPathComp* path = ecs_view_write_t(itr, SceneNavPathComp);
-      if (path->layer != layer) {
+      if (path->layer != ctx->layer) {
         continue;
       }
       for (u32 i = 0; i != path->cellCount; ++i) {
-        if (geo_nav_blocked(ctx->env->grids[layer], path->cells[i])) {
+        if (geo_nav_blocked(ctx->env->grids[ctx->layer], path->cells[i])) {
           path->nextRefreshTime = 0;
           ctx->change |= NavChange_PathInvalidated;
           break;
@@ -263,9 +263,8 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView, const Scen
   }
 }
 
-static void
-nav_refresh_occupants(SceneNavEnvComp* env, EcsView* occupantView, const SceneNavLayer layer) {
-  GeoNavGrid* grid = env->grids[layer];
+static void nav_refresh_occupants(NavInitContext* ctx, EcsView* occupantView) {
+  GeoNavGrid* grid = ctx->env->grids[ctx->layer];
   geo_nav_occupant_remove_all(grid);
   for (EcsIterator* itr = ecs_view_itr(occupantView); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
@@ -357,15 +356,15 @@ ecs_system_define(SceneNavInitSys) {
   EcsView* pathView     = ecs_world_view_t(world, PathView);
   EcsView* occupantView = ecs_world_view_t(world, OccupantView);
 
-  NavInitContext ctx = {.env = env, .terrain = terrain};
+  NavInitContext ctx = {.layer = SceneNavLayer_Normal, .env = env, .terrain = terrain};
 
   nav_refresh_terrain(&ctx);
-  nav_refresh_blockers(&ctx, blockerView, SceneNavLayer_Normal);
-  nav_refresh_paths(&ctx, pathView, SceneNavLayer_Normal);
-  nav_refresh_occupants(env, occupantView, SceneNavLayer_Normal);
+  nav_refresh_blockers(&ctx, blockerView);
+  nav_refresh_paths(&ctx, pathView);
+  nav_refresh_occupants(&ctx, occupantView);
 
   if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
-    geo_nav_compute_islands(env->grids[SceneNavLayer_Normal]);
+    geo_nav_compute_islands(env->grids[ctx.layer]);
   }
 }
 
