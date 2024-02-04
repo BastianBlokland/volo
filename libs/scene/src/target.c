@@ -47,6 +47,7 @@ ecs_view_define(TargetFinderView) {
   ecs_access_maybe_read(SceneAttackAimComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneLocationComp);
+  ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneTargetTraceComp);
   ecs_access_read(SceneTransformComp);
@@ -136,9 +137,15 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
-static bool
-target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsIterator* targetItr) {
-  const SceneNavLayer        layer            = SceneNavLayer_Normal;
+static bool target_reachable(
+    const SceneNavEnvComp*   nav,
+    const SceneNavAgentComp* finderAgent,
+    const GeoVector          finderPos,
+    EcsIterator*             targetItr) {
+  if (!finderAgent) {
+    return false; // Without a navigation agent we cannot reach any position.
+  }
+  const SceneNavLayer        layer            = finderAgent->layer;
   const GeoNavGrid*          grid             = scene_nav_grid(nav, layer);
   const GeoNavCell           finderNavCell    = geo_nav_at_position(grid, finderPos);
   const SceneNavBlockerComp* targetNavBlocker = ecs_view_read_t(targetItr, SceneNavBlockerComp);
@@ -152,12 +159,13 @@ target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsItera
 static f32 target_score(
     const EcsWorld*              world,
     const SceneCollisionEnvComp* collisionEnv,
-    const SceneNavEnvComp*       nav,
+    const SceneNavEnvComp*       navEnv,
     const SceneTargetFinderComp* finder,
     const EcsEntityId            finderEntity,
     const GeoVector              finderPosCenter,
     const GeoVector              finderAimDir,
     const SceneFaction           finderFaction,
+    const SceneNavAgentComp*     finderNavAgent,
     const EcsEntityId            targetOld,
     EcsIterator*                 targetItr) {
 
@@ -181,7 +189,7 @@ static f32 target_score(
   }
 
   const bool excludeUnreachable = (finder->config & SceneTargetConfig_ExcludeUnreachable) != 0;
-  if (excludeUnreachable && !target_reachable(nav, finderPosCenter, targetItr)) {
+  if (excludeUnreachable && !target_reachable(navEnv, finderNavAgent, finderPosCenter, targetItr)) {
     return 0.0f; // Target unreachable.
   }
   const f32       dist = math_sqrt_f32(distSqr);
@@ -191,9 +199,9 @@ static f32 target_score(
     const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
     const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
     const SceneQueryFilter           filter    = {
-                     .layerMask = SceneLayer_Environment | SceneLayer_Structure,
-                     .callback  = target_los_filter,
-                     .context   = &filterCtx,
+        .layerMask = SceneLayer_Environment | SceneLayer_Structure,
+        .callback  = target_los_filter,
+        .context   = &filterCtx,
     };
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit) && hit.entity != tgtEntity) {
@@ -257,6 +265,7 @@ ecs_system_define(SceneTargetUpdateSys) {
     const SceneLocationComp*  loc         = ecs_view_read_t(itr, SceneLocationComp);
     const SceneAttackAimComp* attackAim   = ecs_view_read_t(itr, SceneAttackAimComp);
     const SceneFactionComp*   factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneNavAgentComp*  navAgent    = ecs_view_read_t(itr, SceneNavAgentComp);
     SceneTargetFinderComp*    finder      = ecs_view_write_t(itr, SceneTargetFinderComp);
     SceneTargetTraceComp*     trace       = ecs_view_write_t(itr, SceneTargetTraceComp);
     const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_None;
@@ -295,7 +304,17 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Entities is not part of the set we target.
         }
         const f32 score = target_score(
-            world, colEnv, navEnv, finder, entity, srcPos, aimDir, faction, targetOld, targetItr);
+            world,
+            colEnv,
+            navEnv,
+            finder,
+            entity,
+            srcPos,
+            aimDir,
+            faction,
+            navAgent,
+            targetOld,
+            targetItr);
 
         // Insert into the target queue.
         for (u32 i = 0; i != scene_target_queue_size; ++i) {
