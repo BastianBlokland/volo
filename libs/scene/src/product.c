@@ -357,7 +357,8 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   const SceneTransformComp* transComp   = ecs_view_read_t(ctx->itr, SceneTransformComp);
   const SceneFactionComp*   factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
   const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_A;
-  const GeoNavGrid*         grid        = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
+  // NOTE: Uses the smallest nav layer for highest block detection fidelity.
+  const GeoNavGrid* grid = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
