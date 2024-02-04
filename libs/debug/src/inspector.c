@@ -132,6 +132,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorSpace   space;
   DebugInspectorTool    tool;
   DebugInspectorVisMode visMode;
+  SceneNavLayer         visNavLayer;
   u32                   visFlags;
   bool                  drawVisInGame;
   GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
@@ -859,6 +860,14 @@ static void inspector_panel_draw_settings(
     ui_label(canvas, string_lit("Visualize In Game"));
     ui_table_next_column(canvas, table);
     ui_toggle(canvas, &settings->drawVisInGame);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Navigation Layer"));
+    ui_table_next_column(canvas, table);
+    const String* layerNames = g_sceneNavLayerNames;
+    if (ui_select(canvas, (i32*)&settings->visNavLayer, layerNames, SceneNavLayer_Count)) {
+      debug_stats_notify(stats, string_lit("Navigation Layer"), layerNames[settings->visNavLayer]);
+    }
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Visualize Mode"));
@@ -1811,7 +1820,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
+    const GeoNavGrid* grid = scene_nav_grid(nav, set->visNavLayer);
     inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
