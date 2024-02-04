@@ -256,9 +256,16 @@
       "name": "VehicleTank",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Tank" },
-        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        {
+          "$type": "AssetPrefabTrait_Movement",
+          "speed": 3.5,
+          "rotationSpeed": 40,
+          "radius": 1.45,
+          "moveAnimation": ""
+        },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 1000,
@@ -273,6 +280,7 @@
             "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
           }
         },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
         {
           "$type": "AssetPrefabTrait_Location",
           "aimTarget": {
