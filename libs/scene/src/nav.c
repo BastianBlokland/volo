@@ -18,9 +18,15 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-static const f32 g_sceneNavFallbackSize    = 500.0f;
-static const f32 g_sceneNavCellSize        = 1.0f;
-static const f32 g_sceneNavCellHeight      = 5.0f;
+static const f32 g_sceneNavFallbackSize                  = 500.0f;
+static const f32 g_sceneNavCellSize[SceneNavLayer_Count] = {
+    [SceneNavLayer_Normal] = 1.0f,
+    [SceneNavLayer_Large]  = 3.0f,
+};
+static const f32 g_sceneNavCellHeight[SceneNavLayer_Count] = {
+    [SceneNavLayer_Normal] = 5.0f,
+    [SceneNavLayer_Large]  = 5.0f,
+};
 static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
 #define path_max_cells 128
@@ -65,9 +71,12 @@ static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size) {
     if (env->grids[layer]) {
       geo_nav_grid_destroy(env->grids[layer]);
     }
+    const f32 cellSize    = g_sceneNavCellSize[layer];
+    const f32 cellHeight  = g_sceneNavCellHeight[layer];
+    const f32 blockHeight = g_sceneNavCellBlockHeight;
+
     env->gridSize     = size;
-    env->grids[layer] = geo_nav_grid_create(
-        g_alloc_heap, size, g_sceneNavCellSize, g_sceneNavCellHeight, g_sceneNavCellBlockHeight);
+    env->grids[layer] = geo_nav_grid_create(g_alloc_heap, size, cellSize, cellHeight, blockHeight);
   }
 }
 
