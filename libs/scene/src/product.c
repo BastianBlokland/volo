@@ -60,9 +60,8 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
   return itr ? ecs_view_read_t(itr, AssetProductMapComp) : null;
 }
 
-static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
-  const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
-  GeoNavCell        cell = geo_nav_at_position(grid, pos);
+static GeoVector product_world_on_nav(const GeoNavGrid* grid, const GeoVector pos) {
+  GeoNavCell cell = geo_nav_at_position(grid, pos);
   geo_nav_closest_unblocked_n(grid, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
   return geo_nav_position(grid, cell);
 }
@@ -81,10 +80,10 @@ static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector loca
   return transComp ? scene_transform_to_world(transComp, scaleComp, localPos) : localPos;
 }
 
-static GeoVector product_spawn_pos(EcsIterator* itr, const SceneNavEnvComp* nav) {
+static GeoVector product_spawn_pos(EcsIterator* itr, const GeoNavGrid* grid) {
   const SceneProductionComp* production = ecs_view_read_t(itr, SceneProductionComp);
   const GeoVector            pos        = product_world_from_local(itr, production->spawnPos);
-  return product_world_on_nav(nav, pos);
+  return product_world_on_nav(grid, pos);
 }
 
 static GeoVector product_rally_pos(EcsIterator* itr) {
@@ -278,7 +277,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
 
   const GeoNavGrid* grid       = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
   const u32         spawnCount = product->data_unit.unitCount;
-  const GeoVector   spawnPos   = product_spawn_pos(ctx->itr, ctx->nav);
+  const GeoVector   spawnPos   = product_spawn_pos(ctx->itr, grid);
   const GeoVector   rallyPos   = product_rally_pos(ctx->itr);
   const GeoNavCell  rallyCell  = geo_nav_at_position(grid, rallyPos);
 
