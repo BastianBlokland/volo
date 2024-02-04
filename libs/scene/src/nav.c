@@ -347,25 +347,24 @@ ecs_system_define(SceneNavInitSys) {
   EcsView* pathView     = ecs_world_view_t(world, PathView);
   EcsView* occupantView = ecs_world_view_t(world, OccupantView);
 
-  const SceneNavLayer layer = SceneNavLayer_Normal;
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    NavInitContext ctx = {
+        .grid           = env->grids[layer],
+        .terrain        = terrain,
+        .terrainVersion = env->terrainVersion,
+        .layer          = layer,
+    };
 
-  NavInitContext ctx = {
-      .grid           = env->grids[layer],
-      .terrain        = terrain,
-      .terrainVersion = env->terrainVersion,
-      .layer          = layer,
-  };
+    nav_refresh_terrain(&ctx);
+    nav_refresh_blockers(&ctx, blockerView);
+    nav_refresh_paths(&ctx, pathView);
+    nav_refresh_occupants(&ctx, occupantView);
 
-  nav_refresh_terrain(&ctx);
-  nav_refresh_blockers(&ctx, blockerView);
-  nav_refresh_paths(&ctx, pathView);
-  nav_refresh_occupants(&ctx, occupantView);
-
-  if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
-    geo_nav_compute_islands(ctx.grid);
+    if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
+      geo_nav_compute_islands(ctx.grid);
+    }
+    env->grids[layer] = ctx.grid;
   }
-
-  env->grids[layer]   = ctx.grid;
   env->terrainVersion = scene_terrain_version(terrain);
 }
 
