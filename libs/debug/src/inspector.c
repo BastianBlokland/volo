@@ -1786,10 +1786,14 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
 
   static const String g_drawHotkeys[DebugInspectorVis_Count] = {
+      [DebugInspectorVis_Icon]           = string_static("DebugInspectorVisIcon"),
+      [DebugInspectorVis_Name]           = string_static("DebugInspectorVisName"),
       [DebugInspectorVis_Collision]      = string_static("DebugInspectorVisCollision"),
       [DebugInspectorVis_Locomotion]     = string_static("DebugInspectorVisLocomotion"),
       [DebugInspectorVis_NavigationPath] = string_static("DebugInspectorVisNavigationPath"),
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
+      [DebugInspectorVis_Light]          = string_static("DebugInspectorVisLight"),
+      [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
       [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
   };

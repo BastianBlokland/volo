@@ -302,6 +302,34 @@
       ]
     },
     {
+      "name": "DebugInspectorVisIcon",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "I" }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisName",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "N" }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisLight",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "L" }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisVision",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "V" }
+      ]
+    },
+    {
       "name": "DebugInspectorVisHealth",
       "blockers": [ "TextInput" ],
       "bindings": [
