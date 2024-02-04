@@ -22,6 +22,7 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(MoveView) {
+  ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_write(SceneLocomotionComp);
@@ -55,13 +56,14 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
   EcsView* moveView = ecs_world_view_t(world, MoveView);
   for (EcsIterator* itr = ecs_view_itr_step(moveView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId     entity    = ecs_view_entity(itr);
-    SceneAnimationComp*   anim      = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneLocomotionComp*  loco      = ecs_view_write_t(itr, SceneLocomotionComp);
-    SceneTransformComp*   trans     = ecs_view_write_t(itr, SceneTransformComp);
-    const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
-    const GeoVector       pos       = trans->position;
+    const EcsEntityId        entity    = ecs_view_entity(itr);
+    SceneAnimationComp*      anim      = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneLocomotionComp*     loco      = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneTransformComp*      trans     = ecs_view_write_t(itr, SceneTransformComp);
+    const SceneNavAgentComp* navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
+    const SceneScaleComp*    scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const f32                scale     = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector          pos       = trans->position;
 
     if (loco->flags & SceneLocomotion_Stop) {
       loco->targetPos = pos;
@@ -84,10 +86,9 @@ ecs_system_define(SceneLocomotionMoveSys) {
        * Push this entity away from other navigation agents and blockers.
        * NOTE: Use current position instead of the next position to avoid two units moving in the
        * same direction not pushing each other.
-       * NOTE: Always uses the 'normal' nav layer, means that for units with a large radius pushing
-       * might happen too late (when they are already too close).
        */
-      const GeoNavGrid*   grid     = scene_nav_grid(navEnv, SceneNavLayer_Normal);
+      const SceneNavLayer layer    = navAgent ? navAgent->layer : SceneNavLayer_Normal;
+      const GeoNavGrid*   grid     = scene_nav_grid(navEnv, layer);
       GeoNavOccupantFlags sepFlags = 0;
       if (loco->flags & SceneLocomotion_Moving) {
         sepFlags |= GeoNavOccupantFlags_Moving;
