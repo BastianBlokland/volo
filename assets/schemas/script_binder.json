@@ -12,11 +12,15 @@
     },
     {
       "name": "nav_find",
-      "doc": "Find a navigation position.\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`",
+      "doc": "Find a navigation position.\n\nSupported layers:\n\n-`Normal` (default)\n\n-`Large`\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`",
       "sig": {
         "ret": [ "null", "vec3" ],
         "args": [
           { "name": "pos", "mask": "vec3" },
+          {
+            "name": "layer",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "type",
             "mask": [ "null", "str" ]

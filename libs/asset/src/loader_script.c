@@ -193,10 +193,11 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_find");
-      const String       doc    = string_lit("Find a navigation position.\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
+      const String       doc    = string_lit("Find a navigation position.\n\nSupported layers:\n\n-`Normal` (default)\n\n-`Large`\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
+          {string_lit("layer"), script_mask_str | script_mask_null},
           {string_lit("type"), script_mask_str | script_mask_null},
       };
       bind(binder, name, doc, ret, args, array_elems(args));

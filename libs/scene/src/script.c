@@ -51,6 +51,7 @@
 
 static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumClock,
+                  g_scriptEnumNavLayer,
                   g_scriptEnumNavFind,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
@@ -79,6 +80,12 @@ static void eval_enum_init_clock() {
   script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
   script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
   script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
+}
+
+static void eval_enum_init_nav_layer() {
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    script_enum_push(&g_scriptEnumNavLayer, g_sceneNavLayerNames[layer], layer);
+  }
 }
 
 static void eval_enum_init_nav_find() {
@@ -679,18 +686,20 @@ static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, Scri
 }
 
 static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
-  const GeoVector        pos    = script_arg_vec3(args, 0, err);
+  const GeoVector     pos = script_arg_vec3(args, 0, err);
+  const SceneNavLayer layer =
+      (SceneNavLayer)script_arg_opt_enum(args, 1, &g_scriptEnumNavLayer, SceneNavLayer_Normal, err);
   if (UNLIKELY(err->kind)) {
     return script_null();
   }
-  const GeoNavGrid*         grid          = scene_nav_grid(navEnv, SceneNavLayer_Normal);
+  const SceneNavEnvComp*    navEnv        = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
+  const GeoNavGrid*         grid          = scene_nav_grid(navEnv, layer);
   GeoNavCell                cell          = geo_nav_at_position(grid, pos);
   const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
-  if (args.count == 1) {
+  if (args.count < 3) {
     return script_vec3(geo_nav_position(grid, cell));
   }
-  switch (script_arg_enum(args, 1, &g_scriptEnumNavFind, err)) {
+  switch (script_arg_enum(args, 2, &g_scriptEnumNavFind, err)) {
   case 0 /* ClosestCell */:
     return script_vec3(geo_nav_position(grid, cell));
   case 1 /* UnblockedCell */:
@@ -1715,6 +1724,7 @@ static void eval_binder_init() {
 
     eval_enum_init_faction();
     eval_enum_init_clock();
+    eval_enum_init_nav_layer();
     eval_enum_init_nav_find();
     eval_enum_init_capability();
     eval_enum_init_activity();

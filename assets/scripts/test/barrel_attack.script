@@ -5,7 +5,7 @@
 var origin = position(self())
 
 $unit ??= {
-  var pos   = nav_find(origin, "UnblockedCell")
+  var pos   = nav_find(origin, "Normal", "UnblockedCell")
   var rot   = quat_ident
   var scale = 1.0
   prefab_spawn("InfantryRifle", pos, rot, scale, "FactionA")
