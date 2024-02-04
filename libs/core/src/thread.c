@@ -32,7 +32,7 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   string_free(g_alloc_heap, runData->threadName);
   alloc_free_t(g_alloc_heap, runData);
 
-  return null;
+  return (thread_pal_rettype)0;
 }
 
 i64                 g_thread_pid;
