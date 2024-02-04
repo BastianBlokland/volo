@@ -63,7 +63,7 @@ static HWAVEOUT mme_pcm_open() {
       .wBitsPerSample  = snd_frame_sample_depth,
   };
   HWAVEOUT       device;
-  const MMRESULT result = waveOutOpen(&device, WAVE_MAPPER, &format, null, null, CALLBACK_NULL);
+  const MMRESULT result = waveOutOpen(&device, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed to open sound-device",
@@ -144,11 +144,11 @@ SndDevice* snd_device_create(Allocator* alloc) {
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
-                .alloc        = alloc,
-                .id           = string_maybe_dup(alloc, id),
-                .pcm          = pcm,
-                .state        = pcm == INVALID_HANDLE_VALUE ? SndDeviceState_Error : SndDeviceState_Idle,
-                .activePeriod = sentinel_u8,
+      .alloc        = alloc,
+      .id           = string_maybe_dup(alloc, id),
+      .pcm          = pcm,
+      .state        = pcm == INVALID_HANDLE_VALUE ? SndDeviceState_Error : SndDeviceState_Idle,
+      .activePeriod = sentinel_u8,
   };
 
   if (pcm != INVALID_HANDLE_VALUE) {
