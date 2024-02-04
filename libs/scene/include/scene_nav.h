@@ -6,24 +6,32 @@
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
 
+typedef enum {
+  SceneNavLayer_Normal,
+  SceneNavLayer_Large,
+
+  SceneNavLayer_Count,
+} SceneNavLayer;
+
+extern const String g_sceneNavLayerNames[SceneNavLayer_Count];
+
 /**
  * Global navigation environment.
  */
 ecs_comp_extern(SceneNavEnvComp);
-ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
 
 /**
  * Navigation blocker.
  */
 
 typedef enum {
-  SceneNavBlockerFlags_Registered = 1 << 0,
+  SceneNavBlockerFlags_Dirty = 1 << 0,
 } SceneNavBlockerFlags;
 
 ecs_comp_extern_public(SceneNavBlockerComp) {
-  u32                  hash; // Hash to detect a dirty blocker; automatically generated.
-  SceneNavBlockerFlags flags : 16;
-  GeoNavBlockerId      blockerId; // Registered blocker id; automatically generated.
+  SceneNavBlockerFlags flags;
+  u32                  hash;                     // For dirty detection; automatically generated.
+  GeoNavBlockerId      ids[SceneNavLayer_Count]; // Registered blocker ids; automatically generated.
 };
 
 /**
@@ -37,16 +45,18 @@ typedef enum {
 
 ecs_comp_extern_public(SceneNavAgentComp) {
   SceneNavAgentFlags flags;
+  SceneNavLayer      layer;
   EcsEntityId        targetEntity;
   GeoVector          targetPos;
 };
 
 ecs_comp_extern_public(SceneNavPathComp) {
-  GeoNavCell*  cells;
-  u32          cellCount;
-  u32          currentTargetIndex; // Index in the path we are currently moving towards.
-  GeoVector    destination;
-  TimeDuration nextRefreshTime;
+  GeoNavCell*   cells;
+  u32           cellCount;
+  SceneNavLayer layer;
+  u32           currentTargetIndex; // Index in the path we are currently moving towards.
+  TimeDuration  nextRefreshTime;
+  GeoVector     destination;
 };
 
 ecs_comp_extern_public(SceneNavRequestComp) {
@@ -62,36 +72,10 @@ void scene_nav_stop(SceneNavAgentComp*);
  * Initialize navigation agents and blockers.
  */
 void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
-SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId);
+SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
 
 /**
- * Retrieve global navigation settings.
+ * Query navigation data.
  */
-GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
-GeoVector    scene_nav_cell_size(const SceneNavEnvComp*);
-
-/**
- * Query cell information.
- */
-GeoVector    scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
-GeoVector    scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
-GeoNavRegion scene_nav_region(const SceneNavEnvComp*, GeoNavCell, u16 radius);
-bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
-bool         scene_nav_blocked_box(const SceneNavEnvComp*, const GeoBoxRotated*);
-bool         scene_nav_blocked_sphere(const SceneNavEnvComp*, const GeoSphere*);
-bool         scene_nav_occupied(const SceneNavEnvComp*, GeoNavCell);
-bool         scene_nav_occupied_moving(const SceneNavEnvComp*, GeoNavCell);
-GeoNavCell   scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
-GeoNavIsland scene_nav_island(const SceneNavEnvComp*, GeoNavCell);
-u32          scene_nav_closest_unblocked_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
-u32          scene_nav_closest_free_n(const SceneNavEnvComp*, GeoNavCell, GeoNavCellContainer);
-
-bool scene_nav_reachable(const SceneNavEnvComp*, GeoNavCell from, GeoNavCell to);
-bool scene_nav_reachable_blocker(const SceneNavEnvComp*, GeoNavCell, const SceneNavBlockerComp*);
-
-/**
- * Compute a separation force from blockers and other agents.
- * NOTE: EcsEntityId can be used to ignore an existing agent (for example itself).
- */
-GeoVector scene_nav_separate(
-    const SceneNavEnvComp*, EcsEntityId, GeoVector position, f32 radius, bool moving);
+const u32*        scene_nav_grid_stats(const SceneNavEnvComp*, SceneNavLayer);
+const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp*, SceneNavLayer);

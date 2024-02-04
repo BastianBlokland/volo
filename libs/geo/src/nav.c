@@ -53,7 +53,7 @@ typedef struct {
 struct sGeoNavGrid {
   f32           size;
   u32           cellCountAxis, cellCountTotal;
-  f32           cellDensity, cellSize;
+  f32           cellSize, cellDensity;
   f32           cellHeight;
   f32           cellBlockHeight;
   GeoVector     cellOffset;
@@ -776,7 +776,7 @@ static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
   const usize index = bitset_next(grid->blockerFreeSet, 0);
   if (UNLIKELY(sentinel_check(index))) {
     log_e("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   bitset_clear(grid->blockerFreeSet, index);
   return (GeoNavBlockerId)index;
@@ -950,15 +950,15 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
 }
 
 GeoNavGrid* geo_nav_grid_create(
-    Allocator* alloc, const f32 size, const f32 density, const f32 height, const f32 blockHeight) {
+    Allocator* alloc, const f32 size, const f32 cellSize, const f32 height, const f32 blockHeight) {
   diag_assert(size > 1e-4f && size < 1e4f);
-  diag_assert(density > 1e-4f && density < 1e4f);
+  diag_assert(cellSize > 1e-4f && cellSize < 1e4f);
   diag_assert(height > 1e-4f);
   diag_assert(blockHeight > 1e-4f);
 
   GeoNavGrid* grid = alloc_alloc_t(alloc, GeoNavGrid);
 
-  u32 cellCountAxis = (u32)math_round_nearest_f32(size * density);
+  u32 cellCountAxis = (u32)math_round_nearest_f32(size / cellSize);
   cellCountAxis += !(cellCountAxis % 2); // Align to be odd (so there's always a center cell).
 
   const u32 cellCountTotal = cellCountAxis * cellCountAxis;
@@ -967,8 +967,8 @@ GeoNavGrid* geo_nav_grid_create(
       .size             = size,
       .cellCountAxis    = cellCountAxis,
       .cellCountTotal   = cellCountTotal,
-      .cellDensity      = density,
-      .cellSize         = 1.0f / density,
+      .cellSize         = cellSize,
+      .cellDensity      = 1.0f / cellSize,
       .cellHeight       = height,
       .cellBlockHeight  = blockHeight,
       .cellOffset       = geo_vector(size * -0.5f, 0, size * -0.5f),
@@ -1014,15 +1014,12 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free_t(grid->alloc, grid);
 }
 
-f32 geo_nav_size(const GeoNavGrid* grid) { return grid->size; }
-
 GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
   return (GeoNavRegion){.max = {.x = grid->cellCountAxis, .y = grid->cellCountAxis}};
 }
 
-GeoVector geo_nav_cell_size(const GeoNavGrid* grid) {
-  return geo_vector(grid->cellSize, grid->cellHeight, grid->cellSize);
-}
+f32 geo_nav_size(const GeoNavGrid* grid) { return grid->size; }
+f32 geo_nav_cell_size(const GeoNavGrid* grid) { return grid->cellSize; }
 
 void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
@@ -1060,21 +1057,6 @@ void geo_nav_y_clear(GeoNavGrid* grid) {
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_pos(grid, cell);
-}
-
-f32 geo_nav_distance(const GeoNavGrid* grid, const GeoNavCell a, const GeoNavCell b) {
-  diag_assert(a.x < grid->cellCountAxis && a.y < grid->cellCountAxis);
-  diag_assert(b.x < grid->cellCountAxis && b.y < grid->cellCountAxis);
-
-  const GeoVector localPosA  = {a.x, 0, a.y};
-  const GeoVector localPosB  = {b.x, 0, b.y};
-  const GeoVector localDelta = geo_vector_sub(localPosB, localPosA);
-  return geo_vector_mag(localDelta) * grid->cellSize;
-}
-
-GeoNavRegion geo_nav_region(const GeoNavGrid* grid, const GeoNavCell cell, const u16 radius) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_cell_grow(grid, cell, radius);
 }
 
 bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -1244,12 +1226,12 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
-    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
@@ -1282,12 +1264,12 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
-    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
@@ -1319,12 +1301,12 @@ geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* 
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
-    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
-    return (GeoNavBlockerId)sentinel_u16;
+    return geo_blocker_invalid;
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;

@@ -438,6 +438,10 @@ static void input_order_move(
   input_indicator_move(world, targetPos);
   input_report_command(debugStats, string_lit("Move"));
 
+  // NOTE: Always using a single normal nav layer cell per unit, so there potentially too little
+  // space for large units.
+  const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
+
   // Find unblocked cells on the nav-grid to move to.
   const u32                 selectionCount = scene_set_count(setEnv, g_sceneSetSelected);
   GeoNavCell                navCells[1024];
@@ -445,8 +449,8 @@ static void input_order_move(
       .cells    = navCells,
       .capacity = math_min(selectionCount, array_elems(navCells)),
   };
-  const GeoNavCell targetNavCell = scene_nav_at_position(nav, targetPos);
-  const u32 unblockedCount = scene_nav_closest_unblocked_n(nav, targetNavCell, navCellContainer);
+  const GeoNavCell targetNavCell = geo_nav_at_position(grid, targetPos);
+  const u32 unblockedCount = geo_nav_closest_unblocked_n(grid, targetNavCell, navCellContainer);
 
   // Push the move commands.
   const EcsEntityId* selection = scene_set_begin(setEnv, g_sceneSetSelected);
@@ -455,7 +459,7 @@ static void input_order_move(
     GeoVector         pos;
     if (LIKELY(i < unblockedCount)) {
       const bool sameCellAsTargetPos = navCells[i].data == targetNavCell.data;
-      pos = sameCellAsTargetPos ? targetPos : scene_nav_position(nav, navCells[i]);
+      pos = sameCellAsTargetPos ? targetPos : geo_nav_position(grid, navCells[i]);
     } else {
       // We didn't find a free cell for this entity; just move to the raw targetPos.
       pos = targetPos;

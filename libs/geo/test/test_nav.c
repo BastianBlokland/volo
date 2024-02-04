@@ -7,13 +7,13 @@
 spec(nav) {
 
   const f32   size        = 10;
-  const f32   density     = 0.5f;
-  const f32   cellSize    = 1.0f / density;
+  const f32   cellSize    = 2.0f;
+  const f32   density     = 1.0f / cellSize;
   const f32   height      = 0.5f;
   const f32   blockHeight = 0.5f;
   GeoNavGrid* grid        = null;
 
-  setup() { grid = geo_nav_grid_create(g_alloc_heap, size, density, height, blockHeight); }
+  setup() { grid = geo_nav_grid_create(g_alloc_heap, size, cellSize, height, blockHeight); }
 
   it("can retrieve the bounding region") {
     const GeoNavRegion region = geo_nav_bounds(grid);
@@ -21,10 +21,6 @@ spec(nav) {
     check_eq_int(region.min.y, 0);
     check_eq_int(region.max.x, (u16)math_round_nearest_f32(size * density));
     check_eq_int(region.max.y, (u16)math_round_nearest_f32(size * density));
-  }
-
-  it("can retrieve the cell size") {
-    check_eq_vector(geo_nav_cell_size(grid), geo_vector(cellSize, height, cellSize));
   }
 
   it("can convert between coordinates and cells") {
@@ -136,29 +132,6 @@ spec(nav) {
     check_eq_int(closestUnblocked.x, 4);
     check_eq_int(closestUnblocked.y, 2);
     check(!geo_nav_blocked(grid, closestUnblocked));
-  }
-
-  it("can create a region around a cell") {
-    const GeoNavCell cell = {.x = 2, .y = 2};
-
-    const GeoNavRegion regA = geo_nav_region(grid, cell, 1);
-    check(regA.min.x == 1);
-    check(regA.min.y == 1);
-    check(regA.max.x == 4); // +1 as max is exclusive.
-    check(regA.max.y == 4); // +1 as max is exclusive.
-
-    const GeoNavRegion regB = geo_nav_region(grid, cell, 2);
-    check(regB.min.x == 0);
-    check(regB.min.y == 0);
-    check(regB.max.x == 5); // +1 as max is exclusive.
-    check(regB.max.y == 5); // +1 as max is exclusive.
-
-    // NOTE: Clamped to the grid boundaries.
-    const GeoNavRegion regC = geo_nav_region(grid, cell, 3);
-    check(regC.min.x == 0);
-    check(regC.min.y == 0);
-    check(regC.max.x == 5); // +1 as max is exclusive.
-    check(regC.max.y == 5); // +1 as max is exclusive.
   }
 
   teardown() { geo_nav_grid_destroy(grid); }

@@ -53,7 +53,8 @@ ecs_comp_define(DebugStatsComp) {
   f32           frameFreqAvg;
   TimeDuration  frameDurDesired;
 
-  RendPass passInspect; // Pass to show stats for.
+  RendPass      passInspect;     // Pass to show stats for.
+  SceneNavLayer navLayerInspect; // Navigation layer to show stats for.
 
   // Cpu frame fractions.
   f32 rendWaitForGpuFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
@@ -380,6 +381,30 @@ static void stats_draw_renderer_pass_dropdown(UiCanvasComp* canvas, const DebugS
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
+static void stats_draw_nav_layer_dropdown(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+  stats_draw_bg(canvas, DebugBgFlags_None);
+  stats_draw_label(canvas, string_lit("Layer"));
+  {
+    ui_layout_push(canvas);
+    ui_style_push(canvas);
+
+    ui_layout_grow(
+        canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+
+    ui_select(
+        canvas,
+        (i32*)&stats->navLayerInspect,
+        g_sceneNavLayerNames,
+        SceneNavLayer_Count,
+        .frameColor     = ui_color(24, 24, 24, 128),
+        .dropFrameColor = ui_color(24, 24, 24, 225));
+
+    ui_style_pop(canvas);
+    ui_layout_pop(canvas);
+  }
+  ui_layout_next(canvas, Ui_Down, 0);
+}
+
 static void
 stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* statsGlobal) {
   dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
@@ -398,7 +423,7 @@ static void debug_stats_draw_interface(
     const EcsDef*                  ecsDef,
     const EcsWorldStats*           ecsStats,
     const SceneCollisionStatsComp* colStats,
-    const SceneNavStatsComp*       navStats,
+    const SceneNavEnvComp*         navEnv,
     const UiStatsComp*             uiStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
@@ -447,12 +472,12 @@ static void debug_stats_draw_interface(
     const FormatArg persistDeltaColor = persistDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
 
     stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
-    stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
     stats_draw_val_entry(canvas, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
-    stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
-    stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
-    stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
+    stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
+    stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
+    stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
     stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
   }
@@ -477,20 +502,22 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
   }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
-    stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats->gridStats[GeoNavStat_CellCountTotal]), fmt_int(navStats->gridStats[GeoNavStat_CellCountAxis])));
-    stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_GridDataSize])));
-    stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_WorkerDataSize])));
-    stats_draw_val_entry(canvas, string_lit("Blockers"), fmt_write_scratch("total: {<4} additions: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerCount]), fmt_int(navStats->gridStats[GeoNavStat_BlockerAddCount])));
-    stats_draw_val_entry(canvas, string_lit("Occupants"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_OccupantCount])));
-    stats_draw_val_entry(canvas, string_lit("Islands"), fmt_write_scratch("{<11} computes: {}", fmt_int(navStats->gridStats[GeoNavStat_IslandCount]), fmt_int(navStats->gridStats[GeoNavStat_IslandComputes])));
-    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_PathCount])));
-    stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats->gridStats[GeoNavStat_PathOutputCells])));
-    stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->gridStats[GeoNavStat_PathItrCells]), fmt_int(navStats->gridStats[GeoNavStat_PathItrEnqueues])));
-    stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_FindCount])));
-    stats_draw_val_entry(canvas, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->gridStats[GeoNavStat_FindItrCells]), fmt_int(navStats->gridStats[GeoNavStat_FindItrEnqueues])));
-    stats_draw_val_entry(canvas, string_lit("Line query count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_LineQueryCount])));
-    stats_draw_val_entry(canvas, string_lit("Blocker reachable"), fmt_write_scratch("queries: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerReachableQueries])));
-    stats_draw_val_entry(canvas, string_lit("Blocker closest"), fmt_write_scratch("queries: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerClosestQueries])));
+    stats_draw_nav_layer_dropdown(canvas, stats);
+    const u32* navStats = scene_nav_grid_stats(navEnv, stats->navLayerInspect);
+    stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats[GeoNavStat_CellCountTotal]), fmt_int(navStats[GeoNavStat_CellCountAxis])));
+    stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_GridDataSize])));
+    stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_WorkerDataSize])));
+    stats_draw_val_entry(canvas, string_lit("Blockers"), fmt_write_scratch("total: {<4} additions: {}", fmt_int(navStats[GeoNavStat_BlockerCount]), fmt_int(navStats[GeoNavStat_BlockerAddCount])));
+    stats_draw_val_entry(canvas, string_lit("Occupants"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_OccupantCount])));
+    stats_draw_val_entry(canvas, string_lit("Islands"), fmt_write_scratch("{<11} computes: {}", fmt_int(navStats[GeoNavStat_IslandCount]), fmt_int(navStats[GeoNavStat_IslandComputes])));
+    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_PathCount])));
+    stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats[GeoNavStat_PathOutputCells])));
+    stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_PathItrCells]), fmt_int(navStats[GeoNavStat_PathItrEnqueues])));
+    stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_FindCount])));
+    stats_draw_val_entry(canvas, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_FindItrCells]), fmt_int(navStats[GeoNavStat_FindItrEnqueues])));
+    stats_draw_val_entry(canvas, string_lit("Line query count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_LineQueryCount])));
+    stats_draw_val_entry(canvas, string_lit("Blocker reachable"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerReachableQueries])));
+    stats_draw_val_entry(canvas, string_lit("Blocker closest"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerClosestQueries])));
   }
   if(stats_draw_section(canvas, string_lit("Interface"))) {
     stats_draw_val_entry(canvas, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));
@@ -548,7 +575,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats
 ecs_view_define(GlobalView) {
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneCollisionStatsComp);
-  ecs_access_read(SceneNavStatsComp);
+  ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
@@ -592,7 +619,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   DebugStatsGlobalComp*          statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
   const SceneTimeComp*           time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneCollisionStatsComp* colStats    = ecs_view_read_t(globalItr, SceneCollisionStatsComp);
-  const SceneNavStatsComp*       navStats    = ecs_view_read_t(globalItr, SceneNavStatsComp);
+  const SceneNavEnvComp*         navEnv      = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const RendSettingsGlobalComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
 
   const AllocStats    allocStats = alloc_stats_query();
@@ -632,7 +659,7 @@ ecs_system_define(DebugStatsUpdateSys) {
           ecsDef,
           &ecsStats,
           colStats,
-          navStats,
+          navEnv,
           uiStats);
     }
   }

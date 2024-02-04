@@ -45,7 +45,7 @@ typedef u8 GeoNavIsland;
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
-GeoNavGrid* geo_nav_grid_create(Allocator*, f32 size, f32 density, f32 height, f32 blockHeight);
+GeoNavGrid* geo_nav_grid_create(Allocator*, f32 size, f32 cellSize, f32 height, f32 blockHeight);
 
 /**
  * Destroy a GeoNavGrid instance.
@@ -55,9 +55,9 @@ void geo_nav_grid_destroy(GeoNavGrid*);
 /**
  * Get the region covering the entire navigation grid.
  */
-f32          geo_nav_size(const GeoNavGrid*);
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
-GeoVector    geo_nav_cell_size(const GeoNavGrid*);
+f32          geo_nav_size(const GeoNavGrid*);
+f32          geo_nav_cell_size(const GeoNavGrid*);
 
 /**
  * Update cell y coordinates.
@@ -69,8 +69,6 @@ void geo_nav_y_clear(GeoNavGrid*);
  * Lookup cell information.
  */
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
-f32          geo_nav_distance(const GeoNavGrid*, GeoNavCell a, GeoNavCell b);
-GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
 bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
@@ -98,6 +96,8 @@ u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavCellCo
  */
 typedef u16 GeoNavBlockerId;
 typedef bool (*GeoNavBlockerPredicate)(const void* context, u64 id);
+
+#define geo_blocker_invalid sentinel_u16
 
 GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
 GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);

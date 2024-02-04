@@ -132,6 +132,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorSpace   space;
   DebugInspectorTool    tool;
   DebugInspectorVisMode visMode;
+  SceneNavLayer         visNavLayer;
   u32                   visFlags;
   bool                  drawVisInGame;
   GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
@@ -538,6 +539,23 @@ static void inspector_panel_draw_target(
   }
 }
 
+static void inspector_panel_draw_nav_agent(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  const SceneNavAgentComp* agent = subject ? ecs_view_read_t(subject, SceneNavAgentComp) : null;
+  if (agent) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Navigation Agent"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Layer"));
+      ui_table_next_column(canvas, table);
+      ui_select(canvas, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
+    }
+  }
+}
+
 static void inspector_panel_draw_renderable(
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
@@ -844,6 +862,14 @@ static void inspector_panel_draw_settings(
     ui_toggle(canvas, &settings->drawVisInGame);
 
     inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Navigation Layer"));
+    ui_table_next_column(canvas, table);
+    const String* layerNames = g_sceneNavLayerNames;
+    if (ui_select(canvas, (i32*)&settings->visNavLayer, layerNames, SceneNavLayer_Count)) {
+      debug_stats_notify(stats, string_lit("Navigation Layer"), layerNames[settings->visNavLayer]);
+    }
+
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Visualize Mode"));
     ui_table_next_column(canvas, table);
     ui_select(canvas, (i32*)&settings->visMode, g_visModeNames, array_elems(g_visModeNames));
@@ -907,6 +933,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_target(time, canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_nav_agent(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
@@ -1261,6 +1290,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     set->space = (set->space + 1) % DebugInspectorSpace_Count;
     debug_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
+  if (input_triggered_lit(input, "DebugInspectorToggleNavLayer")) {
+    set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
+    debug_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
+  }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     debug_inspector_tool_destroy(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
@@ -1381,9 +1414,10 @@ static void inspector_vis_draw_navigation_path(
     const SceneNavEnvComp*   nav,
     const SceneNavAgentComp* agent,
     const SceneNavPathComp*  path) {
+  const GeoNavGrid* grid = scene_nav_grid(nav, path->layer);
   for (u32 i = 1; i < path->cellCount; ++i) {
-    const GeoVector posA = scene_nav_position(nav, path->cells[i - 1]);
-    const GeoVector posB = scene_nav_position(nav, path->cells[i]);
+    const GeoVector posA = geo_nav_position(grid, path->cells[i - 1]);
+    const GeoVector posB = geo_nav_position(grid, path->cells[i]);
     debug_line(shape, posA, posB, geo_color_white);
   }
   if (agent->flags & SceneNavAgent_Traveling) {
@@ -1603,7 +1637,7 @@ static GeoNavRegion inspector_nav_encapsulate(const GeoNavRegion region, const G
   };
 }
 
-static GeoNavRegion inspector_nav_visible_region(const SceneNavEnvComp* nav, EcsView* cameraView) {
+static GeoNavRegion inspector_nav_visible_region(const GeoNavGrid* grid, EcsView* cameraView) {
   static const GeoPlane  g_groundPlane     = {.normal = {.y = 1.0f}};
   static const GeoVector g_screenCorners[] = {
       {.x = 0, .y = 0},
@@ -1630,7 +1664,7 @@ static GeoNavRegion inspector_nav_visible_region(const SceneNavEnvComp* nav, Ecs
       const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect, g_screenCorners[i]);
       f32             rayT = geo_plane_intersect_ray(&g_groundPlane, &ray);
       const GeoVector pos  = geo_ray_position(&ray, rayT < f32_epsilon ? 1e4f : rayT);
-      result               = inspector_nav_encapsulate(result, scene_nav_at_position(nav, pos));
+      result               = inspector_nav_encapsulate(result, geo_nav_at_position(grid, pos));
     }
     resultValid = true;
   }
@@ -1639,25 +1673,26 @@ static GeoNavRegion inspector_nav_visible_region(const SceneNavEnvComp* nav, Ecs
 }
 
 static void inspector_vis_draw_navigation_grid(
-    DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav, EcsView* cameraView) {
+    DebugShapeComp* shape, DebugTextComp* text, const GeoNavGrid* grid, EcsView* cameraView) {
 
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
-  const GeoNavRegion   region    = inspector_nav_visible_region(nav, cameraView);
-  const GeoVector      cellSize  = scene_nav_cell_size(nav);
+  const f32          cellSize = geo_nav_cell_size(grid);
+  const GeoNavRegion region   = inspector_nav_visible_region(grid, cameraView);
+
   const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell   cell     = {.x = x, .y = y};
-      const GeoNavIsland island   = scene_nav_island(nav, cell);
-      const bool         occupied = scene_nav_occupied(nav, cell);
+      const GeoNavIsland island   = geo_nav_island(grid, cell);
+      const bool         occupied = geo_nav_occupied(grid, cell);
 
       if (island == 1 && !occupied) {
         continue; // Skip drawing unblocked and un-occupied cells on the main island.
       }
 
-      const bool occupiedMoving = scene_nav_occupied_moving(nav, cell);
-      const bool blocked        = scene_nav_blocked(nav, cell);
+      const bool occupiedMoving = geo_nav_occupied_moving(grid, cell);
+      const bool blocked        = geo_nav_blocked(grid, cell);
       const bool highlight      = (x & 1) == (y & 1);
 
       GeoColor color;
@@ -1670,8 +1705,8 @@ static void inspector_vis_draw_navigation_grid(
       } else {
         color = geo_color(0, 1, 0, highlight ? 0.075f : 0.05f);
       }
-      const GeoVector pos = scene_nav_position(nav, cell);
-      debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
+      const GeoVector pos = geo_nav_position(grid, cell);
+      debug_quad(shape, pos, geo_quat_up_to_forward, cellSize, cellSize, color, shapeMode);
 
       if (!blocked) {
         dynstring_clear(&textBuffer);
@@ -1755,10 +1790,14 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
 
   static const String g_drawHotkeys[DebugInspectorVis_Count] = {
+      [DebugInspectorVis_Icon]           = string_static("DebugInspectorVisIcon"),
+      [DebugInspectorVis_Name]           = string_static("DebugInspectorVisName"),
       [DebugInspectorVis_Collision]      = string_static("DebugInspectorVisCollision"),
       [DebugInspectorVis_Locomotion]     = string_static("DebugInspectorVisLocomotion"),
       [DebugInspectorVis_NavigationPath] = string_static("DebugInspectorVisNavigationPath"),
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
+      [DebugInspectorVis_Light]          = string_static("DebugInspectorVisLight"),
+      [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
       [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
   };
@@ -1789,7 +1828,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    inspector_vis_draw_navigation_grid(shape, text, nav, cameraView);
+    const GeoNavGrid* grid = scene_nav_grid(nav, set->visNavLayer);
+    inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {

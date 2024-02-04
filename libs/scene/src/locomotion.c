@@ -84,10 +84,16 @@ ecs_system_define(SceneLocomotionMoveSys) {
        * Push this entity away from other navigation agents and blockers.
        * NOTE: Use current position instead of the next position to avoid two units moving in the
        * same direction not pushing each other.
+       * NOTE: Always uses the 'normal' nav layer, means that for units with a large radius pushing
+       * might happen too late (when they are already too close).
        */
-      const bool      moving    = (loco->flags & SceneLocomotion_Moving) != 0;
+      const GeoNavGrid*   grid     = scene_nav_grid(navEnv, SceneNavLayer_Normal);
+      GeoNavOccupantFlags sepFlags = 0;
+      if (loco->flags & SceneLocomotion_Moving) {
+        sepFlags |= GeoNavOccupantFlags_Moving;
+      }
       const f32       sepRadius = loco->radius * scale;
-      const GeoVector force     = scene_nav_separate(navEnv, entity, pos, sepRadius, moving);
+      const GeoVector force     = geo_nav_separate(grid, (u64)entity, pos, sepRadius, sepFlags);
       posDelta                  = geo_vector_add(posDelta, geo_vector_mul(force, dt));
       loco->lastSeparation      = force;
     }
