@@ -674,18 +674,3 @@ const u32* scene_nav_grid_stats(const SceneNavEnvComp* env, const SceneNavLayer 
 const GeoNavGrid* scene_nav_grid(const SceneNavEnvComp* env, const SceneNavLayer layer) {
   return env->grids[layer];
 }
-
-GeoVector scene_nav_separate(
-    const SceneNavEnvComp* env,
-    const EcsEntityId      entity,
-    const GeoVector        position,
-    const f32              radius,
-    const bool             moving) {
-  GeoNavOccupantFlags flags = 0;
-  if (moving) {
-    flags |= GeoNavOccupantFlags_Moving;
-  }
-  const GeoNavGrid* grid       = env->grids[SceneNavLayer_Normal];
-  const u64         occupantId = (u64)entity;
-  return geo_nav_separate(grid, occupantId, position, radius, flags);
-}
