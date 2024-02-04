@@ -66,16 +66,11 @@ static void ecs_destruct_nav_path_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, comp->cells, path_max_cells);
 }
 
-static void nav_env_grid_init(SceneNavEnvComp* env, const f32 size, const SceneNavLayer layer) {
-  if (env->grids[layer]) {
-    geo_nav_grid_destroy(env->grids[layer]);
-  }
+static GeoNavGrid* nav_grid_create(const f32 size, const SceneNavLayer layer) {
   const f32 cellSize    = g_sceneNavCellSize[layer];
   const f32 cellHeight  = g_sceneNavCellHeight[layer];
   const f32 blockHeight = g_sceneNavCellBlockHeight;
-
-  env->gridSize     = size;
-  env->grids[layer] = geo_nav_grid_create(g_alloc_heap, size, cellSize, cellHeight, blockHeight);
+  return geo_nav_grid_create(g_alloc_heap, size, cellSize, cellHeight, blockHeight);
 }
 
 static void nav_env_create(EcsWorld* world) {
@@ -83,8 +78,9 @@ static void nav_env_create(EcsWorld* world) {
 
   // TODO: Currently we always initialize the grid with the fallback size first, in theory this can
   // be avoided when we know we will load a level immediately after.
+  env->gridSize = g_sceneNavFallbackSize;
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
-    nav_env_grid_init(env, g_sceneNavFallbackSize, layer);
+    env->grids[layer] = nav_grid_create(g_sceneNavFallbackSize, layer);
   }
 }
 
@@ -138,8 +134,9 @@ static void nav_refresh_terrain(NavInitContext* ctx, SceneNavEnvComp* env) {
       log_param("reinit", fmt_bool(reinit)));
 
   if (reinit) {
-    nav_env_grid_init(env, newSize, ctx->layer);
-    ctx->grid = env->grids[ctx->layer];
+    geo_nav_grid_destroy(ctx->grid);
+    ctx->grid              = nav_grid_create(newSize, ctx->layer);
+    env->grids[ctx->layer] = ctx->grid;
     ctx->change |= NavChange_Reinit;
   }
 
