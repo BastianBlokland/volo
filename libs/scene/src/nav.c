@@ -88,16 +88,16 @@ static void nav_env_create(EcsWorld* world) {
   }
 }
 
-static GeoNavBlockerId nav_block_box_rotated(
-    SceneNavEnvComp* env, const SceneNavLayer layer, const u64 id, const GeoBoxRotated* boxRot) {
+static GeoNavBlockerId
+nav_block_box_rotated(GeoNavGrid* grid, const u64 id, const GeoBoxRotated* boxRot) {
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
     /**
      * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
      * much faster to insert.
      */
-    return geo_nav_blocker_add_box(env->grids[layer], id, &boxRot->box);
+    return geo_nav_blocker_add_box(grid, id, &boxRot->box);
   }
-  return geo_nav_blocker_add_box_rotated(env->grids[layer], id, boxRot);
+  return geo_nav_blocker_add_box_rotated(grid, id, boxRot);
 }
 
 static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
@@ -115,13 +115,12 @@ typedef enum {
 typedef struct {
   SceneNavLayer           layer;
   GeoNavGrid*             grid;
-  SceneNavEnvComp*        env;
   const SceneTerrainComp* terrain;
   NavChange               change;
 } NavInitContext;
 
-static void nav_refresh_terrain(NavInitContext* ctx) {
-  if (ctx->env->terrainVersion == scene_terrain_version(ctx->terrain)) {
+static void nav_refresh_terrain(NavInitContext* ctx, SceneNavEnvComp* env) {
+  if (env->terrainVersion == scene_terrain_version(ctx->terrain)) {
     return; // Terrain unchanged.
   }
 
@@ -129,7 +128,7 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   if (scene_terrain_loaded(ctx->terrain)) {
     newSize = scene_terrain_play_size(ctx->terrain);
   }
-  const bool reinit = newSize != ctx->env->gridSize;
+  const bool reinit = newSize != env->gridSize;
 
   log_d(
       "Refreshing navigation terrain",
@@ -139,8 +138,8 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
       log_param("reinit", fmt_bool(reinit)));
 
   if (reinit) {
-    nav_env_grid_init(ctx->env, newSize, ctx->layer);
-    ctx->grid = ctx->env->grids[ctx->layer];
+    nav_env_grid_init(env, newSize, ctx->layer);
+    ctx->grid = env->grids[ctx->layer];
     ctx->change |= NavChange_Reinit;
   }
 
@@ -162,7 +161,7 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
     ctx->change |= NavChange_BlockerRemoved;
   }
 
-  ctx->env->terrainVersion = scene_terrain_version(ctx->terrain);
+  env->terrainVersion = scene_terrain_version(ctx->terrain);
 }
 
 static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
@@ -204,11 +203,11 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
        */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      blocker->ids[ctx->layer]    = nav_block_box_rotated(ctx->env, ctx->layer, userId, &cBounds);
+      blocker->ids[ctx->layer]    = nav_block_box_rotated(ctx->grid, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated b    = scene_collision_world_box(&collision->box, trans, scale);
-      blocker->ids[ctx->layer] = nav_block_box_rotated(ctx->env, ctx->layer, userId, &b);
+      blocker->ids[ctx->layer] = nav_block_box_rotated(ctx->grid, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
@@ -356,15 +355,15 @@ ecs_system_define(SceneNavInitSys) {
   EcsView* occupantView = ecs_world_view_t(world, OccupantView);
 
   const SceneNavLayer layer = SceneNavLayer_Normal;
-  NavInitContext ctx = {.layer = layer, .grid = env->grids[layer], .env = env, .terrain = terrain};
+  NavInitContext      ctx   = {.layer = layer, .grid = env->grids[layer], .terrain = terrain};
 
-  nav_refresh_terrain(&ctx);
+  nav_refresh_terrain(&ctx, env);
   nav_refresh_blockers(&ctx, blockerView);
   nav_refresh_paths(&ctx, pathView);
   nav_refresh_occupants(&ctx, occupantView);
 
   if (ctx.change & (NavChange_BlockerRemoved | NavChange_BlockerAdded)) {
-    geo_nav_compute_islands(env->grids[ctx.layer]);
+    geo_nav_compute_islands(ctx.grid);
   }
 }
 
