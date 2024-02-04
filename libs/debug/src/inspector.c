@@ -1290,6 +1290,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     set->space = (set->space + 1) % DebugInspectorSpace_Count;
     debug_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
+  if (input_triggered_lit(input, "DebugInspectorToggleNavLayer")) {
+    set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
+    debug_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
+  }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     debug_inspector_tool_destroy(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));

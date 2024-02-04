@@ -260,6 +260,13 @@
       ]
     },
     {
+      "name": "DebugInspectorToggleNavLayer",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha5" }
+      ]
+    },
+    {
       "name": "DebugInspectorVisCollision",
       "blockers": [ "TextInput" ],
       "bindings": [
