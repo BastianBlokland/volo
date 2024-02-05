@@ -29,20 +29,6 @@ ecs_view_define(MoveView) {
   ecs_access_write(SceneTransformComp);
 }
 
-static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, const f32 delta) {
-  const GeoQuat rotTarget = geo_quat_look(dir, geo_up);
-  return geo_quat_towards(&trans->rotation, rotTarget, delta);
-}
-
-static GeoVector scene_loco_move(
-    SceneLocomotionComp* loco, const SceneTransformComp* trans, const f32 scale, const f32 delta) {
-  const GeoVector toTarget  = geo_vector_xz(geo_vector_sub(loco->targetPos, trans->position));
-  const f32       dist      = geo_vector_mag(toTarget);
-  const f32       distDelta = math_min(dist, loco->maxSpeed * scale * delta);
-  loco->targetDir           = geo_vector_div(toTarget, dist);
-  return geo_vector_mul(loco->targetDir, distDelta);
-}
-
 ecs_system_define(SceneLocomotionMoveSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -77,7 +63,10 @@ ecs_system_define(SceneLocomotionMoveSys) {
       if (distSqr <= (loco_arrive_threshold * loco_arrive_threshold)) {
         loco->flags &= ~SceneLocomotion_Moving;
       } else {
-        posDelta = scene_loco_move(loco, trans, scale, dt);
+        const f32       dist = math_sqrt_f32(distSqr);
+        const GeoVector dir  = geo_vector_div(toTarget, dist);
+        posDelta             = geo_vector_mul(dir, math_min(dist, loco->maxSpeed * scale * dt));
+        loco->targetDir      = dir;
       }
     }
 
@@ -106,7 +95,8 @@ ecs_system_define(SceneLocomotionMoveSys) {
     }
 
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
-      if (scene_loco_face(trans, loco->targetDir, loco->rotationSpeedRad * dt)) {
+      const GeoQuat rotTarget = geo_quat_look(loco->targetDir, geo_up);
+      if (geo_quat_towards(&trans->rotation, rotTarget, loco->rotationSpeedRad * dt)) {
         loco->targetDir = geo_vector(0);
       }
     }
