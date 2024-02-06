@@ -149,7 +149,8 @@
             "speed": { "title": "f32", "type": "number" },
             "rotationSpeed": { "title": "f32", "type": "number" },
             "radius": { "title": "f32", "type": "number" },
-            "moveAnimation": { "title": "String", "type": "string" }
+            "moveAnimation": { "title": "String", "type": "string" },
+            "moveFaceThreshold": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "speed", "rotationSpeed", "radius" ]
         },
