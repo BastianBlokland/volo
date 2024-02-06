@@ -15,6 +15,13 @@
 
 ecs_comp_define_public(SceneLocomotionComp);
 
+static bool loco_move_is_facing(const SceneLocomotionComp* loco, const SceneTransformComp* trans) {
+  const GeoVector curDir     = geo_quat_rotate(trans->rotation, geo_forward);
+  const GeoVector curDirFlat = geo_vector_norm(geo_vector_xz(curDir));
+  const f32       dirDot     = geo_vector_dot(curDirFlat, loco->targetDir);
+  return math_max(0.0f, dirDot) >= loco->moveFaceThreshold;
+}
+
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneNavEnvComp);
@@ -49,24 +56,24 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const SceneNavAgentComp* navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
     const SceneScaleComp*    scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const f32                scale     = scaleComp ? scaleComp->scale : 1.0f;
-    const GeoVector          pos       = trans->position;
 
     if (loco->flags & SceneLocomotion_Stop) {
-      loco->targetPos = pos;
+      loco->targetPos = trans->position;
       loco->flags &= ~(SceneLocomotion_Moving | SceneLocomotion_Stop);
     }
 
     GeoVector posDelta = {0};
     if (loco->flags & SceneLocomotion_Moving) {
-      const GeoVector toTarget = geo_vector_xz(geo_vector_sub(loco->targetPos, pos));
+      const GeoVector toTarget = geo_vector_xz(geo_vector_sub(loco->targetPos, trans->position));
       const f32       distSqr  = geo_vector_mag_sqr(toTarget);
       if (distSqr <= (loco_arrive_threshold * loco_arrive_threshold)) {
         loco->flags &= ~SceneLocomotion_Moving;
       } else {
-        const f32       dist = math_sqrt_f32(distSqr);
-        const GeoVector dir  = geo_vector_div(toTarget, dist);
-        posDelta             = geo_vector_mul(dir, math_min(dist, loco->maxSpeed * scale * dt));
-        loco->targetDir      = dir;
+        const f32 dist  = math_sqrt_f32(distSqr);
+        loco->targetDir = geo_vector_div(toTarget, dist);
+        if (loco_move_is_facing(loco, trans)) {
+          posDelta = geo_vector_mul(loco->targetDir, math_min(dist, loco->maxSpeed * scale * dt));
+        }
       }
     }
 
@@ -82,8 +89,9 @@ ecs_system_define(SceneLocomotionMoveSys) {
       if (loco->flags & SceneLocomotion_Moving) {
         sepFlags |= GeoNavOccupantFlags_Moving;
       }
+      const GeoVector sepPos    = trans->position;
       const f32       sepRadius = loco->radius * scale;
-      const GeoVector force     = geo_nav_separate(grid, (u64)entity, pos, sepRadius, sepFlags);
+      const GeoVector force     = geo_nav_separate(grid, (u64)entity, sepPos, sepRadius, sepFlags);
       posDelta                  = geo_vector_add(posDelta, geo_vector_mul(force, dt));
       loco->lastSeparation      = force;
     }

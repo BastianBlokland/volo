@@ -152,6 +152,7 @@ typedef struct {
   f32    rotationSpeed; // Degrees per second.
   f32    radius;
   String moveAnimation;
+  f32    moveFaceThreshold;
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
@@ -358,6 +359,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, rotationSpeed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveFaceThreshold, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitFootstepDef);
     data_reg_field_t(reg, AssetPrefabTraitFootstepDef, jointA, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -678,10 +680,11 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Movement:
       outTrait->data_movement = (AssetPrefabTraitMovement){
-          .speed            = traitDef->data_movement.speed,
-          .rotationSpeedRad = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
-          .radius           = traitDef->data_movement.radius,
-          .moveAnimation    = string_maybe_hash(traitDef->data_movement.moveAnimation),
+          .speed             = traitDef->data_movement.speed,
+          .rotationSpeedRad  = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
+          .radius            = traitDef->data_movement.radius,
+          .moveAnimation     = string_maybe_hash(traitDef->data_movement.moveAnimation),
+          .moveFaceThreshold = traitDef->data_movement.moveFaceThreshold,
       };
       break;
     case AssetPrefabTrait_Footstep:
@@ -757,12 +760,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

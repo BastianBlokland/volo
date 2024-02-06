@@ -12,7 +12,8 @@ ecs_comp_extern_public(SceneLocomotionComp) {
   f32                  maxSpeed;         // Meter per second.
   f32                  rotationSpeedRad; // Radians per second.
   f32                  radius;
-  StringHash           moveAnimation; // Optional: 0 to disable.
+  f32                  moveFaceThreshold; // 1.0 = exact facing, 0.0 = not facing at all.
+  StringHash           moveAnimation;     // Optional: 0 to disable.
   GeoVector            lastSeparation;
   GeoVector            targetPos;
   GeoVector            targetDir;

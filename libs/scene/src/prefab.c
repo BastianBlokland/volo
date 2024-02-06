@@ -256,10 +256,11 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       w,
       e,
       SceneLocomotionComp,
-      .maxSpeed         = t->speed,
-      .rotationSpeedRad = t->rotationSpeedRad,
-      .radius           = t->radius,
-      .moveAnimation    = t->moveAnimation);
+      .maxSpeed          = t->speed,
+      .rotationSpeedRad  = t->rotationSpeedRad,
+      .radius            = t->radius,
+      .moveFaceThreshold = t->moveFaceThreshold,
+      .moveAnimation     = t->moveAnimation);
 
   const SceneNavLayer navLayer = t->radius > 1.0f ? SceneNavLayer_Large : SceneNavLayer_Normal;
   scene_nav_add_agent(w, e, navLayer);
