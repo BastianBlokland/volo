@@ -494,7 +494,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
     const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
-    if (distToTargetSqr <= (path_arrive_threshold * path_arrive_threshold)) {
+    const f32       arriveDist      = loco->radius + path_arrive_threshold;
+    if (distToTargetSqr <= (arriveDist * arriveDist)) {
       goto Stop; // Arrived at destination.
     }
 
