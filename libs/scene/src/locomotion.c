@@ -89,11 +89,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
       if (loco->flags & SceneLocomotion_Moving) {
         sepFlags |= GeoNavOccupantFlags_Moving;
       }
-      const GeoVector sepPos    = trans->position;
-      const f32       sepRadius = loco->radius * scale;
-      const GeoVector force     = geo_nav_separate(grid, (u64)entity, sepPos, sepRadius, sepFlags);
-      posDelta                  = geo_vector_add(posDelta, geo_vector_mul(force, dt));
-      loco->lastSeparation      = force;
+      const GeoVector sepPos     = trans->position;
+      const f32       sepRadius  = loco->radius * scale;
+      const GeoVector force      = geo_nav_separate(grid, (u64)entity, sepPos, sepRadius, sepFlags);
+      posDelta                   = geo_vector_add(posDelta, geo_vector_mul(force, dt));
+      loco->lastSeparationMagSqr = geo_vector_mag_sqr(force);
     }
 
     const f32 posDeltaMag = geo_vector_mag(posDelta);
