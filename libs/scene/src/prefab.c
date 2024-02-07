@@ -259,6 +259,7 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       .maxSpeed          = t->speed,
       .rotationSpeedRad  = t->rotationSpeedRad,
       .radius            = t->radius,
+      .weight            = t->weight,
       .moveFaceThreshold = t->moveFaceThreshold,
       .moveAnimation     = t->moveAnimation);
 

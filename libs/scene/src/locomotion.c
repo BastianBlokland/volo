@@ -12,6 +12,7 @@
 
 #define loco_arrive_threshold 0.1f
 #define loco_anim_weight_ease_speed 2.5f
+#define loco_move_weight_multiplier 4.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
 
@@ -83,15 +84,12 @@ ecs_system_define(SceneLocomotionMoveSys) {
        * NOTE: Use current position instead of the next position to avoid two units moving in the
        * same direction not pushing each other.
        */
-      const SceneNavLayer layer    = navAgent ? navAgent->layer : SceneNavLayer_Normal;
-      const GeoNavGrid*   grid     = scene_nav_grid(navEnv, layer);
-      GeoNavOccupantFlags sepFlags = 0;
-      if (loco->flags & SceneLocomotion_Moving) {
-        sepFlags |= GeoNavOccupantFlags_Moving;
-      }
-      const GeoVector sepPos     = trans->position;
-      const f32       sepRadius  = loco->radius * scale;
-      const GeoVector force      = geo_nav_separate(grid, (u64)entity, sepPos, sepRadius, sepFlags);
+      const SceneNavLayer layer  = navAgent ? navAgent->layer : SceneNavLayer_Normal;
+      const GeoNavGrid*   grid   = scene_nav_grid(navEnv, layer);
+      const GeoVector     pos    = trans->position;
+      const f32           radius = scene_locomotion_radius(loco, scale);
+      const f32           weight = scene_locomotion_weight(loco, scale);
+      const GeoVector     force  = geo_nav_separate(grid, (u64)entity, pos, radius, weight);
       posDelta                   = geo_vector_add(posDelta, geo_vector_mul(force, dt));
       loco->lastSeparationMagSqr = geo_vector_mag_sqr(force);
     }
@@ -132,6 +130,18 @@ ecs_module_init(scene_locomotion_module) {
   ecs_order(SceneLocomotionMoveSys, SceneOrder_LocomotionUpdate);
 
   ecs_parallel(SceneLocomotionMoveSys, 4);
+}
+
+f32 scene_locomotion_radius(const SceneLocomotionComp* loco, const f32 scale) {
+  return loco->radius * scale;
+}
+
+f32 scene_locomotion_weight(const SceneLocomotionComp* loco, const f32 scale) {
+  f32 result = loco->weight * scale;
+  if (loco->flags & SceneLocomotion_Moving) {
+    result *= loco_move_weight_multiplier;
+  }
+  return result;
 }
 
 void scene_locomotion_move(SceneLocomotionComp* comp, const GeoVector target) {
