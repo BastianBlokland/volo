@@ -12,6 +12,7 @@
           "speed": 4,
           "rotationSpeed": 360,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -65,6 +66,7 @@
           "speed": 3.5,
           "rotationSpeed": 310,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -118,6 +120,7 @@
           "speed": 3.5,
           "rotationSpeed": 310,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -171,6 +174,7 @@
           "speed": 4.5,
           "rotationSpeed": 360,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -223,6 +227,7 @@
           "speed": 4,
           "rotationSpeed": 360,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -264,6 +269,7 @@
           "speed": 3.5,
           "rotationSpeed": 40,
           "radius": 1.45,
+          "weight": 1000.0,
           "moveFaceThreshold": 0.8
         },
         {
