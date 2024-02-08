@@ -481,6 +481,10 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
+    diag_assert_msg(
+        loco->radius < g_sceneNavCellSize[agent->layer],
+        "Navigation agent too wide for its navigation layer");
+
     const GeoNavGrid* grid     = env->grids[agent->layer];
     const GeoNavCell  fromCell = geo_nav_at_position(grid, trans->position);
     SceneNavGoal      goal;
