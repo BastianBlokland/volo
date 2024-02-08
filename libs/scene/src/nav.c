@@ -536,7 +536,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
-      if (!geo_nav_line_blocked(grid, fromCell, path->cells[i])) {
+      const GeoVector pathPos = geo_nav_position(grid, path->cells[i]);
+      if (!geo_nav_line_blocked(grid, trans->position, pathPos)) {
         path->currentTargetIndex = i;
         nav_move_towards(grid, loco, &goal, path->cells[i]);
         goto Done;

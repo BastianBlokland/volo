@@ -1091,14 +1091,14 @@ bool geo_nav_blocked_sphere(const GeoNavGrid* grid, const GeoSphere* sphere) {
   return false;
 }
 
-bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
-  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
-  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoVector from, const GeoVector to) {
+  const GeoNavCell fromCell = nav_cell_map(grid, from).cell;
+  const GeoNavCell toCell   = nav_cell_map(grid, to).cell;
   /**
    * Check if any cell in a rasterized line between the two points is blocked.
    */
   GeoNavWorkerState* s = nav_worker_state(grid);
-  return nav_any_in_line(grid, s, null, from, to, nav_pred_blocked);
+  return nav_any_in_line(grid, s, null, fromCell, toCell, nav_pred_blocked);
 }
 
 bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
