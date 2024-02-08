@@ -77,6 +77,7 @@ static const struct {
                               "        \"speed\": 1,"
                               "        \"rotationSpeed\": 360,"
                               "        \"radius\": 2,"
+                              "        \"weight\": 1.0,"
                               "        \"moveAnimation\": \"Test\""
                               "      }]"
                               "  }"

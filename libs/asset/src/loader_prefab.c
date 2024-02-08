@@ -16,6 +16,8 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
+#define trait_movement_weight_min 0.1f
+
 static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
@@ -25,6 +27,7 @@ static struct {
   AssetPrefabFlags flags;
 } g_prefabSetFlags[] = {
     {.setName = string_static("infantry"), .flags = AssetPrefabFlags_Infantry},
+    {.setName = string_static("vehicle"), .flags = AssetPrefabFlags_Vehicle},
     {.setName = string_static("structure"), .flags = AssetPrefabFlags_Structure},
     {.setName = string_static("destructible"), .flags = AssetPrefabFlags_Destructible},
 };
@@ -149,8 +152,9 @@ typedef struct {
 typedef struct {
   f32    speed;
   f32    rotationSpeed; // Degrees per second.
-  f32    radius;
+  f32    radius, weight;
   String moveAnimation;
+  f32    moveFaceThreshold;
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
@@ -356,7 +360,9 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, rotationSpeed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String));
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, weight, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveFaceThreshold, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitFootstepDef);
     data_reg_field_t(reg, AssetPrefabTraitFootstepDef, jointA, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -677,12 +683,12 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Movement:
       outTrait->data_movement = (AssetPrefabTraitMovement){
-          .speed            = traitDef->data_movement.speed,
-          .rotationSpeedRad = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
-          .radius           = traitDef->data_movement.radius,
-          .moveAnimation    = string_is_empty(traitDef->data_movement.moveAnimation)
-                                  ? 0
-                                  : string_hash(traitDef->data_movement.moveAnimation),
+          .speed             = traitDef->data_movement.speed,
+          .rotationSpeedRad  = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
+          .radius            = traitDef->data_movement.radius,
+          .weight            = math_max(traitDef->data_movement.weight, trait_movement_weight_min),
+          .moveAnimation     = string_maybe_hash(traitDef->data_movement.moveAnimation),
+          .moveFaceThreshold = traitDef->data_movement.moveFaceThreshold,
       };
       break;
     case AssetPrefabTrait_Footstep:

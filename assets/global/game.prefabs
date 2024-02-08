@@ -12,6 +12,7 @@
           "speed": 4,
           "rotationSpeed": 360,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -65,6 +66,7 @@
           "speed": 3.5,
           "rotationSpeed": 310,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -118,6 +120,7 @@
           "speed": 3.5,
           "rotationSpeed": 310,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -171,6 +174,7 @@
           "speed": 4.5,
           "rotationSpeed": 360,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -223,6 +227,7 @@
           "speed": 4,
           "rotationSpeed": 360,
           "radius": 0.3,
+          "weight": 1.0,
           "moveAnimation": "run"
         },
         {
@@ -250,6 +255,46 @@
         { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_move_random.script" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+      ]
+    },
+    {
+      "name": "VehicleTank",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Tank" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        {
+          "$type": "AssetPrefabTrait_Movement",
+          "speed": 3.5,
+          "rotationSpeed": 40,
+          "radius": 1.45,
+          "weight": 1000.0,
+          "moveFaceThreshold": 0.8
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 1000,
+          "deathDestroyDelay": 2.5
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": false,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": { "x": -1.35, "y": 0, "z": -2.8 },
+            "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
+          }
+        },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
+        {
+          "$type": "AssetPrefabTrait_Location",
+          "aimTarget": {
+            "min": { "x": -1.15, "y": 0.25, "z": -2.5 },
+            "max": { "x": 1.15, "y": 1.5, "z": 2.5 }
+          }
+        },
+        { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },
     {

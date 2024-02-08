@@ -262,14 +262,15 @@ static void nav_refresh_occupants(NavInitContext* ctx, EcsView* occupantView) {
     const SceneScaleComp*      scale = ecs_view_read_t(itr, SceneScaleComp);
     const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
 
-    const f32 radius = loco->radius * (scale ? scale->scale : 1.0f);
+    const u64 occupantId = (u64)ecs_view_entity(itr);
+    const f32 radius     = scene_locomotion_radius(loco, scale ? scale->scale : 1.0f);
+    const f32 weight     = scene_locomotion_weight(loco, scale ? scale->scale : 1.0f);
 
-    const u64           occupantId    = (u64)ecs_view_entity(itr);
     GeoNavOccupantFlags occupantFlags = 0;
     if (loco->flags & SceneLocomotion_Moving) {
       occupantFlags |= GeoNavOccupantFlags_Moving;
     }
-    geo_nav_occupant_add(ctx->grid, occupantId, trans->position, radius, occupantFlags);
+    geo_nav_occupant_add(ctx->grid, occupantId, trans->position, radius, weight, occupantFlags);
   }
 }
 
@@ -494,7 +495,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
     const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
-    if (distToTargetSqr <= (path_arrive_threshold * path_arrive_threshold)) {
+    const f32       arriveDist      = loco->radius + path_arrive_threshold;
+    if (distToTargetSqr <= (arriveDist * arriveDist)) {
       goto Stop; // Arrived at destination.
     }
 

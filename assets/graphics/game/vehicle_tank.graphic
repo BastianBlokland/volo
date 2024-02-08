@@ -1,0 +1,14 @@
+{
+  "shaders": [
+    { "shaderId": "shaders/standard.vert.spv" },
+    { "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        { "name": "normalMap", "binding": 0, "value": 0 }
+      ]
+    }
+  ],
+  "samplers": [
+    { "textureId": "external/tank/tank_2_color_rough.tga", "anisotropy": "x2" }
+  ],
+  "meshId": "external/tank/tank.gltf"
+}

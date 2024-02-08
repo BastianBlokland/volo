@@ -17,6 +17,8 @@ ecs_comp_extern(SceneScaleComp);
 
 #define scene_query_stat_count 8
 
+// clang-format off
+
 typedef enum {
   SceneLayer_Debug                = 1 << 0,
   SceneLayer_Environment          = 1 << 1,
@@ -25,32 +27,34 @@ typedef enum {
   SceneLayer_InfantryFactionC     = 1 << 4,
   SceneLayer_InfantryFactionD     = 1 << 5,
   SceneLayer_InfantryFactionNone  = 1 << 6,
-  SceneLayer_StructureFactionA    = 1 << 7,
-  SceneLayer_StructureFactionB    = 1 << 8,
-  SceneLayer_StructureFactionC    = 1 << 9,
-  SceneLayer_StructureFactionD    = 1 << 10,
-  SceneLayer_StructureFactionNone = 1 << 11,
-  SceneLayer_Destructible         = 1 << 12,
+  SceneLayer_VehicleFactionA      = 1 << 7,
+  SceneLayer_VehicleFactionB      = 1 << 8,
+  SceneLayer_VehicleFactionC      = 1 << 9,
+  SceneLayer_VehicleFactionD      = 1 << 10,
+  SceneLayer_VehicleFactionNone   = 1 << 11,
+  SceneLayer_StructureFactionA    = 1 << 12,
+  SceneLayer_StructureFactionB    = 1 << 13,
+  SceneLayer_StructureFactionC    = 1 << 14,
+  SceneLayer_StructureFactionD    = 1 << 15,
+  SceneLayer_StructureFactionNone = 1 << 16,
+  SceneLayer_Destructible         = 1 << 17,
 
-  SceneLayer_Infantry = SceneLayer_InfantryFactionA | SceneLayer_InfantryFactionB |
-                        SceneLayer_InfantryFactionC | SceneLayer_InfantryFactionD |
-                        SceneLayer_InfantryFactionNone,
+  SceneLayer_Infantry     = SceneLayer_InfantryFactionA  | SceneLayer_InfantryFactionB  | SceneLayer_InfantryFactionC  | SceneLayer_InfantryFactionD  | SceneLayer_InfantryFactionNone,
+  SceneLayer_Vehicle      = SceneLayer_VehicleFactionA   | SceneLayer_VehicleFactionB   | SceneLayer_VehicleFactionC   | SceneLayer_VehicleFactionD   | SceneLayer_VehicleFactionNone,
+  SceneLayer_Structure    = SceneLayer_StructureFactionA | SceneLayer_StructureFactionB | SceneLayer_StructureFactionC | SceneLayer_StructureFactionD | SceneLayer_StructureFactionNone,
+  SceneLayer_Unit         = SceneLayer_Infantry          | SceneLayer_Vehicle           | SceneLayer_Structure,
+  SceneLayer_UnitFactionA = SceneLayer_InfantryFactionA  | SceneLayer_VehicleFactionA   | SceneLayer_StructureFactionA,
+  SceneLayer_UnitFactionB = SceneLayer_InfantryFactionB  | SceneLayer_VehicleFactionB   | SceneLayer_StructureFactionB,
+  SceneLayer_UnitFactionC = SceneLayer_InfantryFactionC  | SceneLayer_VehicleFactionC   | SceneLayer_StructureFactionC,
+  SceneLayer_UnitFactionD = SceneLayer_InfantryFactionD  | SceneLayer_VehicleFactionD   | SceneLayer_StructureFactionD,
 
-  SceneLayer_Structure = SceneLayer_StructureFactionA | SceneLayer_StructureFactionB |
-                         SceneLayer_StructureFactionC | SceneLayer_StructureFactionD |
-                         SceneLayer_StructureFactionNone,
-
-  SceneLayer_Unit         = SceneLayer_Infantry | SceneLayer_Structure,
-  SceneLayer_UnitFactionA = SceneLayer_InfantryFactionA | SceneLayer_StructureFactionA,
-  SceneLayer_UnitFactionB = SceneLayer_InfantryFactionB | SceneLayer_StructureFactionB,
-  SceneLayer_UnitFactionC = SceneLayer_InfantryFactionC | SceneLayer_StructureFactionC,
-  SceneLayer_UnitFactionD = SceneLayer_InfantryFactionD | SceneLayer_StructureFactionD,
-
-  SceneLayer_Count             = 13,
+  SceneLayer_Count             = 18,
   SceneLayer_None              = 0,
   SceneLayer_AllIncludingDebug = ~0,
   SceneLayer_AllNonDebug       = ~SceneLayer_Debug,
 } SceneLayer;
+
+// clang-format on
 
 /**
  * Callback for filtering query hits.

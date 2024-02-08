@@ -117,8 +117,9 @@ typedef struct {
 typedef struct {
   f32        speed;
   f32        rotationSpeedRad; // Radians per second.
-  f32        radius;
-  StringHash moveAnimation; // Optional: 0 to disable.
+  f32        radius, weight;
+  f32        moveFaceThreshold; // 1.0 = exact facing, 0.0 = not facing at all.
+  StringHash moveAnimation;     // Optional: 0 to disable.
 } AssetPrefabTraitMovement;
 
 typedef struct {
@@ -209,9 +210,10 @@ typedef struct {
 
 typedef enum {
   AssetPrefabFlags_Infantry     = 1 << 0,
-  AssetPrefabFlags_Structure    = 1 << 1,
-  AssetPrefabFlags_Destructible = 1 << 2,
-  AssetPrefabFlags_Volatile     = 1 << 3, // Prefab should not be persisted.
+  AssetPrefabFlags_Vehicle      = 1 << 1,
+  AssetPrefabFlags_Structure    = 1 << 2,
+  AssetPrefabFlags_Destructible = 1 << 3,
+  AssetPrefabFlags_Volatile     = 1 << 4, // Prefab should not be persisted.
 } AssetPrefabFlags;
 
 typedef struct {

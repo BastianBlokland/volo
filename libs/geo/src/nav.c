@@ -28,7 +28,7 @@ typedef bool (*NavCellPredicate)(const GeoNavGrid*, const void* ctx, GeoNavCell)
 
 typedef struct {
   u64                 userId;
-  f32                 radius;
+  f32                 radius, weight;
   GeoNavOccupantFlags flags;
   GeoVector           pos;
 } GeoNavOccupant;
@@ -663,22 +663,12 @@ static u32 nav_region_occupants(
   return count;
 }
 
-INLINE_HINT static f32 nav_separate_weight(const GeoNavOccupantFlags flags) {
-  // TODO: Occupant weight should be configurable.
-  return (flags & GeoNavOccupantFlags_Moving) ? 4.0f : 1.0f;
-}
-
 /**
  * Compute a force to move an occupant to be at least radius away from any blockers in the region.
  * NOTE: Behavior is undefined if the position is fully inside a blocked cell.
  */
 static GeoVector nav_separate_from_blockers(
-    const GeoNavGrid*         grid,
-    const GeoNavRegion        reg,
-    const GeoVector           pos,
-    const f32                 radius,
-    const GeoNavOccupantFlags flags) {
-  (void)flags;
+    const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos, const f32 radius) {
   static const f32 g_strength = 25.0f;
 
   GeoVector result = {0};
@@ -710,19 +700,18 @@ static GeoVector nav_separate_from_blockers(
  * Pre-condition: nav_region_size(region) <= 9.
  */
 static GeoVector nav_separate_from_occupied(
-    const GeoNavGrid*         grid,
-    const GeoNavRegion        region,
-    const u64                 userId,
-    const GeoVector           pos,
-    const f32                 radius,
-    const GeoNavOccupantFlags flags) {
+    const GeoNavGrid*  grid,
+    const GeoNavRegion region,
+    const u64          userId,
+    const GeoVector    pos,
+    const f32          radius,
+    const f32          weight) {
   const GeoNavOccupant* occupants[(3 * 3) * geo_nav_occupants_per_cell];
   diag_assert((nav_region_size(region) * geo_nav_occupants_per_cell) <= array_elems(occupants));
 
   static const f32 g_strength = 10.0f;
 
   const u32 occupantCount = nav_region_occupants(grid, region, occupants);
-  const f32 sepWeight     = nav_separate_weight(flags);
 
   GeoVector result = {0};
   for (u32 i = 0; i != occupantCount; ++i) {
@@ -744,8 +733,8 @@ static GeoVector nav_separate_from_occupied(
     } else {
       sepDir = geo_vector_div(toOccupant, dist);
     }
-    const f32 otherWeight = nav_separate_weight(occupants[i]->flags);
-    const f32 relWeight   = otherWeight / (sepWeight + otherWeight);
+    const f32 otherWeight = occupants[i]->weight;
+    const f32 relWeight   = otherWeight / (weight + otherWeight);
 
     // NOTE: Times 0.5 because both occupants are expected to move.
     // NOTE: sepStrength will be negative to push away instead of towards.
@@ -1399,8 +1388,10 @@ void geo_nav_occupant_add(
     const u64                 userId,
     const GeoVector           pos,
     const f32                 radius,
+    const f32                 weight,
     const GeoNavOccupantFlags flags) {
   diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
+  diag_assert(weight > f32_epsilon);
   if (UNLIKELY(grid->occupantCount == geo_nav_occupants_max)) {
     log_e("Navigation occupant limit reached", log_param("limit", fmt_int(geo_nav_occupants_max)));
     return;
@@ -1413,6 +1404,7 @@ void geo_nav_occupant_add(
   grid->occupants[occupantIndex] = (GeoNavOccupant){
       .userId = userId,
       .radius = radius,
+      .weight = weight,
       .flags  = flags,
       .pos    = pos,
   };
@@ -1425,12 +1417,13 @@ void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
 }
 
 GeoVector geo_nav_separate(
-    const GeoNavGrid*         grid,
-    const u64                 userId,
-    const GeoVector           pos,
-    const f32                 radius,
-    const GeoNavOccupantFlags flags) {
+    const GeoNavGrid* grid,
+    const u64         userId,
+    const GeoVector   pos,
+    const f32         radius,
+    const f32         weight) {
   diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
+  diag_assert(weight > f32_epsilon);
   const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
@@ -1447,8 +1440,8 @@ GeoVector geo_nav_separate(
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
   GeoVector          vec    = {0};
 
-  vec = geo_vector_add(vec, nav_separate_from_blockers(grid, region, pos, radius, flags));
-  vec = geo_vector_add(vec, nav_separate_from_occupied(grid, region, userId, pos, radius, flags));
+  vec = geo_vector_add(vec, nav_separate_from_blockers(grid, region, pos, radius));
+  vec = geo_vector_add(vec, nav_separate_from_occupied(grid, region, userId, pos, radius, weight));
   return vec;
 }
 

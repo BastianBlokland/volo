@@ -120,15 +120,15 @@ typedef enum {
   GeoNavOccupantFlags_Moving = 1 << 0,
 } GeoNavOccupantFlags;
 
-void geo_nav_occupant_add(GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+void geo_nav_occupant_add(
+    GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, f32 weight, GeoNavOccupantFlags);
 void geo_nav_occupant_remove_all(GeoNavGrid*);
 
 /**
  * Compute a force to separate from blockers and other occupants.
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  */
-GeoVector
-geo_nav_separate(const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+GeoVector geo_nav_separate(const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, f32 weight);
 
 /**
  * Navigation statistics.
