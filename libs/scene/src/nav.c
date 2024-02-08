@@ -29,7 +29,7 @@ static const f32 g_sceneNavCellHeight[SceneNavLayer_Count] = {
 };
 static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
-#define path_max_cells 128
+#define path_max_cells 64
 #define path_max_queries_per_task 25
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
