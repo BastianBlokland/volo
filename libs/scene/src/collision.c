@@ -330,12 +330,8 @@ bool scene_query_ray_fat(
   };
   if (geo_query_ray_fat(env->queryEnv, ray, radius, maxDist, &geoFilter, &hit)) {
     *out = (SceneRayHit){
-        .time   = hit.time,
-        .entity = (EcsEntityId)hit.shapeId,
-        /**
-         * TODO: Instead of always outputting positions on the ray we should find the actual
-         * intersection point.
-         */
+        .time     = hit.time,
+        .entity   = (EcsEntityId)hit.shapeId,
         .position = geo_ray_position(ray, hit.time),
         .normal   = hit.normal,
         .layer    = (SceneLayer)hit.layer,
