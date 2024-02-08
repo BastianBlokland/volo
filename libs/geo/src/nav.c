@@ -1091,7 +1091,9 @@ bool geo_nav_blocked_sphere(const GeoNavGrid* grid, const GeoSphere* sphere) {
   return false;
 }
 
-bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoVector from, const GeoVector to) {
+bool geo_nav_blocked_line_flat(
+    const GeoNavGrid* grid, const GeoVector from, const GeoVector to, const f32 radius) {
+  (void)radius;
   const GeoNavCell fromCell = nav_cell_map(grid, from).cell;
   const GeoNavCell toCell   = nav_cell_map(grid, to).cell;
   /**
