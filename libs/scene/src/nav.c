@@ -29,12 +29,12 @@ static const f32 g_sceneNavCellHeight[SceneNavLayer_Count] = {
 };
 static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
-#define path_max_cells 128
+#define path_max_cells 64
 #define path_max_queries_per_task 25
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 0.5f
-#define path_arrive_threshold 0.15f
+#define path_arrive_threshold 1.2f
 
 const String g_sceneNavLayerNames[] = {
     [SceneNavLayer_Normal] = string_static("Normal"),
@@ -481,6 +481,10 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
+    diag_assert_msg(
+        loco->radius < g_sceneNavCellSize[agent->layer],
+        "Navigation agent too wide for its navigation layer");
+
     const GeoNavGrid* grid     = env->grids[agent->layer];
     const GeoNavCell  fromCell = geo_nav_at_position(grid, trans->position);
     SceneNavGoal      goal;
@@ -495,7 +499,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
     const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
-    const f32       arriveDist      = loco->radius + path_arrive_threshold;
+    const f32       arriveDist      = loco->radius * path_arrive_threshold;
     if (distToTargetSqr <= (arriveDist * arriveDist)) {
       goto Stop; // Arrived at destination.
     }
@@ -536,7 +540,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
-      if (!geo_nav_line_blocked(grid, fromCell, path->cells[i])) {
+      const GeoVector pathPos = geo_nav_position(grid, path->cells[i]);
+      if (!geo_nav_blocked_line_flat(grid, trans->position, pathPos, loco->radius)) {
         path->currentTargetIndex = i;
         nav_move_towards(grid, loco, &goal, path->cells[i]);
         goto Done;

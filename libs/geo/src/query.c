@@ -153,9 +153,14 @@ static f32 geo_prim_intersect_ray_fat(
     return geo_capsule_intersect_ray(&capsuleDilated, ray, outNormal);
   }
   case GeoQueryPrim_BoxRotated: {
-    const GeoBoxRotated* boxRotated        = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
-    const GeoVector      dilateSize        = geo_vector(radius, radius, radius);
-    const GeoBoxRotated  boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
+    const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
+    const GeoVector      dilateSize = geo_vector(radius, radius, radius);
+    /**
+     * Crude (conservative) estimation of a Minkowski-sum.
+     * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
+     * intersections too early at the corners.
+     */
+    const GeoBoxRotated boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
     return geo_box_rotated_intersect_ray(&boxRotatedDilated, ray, outNormal);
   }
   case GeoQueryPrim_Count:

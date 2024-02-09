@@ -266,9 +266,9 @@
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Movement",
-          "speed": 3.5,
+          "speed": 5.0,
           "rotationSpeed": 40,
-          "radius": 1.45,
+          "radius": 1.4,
           "weight": 1000.0,
           "moveFaceThreshold": 0.8
         },
