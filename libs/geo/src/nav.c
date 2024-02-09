@@ -228,12 +228,12 @@ static bool nav_cell_add_occupant(GeoNavGrid* grid, const GeoNavCell cell, const
   return false; // Maximum occupants per cell reached.
 }
 
-static GeoVector nav_cell_pos_no_y(const GeoNavGrid* grid, const GeoNavCell cell) {
+INLINE_HINT static GeoVector nav_cell_pos_no_y(const GeoNavGrid* grid, const GeoNavCell cell) {
   const GeoVector pos = geo_vector_mul(geo_vector(cell.x, 0, cell.y), grid->cellSize);
   return geo_vector_add(pos, grid->cellOffset);
 }
 
-static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
+INLINE_HINT static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
   GeoVector pos = geo_vector_mul(geo_vector(cell.x, 0, cell.y), grid->cellSize);
   pos.y         = grid->cellY[nav_cell_index(grid, cell)];
   return geo_vector_add(pos, grid->cellOffset);
