@@ -2,6 +2,7 @@
 #include "asset_terrain.h"
 #include "asset_texture.h"
 #include "core_diag.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -74,8 +75,8 @@ static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, 
   /**
    * Bi-linearly interpolate 4 pixels around the required coordinate.
    */
-  const f32 corner1x = math_min(t->heightmapSize - 2, math_round_down_f32(x));
-  const f32 corner1y = math_min(t->heightmapSize - 2, math_round_down_f32(y));
+  const f32 corner1x = math_min(t->heightmapSize - 2, intrinsic_round_down_f32(x));
+  const f32 corner1y = math_min(t->heightmapSize - 2, intrinsic_round_down_f32(y));
   const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
 
   const f32 p1 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner1x] * g_normMul;
