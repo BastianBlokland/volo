@@ -261,7 +261,7 @@ typedef struct {
   GeoNavMapFlags flags;
 } GeoNavMapResult;
 
-static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos) {
+INLINE_HINT static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos) {
   GeoVector localPos = geo_vector_round_nearest(
       geo_vector_mul(geo_vector_sub(pos, grid->cellOffset), grid->cellDensity));
 
