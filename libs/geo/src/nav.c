@@ -695,8 +695,10 @@ static GeoVector nav_separate_from_occupied(
 }
 
 static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
+#ifndef VOLO_FAST
   const u32 index = nav_cell_index(grid, cell);
   diag_assert_msg(grid->cellBlockerCount[index] != u8_max, "Cell blocked count exceeds max");
+#endif
 
   ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
 }
