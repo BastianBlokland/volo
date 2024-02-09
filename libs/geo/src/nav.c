@@ -1071,7 +1071,7 @@ bool geo_nav_blocked_line_flat(
       }
       const NavRect2D cellRect = {.pos = {(f32)cell.x, (f32)cell.y}, .extent = localExtent};
       if (!nav_line_intersect_rect(&localLine, &cellRect)) {
-        continue;
+        continue; // Not overlapping.
       }
       return true; // Blocked and overlapping.
     }
