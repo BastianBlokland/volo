@@ -58,7 +58,7 @@ struct sGeoNavGrid {
   f32           cellBlockHeight;
   GeoVector     cellOffset;
   f32*          cellY;            // f32[cellCountTotal]
-  u16*          cellBlockerCount; // u16[cellCountTotal]
+  u8*           cellBlockerCount; // u8[cellCountTotal]
   u16*          cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
   GeoNavIsland* cellIslands;      // GeoNavIsland[cellCountTotal]
   u32           islandCount;
@@ -539,7 +539,7 @@ static u32 nav_find(
 
 static bool nav_pred_blocked(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
   (void)ctx;
-  return g->cellBlockerCount[nav_cell_index(g, cell)] > 0;
+  return g->cellBlockerCount[nav_cell_index(g, cell)] != 0;
 }
 
 static bool nav_pred_unblocked(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
@@ -575,7 +575,7 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell
   /**
    * Test if the cell is not blocked and has no stationary occupant.
    */
-  if (g->cellBlockerCount[nav_cell_index(g, cell)] > 0) {
+  if (g->cellBlockerCount[nav_cell_index(g, cell)]) {
     return false;
   }
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
@@ -695,6 +695,9 @@ static GeoVector nav_separate_from_occupied(
 }
 
 static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
+  const u32 index = nav_cell_index(grid, cell);
+  diag_assert_msg(grid->cellBlockerCount[index] != u8_max, "Cell blocked count exceeds max");
+
   ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
 }
 
@@ -745,7 +748,7 @@ static bool nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerI
 static bool nav_blocker_release_all(GeoNavGrid* grid) {
   if (nav_blocker_count(grid) != 0) {
     bitset_set_all(grid->blockerFreeSet, geo_nav_blockers_max); // All blockers free again.
-    mem_set(mem_create(grid->cellBlockerCount, sizeof(u16) * grid->cellCountTotal), 0);
+    mem_set(mem_create(grid->cellBlockerCount, sizeof(u8) * grid->cellCountTotal), 0);
     return true;
   }
   return false;
@@ -837,7 +840,7 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const Geo
       if (grid->cellIslands[neighborIndex]) {
         continue; // Neighbor is already assigned to an island.
       }
-      if (grid->cellBlockerCount[neighborIndex] > 0) {
+      if (grid->cellBlockerCount[neighborIndex] != 0) {
         continue; // Neighbor blocked.
       }
       if (UNLIKELY(queueEnd == array_elems(queue))) {
@@ -869,7 +872,7 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
       if (grid->cellIslands[cellIndex]) {
         continue; // Cell is already assigned to an island.
       }
-      if (grid->cellBlockerCount[cellIndex] > 0) {
+      if (grid->cellBlockerCount[cellIndex] != 0) {
         // Assign it to the 'blocked' island.
         grid->cellIslands[cellIndex] = geo_nav_island_blocked;
         continue;
@@ -911,7 +914,7 @@ GeoNavGrid* geo_nav_grid_create(
       .cellBlockHeight  = blockHeight,
       .cellOffset       = geo_vector(size * -0.5f, 0, size * -0.5f),
       .cellY            = alloc_array_t(alloc, f32, cellCountTotal),
-      .cellBlockerCount = alloc_array_t(alloc, u16, cellCountTotal),
+      .cellBlockerCount = alloc_array_t(alloc, u8, cellCountTotal),
       .cellOccupancy    = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
       .cellIslands      = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
       .blockers         = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
@@ -1431,7 +1434,7 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 u32* geo_nav_stats(GeoNavGrid* grid) {
   u32 dataSizeGrid = sizeof(GeoNavGrid);
   dataSizeGrid += ((u32)sizeof(f32) * grid->cellCountTotal);          // grid.cellY
-  dataSizeGrid += ((u32)sizeof(u16) * grid->cellCountTotal);          // grid.cellBlockerCount
+  dataSizeGrid += ((u32)sizeof(u8) * grid->cellCountTotal);           // grid.cellBlockerCount
   dataSizeGrid += ((u32)nav_occupancy_mem(grid).size);                // grid.cellOccupancy
   dataSizeGrid += ((u32)sizeof(GeoNavIsland) * grid->cellCountTotal); // grid.cellIslands
   dataSizeGrid += (sizeof(GeoNavBlocker) * geo_nav_blockers_max);     // grid.blockers
