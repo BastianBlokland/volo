@@ -344,7 +344,7 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
       e,
       SceneTransformComp,
       .position = ctx->production->placementPos,
-      .rotation = geo_quat_angle_axis(geo_up, ctx->production->placementAngle));
+      .rotation = geo_quat_angle_axis(ctx->production->placementAngle, geo_up));
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
@@ -383,7 +383,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   }
   const GeoVector placementOrigin = transComp ? transComp->position : geo_vector(0);
   const GeoVector placementPos    = ctx->production->placementPos;
-  const GeoQuat   placementRot    = geo_quat_angle_axis(geo_up, ctx->production->placementAngle);
+  const GeoQuat   placementRot    = geo_quat_angle_axis(ctx->production->placementAngle, geo_up);
 
   const f32 placementRadiusMax = ctx->production->placementRadius;
   const f32 placementDist      = geo_vector_mag(geo_vector_sub(placementPos, placementOrigin));
@@ -455,7 +455,7 @@ static ProductResult product_queue_process_active_placeable(ProductQueueContext*
           &(ScenePrefabSpec){
               .prefabId = product->data_placable.prefab,
               .position = prod->placementPos,
-              .rotation = geo_quat_angle_axis(geo_up, prod->placementAngle),
+              .rotation = geo_quat_angle_axis(prod->placementAngle, geo_up),
               .scale    = 1.0f,
               .faction  = factionComp ? factionComp->id : SceneFaction_None,
           });
@@ -643,7 +643,7 @@ ecs_system_define(SceneProductPreviewUpdateSys) {
 
     SceneTransformComp* trans = ecs_view_write_t(itr, SceneTransformComp);
     trans->position           = production->placementPos;
-    trans->rotation           = geo_quat_angle_axis(geo_up, production->placementAngle);
+    trans->rotation           = geo_quat_angle_axis(production->placementAngle, geo_up);
 
     SceneTagComp*   tagComp    = ecs_utils_write_or_add_t(world, itr, SceneTagComp);
     const SceneTags blockedTag = SceneTags_Damaged; // TODO: Rename this tag or add a bespoke tag.

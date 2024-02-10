@@ -38,7 +38,7 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
  * NOTE: Angle is in radians.
  * Pre-condition: axis is normalized.
  */
-GeoQuat geo_quat_angle_axis(GeoVector axis, f32 angle);
+GeoQuat geo_quat_angle_axis(f32 angle, GeoVector axis);
 
 /**
  * Compute a 'difference' quaternion.
@@ -116,6 +116,17 @@ GeoVector geo_quat_to_euler(GeoQuat q);
  * NOTE: The angle is the magnitude of the combined angle-axis.
  */
 GeoVector geo_quat_to_angle_axis(GeoQuat);
+f32       geo_quat_to_angle(GeoQuat);
+
+typedef struct {
+  GeoQuat swing, twist;
+} GeoSwingTwist;
+
+/**
+ * Convert the given quaternion to two concatenated rotations, swing and twist around an axis.
+ */
+GeoSwingTwist geo_quat_to_swing_twist(GeoQuat, GeoVector twistAxis);
+GeoQuat       geo_quat_to_twist(GeoQuat, GeoVector twistAxis);
 
 /**
  * Clamp the quaternion so that the angle does not exceed 'maxAngle'.

@@ -267,8 +267,8 @@ static void update_camera_movement_debug(
     const f32 deltaX = input_cursor_delta_x(input) * g_rotateSensitivity;
     const f32 deltaY = input_cursor_delta_y(input) * -g_rotateSensitivity;
 
-    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(camRight, deltaY), camTrans->rotation);
-    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, deltaX), camTrans->rotation);
+    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(deltaY, camRight), camTrans->rotation);
+    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(deltaX, geo_up), camTrans->rotation);
     camTrans->rotation = geo_quat_norm(camTrans->rotation);
     lockCursor         = true;
   }

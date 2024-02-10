@@ -27,7 +27,7 @@
 #include "scene_vfx.h"
 #include "scene_weapon.h"
 
-#define attack_in_sight_threshold 0.9995f
+#define attack_in_sight_threshold 0.99f
 #define attack_in_sight_min_dist 1.0f
 
 ecs_comp_define_public(SceneAttackComp);
@@ -185,7 +185,7 @@ static GeoQuat proj_random_dev(const f32 spreadAngle) {
   const f32 minAngle = -spreadAngle * 0.5f * math_deg_to_rad;
   const f32 maxAngle = spreadAngle * 0.5f * math_deg_to_rad;
   const f32 angle    = rng_sample_range(g_rng, minAngle, maxAngle);
-  return geo_quat_angle_axis(geo_up, angle);
+  return geo_quat_angle_axis(angle, geo_up);
 }
 
 static bool attack_in_sight(const GeoVector pos, const GeoQuat aimRot, const GeoVector targetPos) {
@@ -194,7 +194,7 @@ static bool attack_in_sight(const GeoVector pos, const GeoQuat aimRot, const Geo
   if (sqrDist < (attack_in_sight_min_dist * attack_in_sight_min_dist)) {
     return true; // Target is very close, consider it always in-sight.
   }
-  const GeoVector forward     = geo_vector_xz(geo_quat_rotate(aimRot, geo_forward));
+  const GeoVector forward = geo_vector_norm(geo_vector_xz(geo_quat_rotate(aimRot, geo_forward)));
   const GeoVector dirToTarget = geo_vector_div(delta, math_sqrt_f32(sqrDist));
   return geo_vector_dot(forward, dirToTarget) > attack_in_sight_threshold;
 }

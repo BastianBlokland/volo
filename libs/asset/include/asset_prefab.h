@@ -120,6 +120,7 @@ typedef struct {
   f32        radius, weight;
   f32        moveFaceThreshold; // 1.0 = exact facing, 0.0 = not facing at all.
   StringHash moveAnimation;     // Optional: 0 to disable.
+  bool       alignToTerrain;
 } AssetPrefabTraitMovement;
 
 typedef struct {

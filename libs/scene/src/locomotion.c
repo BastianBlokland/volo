@@ -15,6 +15,7 @@
 #define loco_move_weight_multiplier 4.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
+ecs_comp_define_public(SceneLocomotionAlignComp);
 
 static bool loco_move_is_facing(const SceneLocomotionComp* loco, const SceneTransformComp* trans) {
   const GeoVector curDir     = geo_quat_rotate(trans->rotation, geo_forward);
@@ -33,6 +34,7 @@ ecs_view_define(MoveView) {
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneAnimationComp);
+  ecs_access_maybe_write(SceneLocomotionAlignComp);
   ecs_access_write(SceneLocomotionComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -50,13 +52,14 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
   EcsView* moveView = ecs_world_view_t(world, MoveView);
   for (EcsIterator* itr = ecs_view_itr_step(moveView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId        entity    = ecs_view_entity(itr);
-    SceneAnimationComp*      anim      = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneLocomotionComp*     loco      = ecs_view_write_t(itr, SceneLocomotionComp);
-    SceneTransformComp*      trans     = ecs_view_write_t(itr, SceneTransformComp);
-    const SceneNavAgentComp* navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
-    const SceneScaleComp*    scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const f32                scale     = scaleComp ? scaleComp->scale : 1.0f;
+    const EcsEntityId         entity    = ecs_view_entity(itr);
+    SceneAnimationComp*       anim      = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneLocomotionComp*      loco      = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneLocomotionAlignComp* align     = ecs_view_write_t(itr, SceneLocomotionAlignComp);
+    SceneTransformComp*       trans     = ecs_view_write_t(itr, SceneTransformComp);
+    const SceneNavAgentComp*  navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
+    const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const f32                 scale     = scaleComp ? scaleComp->scale : 1.0f;
 
     if (loco->flags & SceneLocomotion_Stop) {
       loco->targetPos = trans->position;
@@ -98,11 +101,15 @@ ecs_system_define(SceneLocomotionMoveSys) {
     if (posDeltaMag > 1e-4f || scene_terrain_updated(terrain)) {
       trans->position = geo_vector_add(trans->position, posDelta);
       scene_terrain_snap(terrain, &trans->position);
+      if (align) {
+        align->terrainNormal = scene_terrain_normal(terrain, trans->position);
+      }
     }
 
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
-      const GeoQuat rotTarget = geo_quat_look(loco->targetDir, geo_up);
-      if (geo_quat_towards(&trans->rotation, rotTarget, loco->rotationSpeedRad * dt)) {
+      const GeoQuat rotTgtRaw = geo_quat_look(loco->targetDir, geo_up);
+      const GeoQuat rotTgt    = geo_quat_to_twist(rotTgtRaw, align ? align->terrainNormal : geo_up);
+      if (geo_quat_towards(&trans->rotation, rotTgt, loco->rotationSpeedRad * dt)) {
         loco->targetDir = geo_vector(0);
       }
     }
@@ -121,6 +128,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
 ecs_module_init(scene_locomotion_module) {
   ecs_register_comp(SceneLocomotionComp);
+  ecs_register_comp(SceneLocomotionAlignComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(MoveView);

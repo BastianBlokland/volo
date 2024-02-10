@@ -678,7 +678,7 @@ static GeoVector nav_separate_from_occupied(
     GeoVector sepDir;
     if (UNLIKELY(dist < 1e-4f)) {
       // Occupants occupy the same position; pick a random direction.
-      const GeoQuat rot = geo_quat_angle_axis(geo_up, rng_sample_f32(g_rng) * math_pi_f32 * 2);
+      const GeoQuat rot = geo_quat_angle_axis(rng_sample_f32(g_rng) * math_pi_f32 * 2.0f, geo_up);
       sepDir            = geo_quat_rotate(rot, geo_forward);
     } else {
       sepDir = geo_vector_div(toOccupant, dist);

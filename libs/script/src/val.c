@@ -682,7 +682,7 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
     const GeoQuat qA    = val_as_quat(a);
     const GeoQuat qB    = val_as_quat(b);
     const GeoQuat delta = geo_quat_from_to(qA, qB);
-    const f32     angle = geo_vector_mag(geo_quat_to_angle_axis(delta));
+    const f32     angle = geo_quat_to_angle(delta);
     return val_num(angle);
   }
   return val_null();
@@ -991,7 +991,7 @@ ScriptVal script_val_quat_from_angle_axis(const ScriptVal angle, const ScriptVal
     return val_null();
   }
   const GeoVector axisNorm = geo_vector_div(axisVec, axisMag);
-  return val_quat(geo_quat_angle_axis(axisNorm, (f32)val_as_num(angle)));
+  return val_quat(geo_quat_angle_axis((f32)val_as_num(angle), axisNorm));
 }
 
 ScriptVal script_val_color_compose(

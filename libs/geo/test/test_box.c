@@ -143,7 +143,7 @@ spec(box) {
     const GeoVector orgSize = geo_box_size(&orgBox);
 
     const GeoVector offset   = geo_vector(2, 3, -1);
-    const GeoQuat   rotation = geo_quat_angle_axis(geo_up, 90 * math_deg_to_rad);
+    const GeoQuat   rotation = geo_quat_angle_axis(90 * math_deg_to_rad, geo_up);
     const f32       scale    = 2.0f;
     const GeoBox    transBox = geo_box_transform3(&orgBox, offset, rotation, scale);
 
