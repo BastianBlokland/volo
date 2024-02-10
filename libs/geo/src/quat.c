@@ -308,6 +308,10 @@ GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
 f32 geo_quat_to_angle(const GeoQuat q) { return geo_vector_mag(geo_quat_to_angle_axis(q)); }
 
 GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis) {
+#ifndef VOLO_FAST
+  assert_normalized(twistAxis);
+#endif
+
   /**
    * Quaternion swing-twist decomposition.
    * Reference: http://allenchou.net/2018/05/game-math-swing-twist-interpolation-sterp/
@@ -338,6 +342,10 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
 }
 
 GeoQuat geo_quat_to_twist(const GeoQuat q, const GeoVector twistAxis) {
+#ifndef VOLO_FAST
+  assert_normalized(twistAxis);
+#endif
+
   const GeoVector qAxis = geo_vector(q.x, q.y, q.z);
   if (geo_vector_mag_sqr(qAxis) < f32_epsilon) {
     return geo_quat_angle_axis(math_pi_f32, twistAxis);
