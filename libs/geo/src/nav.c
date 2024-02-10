@@ -41,11 +41,11 @@ typedef struct {
 
 typedef struct {
   BitSet      markedCells; // bit[cellCountTotal]
+  GeoNavCell* cameFrom;    // GeoNavCell[cellCountTotal]
+  u16*        gScores;     // u16[cellCountTotal]
+  u16*        fScores;     // u16[cellCountTotal]
   GeoNavCell* fScoreQueue; // GeoNavCell[cellCountTotal], queue sorted on the fScore, highest first.
   u32         fScoreQueueCount;
-  u16*        gScores;  // u16[cellCountTotal]
-  u16*        fScores;  // u16[cellCountTotal]
-  GeoNavCell* cameFrom; // GeoNavCell[cellCountTotal]
 
   u32 stats[GeoNavStat_Count];
 } GeoNavWorkerState;
@@ -80,10 +80,10 @@ NO_INLINE_HINT static GeoNavWorkerState* nav_worker_state_create(const GeoNavGri
 
   *state = (GeoNavWorkerState){
       .markedCells = alloc_alloc(grid->alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
-      .fScoreQueue = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
+      .cameFrom    = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
       .gScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
       .fScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
-      .cameFrom    = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
+      .fScoreQueue = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
   };
   return state;
 }
