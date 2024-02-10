@@ -154,8 +154,8 @@ typedef struct {
   f32    rotationSpeed; // Degrees per second.
   f32    radius, weight;
   String moveAnimation;
-  f32    moveFaceThreshold;
-  bool   alignToTerrain;
+  bool   wheeled;
+  f32    wheeledAcceleration;
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
@@ -363,8 +363,8 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, weight, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveFaceThreshold, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabTraitMovementDef, alignToTerrain, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, wheeled, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, wheeledAcceleration, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitFootstepDef);
     data_reg_field_t(reg, AssetPrefabTraitFootstepDef, jointA, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -685,13 +685,13 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Movement:
       outTrait->data_movement = (AssetPrefabTraitMovement){
-          .speed             = traitDef->data_movement.speed,
-          .rotationSpeedRad  = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
-          .radius            = traitDef->data_movement.radius,
-          .weight            = math_max(traitDef->data_movement.weight, trait_movement_weight_min),
-          .moveAnimation     = string_maybe_hash(traitDef->data_movement.moveAnimation),
-          .moveFaceThreshold = traitDef->data_movement.moveFaceThreshold,
-          .alignToTerrain    = traitDef->data_movement.alignToTerrain,
+          .speed            = traitDef->data_movement.speed,
+          .rotationSpeedRad = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
+          .radius           = traitDef->data_movement.radius,
+          .weight           = math_max(traitDef->data_movement.weight, trait_movement_weight_min),
+          .moveAnimation    = string_maybe_hash(traitDef->data_movement.moveAnimation),
+          .wheeled          = traitDef->data_movement.wheeled,
+          .wheeledAcceleration = traitDef->data_movement.wheeledAcceleration,
       };
       break;
     case AssetPrefabTrait_Footstep:

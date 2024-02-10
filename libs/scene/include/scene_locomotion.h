@@ -19,7 +19,10 @@ ecs_comp_extern_public(SceneLocomotionComp) {
   GeoVector            targetDir;
 };
 
-ecs_comp_extern_public(SceneLocomotionAlignComp) { GeoVector terrainNormal; };
+ecs_comp_extern_public(SceneLocomotionWheeledComp) {
+  f32       speed, acceleration;
+  GeoVector terrainNormal;
+};
 
 f32 scene_locomotion_radius(const SceneLocomotionComp*, f32 scale);
 f32 scene_locomotion_weight(const SceneLocomotionComp*, f32 scale);
