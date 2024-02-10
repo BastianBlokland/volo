@@ -28,9 +28,9 @@ typedef bool (*NavCellPredicate)(const GeoNavGrid*, const void* ctx, GeoNavCell)
 
 typedef struct {
   u64                 userId;
-  f32                 radius, weight;
   GeoNavOccupantFlags flags;
-  GeoVector           pos;
+  f32                 radius, weight;
+  f32                 pos[2]; // XZ position.
 } GeoNavOccupant;
 
 typedef struct {
@@ -112,8 +112,8 @@ INLINE_HINT static bool nav_bit_test(const BitSet bits, const u32 idx) {
 }
 
 typedef struct {
-  f32 pos[2];
-  f32 dirInv[2];
+  f32 pos[2];    // XZ position.
+  f32 dirInv[2]; // 1.0 / directionX, 1.0 / directionZ.
   f32 dist;
 } NavLine2D;
 
@@ -130,8 +130,8 @@ INLINE_HINT static NavLine2D nav_line_create(const GeoVector a, const GeoVector 
 }
 
 typedef struct {
-  f32 pos[2];
-  f32 extent;
+  f32 pos[2]; // XZ position.
+  f32 extent; // XZ extent.
 } NavRect2D;
 
 INLINE_HINT static bool nav_line_intersect_rect(const NavLine2D* l, const NavRect2D* r) {
@@ -664,12 +664,13 @@ static GeoVector nav_separate_from_occupied(
 
   GeoVector result = {0};
   for (u32 i = 0; i != occupantCount; ++i) {
-    if (occupants[i]->userId == userId) {
+    const GeoNavOccupant* occupant = occupants[i];
+    if (occupant->userId == userId) {
       continue; // Ignore occupants with the same userId.
     }
-    const GeoVector toOccupant = geo_vector_xz(geo_vector_sub(occupants[i]->pos, pos));
+    const GeoVector toOccupant = geo_vector(occupant->pos[0] - pos.x, 0, occupant->pos[1] - pos.z);
     const f32       distSqr    = geo_vector_mag_sqr(toOccupant);
-    const f32       sepDist    = occupants[i]->radius + radius;
+    const f32       sepDist    = occupant->radius + radius;
     if (distSqr >= (sepDist * sepDist)) {
       continue; // Far enough away.
     }
@@ -682,7 +683,7 @@ static GeoVector nav_separate_from_occupied(
     } else {
       sepDir = geo_vector_div(toOccupant, dist);
     }
-    const f32 otherWeight = occupants[i]->weight;
+    const f32 otherWeight = occupant->weight;
     const f32 relWeight   = otherWeight / (weight + otherWeight);
 
     // NOTE: Times 0.5 because both occupants are expected to move.
@@ -1384,7 +1385,7 @@ void geo_nav_occupant_add(
       .radius = radius,
       .weight = weight,
       .flags  = flags,
-      .pos    = pos,
+      .pos    = {pos.x, pos.z},
   };
   nav_cell_add_occupant(grid, mapRes.cell, occupantIndex);
 }
