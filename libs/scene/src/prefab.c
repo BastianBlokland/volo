@@ -256,15 +256,19 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       w,
       e,
       SceneLocomotionComp,
-      .maxSpeed          = t->speed,
-      .rotationSpeedRad  = t->rotationSpeedRad,
-      .radius            = t->radius,
-      .weight            = t->weight,
-      .moveFaceThreshold = t->moveFaceThreshold,
-      .moveAnimation     = t->moveAnimation);
+      .maxSpeed         = t->speed,
+      .rotationSpeedRad = t->rotationSpeedRad,
+      .radius           = t->radius,
+      .weight           = t->weight,
+      .moveAnimation    = t->moveAnimation);
 
-  if (t->alignToTerrain) {
-    ecs_world_add_t(w, e, SceneLocomotionAlignComp, .terrainNormal = geo_up);
+  if (t->wheeled) {
+    ecs_world_add_t(
+        w,
+        e,
+        SceneLocomotionWheeledComp,
+        .acceleration  = t->wheeledAcceleration,
+        .terrainNormal = geo_up);
   }
 
   const SceneNavLayer navLayer = t->radius > 1.0f ? SceneNavLayer_Large : SceneNavLayer_Normal;

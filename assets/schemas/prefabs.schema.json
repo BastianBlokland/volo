@@ -151,8 +151,8 @@
             "radius": { "title": "f32", "type": "number" },
             "weight": { "title": "f32", "type": "number" },
             "moveAnimation": { "title": "String", "type": "string" },
-            "moveFaceThreshold": { "title": "f32", "type": "number" },
-            "alignToTerrain": { "title": "bool", "type": "boolean" }
+            "wheeled": { "title": "bool", "type": "boolean" },
+            "wheeledAcceleration": { "title": "f32", "type": "number" }
           },
           "required": [
             "$type",

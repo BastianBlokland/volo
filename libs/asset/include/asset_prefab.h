@@ -118,9 +118,9 @@ typedef struct {
   f32        speed;
   f32        rotationSpeedRad; // Radians per second.
   f32        radius, weight;
-  f32        moveFaceThreshold; // 1.0 = exact facing, 0.0 = not facing at all.
-  StringHash moveAnimation;     // Optional: 0 to disable.
-  bool       alignToTerrain;
+  StringHash moveAnimation; // Optional: 0 to disable.
+  bool       wheeled;
+  f32        wheeledAcceleration;
 } AssetPrefabTraitMovement;
 
 typedef struct {

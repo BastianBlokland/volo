@@ -12,14 +12,16 @@ ecs_comp_extern_public(SceneLocomotionComp) {
   f32                  maxSpeed;         // Meter per second.
   f32                  rotationSpeedRad; // Radians per second.
   f32                  radius, weight;
-  f32                  moveFaceThreshold;    // 1.0 = exact facing, 0.0 = not facing at all.
   StringHash           moveAnimation;        // Optional: 0 to disable.
   f32                  lastSeparationMagSqr; // Squared magnitude of last frame's separation delta.
   GeoVector            targetPos;
   GeoVector            targetDir;
 };
 
-ecs_comp_extern_public(SceneLocomotionAlignComp) { GeoVector terrainNormal; };
+ecs_comp_extern_public(SceneLocomotionWheeledComp) {
+  f32       speed, acceleration;
+  GeoVector terrainNormal;
+};
 
 f32 scene_locomotion_radius(const SceneLocomotionComp*, f32 scale);
 f32 scene_locomotion_weight(const SceneLocomotionComp*, f32 scale);
