@@ -275,6 +275,17 @@ spec(quat) {
 
   it("can decompose into swing and twist") {
     {
+      const GeoVector axis1 = geo_vector_norm(geo_vector(-1, 2, 3));
+      const GeoVector axis2 = geo_vector_norm(geo_vector(-2, -2, 3));
+      const f32       angle = math_pi_f32 * 1.337f;
+
+      const GeoQuat       q1 = geo_quat_angle_axis(angle, axis1);
+      const GeoSwingTwist st = geo_quat_to_swing_twist(q1, axis2);
+      const GeoQuat       q2 = geo_quat_mul(st.swing, st.twist);
+
+      check_eq_quat(q1, q2);
+    }
+    {
       const GeoQuat       q  = geo_quat_angle_axis(1.337f, geo_up);
       const GeoSwingTwist sw = geo_quat_to_swing_twist(q, geo_up);
       check_eq_quat(sw.swing, geo_quat_ident);
