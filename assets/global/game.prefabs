@@ -270,7 +270,8 @@
           "rotationSpeed": 40,
           "radius": 1.4,
           "weight": 1000.0,
-          "moveFaceThreshold": 0.8
+          "moveFaceThreshold": 0.8,
+          "alignToTerrain": true
         },
         {
           "$type": "AssetPrefabTrait_Health",
