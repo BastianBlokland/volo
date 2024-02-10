@@ -116,6 +116,7 @@ GeoVector geo_quat_to_euler(GeoQuat q);
  * NOTE: The angle is the magnitude of the combined angle-axis.
  */
 GeoVector geo_quat_to_angle_axis(GeoQuat);
+f32       geo_quat_to_angle(GeoQuat);
 
 typedef struct {
   GeoQuat swing, twist;

@@ -305,6 +305,8 @@ GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
   return geo_vector_mul(axis, 2.0f);
 }
 
+f32 geo_quat_to_angle(const GeoQuat q) { return geo_vector_mag(geo_quat_to_angle_axis(q)); }
+
 GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis) {
   /**
    * Quaternion swing-twist decomposition.

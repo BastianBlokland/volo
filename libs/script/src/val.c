@@ -682,7 +682,7 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
     const GeoQuat qA    = val_as_quat(a);
     const GeoQuat qB    = val_as_quat(b);
     const GeoQuat delta = geo_quat_from_to(qA, qB);
-    const f32     angle = geo_vector_mag(geo_quat_to_angle_axis(delta));
+    const f32     angle = geo_quat_to_angle(delta);
     return val_num(angle);
   }
   return val_null();
