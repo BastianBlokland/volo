@@ -279,6 +279,16 @@
           "deathDestroyDelay": 2.5
         },
         {
+          "$type": "AssetPrefabTrait_Attack",
+          "weaponId": "TankShell",
+          "aimJoint": "turret",
+          "aimSpeed": 80,
+          "aimSoundId": "external/sound/electric-motor-01.wav",
+          "targetRangeMax": 35,
+          "targetLineOfSightRadius": 0.75,
+          "targetExcludeObscured": true
+        },
+        {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": false,
           "shape": {
