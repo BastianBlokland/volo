@@ -273,6 +273,27 @@ spec(quat) {
     check_eq_quat(q1, q2);
   }
 
+  it("can decompose into swing and twist") {
+    {
+      const GeoQuat       q  = geo_quat_angle_axis(geo_up, 1.337f);
+      const GeoSwingTwist sw = geo_quat_to_swing_twist(q, geo_up);
+      check_eq_quat(sw.swing, geo_quat_ident);
+      check_eq_quat(sw.twist, q);
+    }
+    {
+      const GeoQuat       q  = geo_quat_angle_axis(geo_up, 1.337f);
+      const GeoSwingTwist sw = geo_quat_to_swing_twist(q, geo_right);
+      check_eq_quat(sw.swing, q);
+      check_eq_quat(sw.twist, geo_quat_ident);
+    }
+    {
+      const GeoQuat       q  = geo_quat_angle_axis(geo_up, 1.337f);
+      const GeoSwingTwist sw = geo_quat_to_swing_twist(q, geo_forward);
+      check_eq_quat(sw.swing, q);
+      check_eq_quat(sw.twist, geo_quat_ident);
+    }
+  }
+
   it("can clamp rotations") {
     {
       GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);

@@ -305,6 +305,36 @@ GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
   return geo_vector_mul(axis, 2.0f);
 }
 
+GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis) {
+  /**
+   * Quaternion swing-twist decomposition.
+   * Reference: http://allenchou.net/2018/05/game-math-swing-twist-interpolation-sterp/
+   * Reference: http://www.euclideanspace.com/maths/geometry/rotations/for/decomposition/
+   */
+  GeoSwingTwist   result;
+  const GeoVector qAxis       = geo_vector(q.x, q.y, q.z);
+  const f32       qAxisSqrMag = geo_vector_mag_sqr(qAxis);
+  if (qAxisSqrMag < f32_epsilon) {
+    // Singularity: rotation by 180 degrees.
+    const GeoVector rotatedTwistAxis = geo_quat_rotate(q, twistAxis);
+    const GeoVector swingAxis        = geo_vector_cross3(twistAxis, rotatedTwistAxis);
+    const f32       swingAxisSqrMag  = geo_vector_mag_sqr(swingAxis);
+    if (swingAxisSqrMag > f32_epsilon) {
+      const f32 swingAngle = geo_vector_angle(twistAxis, rotatedTwistAxis);
+      result.swing         = geo_quat_angle_axis(swingAxis, swingAngle);
+    } else {
+      // Singularity: rotation axis parallel to twist axis.
+      result.swing = geo_quat_ident;
+    }
+    result.twist = geo_quat_angle_axis(twistAxis, math_pi_f32);
+    return result;
+  }
+  const GeoVector p = geo_vector_project(qAxis, twistAxis);
+  result.twist      = geo_quat_norm((GeoQuat){.x = p.x, .y = p.y, .z = p.z, .w = q.w});
+  result.swing      = geo_quat_mul(q, geo_quat_inverse(result.twist));
+  return result;
+}
+
 bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
   diag_assert_msg(maxAngle >= 0.0f, "maximum angle cannot be negative");
 
