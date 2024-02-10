@@ -330,7 +330,7 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
     return result;
   }
   const GeoVector p = geo_vector_project(qAxis, twistAxis);
-  result.twist      = geo_quat_norm((GeoQuat){.x = p.x, .y = p.y, .z = p.z, .w = q.w});
+  result.twist      = geo_quat_norm_or_ident((GeoQuat){.x = p.x, .y = p.y, .z = p.z, .w = q.w});
   result.swing      = geo_quat_mul(q, geo_quat_inverse(result.twist));
   return result;
 }
