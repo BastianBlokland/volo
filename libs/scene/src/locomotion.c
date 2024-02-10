@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_noise.h"
 #include "ecs_world.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
@@ -11,6 +12,7 @@
 #include "scene_transform.h"
 
 #define loco_arrive_threshold 0.1f
+#define loco_rot_turbulence_freq 5.0f
 #define loco_anim_weight_ease_speed 2.5f
 #define loco_move_weight_multiplier 4.0f
 #define loco_face_threshold 0.8f
@@ -24,6 +26,16 @@ static bool loco_is_facing(const SceneLocomotionComp* loco, const SceneTransform
   const GeoVector curDirFlat = geo_vector_norm(geo_vector_xz(curDir));
   const f32       dirDot     = geo_vector_dot(curDirFlat, loco->targetDir);
   return math_max(0.0f, dirDot) >= loco_face_threshold;
+}
+
+static f32 loco_rot_speed(const SceneLocomotionComp* loco, const EcsEntityId e, const f32 time) {
+  f32 speed = loco->rotationSpeedRad;
+  if (loco_rot_turbulence_freq > 0.0) {
+    const f32 seed       = (f32)ecs_entity_id_index(e);
+    const f32 turbulence = 1.0f + noise_perlin3(time * loco_rot_turbulence_freq, seed, 0);
+    speed *= turbulence;
+  }
+  return speed;
 }
 
 ecs_view_define(GlobalView) {
@@ -50,6 +62,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
   const SceneNavEnvComp*  navEnv  = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*    time    = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32               timeSec = scene_time_seconds(time);
   const f32               dt      = scene_delta_seconds(time);
 
   EcsView* moveView = ecs_world_view_t(world, MoveView);
@@ -122,7 +135,8 @@ ecs_system_define(SceneLocomotionMoveSys) {
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
       const GeoVector axis      = wheeled ? wheeled->terrainNormal : geo_up;
       const GeoQuat   rotTarget = geo_quat_to_twist(geo_quat_look(loco->targetDir, geo_up), axis);
-      if (geo_quat_towards(&trans->rotation, rotTarget, loco->rotationSpeedRad * dt)) {
+      const f32       rotSpeed  = loco_rot_speed(loco, entity, timeSec);
+      if (geo_quat_towards(&trans->rotation, rotTarget, rotSpeed * dt)) {
         loco->targetDir = geo_vector(0);
       }
     }
