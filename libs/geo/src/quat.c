@@ -335,6 +335,15 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
   return result;
 }
 
+GeoQuat geo_quat_to_twist(const GeoQuat q, const GeoVector twistAxis) {
+  const GeoVector qAxis = geo_vector(q.x, q.y, q.z);
+  if (geo_vector_mag_sqr(qAxis) < f32_epsilon) {
+    return geo_quat_angle_axis(math_pi_f32, twistAxis);
+  }
+  const GeoVector p = geo_vector_project(qAxis, twistAxis);
+  return geo_quat_norm_or_ident((GeoQuat){.x = p.x, .y = p.y, .z = p.z, .w = q.w});
+}
+
 bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
   diag_assert_msg(maxAngle >= 0.0f, "maximum angle cannot be negative");
 

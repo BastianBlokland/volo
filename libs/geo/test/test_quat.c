@@ -305,6 +305,21 @@ spec(quat) {
     }
   }
 
+  it("can decompose into twist") {
+    {
+      const GeoQuat q = geo_quat_angle_axis(1.337f, geo_up);
+      check_eq_quat(geo_quat_to_twist(q, geo_up), q);
+    }
+    {
+      const GeoQuat q = geo_quat_angle_axis(1.337f, geo_up);
+      check_eq_quat(geo_quat_to_twist(q, geo_right), geo_quat_ident);
+    }
+    {
+      const GeoQuat q = geo_quat_angle_axis(1.337f, geo_up);
+      check_eq_quat(geo_quat_to_twist(q, geo_forward), geo_quat_ident);
+    }
+  }
+
   it("can clamp rotations") {
     {
       GeoQuat q = geo_quat_angle_axis(0.42f, geo_right);

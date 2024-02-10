@@ -125,6 +125,7 @@ typedef struct {
  * Convert the given quaternion to two concatenated rotations, swing and twist around an axis.
  */
 GeoSwingTwist geo_quat_to_swing_twist(GeoQuat, GeoVector twistAxis);
+GeoQuat       geo_quat_to_twist(GeoQuat, GeoVector twistAxis);
 
 /**
  * Clamp the quaternion so that the angle does not exceed 'maxAngle'.
