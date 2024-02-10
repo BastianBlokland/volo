@@ -492,7 +492,7 @@ static bool gizmo_update_interaction_rotation(
     const f32 snapAngleRad = g_gizmoSnapAngleDeg * math_deg_to_rad;
     angle                  = math_round_nearest_f32(angle / snapAngleRad) * snapAngleRad;
   }
-  data->result = geo_quat_mul(geo_quat_angle_axis(axis, angle), data->baseRot);
+  data->result = geo_quat_mul(geo_quat_angle_axis(angle, axis), data->baseRot);
 
   debug_stats_notify(stats, string_lit("Gizmo axis"), g_gizmoSectionNames[section]);
   debug_stats_notify(

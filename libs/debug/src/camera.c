@@ -57,7 +57,7 @@ static void camera_default_transform(const SceneCameraComp* camera, SceneTransfo
     transform->rotation = geo_quat_look(geo_down, geo_forward);
   } else {
     transform->position = geo_vector(0, 1.5f, -3.0f);
-    transform->rotation = geo_quat_angle_axis(geo_right, 10 * math_deg_to_rad);
+    transform->rotation = geo_quat_angle_axis(10 * math_deg_to_rad, geo_right);
   }
 }
 

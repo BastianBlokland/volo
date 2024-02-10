@@ -420,7 +420,7 @@ ecs_system_define(VfxDecalUpdateSys) {
       rot = geo_quat_forward_to_up;
       break;
     }
-    rot = geo_quat_mul(rot, geo_quat_angle_axis(geo_forward, instance->angle));
+    rot = geo_quat_mul(rot, geo_quat_angle_axis(instance->angle, geo_forward));
 
     f32 alpha = decal->alpha;
     if (instance->fadeInSec > 0) {

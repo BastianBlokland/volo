@@ -75,11 +75,11 @@ spec(val) {
 
   it("can store quaternions") {
     const GeoQuat testData[] = {
-        geo_quat_angle_axis(geo_up, 0.0f * math_pi_f32 * 2.0f),
-        geo_quat_angle_axis(geo_up, 0.25f * math_pi_f32 * 2.0f),
-        geo_quat_angle_axis(geo_up, 0.5f * math_pi_f32 * 2.0f),
-        geo_quat_angle_axis(geo_up, 0.75f * math_pi_f32 * 2.0f),
-        geo_quat_angle_axis(geo_up, 1.0f * math_pi_f32 * 2.0f),
+        geo_quat_angle_axis(0.0f * math_pi_f32 * 2.0f, geo_up),
+        geo_quat_angle_axis(0.25f * math_pi_f32 * 2.0f, geo_up),
+        geo_quat_angle_axis(0.5f * math_pi_f32 * 2.0f, geo_up),
+        geo_quat_angle_axis(0.75f * math_pi_f32 * 2.0f, geo_up),
+        geo_quat_angle_axis(1.0f * math_pi_f32 * 2.0f, geo_up),
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

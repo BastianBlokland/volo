@@ -38,7 +38,7 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
  * NOTE: Angle is in radians.
  * Pre-condition: axis is normalized.
  */
-GeoQuat geo_quat_angle_axis(GeoVector axis, f32 angle);
+GeoQuat geo_quat_angle_axis(f32 angle, GeoVector axis);
 
 /**
  * Compute a 'difference' quaternion.

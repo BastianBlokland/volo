@@ -185,7 +185,7 @@ static GeoQuat proj_random_dev(const f32 spreadAngle) {
   const f32 minAngle = -spreadAngle * 0.5f * math_deg_to_rad;
   const f32 maxAngle = spreadAngle * 0.5f * math_deg_to_rad;
   const f32 angle    = rng_sample_range(g_rng, minAngle, maxAngle);
-  return geo_quat_angle_axis(geo_up, angle);
+  return geo_quat_angle_axis(angle, geo_up);
 }
 
 static bool attack_in_sight(const GeoVector pos, const GeoQuat aimRot, const GeoVector targetPos) {

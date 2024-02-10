@@ -150,7 +150,7 @@ spec(matrix) {
 
   it("can be decomposed and recomposed") {
     const GeoVector orgT = geo_vector(42.0f, -1337.0f, .1f);
-    const GeoQuat   orgR = geo_quat_angle_axis(geo_right, math_pi_f32 * .25f);
+    const GeoQuat   orgR = geo_quat_angle_axis(math_pi_f32 * .25f, geo_right);
 
     const GeoMatrix mT   = geo_matrix_translate(orgT);
     const GeoMatrix mR   = geo_matrix_from_quat(orgR);
@@ -196,9 +196,9 @@ spec(matrix) {
     const GeoMatrix mY    = geo_matrix_rotate_y(angle);
     const GeoMatrix mZ    = geo_matrix_rotate_z(angle);
 
-    const GeoQuat qX = geo_quat_angle_axis(geo_right, angle);
-    const GeoQuat qY = geo_quat_angle_axis(geo_up, angle);
-    const GeoQuat qZ = geo_quat_angle_axis(geo_forward, angle);
+    const GeoQuat qX = geo_quat_angle_axis(angle, geo_right);
+    const GeoQuat qY = geo_quat_angle_axis(angle, geo_up);
+    const GeoQuat qZ = geo_quat_angle_axis(angle, geo_forward);
 
     const GeoVector v = geo_vector(.42f, 13.37f, -42);
 
@@ -214,9 +214,9 @@ spec(matrix) {
       const GeoMatrix mY    = geo_matrix_rotate_y(angle);
       const GeoMatrix mZ    = geo_matrix_rotate_z(angle);
 
-      const GeoQuat qX = geo_quat_angle_axis(geo_right, angle);
-      const GeoQuat qY = geo_quat_angle_axis(geo_up, angle);
-      const GeoQuat qZ = geo_quat_angle_axis(geo_forward, angle);
+      const GeoQuat qX = geo_quat_angle_axis(angle, geo_right);
+      const GeoQuat qY = geo_quat_angle_axis(angle, geo_up);
+      const GeoQuat qZ = geo_quat_angle_axis(angle, geo_forward);
 
       check_eq_matrix(geo_matrix_from_quat(qX), mX);
       check_eq_matrix(geo_matrix_from_quat(qY), mY);
@@ -224,7 +224,7 @@ spec(matrix) {
     }
     {
       const GeoQuat q =
-          geo_quat_mul(geo_quat_angle_axis(geo_up, 42), geo_quat_angle_axis(geo_right, 13));
+          geo_quat_mul(geo_quat_angle_axis(42, geo_up), geo_quat_angle_axis(13, geo_right));
       const GeoVector newX        = geo_quat_rotate(q, geo_right);
       const GeoVector newY        = geo_quat_rotate(q, geo_up);
       const GeoVector newZ        = geo_quat_rotate(q, geo_forward);
@@ -236,11 +236,11 @@ spec(matrix) {
   it("can be converted to a quaternion") {
     {
       const GeoMatrix m = {.columns = {{-1, 0, 0}, {0, 1, 0}, {0, 0, -1}}};
-      check_eq_quat(geo_matrix_to_quat(&m), geo_quat_angle_axis(geo_up, math_pi_f32));
+      check_eq_quat(geo_matrix_to_quat(&m), geo_quat_angle_axis(math_pi_f32, geo_up));
     }
     {
       const GeoQuat q1 =
-          geo_quat_mul(geo_quat_angle_axis(geo_up, 42), geo_quat_angle_axis(geo_right, 13));
+          geo_quat_mul(geo_quat_angle_axis(42, geo_up), geo_quat_angle_axis(13, geo_right));
       const GeoMatrix m  = geo_matrix_from_quat(q1);
       const GeoQuat   q2 = geo_matrix_to_quat(&m);
       const GeoVector v  = {.42f, 13.37f, -42};

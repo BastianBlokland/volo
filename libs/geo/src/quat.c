@@ -17,7 +17,7 @@ MAYBE_UNUSED static void assert_normalized(const GeoVector v) {
   diag_assert_msg(math_abs(sqrMag - 1) < 1e-4, "Given vector is not normalized");
 }
 
-GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
+GeoQuat geo_quat_angle_axis(const f32 angle, const GeoVector axis) {
 #ifndef VOLO_FAST
   assert_normalized(axis);
 #endif
@@ -321,12 +321,12 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
     const f32       swingAxisSqrMag  = geo_vector_mag_sqr(swingAxis);
     if (swingAxisSqrMag > f32_epsilon) {
       const f32 swingAngle = geo_vector_angle(twistAxis, rotatedTwistAxis);
-      result.swing         = geo_quat_angle_axis(swingAxis, swingAngle);
+      result.swing         = geo_quat_angle_axis(swingAngle, swingAxis);
     } else {
       // Singularity: rotation axis parallel to twist axis.
       result.swing = geo_quat_ident;
     }
-    result.twist = geo_quat_angle_axis(twistAxis, math_pi_f32);
+    result.twist = geo_quat_angle_axis(math_pi_f32, twistAxis);
     return result;
   }
   const GeoVector p = geo_vector_project(qAxis, twistAxis);
@@ -346,7 +346,7 @@ bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
   const f32       angle = intrinsic_sqrt_f32(angleSqr);
   const GeoVector axis  = geo_vector_div(angleAxis, angle);
 
-  GeoQuat clamped = geo_quat_angle_axis(axis, math_min(angle, maxAngle));
+  GeoQuat clamped = geo_quat_angle_axis(math_min(angle, maxAngle), axis);
   if (geo_quat_dot(clamped, *q) < 0) {
     // Compensate for quaternion double-cover (two quaternions representing the same rot).
     clamped = geo_quat_flip(clamped);
