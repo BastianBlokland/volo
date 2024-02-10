@@ -263,6 +263,10 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       .moveFaceThreshold = t->moveFaceThreshold,
       .moveAnimation     = t->moveAnimation);
 
+  if (t->alignToTerrain) {
+    ecs_world_add_t(w, e, SceneLocomotionAlignComp, .terrainNormal = geo_up);
+  }
+
   const SceneNavLayer navLayer = t->radius > 1.0f ? SceneNavLayer_Large : SceneNavLayer_Normal;
   scene_nav_add_agent(w, e, navLayer);
 }
