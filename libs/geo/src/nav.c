@@ -40,12 +40,12 @@ typedef struct {
 } GeoNavBlocker;
 
 typedef struct {
-  BitSet      markedCells;
-  GeoNavCell* fScoreQueue; // Cell queue sorted on the fScore, highest first.
+  BitSet      markedCells; // bit[cellCountTotal]
+  GeoNavCell* fScoreQueue; // GeoNavCell[cellCountTotal], queue sorted on the fScore, highest first.
   u32         fScoreQueueCount;
-  u16*        gScores;
-  u16*        fScores;
-  GeoNavCell* cameFrom;
+  u16*        gScores;  // u16[cellCountTotal]
+  u16*        fScores;  // u16[cellCountTotal]
+  GeoNavCell* cameFrom; // GeoNavCell[cellCountTotal]
 
   u32 stats[GeoNavStat_Count];
 } GeoNavWorkerState;
