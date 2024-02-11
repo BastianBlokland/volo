@@ -278,7 +278,7 @@
           "$type": "AssetPrefabTrait_Health",
           "amount": 2250,
           "deathDestroyDelay": 0.8,
-          "deathEffectPrefab": "DeathTurret"
+          "deathEffectPrefab": "DeathVehicle"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -977,6 +977,20 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "gainMin": 1.1, "gainMax": 1.5,
+          "pitchMin": 1.0, "pitchMax": 1.1
+        }
+      ]
+    },
+    {
+      "name": "DeathVehicle", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-02.wav" ],
