@@ -282,7 +282,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "TankShell",
+          "weaponId": "TankTurret",
           "aimJoint": "turret",
           "aimSpeed": 50,
           "aimSoundId": "external/sound/electric-motor-01.wav",

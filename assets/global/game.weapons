@@ -113,9 +113,9 @@
       ]
     },
     {
-      "name": "TankShell",
+      "name": "TankTurret",
       "intervalMin": 1.25, "intervalMax": 1.5,
-      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim",
+      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim", "readyWhileMoving": true,
       "predictiveAim": true,
       "effects": [
         {
