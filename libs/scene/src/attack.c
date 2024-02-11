@@ -29,6 +29,7 @@
 
 #define attack_in_sight_threshold 0.99f
 #define attack_in_sight_min_dist 1.0f
+#define attack_aim_reset_time time_seconds(5)
 
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
@@ -69,46 +70,22 @@ attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWe
 }
 
 static void aim_face(
-    SceneAttackAimComp*           attackAim,
-    SceneSkeletonComp*            skel,
-    const SceneSkeletonTemplComp* skelTempl,
-    SceneLocomotionComp*          loco,
-    const SceneTransformComp*     trans,
-    const GeoVector               targetPos,
-    const f32                     deltaSeconds) {
+    SceneAttackAimComp*       attackAim,
+    SceneLocomotionComp*      loco,
+    const SceneTransformComp* trans,
+    const GeoVector           targetPos) {
 
   const GeoVector delta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
   const f32       dist  = geo_vector_mag(delta);
   const GeoVector dir   = dist <= f32_epsilon ? geo_forward : geo_vector_div(delta, dist);
 
-  // Face using 'SceneAttackAim' if available.
   if (attackAim) {
-    const GeoQuat tgtRotWorld            = geo_quat_look(dir, geo_up);
-    const GeoQuat tgtRotLocal            = geo_quat_from_to(trans->rotation, tgtRotWorld);
-    const GeoQuat tgtRotLocalConstrained = geo_quat_to_twist(tgtRotLocal, geo_up);
-    const bool    tgtReached             = geo_quat_towards(
-        &attackAim->aimRotLocal, tgtRotLocalConstrained, attackAim->aimSpeedRad * deltaSeconds);
-
-    attackAim->isAiming = !tgtReached;
-
-    const u32 aimJointIdx = scene_skeleton_joint_by_name(skelTempl, attackAim->aimJoint);
-    if (!sentinel_check(aimJointIdx)) {
-      const GeoMatrix postTransform = geo_matrix_from_quat(attackAim->aimRotLocal);
-      scene_skeleton_post_transform(skel, aimJointIdx, &postTransform);
-    }
+    scene_attack_aim(attackAim, trans, dir);
     return;
   }
-
-  // Face using 'SceneLocomotion' if available.
   if (loco) {
     scene_locomotion_face(loco, dir);
     return;
-  }
-}
-
-static void aim_idle(SceneAttackAimComp* attackAim) {
-  if (attackAim) {
-    attackAim->isAiming = false;
   }
 }
 
@@ -677,6 +654,10 @@ ecs_system_define(SceneAttackSys) {
       }
     }
 
+    if (attackAim && isMoving && timeSinceHadTarget > attack_aim_reset_time) {
+      scene_attack_aim_reset(attackAim);
+    }
+
     if (weapon->readyAnim) {
       scene_animation_set_weight(anim, weapon->readyAnim, attack->readyNorm);
     }
@@ -690,7 +671,7 @@ ecs_system_define(SceneAttackSys) {
         impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
       }
       const GeoVector targetPos = aim_position(trans->position, targetItr, impactTimeEst);
-      aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSec);
+      aim_face(attackAim, loco, trans, targetPos);
 
       const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
       const bool      isCoolingDown = time->time < attack->nextFireTime;
@@ -709,7 +690,6 @@ ecs_system_define(SceneAttackSys) {
       }
     } else {
       interruptFiring = true;
-      aim_idle(attackAim);
     }
 
     // Update the current attack.
@@ -736,6 +716,44 @@ ecs_system_define(SceneAttackSys) {
         attack->flags &= ~SceneAttackFlags_Firing;
         attack->nextFireTime = attack_next_fire_time(weapon, time->time);
       }
+    }
+  }
+}
+
+ecs_view_define(AimUpdateView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_write(SceneSkeletonComp);
+  ecs_access_write(SceneAttackAimComp);
+}
+
+ecs_system_define(SceneAttackAimSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const f32 dt = scene_delta_seconds(ecs_view_read_t(globalItr, SceneTimeComp));
+
+  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, GraphicView));
+
+  EcsView* updateView = ecs_world_view_t(world, AimUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+    SceneAttackAimComp*        attackAim  = ecs_view_write_t(itr, SceneAttackAimComp);
+    SceneSkeletonComp*         skel       = ecs_view_write_t(itr, SceneSkeletonComp);
+
+    if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
+      continue; // Graphic is missing required components.
+    }
+    const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
+
+    attackAim->isAiming = !geo_quat_towards(
+        &attackAim->aimLocalActual, attackAim->aimLocalTarget, attackAim->aimSpeedRad * dt);
+
+    const u32 aimJointIdx = scene_skeleton_joint_by_name(skelTempl, attackAim->aimJoint);
+    if (!sentinel_check(aimJointIdx)) {
+      const GeoMatrix postTransform = geo_matrix_from_quat(attackAim->aimLocalActual);
+      scene_skeleton_post_transform(skel, aimJointIdx, &postTransform);
     }
   }
 }
@@ -817,6 +835,7 @@ ecs_module_init(scene_attack_module) {
   ecs_register_view(AttachmentInstanceView);
   ecs_register_view(AttackView);
   ecs_register_view(TargetView);
+  ecs_register_view(AimUpdateView);
   ecs_register_view(SoundUpdateView);
   ecs_register_view(AttachmentUpdateView);
 
@@ -830,6 +849,12 @@ ecs_module_init(scene_attack_module) {
   ecs_parallel(SceneAttackSys, 4);
 
   ecs_register_system(
+      SceneAttackAimSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(AimUpdateView),
+      ecs_view_id(GraphicView));
+
+  ecs_register_system(
       SceneAttackSoundSys, ecs_view_id(SoundUpdateView), ecs_view_id(SoundInstanceView));
 
   ecs_register_system(
@@ -840,7 +865,7 @@ ecs_module_init(scene_attack_module) {
 
 GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {
   if (aimComp) {
-    return geo_quat_mul(trans->rotation, aimComp->aimRotLocal);
+    return geo_quat_mul(trans->rotation, aimComp->aimLocalActual);
   }
   return trans->rotation;
 }
@@ -848,4 +873,21 @@ GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackA
 GeoVector scene_attack_aim_dir(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {
   const GeoQuat aimRot = scene_attack_aim_rot(trans, aimComp);
   return geo_quat_rotate(aimRot, geo_forward);
+}
+
+void scene_attack_aim(
+    SceneAttackAimComp* attackAim, const SceneTransformComp* trans, const GeoVector dir) {
+  diag_assert_msg(
+      math_abs(geo_vector_mag_sqr(dir) - 1.0f) <= 1e-6f,
+      "Direction ({}) is not normalized",
+      geo_vector_fmt(dir));
+
+  const GeoQuat aimWorld            = geo_quat_look(dir, geo_up);
+  const GeoQuat aimLocal            = geo_quat_from_to(trans->rotation, aimWorld);
+  const GeoQuat aimLocalConstrained = geo_quat_to_twist(aimLocal, geo_up);
+  attackAim->aimLocalTarget         = aimLocalConstrained;
+}
+
+void scene_attack_aim_reset(SceneAttackAimComp* attackAim) {
+  attackAim->aimLocalTarget = geo_quat_ident;
 }

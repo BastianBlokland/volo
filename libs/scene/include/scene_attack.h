@@ -28,7 +28,7 @@ ecs_comp_extern_public(SceneAttackAimComp) {
   StringHash aimJoint;
   f32        aimSpeedRad; // Radians per second.
   bool       isAiming;
-  GeoQuat    aimRotLocal;
+  GeoQuat    aimLocalActual, aimLocalTarget;
 };
 
 ecs_comp_extern_public(SceneAttackSoundComp) {
@@ -42,3 +42,9 @@ ecs_comp_extern_public(SceneAttackSoundComp) {
  */
 GeoQuat   scene_attack_aim_rot(const SceneTransformComp*, const SceneAttackAimComp*);
 GeoVector scene_attack_aim_dir(const SceneTransformComp*, const SceneAttackAimComp*);
+
+/**
+ * Start aiming in the given direction.
+ */
+void scene_attack_aim(SceneAttackAimComp*, const SceneTransformComp*, GeoVector direction);
+void scene_attack_aim_reset(SceneAttackAimComp*);

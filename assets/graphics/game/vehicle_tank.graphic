@@ -10,5 +10,5 @@
   "samplers": [
     { "textureId": "external/tank/tank_2_color_rough.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/tank/tank_02.gltf"
+  "meshId": "external/tank/tank_04.gltf"
 }
