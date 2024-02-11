@@ -926,6 +926,19 @@
       ]
     },
     {
+      "name": "ImpactShell", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 5 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_small.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-03.wav" ],
+          "gainMin": 1.4, "gainMax": 1.5,
+          "pitchMin": 0.8, "pitchMax": 0.9
+        }
+      ]
+    },
+    {
       "name": "ImpactRifle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },

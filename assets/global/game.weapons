@@ -129,7 +129,7 @@
           "damageRadius": 2,
           "destroyDelay": 0.05,
           "projectilePrefab": "ProjectileBullet",
-          "impactPrefab": "ImpactRocket"
+          "impactPrefab": "ImpactShell"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
