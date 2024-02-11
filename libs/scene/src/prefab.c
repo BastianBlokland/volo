@@ -312,9 +312,10 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         w,
         e,
         SceneAttackAimComp,
-        .aimJoint    = t->aimJoint,
-        .aimSpeedRad = t->aimSpeedRad,
-        .aimRotLocal = geo_quat_ident);
+        .aimJoint       = t->aimJoint,
+        .aimSpeedRad    = t->aimSpeedRad,
+        .aimLocalActual = geo_quat_ident,
+        .aimLocalTarget = geo_quat_ident);
   }
   if (t->aimSoundAsset) {
     ecs_world_add_t(w, e, SceneAttackSoundComp, .aimSoundAsset = t->aimSoundAsset);
