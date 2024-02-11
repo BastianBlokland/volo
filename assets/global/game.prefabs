@@ -285,7 +285,7 @@
           "weaponId": "TankTurret",
           "aimJoint": "turret",
           "aimSpeed": 50,
-          "aimSoundId": "external/sound/electric-motor-01.wav",
+          "aimSoundId": "external/sound/tank-turret-01.wav",
           "targetRangeMax": 35,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
