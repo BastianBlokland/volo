@@ -29,6 +29,7 @@
 
 #define attack_in_sight_threshold 0.99f
 #define attack_in_sight_min_dist 1.0f
+#define attack_aim_reset_time time_seconds(5)
 
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
@@ -653,6 +654,10 @@ ecs_system_define(SceneAttackSys) {
       }
     }
 
+    if (attackAim && isMoving && timeSinceHadTarget > attack_aim_reset_time) {
+      scene_attack_aim_reset(attackAim);
+    }
+
     if (weapon->readyAnim) {
       scene_animation_set_weight(anim, weapon->readyAnim, attack->readyNorm);
     }
@@ -876,4 +881,8 @@ void scene_attack_aim(
   const GeoQuat aimLocal            = geo_quat_from_to(trans->rotation, aimWorld);
   const GeoQuat aimLocalConstrained = geo_quat_to_twist(aimLocal, geo_up);
   attackAim->aimLocalTarget         = aimLocalConstrained;
+}
+
+void scene_attack_aim_reset(SceneAttackAimComp* attackAim) {
+  attackAim->aimLocalTarget = geo_quat_ident;
 }

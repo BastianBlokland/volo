@@ -47,3 +47,4 @@ GeoVector scene_attack_aim_dir(const SceneTransformComp*, const SceneAttackAimCo
  * Start aiming in the given direction.
  */
 void scene_attack_aim(SceneAttackAimComp*, const SceneTransformComp*, GeoVector direction);
+void scene_attack_aim_reset(SceneAttackAimComp*);
