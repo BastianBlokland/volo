@@ -877,6 +877,11 @@ GeoVector scene_attack_aim_dir(const SceneTransformComp* trans, const SceneAttac
 
 void scene_attack_aim(
     SceneAttackAimComp* attackAim, const SceneTransformComp* trans, const GeoVector dir) {
+  diag_assert_msg(
+      math_abs(geo_vector_mag_sqr(dir) - 1.0f) <= 1e-6f,
+      "Direction ({}) is not normalized",
+      geo_vector_fmt(dir));
+
   const GeoQuat aimWorld            = geo_quat_look(dir, geo_up);
   const GeoQuat aimLocal            = geo_quat_from_to(trans->rotation, aimWorld);
   const GeoQuat aimLocalConstrained = geo_quat_to_twist(aimLocal, geo_up);
