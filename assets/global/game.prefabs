@@ -283,10 +283,10 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "TankShell",
           "aimJoint": "turret",
-          "aimSpeed": 80,
+          "aimSpeed": 50,
           "aimSoundId": "external/sound/electric-motor-01.wav",
           "targetRangeMax": 35,
-          "targetLineOfSightRadius": 0.75,
+          "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
         {
