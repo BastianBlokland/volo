@@ -16,7 +16,7 @@
 #define loco_anim_weight_ease_speed 2.5f
 #define loco_move_weight_multiplier 4.0f
 #define loco_face_threshold 0.8f
-#define loco_wheeled_deceleration 15.0f
+#define loco_wheeled_deceleration 20.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
 ecs_comp_define_public(SceneLocomotionWheeledComp);
