@@ -263,7 +263,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Sheppard" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 40 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 5.0,
@@ -286,7 +286,7 @@
           "aimJoint": "turret",
           "aimSpeed": 50,
           "aimSoundId": "external/sound/tank-turret-01.wav",
-          "targetRangeMax": 35,
+          "targetRangeMax": 50,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
