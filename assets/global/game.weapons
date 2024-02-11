@@ -148,10 +148,10 @@
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.75,
-          "assetId": "external/sound/gun-05.wav",
-          "gainMin": 0.35, "gainMax": 0.4,
-          "pitchMin": 0.5, "pitchMax": 0.7
+          "duration": 1.0,
+          "assetId": "external/sound/tank-shot-01.wav",
+          "gainMin": 1.5, "gainMax": 1.5,
+          "pitchMin": 0.85, "pitchMax": 0.9
         }
       ]
     },
