@@ -124,7 +124,7 @@
           "launchTowardsTarget": true,
           "delay": 0.035,
           "spreadAngle": 2.5,
-          "speed": 65,
+          "speed": 55,
           "damage": 150,
           "damageRadius": 2,
           "destroyDelay": 0.05,
@@ -141,8 +141,8 @@
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.5,
-          "assetId": "vfx/game/muzzleflash.vfx"
+          "duration": 2.1,
+          "assetId": "vfx/game/muzzleflash_tank.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
