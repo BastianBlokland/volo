@@ -26,6 +26,7 @@
         "intervalMin": { "title": "f32", "type": "number" },
         "intervalMax": { "title": "f32", "type": "number" },
         "readySpeed": { "title": "f32", "type": "number" },
+        "readyWhileMoving": { "title": "bool", "type": "boolean" },
         "readyMinTime": { "title": "f32", "type": "number" },
         "readyAnim": { "title": "String", "type": "string", "minLength": 1 },
         "predictiveAim": { "title": "bool", "type": "boolean" },

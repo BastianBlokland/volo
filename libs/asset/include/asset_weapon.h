@@ -86,6 +86,7 @@ typedef struct {
   StringHash       attachmentJoint;
   u16              effectIndex, effectCount; // Stored in the effects array.
   f32              readySpeed; // Speed to increase the ready amount, when reaches 1.0 we can fire.
+  bool             readyWhileMoving;
   StringHash       readyAnim;
   TimeDuration     readyMinTime; // Time to keep the weapon ready after the last shot.
   TimeDuration     intervalMin, intervalMax;
