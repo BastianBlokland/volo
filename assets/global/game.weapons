@@ -113,9 +113,9 @@
       ]
     },
     {
-      "name": "TankShell",
+      "name": "TankTurret",
       "intervalMin": 1.25, "intervalMax": 1.5,
-      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim",
+      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim", "readyWhileMoving": true,
       "predictiveAim": true,
       "effects": [
         {
@@ -124,12 +124,12 @@
           "launchTowardsTarget": true,
           "delay": 0.035,
           "spreadAngle": 2.5,
-          "speed": 65,
+          "speed": 55,
           "damage": 150,
           "damageRadius": 2,
           "destroyDelay": 0.05,
-          "projectilePrefab": "ProjectileBullet",
-          "impactPrefab": "ImpactRocket"
+          "projectilePrefab": "ProjectileShell",
+          "impactPrefab": "ImpactShell"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
@@ -141,17 +141,17 @@
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.5,
-          "assetId": "vfx/game/muzzleflash.vfx"
+          "duration": 2.1,
+          "assetId": "vfx/game/muzzleflash_tank.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.75,
-          "assetId": "external/sound/gun-05.wav",
-          "gainMin": 0.35, "gainMax": 0.4,
-          "pitchMin": 0.5, "pitchMax": 0.7
+          "duration": 1.0,
+          "assetId": "external/sound/tank-shot-01.wav",
+          "gainMin": 1.5, "gainMax": 1.5,
+          "pitchMin": 0.85, "pitchMax": 0.9
         }
       ]
     },

@@ -161,6 +161,7 @@ if(${EXTERNAL_ASSETS})
       icon/icon_structure_factory.tga
       icon/icon_structure_turret_gun.tga
       icon/icon_structure_turret_missile.tga
+      icon/icon_vehicle_tank.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin
@@ -208,6 +209,7 @@ if(${EXTERNAL_ASSETS})
       sound/electric-motor-01.wav
       sound/explosion-01.wav
       sound/explosion-02.wav
+      sound/explosion-03.wav
       sound/gun-04.wav
       sound/gun-05.wav
       sound/impact-01.wav
@@ -218,6 +220,8 @@ if(${EXTERNAL_ASSETS})
       sound/launch-02.wav
       sound/projectile-loop-01.wav
       sound/swoosh-01.wav
+      sound/tank-shot-01.wav
+      sound/tank-turret-01.wav
       swat/swat_2_color_rough.tga
       swat/swat_2_nrm.tga
       swat/swat_4.bin

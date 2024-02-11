@@ -23,6 +23,7 @@
       "properties": {
         "cone": { "title": "VfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/VfxConeDef" },
         "force": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
+        "friction": { "title": "f32", "type": "number" },
         "space": { "title": "AssetVfxSpace", "description": "* Local: Particles are simulated relative to the entity transform.\n* World: Particles are simulated in world-space.", "$ref": "#/$defs/AssetVfxSpace" },
         "sprite": { "title": "VfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/VfxSpriteDef" },
         "light": { "title": "VfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/VfxLightDef" },

@@ -263,7 +263,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Sheppard" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 40 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 5.0,
@@ -278,15 +278,15 @@
           "$type": "AssetPrefabTrait_Health",
           "amount": 2250,
           "deathDestroyDelay": 0.8,
-          "deathEffectPrefab": "DeathTurret"
+          "deathEffectPrefab": "DeathVehicle"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "TankShell",
+          "weaponId": "TankTurret",
           "aimJoint": "turret",
           "aimSpeed": 50,
-          "aimSoundId": "external/sound/electric-motor-01.wav",
-          "targetRangeMax": 35,
+          "aimSoundId": "external/sound/tank-turret-01.wav",
+          "targetRangeMax": 50,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -431,6 +431,8 @@
         {
           "$type": "AssetPrefabTrait_Production",
           "productSetId": "Factory",
+          "spawnPos": { "x": 5 },
+          "rallyPos": { "x": 12 },
           "placementRadius": 30
         },
         {
@@ -926,6 +928,19 @@
       ]
     },
     {
+      "name": "ImpactShell", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 5 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_shell.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-03.wav" ],
+          "gainMin": 1.4, "gainMax": 1.5,
+          "pitchMin": 0.8, "pitchMax": 0.9
+        }
+      ]
+    },
+    {
       "name": "ImpactRifle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },
@@ -964,6 +979,20 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "gainMin": 1.1, "gainMax": 1.5,
+          "pitchMin": 1.0, "pitchMax": 1.1
+        }
+      ]
+    },
+    {
+      "name": "DeathVehicle", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-02.wav" ],
@@ -1032,6 +1061,13 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile.vfx" }
+      ]
+    },
+    {
+      "name": "ProjectileShell", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_shell.vfx" }
       ]
     },
     {

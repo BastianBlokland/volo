@@ -83,6 +83,7 @@ typedef struct {
   String attachmentJoint;
   f32    intervalMin, intervalMax;
   f32    readySpeed;
+  bool   readyWhileMoving;
   f32    readyMinTime;
   String readyAnim;
   bool   predictiveAim;
@@ -173,6 +174,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponDef, intervalMin, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, intervalMax, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, readySpeed, data_prim_t(f32));
+    data_reg_field_t(reg, AssetWeaponDef, readyWhileMoving, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
@@ -339,6 +341,7 @@ static void weapon_build(
       .intervalMin      = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax      = (TimeDuration)time_seconds(def->intervalMax),
       .readySpeed       = def->readySpeed,
+      .readyWhileMoving = def->readyWhileMoving,
       .readyMinTime     = (TimeDuration)time_seconds(def->readyMinTime),
       .readyAnim        = string_is_empty(def->readyAnim) ? 0 : string_hash(def->readyAnim),
       .effectIndex      = (u16)outEffects->size,

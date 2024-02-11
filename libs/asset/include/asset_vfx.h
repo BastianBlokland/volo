@@ -72,6 +72,7 @@ typedef struct {
 typedef struct {
   AssetVfxCone          cone;
   GeoVector             force;
+  f32                   friction;
   AssetVfxSpace         space;
   AssetVfxSprite        sprite;
   AssetVfxLight         light;

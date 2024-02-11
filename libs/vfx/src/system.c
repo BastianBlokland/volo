@@ -382,6 +382,9 @@ static void vfx_system_simulate(
     // Apply force.
     instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
+    // Apply friction.
+    instance->velo = geo_vector_mul(instance->velo, math_pow_f32(emitterAsset->friction, deltaSec));
+
     // Apply expanding.
     instance->scale += emitterAsset->expandForce * deltaSec;
 

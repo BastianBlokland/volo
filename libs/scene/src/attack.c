@@ -641,10 +641,11 @@ ecs_system_define(SceneAttackSys) {
     }
     const TimeDuration timeSinceHadTarget = time->time - attack->lastHasTargetTime;
     const bool         isMoving           = loco && (loco->flags & SceneLocomotion_Moving) != 0;
+    const bool         allowReady         = weapon->readyWhileMoving || !isMoving;
 
     bool weaponReady = false;
     attack->flags &= ~SceneAttackFlags_Readying;
-    if (!isMoving && (hasTarget || timeSinceHadTarget < weapon->readyMinTime)) {
+    if (allowReady && (hasTarget || timeSinceHadTarget < weapon->readyMinTime)) {
       if (!(weaponReady = math_towards_f32(&attack->readyNorm, 1, weapon->readySpeed * deltaSec))) {
         attack->flags |= SceneAttackFlags_Readying;
       }

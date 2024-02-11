@@ -77,6 +77,7 @@ typedef struct {
 typedef struct {
   VfxConeDef          cone;
   VfxVec3Def          force;
+  f32                 friction;
   AssetVfxSpace       space;
   VfxSpriteDef        sprite;
   VfxLightDef         light;
@@ -201,6 +202,7 @@ static void vfx_datareg_init() {
     data_reg_struct_t(reg, VfxEmitterDef);
     data_reg_field_t(reg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, VfxEmitterDef, friction, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, sprite, t_VfxSpriteDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, light, t_VfxLightDef, .flags = DataFlags_Opt);
@@ -342,9 +344,10 @@ static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
 }
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
-  out->cone  = vfx_build_cone(&def->cone);
-  out->force = vfx_build_vec3(&def->force);
-  out->space = def->space;
+  out->cone     = vfx_build_cone(&def->cone);
+  out->force    = vfx_build_vec3(&def->force);
+  out->friction = def->friction > f32_epsilon ? def->friction : 1.0f;
+  out->space    = def->space;
 
   vfx_build_sprite(&def->sprite, &out->sprite);
   vfx_build_light(&def->light, &out->light);
