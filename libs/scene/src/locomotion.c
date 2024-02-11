@@ -31,7 +31,7 @@ static bool loco_is_facing(const SceneLocomotionComp* loco, const SceneTransform
 static f32 loco_rot_speed(const SceneLocomotionComp* loco, const EcsEntityId e, const f32 time) {
   f32 speed = loco->rotationSpeedRad;
   if (loco_rot_turbulence_freq > 0.0) {
-    const f32 seed       = (f32)ecs_entity_id_index(e);
+    const f32 seed       = ((f32)ecs_entity_id_index(e) * 0.1337f);
     const f32 turbulence = 1.0f + noise_perlin3(time * loco_rot_turbulence_freq, seed, 0);
     speed *= turbulence;
   }
