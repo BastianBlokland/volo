@@ -88,12 +88,6 @@ static void aim_face(
   }
 }
 
-static void aim_idle(SceneAttackAimComp* attackAim) {
-  if (attackAim) {
-    attackAim->isAiming = false;
-  }
-}
-
 static GeoVector
 aim_position(const GeoVector origin, EcsIterator* targetItr, const TimeDuration timeInFuture) {
   const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
@@ -691,7 +685,6 @@ ecs_system_define(SceneAttackSys) {
       }
     } else {
       interruptFiring = true;
-      aim_idle(attackAim);
     }
 
     // Update the current attack.
