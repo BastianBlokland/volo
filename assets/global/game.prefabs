@@ -929,7 +929,7 @@
       "name": "ImpactShell", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 5 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_small.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_shell.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-03.wav" ],
