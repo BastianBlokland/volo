@@ -260,7 +260,7 @@
     {
       "name": "VehicleTank",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Tank" },
+        { "$type": "AssetPrefabTrait_Name", "name": "Sheppard" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
@@ -275,8 +275,9 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 1000,
-          "deathDestroyDelay": 2.5
+          "amount": 2250,
+          "deathDestroyDelay": 0.8,
+          "deathEffectPrefab": "DeathTurret"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -305,7 +306,7 @@
             "max": { "x": 1.15, "y": 1.5, "z": 2.5 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {
