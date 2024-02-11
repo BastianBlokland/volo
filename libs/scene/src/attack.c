@@ -83,10 +83,11 @@ static void aim_face(
 
   // Face using 'SceneAttackAim' if available.
   if (attackAim) {
-    const GeoQuat tgtRotWorld = geo_quat_look(dir, geo_up);
-    const GeoQuat tgtRotLocal = geo_quat_from_to(trans->rotation, tgtRotWorld);
-    const bool    tgtReached  = geo_quat_towards(
-        &attackAim->aimRotLocal, tgtRotLocal, attackAim->aimSpeedRad * deltaSeconds);
+    const GeoQuat tgtRotWorld            = geo_quat_look(dir, geo_up);
+    const GeoQuat tgtRotLocal            = geo_quat_from_to(trans->rotation, tgtRotWorld);
+    const GeoQuat tgtRotLocalConstrained = geo_quat_to_twist(tgtRotLocal, geo_up);
+    const bool    tgtReached             = geo_quat_towards(
+        &attackAim->aimRotLocal, tgtRotLocalConstrained, attackAim->aimSpeedRad * deltaSeconds);
 
     attackAim->isAiming = !tgtReached;
 

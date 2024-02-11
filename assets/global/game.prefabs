@@ -260,14 +260,14 @@
     {
       "name": "VehicleTank",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Tank" },
+        { "$type": "AssetPrefabTrait_Name", "name": "Sheppard" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 5.0,
-          "rotationSpeed": 60,
+          "rotationSpeed": 65,
           "radius": 1.4,
           "weight": 1000.0,
           "wheeled": true,
@@ -275,8 +275,19 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 1000,
-          "deathDestroyDelay": 2.5
+          "amount": 2250,
+          "deathDestroyDelay": 0.8,
+          "deathEffectPrefab": "DeathTurret"
+        },
+        {
+          "$type": "AssetPrefabTrait_Attack",
+          "weaponId": "TankShell",
+          "aimJoint": "turret",
+          "aimSpeed": 50,
+          "aimSoundId": "external/sound/electric-motor-01.wav",
+          "targetRangeMax": 35,
+          "targetLineOfSightRadius": 0.5,
+          "targetExcludeObscured": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -295,7 +306,7 @@
             "max": { "x": 1.15, "y": 1.5, "z": 2.5 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {

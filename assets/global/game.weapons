@@ -113,6 +113,49 @@
       ]
     },
     {
+      "name": "TankShell",
+      "intervalMin": 1.25, "intervalMax": 1.5,
+      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim",
+      "predictiveAim": true,
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "launchTowardsTarget": true,
+          "delay": 0.035,
+          "spreadAngle": 2.5,
+          "speed": 65,
+          "damage": 150,
+          "damageRadius": 2,
+          "destroyDelay": 0.05,
+          "projectilePrefab": "ProjectileBullet",
+          "impactPrefab": "ImpactRocket"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0.0,
+          "speed": 1.2
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 0.5,
+          "assetId": "vfx/game/muzzleflash.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Sound",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 0.75,
+          "assetId": "external/sound/gun-05.wav",
+          "gainMin": 0.35, "gainMax": 0.4,
+          "pitchMin": 0.5, "pitchMax": 0.7
+        }
+      ]
+    },
+    {
       "name": "Melee",
       "intervalMin": 0, "intervalMax": 0,
       "readySpeed": 1000, "readyMinTime": 0,

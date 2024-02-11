@@ -1844,7 +1844,7 @@
       "id": 1151941734,
       "prefab": "SpawnerInfantryEnemy",
       "faction": "B",
-      "position": { "x": -94.3935, "y": 0.9418, "z": -90.1855 },
+      "position": { "x": -54.1352, "y": 0.4142, "z": -117.1407 },
       "rotation": { "w": 1 }
     },
     {
@@ -2753,6 +2753,13 @@
       "faction": "A",
       "position": { "x": 17.7143, "y": 0.4695, "z": 16.4098 },
       "rotation": { "w": 1 }
+    },
+    {
+      "id": 1809577679,
+      "prefab": "VehicleTank",
+      "faction": "A",
+      "position": { "x": 2.3865, "y": 0.465, "z": -6.0021 },
+      "rotation": { "y": -0.706, "w": 0.7082 }
     },
     {
       "id": 1813710233,
@@ -3733,7 +3740,7 @@
       "id": 2409761572,
       "prefab": "InfantryRocket",
       "faction": "A",
-      "position": { "x": -26.8209, "y": 0.9027, "z": -11.4381 },
+      "position": { "x": -26.6445, "y": 1.1253, "z": -13.7341 },
       "rotation": { "y": -0.7337, "w": 0.6795 }
     },
     {
@@ -4231,6 +4238,13 @@
       "prefab": "PropPlant",
       "position": { "x": 87.9591, "y": 0.5888, "z": 14.0155 },
       "rotation": { "y": -0.6235, "w": 0.7818 }
+    },
+    {
+      "id": 2656718210,
+      "prefab": "VehicleTank",
+      "faction": "A",
+      "position": { "x": -24.9252, "y": 0.8645, "z": -10.263 },
+      "rotation": { "y": -0.3758, "w": 0.9267 }
     },
     {
       "id": 2658091568,
@@ -6834,7 +6848,7 @@
       "id": 4231988186,
       "prefab": "InfantryFlame",
       "faction": "A",
-      "position": { "x": -27.5482, "y": 0.828, "z": -10.7611 },
+      "position": { "x": -27.3718, "y": 1.0288, "z": -13.0571 },
       "rotation": { "w": 1 }
     },
     {
