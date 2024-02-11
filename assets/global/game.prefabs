@@ -431,6 +431,8 @@
         {
           "$type": "AssetPrefabTrait_Production",
           "productSetId": "Factory",
+          "spawnPos": { "x": 5 },
+          "rallyPos": { "x": 12 },
           "placementRadius": 30
         },
         {
