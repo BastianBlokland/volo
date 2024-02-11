@@ -128,7 +128,7 @@
           "damage": 150,
           "damageRadius": 2,
           "destroyDelay": 0.05,
-          "projectilePrefab": "ProjectileBullet",
+          "projectilePrefab": "ProjectileShell",
           "impactPrefab": "ImpactShell"
         },
         {

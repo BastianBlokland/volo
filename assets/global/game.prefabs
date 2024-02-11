@@ -1062,6 +1062,13 @@
       ]
     },
     {
+      "name": "ProjectileShell", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_shell.vfx" }
+      ]
+    },
+    {
       "name": "ProjectileMissile", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 7 },

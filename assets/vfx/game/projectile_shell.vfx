@@ -1,0 +1,34 @@
+{
+  "emitters": [
+    {
+      "cone": {
+        "position": { "z": -5 }
+      },
+      "sprite": {
+        "atlasEntry": "trail",
+        "color": { "r": 0.9, "g": 0.9, "b": 0.6, "a": 0.7 },
+        "blend": "Additive",
+        "size": { "x": 10, "y": 0.4 },
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.05,
+        "scaleInTime": 0.1
+      },
+      "rotation": { "base": { "y": -90 } }
+    },
+    {
+      "cone": {
+        "position": { "z": -5 }
+      },
+      "sprite": {
+        "atlasEntry": "trail",
+        "color": { "r": 0.9, "g": 0.9, "b": 0.6, "a": 0.7 },
+        "blend": "Additive",
+        "size": { "x": 10, "y": 0.4 },
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.05,
+        "scaleInTime": 0.1
+      },
+      "rotation": { "base": { "x": 90, "y": -90 } }
+    }
+  ]
+}
