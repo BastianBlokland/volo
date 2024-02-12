@@ -801,9 +801,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -2475,15 +2475,17 @@ const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
 
 usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
 
-SceneScriptComp*
-scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {
-  diag_assert(ecs_world_exists(world, scriptAsset));
+SceneScriptComp* scene_script_add(
+    EcsWorld*         world,
+    const EcsEntityId entity,
+    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_max_assets)]) {
+  diag_assert(ecs_world_exists(world, scriptAssets[0]));
 
   return ecs_world_add_t(
       world,
       entity,
       SceneScriptComp,
-      .scriptAsset = scriptAsset,
+      .scriptAsset = scriptAssets[0],
       .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
       .debug       = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 }

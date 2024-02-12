@@ -11,6 +11,8 @@ typedef i64 TimeDuration;
 // Forward declare from 'script_panic.h'.
 typedef struct sScriptPanic ScriptPanic;
 
+#define scene_script_max_assets 4
+
 typedef enum {
   SceneScriptFlags_None            = 0,
   SceneScriptFlags_DidPanic        = 1 << 0,
@@ -107,6 +109,10 @@ const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp*);
 usize                   scene_script_debug_count(const SceneScriptComp*);
 
 /**
- * Add a new script to the entity.
+ * Setup a script on the given entity.
+ * NOTE: Supports running multiple script assets, to use less pass 0 in the unused slots.
  */
-SceneScriptComp* scene_script_add(EcsWorld*, EcsEntityId entity, EcsEntityId scriptAsset);
+SceneScriptComp* scene_script_add(
+    EcsWorld*,
+    EcsEntityId       entity,
+    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_max_assets)]);
