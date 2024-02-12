@@ -385,6 +385,7 @@ typedef struct {
   EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
+  SceneScriptIndex       scriptIndex;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
   const AssetScriptComp* scriptAsset;
@@ -1588,8 +1589,9 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
   data.color = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type      = SceneScriptDebugType_Line,
-        .data_line = data,
+        .type        = SceneScriptDebugType_Line,
+        .scriptIndex = ctx->scriptIndex,
+        .data_line   = data,
     };
   }
   return script_null();
@@ -1603,6 +1605,7 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type        = SceneScriptDebugType_Sphere,
+        .scriptIndex = ctx->scriptIndex,
         .data_sphere = data,
     };
   }
@@ -1617,8 +1620,9 @@ static ScriptVal eval_debug_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   data.color = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type     = SceneScriptDebugType_Box,
-        .data_box = data,
+        .type        = SceneScriptDebugType_Box,
+        .scriptIndex = ctx->scriptIndex,
+        .data_box    = data,
     };
   }
   return script_null();
@@ -1632,8 +1636,9 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, Scrip
   data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type       = SceneScriptDebugType_Arrow,
-        .data_arrow = data,
+        .type        = SceneScriptDebugType_Arrow,
+        .scriptIndex = ctx->scriptIndex,
+        .data_arrow  = data,
     };
   }
   return script_null();
@@ -1647,6 +1652,7 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args,
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type             = SceneScriptDebugType_Orientation,
+        .scriptIndex      = ctx->scriptIndex,
         .data_orientation = data,
     };
   }
@@ -1671,8 +1677,9 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   }
   data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
   *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type      = SceneScriptDebugType_Text,
-      .data_text = data,
+      .type        = SceneScriptDebugType_Text,
+      .scriptIndex = ctx->scriptIndex,
+      .data_text   = data,
   };
   return script_null();
 }
@@ -1689,6 +1696,7 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, Scrip
   if (buffer.size) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type            = SceneScriptDebugType_Trace,
+        .scriptIndex     = ctx->scriptIndex,
         .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
     };
   }
@@ -1981,6 +1989,7 @@ ecs_system_define(SceneScriptUpdateSys) {
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
     ctx.instigator      = ecs_view_entity(itr);
+    ctx.scriptIndex     = 0;
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
@@ -2461,13 +2470,26 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
   script->flags ^= flags;
 }
 
-EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
+u32 scene_script_count(const SceneScriptComp* script) {
+  (void)script;
+  return 1;
+}
 
-const ScriptPanic* scene_script_panic(const SceneScriptComp* script) {
+EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptIndex index) {
+  (void)index;
+  return script->scriptAsset;
+}
+
+const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptIndex index) {
+  (void)index;
   return script_panic_valid(&script->lastPanic) ? &script->lastPanic : null;
 }
 
-const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
+const SceneScriptStats*
+scene_script_stats(const SceneScriptComp* script, const SceneScriptIndex index) {
+  (void)index;
+  return &script->stats;
+}
 
 const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
   return dynarray_begin_t(&script->debug, SceneScriptDebug);

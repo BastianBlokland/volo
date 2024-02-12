@@ -24,6 +24,12 @@ typedef struct {
   TimeDuration executedDur;
 } SceneScriptStats;
 
+/**
+ * Index of a script-asset.
+ * A SceneScriptComp can execute multiple assets, the index is used to differentiate between them.
+ */
+typedef u8 SceneScriptIndex;
+
 ecs_comp_extern(SceneScriptComp);
 
 /**
@@ -35,11 +41,12 @@ void             scene_script_flags_unset(SceneScriptComp*, SceneScriptFlags);
 void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 
 /**
- * Retrieve statistics for the given script.
+ * Retrieve statistics for a specific script-asset.
  */
-EcsEntityId             scene_script_asset(const SceneScriptComp*);
-const ScriptPanic*      scene_script_panic(const SceneScriptComp*);
-const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
+u32                     scene_script_count(const SceneScriptComp*);
+EcsEntityId             scene_script_asset(const SceneScriptComp*, SceneScriptIndex);
+const ScriptPanic*      scene_script_panic(const SceneScriptComp*, SceneScriptIndex);
+const SceneScriptStats* scene_script_stats(const SceneScriptComp*, SceneScriptIndex);
 
 typedef enum {
   SceneScriptDebugType_Line,
@@ -94,6 +101,7 @@ typedef struct {
 
 typedef struct {
   SceneScriptDebugType type;
+  SceneScriptIndex     scriptIndex;
   union {
     SceneScriptDebugLine        data_line;
     SceneScriptDebugSphere      data_sphere;
