@@ -37,8 +37,8 @@ void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 /**
  * Retrieve statistics for the given script.
  */
-const ScriptPanic*      scene_script_panic(const SceneScriptComp*);
 EcsEntityId             scene_script_asset(const SceneScriptComp*);
+const ScriptPanic*      scene_script_panic(const SceneScriptComp*);
 const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
 
 typedef enum {

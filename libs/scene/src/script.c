@@ -801,9 +801,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -2461,11 +2461,11 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
   script->flags ^= flags;
 }
 
+EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
+
 const ScriptPanic* scene_script_panic(const SceneScriptComp* script) {
   return script_panic_valid(&script->lastPanic) ? &script->lastPanic : null;
 }
-
-EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
 
 const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
 
