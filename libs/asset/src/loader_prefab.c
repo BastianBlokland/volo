@@ -186,7 +186,10 @@ typedef struct {
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
-  String scriptId;
+  struct {
+    String* values;
+    usize   count;
+  } scriptIds;
   struct {
     AssetPrefabValue* values;
     usize             count;
@@ -393,7 +396,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShapeDef);
 
     data_reg_struct_t(reg, AssetPrefabTraitScriptDef);
-    data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitBarkDef);
@@ -464,12 +467,13 @@ static i8 prefab_compare(const void* a, const void* b) {
 }
 
 typedef enum {
-  PrefabError_None                      = 0,
-  PrefabError_DuplicatePrefab           = 1,
-  PrefabError_DuplicateTrait            = 2,
-  PrefabError_PrefabCountExceedsMax     = 3,
-  PrefabError_SetCountExceedsMax        = 4,
-  PrefabError_SoundAssetCountExceedsMax = 5,
+  PrefabError_None,
+  PrefabError_DuplicatePrefab,
+  PrefabError_DuplicateTrait,
+  PrefabError_PrefabCountExceedsMax,
+  PrefabError_SetCountExceedsMax,
+  PrefabError_SoundAssetCountExceedsMax,
+  PrefabError_ScriptAssetCountExceedsMax,
 
   PrefabError_Count,
 } PrefabError;
@@ -482,6 +486,7 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Prefab count exceeds the maximum"),
       string_static("Set count exceeds the maximum"),
       string_static("Sound asset count exceeds the maximum"),
+      string_static("Script asset count exceeds the maximum"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -729,16 +734,25 @@ static void prefab_build(
           .shape      = prefab_build_shape(&traitDef->data_collision.shape),
       };
       break;
-    case AssetPrefabTrait_Script:
+    case AssetPrefabTrait_Script: {
+      const AssetPrefabTraitScriptDef* scriptDef   = &traitDef->data_script;
+      const u32                        scriptCount = (u32)scriptDef->scriptIds.count;
+      if (UNLIKELY(scriptCount > asset_prefab_scripts_max)) {
+        *err = PrefabError_ScriptAssetCountExceedsMax;
+        return;
+      }
       outTrait->data_script = (AssetPrefabTraitScript){
-          .scriptAssets[0] = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
-          .knowledgeIndex  = (u16)outValues->size,
-          .knowledgeCount  = (u16)traitDef->data_script.knowledge.count,
+          .knowledgeIndex = (u16)outValues->size,
+          .knowledgeCount = (u16)scriptDef->knowledge.count,
       };
-      array_ptr_for_t(traitDef->data_script.knowledge, AssetPrefabValueDef, valDef) {
+      for (u32 i = 0; i != scriptCount; ++i) {
+        const String assetId                  = scriptDef->scriptIds.values[i];
+        outTrait->data_script.scriptAssets[i] = asset_lookup(ctx->world, manager, assetId);
+      }
+      array_ptr_for_t(scriptDef->knowledge, AssetPrefabValueDef, valDef) {
         *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(ctx, valDef);
       }
-      break;
+    } break;
     case AssetPrefabTrait_Bark:
       outTrait->data_bark = (AssetPrefabTraitBark){
           .priority          = traitDef->data_bark.priority,
