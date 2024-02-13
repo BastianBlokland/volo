@@ -713,17 +713,8 @@
         },
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/alarm.script" ],
           "knowledge": [
-            {
-              "$name": "frequency",
-              "$type": "AssetPrefabValue_Number",
-              "$data": 0.5
-            },
-            {
-              "$name": "alarmSound",
-              "$type": "AssetPrefabValue_Sound",
-              "assetId": "external/sound/alarm-01.wav",
-              "persistent": true
-            }
+            { "$name": "frequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
+            { "$name": "soundAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
           ]
         }
       ]
@@ -846,11 +837,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/ambiance.script" ],
           "knowledge": [
-            {
-              "$name": "soundAsset",
-              "$type": "AssetPrefabValue_Sound",
-              "assetId": "external/sound/ambiance-01.wav"
-            }
+            { "$name": "soundAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
           ]
         }
       ]
