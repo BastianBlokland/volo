@@ -12,6 +12,8 @@ typedef struct sDynArray DynString;
  * Prefab database.
  */
 
+#define asset_prefab_scripts_max 4
+
 typedef enum {
   AssetPrefabShape_Sphere,
   AssetPrefabShape_Capsule,
@@ -151,7 +153,7 @@ typedef struct {
 } AssetPrefabTraitCollision;
 
 typedef struct {
-  EcsEntityId scriptAsset;
+  EcsEntityId scriptAssets[asset_prefab_scripts_max];
   u16         knowledgeIndex, knowledgeCount; // Stored in the values array.
 } AssetPrefabTraitScript;
 

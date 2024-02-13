@@ -44,7 +44,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_ranged.script" ] },
         {
           "$type": "AssetPrefabTrait_Bark", "priority": 2,
           "barkDeathPrefab": "BarkDeathInfantryRifle",
@@ -98,7 +98,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_ranged.script" ] },
         {
           "$type": "AssetPrefabTrait_Bark", "priority": 2,
           "barkDeathPrefab": "BarkDeathInfantryRifle",
@@ -152,7 +152,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_ranged.script" ] },
         {
           "$type": "AssetPrefabTrait_Bark", "priority": 2,
           "barkDeathPrefab": "BarkDeathInfantryRifle",
@@ -206,7 +206,7 @@
             "height": 1.1
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_melee.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_melee.script" ] },
         {
           "$type": "AssetPrefabTrait_Bark", "priority": 1,
           "barkDeathPrefab": "BarkDeathInfantryEnemy"
@@ -252,7 +252,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_move_random.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_move_random.script" ] },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
@@ -299,7 +299,7 @@
             "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_ranged.script" ] },
         {
           "$type": "AssetPrefabTrait_Location",
           "aimTarget": {
@@ -342,7 +342,7 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/structure_turret_gun.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/structure_turret_gun.script" ] },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
@@ -378,7 +378,7 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/structure_turret_missile.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/structure_turret_missile.script" ] },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
@@ -535,7 +535,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/gate.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/gate.script" ] }
       ]
     },
     {
@@ -543,7 +543,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "switch" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/pressure_plate.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/pressure_plate.script" ] }
       ]
     },
     {
@@ -551,7 +551,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "light" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/light.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/light.script" ] }
       ]
     },
     {
@@ -711,7 +711,7 @@
             "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/alarm.script",
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/alarm.script" ],
           "knowledge": [
             {
               "$name": "frequency",
@@ -838,13 +838,13 @@
     {
       "name": "SpawnerInfantryEnemy",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/spawner.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/spawner.script" ] }
       ]
     },
     {
       "name": "Ambiance",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/ambiance.script",
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/ambiance.script" ],
           "knowledge": [
             {
               "$name": "soundAsset",
@@ -876,13 +876,13 @@
     {
       "name": "LogicBarrelAttack",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test/barrel_attack.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/test/barrel_attack.script" ] }
       ]
     },
     {
       "name": "LogicSwitch",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test/gate_switch.script" }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/test/gate_switch.script" ] }
       ]
     },
     {
@@ -891,7 +891,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
-        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/explosive.script" },
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/explosive.script" ] },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-01.wav" ],

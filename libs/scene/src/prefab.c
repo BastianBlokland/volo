@@ -381,7 +381,9 @@ static void setup_script(
     const AssetPrefabMapComp*     m,
     const AssetPrefabTraitScript* t) {
 
-  scene_script_add(w, e, t->scriptAsset);
+  ASSERT(scene_script_slots == asset_prefab_scripts_max, "Mismatched script limit");
+
+  scene_script_add(w, e, t->scriptAssets);
 
   SceneKnowledgeComp* knowledge = scene_knowledge_add(w, e);
   for (u16 i = 0; i != t->knowledgeCount; ++i) {

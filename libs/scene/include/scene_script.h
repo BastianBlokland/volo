@@ -11,6 +11,8 @@ typedef i64 TimeDuration;
 // Forward declare from 'script_panic.h'.
 typedef struct sScriptPanic ScriptPanic;
 
+#define scene_script_slots 4
+
 typedef enum {
   SceneScriptFlags_None            = 0,
   SceneScriptFlags_DidPanic        = 1 << 0,
@@ -21,6 +23,12 @@ typedef struct {
   u32          executedExprs;
   TimeDuration executedDur;
 } SceneScriptStats;
+
+/**
+ * SceneScriptComp's support multiple slots for executing scripts, this can be used to execute
+ * multiple scripts on the same entity.
+ */
+typedef u8 SceneScriptSlot;
 
 ecs_comp_extern(SceneScriptComp);
 
@@ -33,11 +41,12 @@ void             scene_script_flags_unset(SceneScriptComp*, SceneScriptFlags);
 void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 
 /**
- * Retrieve statistics for the given script.
+ * Retrieve statistics for a specific script slot.
  */
-const ScriptPanic*      scene_script_panic(const SceneScriptComp*);
-EcsEntityId             scene_script_asset(const SceneScriptComp*);
-const SceneScriptStats* scene_script_stats(const SceneScriptComp*);
+u32                     scene_script_count(const SceneScriptComp*);
+EcsEntityId             scene_script_asset(const SceneScriptComp*, SceneScriptSlot);
+const ScriptPanic*      scene_script_panic(const SceneScriptComp*, SceneScriptSlot);
+const SceneScriptStats* scene_script_stats(const SceneScriptComp*, SceneScriptSlot);
 
 typedef enum {
   SceneScriptDebugType_Line,
@@ -92,6 +101,7 @@ typedef struct {
 
 typedef struct {
   SceneScriptDebugType type;
+  SceneScriptSlot      slot;
   union {
     SceneScriptDebugLine        data_line;
     SceneScriptDebugSphere      data_sphere;
@@ -107,6 +117,10 @@ const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp*);
 usize                   scene_script_debug_count(const SceneScriptComp*);
 
 /**
- * Add a new script to the entity.
+ * Setup a script on the given entity.
+ * NOTE: Supports running multiple script assets, to use less pass 0 in the unused slots.
  */
-SceneScriptComp* scene_script_add(EcsWorld*, EcsEntityId entity, EcsEntityId scriptAsset);
+SceneScriptComp* scene_script_add(
+    EcsWorld*,
+    EcsEntityId       entity,
+    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]);

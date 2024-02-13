@@ -385,6 +385,7 @@ typedef struct {
   EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
+  SceneScriptSlot        slot;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
   const AssetScriptComp* scriptAsset;
@@ -801,9 +802,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1589,6 +1590,7 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type      = SceneScriptDebugType_Line,
+        .slot      = ctx->slot,
         .data_line = data,
     };
   }
@@ -1603,6 +1605,7 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type        = SceneScriptDebugType_Sphere,
+        .slot        = ctx->slot,
         .data_sphere = data,
     };
   }
@@ -1618,6 +1621,7 @@ static ScriptVal eval_debug_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type     = SceneScriptDebugType_Box,
+        .slot     = ctx->slot,
         .data_box = data,
     };
   }
@@ -1633,6 +1637,7 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, Scrip
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type       = SceneScriptDebugType_Arrow,
+        .slot       = ctx->slot,
         .data_arrow = data,
     };
   }
@@ -1647,6 +1652,7 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args,
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type             = SceneScriptDebugType_Orientation,
+        .slot             = ctx->slot,
         .data_orientation = data,
     };
   }
@@ -1672,6 +1678,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
   *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
       .type      = SceneScriptDebugType_Text,
+      .slot      = ctx->slot,
       .data_text = data,
   };
   return script_null();
@@ -1689,6 +1696,7 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, Scrip
   if (buffer.size) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type            = SceneScriptDebugType_Trace,
+        .slot            = ctx->slot,
         .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
     };
   }
@@ -1816,10 +1824,10 @@ typedef enum {
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
-  u8               resVersion;
-  EcsEntityId      scriptAsset;
-  SceneScriptStats stats;
-  ScriptPanic      lastPanic;
+  u8               resVersions[scene_script_slots];
+  EcsEntityId      assets[scene_script_slots];
+  SceneScriptStats stats[scene_script_slots];
+  ScriptPanic      panics[scene_script_slots];
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
@@ -1896,8 +1904,8 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 
 static void scene_script_eval(EvalContext* ctx) {
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
-    ctx->scriptInstance->stats     = (SceneScriptStats){0};
-    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
+    ctx->scriptInstance->stats[ctx->slot]  = (SceneScriptStats){0};
+    ctx->scriptInstance->panics[ctx->slot] = (ScriptPanic){0};
     return;
   }
 
@@ -1920,14 +1928,15 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("entity", fmt_int(ctx->instigator, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
-    ctx->scriptInstance->lastPanic = evalRes.panic;
+    ctx->scriptInstance->panics[ctx->slot] = evalRes.panic;
   } else {
-    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
+    ctx->scriptInstance->panics[ctx->slot] = (ScriptPanic){0};
   }
 
   // Update stats.
-  ctx->scriptInstance->stats.executedExprs = evalRes.executedExprs;
-  ctx->scriptInstance->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
+  SceneScriptStats* stats = &ctx->scriptInstance->stats[ctx->slot];
+  stats->executedExprs    = evalRes.executedExprs;
+  stats->executedDur      = time_steady_duration(startTime, time_steady_clock());
 }
 
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
@@ -1976,6 +1985,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
       .queries          = queries,
+      .transientDup     = &scene_script_transient_dup,
   };
 
   u32 startedAssetLoads = 0;
@@ -1985,8 +1995,6 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
     ctx.debug           = &ctx.scriptInstance->debug;
-    ctx.transientDup    = &scene_script_transient_dup;
-    ctx.usedQueries     = 0;
 
     // Clear the previous frame transient data.
     if (ctx.scriptInstance->allocTransient) {
@@ -1994,24 +2002,33 @@ ecs_system_define(SceneScriptUpdateSys) {
     }
     dynarray_clear(ctx.debug);
 
-    // Evaluate the script if the asset is loaded.
-    if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {
-      ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
-      ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
-
-      const u8 resVersion = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
-      if (UNLIKELY(ctx.scriptInstance->resVersion != resVersion)) {
-        ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
-        ctx.scriptInstance->resVersion = resVersion;
+    for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
+      const EcsEntityId asset = ctx.scriptInstance->assets[slot];
+      if (!asset) {
+        break; // End of used slots.
       }
-      scene_script_eval(&ctx);
-    } else {
-      // Script asset not loaded; clear any previous stats and start loading it.
-      ctx.scriptInstance->stats     = (SceneScriptStats){0};
-      ctx.scriptInstance->lastPanic = (ScriptPanic){0};
-      if (!ecs_world_has_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp)) {
-        if (++startedAssetLoads < scene_script_max_asset_loads) {
-          ecs_world_add_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp);
+      ctx.slot        = slot;
+      ctx.usedQueries = 0;
+
+      // Evaluate the script if the asset is loaded.
+      if (ecs_view_maybe_jump(resourceAssetItr, asset)) {
+        ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
+        ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+
+        const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
+        if (UNLIKELY(ctx.scriptInstance->resVersions[slot] != version)) {
+          ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
+          ctx.scriptInstance->resVersions[slot] = version;
+        }
+        scene_script_eval(&ctx);
+      } else {
+        // Script asset not loaded; clear any previous stats and start loading it.
+        ctx.scriptInstance->stats[slot]  = (SceneScriptStats){0};
+        ctx.scriptInstance->panics[slot] = (ScriptPanic){0};
+        if (!ecs_world_has_t(world, asset, SceneScriptResourceComp)) {
+          if (++startedAssetLoads < scene_script_max_asset_loads) {
+            ecs_world_add_t(world, asset, SceneScriptResourceComp);
+          }
         }
       }
     }
@@ -2461,13 +2478,31 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
   script->flags ^= flags;
 }
 
-const ScriptPanic* scene_script_panic(const SceneScriptComp* script) {
-  return script_panic_valid(&script->lastPanic) ? &script->lastPanic : null;
+u32 scene_script_count(const SceneScriptComp* script) {
+  for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
+    if (!script->assets[slot]) {
+      return slot;
+    }
+  }
+  return scene_script_slots;
 }
 
-EcsEntityId scene_script_asset(const SceneScriptComp* script) { return script->scriptAsset; }
+EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptSlot slot) {
+  diag_assert(slot < scene_script_slots);
+  return script->assets[slot];
+}
 
-const SceneScriptStats* scene_script_stats(const SceneScriptComp* script) { return &script->stats; }
+const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptSlot slot) {
+  diag_assert(slot < scene_script_slots);
+  const ScriptPanic* panic = &script->panics[slot];
+  return script_panic_valid(panic) ? panic : null;
+}
+
+const SceneScriptStats*
+scene_script_stats(const SceneScriptComp* script, const SceneScriptSlot slot) {
+  diag_assert(slot < scene_script_slots);
+  return &script->stats[slot];
+}
 
 const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
   return dynarray_begin_t(&script->debug, SceneScriptDebug);
@@ -2475,15 +2510,26 @@ const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
 
 usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
 
-SceneScriptComp*
-scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {
-  diag_assert(ecs_world_exists(world, scriptAsset));
+SceneScriptComp* scene_script_add(
+    EcsWorld*         world,
+    const EcsEntityId entity,
+    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]) {
+  diag_assert(ecs_world_exists(world, scriptAssets[0]));
 
-  return ecs_world_add_t(
+  SceneScriptComp* script = ecs_world_add_t(
       world,
       entity,
       SceneScriptComp,
-      .scriptAsset = scriptAsset,
-      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
-      .debug       = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
+      .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
+      .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
+
+  // NOTE: Store the used slots consecutively.
+  SceneScriptSlot slot = 0;
+  for (u32 i = 0; i != scene_script_slots; ++i) {
+    if (scriptAssets[i]) {
+      script->assets[slot++] = scriptAssets[i];
+    }
+  }
+
+  return script;
 }
