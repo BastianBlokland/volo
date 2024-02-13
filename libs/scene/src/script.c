@@ -2005,7 +2005,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
       const EcsEntityId asset = ctx.scriptInstance->assets[slot];
       if (!asset) {
-        continue; // Slot unused.
+        break; // End of unused slots.
       }
       ctx.slot        = slot;
       ctx.usedQueries = 0;
