@@ -2,23 +2,19 @@
 var me     = self()
 var moving = active(me, "Moving")
 
-if (!$soundIdleInstance && $soundIdle) {
+// Idle sound.
+if ($soundIdleInstance) {
+  var gainMax = 0.4
+  var gainNew = moving ? 0.0 : gainMax
+  sound_param($soundIdleInstance, "Gain", gainNew)
+} else if ($soundIdle) {
   var pitch          = random_between(0.9, 0.95)
   $soundIdleInstance = sound_spawn($soundIdle, position(me), 0.0, pitch, true)
   attach($soundIdleInstance, me)
   destroy_after($soundIdleInstance, me)
 }
-if (!$soundMoveInstance && $soundMove) {
-  $soundMoveInstance = sound_spawn($soundMove, position(me), 0.0, 1.0, true)
-  attach($soundMoveInstance, me)
-  destroy_after($soundMoveInstance, me)
-}
 
-if ($soundIdleInstance) {
-  var gainMax = 0.4
-  var gainNew = moving ? 0.0 : gainMax
-  sound_param($soundIdleInstance, "Gain", gainNew)
-}
+// Move sound.
 if ($soundMoveInstance) {
   var gainNew = 0.0
   if (moving) {
@@ -30,4 +26,8 @@ if ($soundMoveInstance) {
     gainNew       = lerp(gainMin, gainMax, speedFrac)
   }
   sound_param($soundMoveInstance, "Gain", gainNew)
+} else if ($soundMove) {
+  $soundMoveInstance = sound_spawn($soundMove, position(me), 0.0, 1.0, true)
+  attach($soundMoveInstance, me)
+  destroy_after($soundMoveInstance, me)
 }
