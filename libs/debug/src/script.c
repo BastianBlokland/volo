@@ -138,7 +138,8 @@ static void info_panel_tab_script_draw(
   const String     scriptId          = asset_id(scriptAsset);
 
   ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Script:"));
+  ui_table_draw_row_bg(canvas, table, ui_color(48, 48, 48, 192));
+  ui_label(canvas, fmt_write_scratch("Script {}:", fmt_int(scriptIndex)));
   ui_table_next_column(canvas, table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
@@ -150,7 +151,7 @@ static void info_panel_tab_script_draw(
   ui_layout_pop(canvas);
 
   ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Status:"));
+  ui_label(canvas, string_lit("> Status:"));
   ui_table_next_column(canvas, table);
   if (scriptAssetError) {
     ui_style_push(canvas);
@@ -170,12 +171,12 @@ static void info_panel_tab_script_draw(
   }
 
   ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Expressions:"));
+  ui_label(canvas, string_lit("> Expressions:"));
   ui_table_next_column(canvas, table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
 
   ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Duration:"));
+  ui_label(canvas, string_lit("> Duration:"));
   ui_table_next_column(canvas, table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
 }
