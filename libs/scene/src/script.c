@@ -802,9 +802,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1824,10 +1824,10 @@ typedef enum {
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
-  u8               resVersion;
-  EcsEntityId      scriptAsset;
-  SceneScriptStats stats;
-  ScriptPanic      lastPanic;
+  u8               resVersions[scene_script_max_assets];
+  EcsEntityId      assets[scene_script_max_assets];
+  SceneScriptStats stats[scene_script_max_assets];
+  ScriptPanic      panics[scene_script_max_assets];
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
@@ -1904,8 +1904,8 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 
 static void scene_script_eval(EvalContext* ctx) {
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
-    ctx->scriptInstance->stats     = (SceneScriptStats){0};
-    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
+    ctx->scriptInstance->stats[ctx->scriptIndex]  = (SceneScriptStats){0};
+    ctx->scriptInstance->panics[ctx->scriptIndex] = (ScriptPanic){0};
     return;
   }
 
@@ -1928,14 +1928,15 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("entity", fmt_int(ctx->instigator, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
-    ctx->scriptInstance->lastPanic = evalRes.panic;
+    ctx->scriptInstance->panics[ctx->scriptIndex] = evalRes.panic;
   } else {
-    ctx->scriptInstance->lastPanic = (ScriptPanic){0};
+    ctx->scriptInstance->panics[ctx->scriptIndex] = (ScriptPanic){0};
   }
 
   // Update stats.
-  ctx->scriptInstance->stats.executedExprs = evalRes.executedExprs;
-  ctx->scriptInstance->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
+  SceneScriptStats* stats = &ctx->scriptInstance->stats[ctx->scriptIndex];
+  stats->executedExprs    = evalRes.executedExprs;
+  stats->executedDur      = time_steady_duration(startTime, time_steady_clock());
 }
 
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
@@ -1984,18 +1985,16 @@ ecs_system_define(SceneScriptUpdateSys) {
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
       .queries          = queries,
+      .transientDup     = &scene_script_transient_dup,
   };
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
     ctx.instigator      = ecs_view_entity(itr);
-    ctx.scriptIndex     = 0;
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions         = &ctx.scriptInstance->actions;
     ctx.debug           = &ctx.scriptInstance->debug;
-    ctx.transientDup    = &scene_script_transient_dup;
-    ctx.usedQueries     = 0;
 
     // Clear the previous frame transient data.
     if (ctx.scriptInstance->allocTransient) {
@@ -2003,24 +2002,33 @@ ecs_system_define(SceneScriptUpdateSys) {
     }
     dynarray_clear(ctx.debug);
 
-    // Evaluate the script if the asset is loaded.
-    if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {
-      ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
-      ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
-
-      const u8 resVersion = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
-      if (UNLIKELY(ctx.scriptInstance->resVersion != resVersion)) {
-        ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
-        ctx.scriptInstance->resVersion = resVersion;
+    for (SceneScriptIndex i = 0; i != scene_script_max_assets; ++i) {
+      const EcsEntityId asset = ctx.scriptInstance->assets[i];
+      if (!asset) {
+        continue; // Slot unused.
       }
-      scene_script_eval(&ctx);
-    } else {
-      // Script asset not loaded; clear any previous stats and start loading it.
-      ctx.scriptInstance->stats     = (SceneScriptStats){0};
-      ctx.scriptInstance->lastPanic = (ScriptPanic){0};
-      if (!ecs_world_has_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp)) {
-        if (++startedAssetLoads < scene_script_max_asset_loads) {
-          ecs_world_add_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp);
+      ctx.scriptIndex = i;
+      ctx.usedQueries = 0;
+
+      // Evaluate the script if the asset is loaded.
+      if (ecs_view_maybe_jump(resourceAssetItr, asset)) {
+        ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
+        ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+
+        const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
+        if (UNLIKELY(ctx.scriptInstance->resVersions[i] != version)) {
+          ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
+          ctx.scriptInstance->resVersions[i] = version;
+        }
+        scene_script_eval(&ctx);
+      } else {
+        // Script asset not loaded; clear any previous stats and start loading it.
+        ctx.scriptInstance->stats[i]  = (SceneScriptStats){0};
+        ctx.scriptInstance->panics[i] = (ScriptPanic){0};
+        if (!ecs_world_has_t(world, asset, SceneScriptResourceComp)) {
+          if (++startedAssetLoads < scene_script_max_asset_loads) {
+            ecs_world_add_t(world, asset, SceneScriptResourceComp);
+          }
         }
       }
     }
@@ -2471,24 +2479,29 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
 }
 
 u32 scene_script_count(const SceneScriptComp* script) {
-  (void)script;
-  return 1;
+  for (u32 i = 0; i != scene_script_max_assets; ++i) {
+    if (!script->assets[i]) {
+      return i;
+    }
+  }
+  return scene_script_max_assets;
 }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptIndex index) {
-  (void)index;
-  return script->scriptAsset;
+  diag_assert(index < scene_script_max_assets);
+  return script->assets[index];
 }
 
 const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptIndex index) {
-  (void)index;
-  return script_panic_valid(&script->lastPanic) ? &script->lastPanic : null;
+  diag_assert(index < scene_script_max_assets);
+  const ScriptPanic* panic = &script->panics[index];
+  return script_panic_valid(panic) ? panic : null;
 }
 
 const SceneScriptStats*
 scene_script_stats(const SceneScriptComp* script, const SceneScriptIndex index) {
-  (void)index;
-  return &script->stats;
+  diag_assert(index < scene_script_max_assets);
+  return &script->stats[index];
 }
 
 const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
@@ -2503,11 +2516,20 @@ SceneScriptComp* scene_script_add(
     const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_max_assets)]) {
   diag_assert(ecs_world_exists(world, scriptAssets[0]));
 
-  return ecs_world_add_t(
+  SceneScriptComp* script = ecs_world_add_t(
       world,
       entity,
       SceneScriptComp,
-      .scriptAsset = scriptAssets[0],
-      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
-      .debug       = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
+      .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
+      .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
+
+  // NOTE: Move all used asset slots to the lower indices.
+  u32 scriptIndex = 0;
+  for (u32 i = 0; i != scene_script_max_assets; ++i) {
+    if (scriptAssets[i]) {
+      script->assets[scriptIndex++] = scriptAssets[i];
+    }
+  }
+
+  return script;
 }
