@@ -359,7 +359,7 @@ static void vfx_system_simulate(
   // Update shared state.
   state->age += time->delta;
   if (tags & SceneTags_Emit) {
-    state->emitAge += time->delta;
+    state->emitAge += (TimeDuration)(time->delta * sysCfg->emitMultiplier);
   }
 
   // Update emitters.
