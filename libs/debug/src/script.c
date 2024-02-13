@@ -158,7 +158,15 @@ static void info_panel_tab_script_draw(
     ui_label(canvas, string_lit("Invalid script"));
     ui_style_pop(canvas);
   } else {
-    ui_label(canvas, scriptAssetLoaded ? string_lit("Running") : string_lit("Loading script"));
+    String label;
+    if (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) {
+      label = string_lit("Paused");
+    } else if (scriptAssetLoaded) {
+      label = string_lit("Running");
+    } else {
+      label = string_lit("Loading script");
+    }
+    ui_label(canvas, label);
   }
 
   ui_table_next_row(canvas, table);
