@@ -385,7 +385,7 @@ typedef struct {
   EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
-  SceneScriptIndex       scriptIndex;
+  SceneScriptSlot        slot;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
   const AssetScriptComp* scriptAsset;
@@ -1589,9 +1589,9 @@ static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, Script
   data.color = script_arg_opt_color(args, 2, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type        = SceneScriptDebugType_Line,
-        .scriptIndex = ctx->scriptIndex,
-        .data_line   = data,
+        .type      = SceneScriptDebugType_Line,
+        .slot      = ctx->slot,
+        .data_line = data,
     };
   }
   return script_null();
@@ -1605,7 +1605,7 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type        = SceneScriptDebugType_Sphere,
-        .scriptIndex = ctx->scriptIndex,
+        .slot        = ctx->slot,
         .data_sphere = data,
     };
   }
@@ -1620,9 +1620,9 @@ static ScriptVal eval_debug_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   data.color = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type        = SceneScriptDebugType_Box,
-        .scriptIndex = ctx->scriptIndex,
-        .data_box    = data,
+        .type     = SceneScriptDebugType_Box,
+        .slot     = ctx->slot,
+        .data_box = data,
     };
   }
   return script_null();
@@ -1636,9 +1636,9 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, Scrip
   data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type        = SceneScriptDebugType_Arrow,
-        .scriptIndex = ctx->scriptIndex,
-        .data_arrow  = data,
+        .type       = SceneScriptDebugType_Arrow,
+        .slot       = ctx->slot,
+        .data_arrow = data,
     };
   }
   return script_null();
@@ -1652,7 +1652,7 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args,
   if (LIKELY(!script_error_valid(err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type             = SceneScriptDebugType_Orientation,
-        .scriptIndex      = ctx->scriptIndex,
+        .slot             = ctx->slot,
         .data_orientation = data,
     };
   }
@@ -1677,9 +1677,9 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   }
   data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
   *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type        = SceneScriptDebugType_Text,
-      .scriptIndex = ctx->scriptIndex,
-      .data_text   = data,
+      .type      = SceneScriptDebugType_Text,
+      .slot      = ctx->slot,
+      .data_text = data,
   };
   return script_null();
 }
@@ -1696,7 +1696,7 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, Scrip
   if (buffer.size) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type            = SceneScriptDebugType_Trace,
-        .scriptIndex     = ctx->scriptIndex,
+        .slot            = ctx->slot,
         .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
     };
   }
@@ -1824,10 +1824,10 @@ typedef enum {
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
-  u8               resVersions[scene_script_max_assets];
-  EcsEntityId      assets[scene_script_max_assets];
-  SceneScriptStats stats[scene_script_max_assets];
-  ScriptPanic      panics[scene_script_max_assets];
+  u8               resVersions[scene_script_slots];
+  EcsEntityId      assets[scene_script_slots];
+  SceneScriptStats stats[scene_script_slots];
+  ScriptPanic      panics[scene_script_slots];
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
@@ -1904,8 +1904,8 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 
 static void scene_script_eval(EvalContext* ctx) {
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
-    ctx->scriptInstance->stats[ctx->scriptIndex]  = (SceneScriptStats){0};
-    ctx->scriptInstance->panics[ctx->scriptIndex] = (ScriptPanic){0};
+    ctx->scriptInstance->stats[ctx->slot]  = (SceneScriptStats){0};
+    ctx->scriptInstance->panics[ctx->slot] = (ScriptPanic){0};
     return;
   }
 
@@ -1928,13 +1928,13 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("entity", fmt_int(ctx->instigator, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
-    ctx->scriptInstance->panics[ctx->scriptIndex] = evalRes.panic;
+    ctx->scriptInstance->panics[ctx->slot] = evalRes.panic;
   } else {
-    ctx->scriptInstance->panics[ctx->scriptIndex] = (ScriptPanic){0};
+    ctx->scriptInstance->panics[ctx->slot] = (ScriptPanic){0};
   }
 
   // Update stats.
-  SceneScriptStats* stats = &ctx->scriptInstance->stats[ctx->scriptIndex];
+  SceneScriptStats* stats = &ctx->scriptInstance->stats[ctx->slot];
   stats->executedExprs    = evalRes.executedExprs;
   stats->executedDur      = time_steady_duration(startTime, time_steady_clock());
 }
@@ -2002,12 +2002,12 @@ ecs_system_define(SceneScriptUpdateSys) {
     }
     dynarray_clear(ctx.debug);
 
-    for (SceneScriptIndex i = 0; i != scene_script_max_assets; ++i) {
-      const EcsEntityId asset = ctx.scriptInstance->assets[i];
+    for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
+      const EcsEntityId asset = ctx.scriptInstance->assets[slot];
       if (!asset) {
         continue; // Slot unused.
       }
-      ctx.scriptIndex = i;
+      ctx.slot        = slot;
       ctx.usedQueries = 0;
 
       // Evaluate the script if the asset is loaded.
@@ -2016,15 +2016,15 @@ ecs_system_define(SceneScriptUpdateSys) {
         ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
 
         const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
-        if (UNLIKELY(ctx.scriptInstance->resVersions[i] != version)) {
+        if (UNLIKELY(ctx.scriptInstance->resVersions[slot] != version)) {
           ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
-          ctx.scriptInstance->resVersions[i] = version;
+          ctx.scriptInstance->resVersions[slot] = version;
         }
         scene_script_eval(&ctx);
       } else {
         // Script asset not loaded; clear any previous stats and start loading it.
-        ctx.scriptInstance->stats[i]  = (SceneScriptStats){0};
-        ctx.scriptInstance->panics[i] = (ScriptPanic){0};
+        ctx.scriptInstance->stats[slot]  = (SceneScriptStats){0};
+        ctx.scriptInstance->panics[slot] = (ScriptPanic){0};
         if (!ecs_world_has_t(world, asset, SceneScriptResourceComp)) {
           if (++startedAssetLoads < scene_script_max_asset_loads) {
             ecs_world_add_t(world, asset, SceneScriptResourceComp);
@@ -2479,29 +2479,29 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
 }
 
 u32 scene_script_count(const SceneScriptComp* script) {
-  for (u32 i = 0; i != scene_script_max_assets; ++i) {
-    if (!script->assets[i]) {
-      return i;
+  for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
+    if (!script->assets[slot]) {
+      return slot;
     }
   }
-  return scene_script_max_assets;
+  return scene_script_slots;
 }
 
-EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptIndex index) {
-  diag_assert(index < scene_script_max_assets);
-  return script->assets[index];
+EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptSlot slot) {
+  diag_assert(slot < scene_script_slots);
+  return script->assets[slot];
 }
 
-const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptIndex index) {
-  diag_assert(index < scene_script_max_assets);
-  const ScriptPanic* panic = &script->panics[index];
+const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptSlot slot) {
+  diag_assert(slot < scene_script_slots);
+  const ScriptPanic* panic = &script->panics[slot];
   return script_panic_valid(panic) ? panic : null;
 }
 
 const SceneScriptStats*
-scene_script_stats(const SceneScriptComp* script, const SceneScriptIndex index) {
-  diag_assert(index < scene_script_max_assets);
-  return &script->stats[index];
+scene_script_stats(const SceneScriptComp* script, const SceneScriptSlot slot) {
+  diag_assert(slot < scene_script_slots);
+  return &script->stats[slot];
 }
 
 const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
@@ -2513,7 +2513,7 @@ usize scene_script_debug_count(const SceneScriptComp* script) { return script->d
 SceneScriptComp* scene_script_add(
     EcsWorld*         world,
     const EcsEntityId entity,
-    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_max_assets)]) {
+    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]) {
   diag_assert(ecs_world_exists(world, scriptAssets[0]));
 
   SceneScriptComp* script = ecs_world_add_t(
@@ -2523,11 +2523,11 @@ SceneScriptComp* scene_script_add(
       .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
       .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 
-  // NOTE: Move all used asset slots to the lower indices.
-  u32 scriptIndex = 0;
-  for (u32 i = 0; i != scene_script_max_assets; ++i) {
+  // NOTE: Store the used slots consecutively.
+  SceneScriptSlot slot = 0;
+  for (u32 i = 0; i != scene_script_slots; ++i) {
     if (scriptAssets[i]) {
-      script->assets[scriptIndex++] = scriptAssets[i];
+      script->assets[slot++] = scriptAssets[i];
     }
   }
 

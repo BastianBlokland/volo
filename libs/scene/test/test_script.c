@@ -57,7 +57,7 @@ spec(script) {
 
   it("can set knowledge") {
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId scriptAssets[scene_script_max_assets] = {
+    const EcsEntityId scriptAssets[scene_script_slots] = {
         asset_lookup(world, manager, string_lit("set_knowledge.script")),
     };
 

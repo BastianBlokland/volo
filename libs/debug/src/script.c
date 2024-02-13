@@ -69,7 +69,7 @@ typedef enum {
 typedef struct {
   DebugScriptOutputType type : 8;
   u8                    msgLength;
-  SceneScriptIndex      scriptIndex;
+  SceneScriptSlot       slot;
   TimeReal              timestamp;
   EcsEntityId           entity;
   String                scriptId; // NOTE: Has to be persistently allocated.
@@ -122,15 +122,15 @@ ecs_view_define(AssetView) {
 ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
 static void info_panel_tab_script_draw(
-    EcsWorld*              world,
-    UiCanvasComp*          canvas,
-    DebugScriptPanelComp*  panelComp,
-    UiTable*               table,
-    EcsIterator*           assetItr,
-    SceneScriptComp*       scriptInstance,
-    const SceneScriptIndex scriptIndex) {
-  const SceneScriptStats* stats             = scene_script_stats(scriptInstance, scriptIndex);
-  const EcsEntityId       scriptAssetEntity = scene_script_asset(scriptInstance, scriptIndex);
+    EcsWorld*             world,
+    UiCanvasComp*         canvas,
+    DebugScriptPanelComp* panelComp,
+    UiTable*              table,
+    EcsIterator*          assetItr,
+    SceneScriptComp*      scriptInstance,
+    const SceneScriptSlot slot) {
+  const SceneScriptStats* stats             = scene_script_stats(scriptInstance, slot);
+  const EcsEntityId       scriptAssetEntity = scene_script_asset(scriptInstance, slot);
   ecs_view_jump(assetItr, scriptAssetEntity);
   const AssetComp* scriptAsset       = ecs_view_read_t(assetItr, AssetComp);
   const bool       scriptAssetError  = ecs_world_has_t(world, scriptAssetEntity, AssetFailedComp);
@@ -139,7 +139,7 @@ static void info_panel_tab_script_draw(
 
   ui_table_next_row(canvas, table);
   ui_table_draw_row_bg(canvas, table, ui_color(48, 48, 48, 192));
-  ui_label(canvas, fmt_write_scratch("Script {}:", fmt_int(scriptIndex)));
+  ui_label(canvas, fmt_write_scratch("Script [{}]", fmt_int(slot)));
   ui_table_next_column(canvas, table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
@@ -208,9 +208,8 @@ static void info_panel_tab_draw(
   }
 
   const u32 scriptCount = scene_script_count(scriptInstance);
-  for (SceneScriptIndex scriptIndex = 0; scriptIndex != scriptCount; ++scriptIndex) {
-    info_panel_tab_script_draw(
-        world, canvas, panelComp, &table, assetItr, scriptInstance, scriptIndex);
+  for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
+    info_panel_tab_script_draw(world, canvas, panelComp, &table, assetItr, scriptInstance, slot);
   }
 }
 
@@ -437,7 +436,7 @@ static void output_add(
     const DebugScriptOutputType type,
     const EcsEntityId           entity,
     const TimeReal              time,
-    const SceneScriptIndex      scriptIndex,
+    const SceneScriptSlot       slot,
     const String                scriptId,
     const String                message,
     const ScriptRangeLineCol    range) {
@@ -445,7 +444,7 @@ static void output_add(
   // Find an existing entry of the same type for the same entity.
   for (usize i = 0; i != tracker->entries.size; ++i) {
     DebugScriptOutput* other = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
-    if (other->type == type && other->entity == entity && other->scriptIndex == scriptIndex) {
+    if (other->type == type && other->entity == entity && other->slot == slot) {
       entry = other;
       break;
     }
@@ -454,13 +453,13 @@ static void output_add(
     // No existing entry found; add a new one.
     entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
   }
-  entry->type        = type;
-  entry->scriptIndex = scriptIndex;
-  entry->msgLength   = math_min((u8)message.size, output_max_message_size);
-  entry->timestamp   = time;
-  entry->entity      = entity;
-  entry->scriptId    = scriptId;
-  entry->range       = range;
+  entry->type      = type;
+  entry->slot      = slot;
+  entry->msgLength = math_min((u8)message.size, output_max_message_size);
+  entry->timestamp = time;
+  entry->entity    = entity;
+  entry->scriptId  = scriptId;
+  entry->range     = range;
   mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
 }
 
@@ -470,8 +469,8 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   output_prune_older(tracker, oldestToKeep);
 
-  const AssetComp*       assetComps[scene_script_max_assets];
-  const AssetScriptComp* assetScripts[scene_script_max_assets];
+  const AssetComp*       assetComps[scene_script_slots];
+  const AssetScriptComp* assetScripts[scene_script_slots];
 
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
@@ -480,22 +479,22 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
       continue;
     }
     const u32 scriptCount = scene_script_count(scriptInstance);
-    for (SceneScriptIndex scriptIndex = 0; scriptIndex != scriptCount; ++scriptIndex) {
-      ecs_view_jump(assetItr, scene_script_asset(scriptInstance, scriptIndex));
-      assetComps[scriptIndex]   = ecs_view_read_t(assetItr, AssetComp);
-      assetScripts[scriptIndex] = ecs_view_read_t(assetItr, AssetScriptComp);
+    for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
+      ecs_view_jump(assetItr, scene_script_asset(scriptInstance, slot));
+      assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
+      assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);
 
       // Output panics.
-      const ScriptPanic* panic = scene_script_panic(scriptInstance, scriptIndex);
+      const ScriptPanic* panic = scene_script_panic(scriptInstance, slot);
       if (panic) {
-        const String       scriptId = asset_id(assetComps[scriptIndex]);
+        const String       scriptId = asset_id(assetComps[slot]);
         const String       msg      = script_panic_kind_str(panic->kind);
         ScriptRangeLineCol range    = {0};
-        if (assetScripts[scriptIndex]) {
-          range = script_range_to_line_col(assetScripts[scriptIndex]->sourceText, panic->range);
+        if (assetScripts[slot]) {
+          range = script_range_to_line_col(assetScripts[slot]->sourceText, panic->range);
         }
         const DebugScriptOutputType type = DebugScriptOutputType_Panic;
-        output_add(tracker, type, entity, now, scriptIndex, scriptId, msg, range);
+        output_add(tracker, type, entity, now, slot, scriptId, msg, range);
       }
     }
 
@@ -504,11 +503,11 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     const usize             debugCount = scene_script_debug_count(scriptInstance);
     for (usize i = 0; i != debugCount; ++i) {
       if (debugData[i].type == SceneScriptDebugType_Trace) {
-        const String                scriptId = asset_id(assetComps[debugData[i].scriptIndex]);
+        const String                scriptId = asset_id(assetComps[debugData[i].slot]);
         const String                msg      = debugData[i].data_trace.text;
         const ScriptRangeLineCol    range    = {0}; // TODO: Collect ranges for traces.
         const DebugScriptOutputType type     = DebugScriptOutputType_Trace;
-        output_add(tracker, type, entity, now, debugData[i].scriptIndex, scriptId, msg, range);
+        output_add(tracker, type, entity, now, debugData[i].slot, scriptId, msg, range);
       }
     }
   }

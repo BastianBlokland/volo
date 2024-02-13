@@ -11,7 +11,7 @@ typedef i64 TimeDuration;
 // Forward declare from 'script_panic.h'.
 typedef struct sScriptPanic ScriptPanic;
 
-#define scene_script_max_assets 4
+#define scene_script_slots 4
 
 typedef enum {
   SceneScriptFlags_None            = 0,
@@ -25,10 +25,10 @@ typedef struct {
 } SceneScriptStats;
 
 /**
- * Index of a script-asset.
- * A SceneScriptComp can execute multiple assets, the index is used to differentiate between them.
+ * SceneScriptComp's support multiple slots for executing scripts, this can be used to execute
+ * multiple scripts on the same entity.
  */
-typedef u8 SceneScriptIndex;
+typedef u8 SceneScriptSlot;
 
 ecs_comp_extern(SceneScriptComp);
 
@@ -41,12 +41,12 @@ void             scene_script_flags_unset(SceneScriptComp*, SceneScriptFlags);
 void             scene_script_flags_toggle(SceneScriptComp*, SceneScriptFlags);
 
 /**
- * Retrieve statistics for a specific script-asset.
+ * Retrieve statistics for a specific script slot.
  */
 u32                     scene_script_count(const SceneScriptComp*);
-EcsEntityId             scene_script_asset(const SceneScriptComp*, SceneScriptIndex);
-const ScriptPanic*      scene_script_panic(const SceneScriptComp*, SceneScriptIndex);
-const SceneScriptStats* scene_script_stats(const SceneScriptComp*, SceneScriptIndex);
+EcsEntityId             scene_script_asset(const SceneScriptComp*, SceneScriptSlot);
+const ScriptPanic*      scene_script_panic(const SceneScriptComp*, SceneScriptSlot);
+const SceneScriptStats* scene_script_stats(const SceneScriptComp*, SceneScriptSlot);
 
 typedef enum {
   SceneScriptDebugType_Line,
@@ -101,7 +101,7 @@ typedef struct {
 
 typedef struct {
   SceneScriptDebugType type;
-  SceneScriptIndex     scriptIndex;
+  SceneScriptSlot      slot;
   union {
     SceneScriptDebugLine        data_line;
     SceneScriptDebugSphere      data_sphere;
@@ -123,4 +123,4 @@ usize                   scene_script_debug_count(const SceneScriptComp*);
 SceneScriptComp* scene_script_add(
     EcsWorld*,
     EcsEntityId       entity,
-    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_max_assets)]);
+    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]);
