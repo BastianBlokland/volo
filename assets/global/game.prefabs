@@ -299,7 +299,17 @@
             "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_ranged.script" ] },
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [
+            "scripts/unit_ranged.script",
+            "scripts/vehicle_effects.script"
+          ],
+          "knowledge": [
+            { "$name": "soundIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
+            { "$name": "soundMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" }
+          ]
+        },
         {
           "$type": "AssetPrefabTrait_Location",
           "aimTarget": {
@@ -713,17 +723,8 @@
         },
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/alarm.script" ],
           "knowledge": [
-            {
-              "$name": "frequency",
-              "$type": "AssetPrefabValue_Number",
-              "$data": 0.5
-            },
-            {
-              "$name": "alarmSound",
-              "$type": "AssetPrefabValue_Sound",
-              "assetId": "external/sound/alarm-01.wav",
-              "persistent": true
-            }
+            { "$name": "frequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
+            { "$name": "soundAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
           ]
         }
       ]
@@ -846,11 +847,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/ambiance.script" ],
           "knowledge": [
-            {
-              "$name": "soundAsset",
-              "$type": "AssetPrefabValue_Sound",
-              "assetId": "external/sound/ambiance-01.wav"
-            }
+            { "$name": "soundAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
           ]
         }
       ]

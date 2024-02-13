@@ -217,6 +217,9 @@ typedef enum {
   AssetPrefabFlags_Structure    = 1 << 2,
   AssetPrefabFlags_Destructible = 1 << 3,
   AssetPrefabFlags_Volatile     = 1 << 4, // Prefab should not be persisted.
+
+  AssetPrefabFlags_Unit =
+      AssetPrefabFlags_Infantry | AssetPrefabFlags_Vehicle | AssetPrefabFlags_Structure
 } AssetPrefabFlags;
 
 typedef struct {

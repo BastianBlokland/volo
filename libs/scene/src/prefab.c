@@ -583,7 +583,7 @@ static bool setup_prefab(
   ecs_world_add_t(w, e, SceneVelocityComp);
   ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
 
-  if (prefab->flags & (AssetPrefabFlags_Infantry | AssetPrefabFlags_Structure)) {
+  if (prefab->flags & AssetPrefabFlags_Unit) {
     ecs_world_add_t(w, e, SceneVisibilityComp);
   }
 

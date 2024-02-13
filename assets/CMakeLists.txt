@@ -220,6 +220,8 @@ if(${EXTERNAL_ASSETS})
       sound/launch-02.wav
       sound/projectile-loop-01.wav
       sound/swoosh-01.wav
+      sound/tank-idle-01.wav
+      sound/tank-move-01.wav
       sound/tank-shot-01.wav
       sound/tank-turret-01.wav
       swat/swat_2_color_rough.tga
