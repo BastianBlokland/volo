@@ -69,6 +69,7 @@ typedef enum {
 typedef struct {
   DebugScriptOutputType type : 8;
   u8                    msgLength;
+  SceneScriptIndex      scriptIndex;
   TimeReal              timestamp;
   EcsEntityId           entity;
   String                scriptId; // NOTE: Has to be persistently allocated.
@@ -427,15 +428,16 @@ static void output_add(
     const DebugScriptOutputType type,
     const EcsEntityId           entity,
     const TimeReal              time,
+    const SceneScriptIndex      scriptIndex,
     const String                scriptId,
     const String                message,
     const ScriptRangeLineCol    range) {
   DebugScriptOutput* entry = null;
   // Find an existing entry of the same type for the same entity.
   for (usize i = 0; i != tracker->entries.size; ++i) {
-    DebugScriptOutput* existingEntry = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
-    if (existingEntry->type == type && existingEntry->entity == entity) {
-      entry = existingEntry;
+    DebugScriptOutput* other = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
+    if (other->type == type && other->entity == entity && other->scriptIndex == scriptIndex) {
+      entry = other;
       break;
     }
   }
@@ -443,12 +445,13 @@ static void output_add(
     // No existing entry found; add a new one.
     entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
   }
-  entry->type      = type;
-  entry->msgLength = math_min((u8)message.size, output_max_message_size);
-  entry->timestamp = time;
-  entry->entity    = entity;
-  entry->scriptId  = scriptId;
-  entry->range     = range;
+  entry->type        = type;
+  entry->scriptIndex = scriptIndex;
+  entry->msgLength   = math_min((u8)message.size, output_max_message_size);
+  entry->timestamp   = time;
+  entry->entity      = entity;
+  entry->scriptId    = scriptId;
+  entry->range       = range;
   mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
 }
 
@@ -482,7 +485,8 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
         if (assetScripts[scriptIndex]) {
           range = script_range_to_line_col(assetScripts[scriptIndex]->sourceText, panic->range);
         }
-        output_add(tracker, DebugScriptOutputType_Panic, entity, now, scriptId, msg, range);
+        const DebugScriptOutputType type = DebugScriptOutputType_Panic;
+        output_add(tracker, type, entity, now, scriptIndex, scriptId, msg, range);
       }
     }
 
@@ -491,11 +495,11 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     const usize             debugCount = scene_script_debug_count(scriptInstance);
     for (usize i = 0; i != debugCount; ++i) {
       if (debugData[i].type == SceneScriptDebugType_Trace) {
-        const String             scriptId = asset_id(assetComps[debugData[i].scriptIndex]);
-        const String             msg      = debugData[i].data_trace.text;
-        const ScriptRangeLineCol range    = {0}; // TODO: Collect ranges for traces.
-        output_add(tracker, DebugScriptOutputType_Trace, entity, now, scriptId, msg, range);
-        break;
+        const String                scriptId = asset_id(assetComps[debugData[i].scriptIndex]);
+        const String                msg      = debugData[i].data_trace.text;
+        const ScriptRangeLineCol    range    = {0}; // TODO: Collect ranges for traces.
+        const DebugScriptOutputType type     = DebugScriptOutputType_Trace;
+        output_add(tracker, type, entity, now, debugData[i].scriptIndex, scriptId, msg, range);
       }
     }
   }
