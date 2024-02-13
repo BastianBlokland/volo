@@ -466,7 +466,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("vfx_param");
-      const String       doc    = string_lit("Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`");
+      const String       doc    = string_lit("Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},

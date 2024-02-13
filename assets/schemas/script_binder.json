@@ -799,7 +799,7 @@
     },
     {
       "name": "vfx_param",
-      "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`",
+      "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [

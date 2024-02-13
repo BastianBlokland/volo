@@ -116,6 +116,7 @@ static void eval_enum_init_renderable_param() {
 
 static void eval_enum_init_vfx_param() {
   script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
+  script_enum_push(&g_scriptEnumVfxParam, string_lit("EmitMultiplier"), 1);
 }
 
 static void eval_enum_init_light_param() {
@@ -802,9 +803,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1252,6 +1253,8 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
       switch (param) {
       case 0 /* Alpha */:
         return script_num(vfxSysComp->alpha);
+      case 1 /* EmitMultiplier */:
+        return script_num(vfxSysComp->emitMultiplier);
       }
     }
     if (ecs_view_maybe_jump(ctx->vfxDecalItr, entity)) {
@@ -2229,6 +2232,9 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
     switch (a->param) {
     case 0 /* Alpha */:
       vfxSysComp->alpha = a->value;
+      break;
+    case 1 /* EmitMultiplier */:
+      vfxSysComp->emitMultiplier = a->value;
       break;
     }
   }
