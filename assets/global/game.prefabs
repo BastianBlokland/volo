@@ -299,7 +299,17 @@
             "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_ranged.script" ] },
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [
+            "scripts/unit_ranged.script",
+            "scripts/vehicle_effects.script"
+          ],
+          "knowledge": [
+            { "$name": "soundIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
+            { "$name": "soundMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" }
+          ]
+        },
         {
           "$type": "AssetPrefabTrait_Location",
           "aimTarget": {
