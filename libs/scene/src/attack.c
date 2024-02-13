@@ -790,7 +790,7 @@ ecs_system_define(SceneAttackSoundSys) {
     const bool readying = (attack->flags & SceneAttackFlags_Readying) != 0;
     const bool isAiming = attackAim && attackAim->isAiming;
 
-    if (attackSnd->aimSoundInst) {
+    if (attackSnd->aimSoundInst && ecs_world_exists(world, attackSnd->aimSoundInst)) {
       ecs_view_jump(soundInstanceItr, attackSnd->aimSoundInst);
       SceneSoundComp* sound = ecs_view_write_t(soundInstanceItr, SceneSoundComp);
       sound->gain           = (readying || isAiming) ? 1.0f : 0.0f;
