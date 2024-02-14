@@ -33,7 +33,6 @@
 
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
-ecs_comp_define_public(SceneAttackSoundComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
@@ -43,7 +42,6 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
-ecs_view_define(SoundInstanceView) { ecs_access_write(SceneSoundComp); }
 ecs_view_define(AttachmentInstanceView) { ecs_access_write(SceneTagComp); }
 
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
@@ -760,48 +758,6 @@ ecs_system_define(SceneAttackAimSys) {
   }
 }
 
-ecs_view_define(SoundUpdateView) {
-  ecs_access_maybe_read(SceneAttackAimComp);
-  ecs_access_read(SceneAttackComp);
-  ecs_access_write(SceneAttackSoundComp);
-}
-
-static EcsEntityId
-attack_sound_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_empty_t(world, e, SceneLevelInstanceComp);
-  ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
-  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = owner);
-  scene_attach_to_entity(world, e, owner);
-  return e;
-}
-
-ecs_system_define(SceneAttackSoundSys) {
-  EcsView*     soundInstanceView = ecs_world_view_t(world, SoundInstanceView);
-  EcsIterator* soundInstanceItr  = ecs_view_itr(soundInstanceView);
-
-  EcsView* updateView = ecs_world_view_t(world, SoundUpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity    = ecs_view_entity(itr);
-    const SceneAttackComp*    attack    = ecs_view_read_t(itr, SceneAttackComp);
-    const SceneAttackAimComp* attackAim = ecs_view_read_t(itr, SceneAttackAimComp);
-    SceneAttackSoundComp*     attackSnd = ecs_view_write_t(itr, SceneAttackSoundComp);
-
-    const bool readying = (attack->flags & SceneAttackFlags_Readying) != 0;
-    const bool isAiming = attackAim && attackAim->isAiming;
-
-    if (attackSnd->aimSoundInst && ecs_world_exists(world, attackSnd->aimSoundInst)) {
-      ecs_view_jump(soundInstanceItr, attackSnd->aimSoundInst);
-      SceneSoundComp* sound = ecs_view_write_t(soundInstanceItr, SceneSoundComp);
-      sound->gain           = (readying || isAiming) ? 1.0f : 0.0f;
-    } else {
-      diag_assert_msg(attackSnd->aimSoundAsset, "Attack aim sound missing");
-      attackSnd->aimSoundInst = attack_sound_create(world, entity, attackSnd->aimSoundAsset);
-    }
-  }
-}
-
 ecs_view_define(AttachmentUpdateView) { ecs_access_read(SceneAttackComp); }
 
 ecs_system_define(SceneAttackAttachmentSys) {
@@ -828,17 +784,14 @@ ecs_system_define(SceneAttackAttachmentSys) {
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackComp);
   ecs_register_comp(SceneAttackAimComp);
-  ecs_register_comp(SceneAttackSoundComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);
   ecs_register_view(GraphicView);
-  ecs_register_view(SoundInstanceView);
   ecs_register_view(AttachmentInstanceView);
   ecs_register_view(AttackView);
   ecs_register_view(TargetView);
   ecs_register_view(AimUpdateView);
-  ecs_register_view(SoundUpdateView);
   ecs_register_view(AttachmentUpdateView);
 
   ecs_register_system(
@@ -855,9 +808,6 @@ ecs_module_init(scene_attack_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(AimUpdateView),
       ecs_view_id(GraphicView));
-
-  ecs_register_system(
-      SceneAttackSoundSys, ecs_view_id(SoundUpdateView), ecs_view_id(SoundInstanceView));
 
   ecs_register_system(
       SceneAttackAttachmentSys,

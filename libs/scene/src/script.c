@@ -106,6 +106,8 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 1);
   script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 2);
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 3);
+  script_enum_push(&g_scriptEnumActivity, string_lit("AttackReadying"), 4);
+  script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 5);
 }
 
 static void eval_enum_init_renderable_param() {
@@ -337,7 +339,12 @@ ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
 ecs_view_define(EvalAnimView) { ecs_access_read(SceneAnimationComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
-ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
+
+ecs_view_define(EvalAttackView) {
+  ecs_access_read(SceneAttackComp);
+  ecs_access_maybe_read(SceneAttackAimComp);
+}
+
 ecs_view_define(EvalTargetView) { ecs_access_read(SceneTargetFinderComp); }
 
 ecs_view_define(EvalLineOfSightView) {
@@ -861,6 +868,16 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptErro
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
+  }
+  case 4 /* AttackReadying */: {
+    const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
+    const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+    return script_bool(attack && (attack->flags & SceneAttackFlags_Readying) != 0);
+  }
+  case 5 /* AttackAiming */: {
+    const EcsIterator*        itr       = ecs_view_maybe_jump(ctx->attackItr, e);
+    const SceneAttackAimComp* attackAim = itr ? ecs_view_read_t(itr, SceneAttackAimComp) : null;
+    return script_bool(attackAim && attackAim->isAiming);
   }
   }
   return script_null();

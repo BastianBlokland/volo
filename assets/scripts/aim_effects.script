@@ -1,0 +1,13 @@
+
+var me     = self()
+var aiming = active(me, "AttackAiming") || active(me, "AttackReadying")
+
+// Aim sound.
+if ($soundAimInstance) {
+  sound_param($soundAimInstance, "Gain", aiming ? 1.0 : 0.0)
+} else if ($soundAim) {
+  var pitch         = random_between(0.95, 1.05)
+  $soundAimInstance = sound_spawn($soundAim, position(me), 0.0, pitch, true)
+  attach($soundAimInstance, me)
+  destroy_after($soundAimInstance, me)
+}
