@@ -199,7 +199,6 @@
             "weaponId": { "title": "String", "type": "string", "minLength": 1 },
             "aimJoint": { "title": "String", "type": "string", "minLength": 1 },
             "aimSpeed": { "title": "f32", "type": "number" },
-            "aimSoundId": { "title": "String", "type": "string", "minLength": 1 },
             "targetRangeMin": { "title": "f32", "type": "number" },
             "targetRangeMax": { "title": "f32", "type": "number" },
             "targetLineOfSightRadius": { "title": "f32", "type": "number" },
