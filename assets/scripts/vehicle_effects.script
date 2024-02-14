@@ -35,3 +35,13 @@ if ($vfxDustInstance) {
   attach($vfxDustInstance, me)
   destroy_after($vfxDustInstance, me)
 }
+
+// Heat vfx.
+if ($vfxHeatInstance) {
+  var emitMultiplier = moving ? 1.0 : 0.25
+  vfx_param($vfxHeatInstance, "EmitMultiplier", emitMultiplier)
+} else if ($vfxHeat) {
+  $vfxHeatInstance = vfx_system_spawn($vfxHeat, position(me), rotation(me), 1.0, 0.0)
+  attach($vfxHeatInstance, me, "body", vec3(0, 0.5, 2.5))
+  destroy_after($vfxHeatInstance, me)
+}
