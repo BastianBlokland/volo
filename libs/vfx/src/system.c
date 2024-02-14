@@ -258,12 +258,12 @@ static GeoVector vfx_world_dir(const VfxTrans* t, const GeoVector dir) {
 }
 
 static void vfx_system_spawn(
-    VfxSystemStateComp*   state,
-    const AssetVfxComp*   asset,
-    const AssetAtlasComp* atlas,
-    const u8              emitter,
-    const VfxTrans*       sysTrans,
-    const f32             sysAlpha) {
+    VfxSystemStateComp*       state,
+    const AssetVfxComp*       asset,
+    const AssetAtlasComp*     atlas,
+    const u8                  emitter,
+    const SceneVfxSystemComp* sysCfg,
+    const VfxTrans*           sysTrans) {
 
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
@@ -301,7 +301,7 @@ static void vfx_system_spawn(
     spawnDir = vfx_world_dir(sysTrans, spawnDir);
     spawnScale *= sysTrans->scale;
     spawnSpeed *= sysTrans->scale;
-    spawnAlpha *= sysAlpha;
+    spawnAlpha *= sysCfg->alpha;
   }
 
   *dynarray_push_t(&state->instances, VfxSystemInstance) = (VfxSystemInstance){
@@ -346,20 +346,20 @@ static void vfx_system_reset(VfxSystemStateComp* state) {
 }
 
 static void vfx_system_simulate(
-    VfxSystemStateComp*   state,
-    const AssetVfxComp*   asset,
-    const AssetAtlasComp* atlas,
-    const SceneTimeComp*  time,
-    const SceneTags       tags,
-    const VfxTrans*       sysTrans,
-    const f32             sysAlpha) {
+    VfxSystemStateComp*       state,
+    const AssetVfxComp*       asset,
+    const AssetAtlasComp*     atlas,
+    const SceneTimeComp*      time,
+    const SceneTags           tags,
+    const SceneVfxSystemComp* sysCfg,
+    const VfxTrans*           sysTrans) {
 
   const f32 deltaSec = scene_delta_seconds(time);
 
   // Update shared state.
   state->age += time->delta;
   if (tags & SceneTags_Emit) {
-    state->emitAge += time->delta;
+    state->emitAge += (TimeDuration)(time->delta * sysCfg->emitMultiplier);
   }
 
   // Update emitters.
@@ -369,7 +369,7 @@ static void vfx_system_simulate(
 
     const u32 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
-      vfx_system_spawn(state, asset, atlas, emitter, sysTrans, sysAlpha);
+      vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
     }
   }
 
@@ -403,12 +403,12 @@ static void vfx_system_simulate(
 }
 
 static void vfx_instance_output_sprite(
-    const VfxSystemInstance* instance,
-    RendDrawComp*            draws[VfxDrawType_Count],
-    const AssetVfxComp*      asset,
-    const VfxTrans*          sysTrans,
-    const TimeDuration       sysTimeRem,
-    const f32                sysAlpha) {
+    const VfxSystemInstance*  instance,
+    RendDrawComp*             draws[VfxDrawType_Count],
+    const AssetVfxComp*       asset,
+    const SceneVfxSystemComp* sysCfg,
+    const VfxTrans*           sysTrans,
+    const TimeDuration        sysTimeRem) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
@@ -436,7 +436,7 @@ static void vfx_instance_output_sprite(
   color.a *= vfx_instance_alpha(instance);
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
-    color.a *= sysAlpha;
+    color.a *= sysCfg->alpha;
   }
   color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
   color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
@@ -474,13 +474,13 @@ static void vfx_instance_output_sprite(
 }
 
 static void vfx_instance_output_light(
-    const EcsEntityId        entity,
-    const VfxSystemInstance* instance,
-    RendLightComp*           lightOutput,
-    const AssetVfxComp*      asset,
-    const VfxTrans*          sysTrans,
-    const TimeDuration       sysTimeRem,
-    const f32                sysAlpha) {
+    const EcsEntityId         entity,
+    const VfxSystemInstance*  instance,
+    RendLightComp*            lightOutput,
+    const AssetVfxComp*       asset,
+    const SceneVfxSystemComp* sysCfg,
+    const VfxTrans*           sysTrans,
+    const TimeDuration        sysTimeRem) {
 
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
@@ -499,7 +499,7 @@ static void vfx_instance_output_light(
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
     scale *= sysTrans->scale;
-    radiance.a *= sysAlpha;
+    radiance.a *= sysCfg->alpha;
   }
   radiance.a *= scale;
   radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
@@ -546,27 +546,26 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
-    const SceneVfxSystemComp*        vfxSys    = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneVfxSystemComp*        sysCfg    = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
 
-    const SceneTags tags     = tagComp ? tagComp->tags : SceneTags_Default;
-    const f32       sysAlpha = vfxSys->alpha;
+    const SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
 
-    diag_assert_msg(ecs_entity_valid(vfxSys->asset), "Vfx system is missing an asset");
-    if (!ecs_view_maybe_jump(assetItr, vfxSys->asset)) {
-      if (UNLIKELY(!vfx_system_asset_valid(world, vfxSys->asset))) {
+    diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
+    if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
+      if (UNLIKELY(!vfx_system_asset_valid(world, sysCfg->asset))) {
         log_e("Invalid vfx-system asset entity");
         continue;
-      } else if (UNLIKELY(ecs_world_has_t(world, vfxSys->asset, AssetFailedComp))) {
+      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetFailedComp))) {
         log_e("Failed to acquire vfx-system asset");
         continue;
-      } else if (UNLIKELY(ecs_world_has_t(world, vfxSys->asset, AssetLoadedComp))) {
+      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetLoadedComp))) {
         log_e("Acquired asset was not a vfx-system");
         continue;
       }
-      if (vfxSys->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
-        vfx_system_asset_request(world, vfxSys->asset);
+      if (sysCfg->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
+        vfx_system_asset_request(world, sysCfg->asset);
       }
       continue;
     }
@@ -592,11 +591,11 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, particleAtlas, time, tags, &sysTrans, sysAlpha);
+    vfx_system_simulate(state, asset, particleAtlas, time, tags, sysCfg, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-      vfx_instance_output_sprite(instance, draws, asset, &sysTrans, sysTimeRem, sysAlpha);
-      vfx_instance_output_light(entity, instance, light, asset, &sysTrans, sysTimeRem, sysAlpha);
+      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
+      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
     }
   }
 }

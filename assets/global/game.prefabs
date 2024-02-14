@@ -307,7 +307,9 @@
           ],
           "knowledge": [
             { "$name": "soundIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
-            { "$name": "soundMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" }
+            { "$name": "soundMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
+            { "$name": "vfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
+            { "$name": "vfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" }
           ]
         },
         {

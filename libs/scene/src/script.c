@@ -116,6 +116,7 @@ static void eval_enum_init_renderable_param() {
 
 static void eval_enum_init_vfx_param() {
   script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
+  script_enum_push(&g_scriptEnumVfxParam, string_lit("EmitMultiplier"), 1);
 }
 
 static void eval_enum_init_light_param() {
@@ -1211,16 +1212,23 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
 }
 
 static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
-  const GeoVector   pos   = script_arg_vec3(args, 1, err);
-  const GeoQuat     rot   = script_arg_quat(args, 2, err);
-  const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  const EcsEntityId asset          = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos            = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot            = script_arg_quat(args, 2, err);
+  const f32         alpha          = (f32)script_arg_opt_num_range(args, 3, 0.0, 1.0, 1.0, err);
+  const f32         emitMultiplier = (f32)script_arg_opt_num_range(args, 4, 0.0, 1.0, 1.0, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
-  ecs_world_add_t(ctx->world, result, SceneVfxSystemComp, .asset = asset, .alpha = alpha);
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneVfxSystemComp,
+      .asset          = asset,
+      .alpha          = alpha,
+      .emitMultiplier = emitMultiplier);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }
@@ -1252,6 +1260,8 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
       switch (param) {
       case 0 /* Alpha */:
         return script_num(vfxSysComp->alpha);
+      case 1 /* EmitMultiplier */:
+        return script_num(vfxSysComp->emitMultiplier);
       }
     }
     if (ecs_view_maybe_jump(ctx->vfxDecalItr, entity)) {
@@ -2229,6 +2239,9 @@ static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdate
     switch (a->param) {
     case 0 /* Alpha */:
       vfxSysComp->alpha = a->value;
+      break;
+    case 1 /* EmitMultiplier */:
+      vfxSysComp->emitMultiplier = a->value;
       break;
     }
   }
