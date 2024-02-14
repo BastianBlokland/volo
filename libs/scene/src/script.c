@@ -1212,10 +1212,11 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
 }
 
 static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
-  const GeoVector   pos   = script_arg_vec3(args, 1, err);
-  const GeoQuat     rot   = script_arg_quat(args, 2, err);
-  const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  const EcsEntityId asset          = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos            = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot            = script_arg_quat(args, 2, err);
+  const f32         alpha          = (f32)script_arg_opt_num_range(args, 3, 0.0, 1.0, 1.0, err);
+  const f32         emitMultiplier = (f32)script_arg_opt_num_range(args, 4, 0.0, 1.0, 1.0, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
@@ -1227,7 +1228,7 @@ static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, 
       SceneVfxSystemComp,
       .asset          = asset,
       .alpha          = alpha,
-      .emitMultiplier = 1.0f);
+      .emitMultiplier = emitMultiplier);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }

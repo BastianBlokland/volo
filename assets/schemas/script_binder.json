@@ -559,6 +559,10 @@
           {
             "name": "alpha",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "emitMultiplier",
+            "mask": [ "null", "num" ]
           }
         ]
       }
