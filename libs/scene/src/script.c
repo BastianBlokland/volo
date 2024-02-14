@@ -803,9 +803,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1221,7 +1221,13 @@ static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, 
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
-  ecs_world_add_t(ctx->world, result, SceneVfxSystemComp, .asset = asset, .alpha = alpha);
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneVfxSystemComp,
+      .asset          = asset,
+      .alpha          = alpha,
+      .emitMultiplier = 1.0f);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }
