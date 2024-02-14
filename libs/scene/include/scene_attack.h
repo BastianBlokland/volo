@@ -31,11 +31,6 @@ ecs_comp_extern_public(SceneAttackAimComp) {
   GeoQuat    aimLocalActual, aimLocalTarget;
 };
 
-ecs_comp_extern_public(SceneAttackSoundComp) {
-  EcsEntityId aimSoundAsset;
-  EcsEntityId aimSoundInst;
-};
-
 /**
  * Compute the world-space aim rotation.
  * NOTE: 'SceneAttackAimComp' is optional, when null the raw transform rotation is returned.
