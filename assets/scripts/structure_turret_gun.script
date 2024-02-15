@@ -1,6 +1,10 @@
 
 var me = self()
 
+if (active(me, "Dead")) {
+  return
+}
+
 if (!exists($user_attack_target)) {
   $user_attack_target = null
 }

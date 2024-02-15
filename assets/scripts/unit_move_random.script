@@ -1,6 +1,10 @@
 
 var me = self()
 
+if (active(me, "Dead")) {
+  return
+}
+
 $move_target ??= {
   var origin = vec3(0, 0, 0)
   var radius = 150
