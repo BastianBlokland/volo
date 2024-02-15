@@ -742,7 +742,8 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (tracker->autoOpenOnPanic && output_has_panic(tracker)) {
     EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
     if (windowItr) {
-      debug_script_output_panel_open(world, ecs_view_entity(windowItr));
+      const bool openPinned = true;
+      debug_script_output_panel_open(world, ecs_view_entity(windowItr), openPinned);
       tracker->autoOpenOnPanic = false;
     }
   }
@@ -796,12 +797,16 @@ EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
   return panelEntity;
 }
 
-EcsEntityId debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window, const bool pinned) {
+  const EcsEntityId     panelEntity = debug_panel_create(world, window);
+  DebugScriptPanelComp* panelComp   = ecs_world_add_t(
       world,
       panelEntity,
       DebugScriptPanelComp,
       .panel = ui_panel(.size = ui_vector(800, 500), .activeTab = DebugScriptTab_Output));
+  if (pinned) {
+    ui_panel_pin(&panelComp->panel);
+  }
   return panelEntity;
 }

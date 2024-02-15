@@ -53,5 +53,6 @@ typedef struct {
 void ui_panel_begin_with_opts(UiCanvasComp*, UiPanel*, const UiPanelOpts*);
 void ui_panel_end(UiCanvasComp*, UiPanel*);
 
+void ui_panel_pin(UiPanel*);
 bool ui_panel_closed(const UiPanel*);
 bool ui_panel_pinned(const UiPanel*);
