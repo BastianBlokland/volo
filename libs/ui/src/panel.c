@@ -172,10 +172,12 @@ static void ui_panel_topbar(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* 
     ui_layout_move_dir(c, Ui_Left, 27, UiBase_Absolute);
     ui_style_push(c);
     {
-      if (panel->flags & UiPanelFlags_Pinned) {
+      const bool pinned = (panel->flags & UiPanelFlags_Pinned) != 0;
+      if (pinned) {
         ui_style_color(c, ui_color(16, 192, 0, 255));
       }
-      if (ui_panel_topbar_button(c, UiShape_PushPin, string_lit("Pin this panel"))) {
+      const String tooltip = pinned ? string_lit("Unpin this panel") : string_lit("Pin this panel");
+      if (ui_panel_topbar_button(c, UiShape_PushPin, tooltip)) {
         panel->flags ^= UiPanelFlags_Pinned;
       }
     }
