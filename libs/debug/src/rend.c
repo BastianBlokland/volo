@@ -1159,7 +1159,8 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       settings->debugViewerResource = 0;
       settings->flags &= ~RendFlags_DebugOverlay;
       continue;
@@ -1178,7 +1179,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
       }
     }
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {

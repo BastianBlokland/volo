@@ -8,6 +8,7 @@ ecs_comp_extern(UiCanvasComp);
 typedef enum {
   UiPanelFlags_Close  = 1 << 0,
   UiPanelFlags_Active = 1 << 1,
+  UiPanelFlags_Pinned = 1 << 2,
 } UiPanelFlags;
 
 typedef struct {
@@ -51,3 +52,7 @@ typedef struct {
 
 void ui_panel_begin_with_opts(UiCanvasComp*, UiPanel*, const UiPanelOpts*);
 void ui_panel_end(UiCanvasComp*, UiPanel*);
+
+void ui_panel_pin(UiPanel*);
+bool ui_panel_closed(const UiPanel*);
+bool ui_panel_pinned(const UiPanel*);

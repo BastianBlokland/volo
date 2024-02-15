@@ -147,13 +147,14 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
     }
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       settings->flags &= ~(UiSettingFlags_DebugInspector | UiSettingFlags_DebugShading);
       continue;
     }
     interface_panel_draw(canvas, panelComp, settings);
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {

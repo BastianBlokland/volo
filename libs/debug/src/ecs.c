@@ -755,12 +755,13 @@ ecs_system_define(DebugEcsUpdatePanelSys) {
     UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     ecs_panel_draw(canvas, panelComp, world);
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
