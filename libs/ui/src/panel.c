@@ -78,7 +78,7 @@ static void ui_panel_topbar_title(UiCanvasComp* c, const UiPanelOpts* opts) {
   ui_layout_push(c);
 
   ui_layout_move_dir(c, Ui_Right, 5, UiBase_Absolute);
-  ui_layout_grow(c, UiAlign_BottomLeft, ui_vector(-25, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(c, UiAlign_BottomLeft, ui_vector(-55, 0), UiBase_Absolute, Ui_X);
   ui_label(c, opts->title, .fontSize = 18);
 
   ui_layout_pop(c);
