@@ -467,7 +467,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
 
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       if (panelComp->mode == PrefabPanelMode_Create) {
         prefab_create_cancel(&ctx);
       }

@@ -204,7 +204,8 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     camera_panel_draw(canvas, panelComp, camera, transform);

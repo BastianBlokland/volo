@@ -161,7 +161,8 @@ ecs_system_define(DebugTimeUpdateSys) {
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     time_panel_draw(canvas, stats, panelComp, time, timeSettings);

@@ -755,7 +755,8 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     debug_editor_update(panelComp, assetManager);
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
