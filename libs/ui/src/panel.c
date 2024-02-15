@@ -85,7 +85,6 @@ static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts)
 }
 
 static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
-  ui_layout_push(canvas);
   ui_style_push(canvas);
 
   const UiId     id     = ui_canvas_id_peek(canvas);
@@ -99,34 +98,29 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
 
-  UiVector size;
+  UiVector sizeDelta = {0};
   switch (status) {
   case UiStatus_Hovered:
     ui_style_outline(canvas, 3);
-    size = ui_vector(23, 23);
+    sizeDelta = ui_vector(3, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
   case UiStatus_ActivatedAlt:
     ui_style_outline(canvas, 1);
-    size = ui_vector(18, 18);
+    sizeDelta = ui_vector(-2, -2);
     break;
   case UiStatus_Idle:
     ui_style_outline(canvas, 2);
-    size = ui_vector(20, 20);
     break;
   }
-
-  ui_layout_move(canvas, ui_vector(1, 0.5), UiBase_Current, Ui_XY);
-  ui_layout_move_dir(canvas, Ui_Left, 12, UiBase_Absolute);
-  ui_layout_resize(canvas, UiAlign_MiddleCenter, size, UiBase_Absolute, Ui_XY);
-
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, sizeDelta, UiBase_Absolute, Ui_XY);
   ui_canvas_draw_glyph(canvas, UiShape_Close, 0, UiFlags_Interactable);
-
-  ui_tooltip(canvas, id, string_lit("Close"));
-
-  ui_style_pop(canvas);
   ui_layout_pop(canvas);
+
+  ui_tooltip(canvas, id, string_lit("Close this panel"));
+  ui_style_pop(canvas);
 }
 
 static void ui_panel_topbar_background(UiCanvasComp* canvas, const UiPanelOpts* opts) {
@@ -161,7 +155,18 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelO
 
   ui_panel_topbar_background(canvas, opts);
   ui_panel_topbar_title(canvas, opts);
-  ui_panel_topbar_close_button(canvas, panel);
+
+  // Top-bar buttons.
+  ui_layout_push(canvas);
+  {
+    const UiVector buttonSize = ui_vector(20, 20);
+    ui_layout_move(canvas, ui_vector(1, 0.5), UiBase_Current, Ui_XY);
+    ui_layout_resize(canvas, UiAlign_MiddleCenter, buttonSize, UiBase_Absolute, Ui_XY);
+
+    ui_layout_move_dir(canvas, Ui_Left, 12, UiBase_Absolute);
+    ui_panel_topbar_close_button(canvas, panel);
+  }
+  ui_layout_pop(canvas);
 
   ui_layout_pop(canvas);
 }
