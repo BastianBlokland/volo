@@ -85,6 +85,7 @@ static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts)
 }
 
 static bool ui_panel_topbar_button(UiCanvasComp* c, const Unicode glyph, const String tooltip) {
+  ui_layout_push(c);
   ui_style_push(c);
 
   const UiId     id     = ui_canvas_id_peek(c);
@@ -97,29 +98,30 @@ static bool ui_panel_topbar_button(UiCanvasComp* c, const Unicode glyph, const S
     ui_canvas_interact_type(c, UiInteractType_Action);
   }
 
-  UiVector sizeDelta = {0};
+  if (status > UiStatus_Idle) {
+    ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(3, 3), UiBase_Absolute, Ui_XY);
+  }
+
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_outline(c, 3);
-    sizeDelta = ui_vector(3, 3);
+    ui_style_outline(c, 2);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
   case UiStatus_ActivatedAlt:
     ui_style_outline(c, 1);
-    sizeDelta = ui_vector(-2, -2);
     break;
   case UiStatus_Idle:
     ui_style_outline(c, 2);
     break;
   }
-  ui_layout_push(c);
-  ui_layout_grow(c, UiAlign_MiddleCenter, sizeDelta, UiBase_Absolute, Ui_XY);
+
   ui_canvas_draw_glyph(c, glyph, 0, UiFlags_Interactable);
-  ui_layout_pop(c);
 
   ui_tooltip(c, id, tooltip);
+
   ui_style_pop(c);
+  ui_layout_pop(c);
 
   return status == UiStatus_Activated;
 }
@@ -157,10 +159,9 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelO
   ui_panel_topbar_background(canvas, opts);
   ui_panel_topbar_title(canvas, opts);
 
-  // Top-bar buttons.
   ui_layout_push(canvas);
   {
-    const UiVector buttonSize = ui_vector(20, 20);
+    const UiVector buttonSize = ui_vector(18, 18);
     ui_layout_move(canvas, ui_vector(1, 0.5), UiBase_Current, Ui_XY);
     ui_layout_resize(canvas, UiAlign_MiddleCenter, buttonSize, UiBase_Absolute, Ui_XY);
 
@@ -168,6 +169,17 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelO
     if (ui_panel_topbar_button(canvas, UiShape_Close, string_lit("Close this panel"))) {
       panel->flags |= UiPanelFlags_Close;
     }
+    ui_layout_move_dir(canvas, Ui_Left, 27, UiBase_Absolute);
+    ui_style_push(canvas);
+    {
+      if (panel->flags & UiPanelFlags_Pinned) {
+        ui_style_color(canvas, ui_color(16, 192, 0, 255));
+      }
+      if (ui_panel_topbar_button(canvas, UiShape_PushPin, string_lit("Pin this panel"))) {
+        panel->flags ^= UiPanelFlags_Pinned;
+      }
+    }
+    ui_style_pop(canvas);
   }
   ui_layout_pop(canvas);
 
