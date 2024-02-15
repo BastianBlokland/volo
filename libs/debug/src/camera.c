@@ -209,7 +209,7 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     }
     camera_panel_draw(canvas, panelComp, camera, transform);
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {

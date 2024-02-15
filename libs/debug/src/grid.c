@@ -316,7 +316,7 @@ ecs_system_define(DebugGridUpdateSys) {
     }
     grid_panel_draw(canvas, stats, panelComp, grid);
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {

@@ -1023,7 +1023,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     }
     inspector_panel_draw(world, stats, time, setEnv, canvas, panelComp, settings, subjectItr);
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {

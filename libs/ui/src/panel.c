@@ -303,3 +303,6 @@ void ui_panel_end(UiCanvasComp* c, UiPanel* panel) {
 
   ui_layout_container_pop(c);
 }
+
+bool ui_panel_closed(const UiPanel* panel) { return (panel->flags & UiPanelFlags_Close) != 0; }
+bool ui_panel_pinned(const UiPanel* panel) { return (panel->flags & UiPanelFlags_Pinned) != 0; }

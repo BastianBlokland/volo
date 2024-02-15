@@ -153,7 +153,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
     }
     interface_panel_draw(canvas, panelComp, settings);
 
-    if (panelComp->panel.flags & UiPanelFlags_Close) {
+    if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
