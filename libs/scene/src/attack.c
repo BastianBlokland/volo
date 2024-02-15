@@ -42,29 +42,12 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
-ecs_view_define(AttachmentInstanceView) { ecs_access_write(SceneTagComp); }
 
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
   const EcsEntityId              mapAsset = scene_weapon_map(resource);
   EcsIterator*                   itr      = ecs_view_maybe_at(mapView, mapAsset);
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
-}
-
-static EcsEntityId
-attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
-  const EcsEntityId result = scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = weapon->attachmentPrefab,
-          .faction  = SceneFaction_None,
-          .rotation = geo_quat_ident,
-      });
-  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
-  scene_attach_to_joint_name(world, result, owner, weapon->attachmentJoint);
-  return result;
 }
 
 static void aim_face(
@@ -628,10 +611,6 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
-      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
-    }
-
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     if (hasTarget) {
       attack->lastHasTargetTime = time->time;
@@ -758,29 +737,6 @@ ecs_system_define(SceneAttackAimSys) {
   }
 }
 
-ecs_view_define(AttachmentUpdateView) { ecs_access_read(SceneAttackComp); }
-
-ecs_system_define(SceneAttackAttachmentSys) {
-  EcsView*     instanceView = ecs_world_view_t(world, AttachmentInstanceView);
-  EcsIterator* instanceItr  = ecs_view_itr(instanceView);
-
-  EcsView* updateView = ecs_world_view_t(world, AttachmentUpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const EcsEntityId      entity = ecs_view_entity(itr);
-    const SceneAttackComp* attack = ecs_view_read_t(itr, SceneAttackComp);
-    const bool             isDead = ecs_world_has_t(world, entity, SceneDeadComp);
-
-    if (ecs_view_maybe_jump(instanceItr, attack->attachedInstance)) {
-      SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
-      if (!isDead && attack->flags & SceneAttackFlags_Firing) {
-        tagComp->tags |= SceneTags_Emit;
-      } else {
-        tagComp->tags &= ~SceneTags_Emit;
-      }
-    }
-  }
-}
-
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackComp);
   ecs_register_comp(SceneAttackAimComp);
@@ -788,11 +744,9 @@ ecs_module_init(scene_attack_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);
   ecs_register_view(GraphicView);
-  ecs_register_view(AttachmentInstanceView);
   ecs_register_view(AttackView);
   ecs_register_view(TargetView);
   ecs_register_view(AimUpdateView);
-  ecs_register_view(AttachmentUpdateView);
 
   ecs_register_system(
       SceneAttackSys,
@@ -808,11 +762,6 @@ ecs_module_init(scene_attack_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(AimUpdateView),
       ecs_view_id(GraphicView));
-
-  ecs_register_system(
-      SceneAttackAttachmentSys,
-      ecs_view_id(AttachmentUpdateView),
-      ecs_view_id(AttachmentInstanceView));
 }
 
 GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {

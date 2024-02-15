@@ -21,8 +21,6 @@
       "additionalProperties": false,
       "properties": {
         "name": { "title": "String", "type": "string", "minLength": 1 },
-        "attachmentPrefab": { "title": "String", "type": "string", "minLength": 1 },
-        "attachmentJoint": { "title": "String", "type": "string", "minLength": 1 },
         "intervalMin": { "title": "f32", "type": "number" },
         "intervalMax": { "title": "f32", "type": "number" },
         "readySpeed": { "title": "f32", "type": "number" },

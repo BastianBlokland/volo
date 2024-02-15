@@ -44,8 +44,6 @@
     },
     {
       "name": "FlameThrower",
-      "attachmentPrefab": "EffectFlameThrower",
-      "attachmentJoint": "muzzle",
       "intervalMin": 0.25, "intervalMax": 0.25,
       "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
       "effects": [
