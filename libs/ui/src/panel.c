@@ -84,43 +84,44 @@ static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts)
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
-  ui_style_push(canvas);
+static bool ui_panel_topbar_button(UiCanvasComp* c, const Unicode glyph, const String tooltip) {
+  ui_style_push(c);
 
-  const UiId     id     = ui_canvas_id_peek(canvas);
-  const UiStatus status = ui_canvas_elem_status(canvas, id);
+  const UiId     id     = ui_canvas_id_peek(c);
+  const UiStatus status = ui_canvas_elem_status(c, id);
 
   if (status == UiStatus_Activated) {
-    panel->flags |= UiPanelFlags_Close;
-    ui_canvas_sound(canvas, UiSoundType_Click);
+    ui_canvas_sound(c, UiSoundType_Click);
   }
   if (status >= UiStatus_Hovered) {
-    ui_canvas_interact_type(canvas, UiInteractType_Action);
+    ui_canvas_interact_type(c, UiInteractType_Action);
   }
 
   UiVector sizeDelta = {0};
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_outline(canvas, 3);
+    ui_style_outline(c, 3);
     sizeDelta = ui_vector(3, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
   case UiStatus_ActivatedAlt:
-    ui_style_outline(canvas, 1);
+    ui_style_outline(c, 1);
     sizeDelta = ui_vector(-2, -2);
     break;
   case UiStatus_Idle:
-    ui_style_outline(canvas, 2);
+    ui_style_outline(c, 2);
     break;
   }
-  ui_layout_push(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, sizeDelta, UiBase_Absolute, Ui_XY);
-  ui_canvas_draw_glyph(canvas, UiShape_Close, 0, UiFlags_Interactable);
-  ui_layout_pop(canvas);
+  ui_layout_push(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, sizeDelta, UiBase_Absolute, Ui_XY);
+  ui_canvas_draw_glyph(c, glyph, 0, UiFlags_Interactable);
+  ui_layout_pop(c);
 
-  ui_tooltip(canvas, id, string_lit("Close this panel"));
-  ui_style_pop(canvas);
+  ui_tooltip(c, id, tooltip);
+  ui_style_pop(c);
+
+  return status == UiStatus_Activated;
 }
 
 static void ui_panel_topbar_background(UiCanvasComp* canvas, const UiPanelOpts* opts) {
@@ -164,7 +165,9 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelO
     ui_layout_resize(canvas, UiAlign_MiddleCenter, buttonSize, UiBase_Absolute, Ui_XY);
 
     ui_layout_move_dir(canvas, Ui_Left, 12, UiBase_Absolute);
-    ui_panel_topbar_close_button(canvas, panel);
+    if (ui_panel_topbar_button(canvas, UiShape_Close, string_lit("Close this panel"))) {
+      panel->flags |= UiPanelFlags_Close;
+    }
   }
   ui_layout_pop(canvas);
 
