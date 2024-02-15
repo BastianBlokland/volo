@@ -1,0 +1,13 @@
+
+var me = self()
+
+// Fire effect.
+if ($effectFire) {
+  var effectActive = !active(me, "Dead") && active(me, "Firing")
+  sound_param($effectFire, "Gain", effectActive ? 1.0 : 0.0)
+  vfx_param($effectFire, "EmitMultiplier", effectActive ? 1.0 : 0.0)
+} else {
+  $effectFire = prefab_spawn("EffectFlameThrower")
+  attach($effectFire, me, "muzzle")
+  destroy_after($effectFire, me)
+}
