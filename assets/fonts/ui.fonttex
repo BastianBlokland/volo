@@ -24,10 +24,6 @@
     {
       "id": "fonts/shapes.ttf",
       "characters": "\uF000\uF001\uF002\uF003"
-    },
-    {
-      "id": "fonts/icons.ttf",
-      "characters": "\uF050\uF051\uF052"
     }
   ]
 }
