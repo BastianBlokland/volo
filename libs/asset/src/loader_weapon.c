@@ -79,8 +79,6 @@ typedef struct {
 
 typedef struct {
   String name;
-  String attachmentPrefab;
-  String attachmentJoint;
   f32    intervalMin, intervalMax;
   f32    readySpeed;
   bool   readyWhileMoving;
@@ -169,8 +167,6 @@ static void weapon_datareg_init() {
 
     data_reg_struct_t(reg, AssetWeaponDef);
     data_reg_field_t(reg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponDef, attachmentPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponDef, attachmentJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponDef, intervalMin, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, intervalMax, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, readySpeed, data_prim_t(f32));
@@ -335,8 +331,6 @@ static void weapon_build(
   *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
       .nameHash         = stringtable_add(g_stringtable, def->name),
-      .attachmentPrefab = string_maybe_hash(def->attachmentPrefab),
-      .attachmentJoint  = string_maybe_hash(def->attachmentJoint),
       .flags            = flags,
       .intervalMin      = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax      = (TimeDuration)time_seconds(def->intervalMax),

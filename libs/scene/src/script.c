@@ -102,12 +102,13 @@ static void eval_enum_init_capability() {
 }
 
 static void eval_enum_init_activity() {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 1);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 2);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 3);
-  script_enum_push(&g_scriptEnumActivity, string_lit("AttackReadying"), 4);
-  script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 5);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Dead"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 2);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 3);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
+  script_enum_push(&g_scriptEnumActivity, string_lit("AttackReadying"), 5);
+  script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 6);
 }
 
 static void eval_enum_init_renderable_param() {
@@ -849,32 +850,39 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId e = script_arg_entity(args, 0, err);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
-  case 0 /* Moving */: {
+  case 0 /* Dead */: {
+    bool dead = false;
+    if (ecs_world_exists(ctx->world, e)) {
+      dead = ecs_world_has_t(ctx->world, e, SceneDeadComp);
+    }
+    return script_bool(dead);
+  }
+  case 1 /* Moving */: {
     const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
-  case 1 /* Traveling */: {
+  case 2 /* Traveling */: {
     const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
-  case 2 /* Attacking */: {
+  case 3 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
-  case 3 /* Firing */: {
+  case 4 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
   }
-  case 4 /* AttackReadying */: {
+  case 5 /* AttackReadying */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Readying) != 0);
   }
-  case 5 /* AttackAiming */: {
+  case 6 /* AttackAiming */: {
     const EcsIterator*        itr       = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackAimComp* attackAim = itr ? ecs_view_read_t(itr, SceneAttackAimComp) : null;
     return script_bool(attackAim && attackAim->isAiming);
