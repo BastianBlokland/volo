@@ -65,7 +65,13 @@ static void attack_trace_stop(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_remove_t(world, entity, SceneAttackTraceComp);
 }
 
-static void attack_trace_clear(SceneAttackTraceComp* trace) { dynarray_clear(&trace->events); }
+static void attack_trace_prune_expired(SceneAttackTraceComp* trace, const TimeReal timestamp) {
+  for (usize i = trace->events.size; i-- != 0;) {
+    if (dynarray_at_t(&trace->events, i, SceneAttackEvent)->expireTimestamp < timestamp) {
+      dynarray_remove_unordered(&trace->events, i, 1);
+    }
+  }
+}
 
 static void attack_trace_add(SceneAttackTraceComp* trace, const SceneAttackEvent* event) {
   *dynarray_push_t(&trace->events, SceneAttackEvent) = *event;
@@ -258,6 +264,7 @@ typedef struct {
   SceneAttackTraceComp*         trace;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
+  TimeDuration                  time;
   f32                           deltaSeconds;
 } AttackCtx;
 
@@ -381,6 +388,7 @@ static EffectResult effect_update_dmg(
     if (ctx->trace) {
       const SceneAttackEvent evt = {
           .type              = SceneAttackEventType_DamageSphere,
+          .expireTimestamp   = ctx->time + time_milliseconds(250),
           .data_damageSphere = {.pos = orgSphere.point, .radius = orgSphere.radius},
       };
       attack_trace_add(ctx->trace, &evt);
@@ -642,7 +650,7 @@ ecs_system_define(SceneAttackSys) {
       attack_trace_stop(world, entity);
     }
     if (trace) {
-      attack_trace_clear(trace);
+      attack_trace_prune_expired(trace, time->time);
     }
 
     if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
@@ -736,6 +744,7 @@ ecs_system_define(SceneAttackSys) {
           .trace        = trace,
           .anim         = anim,
           .factionId    = LIKELY(faction) ? faction->id : SceneFaction_None,
+          .time         = time->time,
           .deltaSeconds = deltaSec,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;

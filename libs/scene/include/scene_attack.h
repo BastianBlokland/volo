@@ -55,6 +55,7 @@ typedef struct {
 
 typedef struct {
   SceneAttackEventType type;
+  TimeDuration         expireTimestamp;
   union {
     SceneAttackEventDamageSphere data_damageSphere;
   };
