@@ -382,10 +382,15 @@ static EffectResult effect_update_dmg(
   };
 
   if (def->length > f32_epsilon) {
+    f32 effectiveLength = def->length;
+    if (def->lengthGrowTime) {
+      effectiveLength *= math_min(1.0f, (f32)(effectTime - def->delay) / (f32)def->lengthGrowTime);
+    }
+
     // HACK: Using up instead of forward because the joints created by blender use that orientation.
     const GeoVector dir = geo_vector_norm(geo_matrix_transform3(&orgMat, geo_up));
     GeoVector       frustum[8];
-    weapon_damage_frustum(orgPos, dir, def->length, def->radius, def->radiusEnd, frustum);
+    weapon_damage_frustum(orgPos, dir, effectiveLength, def->radius, def->radiusEnd, frustum);
     hitCount = scene_query_frustum_all(ctx->collisionEnv, frustum, &filter, hits);
 
     if (ctx->trace) {

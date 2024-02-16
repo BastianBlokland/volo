@@ -36,6 +36,7 @@ typedef struct {
   f32          length;
   f32          damage;
   bool         applyBurning;
+  TimeDuration lengthGrowTime;
   TimeDuration delay;
   StringHash   impactPrefab; // Optional, 0 if unused.
 } AssetWeaponEffectDmg;

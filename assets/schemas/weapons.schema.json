@@ -85,6 +85,7 @@
             "radius": { "title": "f32", "type": "number" },
             "radiusEnd": { "title": "f32", "type": "number" },
             "length": { "title": "f32", "type": "number" },
+            "lengthGrowTime": { "title": "f32", "type": "number" },
             "damage": { "title": "f32", "type": "number" },
             "applyBurning": { "title": "bool", "type": "boolean" },
             "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
