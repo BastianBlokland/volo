@@ -1461,8 +1461,14 @@ static void inspector_vis_draw_health(
 }
 
 static void inspector_vis_draw_attack(
-    DebugShapeComp* shape, const SceneAttackComp* attack, const SceneAttackTraceComp* trace) {
-  (void)attack;
+    DebugShapeComp*             shape,
+    DebugTextComp*              text,
+    const SceneAttackComp*      attack,
+    const SceneAttackTraceComp* trace,
+    const SceneTransformComp*   transform) {
+
+  const f32 readyPct = math_round_nearest_f32(attack->readyNorm * 100.0f);
+  debug_text(text, transform->position, fmt_write_scratch("Ready: {}%", fmt_float(readyPct)));
 
   const SceneAttackEvent* eventsBegin = scene_attack_trace_begin(trace);
   const SceneAttackEvent* eventsEnd   = scene_attack_trace_end(trace);
@@ -1649,7 +1655,7 @@ static void inspector_vis_draw_subject(
   if (attackComp && set->visFlags & (1 << DebugInspectorVis_Attack)) {
     attackComp->flags |= SceneAttackFlags_Trace; // Enable diagnostic tracing for this entity.
     if (attackTraceComp) {
-      inspector_vis_draw_attack(shape, attackComp, attackTraceComp);
+      inspector_vis_draw_attack(shape, text, attackComp, attackTraceComp, transformComp);
     }
   }
   if (visionComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Vision)) {
