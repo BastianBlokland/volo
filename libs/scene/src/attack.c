@@ -313,9 +313,9 @@ static EffectResult effect_update_proj(
 
   if (ctx->trace) {
     const SceneAttackEvent evt = {
-        .type            = SceneAttackEventType_Projectile,
+        .type            = SceneAttackEventType_Proj,
         .expireTimestamp = ctx->time + time_milliseconds(250),
-        .data_projectile = {.pos = orgPos, .target = ctx->attack->targetPos},
+        .data_proj       = {.pos = orgPos, .target = ctx->attack->targetPos},
     };
     attack_trace_add(ctx->trace, &evt);
   }
@@ -390,10 +390,10 @@ static EffectResult effect_update_dmg(
 
     if (ctx->trace) {
       const SceneAttackEvent evt = {
-          .type            = SceneAttackEventType_DamageFrustum,
+          .type            = SceneAttackEventType_DmgFrustum,
           .expireTimestamp = def->continuous ? 0 : ctx->time + time_milliseconds(250),
       };
-      mem_cpy(array_mem(evt.data_damageFrustum.corners), array_mem(frustum));
+      mem_cpy(array_mem(evt.data_dmgFrustum.corners), array_mem(frustum));
       attack_trace_add(ctx->trace, &evt);
     }
   } else {
@@ -405,9 +405,9 @@ static EffectResult effect_update_dmg(
 
     if (ctx->trace) {
       const SceneAttackEvent evt = {
-          .type              = SceneAttackEventType_DamageSphere,
-          .expireTimestamp   = def->continuous ? 0 : ctx->time + time_milliseconds(250),
-          .data_damageSphere = {.pos = orgSphere.point, .radius = orgSphere.radius},
+          .type            = SceneAttackEventType_DmgSphere,
+          .expireTimestamp = def->continuous ? 0 : ctx->time + time_milliseconds(250),
+          .data_dmgSphere  = {.pos = orgSphere.point, .radius = orgSphere.radius},
       };
       attack_trace_add(ctx->trace, &evt);
     }

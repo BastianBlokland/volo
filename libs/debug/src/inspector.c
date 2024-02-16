@@ -1475,16 +1475,16 @@ static void inspector_vis_draw_attack(
 
   for (const SceneAttackEvent* itr = eventsBegin; itr != eventsEnd; ++itr) {
     switch (itr->type) {
-    case SceneAttackEventType_Projectile: {
-      const SceneAttackEventProjectile* evt = &itr->data_projectile;
+    case SceneAttackEventType_Proj: {
+      const SceneAttackEventProj* evt = &itr->data_proj;
       debug_line(shape, evt->pos, evt->target, geo_color_blue);
     } break;
-    case SceneAttackEventType_DamageSphere: {
-      const SceneAttackEventDamageSphere* evt = &itr->data_damageSphere;
+    case SceneAttackEventType_DmgSphere: {
+      const SceneAttackEventDmgSphere* evt = &itr->data_dmgSphere;
       debug_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
     } break;
-    case SceneAttackEventType_DamageFrustum: {
-      const SceneAttackEventDamageFrustum* evt = &itr->data_damageFrustum;
+    case SceneAttackEventType_DmgFrustum: {
+      const SceneAttackEventDmgFrustum* evt = &itr->data_dmgFrustum;
       debug_frustum_points(shape, evt->corners, geo_color_blue);
     } break;
     }
