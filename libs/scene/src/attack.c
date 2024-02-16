@@ -255,6 +255,7 @@ typedef struct {
   const SceneSkeletonComp*      skel;
   const SceneSkeletonTemplComp* skelTempl;
   SceneAttackComp*              attack;
+  SceneAttackTraceComp*         trace;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
   f32                           deltaSeconds;
@@ -376,6 +377,14 @@ static EffectResult effect_update_dmg(
         .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
     };
     hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+
+    if (ctx->trace) {
+      const SceneAttackEvent evt = {
+          .type              = SceneAttackEventType_DamageSphere,
+          .data_damageSphere = {.pos = orgSphere.point, .radius = orgSphere.radius},
+      };
+      attack_trace_add(ctx->trace, &evt);
+    }
   }
 
   EcsIterator* hitItr = ecs_view_itr(ctx->targetView);
@@ -634,7 +643,6 @@ ecs_system_define(SceneAttackSys) {
     }
     if (trace) {
       attack_trace_clear(trace);
-      attack_trace_add(trace, &(SceneAttackEvent){.dummy = 42});
     }
 
     if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
@@ -725,6 +733,7 @@ ecs_system_define(SceneAttackSys) {
           .skel         = skel,
           .skelTempl    = skelTempl,
           .attack       = attack,
+          .trace        = trace,
           .anim         = anim,
           .factionId    = LIKELY(faction) ? faction->id : SceneFaction_None,
           .deltaSeconds = deltaSec,

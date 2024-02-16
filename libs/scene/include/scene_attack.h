@@ -44,8 +44,20 @@ GeoVector scene_attack_aim_dir(const SceneTransformComp*, const SceneAttackAimCo
 void scene_attack_aim(SceneAttackAimComp*, const SceneTransformComp*, GeoVector direction);
 void scene_attack_aim_reset(SceneAttackAimComp*);
 
+typedef enum {
+  SceneAttackEventType_DamageSphere,
+} SceneAttackEventType;
+
 typedef struct {
-  i32 dummy;
+  GeoVector pos;
+  f32       radius;
+} SceneAttackEventDamageSphere;
+
+typedef struct {
+  SceneAttackEventType type;
+  union {
+    SceneAttackEventDamageSphere data_damageSphere;
+  };
 } SceneAttackEvent;
 
 ecs_comp_extern(SceneAttackTraceComp);

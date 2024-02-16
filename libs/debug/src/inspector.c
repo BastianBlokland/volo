@@ -1462,9 +1462,19 @@ static void inspector_vis_draw_health(
 
 static void inspector_vis_draw_attack(
     DebugShapeComp* shape, const SceneAttackComp* attack, const SceneAttackTraceComp* trace) {
-  (void)shape;
   (void)attack;
-  (void)trace;
+
+  const SceneAttackEvent* eventsBegin = scene_attack_trace_begin(trace);
+  const SceneAttackEvent* eventsEnd   = scene_attack_trace_end(trace);
+
+  for (const SceneAttackEvent* itr = eventsBegin; itr != eventsEnd; ++itr) {
+    switch (itr->type) {
+    case SceneAttackEventType_DamageSphere: {
+      const SceneAttackEventDamageSphere* evt = &itr->data_damageSphere;
+      debug_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
+    } break;
+    }
+  }
 }
 
 static void inspector_vis_draw_target(
