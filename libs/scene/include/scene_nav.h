@@ -28,8 +28,15 @@ typedef enum {
   SceneNavBlockerFlags_Dirty = 1 << 0,
 } SceneNavBlockerFlags;
 
+typedef enum {
+  SceneNavBlockerMask_Normal = 1 << SceneNavLayer_Normal,
+  SceneNavBlockerMask_Large  = 1 << SceneNavLayer_Large,
+  SceneNavBlockerMask_All    = ~0,
+} SceneNavBlockerMask;
+
 ecs_comp_extern_public(SceneNavBlockerComp) {
-  SceneNavBlockerFlags flags;
+  SceneNavBlockerFlags flags : 8;
+  SceneNavBlockerMask  mask : 8;                 // NOTE: Set dirty flag when changing the mask.
   u32                  hash;                     // For dirty detection; automatically generated.
   GeoNavBlockerId      ids[SceneNavLayer_Count]; // Registered blocker ids; automatically generated.
 };
@@ -71,7 +78,7 @@ void scene_nav_stop(SceneNavAgentComp*);
 /**
  * Initialize navigation agents and blockers.
  */
-void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
+void               scene_nav_add_blocker(EcsWorld*, EcsEntityId, SceneNavBlockerMask);
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
 
 /**

@@ -811,9 +811,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1331,7 +1331,7 @@ eval_collision_box_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* e
   scene_collision_add_box(ctx->world, result, box, layer);
 
   if (navBlocker) {
-    scene_nav_add_blocker(ctx->world, result);
+    scene_nav_add_blocker(ctx->world, result, SceneNavBlockerMask_All);
   }
 
   return script_entity(result);
@@ -1355,7 +1355,7 @@ eval_collision_sphere_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
   scene_collision_add_sphere(ctx->world, result, sphere, layer);
 
   if (navBlocker) {
-    scene_nav_add_blocker(ctx->world, result);
+    scene_nav_add_blocker(ctx->world, result, SceneNavBlockerMask_All);
   }
 
   return script_entity(result);

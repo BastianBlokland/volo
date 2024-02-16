@@ -343,7 +343,7 @@ static void setup_collision(
     const AssetPrefab*               p,
     const AssetPrefabTraitCollision* t) {
   if (t->navBlocker) {
-    scene_nav_add_blocker(w, e);
+    scene_nav_add_blocker(w, e, SceneNavBlockerMask_All);
   }
   const SceneLayer layer = prefab_instance_layer(p->flags, s->faction);
   switch (t->shape.type) {
