@@ -138,7 +138,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "FlameThrower",
-          "targetRangeMax": 15,
+          "targetRangeMax": 12.5,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },

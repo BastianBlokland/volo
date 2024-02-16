@@ -54,7 +54,7 @@
           "delay": 1.0,
           "radius": 0.3,
           "radiusEnd": 1,
-          "length": 15,
+          "length": 12.5,
           "applyBurning": true
         },
         {
