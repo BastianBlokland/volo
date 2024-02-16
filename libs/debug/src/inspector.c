@@ -16,6 +16,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
+#include "scene_attack.h"
 #include "scene_bounds.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -73,6 +74,7 @@ typedef enum {
   DebugInspectorVis_NavigationGrid,
   DebugInspectorVis_Light,
   DebugInspectorVis_Health,
+  DebugInspectorVis_Attack,
   DebugInspectorVis_Target,
   DebugInspectorVis_Vision,
   DebugInspectorVis_Location,
@@ -116,6 +118,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
     [DebugInspectorVis_Light]           = string_static("Light"),
     [DebugInspectorVis_Health]          = string_static("Health"),
+    [DebugInspectorVis_Attack]          = string_static("Attack"),
     [DebugInspectorVis_Target]          = string_static("Target"),
     [DebugInspectorVis_Vision]          = string_static("Vision"),
     [DebugInspectorVis_Location]        = string_static("Location"),
@@ -185,6 +188,7 @@ ecs_view_define(GlobalVisDrawView) {
 }
 
 ecs_view_define(SubjectView) {
+  ecs_access_maybe_read(SceneAttackTraceComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
@@ -196,6 +200,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_maybe_read(SceneVisionComp);
+  ecs_access_maybe_write(SceneAttackComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
@@ -1455,6 +1460,37 @@ static void inspector_vis_draw_health(
   debug_text(text, pos, str, .color = color, .fontSize = 16);
 }
 
+static void inspector_vis_draw_attack(
+    DebugShapeComp*             shape,
+    DebugTextComp*              text,
+    const SceneAttackComp*      attack,
+    const SceneAttackTraceComp* trace,
+    const SceneTransformComp*   transform) {
+
+  const f32 readyPct = math_round_nearest_f32(attack->readyNorm * 100.0f);
+  debug_text(text, transform->position, fmt_write_scratch("Ready: {}%", fmt_float(readyPct)));
+
+  const SceneAttackEvent* eventsBegin = scene_attack_trace_begin(trace);
+  const SceneAttackEvent* eventsEnd   = scene_attack_trace_end(trace);
+
+  for (const SceneAttackEvent* itr = eventsBegin; itr != eventsEnd; ++itr) {
+    switch (itr->type) {
+    case SceneAttackEventType_Proj: {
+      const SceneAttackEventProj* evt = &itr->data_proj;
+      debug_line(shape, evt->pos, evt->target, geo_color_blue);
+    } break;
+    case SceneAttackEventType_DmgSphere: {
+      const SceneAttackEventDmgSphere* evt = &itr->data_dmgSphere;
+      debug_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
+    } break;
+    case SceneAttackEventType_DmgFrustum: {
+      const SceneAttackEventDmgFrustum* evt = &itr->data_dmgFrustum;
+      debug_frustum_points(shape, evt->corners, geo_color_blue);
+    } break;
+    }
+  }
+}
+
 static void inspector_vis_draw_target(
     DebugTextComp*               text,
     const SceneTargetFinderComp* tgtFinder,
@@ -1559,21 +1595,23 @@ static void inspector_vis_draw_subject(
     const DebugInspectorSettingsComp* set,
     const SceneNavEnvComp*            nav,
     EcsIterator*                      subject) {
-  const SceneBoundsComp*     boundsComp     = ecs_view_read_t(subject, SceneBoundsComp);
-  const SceneCollisionComp*  collisionComp  = ecs_view_read_t(subject, SceneCollisionComp);
-  const SceneHealthComp*     healthComp     = ecs_view_read_t(subject, SceneHealthComp);
-  const SceneLightPointComp* lightPointComp = ecs_view_read_t(subject, SceneLightPointComp);
-  const SceneLightDirComp*   lightDirComp   = ecs_view_read_t(subject, SceneLightDirComp);
-  const SceneLocationComp*   locationComp   = ecs_view_read_t(subject, SceneLocationComp);
-  const SceneLocomotionComp* locoComp       = ecs_view_read_t(subject, SceneLocomotionComp);
-  const SceneNameComp*       nameComp       = ecs_view_read_t(subject, SceneNameComp);
-  const SceneNavAgentComp*   navAgentComp   = ecs_view_read_t(subject, SceneNavAgentComp);
-  const SceneNavPathComp*    navPathComp    = ecs_view_read_t(subject, SceneNavPathComp);
-  const SceneScaleComp*      scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
-  const SceneScriptComp*     scriptComp     = ecs_view_read_t(subject, SceneScriptComp);
-  const SceneTransformComp*  transformComp  = ecs_view_read_t(subject, SceneTransformComp);
-  const SceneVelocityComp*   veloComp       = ecs_view_read_t(subject, SceneVelocityComp);
-  const SceneVisionComp*     visionComp     = ecs_view_read_t(subject, SceneVisionComp);
+  const SceneAttackTraceComp* attackTraceComp = ecs_view_read_t(subject, SceneAttackTraceComp);
+  const SceneBoundsComp*      boundsComp      = ecs_view_read_t(subject, SceneBoundsComp);
+  const SceneCollisionComp*   collisionComp   = ecs_view_read_t(subject, SceneCollisionComp);
+  const SceneHealthComp*      healthComp      = ecs_view_read_t(subject, SceneHealthComp);
+  const SceneLightDirComp*    lightDirComp    = ecs_view_read_t(subject, SceneLightDirComp);
+  const SceneLightPointComp*  lightPointComp  = ecs_view_read_t(subject, SceneLightPointComp);
+  const SceneLocationComp*    locationComp    = ecs_view_read_t(subject, SceneLocationComp);
+  const SceneLocomotionComp*  locoComp        = ecs_view_read_t(subject, SceneLocomotionComp);
+  const SceneNameComp*        nameComp        = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavAgentComp*    navAgentComp    = ecs_view_read_t(subject, SceneNavAgentComp);
+  const SceneNavPathComp*     navPathComp     = ecs_view_read_t(subject, SceneNavPathComp);
+  const SceneScaleComp*       scaleComp       = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneScriptComp*      scriptComp      = ecs_view_read_t(subject, SceneScriptComp);
+  const SceneTransformComp*   transformComp   = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneVelocityComp*    veloComp        = ecs_view_read_t(subject, SceneVelocityComp);
+  const SceneVisionComp*      visionComp      = ecs_view_read_t(subject, SceneVisionComp);
+  SceneAttackComp*            attackComp      = ecs_view_write_t(subject, SceneAttackComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1617,6 +1655,12 @@ static void inspector_vis_draw_subject(
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
+  }
+  if (attackComp && set->visFlags & (1 << DebugInspectorVis_Attack)) {
+    attackComp->flags |= SceneAttackFlags_Trace; // Enable diagnostic tracing for this entity.
+    if (attackTraceComp) {
+      inspector_vis_draw_attack(shape, text, attackComp, attackTraceComp, transformComp);
+    }
   }
   if (visionComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Vision)) {
     inspector_vis_draw_vision(shape, visionComp, transformComp);
@@ -1800,6 +1844,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       [DebugInspectorVis_Light]          = string_static("DebugInspectorVisLight"),
       [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
       [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
+      [DebugInspectorVis_Attack]         = string_static("DebugInspectorVisAttack"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
@@ -1866,7 +1911,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     if (ecs_view_maybe_jump(subjectItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
-        tgtFinder->config |= SceneTargetConfig_Trace;
+        tgtFinder->config |= SceneTargetConfig_Trace; // Enable diagnostic tracing for this entity.
 
         const SceneTargetTraceComp* tgtTrace = ecs_view_read_t(subjectItr, SceneTargetTraceComp);
         if (tgtTrace) {

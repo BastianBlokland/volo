@@ -51,10 +51,11 @@
           "$type": "AssetWeaponEffect_Damage",
           "continuous": true,
           "originJoint": "muzzle",
-          "delay": 1.0,
+          "delay": 0.05,
           "radius": 0.3,
           "radiusEnd": 1,
-          "length": 15,
+          "length": 12.5,
+          "lengthGrowTime": 1,
           "applyBurning": true
         },
         {

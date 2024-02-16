@@ -1,4 +1,5 @@
 #include "asset_weapon.h"
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -34,6 +35,15 @@
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
 
+ecs_comp_define(SceneAttackTraceComp) {
+  DynArray events; // SceneAttackEvent[].
+};
+
+static void ecs_destruct_attack_trace(void* data) {
+  SceneAttackTraceComp* comp = data;
+  dynarray_destroy(&comp->events);
+}
+
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTimeComp);
@@ -42,6 +52,30 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
+
+static void attack_trace_start(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneAttackTraceComp,
+      .events = dynarray_create_t(g_alloc_heap, SceneAttackEvent, 4));
+}
+
+static void attack_trace_stop(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_remove_t(world, entity, SceneAttackTraceComp);
+}
+
+static void attack_trace_prune_expired(SceneAttackTraceComp* trace, const TimeReal timestamp) {
+  for (usize i = trace->events.size; i-- != 0;) {
+    if (dynarray_at_t(&trace->events, i, SceneAttackEvent)->expireTimestamp < timestamp) {
+      dynarray_remove_unordered(&trace->events, i, 1);
+    }
+  }
+}
+
+static void attack_trace_add(SceneAttackTraceComp* trace, const SceneAttackEvent* event) {
+  *dynarray_push_t(&trace->events, SceneAttackEvent) = *event;
+}
 
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
@@ -227,8 +261,10 @@ typedef struct {
   const SceneSkeletonComp*      skel;
   const SceneSkeletonTemplComp* skelTempl;
   SceneAttackComp*              attack;
+  SceneAttackTraceComp*         trace;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
+  TimeDuration                  time;
   f32                           deltaSeconds;
 } AttackCtx;
 
@@ -274,6 +310,15 @@ static EffectResult effect_update_proj(
     dir = geo_matrix_transform3(&orgMat, geo_up);
   }
   const GeoQuat rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
+
+  if (ctx->trace) {
+    const SceneAttackEvent evt = {
+        .type            = SceneAttackEventType_Proj,
+        .expireTimestamp = ctx->time + time_milliseconds(250),
+        .data_proj       = {.pos = orgPos, .target = ctx->attack->targetPos},
+    };
+    attack_trace_add(ctx->trace, &evt);
+  }
 
   const EcsEntityId projectileEntity = scene_prefab_spawn(
       ctx->world,
@@ -337,17 +382,40 @@ static EffectResult effect_update_dmg(
   };
 
   if (def->length > f32_epsilon) {
+    f32 effectiveLength = def->length;
+    if (def->lengthGrowTime) {
+      effectiveLength *= math_min(1.0f, (f32)(effectTime - def->delay) / (f32)def->lengthGrowTime);
+    }
+
     // HACK: Using up instead of forward because the joints created by blender use that orientation.
     const GeoVector dir = geo_vector_norm(geo_matrix_transform3(&orgMat, geo_up));
     GeoVector       frustum[8];
-    weapon_damage_frustum(orgPos, dir, def->length, def->radius, def->radiusEnd, frustum);
+    weapon_damage_frustum(orgPos, dir, effectiveLength, def->radius, def->radiusEnd, frustum);
     hitCount = scene_query_frustum_all(ctx->collisionEnv, frustum, &filter, hits);
+
+    if (ctx->trace) {
+      const SceneAttackEvent evt = {
+          .type            = SceneAttackEventType_DmgFrustum,
+          .expireTimestamp = def->continuous ? 0 : ctx->time + time_milliseconds(250),
+      };
+      mem_cpy(array_mem(evt.data_dmgFrustum.corners), array_mem(frustum));
+      attack_trace_add(ctx->trace, &evt);
+    }
   } else {
     const GeoSphere orgSphere = {
         .point  = orgPos,
         .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
     };
     hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+
+    if (ctx->trace) {
+      const SceneAttackEvent evt = {
+          .type            = SceneAttackEventType_DmgSphere,
+          .expireTimestamp = def->continuous ? 0 : ctx->time + time_milliseconds(250),
+          .data_dmgSphere  = {.pos = orgSphere.point, .radius = orgSphere.radius},
+      };
+      attack_trace_add(ctx->trace, &evt);
+    }
   }
 
   EcsIterator* hitItr = ecs_view_itr(ctx->targetView);
@@ -545,6 +613,7 @@ ecs_view_define(AttackView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneAttackAimComp);
+  ecs_access_maybe_write(SceneAttackTraceComp);
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
@@ -591,11 +660,21 @@ ecs_system_define(SceneAttackSys) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
-    SceneSkeletonComp*         skel       = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneAttackAimComp*        attackAim  = ecs_view_write_t(itr, SceneAttackAimComp);
+    SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
+    SceneAttackTraceComp*      trace      = ecs_view_write_t(itr, SceneAttackTraceComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneSkeletonComp*         skel       = ecs_view_write_t(itr, SceneSkeletonComp);
+
+    if ((attack->flags & SceneAttackFlags_Trace) && !trace) {
+      attack_trace_start(world, entity);
+    } else if (trace && !(attack->flags & SceneAttackFlags_Trace)) {
+      attack_trace_stop(world, entity);
+    }
+    if (trace) {
+      attack_trace_prune_expired(trace, time->time);
+    }
 
     if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
       continue; // Graphic is missing required components.
@@ -685,8 +764,10 @@ ecs_system_define(SceneAttackSys) {
           .skel         = skel,
           .skelTempl    = skelTempl,
           .attack       = attack,
+          .trace        = trace,
           .anim         = anim,
           .factionId    = LIKELY(faction) ? faction->id : SceneFaction_None,
+          .time         = time->time,
           .deltaSeconds = deltaSec,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
@@ -740,6 +821,7 @@ ecs_system_define(SceneAttackAimSys) {
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackComp);
   ecs_register_comp(SceneAttackAimComp);
+  ecs_register_comp(SceneAttackTraceComp, .destructor = ecs_destruct_attack_trace);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);
@@ -791,4 +873,12 @@ void scene_attack_aim(
 
 void scene_attack_aim_reset(SceneAttackAimComp* attackAim) {
   attackAim->aimLocalTarget = geo_quat_ident;
+}
+
+const SceneAttackEvent* scene_attack_trace_begin(const SceneAttackTraceComp* trace) {
+  return dynarray_begin_t(&trace->events, SceneAttackEvent);
+}
+
+const SceneAttackEvent* scene_attack_trace_end(const SceneAttackTraceComp* trace) {
+  return dynarray_end_t(&trace->events, SceneAttackEvent);
 }
