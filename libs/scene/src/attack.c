@@ -1,4 +1,5 @@
 #include "asset_weapon.h"
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -34,6 +35,15 @@
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
 
+ecs_comp_define(SceneAttackTraceComp) {
+  DynArray events; // SceneAttackEvent[].
+};
+
+static void ecs_destruct_attack_trace(void* data) {
+  SceneAttackTraceComp* comp = data;
+  dynarray_destroy(&comp->events);
+}
+
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTimeComp);
@@ -42,6 +52,24 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
+
+static void attack_trace_start(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneAttackTraceComp,
+      .events = dynarray_create_t(g_alloc_heap, SceneAttackEvent, 4));
+}
+
+static void attack_trace_stop(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_remove_t(world, entity, SceneAttackTraceComp);
+}
+
+static void attack_trace_clear(SceneAttackTraceComp* trace) { dynarray_clear(&trace->events); }
+
+static void attack_trace_add(SceneAttackTraceComp* trace, const SceneAttackEvent* event) {
+  *dynarray_push_t(&trace->events, SceneAttackEvent) = *event;
+}
 
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
@@ -545,6 +573,7 @@ ecs_view_define(AttackView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneAttackAimComp);
+  ecs_access_maybe_write(SceneAttackTraceComp);
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
@@ -591,11 +620,22 @@ ecs_system_define(SceneAttackSys) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
-    SceneSkeletonComp*         skel       = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneAttackAimComp*        attackAim  = ecs_view_write_t(itr, SceneAttackAimComp);
+    SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
+    SceneAttackTraceComp*      trace      = ecs_view_write_t(itr, SceneAttackTraceComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneSkeletonComp*         skel       = ecs_view_write_t(itr, SceneSkeletonComp);
+
+    if ((attack->flags & SceneAttackFlags_Trace) && !trace) {
+      attack_trace_start(world, entity);
+    } else if (trace && !(attack->flags & SceneAttackFlags_Trace)) {
+      attack_trace_stop(world, entity);
+    }
+    if (trace) {
+      attack_trace_clear(trace);
+      attack_trace_add(trace, &(SceneAttackEvent){.dummy = 42});
+    }
 
     if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
       continue; // Graphic is missing required components.
@@ -740,6 +780,7 @@ ecs_system_define(SceneAttackAimSys) {
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackComp);
   ecs_register_comp(SceneAttackAimComp);
+  ecs_register_comp(SceneAttackTraceComp, .destructor = ecs_destruct_attack_trace);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);
@@ -791,4 +832,12 @@ void scene_attack_aim(
 
 void scene_attack_aim_reset(SceneAttackAimComp* attackAim) {
   attackAim->aimLocalTarget = geo_quat_ident;
+}
+
+const SceneAttackEvent* scene_attack_trace_begin(const SceneAttackTraceComp* trace) {
+  return dynarray_begin_t(&trace->events, SceneAttackEvent);
+}
+
+const SceneAttackEvent* scene_attack_trace_end(const SceneAttackTraceComp* trace) {
+  return dynarray_end_t(&trace->events, SceneAttackEvent);
 }

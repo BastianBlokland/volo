@@ -10,6 +10,7 @@ ecs_comp_extern(SceneTransformComp);
 typedef enum {
   SceneAttackFlags_Firing   = 1 << 0,
   SceneAttackFlags_Readying = 1 << 1,
+  SceneAttackFlags_Trace    = 1 << 3, // Enable diagnostic tracing.
 } SceneAttackFlags;
 
 ecs_comp_extern_public(SceneAttackComp) {
@@ -42,3 +43,12 @@ GeoVector scene_attack_aim_dir(const SceneTransformComp*, const SceneAttackAimCo
  */
 void scene_attack_aim(SceneAttackAimComp*, const SceneTransformComp*, GeoVector direction);
 void scene_attack_aim_reset(SceneAttackAimComp*);
+
+typedef struct {
+  i32 dummy;
+} SceneAttackEvent;
+
+ecs_comp_extern(SceneAttackTraceComp);
+
+const SceneAttackEvent* scene_attack_trace_begin(const SceneAttackTraceComp*);
+const SceneAttackEvent* scene_attack_trace_end(const SceneAttackTraceComp*);
