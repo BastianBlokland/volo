@@ -183,6 +183,11 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
       ctx->change |= NavChange_BlockerRemoved;
     }
 
+    if (!(blocker->mask & (1 << ctx->layer))) {
+      blocker->ids[ctx->layer] = geo_blocker_invalid;
+      continue; // Blocker is not enabled on this layer.
+    }
+
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
@@ -658,20 +663,20 @@ void scene_nav_stop(SceneNavAgentComp* agent) {
   agent->targetPos    = geo_vector(f32_max, f32_max, f32_max);
 }
 
-void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
-  SceneNavBlockerComp* blocker = ecs_world_add_t(world, entity, SceneNavBlockerComp);
+void scene_nav_add_blocker(EcsWorld* w, const EcsEntityId e, const SceneNavBlockerMask mask) {
+  SceneNavBlockerComp* blocker = ecs_world_add_t(w, e, SceneNavBlockerComp, .mask = mask);
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
     blocker->ids[layer] = geo_blocker_invalid;
   }
 }
 
 SceneNavAgentComp*
-scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const SceneNavLayer layer) {
+scene_nav_add_agent(EcsWorld* w, const EcsEntityId e, const SceneNavLayer layer) {
 
   GeoNavCell* pathCells = alloc_array_t(g_alloc_heap, GeoNavCell, path_max_cells);
-  ecs_world_add_t(world, entity, SceneNavPathComp, .cells = pathCells);
+  ecs_world_add_t(w, e, SceneNavPathComp, .cells = pathCells);
 
-  return ecs_world_add_t(world, entity, SceneNavAgentComp, .layer = layer);
+  return ecs_world_add_t(w, e, SceneNavAgentComp, .layer = layer);
 }
 
 const u32* scene_nav_grid_stats(const SceneNavEnvComp* env, const SceneNavLayer layer) {
