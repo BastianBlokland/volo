@@ -311,6 +311,15 @@ static EffectResult effect_update_proj(
   }
   const GeoQuat rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
 
+  if (ctx->trace) {
+    const SceneAttackEvent evt = {
+        .type            = SceneAttackEventType_Projectile,
+        .expireTimestamp = ctx->time + time_milliseconds(250),
+        .data_projectile = {.pos = orgPos, .target = ctx->attack->targetPos},
+    };
+    attack_trace_add(ctx->trace, &evt);
+  }
+
   const EcsEntityId projectileEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
