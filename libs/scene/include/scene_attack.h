@@ -46,6 +46,7 @@ void scene_attack_aim_reset(SceneAttackAimComp*);
 
 typedef enum {
   SceneAttackEventType_DamageSphere,
+  SceneAttackEventType_DamageFrustum,
 } SceneAttackEventType;
 
 typedef struct {
@@ -54,10 +55,15 @@ typedef struct {
 } SceneAttackEventDamageSphere;
 
 typedef struct {
+  GeoVector corners[8];
+} SceneAttackEventDamageFrustum;
+
+typedef struct {
   SceneAttackEventType type;
   TimeDuration         expireTimestamp;
   union {
-    SceneAttackEventDamageSphere data_damageSphere;
+    SceneAttackEventDamageSphere  data_damageSphere;
+    SceneAttackEventDamageFrustum data_damageFrustum;
   };
 } SceneAttackEvent;
 

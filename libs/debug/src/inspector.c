@@ -1473,6 +1473,10 @@ static void inspector_vis_draw_attack(
       const SceneAttackEventDamageSphere* evt = &itr->data_damageSphere;
       debug_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
     } break;
+    case SceneAttackEventType_DamageFrustum: {
+      const SceneAttackEventDamageFrustum* evt = &itr->data_damageFrustum;
+      debug_frustum_points(shape, evt->corners, geo_color_blue);
+    } break;
     }
   }
 }

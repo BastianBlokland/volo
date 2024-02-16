@@ -378,6 +378,15 @@ static EffectResult effect_update_dmg(
     GeoVector       frustum[8];
     weapon_damage_frustum(orgPos, dir, def->length, def->radius, def->radiusEnd, frustum);
     hitCount = scene_query_frustum_all(ctx->collisionEnv, frustum, &filter, hits);
+
+    if (ctx->trace) {
+      const SceneAttackEvent evt = {
+          .type            = SceneAttackEventType_DamageFrustum,
+          .expireTimestamp = def->continuous ? 0 : ctx->time + time_milliseconds(250),
+      };
+      mem_cpy(array_mem(evt.data_damageFrustum.corners), array_mem(frustum));
+      attack_trace_add(ctx->trace, &evt);
+    }
   } else {
     const GeoSphere orgSphere = {
         .point  = orgPos,
@@ -388,7 +397,7 @@ static EffectResult effect_update_dmg(
     if (ctx->trace) {
       const SceneAttackEvent evt = {
           .type              = SceneAttackEventType_DamageSphere,
-          .expireTimestamp   = ctx->time + time_milliseconds(250),
+          .expireTimestamp   = def->continuous ? 0 : ctx->time + time_milliseconds(250),
           .data_damageSphere = {.pos = orgSphere.point, .radius = orgSphere.radius},
       };
       attack_trace_add(ctx->trace, &evt);
