@@ -30,13 +30,13 @@ if ($cmdMoveTarget) {
 }
 
 if (exists($cmdAttackTarget)) {
-  if ($cmdAttackTarget != $lastAttackTarget) {
+  if ($cmdAttackTarget != $lastRequestedTarget) {
     bark(me, "Confirm")
-    $lastAttackTarget = $cmdAttackTarget
+    $lastRequestedTarget = $cmdAttackTarget
   }
 } else {
-  $cmdAttackTarget  = null
-  $lastAttackTarget = null
+  $cmdAttackTarget     = null
+  $lastRequestedTarget = null
 }
 
 var target = $cmdAttackTarget ?? target_primary(me)

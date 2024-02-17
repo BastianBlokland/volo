@@ -404,6 +404,16 @@
       }
     },
     {
+      "name": "attack_target",
+      "doc": "Query the current attack target of the given entity.",
+      "sig": {
+        "ret": [ "null", "entity" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`",
       "sig": {

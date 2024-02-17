@@ -1125,6 +1125,16 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_attack_target(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId      entity = script_arg_entity(args, 0, err);
+  const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
+  const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+  if (attack) {
+    return script_entity_or_null(attack->targetEntity);
+  }
+  return script_null();
+}
+
 static ScriptVal eval_bark(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId   entity = script_arg_entity(args, 0, err);
   const SceneBarkType type   = (SceneBarkType)script_arg_enum(args, 1, &g_scriptEnumBark, err);
@@ -1819,6 +1829,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),                 eval_detach);
     eval_bind(b, string_lit("damage"),                 eval_damage);
     eval_bind(b, string_lit("attack"),                 eval_attack);
+    eval_bind(b, string_lit("attack_target"),          eval_attack_target);
     eval_bind(b, string_lit("bark"),                   eval_bark);
     eval_bind(b, string_lit("status"),                 eval_status);
     eval_bind(b, string_lit("renderable_spawn"),       eval_renderable_spawn);

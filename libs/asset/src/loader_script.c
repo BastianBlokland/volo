@@ -406,6 +406,15 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("attack_target");
+      const String       doc    = string_lit("Query the current attack target of the given entity.");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("bark");
       const String       doc    = string_lit("Request a bark to be played.\n\nSupported types:\n\n-`Death`\n\n-`Confirm`");
       const ScriptMask   ret    = script_mask_null;
