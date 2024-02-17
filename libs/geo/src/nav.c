@@ -822,7 +822,7 @@ static GeoNavCell nav_blocker_closest_reachable(
 }
 
 static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
-  GeoNavCell queue[4096];
+  GeoNavCell queue[1024];
   u32        queueStart = 0;
   u32        queueEnd   = 0;
 
