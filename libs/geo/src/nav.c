@@ -639,7 +639,6 @@ static GeoVector nav_separate_from_blockers(
       result = geo_vector_add(result, geo_vector_mul(sepDir, overlap * g_strength));
     }
   }
-  result.y = 0; // Zero out any movement out of the grid's plane.
   return result;
 }
 
@@ -822,7 +821,7 @@ static GeoNavCell nav_blocker_closest_reachable(
 }
 
 static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
-  GeoNavCell queue[4096];
+  GeoNavCell queue[1024];
   u32        queueStart = 0;
   u32        queueEnd   = 0;
 
@@ -1395,7 +1394,26 @@ void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
   grid->occupantCount = 0;
 }
 
-GeoVector geo_nav_separate(
+GeoVector
+geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos, const f32 radius) {
+  diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
+  const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
+  if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
+    return geo_vector(0); // Position outside of the grid.
+  }
+  if (nav_pred_blocked(grid, null, mapRes.cell)) {
+    // Position is currently in a blocked cell; push it into the closest unblocked cell.
+    static const f32 g_unblockSepStrength = 25.0f;
+    const GeoNavCell closestUnblocked     = geo_nav_closest_unblocked(grid, mapRes.cell);
+    const GeoVector  toUnblocked = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
+    return geo_vector_mul(toUnblocked, g_unblockSepStrength);
+  }
+  // Compute the local region to use, retrieves 3x3 cells around the position.
+  const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
+  return nav_separate_from_blockers(grid, region, pos, radius);
+}
+
+GeoVector geo_nav_separate_from_occupants(
     const GeoNavGrid* grid,
     const u64         userId,
     const GeoVector   pos,
@@ -1408,20 +1426,11 @@ GeoVector geo_nav_separate(
     return geo_vector(0); // Position outside of the grid.
   }
   if (nav_pred_blocked(grid, null, mapRes.cell)) {
-    // Position is currently in a blocked cell; push it into the closest unblocked cell.
-    static const f32 g_unblockSepStrength = 25.0f;
-    const GeoNavCell closestUnblocked     = geo_nav_closest_unblocked(grid, mapRes.cell);
-    const GeoVector  toUnblocked = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
-    return geo_vector_mul(toUnblocked, g_unblockSepStrength);
+    return geo_vector(0); // Position on the blocked cell.
   }
-
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
-  GeoVector          vec    = {0};
-
-  vec = geo_vector_add(vec, nav_separate_from_blockers(grid, region, pos, radius));
-  vec = geo_vector_add(vec, nav_separate_from_occupied(grid, region, userId, pos, radius, weight));
-  return vec;
+  return nav_separate_from_occupied(grid, region, userId, pos, radius, weight);
 }
 
 void geo_nav_stats_reset(GeoNavGrid* grid) {

@@ -38,6 +38,34 @@ static f32 loco_rot_speed(const SceneLocomotionComp* loco, const EcsEntityId e, 
   return speed;
 }
 
+static GeoVector loco_separate(
+    const SceneNavEnvComp*     navEnv,
+    const EcsEntityId          entity,
+    const SceneLocomotionComp* loco,
+    const SceneNavAgentComp*   navAgent,
+    const GeoVector            pos,
+    const f32                  scale) {
+  const u64 id     = (u64)entity;
+  const f32 radius = scene_locomotion_radius(loco, scale);
+  const f32 weight = scene_locomotion_weight(loco, scale);
+
+  GeoVector force = {0};
+
+  // Separate from blockers on our own layer.
+  const SceneNavLayer ownLayer = navAgent ? navAgent->layer : SceneNavLayer_Normal;
+  const GeoNavGrid*   ownGrid  = scene_nav_grid(navEnv, ownLayer);
+  force = geo_vector_add(force, geo_nav_separate_from_blockers(ownGrid, pos, radius));
+
+  // Separate from nav occupants on all layers.
+  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+    const GeoNavGrid* grid        = scene_nav_grid(navEnv, layer);
+    const GeoVector occupantForce = geo_nav_separate_from_occupants(grid, id, pos, radius, weight);
+    force                         = geo_vector_add(force, occupantForce);
+  }
+
+  return force;
+}
+
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneNavEnvComp);
@@ -113,13 +141,8 @@ ecs_system_define(SceneLocomotionMoveSys) {
        * NOTE: Use current position instead of the next position to avoid two units moving in the
        * same direction not pushing each other.
        */
-      const SceneNavLayer layer  = navAgent ? navAgent->layer : SceneNavLayer_Normal;
-      const GeoNavGrid*   grid   = scene_nav_grid(navEnv, layer);
-      const GeoVector     pos    = trans->position;
-      const f32           radius = scene_locomotion_radius(loco, scale);
-      const f32           weight = scene_locomotion_weight(loco, scale);
-      const GeoVector     force  = geo_nav_separate(grid, (u64)entity, pos, radius, weight);
-      posDelta                   = geo_vector_add(posDelta, geo_vector_mul(force, dt));
+      const GeoVector force = loco_separate(navEnv, entity, loco, navAgent, trans->position, scale);
+      posDelta              = geo_vector_add(posDelta, geo_vector_mul(force, dt));
       loco->lastSeparationMagSqr = geo_vector_mag_sqr(force);
     }
 
