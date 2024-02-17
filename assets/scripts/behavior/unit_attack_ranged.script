@@ -14,6 +14,8 @@ if (active(me, "Dead")) {
 
 var target       = $cmdAttackTarget
 var isAutoTarget = false
+var losRadius    = 0.5 // Radius for 'line-of-sight' check.
+var canMove      = capable(me, "NavTravel")
 
 if (exists(target)) {
   // Detect if the user requested a different target.
@@ -33,14 +35,15 @@ if (active(me, "Traveling")) {
 }
 
 if (target && health(target) > 0) {
-  var losRadius = 0.5
-  var los       = line_of_sight(me, target, losRadius)
+  var los = line_of_sight(me, target, losRadius)
   if (los != null && los <= target_range_max(me)) {
-    nav_stop(me)
+    if (canMove) {
+      nav_stop(me)
+    }
     attack(me, target)
   } else {
     // Not in line-of-sight.
-    if (!isAutoTarget) {
+    if (!isAutoTarget && canMove) {
       nav_travel(me, target) // Not an automatic target, so we are allowed to move when not in range.
     }
     attack(me, null)
