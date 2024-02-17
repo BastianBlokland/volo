@@ -263,19 +263,24 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
 static void nav_refresh_occupants(NavInitContext* ctx, EcsView* occupantView) {
   geo_nav_occupant_remove_all(ctx->grid);
   for (EcsIterator* itr = ecs_view_itr(occupantView); ecs_view_walk(itr);) {
-    const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*      scale = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
+    const SceneTransformComp*  trans    = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*      scale    = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLocomotionComp* loco     = ecs_view_read_t(itr, SceneLocomotionComp);
+    const SceneNavAgentComp*   navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
 
-    const u64 occupantId = (u64)ecs_view_entity(itr);
-    const f32 radius     = scene_locomotion_radius(loco, scale ? scale->scale : 1.0f);
-    const f32 weight     = scene_locomotion_weight(loco, scale ? scale->scale : 1.0f);
+    const SceneNavLayer layer = navAgent ? navAgent->layer : SceneNavLayer_Normal;
+    if (layer != ctx->layer) {
+      continue;
+    }
+    const u64 id     = (u64)ecs_view_entity(itr);
+    const f32 radius = scene_locomotion_radius(loco, scale ? scale->scale : 1.0f);
+    const f32 weight = scene_locomotion_weight(loco, scale ? scale->scale : 1.0f);
 
     GeoNavOccupantFlags occupantFlags = 0;
     if (loco->flags & SceneLocomotion_Moving) {
       occupantFlags |= GeoNavOccupantFlags_Moving;
     }
-    geo_nav_occupant_add(ctx->grid, occupantId, trans->position, radius, weight, occupantFlags);
+    geo_nav_occupant_add(ctx->grid, id, trans->position, radius, weight, occupantFlags);
   }
 }
 
@@ -287,6 +292,7 @@ ecs_view_define(BlockerView) {
 }
 
 ecs_view_define(OccupantView) {
+  ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_read(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
