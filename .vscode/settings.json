@@ -8,9 +8,7 @@
   "editor.renderWhitespace": "all",
   "editor.detectIndentation": false,
   "editor.tabSize": 2,
-  "editor.rulers": [
-    100
-  ],
+  "editor.rulers": [ 100 ],
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
@@ -54,6 +52,7 @@
   "volo-lsp.trace.server": "off",
   "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
   "glsllint.linkShader": false,
+  "cSpell.enableFiletypes": [ "volo-script" ],
   "emeraldwalk.runonsave": {
     "commands": [
       {
