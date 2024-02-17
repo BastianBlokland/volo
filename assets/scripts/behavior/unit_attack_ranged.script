@@ -1,0 +1,48 @@
+
+var me = self()
+
+/**
+ * Move to and attack requested targets and automatically attack in-range targets.
+ *
+ * Supports the following input knowledge:
+ * - "cmdAttackTarget": Start attacking the given entity.
+ */
+
+if (active(me, "Dead")) {
+  return
+}
+
+var target       = $cmdAttackTarget
+var isAutoTarget = false
+
+if (exists(target)) {
+  // Detect if the user requested a different target.
+  if (target != $lastAttackTarget) {
+    bark(me, "Confirm")
+    $lastAttackTarget = target
+  }
+} else {
+  // No active target; ask the targeting system for the current primary target.
+  target       = target_primary(me)
+  isAutoTarget = true
+}
+
+// Stop attacking when traveling.
+if (active(me, "Traveling")) {
+  attack(me, null)
+}
+
+if (target && health(target) > 0) {
+  var losRadius = 0.5
+  var los       = line_of_sight(me, target, losRadius)
+  if (los != null && los <= target_range_max(me)) {
+    nav_stop(me)
+    attack(me, target)
+  } else {
+    // Not in line-of-sight.
+    if (!isAutoTarget) {
+      nav_travel(me, target) // Not an automatic target, so we are allowed to move when not in range.
+    }
+    attack(me, null)
+  }
+}
