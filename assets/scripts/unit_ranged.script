@@ -5,41 +5,41 @@ if (active(me, "Dead")) {
   return
 }
 
-if ($user_stop) {
+if ($cmdStop) {
   nav_stop(me)
-  $user_stop          = null
-  $user_move_target   = null
-  $user_attack_target = null
+  $cmdStop         = null
+  $cmdMoveTarget   = null
+  $cmdAttackTarget = null
   bark(me, "Confirm")
   return
 }
 
-if ($user_move_target) {
-  if (nav_target(me) == $user_move_target) {
+if ($cmdMoveTarget) {
+  if (nav_target(me) == $cmdMoveTarget) {
     // Already navigating to requested target; check if we arrived (having stopped travelling).
     if (!active(me, "Traveling")) {
-      $user_move_target = null
+      $cmdMoveTarget = null
     }
   } else {
     // Not yet navigating to requested target; start traveling.
-    nav_travel(me, $user_move_target)
+    nav_travel(me, $cmdMoveTarget)
     attack(me, null)
     bark(me, "Confirm")
   }
   return
 }
 
-if (exists($user_attack_target)) {
-  if ($user_attack_target != $user_last_attack_target) {
+if (exists($cmdAttackTarget)) {
+  if ($cmdAttackTarget != $lastAttackTarget) {
     bark(me, "Confirm")
-    $user_last_attack_target = $user_attack_target
+    $lastAttackTarget = $cmdAttackTarget
   }
 } else {
-  $user_attack_target      = null
-  $user_last_attack_target = null
+  $cmdAttackTarget  = null
+  $lastAttackTarget = null
 }
 
-var target = $user_attack_target ?? target_primary(me)
+var target = $cmdAttackTarget ?? target_primary(me)
 if (target && health(target) > 0) {
   var losRadius = 0.5
   var los       = line_of_sight(me, target, losRadius)
@@ -47,7 +47,7 @@ if (target && health(target) > 0) {
     nav_stop(me)
     attack(me, target)
   } else {
-    if ($user_attack_target) {
+    if ($cmdAttackTarget) {
       // When its a user requested target we should move towards it if its not in rage.
       nav_travel(me, target)
     }

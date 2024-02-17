@@ -5,35 +5,35 @@ if (active(me, "Dead")) {
   return
 }
 
-if ($user_stop) {
+if ($cmdStop) {
   nav_stop(me)
-  $user_stop          = null
-  $user_move_target   = null
-  $user_attack_target = null
+  $cmdStop         = null
+  $cmdMoveTarget   = null
+  $cmdAttackTarget = null
   bark(me, "Confirm")
   return
 }
 
-if ($user_move_target) {
-  if (nav_target(me) == $user_move_target) {
+if ($cmdMoveTarget) {
+  if (nav_target(me) == $cmdMoveTarget) {
     // Already navigating to requested target; check if we arrived (having stopped travelling).
     if (!active(me, "Traveling")) {
-      $user_move_target = null
+      $cmdMoveTarget = null
     }
   } else {
     // Not yet navigating to requested target; start traveling.
-    nav_travel(me, $user_move_target)
+    nav_travel(me, $cmdMoveTarget)
     attack(me, null)
     bark(me, "Confirm")
   }
   return
 }
 
-if (!exists($user_attack_target)) {
-  $user_attack_target = null
+if (!exists($cmdAttackTarget)) {
+  $cmdAttackTarget = null
 }
 
-var target = $user_attack_target ?? target_primary(me)
+var target = $cmdAttackTarget ?? target_primary(me)
 if (target && health(target) > 0) {
   var losRadius = 0.2
   var los       = line_of_sight(me, target, losRadius)

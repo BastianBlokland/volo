@@ -5,11 +5,11 @@ if (active(me, "Dead")) {
   return
 }
 
-if (!exists($user_attack_target)) {
-  $user_attack_target = null
+if (!exists($cmdAttackTarget)) {
+  $cmdAttackTarget = null
 }
 
-var target = $user_attack_target ?? target_primary(me)
+var target = $cmdAttackTarget ?? target_primary(me)
 if (target && health(target) > 0) {
   var losRadius = 0.5
   var los       = line_of_sight(me, target, losRadius)

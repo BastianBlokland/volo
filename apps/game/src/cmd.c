@@ -164,6 +164,7 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
     SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
     scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
+    scene_knowledge_store(knowledge, g_knowledgeKeyStop, script_null());
     return;
   }
 
@@ -184,6 +185,7 @@ static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
 
     scene_knowledge_store(knowledge, g_knowledgeKeyStop, script_bool(true));
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
+    scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
   }
 }
 
@@ -194,6 +196,7 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
 
     scene_knowledge_store(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
     scene_knowledge_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
+    scene_knowledge_store(knowledge, g_knowledgeKeyStop, script_null());
   }
 }
 
@@ -256,9 +259,9 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(game_cmd_module) {
-  g_knowledgeKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("user_move_target"));
-  g_knowledgeKeyStop         = stringtable_add(g_stringtable, string_lit("user_stop"));
-  g_knowledgeKeyAttackTarget = stringtable_add(g_stringtable, string_lit("user_attack_target"));
+  g_knowledgeKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("cmdMoveTarget"));
+  g_knowledgeKeyStop         = stringtable_add(g_stringtable, string_lit("cmdStop"));
+  g_knowledgeKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmdAttackTarget"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
