@@ -43,13 +43,21 @@ static GeoVector loco_separate(
     const EcsEntityId          entity,
     const SceneLocomotionComp* loco,
     const SceneNavAgentComp*   navAgent,
-    const GeoVector            position,
+    const GeoVector            pos,
     const f32                  scale) {
-  const SceneNavLayer layer  = navAgent ? navAgent->layer : SceneNavLayer_Normal;
-  const GeoNavGrid*   grid   = scene_nav_grid(navEnv, layer);
-  const f32           radius = scene_locomotion_radius(loco, scale);
-  const f32           weight = scene_locomotion_weight(loco, scale);
-  return geo_nav_separate(grid, (u64)entity, position, radius, weight);
+  const u64 id     = (u64)entity;
+  const f32 radius = scene_locomotion_radius(loco, scale);
+  const f32 weight = scene_locomotion_weight(loco, scale);
+
+  GeoVector force = {0};
+
+  const SceneNavLayer ownLayer = navAgent ? navAgent->layer : SceneNavLayer_Normal;
+  const GeoNavGrid*   ownGrid  = scene_nav_grid(navEnv, ownLayer);
+
+  force = geo_vector_add(force, geo_nav_separate_from_blockers(ownGrid, pos, radius));
+  force = geo_vector_add(force, geo_nav_separate_from_occupants(ownGrid, id, pos, radius, weight));
+
+  return force;
 }
 
 ecs_view_define(GlobalView) {

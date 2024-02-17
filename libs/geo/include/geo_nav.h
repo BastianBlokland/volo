@@ -125,10 +125,16 @@ void geo_nav_occupant_add(
 void geo_nav_occupant_remove_all(GeoNavGrid*);
 
 /**
- * Compute a force to separate from blockers and other occupants.
+ * Compute a force to separate from blockers.
+ */
+GeoVector geo_nav_separate_from_blockers(const GeoNavGrid*, GeoVector pos, f32 radius);
+
+/**
+ * Compute a force to separate from occupants.
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  */
-GeoVector geo_nav_separate(const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, f32 weight);
+GeoVector geo_nav_separate_from_occupants(
+    const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, f32 weight);
 
 /**
  * Navigation statistics.
