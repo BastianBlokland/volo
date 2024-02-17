@@ -55,6 +55,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumNavFind,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
+                  g_scriptEnumTargetExclude,
                   g_scriptEnumRenderableParam,
                   g_scriptEnumVfxParam,
                   g_scriptEnumLightParam,
@@ -109,6 +110,11 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
   script_enum_push(&g_scriptEnumActivity, string_lit("AttackReadying"), 5);
   script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 6);
+}
+
+static void eval_enum_init_target_exclude() {
+  script_enum_push(&g_scriptEnumTargetExclude, string_lit("Unreachable"), 0);
+  script_enum_push(&g_scriptEnumTargetExclude, string_lit("Obscured"), 1);
 }
 
 static void eval_enum_init_renderable_param() {
@@ -914,6 +920,20 @@ static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, 
   if (ecs_view_maybe_jump(ctx->targetItr, e)) {
     const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
     return script_num(finder->rangeMax);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_target_exclude(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    switch (script_arg_enum(args, 1, &g_scriptEnumTargetExclude, err)) {
+    case 0 /* Unreachable */:
+      return script_bool((finder->config & SceneTargetConfig_ExcludeUnreachable) != 0);
+    case 1 /* Obscured */:
+      return script_bool((finder->config & SceneTargetConfig_ExcludeObscured) != 0);
+    }
   }
   return script_null();
 }
@@ -1782,6 +1802,7 @@ static void eval_binder_init() {
     eval_enum_init_nav_find();
     eval_enum_init_capability();
     eval_enum_init_activity();
+    eval_enum_init_target_exclude();
     eval_enum_init_renderable_param();
     eval_enum_init_vfx_param();
     eval_enum_init_light_param();
@@ -1817,6 +1838,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("target_primary"),         eval_target_primary);
     eval_bind(b, string_lit("target_range_min"),       eval_target_range_min);
     eval_bind(b, string_lit("target_range_max"),       eval_target_range_max);
+    eval_bind(b, string_lit("target_exclude"),         eval_target_exclude);
     eval_bind(b, string_lit("tell"),                   eval_tell);
     eval_bind(b, string_lit("ask"),                    eval_ask);
     eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);

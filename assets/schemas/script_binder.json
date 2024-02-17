@@ -474,6 +474,17 @@
       }
     },
     {
+      "name": "target_exclude",
+      "doc": "Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`",
+      "sig": {
+        "ret": [ "null", "bool" ],
+        "args": [
+          { "name": "v", "mask": "entity" },
+          { "name": "option", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "rotation",
       "doc": "Lookup the rotation of the given entity.",
       "sig": {

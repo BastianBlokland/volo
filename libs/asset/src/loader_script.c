@@ -270,6 +270,16 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("target_exclude");
+      const String       doc    = string_lit("Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`");
+      const ScriptMask   ret    = script_mask_bool | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("option"), script_mask_str},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("tell");
       const String       doc    = string_lit("Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.");
       const ScriptMask   ret    = script_mask_null;
