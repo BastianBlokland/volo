@@ -7,6 +7,7 @@ var me = self()
  * Supports the following input knowledge:
  * - "cmdAttackTarget" : Start attacking the given entity.
  * - "cnfAllowAutoMove": Allow automatically moving when target is out of range.
+ * - "cnfLosRadius"    : Radius for line-of-sight check.
  */
 
 if (active(me, "Dead")) {
@@ -16,7 +17,7 @@ if (active(me, "Dead")) {
 var target       = $cmdAttackTarget
 var isAutoTarget = false
 var requireLos   = target_exclude(me, "Obscured")
-var losRadius    = 0.5 // Radius for 'line-of-sight' check.
+var losRadius    = $cnfLosRadius ?? 0.5
 var canMove      = capable(me, "NavTravel")
 
 // If the unit cannot move check if the target is within range.
