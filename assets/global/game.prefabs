@@ -937,12 +937,6 @@
       ]
     },
     {
-      "name": "LogicBarrelAttack",
-      "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/test/barrel_attack.script" ] }
-      ]
-    },
-    {
       "name": "LogicSwitch",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/gate_switch.script" ] }
