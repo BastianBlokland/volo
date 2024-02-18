@@ -7,7 +7,7 @@ var intervalMax   = 60
 var radius        = 20
 var spawnCountMin = 50
 var spawnCountMax = 150
-var unitPrefab    = "InfantryEnemy"
+var unitPrefab    = "InfantryMonster"
 
 $nextWaveTime ??= time() + random_between(intervalMin, intervalMax)
 if ($nextWaveTime <= time()) {

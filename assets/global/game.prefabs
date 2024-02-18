@@ -183,11 +183,11 @@
       ]
     },
     {
-      "name": "InfantryEnemy",
+      "name": "InfantryMonster",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_enemy.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_monster.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -239,7 +239,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Bark", "priority": 1,
-          "barkDeathPrefab": "BarkDeathInfantryEnemy"
+          "barkDeathPrefab": "BarkDeathInfantryMonster"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.1 }, "max": { "y": 1.1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
@@ -1090,7 +1090,7 @@
       ]
     },
     {
-      "name": "BarkDeathInfantryEnemy", "isVolatile": true,
+      "name": "BarkDeathInfantryMonster", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 2 },
         {
