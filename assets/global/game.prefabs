@@ -769,10 +769,10 @@
             "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/alarm.script" ],
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/effects/prop_alarm.script" ],
           "knowledge": [
-            { "$name": "frequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
-            { "$name": "soundAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
+            { "$name": "cfgAlarmFrequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
+            { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
           ]
         }
       ]
