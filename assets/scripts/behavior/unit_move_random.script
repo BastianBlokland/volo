@@ -1,0 +1,24 @@
+
+/**
+ * Move to random locations.
+ *
+ * Supports the following input knowledge:
+ * - "cfgLocationRadius": Radius around the origin to pick locations in.
+ */
+
+var me = self()
+if (active(me, "Dead")) {
+  return
+}
+
+$moveTarget ??= {
+  var origin = vec3(0, 0, 0)
+  var radius = $cfgLocationRadius ?? 150
+  origin + random_circle_xz() * radius
+}
+
+if (nav_target(me) == $moveTarget && !active(me, "Traveling")) {
+  $moveTarget = null
+} else {
+  nav_travel(me, $moveTarget)
+}

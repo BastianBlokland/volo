@@ -282,7 +282,13 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_move_random.script" ] },
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [ "scripts/behavior/unit_move_random.script" ],
+          "knowledge": [
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgLocationRadius", "$data": 200 }
+          ]
+        },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
