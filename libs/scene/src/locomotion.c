@@ -106,6 +106,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
     if (loco->flags & SceneLocomotion_Stop) {
       loco->targetPos = trans->position;
+      loco->targetDir = geo_quat_rotate(trans->rotation, geo_forward);
       loco->flags &= ~(SceneLocomotion_Moving | SceneLocomotion_Stop);
     }
 
