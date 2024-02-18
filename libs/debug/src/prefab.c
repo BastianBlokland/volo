@@ -119,9 +119,10 @@ static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
-    diag_assert(!sentinel_check(prefabIndex));
-
-    ++res[prefabIndex];
+    // NOTE: PrefabIndex can be sentinel_u16 if the prefabMap was hot-loaded after spawning.
+    if (!sentinel_check(prefabIndex)) {
+      ++res[prefabIndex];
+    }
   }
   return res;
 }
