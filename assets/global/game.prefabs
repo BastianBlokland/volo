@@ -332,13 +332,13 @@
           "scriptIds": [
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
-            "scripts/vehicle_effects.script",
-            "scripts/aim_effects.script"
+            "scripts/effects/unit_aim.script",
+            "scripts/vehicle_effects.script"
           ],
           "knowledge": [
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-turret-01.wav" },
             { "$name": "soundIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
             { "$name": "soundMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
-            { "$name": "soundAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-turret-01.wav" },
             { "$name": "vfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
             { "$name": "vfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" }
           ]
@@ -387,10 +387,10 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_attack.script",
-            "scripts/aim_effects.script"
+            "scripts/effects/unit_aim.script"
           ],
           "knowledge": [
-            { "$name": "soundAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
@@ -431,10 +431,10 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_attack.script",
-            "scripts/aim_effects.script"
+            "scripts/effects/unit_aim.script"
           ],
           "knowledge": [
-            { "$name": "soundAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
