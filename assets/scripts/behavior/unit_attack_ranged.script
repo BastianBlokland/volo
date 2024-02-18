@@ -16,8 +16,8 @@ if (active(me, "Dead")) {
 
 var target       = $cmdAttackTarget
 var isAutoTarget = false
-var requireLos   = target_exclude(me, "Obscured")
 var losRadius    = $cnfLosRadius ?? 0.5
+var requireLos   = $cnfLosRadius != null || target_exclude(me, "Obscured")
 var canMove      = capable(me, "NavTravel")
 
 // If the unit cannot move check if the target is within range.
