@@ -738,7 +738,7 @@
     },
     {
       "name": "line_of_sight",
-      "doc": "Test if there is a clear line of sight between the given entities.",
+      "doc": "Test if there is a clear line of sight between the given entities.\nNote: Returns the distance to the target.",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [

@@ -213,7 +213,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("line_of_sight");
-      const String       doc    = string_lit("Test if there is a clear line of sight between the given entities.");
+      const String       doc    = string_lit("Test if there is a clear line of sight between the given entities.\nNote: Returns the distance to the target.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("src"), script_mask_entity},
