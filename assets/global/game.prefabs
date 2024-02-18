@@ -425,7 +425,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/structure_turret_missile.script",
+            "scripts/behavior/unit_attack_ranged.script",
             "scripts/aim_effects.script"
           ],
           "knowledge": [

@@ -2,7 +2,7 @@
 var me = self()
 
 /**
- * Move to and attack requested targets and automatically attack in-range targets.
+ * Move (if capable) to and attack requested targets and automatically attack in-range targets.
  *
  * Supports the following input knowledge:
  * - "cmdAttackTarget": Start attacking the given entity.
@@ -14,17 +14,31 @@ if (active(me, "Dead")) {
 
 var target       = $cmdAttackTarget
 var isAutoTarget = false
+var requireLos   = target_exclude(me, "Obscured")
 var losRadius    = 0.5 // Radius for 'line-of-sight' check.
 var canMove      = capable(me, "NavTravel")
 
+// If the unit cannot move check if the target is within range.
+if (!canMove && exists(target)) {
+  var dist = distance(position(target), position(me))
+  if (dist < target_range_min(me) || dist > target_range_max(me)) {
+    target = null
+  }
+}
+
+// Confirm attack the requested target if its valid.
 if (exists(target)) {
-  // Detect if the user requested a different target.
   if (target != $lastAttackTarget) {
     bark(me, "Confirm")
     $lastAttackTarget = target
   }
 } else {
-  // No active target; ask the targeting system for the current primary target.
+  target           = null
+  $cmdAttackTarget = null
+}
+
+// If we have no active target ask the targeting system for the current primary target.
+if (!target) {
   target       = target_primary(me)
   isAutoTarget = true
 }
@@ -34,7 +48,11 @@ if (active(me, "Traveling")) {
   attack(me, null)
 }
 
-if (target && health(target) > 0) {
+if (!target || active(target, "Dead")) {
+  return // No target to attack; early out.
+}
+
+if (requireLos) {
   var los = line_of_sight(me, target, losRadius)
   if (los != null && los <= target_range_max(me)) {
     if (canMove) {
@@ -48,4 +66,7 @@ if (target && health(target) > 0) {
     }
     attack(me, null)
   }
+} else {
+  // Line-of-sight not required; attack unconditionally.
+  attack(me, target)
 }
