@@ -899,7 +899,13 @@
     {
       "name": "SpawnerInfantryEnemy",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/spawner.script" ] }
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [ "scripts/logic/spawner.script" ],
+          "knowledge": [
+            { "$name": "cfgSpawnerPrefab", "$type": "AssetPrefabValue_String", "$data": "InfantryMonster" }
+          ]
+        }
       ]
     },
     {
