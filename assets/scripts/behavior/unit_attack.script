@@ -1,6 +1,4 @@
 
-var me = self()
-
 /**
  * Move (if capable) to and attack requested targets and automatically attack in-range targets.
  *
@@ -11,6 +9,7 @@ var me = self()
  * - "cfgLosRadius"    : Radius for line-of-sight check.
  */
 
+var me = self()
 if (active(me, "Dead")) {
   return
 }

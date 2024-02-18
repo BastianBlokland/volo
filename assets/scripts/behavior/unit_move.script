@@ -1,6 +1,4 @@
 
-var me = self()
-
 /**
  * Move to requested positions.
  *
@@ -9,6 +7,7 @@ var me = self()
  * - "cmdMoveTarget": Start moving to given location.
  */
 
+var me = self()
 if (active(me, "Dead")) {
   return
 }
