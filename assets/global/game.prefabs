@@ -232,7 +232,7 @@
             "scripts/behavior/unit_attack.script"
           ],
           "knowledge": [
-            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.2 },
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.3 },
             { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true },
             { "$type": "AssetPrefabValue_Number", "$name": "cfgLosRadius", "$data": 0.2 }
           ]
