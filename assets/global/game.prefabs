@@ -333,14 +333,14 @@
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
             "scripts/effects/unit_aim.script",
-            "scripts/vehicle_effects.script"
+            "scripts/effects/unit_vehicle.script"
           ],
           "knowledge": [
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-turret-01.wav" },
-            { "$name": "soundIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
-            { "$name": "soundMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
-            { "$name": "vfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
-            { "$name": "vfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" }
+            { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
+            { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
+            { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
+            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" }
           ]
         },
         {

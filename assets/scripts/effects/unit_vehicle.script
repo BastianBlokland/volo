@@ -1,0 +1,57 @@
+
+/**
+ * Vehicle effects.
+ *
+ * Supports the following input knowledge:
+ * - "assetSndIdle": Looping sound effect to play while stationary.
+ * - "assetSndMove": Looping sound effect to play while moving.
+ * - "assetVfxDust": Looping dust particle system.
+ * - "assetVfxHeat": Looping heat particle system.
+ */
+
+var me        = self()
+var moving    = active(me, "Moving")
+var speed     = magnitude(velocity(me))
+var maxSpeed  = 5
+var speedFrac = min(1.0, speed / maxSpeed)
+
+// Idle sound.
+if ($sndIdle) {
+  var gain = moving ? 0.0 : 0.4
+  sound_param($sndIdle, "Gain", gain)
+} else if ($assetSndIdle) {
+  var pitch = random_between(0.9, 0.95)
+  $sndIdle  = sound_spawn($assetSndIdle, position(me), 0.0, pitch, true)
+  attach($sndIdle, me)
+  destroy_after($sndIdle, me)
+}
+
+// Move sound.
+if ($sndMove) {
+  var gain = moving ? lerp(0.125, 0.2, speedFrac) : 0.0
+  sound_param($sndMove, "Gain", gain)
+} else if ($assetSndMove) {
+  $sndMove = sound_spawn($assetSndMove, position(me), 0.0, 1.0, true)
+  attach($sndMove, me)
+  destroy_after($sndMove, me)
+}
+
+// Dust vfx.
+if ($vfxDust) {
+  var emitMultiplier = moving ? lerp(0.25, 1.0, speedFrac) : 0.0
+  vfx_param($vfxDust, "EmitMultiplier", emitMultiplier)
+} else if ($assetVfxDust) {
+  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 0.0)
+  attach($vfxDust, me)
+  destroy_after($vfxDust, me)
+}
+
+// Heat vfx.
+if ($vfxHeat) {
+  var emitMultiplier = moving ? 1.0 : 0.25
+  vfx_param($vfxHeat, "EmitMultiplier", emitMultiplier)
+} else if ($assetVfxHeat) {
+  $vfxHeat = vfx_system_spawn($assetVfxHeat, position(me), rotation(me), 1.0, 0.0)
+  attach($vfxHeat, me, "body", vec3(0, 0.5, 2.5))
+  destroy_after($vfxHeat, me)
+}
