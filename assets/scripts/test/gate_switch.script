@@ -3,7 +3,7 @@ if (var switch = query_pop(query_set("switch"))) {
   ask(self(), switch, "triggered")
 }
 if (var gate = query_pop(query_set("gate"))) {
-  tell(gate, "open", $triggered)
+  tell(gate, "cfgGateOpen", $triggered)
 }
 if (var light = query_pop(query_set("light"))) {
   tell(light, "color", $triggered ? green : red)

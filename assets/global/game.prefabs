@@ -599,7 +599,13 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/gate.script" ] }
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [ "scripts/logic/gate.script" ],
+          "knowledge": [
+            { "$name": "cfgGateOpen", "$type": "AssetPrefabValue_Bool", "$data": false }
+          ]
+        }
       ]
     },
     {
