@@ -166,11 +166,11 @@
           "scriptIds": [
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
-            "scripts/unit_flame_effects.script"
+            "scripts/effects/unit_flame.script"
           ],
           "knowledge": [
-            { "$name": "soundBurning", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/burning-02.wav" },
-            { "$name": "vfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
+            { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/burning-02.wav" },
+            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
           ]
         },
         {

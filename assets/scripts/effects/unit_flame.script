@@ -1,0 +1,31 @@
+
+/**
+ * Unit flamethrower effects.
+ *
+ * Supports the following input knowledge:
+ * - "assetSndBurning": Looping sound effect to play while the flamethrower is active.
+ * - "assetVfxFire": Looping fire particle system to play while the flamethrower is active.
+ */
+
+var me           = self()
+var effectActive = !active(me, "Dead") && active(me, "Firing")
+var effectJoint  = "muzzle"
+
+// Burning sound.
+if ($soundBurning) {
+  sound_param($soundBurning, "Gain", effectActive ? 1.0 : 0.0)
+} else if ($assetSndBurning) {
+  var pitch     = random_between(1.5, 1.6)
+  $soundBurning = sound_spawn($assetSndBurning, position(me), 0.0, pitch, true)
+  attach($soundBurning, me, effectJoint)
+  destroy_after($soundBurning, me)
+}
+
+// Fire vfx.
+if ($vfxFire) {
+  vfx_param($vfxFire, "EmitMultiplier", effectActive ? 1.0 : 0.0)
+} else if ($assetVfxFire) {
+  $vfxFire = vfx_system_spawn($assetVfxFire, position(me), rotation(me), 1.0, 0.0)
+  attach($vfxFire, me, effectJoint)
+  destroy_after($vfxFire, me)
+}
