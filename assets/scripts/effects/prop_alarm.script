@@ -1,11 +1,19 @@
 
+/**
+ * Alarm prop effects.
+ *
+ * Supports the following input knowledge:
+ * - "cfgAlarmFrequency": Frequency of the alarm blinking.
+ * - "assetSndAlarm": Sound effect to play when blinking.
+ */
+
 var me             = self()
-var blinkFrequency = $frequency ?? 0.5
+var blinkFrequency = $cfgAlarmFrequency ?? 0.5
 var lightOffset    = vec3(0.1, 3.8, 0.1)
 var lightRadiance  = color(1, 0.1, 0.05, 75)
 var lightRadius    = 10
 
-$light ??= {
+$lightAlarm ??= {
   var e = light_point_spawn(vec3(0, 0, 0), black, lightRadius)
   attach(e, me, null, lightOffset)
   destroy_after(e, me)
@@ -13,17 +21,17 @@ $light ??= {
 }
 
 var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
-if (newBlinkOn != $blinkOn) {
+if (newBlinkOn != $alarmBlinkOn) {
 
   renderable_param(me, "Emissive", newBlinkOn ? 0.25 : 0.0)
-  light_param($light, "Radiance", newBlinkOn ? lightRadiance : black)
+  light_param($lightAlarm, "Radiance", newBlinkOn ? lightRadiance : black)
 
-  if (newBlinkOn && $soundAlarm) {
+  if (newBlinkOn && $assetSndAlarm) {
     var soundPos      = position(me)
     var soundGain     = 0.05
-    var soundInstance = sound_spawn($soundAlarm, soundPos, soundGain)
+    var soundInstance = sound_spawn($assetSndAlarm, soundPos, soundGain)
     destroy_after(soundInstance, me)
     destroy_after(soundInstance, 3.0)
   }
 }
-$blinkOn = newBlinkOn
+$alarmBlinkOn = newBlinkOn

@@ -251,13 +251,13 @@ static void geo_query_validate_dir(MAYBE_UNUSED const GeoVector vec) {
       geo_vector_fmt(vec));
 }
 
-static bool geo_query_filter_layer(const GeoQueryFilter* filter, const GeoQueryLayer shapeLayer) {
-  return (filter->layerMask & shapeLayer) != 0;
+static bool geo_query_filter_layer(const GeoQueryFilter* f, const GeoQueryLayer shapeLayer) {
+  return (f->layerMask & shapeLayer) != 0;
 }
 
-static bool geo_query_filter_callback(const GeoQueryFilter* filter, const u64 shapeId) {
-  if (filter->callback) {
-    return filter->callback(filter->context, shapeId);
+static bool geo_query_filter_callback(const GeoQueryFilter* f, const u64 shapeId, const u32 layer) {
+  if (f->callback) {
+    return f->callback(f->context, shapeId, layer);
   }
   return true;
 }
@@ -373,7 +373,7 @@ bool geo_query_ray(
       if (hitT >= bestHit.time) {
         continue; // Better hit already found.
       }
-      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+      if (!geo_query_filter_callback(filter, prim->ids[i], prim->layers[i])) {
         continue; // Filtered out by the filter's callback.
       }
 
@@ -436,7 +436,7 @@ bool geo_query_ray_fat(
       if (hitT >= bestHit.time) {
         continue; // Better hit already found.
       }
-      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+      if (!geo_query_filter_callback(filter, prim->ids[i], prim->layers[i])) {
         continue; // Filtered out by the filter's callback.
       }
 
@@ -478,7 +478,7 @@ u32 geo_query_sphere_all(
       if (!geo_prim_overlap_sphere(prim, i, sphere)) {
         continue; // Miss.
       }
-      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+      if (!geo_query_filter_callback(filter, prim->ids[i], prim->layers[i])) {
         continue; // Filtered out by the filter's callback.
       }
 
@@ -517,7 +517,7 @@ u32 geo_query_box_all(
       if (!geo_prim_overlap_box_rotated(prim, i, boxRotated)) {
         continue; // Miss.
       }
-      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+      if (!geo_query_filter_callback(filter, prim->ids[i], prim->layers[i])) {
         continue; // Filtered out by the filter's callback.
       }
 
@@ -556,7 +556,7 @@ u32 geo_query_frustum_all(
       if (!geo_prim_overlap_frustum(prim, i, frustum)) {
         continue; // Miss.
       }
-      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+      if (!geo_query_filter_callback(filter, prim->ids[i], prim->layers[i])) {
         continue; // Filtered out by the filter's callback.
       }
 

@@ -213,7 +213,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("line_of_sight");
-      const String       doc    = string_lit("Test if there is a clear line of sight between the given entities.");
+      const String       doc    = string_lit("Test if there is a clear line of sight between the given entities.\nNote: Returns the distance to the target.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("src"), script_mask_entity},
@@ -266,6 +266,16 @@ static void asset_binder_init() {
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("target_exclude");
+      const String       doc    = string_lit("Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`");
+      const ScriptMask   ret    = script_mask_bool | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("option"), script_mask_str},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }
@@ -402,6 +412,15 @@ static void asset_binder_init() {
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
           {string_lit("target"), script_mask_entity | script_mask_null},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("attack_target");
+      const String       doc    = string_lit("Query the current attack target of the given entity.");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

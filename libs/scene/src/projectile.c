@@ -62,9 +62,10 @@ typedef struct {
   EcsEntityId instigator;
 } QueryFilterCtx;
 
-static bool projectile_query_filter(const void* context, const EcsEntityId entity) {
-  const QueryFilterCtx* ctx = context;
-  if (entity == ctx->instigator) {
+static bool projectile_query_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
+  (void)layer;
+  const QueryFilterCtx* projCtx = ctx;
+  if (entity == projCtx->instigator) {
     return false;
   }
   return true;
@@ -205,9 +206,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-           .context   = &filterCtx,
-           .callback  = &projectile_query_filter,
-           .layerMask = projectile_query_layer_mask(faction),
+        .context   = &filterCtx,
+        .callback  = &projectile_query_filter,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.

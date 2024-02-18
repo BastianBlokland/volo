@@ -1,0 +1,34 @@
+
+/**
+ * Move to requested positions.
+ *
+ * Supports the following input knowledge:
+ * - "cmdStop"      : Stop moving.
+ * - "cmdMoveTarget": Start moving to given location.
+ */
+
+var me = self()
+if (active(me, "Dead")) {
+  return
+}
+
+if ($cmdStop) {
+  nav_stop(me)
+  bark(me, "Confirm")
+  $cmdStop = null
+  return
+}
+
+if ($cmdMoveTarget) {
+  if (nav_target(me) == $cmdMoveTarget) {
+    // Already navigating to requested target; check if we arrived (having stopped traveling).
+    if (!active(me, "Traveling")) {
+      $cmdMoveTarget = null
+    }
+  } else {
+    // Not yet navigating to requested target; start traveling.
+    nav_travel(me, $cmdMoveTarget)
+    bark(me, "Confirm")
+  }
+  return
+}

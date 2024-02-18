@@ -1,4 +1,8 @@
 
+/**
+ * Trigger plate, sets the "triggered" knowledge when triggered.
+ */
+
 var me              = self()
 var detectionCenter = position(me) + vec3(0, 0.4, 0)
 var detectionRot    = rotation(me)

@@ -404,6 +404,16 @@
       }
     },
     {
+      "name": "attack_target",
+      "doc": "Query the current attack target of the given entity.",
+      "sig": {
+        "ret": [ "null", "entity" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`",
       "sig": {
@@ -460,6 +470,17 @@
             "name": "value",
             "mask": [ "null", "num" ]
           }
+        ]
+      }
+    },
+    {
+      "name": "target_exclude",
+      "doc": "Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`",
+      "sig": {
+        "ret": [ "null", "bool" ],
+        "args": [
+          { "name": "v", "mask": "entity" },
+          { "name": "option", "mask": "str" }
         ]
       }
     },
@@ -717,7 +738,7 @@
     },
     {
       "name": "line_of_sight",
-      "doc": "Test if there is a clear line of sight between the given entities.",
+      "doc": "Test if there is a clear line of sight between the given entities.\nNote: Returns the distance to the target.",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [

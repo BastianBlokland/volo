@@ -1,5 +1,8 @@
 /**
  * Every x seconds spawn a wave of enemies around this entity.
+ *
+ * Supports the following input knowledge:
+ * - "cfgSpawnerPrefab": Prefab to spawn.
  */
 
 var intervalMin   = 20
@@ -7,7 +10,7 @@ var intervalMax   = 60
 var radius        = 20
 var spawnCountMin = 50
 var spawnCountMax = 150
-var unitPrefab    = "InfantryEnemy"
+var unitPrefab    = $cfgSpawnerPrefab ?? "InfantryMonster"
 
 $nextWaveTime ??= time() + random_between(intervalMin, intervalMax)
 if ($nextWaveTime <= time()) {

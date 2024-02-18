@@ -1,7 +1,14 @@
 
+/**
+ * Openable gate.
+ *
+ * Supports the following input knowledge:
+ * - "cfgGateOpen": Should the gate be currently open?
+ */
+
 var me = self()
 
-if (!$colEntity) {
+if (!$colGate) {
   var colPos   = position(me)
   var colRot   = quat_ident
   var colSize  = vec3(0.25, 2.25, 4.75)
@@ -10,11 +17,11 @@ if (!$colEntity) {
   var colEntity = collision_box_spawn(colPos, colSize, colRot, colLayer, true)
   attach(colEntity, me, "barrier")
 
-  $colEntity = colEntity
+  $colGate = colEntity
 }
 
 var openSpeed  = 2.5
-var shouldOpen = $open ?? false
+var shouldOpen = $cfgGateOpen ?? false
 
 anim_param(me, "open", "Loop", false)
 anim_param(me, "open", "Speed", shouldOpen ? openSpeed : -openSpeed)

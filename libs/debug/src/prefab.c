@@ -119,9 +119,10 @@ static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
-    diag_assert(!sentinel_check(prefabIndex));
-
-    ++res[prefabIndex];
+    // NOTE: PrefabIndex can be sentinel_u16 if the prefabMap was hot-loaded after spawning.
+    if (!sentinel_check(prefabIndex)) {
+      ++res[prefabIndex];
+    }
   }
   return res;
 }
@@ -199,6 +200,10 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   EcsView* cameraView = ecs_world_view_t(ctx->world, CameraView);
   if (!ecs_view_contains(cameraView, input_active_window(ctx->input))) {
     prefab_create_cancel(ctx); // No active window.
+    return;
+  }
+  if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
+    prefab_create_cancel(ctx); // Debug input no longer active.
     return;
   }
   if (input_triggered_lit(ctx->input, "DebugPrefabCreateCancel")) {
@@ -326,6 +331,12 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 
   const bool disabled = ctx->panelComp->mode != PrefabPanelMode_Normal;
 
+  /**
+   * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
+   * input to detect place accept / cancel. This can happen when pinning the window.
+   */
+  const bool disableCreate = disabled || !input_layer_active(ctx->input, string_hash_lit("Debug"));
+
   ui_style_push(canvas);
   if (disabled) {
     ui_style_color_mult(canvas, 0.5f);
@@ -396,10 +407,10 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
             canvas,
-            .flags      = disabled ? UiWidget_Disabled : 0,
+            .flags      = disableCreate ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Add),
             .fontSize   = 18,
-            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(16, 192, 0, 192),
+            .frameColor = disableCreate ? ui_color(64, 64, 64, 192) : ui_color(16, 192, 0, 192),
             .tooltip    = string_lit("Create a new instance."))) {
       prefab_create_start(ctx, prefab->nameHash);
     }

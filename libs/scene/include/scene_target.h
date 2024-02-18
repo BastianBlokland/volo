@@ -14,7 +14,6 @@ typedef enum {
 ecs_comp_extern_public(SceneTargetFinderComp) {
   SceneTargetConfig config;
   f32               rangeMin, rangeMax;
-  f32               lineOfSightRadius;
   TimeDuration      nextRefreshTime;
   EcsEntityId       targetQueue[scene_target_queue_size];
 };

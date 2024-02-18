@@ -1,0 +1,77 @@
+
+/**
+ * Move (if capable) to and attack requested targets and automatically attack in-range targets.
+ *
+ * Supports the following input knowledge:
+ * - "cmdAttackTarget"     : Start attacking the given entity.
+ * - "cfgAttackRange"      : Maximum range for attacks.
+ * - "cfgAllowAutoMove"    : Allow automatically moving when target is out of range.
+ * - "cfgAttackWhileMoving": Can attack while moving.
+ * - "cfgLosRadius"        : Radius for line-of-sight check.
+ */
+
+var me = self()
+if (active(me, "Dead")) {
+  return
+}
+
+var target            = $cmdAttackTarget
+var isAutoTarget      = false
+var attackWhileMoving = $cfgAttackWhileMoving ?? false
+var losRadius         = $cfgLosRadius ?? 0.5
+var requireLos        = $cfgLosRadius != null || target_exclude(me, "Obscured")
+var attackRange       = $cfgAttackRange ?? target_range_max(me)
+var canMove           = capable(me, "NavTravel")
+
+// If the unit cannot move check if the target is within range.
+if (!canMove && exists(target)) {
+  var dist = distance(position(target), position(me))
+  if (dist < target_range_min(me) || dist > target_range_max(me)) {
+    target = null
+  }
+}
+
+// Confirm attack the requested target if its valid.
+if (exists(target)) {
+  if (target != $lastAttackTarget) {
+    bark(me, "Confirm")
+    $lastAttackTarget = target
+  }
+} else {
+  target           = null
+  $cmdAttackTarget = null
+}
+
+// If we have no active target ask the targeting system for the current primary target.
+if (!target) {
+  target       = target_primary(me)
+  isAutoTarget = true
+}
+
+// Stop attacking when traveling.
+if (!attackWhileMoving && active(me, "Traveling")) {
+  attack(me, null)
+}
+
+if (!target || active(target, "Dead")) {
+  return // No target to attack; early out.
+}
+
+if (requireLos) {
+  var los = line_of_sight(me, target, losRadius)
+  if (los != null && los <= attackRange) {
+    if (canMove && !attackWhileMoving) {
+      nav_stop(me)
+    }
+    attack(me, target)
+  } else {
+    // Not in line-of-sight.
+    if (canMove && (!isAutoTarget || $cfgAllowAutoMove)) {
+      nav_travel(me, target) // Not an automatic target, so we are allowed to move when not in range.
+    }
+    attack(me, null)
+  }
+} else {
+  // Line-of-sight not required; attack unconditionally.
+  attack(me, target)
+}

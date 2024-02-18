@@ -55,6 +55,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumNavFind,
                   g_scriptEnumCapability,
                   g_scriptEnumActivity,
+                  g_scriptEnumTargetExclude,
                   g_scriptEnumRenderableParam,
                   g_scriptEnumVfxParam,
                   g_scriptEnumLightParam,
@@ -109,6 +110,11 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
   script_enum_push(&g_scriptEnumActivity, string_lit("AttackReadying"), 5);
   script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 6);
+}
+
+static void eval_enum_init_target_exclude() {
+  script_enum_push(&g_scriptEnumTargetExclude, string_lit("Unreachable"), 0);
+  script_enum_push(&g_scriptEnumTargetExclude, string_lit("Obscured"), 1);
 }
 
 static void eval_enum_init_renderable_param() {
@@ -755,13 +761,23 @@ static GeoVector eval_aim_closest(
 }
 
 typedef struct {
-  EcsEntityId srcEntity;
+  EcsEntityId srcEntity, tgtEntity;
 } EvalLineOfSightFilterCtx;
 
-static bool eval_line_of_sight_filter(const void* context, const EcsEntityId entity) {
-  const EvalLineOfSightFilterCtx* ctx = context;
-  if (entity == ctx->srcEntity) {
+static bool eval_line_of_sight_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
+  (void)layer;
+  const EvalLineOfSightFilterCtx* losCtx = ctx;
+  if (entity == losCtx->srcEntity) {
     return false; // Ignore collisions with the source.
+  }
+  static const SceneLayer g_layersToIgnore = SceneLayer_Infantry | SceneLayer_Vehicle;
+  if (entity != losCtx->tgtEntity && (layer & g_layersToIgnore) != 0) {
+    /**
+     * Ignore collisions with other units, reason is that for friendly units the attacks pass
+     * through them anyway and for hostile ones we are okay with hitting them.
+     * NOTE: Structure units are an exception to this.
+     */
+    return false;
   }
   return true;
 }
@@ -809,11 +825,11 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
     return script_null(); // Far enough that we never have line-of-sight.
   }
 
-  const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
+  const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -914,6 +930,20 @@ static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, 
   if (ecs_view_maybe_jump(ctx->targetItr, e)) {
     const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
     return script_num(finder->rangeMax);
+  }
+  return script_null();
+}
+
+static ScriptVal eval_target_exclude(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->targetItr, e)) {
+    const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
+    switch (script_arg_enum(args, 1, &g_scriptEnumTargetExclude, err)) {
+    case 0 /* Unreachable */:
+      return script_bool((finder->config & SceneTargetConfig_ExcludeUnreachable) != 0);
+    case 1 /* Obscured */:
+      return script_bool((finder->config & SceneTargetConfig_ExcludeObscured) != 0);
+    }
   }
   return script_null();
 }
@@ -1121,6 +1151,16 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
         .type        = ScriptActionType_Attack,
         .data_attack = {.entity = entity, .target = target},
     };
+  }
+  return script_null();
+}
+
+static ScriptVal eval_attack_target(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId      entity = script_arg_entity(args, 0, err);
+  const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
+  const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+  if (attack) {
+    return script_entity_or_null(attack->targetEntity);
   }
   return script_null();
 }
@@ -1772,6 +1812,7 @@ static void eval_binder_init() {
     eval_enum_init_nav_find();
     eval_enum_init_capability();
     eval_enum_init_activity();
+    eval_enum_init_target_exclude();
     eval_enum_init_renderable_param();
     eval_enum_init_vfx_param();
     eval_enum_init_light_param();
@@ -1807,6 +1848,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("target_primary"),         eval_target_primary);
     eval_bind(b, string_lit("target_range_min"),       eval_target_range_min);
     eval_bind(b, string_lit("target_range_max"),       eval_target_range_max);
+    eval_bind(b, string_lit("target_exclude"),         eval_target_exclude);
     eval_bind(b, string_lit("tell"),                   eval_tell);
     eval_bind(b, string_lit("ask"),                    eval_ask);
     eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);
@@ -1819,6 +1861,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("detach"),                 eval_detach);
     eval_bind(b, string_lit("damage"),                 eval_damage);
     eval_bind(b, string_lit("attack"),                 eval_attack);
+    eval_bind(b, string_lit("attack_target"),          eval_attack_target);
     eval_bind(b, string_lit("bark"),                   eval_bark);
     eval_bind(b, string_lit("status"),                 eval_status);
     eval_bind(b, string_lit("renderable_spawn"),       eval_renderable_spawn);
