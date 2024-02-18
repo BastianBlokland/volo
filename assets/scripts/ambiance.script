@@ -1,9 +1,0 @@
-
-if ($soundAmbiance && !$soundInstance) {
-  var soundPos     = null // 2d sound.
-  var soundGain    = 0.4
-  var soundPitch   = 1.0
-  var soundLooping = true
-  $soundInstance   = sound_spawn($soundAmbiance, soundPos, soundGain, soundPitch, soundLooping)
-  destroy_after($soundInstance, self())
-}

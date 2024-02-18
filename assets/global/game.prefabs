@@ -893,9 +893,9 @@
     {
       "name": "Ambiance",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/ambiance.script" ],
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/effects/ambiance.script" ],
           "knowledge": [
-            { "$name": "soundAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
+            { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
           ]
         }
       ]
