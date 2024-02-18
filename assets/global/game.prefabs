@@ -613,7 +613,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "switch" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/pressure_plate.script" ] }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/pressure_plate.script" ] }
       ]
     },
     {
