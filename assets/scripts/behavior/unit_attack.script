@@ -3,10 +3,11 @@
  * Move (if capable) to and attack requested targets and automatically attack in-range targets.
  *
  * Supports the following input knowledge:
- * - "cmdAttackTarget" : Start attacking the given entity.
- * - "cfgAttackRange"  : Maximum range for attacks.
- * - "cfgAllowAutoMove": Allow automatically moving when target is out of range.
- * - "cfgLosRadius"    : Radius for line-of-sight check.
+ * - "cmdAttackTarget"     : Start attacking the given entity.
+ * - "cfgAttackRange"      : Maximum range for attacks.
+ * - "cfgAllowAutoMove"    : Allow automatically moving when target is out of range.
+ * - "cfgAttackWhileMoving": Can attack while moving.
+ * - "cfgLosRadius"        : Radius for line-of-sight check.
  */
 
 var me = self()
@@ -14,12 +15,13 @@ if (active(me, "Dead")) {
   return
 }
 
-var target       = $cmdAttackTarget
-var isAutoTarget = false
-var losRadius    = $cfgLosRadius ?? 0.5
-var requireLos   = $cfgLosRadius != null || target_exclude(me, "Obscured")
-var attackRange  = $cfgAttackRange ?? target_range_max(me)
-var canMove      = capable(me, "NavTravel")
+var target            = $cmdAttackTarget
+var isAutoTarget      = false
+var attackWhileMoving = $cfgAttackWhileMoving ?? false
+var losRadius         = $cfgLosRadius ?? 0.5
+var requireLos        = $cfgLosRadius != null || target_exclude(me, "Obscured")
+var attackRange       = $cfgAttackRange ?? target_range_max(me)
+var canMove           = capable(me, "NavTravel")
 
 // If the unit cannot move check if the target is within range.
 if (!canMove && exists(target)) {
@@ -47,7 +49,7 @@ if (!target) {
 }
 
 // Stop attacking when traveling.
-if (active(me, "Traveling")) {
+if (!attackWhileMoving && active(me, "Traveling")) {
   attack(me, null)
 }
 
@@ -58,7 +60,7 @@ if (!target || active(target, "Dead")) {
 if (requireLos) {
   var los = line_of_sight(me, target, losRadius)
   if (los != null && los <= attackRange) {
-    if (canMove) {
+    if (canMove && !attackWhileMoving) {
       nav_stop(me)
     }
     attack(me, target)

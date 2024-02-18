@@ -342,6 +342,7 @@
             "scripts/effects/unit_vehicle.script"
           ],
           "knowledge": [
+            { "$name": "cfgAttackWhileMoving", "$type": "AssetPrefabValue_Bool", "$data": true },
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-turret-01.wav" },
             { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
             { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
