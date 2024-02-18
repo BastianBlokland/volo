@@ -761,7 +761,7 @@ static GeoVector eval_aim_closest(
 }
 
 typedef struct {
-  EcsEntityId srcEntity;
+  EcsEntityId srcEntity, tgtEntity;
 } EvalLineOfSightFilterCtx;
 
 static bool eval_line_of_sight_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
@@ -769,6 +769,15 @@ static bool eval_line_of_sight_filter(const void* ctx, const EcsEntityId entity,
   const EvalLineOfSightFilterCtx* losCtx = ctx;
   if (entity == losCtx->srcEntity) {
     return false; // Ignore collisions with the source.
+  }
+  const static SceneLayer g_layersToIgnore = SceneLayer_Infantry | SceneLayer_Vehicle;
+  if (entity != losCtx->tgtEntity && (layer & g_layersToIgnore) != 0) {
+    /**
+     * Ignore collisions with other units, reason is that for friendly units the attacks pass
+     * through them anyway and for hostile ones we are okay with hitting them.
+     * NOTE: Structure units are an exception to this.
+     */
+    return false;
   }
   return true;
 }
@@ -816,7 +825,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
     return script_null(); // Far enough that we never have line-of-sight.
   }
 
-  const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
+  const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
       .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
       .callback  = eval_line_of_sight_filter,
