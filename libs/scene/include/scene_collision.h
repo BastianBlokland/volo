@@ -61,8 +61,8 @@ typedef enum {
  * Return 'true' to keep the hit or 'false' to discard the hit.
  */
 typedef struct {
-  const void* context;                                       // Optional.
-  bool (*callback)(const void* context, EcsEntityId entity); // Optional.
+  const void* context;                                                  // Optional.
+  bool (*callback)(const void* context, EcsEntityId tgt, u32 tgtLayer); // Optional.
   SceneLayer layerMask;
 } SceneQueryFilter;
 

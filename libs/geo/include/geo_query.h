@@ -22,8 +22,8 @@ typedef u32 GeoQueryLayer;
  * Return 'true' to keep the hit or 'false' to discard the hit.
  */
 typedef struct {
-  const void* context;                                // Optional.
-  bool (*callback)(const void* context, u64 shapeId); // Optional.
+  const void* context;                                                // Optional.
+  bool (*callback)(const void* context, u64 shapeId, u32 shapeLayer); // Optional.
   GeoQueryLayer layerMask;
 } GeoQueryFilter;
 

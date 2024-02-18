@@ -764,9 +764,10 @@ typedef struct {
   EcsEntityId srcEntity;
 } EvalLineOfSightFilterCtx;
 
-static bool eval_line_of_sight_filter(const void* context, const EcsEntityId entity) {
-  const EvalLineOfSightFilterCtx* ctx = context;
-  if (entity == ctx->srcEntity) {
+static bool eval_line_of_sight_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
+  (void)layer;
+  const EvalLineOfSightFilterCtx* losCtx = ctx;
+  if (entity == losCtx->srcEntity) {
     return false; // Ignore collisions with the source.
   }
   return true;
@@ -817,9 +818,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);

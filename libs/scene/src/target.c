@@ -118,9 +118,10 @@ typedef struct {
   EcsEntityId finderEntity;
 } TargetLineOfSightFilterCtx;
 
-static bool target_los_filter(const void* context, const EcsEntityId entity) {
-  const TargetLineOfSightFilterCtx* ctx = context;
-  if (entity == ctx->finderEntity) {
+static bool target_los_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
+  (void)layer;
+  const TargetLineOfSightFilterCtx* losCtx = ctx;
+  if (entity == losCtx->finderEntity) {
     return false; // Ignore collisions with yourself.
   }
   return true;
