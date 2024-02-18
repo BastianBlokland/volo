@@ -793,7 +793,7 @@ ecs_module_init(debug_script_module) {
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = debug_panel_create(world, window);
   ecs_world_add_t(
-      world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 500)));
+      world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 600)));
   return panelEntity;
 }
 
@@ -804,7 +804,7 @@ debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window, const 
       world,
       panelEntity,
       DebugScriptPanelComp,
-      .panel = ui_panel(.size = ui_vector(800, 500), .activeTab = DebugScriptTab_Output));
+      .panel = ui_panel(.size = ui_vector(800, 600), .activeTab = DebugScriptTab_Output));
   if (pinned) {
     ui_panel_pin(&panelComp->panel);
   }
