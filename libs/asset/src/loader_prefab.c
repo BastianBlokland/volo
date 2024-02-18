@@ -174,7 +174,6 @@ typedef struct {
   String aimJoint;
   f32    aimSpeed; // Degrees per second.
   f32    targetRangeMin, targetRangeMax;
-  f32    targetLineOfSightRadius;
   bool   targetExcludeUnreachable;
   bool   targetExcludeObscured;
 } AssetPrefabTraitAttackDef;
@@ -385,7 +384,6 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetRangeMin, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetRangeMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetExcludeObscured, data_prim_t(bool), .flags = DataFlags_Opt);
 
@@ -719,7 +717,6 @@ static void prefab_build(
           .aimSpeedRad              = traitDef->data_attack.aimSpeed * math_deg_to_rad,
           .targetRangeMin           = traitDef->data_attack.targetRangeMin,
           .targetRangeMax           = traitDef->data_attack.targetRangeMax,
-          .targetLineOfSightRadius  = traitDef->data_attack.targetLineOfSightRadius,
           .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
           .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,
       };

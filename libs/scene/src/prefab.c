@@ -329,10 +329,9 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       w,
       e,
       SceneTargetFinderComp,
-      .config            = config,
-      .rangeMin          = t->targetRangeMin,
-      .rangeMax          = t->targetRangeMax,
-      .lineOfSightRadius = t->targetLineOfSightRadius);
+      .config   = config,
+      .rangeMin = t->targetRangeMin,
+      .rangeMax = t->targetRangeMax);
   ecs_world_add_t(w, e, SceneDamageStatsComp);
 }
 

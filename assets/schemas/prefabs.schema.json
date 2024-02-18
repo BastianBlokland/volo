@@ -201,7 +201,6 @@
             "aimSpeed": { "title": "f32", "type": "number" },
             "targetRangeMin": { "title": "f32", "type": "number" },
             "targetRangeMax": { "title": "f32", "type": "number" },
-            "targetLineOfSightRadius": { "title": "f32", "type": "number" },
             "targetExcludeUnreachable": { "title": "bool", "type": "boolean" },
             "targetExcludeObscured": { "title": "bool", "type": "boolean" }
           },

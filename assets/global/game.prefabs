@@ -31,7 +31,6 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Rifle",
           "targetRangeMax": 25,
-          "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
         {
@@ -91,7 +90,6 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "RocketLauncher",
           "targetRangeMax": 30,
-          "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
         {
@@ -151,7 +149,6 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "FlameThrower",
           "targetRangeMax": 12.5,
-          "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
         {
@@ -216,7 +213,6 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Melee",
           "targetRangeMax": 150,
-          "targetLineOfSightRadius": 0.2,
           "targetExcludeUnreachable": true
         },
         {
@@ -309,7 +305,6 @@
           "aimJoint": "turret",
           "aimSpeed": 50,
           "targetRangeMax": 50,
-          "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
         {
@@ -366,7 +361,6 @@
           "aimJoint": "turret",
           "aimSpeed": 120,
           "targetRangeMax": 35,
-          "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
         {

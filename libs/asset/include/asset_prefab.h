@@ -141,7 +141,6 @@ typedef struct {
   StringHash aimJoint;
   f32        aimSpeedRad; // Radians per second.
   f32        targetRangeMin, targetRangeMax;
-  f32        targetLineOfSightRadius;
   bool       targetExcludeUnreachable;
   bool       targetExcludeObscured;
 } AssetPrefabTraitAttack;
