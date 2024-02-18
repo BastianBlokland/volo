@@ -942,7 +942,15 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/explosive.script" ] },
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [ "scripts/logic/explosive.script" ],
+          "knowledge": [
+            { "$name": "cfgExplodeDelay", "$type": "AssetPrefabValue_Number", "$data": 0.1 },
+            { "$name": "cfgExplodeRadius", "$type": "AssetPrefabValue_Number", "$data": 4 },
+            { "$name": "cfgExplodeDamage", "$type": "AssetPrefabValue_Number", "$data": 75 }
+          ]
+        },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-01.wav" ],

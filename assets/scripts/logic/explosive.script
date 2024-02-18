@@ -1,0 +1,28 @@
+
+/**
+ * Damage all entities in a radius.
+ *
+ * Supports the following input knowledge:
+ * - "cfgExplodeDelay" : Delay in seconds until the explosion happens.
+ * - "cfgExplodeRadius": Radius of the explosion.
+ * - "cfgExplodeDamage": Damage of the explosion.
+ */
+
+if ($exploded) {
+  return
+}
+
+var now    = time()
+var delay  = $cfgExplodeDelay ?? 0.1
+var radius = $cfgExplodeRadius ?? 4
+var damage = $cfgExplodeDamage ?? 75
+
+$explodeTime ??= now + delay
+if (now >= $explodeTime) {
+  var pos     = position(self())
+  var targets = query_sphere(pos, radius, "Unit", "Destructible")
+  while (var target = query_pop(targets)) {
+    damage(target, damage)
+  }
+  $exploded = true
+}
