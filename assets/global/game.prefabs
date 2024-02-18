@@ -47,7 +47,7 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack_ranged.script"
+            "scripts/behavior/unit_attack.script"
           ]
         },
         {
@@ -106,7 +106,7 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack_ranged.script"
+            "scripts/behavior/unit_attack.script"
           ]
         },
         {
@@ -165,7 +165,7 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack_ranged.script",
+            "scripts/behavior/unit_attack.script",
             "scripts/unit_flame_effects.script"
           ],
           "knowledge": [
@@ -225,7 +225,18 @@
             "height": 1.1
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/unit_melee.script" ] },
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [
+            "scripts/behavior/unit_move.script",
+            "scripts/behavior/unit_attack.script"
+          ],
+          "knowledge": [
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.2 },
+            { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true },
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgLosRadius", "$data": 0.2 }
+          ]
+        },
         {
           "$type": "AssetPrefabTrait_Bark", "priority": 1,
           "barkDeathPrefab": "BarkDeathInfantryEnemy"
@@ -320,7 +331,7 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack_ranged.script",
+            "scripts/behavior/unit_attack.script",
             "scripts/vehicle_effects.script",
             "scripts/aim_effects.script"
           ],
@@ -375,7 +386,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_attack_ranged.script",
+            "scripts/behavior/unit_attack.script",
             "scripts/aim_effects.script"
           ],
           "knowledge": [
@@ -419,7 +430,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_attack_ranged.script",
+            "scripts/behavior/unit_attack.script",
             "scripts/aim_effects.script"
           ],
           "knowledge": [

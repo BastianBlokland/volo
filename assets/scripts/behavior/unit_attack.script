@@ -6,8 +6,9 @@ var me = self()
  *
  * Supports the following input knowledge:
  * - "cmdAttackTarget" : Start attacking the given entity.
- * - "cnfAllowAutoMove": Allow automatically moving when target is out of range.
- * - "cnfLosRadius"    : Radius for line-of-sight check.
+ * - "cfgAttackRange"  : Maximum range for attacks.
+ * - "cfgAllowAutoMove": Allow automatically moving when target is out of range.
+ * - "cfgLosRadius"    : Radius for line-of-sight check.
  */
 
 if (active(me, "Dead")) {
@@ -16,8 +17,9 @@ if (active(me, "Dead")) {
 
 var target       = $cmdAttackTarget
 var isAutoTarget = false
-var losRadius    = $cnfLosRadius ?? 0.5
-var requireLos   = $cnfLosRadius != null || target_exclude(me, "Obscured")
+var losRadius    = $cfgLosRadius ?? 0.5
+var requireLos   = $cfgLosRadius != null || target_exclude(me, "Obscured")
+var attackRange  = $cfgAttackRange ?? target_range_max(me)
 var canMove      = capable(me, "NavTravel")
 
 // If the unit cannot move check if the target is within range.
@@ -56,14 +58,14 @@ if (!target || active(target, "Dead")) {
 
 if (requireLos) {
   var los = line_of_sight(me, target, losRadius)
-  if (los != null && los <= target_range_max(me)) {
+  if (los != null && los <= attackRange) {
     if (canMove) {
       nav_stop(me)
     }
     attack(me, target)
   } else {
     // Not in line-of-sight.
-    if (canMove && (!isAutoTarget || $cnfAllowAutoMove)) {
+    if (canMove && (!isAutoTarget || $cfgAllowAutoMove)) {
       nav_travel(me, target) // Not an automatic target, so we are allowed to move when not in range.
     }
     attack(me, null)
