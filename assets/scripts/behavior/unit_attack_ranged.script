@@ -5,7 +5,8 @@ var me = self()
  * Move (if capable) to and attack requested targets and automatically attack in-range targets.
  *
  * Supports the following input knowledge:
- * - "cmdAttackTarget": Start attacking the given entity.
+ * - "cmdAttackTarget" : Start attacking the given entity.
+ * - "cnfAllowAutoMove": Allow automatically moving when target is out of range.
  */
 
 if (active(me, "Dead")) {
@@ -61,7 +62,7 @@ if (requireLos) {
     attack(me, target)
   } else {
     // Not in line-of-sight.
-    if (!isAutoTarget && canMove) {
+    if (canMove && (!isAutoTarget || $cnfAllowAutoMove)) {
       nav_travel(me, target) // Not an automatic target, so we are allowed to move when not in range.
     }
     attack(me, null)
