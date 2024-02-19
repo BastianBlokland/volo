@@ -1034,6 +1034,22 @@ GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_pos(grid, cell);
 }
 
+GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
+  return nav_cell_map(grid, pos).cell;
+}
+
+GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return nav_island(grid, cell);
+}
+
+bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  return nav_island(grid, from) == nav_island(grid, to);
+}
+
 bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_pred_condition(grid, &cond, cell);
@@ -1112,13 +1128,6 @@ bool geo_nav_blocked_line_flat(
   return false;
 }
 
-bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
-  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
-  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
-
-  return nav_island(grid, from) == nav_island(grid, to);
-}
-
 GeoNavCell geo_nav_closest(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
@@ -1155,15 +1164,6 @@ geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const G
     return res[0];
   }
   return from; // No reachable cell found.
-}
-
-GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
-  return nav_cell_map(grid, pos).cell;
-}
-
-GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_island(grid, cell);
 }
 
 u32 geo_nav_path(
