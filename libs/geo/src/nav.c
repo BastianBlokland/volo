@@ -1035,6 +1035,14 @@ void geo_nav_y_clear(GeoNavGrid* grid) {
   }
 }
 
+u16 geo_nav_manhattan_dist(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  (void)grid;
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  return nav_manhattan_dist(from, to);
+}
+
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_pos(grid, cell);
