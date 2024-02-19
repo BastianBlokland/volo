@@ -250,7 +250,7 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
         continue;
       }
       for (u32 i = 0; i != path->cellCount; ++i) {
-        if (geo_nav_blocked(ctx->grid, path->cells[i])) {
+        if (geo_nav_check(ctx->grid, path->cells[i], GeoNavCond_Blocked)) {
           path->nextRefreshTime = 0;
           ctx->change |= NavChange_PathInvalidated;
           break;

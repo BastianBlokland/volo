@@ -65,17 +65,22 @@ f32          geo_nav_cell_size(const GeoNavGrid*);
 void geo_nav_y_update(GeoNavGrid*, GeoNavCell, f32 y);
 void geo_nav_y_clear(GeoNavGrid*);
 
+typedef enum {
+  GeoNavCond_Blocked,
+  GeoNavCond_Occupied,
+  GeoNavCond_OccupiedStationary,
+  GeoNavCond_OccupiedMoving,
+} GeoNavCond;
+
 /**
  * Lookup cell information.
  */
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
-bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
+bool         geo_nav_check(const GeoNavGrid*, GeoNavCell, GeoNavCond);
 bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
 bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
 bool         geo_nav_blocked_line_flat(const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius);
 bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
-bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
-bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 u32          geo_nav_closest_unblocked_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);

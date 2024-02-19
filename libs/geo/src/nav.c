@@ -558,6 +558,19 @@ static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const GeoNav
   return false;
 }
 
+static bool
+nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
+  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
+  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  for (u32 i = 0; i != occupantCount; ++i) {
+    if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
   (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
@@ -586,6 +599,21 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell
     }
   }
   return true;
+}
+
+static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  const GeoNavCond* cond = ctx;
+  switch (*cond) {
+  case GeoNavCond_Blocked:
+    return nav_pred_blocked(g, null, cell);
+  case GeoNavCond_Occupied:
+    return nav_pred_occupied(g, null, cell);
+  case GeoNavCond_OccupiedStationary:
+    return nav_pred_occupied_stationary(g, null, cell);
+  case GeoNavCond_OccupiedMoving:
+    return nav_pred_occupied_moving(g, null, cell);
+  }
+  UNREACHABLE
 }
 
 static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
@@ -1002,9 +1030,9 @@ GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_pos(grid, cell);
 }
 
-bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
+bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_blocked(grid, null, cell);
+  return nav_pred_condition(grid, &cond, cell);
 }
 
 bool geo_nav_blocked_box_rotated(const GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
@@ -1084,16 +1112,6 @@ bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoN
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
   return nav_island(grid, from) == nav_island(grid, to);
-}
-
-bool geo_nav_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_occupied(grid, null, cell);
-}
-
-bool geo_nav_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_occupied_moving(grid, null, cell);
 }
 
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
