@@ -723,7 +723,7 @@ static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptEr
     return script_vec3(geo_nav_position(grid, unblockedCell));
   }
   case 2 /* FreeCell */: {
-    const GeoNavCell freeCell = geo_nav_closest_free(grid, cell);
+    const GeoNavCell freeCell = geo_nav_closest(grid, cell, GeoNavCond_Free);
     return script_vec3(geo_nav_position(grid, freeCell));
   }
   }

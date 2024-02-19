@@ -71,6 +71,7 @@ typedef enum {
   GeoNavCond_Occupied,
   GeoNavCond_OccupiedStationary,
   GeoNavCond_OccupiedMoving,
+  GeoNavCond_Free, // Not blocked and not occupied stationary.
 } GeoNavCond;
 
 /**
@@ -84,8 +85,6 @@ bool         geo_nav_blocked_line_flat(const GeoNavGrid*, GeoVector from, GeoVec
 bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell   geo_nav_closest(const GeoNavGrid*, GeoNavCell, GeoNavCond);
 u32          geo_nav_closest_n(const GeoNavGrid*, GeoNavCell, GeoNavCond, GeoNavCellContainer);
-GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
-u32          geo_nav_closest_free_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 GeoNavIsland geo_nav_island(const GeoNavGrid*, GeoNavCell);
