@@ -35,6 +35,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 0.5f
 #define path_arrive_threshold 1.2f
+#define path_avoid_occupied_manhattan_dist 7
 
 const String g_sceneNavLayerNames[] = {
     [SceneNavLayer_Normal] = string_static("Normal"),
@@ -465,6 +466,23 @@ static void nav_move_towards(
   scene_locomotion_move(loco, locoPos);
 }
 
+/**
+ * What navigation condition should block taking a direct shortcut to the given cell.
+ */
+static GeoNavCond
+nav_shortcut_block_cond(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  /**
+   * When checking far enough away make cells with stationary occupants block shortcuts as we hope
+   * that we can take a route that only crosses free cells, once we start getting close allow moving
+   * through occupied cells.
+   */
+  const u16 manhattanDist = geo_nav_manhattan_dist(grid, from, to);
+  if (manhattanDist >= path_avoid_occupied_manhattan_dist) {
+    return GeoNavCond_NonFree;
+  }
+  return GeoNavCond_Blocked;
+}
+
 ecs_system_define(SceneNavUpdateAgentsSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateAgentGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -551,9 +569,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
-      const GeoVector  pathPos = geo_nav_position(grid, path->cells[i]);
-      const GeoNavCond navCond = GeoNavCond_Blocked;
-      if (!geo_nav_check_line_flat(grid, trans->position, pathPos, loco->radius, navCond)) {
+      const GeoVector  pathPos      = geo_nav_position(grid, path->cells[i]);
+      const GeoNavCond shortcutCond = nav_shortcut_block_cond(grid, fromCell, path->cells[i]);
+      if (!geo_nav_check_line_flat(grid, trans->position, pathPos, loco->radius, shortcutCond)) {
         path->currentTargetIndex = i;
         nav_move_towards(grid, loco, &goal, path->cells[i]);
         goto Done;
