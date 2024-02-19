@@ -81,6 +81,8 @@ bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*
 bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
 bool         geo_nav_blocked_line_flat(const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius);
 bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
+GeoNavCell   geo_nav_closest(const GeoNavGrid*, GeoNavCell, GeoNavCond);
+u32          geo_nav_closest_n(const GeoNavGrid*, GeoNavCell, GeoNavCond, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 u32          geo_nav_closest_unblocked_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);

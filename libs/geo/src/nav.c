@@ -1114,6 +1114,29 @@ bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoN
   return nav_island(grid, from) == nav_island(grid, to);
 }
 
+GeoNavCell geo_nav_closest(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState*  s = nav_worker_state(grid);
+  GeoNavCell          res[1];
+  GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
+  if (nav_find(grid, s, &cond, cell, nav_pred_condition, container)) {
+    return res[0];
+  }
+  return cell; // No matching cell found.
+}
+
+u32 geo_nav_closest_n(
+    const GeoNavGrid*         grid,
+    const GeoNavCell          cell,
+    const GeoNavCond          cond,
+    const GeoNavCellContainer out) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  return nav_find(grid, s, &cond, cell, nav_pred_condition, out);
+}
+
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
