@@ -616,6 +616,8 @@ static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const GeoNa
     return nav_pred_occupied_moving(g, null, cell);
   case GeoNavCond_Free:
     return nav_pred_free(g, null, cell);
+  case GeoNavCond_NonFree:
+    return !nav_pred_free(g, null, cell);
   }
   UNREACHABLE
 }

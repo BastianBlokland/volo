@@ -71,7 +71,8 @@ typedef enum {
   GeoNavCond_Occupied,
   GeoNavCond_OccupiedStationary,
   GeoNavCond_OccupiedMoving,
-  GeoNavCond_Free, // Not blocked and not occupied stationary.
+  GeoNavCond_Free,    // Not blocked and without a stationary occupant.
+  GeoNavCond_NonFree, // Blocked or with an stationary occupant.
 } GeoNavCond;
 
 /**
