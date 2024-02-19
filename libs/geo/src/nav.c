@@ -1039,39 +1039,40 @@ bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCo
   return nav_pred_condition(grid, &cond, cell);
 }
 
-bool geo_nav_blocked_box_rotated(const GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
+bool geo_nav_check_box_rotated(
+    const GeoNavGrid* grid, const GeoBoxRotated* boxRotated, const GeoNavCond cond) {
   const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_blocked(grid, null, cell)) {
-        continue; // Not blocked.
+      if (!nav_pred_condition(grid, &cond, cell)) {
+        continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
       if (!geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
         continue; // Not overlapping.
       }
-      return true; // Blocked and overlapping.
+      return true; // Meets condition and overlaps.
     }
   }
   return false;
 }
 
-bool geo_nav_blocked_sphere(const GeoNavGrid* grid, const GeoSphere* sphere) {
+bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const GeoNavCond cond) {
   const GeoBox       bounds = geo_box_from_sphere(sphere->point, sphere->radius);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_blocked(grid, null, cell)) {
-        continue; // Not blocked.
+      if (!nav_pred_condition(grid, &cond, cell)) {
+        continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
       if (!geo_sphere_overlap_box(sphere, &cellBox)) {
         continue; // Not overlapping.
       }
-      return true; // Blocked and overlapping.
+      return true; // Meets condition and overlaps.
     }
   }
   return false;

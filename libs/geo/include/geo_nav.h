@@ -79,8 +79,8 @@ typedef enum {
  */
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_check(const GeoNavGrid*, GeoNavCell, GeoNavCond);
-bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
-bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
+bool         geo_nav_check_box_rotated(const GeoNavGrid*, const GeoBoxRotated*, GeoNavCond);
+bool         geo_nav_check_sphere(const GeoNavGrid*, const GeoSphere*, GeoNavCond);
 bool         geo_nav_blocked_line_flat(const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius);
 bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell   geo_nav_closest(const GeoNavGrid*, GeoNavCell, GeoNavCond);

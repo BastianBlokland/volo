@@ -407,7 +407,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector offset = shape->data_sphere.offset;
     const GeoVector point  = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
-    return geo_nav_blocked_sphere(grid, &sphereWorld);
+    return geo_nav_check_sphere(grid, &sphereWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Capsule: {
     static const GeoVector  g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
@@ -419,12 +419,12 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
     const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);
-    return geo_nav_blocked_box_rotated(grid, &boxWorld);
+    return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Box: {
     const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
     const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
-    return geo_nav_blocked_box_rotated(grid, &boxWorld);
+    return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
   }
   }
   diag_crash_msg("Unsupported product collision shape");
