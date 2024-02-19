@@ -61,58 +61,58 @@ spec(nav) {
 
   it("can block a single cell") {
     const GeoNavCell cell = {.x = 2, .y = 2};
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
 
     const GeoBox box = geo_box_from_sphere(geo_nav_position(grid, cell), 0.25f);
     geo_nav_blocker_add_box(grid, 42, &box);
 
-    check(geo_nav_blocked(grid, cell));
-    check(!geo_nav_blocked(grid, (GeoNavCell){.x = 3, .y = 2}));
-    check(!geo_nav_blocked(grid, (GeoNavCell){.x = 1, .y = 2}));
-    check(!geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 3}));
-    check(!geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 1}));
+    check(geo_nav_check(grid, cell, GeoNavCond_Blocked));
+    check(!geo_nav_check(grid, (GeoNavCell){.x = 3, .y = 2}, GeoNavCond_Blocked));
+    check(!geo_nav_check(grid, (GeoNavCell){.x = 1, .y = 2}, GeoNavCond_Blocked));
+    check(!geo_nav_check(grid, (GeoNavCell){.x = 2, .y = 3}, GeoNavCond_Blocked));
+    check(!geo_nav_check(grid, (GeoNavCell){.x = 2, .y = 1}, GeoNavCond_Blocked));
   }
 
   it("ignores blockers below the grid") {
     const GeoNavCell cell = {.x = 2, .y = 2};
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
 
     const GeoVector pos = geo_vector_sub(geo_nav_position(grid, cell), geo_vector(0, -1, 0));
     const GeoBox    box = geo_box_from_sphere(pos, 0.25f);
     geo_nav_blocker_add_box(grid, 42, &box);
 
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
   }
 
   it("ignores blockers above the cell height") {
     const GeoNavCell cell = {.x = 2, .y = 2};
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
 
     const GeoVector pos = geo_vector_add(geo_nav_position(grid, cell), geo_vector(0, 1, 0));
     const GeoBox    box = geo_box_from_sphere(pos, 0.25f);
     geo_nav_blocker_add_box(grid, 42, &box);
 
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
   }
 
   it("blocks cells if the y position is too hight") {
     const GeoNavCell cell = {.x = 2, .y = 2};
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
 
     geo_nav_y_update(grid, cell, 1.0f);
 
-    check(geo_nav_blocked(grid, cell));
+    check(geo_nav_check(grid, cell, GeoNavCond_Blocked));
   }
 
   it("unblocks cells if the y position is lowered again") {
     const GeoNavCell cell = {.x = 2, .y = 2};
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
 
     geo_nav_y_update(grid, cell, 1.0f);
-    check(geo_nav_blocked(grid, cell));
+    check(geo_nav_check(grid, cell, GeoNavCond_Blocked));
 
     geo_nav_y_update(grid, cell, 0.4f);
-    check(!geo_nav_blocked(grid, cell));
+    check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
   }
 
   it("can find the closest unblocked cell") {
@@ -121,17 +121,17 @@ spec(nav) {
     const GeoBox box = geo_box_from_sphere(geo_nav_position(grid, cell), 2.0f);
     geo_nav_blocker_add_box(grid, 42, &box);
 
-    check(geo_nav_blocked(grid, cell));
-    check(geo_nav_blocked(grid, (GeoNavCell){.x = 3, .y = 2}));
-    check(geo_nav_blocked(grid, (GeoNavCell){.x = 1, .y = 2}));
-    check(geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 3}));
-    check(geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 1}));
+    check(geo_nav_check(grid, cell, GeoNavCond_Blocked));
+    check(geo_nav_check(grid, (GeoNavCell){.x = 3, .y = 2}, GeoNavCond_Blocked));
+    check(geo_nav_check(grid, (GeoNavCell){.x = 1, .y = 2}, GeoNavCond_Blocked));
+    check(geo_nav_check(grid, (GeoNavCell){.x = 2, .y = 3}, GeoNavCond_Blocked));
+    check(geo_nav_check(grid, (GeoNavCell){.x = 2, .y = 1}, GeoNavCond_Blocked));
 
-    const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(grid, cell);
+    const GeoNavCell closestUnblocked = geo_nav_closest(grid, cell, GeoNavCond_Unblocked);
 
     check_eq_int(closestUnblocked.x, 4);
     check_eq_int(closestUnblocked.y, 2);
-    check(!geo_nav_blocked(grid, closestUnblocked));
+    check(!geo_nav_check(grid, closestUnblocked, GeoNavCond_Blocked));
   }
 
   teardown() { geo_nav_grid_destroy(grid); }

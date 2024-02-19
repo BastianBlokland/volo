@@ -65,24 +65,34 @@ f32          geo_nav_cell_size(const GeoNavGrid*);
 void geo_nav_y_update(GeoNavGrid*, GeoNavCell, f32 y);
 void geo_nav_y_clear(GeoNavGrid*);
 
+typedef enum {
+  GeoNavCond_Blocked,
+  GeoNavCond_Unblocked,
+  GeoNavCond_Occupied,
+  GeoNavCond_OccupiedStationary,
+  GeoNavCond_OccupiedMoving,
+  GeoNavCond_Free,    // Not blocked and without a stationary occupant.
+  GeoNavCond_NonFree, // Blocked or with an stationary occupant.
+} GeoNavCond;
+
 /**
  * Lookup cell information.
  */
+u16          geo_nav_manhattan_dist(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
-bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
-bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
-bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
-bool         geo_nav_blocked_line_flat(const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius);
-bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
-bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
-bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
-GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
-u32          geo_nav_closest_unblocked_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
-GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
-u32          geo_nav_closest_free_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
-GeoNavCell   geo_nav_closest_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 GeoNavIsland geo_nav_island(const GeoNavGrid*, GeoNavCell);
+bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
+
+bool geo_nav_check(const GeoNavGrid*, GeoNavCell, GeoNavCond);
+bool geo_nav_check_box_rotated(const GeoNavGrid*, const GeoBoxRotated*, GeoNavCond);
+bool geo_nav_check_sphere(const GeoNavGrid*, const GeoSphere*, GeoNavCond);
+bool geo_nav_check_line_flat(
+    const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius, GeoNavCond);
+
+GeoNavCell geo_nav_closest(const GeoNavGrid*, GeoNavCell, GeoNavCond);
+u32        geo_nav_closest_n(const GeoNavGrid*, GeoNavCell, GeoNavCond, GeoNavCellContainer);
+GeoNavCell geo_nav_closest_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 
 /**
  * Compute a path between the given two cells.

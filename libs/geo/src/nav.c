@@ -311,20 +311,24 @@ static f32 nav_cell_dist_sqr(const GeoNavGrid* grid, const GeoNavCell cell, cons
   return geo_vector_mag_sqr(geo_vector_xz(delta));
 }
 
+static u16 nav_manhattan_dist(const GeoNavCell from, const GeoNavCell to) {
+  const i16 diffX = to.x - (i16)from.x;
+  const i16 diffY = to.y - (i16)from.y;
+  return nav_abs_i16(diffX) + nav_abs_i16(diffY);
+}
+
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
   /**
    * Basic manhattan distance to estimate the cost between the two cells.
-   * Additionally we a multiplier to make the A* search more greedy to reduce the amount of visited
-   * cells with the trade-off of less optimal paths.
+   * Additionally we add a multiplier to make the A* search more greedy to reduce the amount of
+   * visited cells with the trade-off of less optimal paths.
    */
-  enum { ExpectedCostPerCell = 1, Multiplier = 2 };
-  const i16 diffX = to.x - (i16)from.x;
-  const i16 diffY = to.y - (i16)from.y;
-  return (nav_abs_i16(diffX) + nav_abs_i16(diffY)) * ExpectedCostPerCell * Multiplier;
+  enum { ExpectedCostPerCell = 1, Greediness = 2 };
+  return nav_manhattan_dist(from, to) * ExpectedCostPerCell * Greediness;
 }
 
 static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
-  enum { NormalCost = 1, OccupiedCost = 25 };
+  enum { NormalCost = 1, OccupiedStationaryCost = 10 };
   const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (sentinel_check(grid->cellOccupancy[i])) {
@@ -333,7 +337,7 @@ static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
     if (grid->occupants[grid->cellOccupancy[i]].flags & GeoNavOccupantFlags_Moving) {
       continue; // Occupant is moving.
     }
-    return OccupiedCost; // Cell contains a non-moving occupant.
+    return OccupiedStationaryCost; // Cell contains a non-moving occupant.
   }
   return NormalCost;
 }
@@ -558,6 +562,19 @@ static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const GeoNav
   return false;
 }
 
+static bool
+nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
+  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
+  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  for (u32 i = 0; i != occupantCount; ++i) {
+    if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
   (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
@@ -586,6 +603,27 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell
     }
   }
   return true;
+}
+
+static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  const GeoNavCond* cond = ctx;
+  switch (*cond) {
+  case GeoNavCond_Blocked:
+    return nav_pred_blocked(g, null, cell);
+  case GeoNavCond_Unblocked:
+    return nav_pred_unblocked(g, null, cell);
+  case GeoNavCond_Occupied:
+    return nav_pred_occupied(g, null, cell);
+  case GeoNavCond_OccupiedStationary:
+    return nav_pred_occupied_stationary(g, null, cell);
+  case GeoNavCond_OccupiedMoving:
+    return nav_pred_occupied_moving(g, null, cell);
+  case GeoNavCond_Free:
+    return nav_pred_free(g, null, cell);
+  case GeoNavCond_NonFree:
+    return !nav_pred_free(g, null, cell);
+  }
+  UNREACHABLE
 }
 
 static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
@@ -997,56 +1035,85 @@ void geo_nav_y_clear(GeoNavGrid* grid) {
   }
 }
 
+u16 geo_nav_manhattan_dist(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  (void)grid;
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  return nav_manhattan_dist(from, to);
+}
+
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_pos(grid, cell);
 }
 
-bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_blocked(grid, null, cell);
+GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
+  return nav_cell_map(grid, pos).cell;
 }
 
-bool geo_nav_blocked_box_rotated(const GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
+GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return nav_island(grid, cell);
+}
+
+bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  return nav_island(grid, from) == nav_island(grid, to);
+}
+
+bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return nav_pred_condition(grid, &cond, cell);
+}
+
+bool geo_nav_check_box_rotated(
+    const GeoNavGrid* grid, const GeoBoxRotated* boxRotated, const GeoNavCond cond) {
   const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_blocked(grid, null, cell)) {
-        continue; // Not blocked.
+      if (!nav_pred_condition(grid, &cond, cell)) {
+        continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
       if (!geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
         continue; // Not overlapping.
       }
-      return true; // Blocked and overlapping.
+      return true; // Meets condition and overlaps.
     }
   }
   return false;
 }
 
-bool geo_nav_blocked_sphere(const GeoNavGrid* grid, const GeoSphere* sphere) {
+bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const GeoNavCond cond) {
   const GeoBox       bounds = geo_box_from_sphere(sphere->point, sphere->radius);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_blocked(grid, null, cell)) {
-        continue; // Not blocked.
+      if (!nav_pred_condition(grid, &cond, cell)) {
+        continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
       if (!geo_sphere_overlap_box(sphere, &cellBox)) {
         continue; // Not overlapping.
       }
-      return true; // Blocked and overlapping.
+      return true; // Meets condition and overlaps.
     }
   }
   return false;
 }
 
-bool geo_nav_blocked_line_flat(
-    const GeoNavGrid* g, const GeoVector from, const GeoVector to, const f32 radius) {
+bool geo_nav_check_line_flat(
+    const GeoNavGrid* g,
+    const GeoVector   from,
+    const GeoVector   to,
+    const f32         radius,
+    const GeoNavCond  cond) {
 
   ++nav_worker_state(g)->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
 
@@ -1066,74 +1133,40 @@ bool geo_nav_blocked_line_flat(
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_blocked(g, null, cell)) {
-        continue; // Not blocked.
+      if (!nav_pred_condition(g, &cond, cell)) {
+        continue; // Doesn't meet condition.
       }
       const NavRect2D cellRect = {.pos = {(f32)cell.x, (f32)cell.y}, .extent = localExtent};
       if (!nav_line_intersect_rect(&localLine, &cellRect)) {
         continue; // Not overlapping.
       }
-      return true; // Blocked and overlapping.
+      return true; // Meets condition and overlaps.
     }
   }
   return false;
 }
 
-bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
-  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
-  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
-
-  return nav_island(grid, from) == nav_island(grid, to);
-}
-
-bool geo_nav_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_occupied(grid, null, cell);
-}
-
-bool geo_nav_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_occupied_moving(grid, null, cell);
-}
-
-GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
+GeoNavCell geo_nav_closest(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
   GeoNavWorkerState*  s = nav_worker_state(grid);
   GeoNavCell          res[1];
   GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
-  if (nav_find(grid, s, null, cell, nav_pred_unblocked, container)) {
+  if (nav_find(grid, s, &cond, cell, nav_pred_condition, container)) {
     return res[0];
   }
-  return cell; // No unblocked cell found.
+  return cell; // No matching cell found.
 }
 
-u32 geo_nav_closest_unblocked_n(
-    const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCellContainer out) {
+u32 geo_nav_closest_n(
+    const GeoNavGrid*         grid,
+    const GeoNavCell          cell,
+    const GeoNavCond          cond,
+    const GeoNavCellContainer out) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
   GeoNavWorkerState* s = nav_worker_state(grid);
-  return nav_find(grid, s, null, cell, nav_pred_unblocked, out);
-}
-
-GeoNavCell geo_nav_closest_free(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-
-  GeoNavWorkerState*  s = nav_worker_state(grid);
-  GeoNavCell          res[1];
-  GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
-  if (nav_find(grid, s, null, cell, nav_pred_free, container)) {
-    return res[0];
-  }
-  return cell; // No free cell found.
-}
-
-u32 geo_nav_closest_free_n(
-    const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCellContainer out) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-
-  GeoNavWorkerState* s = nav_worker_state(grid);
-  return nav_find(grid, s, null, cell, nav_pred_free, out);
+  return nav_find(grid, s, &cond, cell, nav_pred_condition, out);
 }
 
 GeoNavCell
@@ -1149,15 +1182,6 @@ geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const G
     return res[0];
   }
   return from; // No reachable cell found.
-}
-
-GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
-  return nav_cell_map(grid, pos).cell;
-}
-
-GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
-  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_island(grid, cell);
 }
 
 u32 geo_nav_path(
@@ -1404,8 +1428,8 @@ geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos, cons
   if (nav_pred_blocked(grid, null, mapRes.cell)) {
     // Position is currently in a blocked cell; push it into the closest unblocked cell.
     static const f32 g_unblockSepStrength = 25.0f;
-    const GeoNavCell closestUnblocked     = geo_nav_closest_unblocked(grid, mapRes.cell);
-    const GeoVector  toUnblocked = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
+    const GeoNavCell closestUnblocked = geo_nav_closest(grid, mapRes.cell, GeoNavCond_Unblocked);
+    const GeoVector  toUnblocked      = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
     return geo_vector_mul(toUnblocked, g_unblockSepStrength);
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.

@@ -61,9 +61,9 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
 }
 
 static GeoVector product_world_on_nav(const GeoNavGrid* grid, const GeoVector pos) {
-  GeoNavCell cell = geo_nav_at_position(grid, pos);
-  geo_nav_closest_unblocked_n(grid, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
-  return geo_nav_position(grid, cell);
+  const GeoNavCell cell          = geo_nav_at_position(grid, pos);
+  const GeoNavCell unblockedCell = geo_nav_closest(grid, cell, GeoNavCond_Unblocked);
+  return geo_nav_position(grid, unblockedCell);
 }
 
 static void product_sound_play(EcsWorld* world, const EcsEntityId asset, const f32 gain) {
@@ -302,7 +302,8 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
       .cells    = targetCells,
       .capacity = math_min(spawnCount, array_elems(targetCells)),
   };
-  const u32 targetCellCnt = geo_nav_closest_unblocked_n(grid, rallyCell, targetCellContainer);
+  const GeoNavCond navCond  = GeoNavCond_Unblocked;
+  const u32 targetCellCount = geo_nav_closest_n(grid, rallyCell, navCond, targetCellContainer);
 
   const GeoVector toRallyVec = geo_vector_sub(rallyPos, spawnPos);
   const f32       toRallyMag = geo_vector_mag(toRallyVec);
@@ -320,7 +321,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
             .faction  = factionComp ? factionComp->id : SceneFaction_None,
         });
     GeoVector pos;
-    if (LIKELY(i < targetCellCnt)) {
+    if (LIKELY(i < targetCellCount)) {
       const bool sameCellAsRallPos = targetCells[i].data == rallyCell.data;
       pos = sameCellAsRallPos ? rallyPos : geo_nav_position(grid, targetCells[i]);
     } else {
@@ -406,7 +407,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector offset = shape->data_sphere.offset;
     const GeoVector point  = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
-    return geo_nav_blocked_sphere(grid, &sphereWorld);
+    return geo_nav_check_sphere(grid, &sphereWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Capsule: {
     static const GeoVector  g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
@@ -418,12 +419,12 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
     const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);
-    return geo_nav_blocked_box_rotated(grid, &boxWorld);
+    return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Box: {
     const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
     const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
-    return geo_nav_blocked_box_rotated(grid, &boxWorld);
+    return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
   }
   }
   diag_crash_msg("Unsupported product collision shape");
