@@ -606,6 +606,8 @@ static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const GeoNa
   switch (*cond) {
   case GeoNavCond_Blocked:
     return nav_pred_blocked(g, null, cell);
+  case GeoNavCond_Unblocked:
+    return nav_pred_unblocked(g, null, cell);
   case GeoNavCond_Occupied:
     return nav_pred_occupied(g, null, cell);
   case GeoNavCond_OccupiedStationary:

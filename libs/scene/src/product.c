@@ -61,9 +61,9 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
 }
 
 static GeoVector product_world_on_nav(const GeoNavGrid* grid, const GeoVector pos) {
-  GeoNavCell cell = geo_nav_at_position(grid, pos);
-  geo_nav_closest_unblocked_n(grid, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
-  return geo_nav_position(grid, cell);
+  const GeoNavCell cell          = geo_nav_at_position(grid, pos);
+  const GeoNavCell unblockedCell = geo_nav_closest(grid, cell, GeoNavCond_Unblocked);
+  return geo_nav_position(grid, unblockedCell);
 }
 
 static void product_sound_play(EcsWorld* world, const EcsEntityId asset, const f32 gain) {
@@ -302,7 +302,8 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
       .cells    = targetCells,
       .capacity = math_min(spawnCount, array_elems(targetCells)),
   };
-  const u32 targetCellCnt = geo_nav_closest_unblocked_n(grid, rallyCell, targetCellContainer);
+  const GeoNavCond navCond  = GeoNavCond_Unblocked;
+  const u32 targetCellCount = geo_nav_closest_n(grid, rallyCell, navCond, targetCellContainer);
 
   const GeoVector toRallyVec = geo_vector_sub(rallyPos, spawnPos);
   const f32       toRallyMag = geo_vector_mag(toRallyVec);
@@ -320,7 +321,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
             .faction  = factionComp ? factionComp->id : SceneFaction_None,
         });
     GeoVector pos;
-    if (LIKELY(i < targetCellCnt)) {
+    if (LIKELY(i < targetCellCount)) {
       const bool sameCellAsRallPos = targetCells[i].data == rallyCell.data;
       pos = sameCellAsRallPos ? rallyPos : geo_nav_position(grid, targetCells[i]);
     } else {

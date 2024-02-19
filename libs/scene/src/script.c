@@ -709,22 +709,23 @@ static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptEr
   if (UNLIKELY(err->kind)) {
     return script_null();
   }
-  const SceneNavEnvComp*    navEnv        = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
-  const GeoNavGrid*         grid          = scene_nav_grid(navEnv, layer);
-  GeoNavCell                cell          = geo_nav_at_position(grid, pos);
-  const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
+  const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
+  const GeoNavGrid*      grid   = scene_nav_grid(navEnv, layer);
+  const GeoNavCell       cell   = geo_nav_at_position(grid, pos);
   if (args.count < 3) {
     return script_vec3(geo_nav_position(grid, cell));
   }
   switch (script_arg_enum(args, 2, &g_scriptEnumNavFind, err)) {
   case 0 /* ClosestCell */:
     return script_vec3(geo_nav_position(grid, cell));
-  case 1 /* UnblockedCell */:
-    geo_nav_closest_unblocked_n(grid, cell, cellContainer);
-    return script_vec3(geo_nav_position(grid, cell));
-  case 2 /* FreeCell */:
-    geo_nav_closest_free_n(grid, cell, cellContainer);
-    return script_vec3(geo_nav_position(grid, cell));
+  case 1 /* UnblockedCell */: {
+    const GeoNavCell unblockedCell = geo_nav_closest(grid, cell, GeoNavCond_Unblocked);
+    return script_vec3(geo_nav_position(grid, unblockedCell));
+  }
+  case 2 /* FreeCell */: {
+    const GeoNavCell freeCell = geo_nav_closest_free(grid, cell);
+    return script_vec3(geo_nav_position(grid, freeCell));
+  }
   }
   return script_null();
 }

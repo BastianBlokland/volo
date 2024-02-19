@@ -450,18 +450,19 @@ static void input_order_move(
       .capacity = math_min(selectionCount, array_elems(navCells)),
   };
   const GeoNavCell targetNavCell = geo_nav_at_position(grid, targetPos);
-  const u32 unblockedCount = geo_nav_closest_unblocked_n(grid, targetNavCell, navCellContainer);
+  const GeoNavCond navCond       = GeoNavCond_Unblocked;
+  const u32        navCellCount = geo_nav_closest_n(grid, targetNavCell, navCond, navCellContainer);
 
   // Push the move commands.
   const EcsEntityId* selection = scene_set_begin(setEnv, g_sceneSetSelected);
   for (u32 i = 0; i != selectionCount; ++i) {
     const EcsEntityId entity = selection[i];
     GeoVector         pos;
-    if (LIKELY(i < unblockedCount)) {
+    if (LIKELY(i < navCellCount)) {
       const bool sameCellAsTargetPos = navCells[i].data == targetNavCell.data;
       pos = sameCellAsTargetPos ? targetPos : geo_nav_position(grid, navCells[i]);
     } else {
-      // We didn't find a free cell for this entity; just move to the raw targetPos.
+      // We didn't find a unblocked cell for this entity; just move to the raw targetPos.
       pos = targetPos;
     }
     cmd_push_move(cmdController, entity, pos);

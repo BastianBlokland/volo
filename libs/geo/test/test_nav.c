@@ -127,7 +127,7 @@ spec(nav) {
     check(geo_nav_check(grid, (GeoNavCell){.x = 2, .y = 3}, GeoNavCond_Blocked));
     check(geo_nav_check(grid, (GeoNavCell){.x = 2, .y = 1}, GeoNavCond_Blocked));
 
-    const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(grid, cell);
+    const GeoNavCell closestUnblocked = geo_nav_closest(grid, cell, GeoNavCond_Unblocked);
 
     check_eq_int(closestUnblocked.x, 4);
     check_eq_int(closestUnblocked.y, 2);
