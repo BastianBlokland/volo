@@ -1094,8 +1094,12 @@ bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const
   return false;
 }
 
-bool geo_nav_blocked_line_flat(
-    const GeoNavGrid* g, const GeoVector from, const GeoVector to, const f32 radius) {
+bool geo_nav_check_line_flat(
+    const GeoNavGrid* g,
+    const GeoVector   from,
+    const GeoVector   to,
+    const f32         radius,
+    const GeoNavCond  cond) {
 
   ++nav_worker_state(g)->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
 
@@ -1115,14 +1119,14 @@ bool geo_nav_blocked_line_flat(
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_blocked(g, null, cell)) {
-        continue; // Not blocked.
+      if (!nav_pred_condition(g, &cond, cell)) {
+        continue; // Doesn't meet condition.
       }
       const NavRect2D cellRect = {.pos = {(f32)cell.x, (f32)cell.y}, .extent = localExtent};
       if (!nav_line_intersect_rect(&localLine, &cellRect)) {
         continue; // Not overlapping.
       }
-      return true; // Blocked and overlapping.
+      return true; // Meets condition and overlaps.
     }
   }
   return false;
