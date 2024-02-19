@@ -311,16 +311,20 @@ static f32 nav_cell_dist_sqr(const GeoNavGrid* grid, const GeoNavCell cell, cons
   return geo_vector_mag_sqr(geo_vector_xz(delta));
 }
 
+static u16 nav_manhattan_dist(const GeoNavCell from, const GeoNavCell to) {
+  const i16 diffX = to.x - (i16)from.x;
+  const i16 diffY = to.y - (i16)from.y;
+  return nav_abs_i16(diffX) + nav_abs_i16(diffY);
+}
+
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
   /**
    * Basic manhattan distance to estimate the cost between the two cells.
-   * Additionally we a multiplier to make the A* search more greedy to reduce the amount of visited
-   * cells with the trade-off of less optimal paths.
+   * Additionally we add a multiplier to make the A* search more greedy to reduce the amount of
+   * visited cells with the trade-off of less optimal paths.
    */
-  enum { ExpectedCostPerCell = 1, Multiplier = 2 };
-  const i16 diffX = to.x - (i16)from.x;
-  const i16 diffY = to.y - (i16)from.y;
-  return (nav_abs_i16(diffX) + nav_abs_i16(diffY)) * ExpectedCostPerCell * Multiplier;
+  enum { ExpectedCostPerCell = 1, Greediness = 2 };
+  return nav_manhattan_dist(from, to) * ExpectedCostPerCell * Greediness;
 }
 
 static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
