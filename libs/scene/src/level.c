@@ -398,13 +398,15 @@ ecs_module_init(scene_level_module) {
       ecs_register_view(SaveRequestView));
 }
 
-bool scene_level_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
+bool scene_level_loading(const SceneLevelManagerComp* m) { return m->isLoading; }
 
-EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) { return manager->levelAsset; }
+bool scene_level_loaded(const SceneLevelManagerComp* m) {
+  return m->levelAsset != 0 && !m->isLoading;
+}
 
-u32 scene_level_counter(const SceneLevelManagerComp* manager) { return manager->loadCounter; }
-
-String scene_level_name(const SceneLevelManagerComp* manager) { return manager->levelName; }
+EcsEntityId scene_level_asset(const SceneLevelManagerComp* m) { return m->levelAsset; }
+u32         scene_level_counter(const SceneLevelManagerComp* m) { return m->loadCounter; }
+String      scene_level_name(const SceneLevelManagerComp* m) { return m->levelName; }
 
 void scene_level_name_update(SceneLevelManagerComp* manager, const String name) {
   diag_assert_msg(manager->levelAsset, "Unable to update name: No level loaded");

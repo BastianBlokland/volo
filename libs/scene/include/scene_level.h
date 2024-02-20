@@ -11,6 +11,7 @@ ecs_comp_extern(SceneLevelManagerComp);
 ecs_comp_extern_public(SceneLevelInstanceComp);
 
 bool        scene_level_loading(const SceneLevelManagerComp*);
+bool        scene_level_loaded(const SceneLevelManagerComp*);
 EcsEntityId scene_level_asset(const SceneLevelManagerComp*);
 u32         scene_level_counter(const SceneLevelManagerComp*);
 
