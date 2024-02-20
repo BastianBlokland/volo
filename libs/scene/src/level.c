@@ -25,6 +25,7 @@ ecs_comp_define(SceneLevelManagerComp) {
   EcsEntityId levelAsset;
   String      levelName;
   EcsEntityId levelTerrain;
+  GeoVector   levelStartpoint;
 };
 
 ecs_comp_define_public(SceneLevelInstanceComp);
@@ -416,6 +417,15 @@ EcsEntityId scene_level_terrain(const SceneLevelManagerComp* manager) {
 void scene_level_terrain_update(SceneLevelManagerComp* manager, const EcsEntityId terrainAsset) {
   diag_assert_msg(manager->levelAsset, "Unable to update terrain: No level loaded");
   manager->levelTerrain = terrainAsset;
+}
+
+GeoVector scene_level_startpoint(const SceneLevelManagerComp* manager) {
+  return manager->levelStartpoint;
+}
+
+void scene_level_startpoint_update(SceneLevelManagerComp* manager, const GeoVector startpoint) {
+  diag_assert_msg(manager->levelAsset, "Unable to update startpoint: No level loaded");
+  manager->levelStartpoint = startpoint;
 }
 
 void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {
