@@ -132,8 +132,9 @@ static void scene_level_process_load(
         });
   }
 
-  manager->levelAsset = levelAsset;
-  manager->levelName  = string_maybe_dup(g_alloc_heap, level->name);
+  manager->levelAsset      = levelAsset;
+  manager->levelName       = string_maybe_dup(g_alloc_heap, level->name);
+  manager->levelStartpoint = level->startpoint;
   if (!string_is_empty(level->terrainId)) {
     manager->levelTerrain = asset_lookup(world, assets, level->terrainId);
   }
@@ -322,6 +323,7 @@ static void scene_level_process_save(
   const AssetLevel level = {
       .name           = manager->levelName,
       .terrainId      = scene_asset_id(assetView, manager->levelTerrain),
+      .startpoint     = manager->levelStartpoint,
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
