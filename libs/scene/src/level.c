@@ -22,6 +22,7 @@ typedef enum {
 
 ecs_comp_define(SceneLevelManagerComp) {
   bool        isLoading;
+  u32         loadCounter;
   EcsEntityId levelAsset;
   String      levelName;
   EcsEntityId levelTerrain;
@@ -223,6 +224,7 @@ ecs_system_define(SceneLevelLoadSys) {
       }
       scene_level_process_load(world, manager, assets, req->levelAsset, &levelComp->level);
       manager->isLoading = false;
+      ++manager->loadCounter;
       goto Done;
     }
     diag_crash_msg("Unexpected load state");
@@ -399,6 +401,8 @@ ecs_module_init(scene_level_module) {
 bool scene_level_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
 
 EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) { return manager->levelAsset; }
+
+u32 scene_level_counter(const SceneLevelManagerComp* manager) { return manager->loadCounter; }
 
 String scene_level_name(const SceneLevelManagerComp* manager) { return manager->levelName; }
 
