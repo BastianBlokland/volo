@@ -101,9 +101,10 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
 
   string_maybe_free(g_alloc_heap, manager->levelName);
 
-  manager->levelAsset   = 0;
-  manager->levelName    = string_empty;
-  manager->levelTerrain = 0;
+  manager->levelAsset      = 0;
+  manager->levelName       = string_empty;
+  manager->levelTerrain    = 0;
+  manager->levelStartpoint = geo_vector(0);
 
   log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
