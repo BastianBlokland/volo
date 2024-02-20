@@ -52,8 +52,9 @@ typedef enum {
 
 ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
-  InputFlags       flags;
-  InputSelectState selectState;
+  InputFlags       flags : 8;
+  InputSelectState selectState : 8;
+  u32              lastLevelCounter;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 
   StringHash   lastGroupAction;
@@ -536,6 +537,16 @@ input_query_hovered_entity(const SceneCollisionEnvComp* collisionEnv, const GeoR
   return 0;
 }
 
+static void input_camera_reset(InputStateComp* state, const SceneLevelManagerComp* levelManager) {
+  if (scene_level_loaded(levelManager)) {
+    state->camPosTgt = scene_level_startpoint(levelManager);
+  } else {
+    state->camPosTgt = geo_vector(0);
+  }
+  state->camRotYTgt = 0.0f;
+  state->camZoomTgt = 0.0f;
+}
+
 static void update_camera_interact(
     EcsWorld*                    world,
     InputStateComp*              state,
@@ -607,11 +618,13 @@ static void update_camera_interact(
   if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
     input_order(world, cmdController, collisionEnv, setEnv, terrain, nav, debugStats, &inputRay);
   }
+  const u32 newLevelCounter = scene_level_counter(levelManager);
+  if (state->lastLevelCounter != newLevelCounter) {
+    input_camera_reset(state, levelManager);
+    state->lastLevelCounter = newLevelCounter;
+  }
   if (input_triggered_lit(input, "CameraReset")) {
-    const bool levelLoaded = scene_level_loaded(levelManager);
-    state->camPosTgt       = levelLoaded ? scene_level_startpoint(levelManager) : geo_vector(0);
-    state->camRotYTgt      = 0.0f;
-    state->camZoomTgt      = 0.0f;
+    input_camera_reset(state, levelManager);
     input_report_command(debugStats, string_lit("Reset camera"));
   }
 }
