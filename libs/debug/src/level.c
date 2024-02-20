@@ -2,10 +2,13 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "debug_panel.h"
 #include "ecs_world.h"
 #include "input_manager.h"
+#include "scene_camera.h"
 #include "scene_level.h"
+#include "scene_transform.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -46,6 +49,7 @@ ASSERT(array_elems(g_levelTabNames) == DebugLevelTab_Count, "Incorrect number of
 
 ecs_comp_define(DebugLevelPanelComp) {
   DebugLevelFlags flags;
+  EcsEntityId     window;
   DynString       idFilter;
   DynString       nameBuffer;
   DynArray        assetsLevel;   // EcsEntityId[]
@@ -65,13 +69,34 @@ static void ecs_destruct_level_panel(void* data) {
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
+ecs_view_define(CameraView) {
+  ecs_access_with(SceneCameraComp);
+  ecs_access_read(SceneTransformComp);
+}
+
 typedef struct {
-  EcsWorld*              world;
-  DebugLevelPanelComp*   panelComp;
-  SceneLevelManagerComp* levelManager;
-  AssetManagerComp*      assets;
-  EcsView*               assetView;
+  EcsWorld*                 world;
+  DebugLevelPanelComp*      panelComp;
+  SceneLevelManagerComp*    levelManager;
+  AssetManagerComp*         assets;
+  EcsView*                  assetView;
+  const SceneTransformComp* cameraTrans;
 } DebugLevelContext;
+
+static GeoVector level_camera_center(const DebugLevelContext* ctx) {
+  static const GeoPlane g_groundPlane = {.normal = {.y = 1.0f}};
+  if (ctx->cameraTrans) {
+    const GeoRay cameraRay = {
+        .point = ctx->cameraTrans->position,
+        .dir   = geo_quat_rotate(ctx->cameraTrans->rotation, geo_forward),
+    };
+    const f32 rayT = geo_plane_intersect_ray(&g_groundPlane, &cameraRay);
+    if (rayT > f32_epsilon) {
+      return geo_ray_position(&cameraRay, rayT);
+    }
+  }
+  return geo_vector(0);
+}
 
 static void level_assets_refresh(DebugLevelContext* ctx, const String pattern, DynString* out) {
   EcsEntityId assetEntities[asset_query_max_results];
@@ -247,6 +272,13 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
     scene_level_startpoint_update(ctx->levelManager, startpoint);
   }
 
+  ui_table_next_row(c, &table);
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .label = string_lit("Camera center"))) {
+    const GeoVector newStartpoint = level_camera_center(ctx);
+    scene_level_startpoint_update(ctx->levelManager, newStartpoint);
+  }
+
   ui_layout_push(c);
   ui_layout_inner(c, UiBase_Container, UiAlign_BottomCenter, ui_vector(100, 22), UiBase_Absolute);
   ui_layout_move_dir(c, Ui_Up, 8, UiBase_Absolute);
@@ -304,8 +336,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
   AssetManagerComp*       assets       = ecs_view_write_t(globalItr, AssetManagerComp);
   const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
 
-  EcsView* assetView = ecs_world_view_t(world, AssetView);
-  EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
+  EcsView* assetView  = ecs_world_view_t(world, AssetView);
+  EcsView* cameraView = ecs_world_view_t(world, CameraView);
+  EcsView* panelView  = ecs_world_view_t(world, PanelUpdateView);
 
   if (input_triggered_lit(input, "SaveLevel")) {
     const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
@@ -314,6 +347,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     }
   }
 
+  EcsIterator* cameraItr = ecs_view_itr(cameraView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
@@ -325,6 +359,10 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
         .assets       = assets,
         .assetView    = assetView,
     };
+
+    if (ecs_view_maybe_jump(cameraItr, panelComp->window)) {
+      ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
+    }
 
     if (panelComp->flags & DebugLevelFlags_RefreshAssets) {
       level_assets_refresh(&ctx, g_queryPatternLevel, &panelComp->assetsLevel);
@@ -364,12 +402,14 @@ ecs_module_init(debug_level_module) {
   ecs_register_comp(DebugLevelPanelComp, .destructor = ecs_destruct_level_panel);
 
   ecs_register_view(AssetView);
+  ecs_register_view(CameraView);
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
       DebugLevelUpdatePanelSys,
       ecs_view_id(AssetView),
+      ecs_view_id(CameraView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView));
 }
@@ -381,6 +421,7 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       panelEntity,
       DebugLevelPanelComp,
       .flags         = DebugLevelFlags_Default,
+      .window        = window,
       .idFilter      = dynstring_create(g_alloc_heap, 32),
       .nameBuffer    = dynstring_create(g_alloc_heap, 32),
       .assetsLevel   = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
