@@ -22,9 +22,11 @@ typedef enum {
 
 ecs_comp_define(SceneLevelManagerComp) {
   bool        isLoading;
-  EcsEntityId loadedLevelAsset;
-  String      loadedLevelName;
-  EcsEntityId loadedLevelTerrain;
+  u32         loadCounter;
+  EcsEntityId levelAsset;
+  String      levelName;
+  EcsEntityId levelTerrain;
+  GeoVector   levelStartpoint;
 };
 
 ecs_comp_define_public(SceneLevelInstanceComp);
@@ -39,7 +41,7 @@ ecs_comp_define(SceneLevelRequestSaveComp) { EcsEntityId levelAsset; };
 
 static void ecs_destruct_level_manager_comp(void* data) {
   SceneLevelManagerComp* comp = data;
-  string_maybe_free(g_alloc_heap, comp->loadedLevelName);
+  string_maybe_free(g_alloc_heap, comp->levelName);
 }
 
 static i8 level_compare_object_id(const void* a, const void* b) {
@@ -97,11 +99,12 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
     ++unloadedObjectCount;
   }
 
-  string_maybe_free(g_alloc_heap, manager->loadedLevelName);
+  string_maybe_free(g_alloc_heap, manager->levelName);
 
-  manager->loadedLevelAsset   = 0;
-  manager->loadedLevelName    = string_empty;
-  manager->loadedLevelTerrain = 0;
+  manager->levelAsset      = 0;
+  manager->levelName       = string_empty;
+  manager->levelTerrain    = 0;
+  manager->levelStartpoint = geo_vector(0);
 
   log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
@@ -112,9 +115,9 @@ static void scene_level_process_load(
     AssetManagerComp*      assets,
     const EcsEntityId      levelAsset,
     const AssetLevel*      level) {
-  diag_assert(!ecs_entity_valid(manager->loadedLevelAsset));
-  diag_assert(string_is_empty(manager->loadedLevelName));
-  diag_assert(!ecs_entity_valid(manager->loadedLevelTerrain));
+  diag_assert(!ecs_entity_valid(manager->levelAsset));
+  diag_assert(string_is_empty(manager->levelName));
+  diag_assert(!ecs_entity_valid(manager->levelTerrain));
 
   array_ptr_for_t(level->objects, AssetLevelObject, obj) {
     const StringHash prefabId = string_hash(obj->prefab);
@@ -130,10 +133,11 @@ static void scene_level_process_load(
         });
   }
 
-  manager->loadedLevelAsset = levelAsset;
-  manager->loadedLevelName  = string_maybe_dup(g_alloc_heap, level->name);
+  manager->levelAsset      = levelAsset;
+  manager->levelName       = string_maybe_dup(g_alloc_heap, level->name);
+  manager->levelStartpoint = level->startpoint;
   if (!string_is_empty(level->terrainId)) {
-    manager->loadedLevelTerrain = asset_lookup(world, assets, level->terrainId);
+    manager->levelTerrain = asset_lookup(world, assets, level->terrainId);
   }
 
   log_i(
@@ -181,11 +185,11 @@ ecs_system_define(SceneLevelLoadSys) {
       }
       if (!req->levelAsset) {
         // levelAsset of 0 indicates that the currently loaded level should be reloaded.
-        if (!manager->loadedLevelAsset) {
+        if (!manager->levelAsset) {
           log_w("Failed to reload level: No level is currently loaded");
           goto Done;
         }
-        req->levelAsset = manager->loadedLevelAsset;
+        req->levelAsset = manager->levelAsset;
       }
       manager->isLoading = true;
       ++req->state;
@@ -222,6 +226,7 @@ ecs_system_define(SceneLevelLoadSys) {
       }
       scene_level_process_load(world, manager, assets, req->levelAsset, &levelComp->level);
       manager->isLoading = false;
+      ++manager->loadCounter;
       goto Done;
     }
     diag_crash_msg("Unexpected load state");
@@ -252,7 +257,7 @@ ecs_system_define(SceneLevelUnloadSys) {
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
     if (manager->isLoading) {
       log_e("Level unload failed; load in progress");
-    } else if (manager->loadedLevelAsset) {
+    } else if (manager->levelAsset) {
       scene_level_process_unload(world, manager, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -317,8 +322,9 @@ static void scene_level_process_save(
   }
 
   const AssetLevel level = {
-      .name           = manager->loadedLevelName,
-      .terrainId      = scene_asset_id(assetView, manager->loadedLevelTerrain),
+      .name           = manager->levelName,
+      .terrainId      = scene_asset_id(assetView, manager->levelTerrain),
+      .startpoint     = manager->levelStartpoint,
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
@@ -395,29 +401,40 @@ ecs_module_init(scene_level_module) {
       ecs_register_view(SaveRequestView));
 }
 
-bool scene_level_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
+bool scene_level_loading(const SceneLevelManagerComp* m) { return m->isLoading; }
 
-EcsEntityId scene_level_asset(const SceneLevelManagerComp* manager) {
-  return manager->loadedLevelAsset;
+bool scene_level_loaded(const SceneLevelManagerComp* m) {
+  return m->levelAsset != 0 && !m->isLoading;
 }
 
-String scene_level_name(const SceneLevelManagerComp* manager) { return manager->loadedLevelName; }
+EcsEntityId scene_level_asset(const SceneLevelManagerComp* m) { return m->levelAsset; }
+u32         scene_level_counter(const SceneLevelManagerComp* m) { return m->loadCounter; }
+String      scene_level_name(const SceneLevelManagerComp* m) { return m->levelName; }
 
 void scene_level_name_update(SceneLevelManagerComp* manager, const String name) {
-  diag_assert_msg(manager->loadedLevelAsset, "Unable to update name: No level loaded");
+  diag_assert_msg(manager->levelAsset, "Unable to update name: No level loaded");
   diag_assert_msg(name.size <= 32, "Unable to update name: Too long");
 
-  string_maybe_free(g_alloc_heap, manager->loadedLevelName);
-  manager->loadedLevelName = string_maybe_dup(g_alloc_heap, name);
+  string_maybe_free(g_alloc_heap, manager->levelName);
+  manager->levelName = string_maybe_dup(g_alloc_heap, name);
 }
 
 EcsEntityId scene_level_terrain(const SceneLevelManagerComp* manager) {
-  return manager->loadedLevelTerrain;
+  return manager->levelTerrain;
 }
 
 void scene_level_terrain_update(SceneLevelManagerComp* manager, const EcsEntityId terrainAsset) {
-  diag_assert_msg(manager->loadedLevelAsset, "Unable to update terrain: No level loaded");
-  manager->loadedLevelTerrain = terrainAsset;
+  diag_assert_msg(manager->levelAsset, "Unable to update terrain: No level loaded");
+  manager->levelTerrain = terrainAsset;
+}
+
+GeoVector scene_level_startpoint(const SceneLevelManagerComp* manager) {
+  return manager->levelStartpoint;
+}
+
+void scene_level_startpoint_update(SceneLevelManagerComp* manager, const GeoVector startpoint) {
+  diag_assert_msg(manager->levelAsset, "Unable to update startpoint: No level loaded");
+  manager->levelStartpoint = startpoint;
 }
 
 void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {

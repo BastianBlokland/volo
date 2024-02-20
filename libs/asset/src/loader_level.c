@@ -51,6 +51,7 @@ static void level_datareg_init() {
     data_reg_struct_t(reg, AssetLevel);
     data_reg_field_t(reg, AssetLevel, name, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetLevel, terrainId, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetLevel, startpoint, t_GeoVector, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
     // clang-format on
 

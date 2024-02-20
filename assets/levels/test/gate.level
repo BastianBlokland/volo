@@ -1,6 +1,7 @@
 {
   "name": "Gate",
   "terrainId": "terrains/desert_small.terrain",
+  "startpoint": { "x": 25.1386, "z": -39.5714 },
   "objects": [
     {
       "id": 732732,
@@ -1587,7 +1588,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 2.7692, "y": 0.8669, "z": -28.3331 },
-      "rotation": { "y": -0.9769, "w": -0.2139 }
+      "rotation": { "y": 0.9769, "w": 0.2139 }
     },
     {
       "id": 971715363,
@@ -1638,7 +1639,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 18.849, "y": 0.7354, "z": -26.0214 },
-      "rotation": { "y": 0.5476, "w": -0.8367 }
+      "rotation": { "y": -0.5476, "w": 0.8367 }
     },
     {
       "id": 1015043108,
@@ -1823,7 +1824,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 17.2073, "y": 0.7248, "z": -20.3906 },
-      "rotation": { "y": 0.9459, "w": -0.3244 }
+      "rotation": { "y": -0.9459, "w": 0.3244 }
     },
     {
       "id": 1114693439,
@@ -1872,7 +1873,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 5.1472, "y": 0.5746, "z": -21.1449 },
-      "rotation": { "y": -0.9279, "w": -0.3727 }
+      "rotation": { "y": 0.9279, "w": 0.3727 }
     },
     {
       "id": 1157097425,
@@ -2038,7 +2039,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 26.8875, "y": 0.7929, "z": -15.6863 },
-      "rotation": { "y": 0.3857, "w": -0.9226 }
+      "rotation": { "y": -0.3857, "w": 0.9226 }
     },
     {
       "id": 1266347696,
@@ -2357,7 +2358,7 @@
       "id": 1530363773,
       "prefab": "InfantryRocket",
       "faction": "A",
-      "position": { "x": 36.5904, "y": 0.9463, "z": -46.4419 },
+      "position": { "x": 36.5904, "y": 0.9734, "z": -46.4419 },
       "rotation": { "w": 1 }
     },
     {
@@ -2669,7 +2670,7 @@
       "id": 1705666656,
       "prefab": "InfantryFlame",
       "faction": "A",
-      "position": { "x": 40.0132, "y": 0.8842, "z": -46.9205 },
+      "position": { "x": 40.0132, "y": 0.9336, "z": -46.9205 },
       "rotation": { "w": 1 }
     },
     {
@@ -2761,8 +2762,8 @@
       "id": 1790493501,
       "prefab": "InfantryMonster",
       "faction": "B",
-      "position": { "x": 27.5322, "y": 0.9331, "z": -19.6934 },
-      "rotation": { "x": 0, "y": 0.848, "w": -0.53 }
+      "position": { "x": 27.5322, "y": 0.9332, "z": -19.6934 },
+      "rotation": { "y": 0.848, "w": -0.53 }
     },
     {
       "id": 1796828795,
@@ -2843,7 +2844,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 0.5005, "y": 0.7869, "z": -27.5821 },
-      "rotation": { "y": -0.7667, "w": 0.642 }
+      "rotation": { "x": 0, "y": 0.7667, "w": -0.642 }
     },
     {
       "id": 1866022090,
@@ -2925,7 +2926,7 @@
       "id": 1890317541,
       "prefab": "InfantryFlame",
       "faction": "A",
-      "position": { "x": 36.4443, "y": 0.9456, "z": -47.1172 },
+      "position": { "x": 36.4443, "y": 0.9369, "z": -47.1172 },
       "rotation": { "w": 1 }
     },
     {
@@ -2945,7 +2946,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 31.5124, "y": 0.6375, "z": -26.0521 },
-      "rotation": { "x": 0, "y": 0.8821, "w": -0.471 }
+      "rotation": { "y": 0.8821, "w": -0.471 }
     },
     {
       "id": 1911238316,
@@ -3043,7 +3044,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": -0.4961, "y": 0.7843, "z": -21.89 },
-      "rotation": { "y": -0.9362, "w": -0.3514 }
+      "rotation": { "y": 0.9362, "w": 0.3514 }
     },
     {
       "id": 1968193259,
@@ -3541,7 +3542,7 @@
       "id": 2261193003,
       "prefab": "InfantryFlame",
       "faction": "A",
-      "position": { "x": 39.3899, "y": 0.8826, "z": -48.3125 },
+      "position": { "x": 39.3899, "y": 0.9111, "z": -48.3125 },
       "rotation": { "w": 1 }
     },
     {
@@ -3581,7 +3582,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 21.2472, "y": 0.5116, "z": -17.2276 },
-      "rotation": { "x": 0, "y": 0.4978, "w": -0.8673 }
+      "rotation": { "y": 0.4978, "w": -0.8673 }
     },
     {
       "id": 2282652179,
@@ -3713,7 +3714,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 9.1081, "y": 0.4749, "z": -19.6388 },
-      "rotation": { "x": 0, "w": -1 }
+      "rotation": { "w": -1 }
     },
     {
       "id": 2376686997,
@@ -3921,7 +3922,7 @@
       "id": 2457146425,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 37.0569, "y": 0.9232, "z": -48.0065 },
+      "position": { "x": 37.0569, "y": 0.8831, "z": -48.0065 },
       "rotation": { "w": 1 }
     },
     {
@@ -3940,7 +3941,7 @@
       "id": 2460265737,
       "prefab": "InfantryRocket",
       "faction": "A",
-      "position": { "x": 35.2269, "y": 0.8814, "z": -47.8742 },
+      "position": { "x": 35.2269, "y": 0.8879, "z": -47.8742 },
       "rotation": { "w": 1 }
     },
     {
@@ -3966,7 +3967,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 29.9711, "y": 0.8622, "z": -15.7244 },
-      "rotation": { "y": -0.114, "w": -0.9935 }
+      "rotation": { "y": 0.114, "w": 0.9935 }
     },
     {
       "id": 2479011252,
@@ -4572,7 +4573,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 10.818, "y": 0.5309, "z": -20.4092 },
-      "rotation": { "y": 0.5216, "w": -0.8532 }
+      "rotation": { "y": -0.5216, "w": 0.8532 }
     },
     {
       "id": 2834247316,
@@ -5068,7 +5069,7 @@
       "id": 3140053844,
       "prefab": "InfantryRocket",
       "faction": "A",
-      "position": { "x": 38.7931, "y": 0.9464, "z": -47.2619 },
+      "position": { "x": 38.7931, "y": 0.9451, "z": -47.2619 },
       "rotation": { "w": 1 }
     },
     {
@@ -5262,7 +5263,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 0.4382, "y": 0.5906, "z": -29.2298 },
-      "rotation": { "x": 0, "y": 0.4385, "w": -0.8987 }
+      "rotation": { "y": 0.4385, "w": -0.8987 }
     },
     {
       "id": 3261648517,
@@ -5560,7 +5561,7 @@
       "id": 3478587434,
       "prefab": "InfantryFlame",
       "faction": "A",
-      "position": { "x": 38.4892, "y": 0.9473, "z": -46.2149 },
+      "position": { "x": 38.4892, "y": 0.9513, "z": -46.2149 },
       "rotation": { "w": 1 }
     },
     {
@@ -5598,7 +5599,7 @@
       "id": 3501672157,
       "prefab": "InfantryMonster",
       "faction": "B",
-      "position": { "x": 3.5801, "y": 0.7292, "z": -25.9352 },
+      "position": { "x": 3.5801, "y": 0.8763, "z": -25.9352 },
       "rotation": { "w": 1 }
     },
     {
@@ -6068,7 +6069,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 33.186, "y": 1.0747, "z": -18.7719 },
-      "rotation": { "y": -0.9735, "w": -0.2286 }
+      "rotation": { "y": 0.9735, "w": 0.2286 }
     },
     {
       "id": 3781843270,
@@ -6227,8 +6228,8 @@
       "id": 3853902941,
       "prefab": "InfantryMonster",
       "faction": "B",
-      "position": { "x": 4.4292, "y": 0.6351, "z": -25.8576 },
-      "rotation": { "y": 0.7429, "w": 0.6694 }
+      "position": { "x": 4.4292, "y": 0.8683, "z": -25.8576 },
+      "rotation": { "y": -0.7429, "z": 0, "w": -0.6694 }
     },
     {
       "id": 3859848443,
@@ -6326,7 +6327,7 @@
       "id": 3900267758,
       "prefab": "InfantryRocket",
       "faction": "A",
-      "position": { "x": 36.506, "y": 0.881, "z": -48.7453 },
+      "position": { "x": 36.506, "y": 0.8311, "z": -48.7453 },
       "rotation": { "w": 1 }
     },
     {
@@ -6707,7 +6708,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 16.4022, "y": 0.7066, "z": -27.613 },
-      "rotation": { "y": -0.0836, "w": 0.9965 }
+      "rotation": { "x": 0, "y": 0.0836, "w": -0.9965 }
     },
     {
       "id": 4165956772,
@@ -6886,7 +6887,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 11.7051, "y": 0.7996, "z": -24.4984 },
-      "rotation": { "y": 0.3978, "w": -0.9175 }
+      "rotation": { "y": -0.3978, "w": 0.9175 }
     },
     {
       "id": 4268504034,
@@ -6946,7 +6947,7 @@
       "id": 4290066443,
       "prefab": "InfantryRocket",
       "faction": "A",
-      "position": { "x": 38.5342, "y": 0.8822, "z": -48.3251 },
+      "position": { "x": 38.5342, "y": 0.8795, "z": -48.3251 },
       "rotation": { "w": 1 }
     }
   ]

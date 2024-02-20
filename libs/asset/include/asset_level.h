@@ -34,6 +34,7 @@ typedef struct {
 typedef struct {
   String                name;
   String                terrainId;
+  GeoVector             startpoint;
   AssetLevelObjectArray objects;
 } AssetLevel;
 

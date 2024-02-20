@@ -8,6 +8,7 @@
       "properties": {
         "name": { "title": "String", "type": "string" },
         "terrainId": { "title": "String", "type": "string" },
+        "startpoint": { "title": "GeoVector", "$ref": "#/$defs/GeoVector" },
         "objects": {
           "type": "array",
           "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }
@@ -16,6 +17,19 @@
       "required": [ "objects" ],
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"objects\": []\n}" }
+      ]
+    },
+    "GeoVector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" }
+      },
+      "required": [],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{}" }
       ]
     },
     "AssetLevelObject": {
@@ -41,19 +55,6 @@
         "B",
         "C",
         "D"
-      ]
-    },
-    "GeoVector": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "x": { "title": "f32", "type": "number" },
-        "y": { "title": "f32", "type": "number" },
-        "z": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
       ]
     },
     "GeoQuat": {

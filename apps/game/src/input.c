@@ -7,6 +7,7 @@
 #include "scene_attachment.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
@@ -51,8 +52,9 @@ typedef enum {
 
 ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
-  InputFlags       flags;
-  InputSelectState selectState;
+  InputFlags       flags : 8;
+  InputSelectState selectState : 8;
+  u32              lastLevelCounter;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 
   StringHash   lastGroupAction;
@@ -535,11 +537,22 @@ input_query_hovered_entity(const SceneCollisionEnvComp* collisionEnv, const GeoR
   return 0;
 }
 
+static void input_camera_reset(InputStateComp* state, const SceneLevelManagerComp* levelManager) {
+  if (scene_level_loaded(levelManager)) {
+    state->camPosTgt = scene_level_startpoint(levelManager);
+  } else {
+    state->camPosTgt = geo_vector(0);
+  }
+  state->camRotYTgt = 0.0f;
+  state->camZoomTgt = 0.0f;
+}
+
 static void update_camera_interact(
     EcsWorld*                    world,
     InputStateComp*              state,
     CmdControllerComp*           cmdController,
     InputManagerComp*            input,
+    const SceneLevelManagerComp* levelManager,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSetEnvComp*       setEnv,
     const SceneTimeComp*         time,
@@ -605,10 +618,13 @@ static void update_camera_interact(
   if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
     input_order(world, cmdController, collisionEnv, setEnv, terrain, nav, debugStats, &inputRay);
   }
+  const u32 newLevelCounter = scene_level_counter(levelManager);
+  if (state->lastLevelCounter != newLevelCounter) {
+    input_camera_reset(state, levelManager);
+    state->lastLevelCounter = newLevelCounter;
+  }
   if (input_triggered_lit(input, "CameraReset")) {
-    state->camPosTgt  = geo_vector(0);
-    state->camRotYTgt = 0.0f;
-    state->camZoomTgt = 0.0f;
+    input_camera_reset(state, levelManager);
     input_report_command(debugStats, string_lit("Reset camera"));
   }
 }
@@ -637,6 +653,7 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 
 ecs_view_define(GlobalUpdateView) {
   ecs_access_maybe_write(DebugStatsGlobalComp);
+  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
@@ -660,14 +677,15 @@ ecs_system_define(InputUpdateSys) {
   if (!globalItr) {
     return;
   }
-  CmdControllerComp*      cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneNavEnvComp*  nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneSetEnvComp*  setEnv        = ecs_view_read_t(globalItr, SceneSetEnvComp);
-  const SceneTerrainComp* terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
-  const SceneTimeComp*    time          = ecs_view_read_t(globalItr, SceneTimeComp);
-  DebugStatsGlobalComp*   debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
-  SceneCollisionEnvComp*  colEnv        = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
+  CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
+  const SceneLevelManagerComp* levelManger   = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const SceneNavEnvComp*       nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneSetEnvComp*       setEnv        = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
+  DebugStatsGlobalComp*        debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
+  SceneCollisionEnvComp*       colEnv        = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
 
   input_update_collision_mask(colEnv, input);
 
@@ -704,6 +722,7 @@ ecs_system_define(InputUpdateSys) {
           state,
           cmdController,
           input,
+          levelManger,
           colEnv,
           setEnv,
           time,

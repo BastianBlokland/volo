@@ -1,5 +1,6 @@
 {
   "terrainId": "terrains/desert_big.terrain",
+  "startpoint": { "x": 44.8352, "z": -42.4878 },
   "objects": [
     {
       "id": 732732,
@@ -48,7 +49,7 @@
       "id": 16183473,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 36.8692, "y": 0.7443, "z": -56.7699 },
+      "position": { "x": 36.8692, "y": 0.7058, "z": -56.7699 },
       "rotation": { "w": 1 }
     },
     {
@@ -67,7 +68,7 @@
       "id": 26424580,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 33.4912, "y": 0.7442, "z": -58.7299 },
+      "position": { "x": 33.4912, "y": 0.7461, "z": -58.7299 },
       "rotation": { "w": 1 }
     },
     {
@@ -1590,7 +1591,7 @@
       "id": 1024272165,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 33.3482, "y": 0.7442, "z": -57.2418 },
+      "position": { "x": 33.3482, "y": 0.7668, "z": -57.2418 },
       "rotation": { "w": 1 }
     },
     {
@@ -1919,7 +1920,7 @@
       "id": 1250380931,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 34.6482, "y": 0.7274, "z": -58.1695 },
+      "position": { "x": 34.6482, "y": 0.7244, "z": -58.1695 },
       "rotation": { "w": 1 }
     },
     {
@@ -2855,7 +2856,7 @@
       "id": 1960252539,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 35.3242, "y": 0.7443, "z": -54.8027 },
+      "position": { "x": 35.3242, "y": 0.7769, "z": -54.8027 },
       "rotation": { "w": 1 }
     },
     {
@@ -3069,7 +3070,7 @@
       "id": 2092931134,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 34.9683, "y": 0.7443, "z": -56.4452 },
+      "position": { "x": 34.9683, "y": 0.75, "z": -56.4452 },
       "rotation": { "w": 1 }
     },
     {
@@ -3271,14 +3272,14 @@
       "id": 2190143913,
       "prefab": "VehicleTank",
       "faction": "A",
-      "position": { "x": 27, "y": 0.7353, "z": -42 },
+      "position": { "x": 27, "y": 0.6828, "z": -42 },
       "rotation": { "y": 0.7071, "w": 0.7071 }
     },
     {
       "id": 2190781327,
       "prefab": "VehicleTank",
       "faction": "A",
-      "position": { "x": 27, "y": 0.7353, "z": -34 },
+      "position": { "x": 27, "y": 0.7119, "z": -34 },
       "rotation": { "y": 0.7071, "w": 0.7071 }
     },
     {
@@ -4510,7 +4511,7 @@
       "id": 2965495310,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 33.6286, "y": 0.8187, "z": -54.7794 },
+      "position": { "x": 33.6286, "y": 0.8027, "z": -54.7794 },
       "rotation": { "w": 1 }
     },
     {
@@ -5096,7 +5097,7 @@
       "id": 3399322158,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 33.2443, "y": 0.7442, "z": -56.1484 },
+      "position": { "x": 33.2443, "y": 0.7771, "z": -56.1484 },
       "rotation": { "w": 1 }
     },
     {
@@ -5632,7 +5633,7 @@
       "id": 3693751317,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 36.2906, "y": 0.7443, "z": -57.512 },
+      "position": { "x": 36.2906, "y": 0.7098, "z": -57.512 },
       "rotation": { "w": 1 }
     },
     {
@@ -5754,7 +5755,7 @@
       "id": 3769873001,
       "prefab": "VehicleTank",
       "faction": "A",
-      "position": { "x": 27, "y": 0.7353, "z": -38 },
+      "position": { "x": 27, "y": 0.7251, "z": -38 },
       "rotation": { "y": 0.7071, "w": 0.7071 }
     },
     {
@@ -5993,7 +5994,7 @@
       "id": 3890183712,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 32.4202, "y": 0.8187, "z": -54.5504 },
+      "position": { "x": 32.4202, "y": 0.8207, "z": -54.5504 },
       "rotation": { "w": 1 }
     },
     {
@@ -6195,7 +6196,7 @@
       "id": 4054164480,
       "prefab": "VehicleTank",
       "faction": "A",
-      "position": { "x": 27, "y": 0.7353, "z": -46 },
+      "position": { "x": 27, "y": 0.7233, "z": -46 },
       "rotation": { "y": 0.7071, "w": 0.7071 }
     },
     {
