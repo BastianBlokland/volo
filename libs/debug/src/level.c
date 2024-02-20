@@ -8,6 +8,8 @@
 #include "scene_level.h"
 #include "ui.h"
 
+#include "widget_internal.h"
+
 // clang-format off
 
 static const String g_tooltipReload       = string_static("Reload the current level.");
@@ -234,6 +236,15 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   EcsEntityId terrain = scene_level_terrain(ctx->levelManager);
   if (level_asset_select(c, ctx, &terrain, &ctx->panelComp->assetsTerrain)) {
     scene_level_terrain_update(ctx->levelManager, terrain);
+  }
+
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Startpoint"));
+  ui_table_next_column(c, &table);
+
+  GeoVector startpoint = scene_level_startpoint(ctx->levelManager);
+  if (debug_widget_editor_vec3_resettable(c, &startpoint, UiWidget_Default)) {
+    scene_level_startpoint_update(ctx->levelManager, startpoint);
   }
 
   ui_layout_push(c);
