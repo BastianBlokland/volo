@@ -104,7 +104,7 @@
           { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [ "null", "num" ]
+            "mask": [ "null", "num", "color" ]
           }
         ]
       }
