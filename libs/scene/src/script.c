@@ -1903,7 +1903,7 @@ typedef enum {
   SceneScriptRes_ResourceUnloading = 1 << 1,
 } SceneScriptResFlags;
 
-ecs_comp_define(SceneScriptEnvComp) { i32 dummy; };
+ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
@@ -2606,6 +2606,10 @@ const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
 }
 
 usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
+
+void scene_script_debug_ray_update(SceneScriptEnvComp* env, const GeoRay ray) {
+  env->debugRay = ray;
+}
 
 SceneScriptComp* scene_script_add(
     EcsWorld*         world,
