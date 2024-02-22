@@ -1792,8 +1792,9 @@ static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, Scrip
 }
 
 typedef struct {
-  GeoVector pos;
-  GeoVector normal;
+  GeoVector   pos;
+  GeoVector   normal;
+  EcsEntityId entity;
 } DebugInputHit;
 
 static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, DebugInputHit* out) {
@@ -1812,14 +1813,17 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, D
     *out = (DebugInputHit){
         .pos    = hit.position,
         .normal = hit.normal,
+        .entity = hit.entity,
     };
     return true;
   }
   if (terrainHitT < g_maxDist) {
     const GeoVector terrainHitPos = geo_ray_position(&ctx->debugRay, terrainHitT);
-    *out                          = (DebugInputHit){
+
+    *out = (DebugInputHit){
         .pos    = terrainHitPos,
         .normal = scene_terrain_normal(terrain, terrainHitPos),
+
     };
     return true;
   }
@@ -1841,8 +1845,17 @@ eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   const SceneLayer layerMask = arg_layer_mask(args, 0, err);
   DebugInputHit    hit;
   if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
-    const GeoQuat rot = geo_quat_look(hit.normal, geo_up);
-    return script_quat(rot);
+    return script_quat(geo_quat_look(hit.normal, geo_up));
+  }
+  return script_null();
+}
+
+static ScriptVal
+eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
+  DebugInputHit    hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+    return script_entity_or_null(hit.entity);
   }
   return script_null();
 }
@@ -1950,6 +1963,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_break"),            eval_debug_break);
     eval_bind(b, string_lit("debug_input_position"),   eval_debug_input_position);
     eval_bind(b, string_lit("debug_input_rotation"),   eval_debug_input_rotation);
+    eval_bind(b, string_lit("debug_input_entity"),     eval_debug_input_entity);
     // clang-format on
 
     script_binder_finalize(b);

@@ -832,6 +832,20 @@
       }
     },
     {
+      "name": "debug_input_entity",
+      "doc": "Lookup the entity at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [ "null", "entity" ],
+        "args": [
+          {
+            "name": "layers",
+            "mask": [ "null", "str" ],
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "debug_arrow",
       "doc": "Draw a 3D debug arrow.",
       "sig": {

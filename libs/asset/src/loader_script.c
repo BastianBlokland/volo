@@ -708,6 +708,15 @@ static void asset_binder_init() {
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }
+    {
+      const String       name   = string_lit("debug_input_entity");
+      const String       doc    = string_lit("Lookup the entity at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+      const ScriptMask   ret    = script_mask_entity | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
     // clang-format on
 
     script_binder_finalize(binder);
