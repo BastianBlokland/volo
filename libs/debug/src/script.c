@@ -16,6 +16,7 @@
 #include "log_logger.h"
 #include "scene_camera.h"
 #include "scene_knowledge.h"
+#include "scene_register.h"
 #include "scene_script.h"
 #include "scene_set.h"
 #include "script_mem.h"
@@ -825,6 +826,8 @@ ecs_module_init(debug_script_module) {
 
   ecs_register_system(
       DebugScriptUpdateRaySys, ecs_register_view(RayUpdateGlobalView), ecs_view_id(WindowView));
+
+  ecs_order(DebugScriptUpdateRaySys, SceneOrder_ScriptUpdate - 1);
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
