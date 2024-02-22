@@ -163,7 +163,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("query_box");
-      const String       doc    = string_lit("Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+      const String       doc    = string_lit("Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
@@ -689,6 +689,15 @@ static void asset_binder_init() {
       const String     doc  = string_lit("Break into the debugger if there is one attached.");
       const ScriptMask ret  = script_mask_null;
       bind(binder, name, doc, ret, null, 0);
+    }
+    {
+      const String       name   = string_lit("debug_input_pos");
+      const String       doc    = string_lit("Lookup the position at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+      const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
     }
     // clang-format on
 

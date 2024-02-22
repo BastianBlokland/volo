@@ -32,6 +32,7 @@
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -327,6 +328,7 @@ ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneScriptEnvComp);
   ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
 }
@@ -400,15 +402,15 @@ typedef struct {
   EcsIterator* skeletonItr;
   EcsIterator* skeletonTemplItr;
 
-  EcsEntityId               instigator;
-  SceneScriptSlot           slot;
-  SceneScriptComp*          scriptInstance;
-  SceneKnowledgeComp*       scriptKnowledge;
-  const AssetScriptComp*    scriptAsset;
-  const SceneScriptEnvComp* scriptEnv;
-  String                    scriptId;
-  DynArray*                 actions; // ScriptAction[].
-  DynArray*                 debug;   // SceneScriptDebug[].
+  EcsEntityId            instigator;
+  SceneScriptSlot        slot;
+  SceneScriptComp*       scriptInstance;
+  SceneKnowledgeComp*    scriptKnowledge;
+  const AssetScriptComp* scriptAsset;
+  String                 scriptId;
+  DynArray*              actions; // ScriptAction[].
+  DynArray*              debug;   // SceneScriptDebug[].
+  GeoRay                 debugRay;
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
   u32        usedQueries;
@@ -1789,6 +1791,51 @@ static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, Scrip
   return script_null();
 }
 
+typedef struct {
+  GeoVector pos;
+  GeoVector normal;
+} DebugInputHit;
+
+static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, DebugInputHit* out) {
+  const SceneTerrainComp*      terrain = ecs_view_read_t(ctx->globalItr, SceneTerrainComp);
+  const SceneCollisionEnvComp* colEnv  = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
+
+  static const f32 g_maxDist = 1e4f;
+
+  f32 terrainHitT = f32_max;
+  if (scene_terrain_loaded(terrain)) {
+    terrainHitT = scene_terrain_intersect_ray(terrain, &ctx->debugRay, g_maxDist);
+  }
+  SceneRayHit            hit;
+  const SceneQueryFilter filter = {.layerMask = layerMask};
+  if (scene_query_ray(colEnv, &ctx->debugRay, g_maxDist, &filter, &hit) && hit.time < terrainHitT) {
+    *out = (DebugInputHit){
+        .pos    = hit.position,
+        .normal = hit.normal,
+    };
+    return true;
+  }
+  if (terrainHitT < g_maxDist) {
+    const GeoVector terrainHitPos = geo_ray_position(&ctx->debugRay, terrainHitT);
+    *out                          = (DebugInputHit){
+        .pos    = terrainHitPos,
+        .normal = scene_terrain_normal(terrain, terrainHitPos),
+    };
+    return true;
+  }
+  return false;
+}
+
+static ScriptVal
+eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
+  DebugInputHit    hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+    return script_vec3(hit.pos);
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs, ScriptError* err);
@@ -1890,6 +1937,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_text"),             eval_debug_text);
     eval_bind(b, string_lit("debug_trace"),            eval_debug_trace);
     eval_bind(b, string_lit("debug_break"),            eval_debug_break);
+    eval_bind(b, string_lit("debug_input_position"),   eval_debug_input_position);
     // clang-format on
 
     script_binder_finalize(b);
@@ -1939,7 +1987,7 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
 ecs_system_define(SceneScriptEnvInitSys) {
   const EcsEntityId global = ecs_world_global(world);
   if (!ecs_world_has_t(world, global, SceneScriptEnvComp)) {
-    ecs_world_add_t(world, global, SceneScriptEnvComp);
+    ecs_world_add_t(world, global, SceneScriptEnvComp, .debugRay = {.dir = geo_forward});
   }
 }
 
@@ -2043,6 +2091,7 @@ ecs_system_define(SceneScriptUpdateSys) {
   if (!globalItr) {
     return; // Global dependency not yet initialized.
   }
+  const SceneScriptEnvComp* scriptEnv = ecs_view_read_t(globalItr, SceneScriptEnvComp);
 
   EcsView* scriptView        = ecs_world_view_t(world, ScriptUpdateView);
   EcsView* resourceAssetView = ecs_world_view_t(world, ResourceAssetView);
@@ -2074,7 +2123,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
-      .scriptEnv        = ecs_view_read_t(globalItr, SceneScriptEnvComp),
+      .debugRay         = scriptEnv->debugRay,
       .queries          = queries,
       .transientDup     = &scene_script_transient_dup,
   };
@@ -2505,7 +2554,6 @@ ecs_module_init(scene_script_module) {
   ecs_register_view(ScriptUpdateView);
 
   ecs_register_system(SceneScriptEnvInitSys);
-
   ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
 
