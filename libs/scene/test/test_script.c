@@ -52,7 +52,7 @@ spec(script) {
     asset_manager_create_mem(
         world, AssetManagerFlags_None, g_testScriptAssets, array_elems(g_testScriptAssets));
 
-    ecs_run_sync(runner);
+    scene_test_wait(runner);
   }
 
   it("can set knowledge") {
