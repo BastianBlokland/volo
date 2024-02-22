@@ -160,20 +160,6 @@
       }
     },
     {
-      "name": "debug_input_pos",
-      "doc": "Lookup the position at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
-      "sig": {
-        "ret": [ "null", "vec3" ],
-        "args": [
-          {
-            "name": "layers",
-            "mask": [ "null", "str" ],
-            "multi": true
-          }
-        ]
-      }
-    },
-    {
       "name": "query_set",
       "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.",
       "sig": {
@@ -362,6 +348,20 @@
       }
     },
     {
+      "name": "debug_input_rotation",
+      "doc": "Lookup the rotation at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [ "null", "quat" ],
+        "args": [
+          {
+            "name": "layers",
+            "mask": [ "null", "str" ],
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "scale",
       "doc": "Lookup the scale of the given entity.",
       "sig": {
@@ -388,6 +388,20 @@
         "ret": "any",
         "args": [
           { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
+      "name": "debug_input_position",
+      "doc": "Lookup the position at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [ "null", "vec3" ],
+        "args": [
+          {
+            "name": "layers",
+            "mask": [ "null", "str" ],
+            "multi": true
+          }
         ]
       }
     },
