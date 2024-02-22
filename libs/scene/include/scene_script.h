@@ -30,6 +30,7 @@ typedef struct {
  */
 typedef u8 SceneScriptSlot;
 
+ecs_comp_extern(SceneScriptEnvComp);
 ecs_comp_extern(SceneScriptComp);
 
 /**

@@ -325,6 +325,7 @@ typedef struct {
 ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneScriptEnvComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
@@ -399,14 +400,15 @@ typedef struct {
   EcsIterator* skeletonItr;
   EcsIterator* skeletonTemplItr;
 
-  EcsEntityId            instigator;
-  SceneScriptSlot        slot;
-  SceneScriptComp*       scriptInstance;
-  SceneKnowledgeComp*    scriptKnowledge;
-  const AssetScriptComp* scriptAsset;
-  String                 scriptId;
-  DynArray*              actions; // ScriptAction[].
-  DynArray*              debug;   // SceneScriptDebug[].
+  EcsEntityId               instigator;
+  SceneScriptSlot           slot;
+  SceneScriptComp*          scriptInstance;
+  SceneKnowledgeComp*       scriptKnowledge;
+  const AssetScriptComp*    scriptAsset;
+  const SceneScriptEnvComp* scriptEnv;
+  String                    scriptId;
+  DynArray*                 actions; // ScriptAction[].
+  DynArray*                 debug;   // SceneScriptDebug[].
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
   u32        usedQueries;
@@ -1901,6 +1903,8 @@ typedef enum {
   SceneScriptRes_ResourceUnloading = 1 << 1,
 } SceneScriptResFlags;
 
+ecs_comp_define(SceneScriptEnvComp) { i32 dummy; };
+
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               resVersions[scene_script_slots];
@@ -1930,6 +1934,13 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
   SceneScriptResourceComp* a = dataA;
   SceneScriptResourceComp* b = dataB;
   a->flags |= b->flags;
+}
+
+ecs_system_define(SceneScriptEnvInitSys) {
+  const EcsEntityId global = ecs_world_global(world);
+  if (!ecs_world_has_t(world, global, SceneScriptEnvComp)) {
+    ecs_world_add_t(world, global, SceneScriptEnvComp);
+  }
 }
 
 ecs_view_define(ScriptUpdateView) {
@@ -2063,6 +2074,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
+      .scriptEnv        = ecs_view_read_t(globalItr, SceneScriptEnvComp),
       .queries          = queries,
       .transientDup     = &scene_script_transient_dup,
   };
@@ -2483,6 +2495,7 @@ ecs_system_define(ScriptActionApplySys) {
 ecs_module_init(scene_script_module) {
   eval_binder_init();
 
+  ecs_register_comp(SceneScriptEnvComp);
   ecs_register_comp(SceneScriptComp, .destructor = ecs_destruct_script_instance);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
@@ -2490,6 +2503,8 @@ ecs_module_init(scene_script_module) {
   ecs_register_view(ResourceLoadView);
   ecs_register_view(ScriptActionApplyView);
   ecs_register_view(ScriptUpdateView);
+
+  ecs_register_system(SceneScriptEnvInitSys);
 
   ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
