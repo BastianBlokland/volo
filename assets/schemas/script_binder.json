@@ -104,7 +104,7 @@
           { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [ "null", "num" ]
+            "mask": [ "null", "num", "color" ]
           }
         ]
       }
@@ -131,7 +131,7 @@
     },
     {
       "name": "query_box",
-      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -348,6 +348,20 @@
       }
     },
     {
+      "name": "debug_input_rotation",
+      "doc": "Lookup the rotation at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [ "null", "quat" ],
+        "args": [
+          {
+            "name": "layers",
+            "mask": [ "null", "str" ],
+            "multi": true
+          }
+        ]
+      }
+    },
+    {
       "name": "scale",
       "doc": "Lookup the scale of the given entity.",
       "sig": {
@@ -374,6 +388,20 @@
         "ret": "any",
         "args": [
           { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
+      "name": "debug_input_position",
+      "doc": "Lookup the position at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [ "null", "vec3" ],
+        "args": [
+          {
+            "name": "layers",
+            "mask": [ "null", "str" ],
+            "multi": true
+          }
         ]
       }
     },
@@ -799,6 +827,20 @@
           {
             "name": "alpha",
             "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "debug_input_entity",
+      "doc": "Lookup the entity at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "sig": {
+        "ret": [ "null", "entity" ],
+        "args": [
+          {
+            "name": "layers",
+            "mask": [ "null", "str" ],
+            "multi": true
           }
         ]
       }

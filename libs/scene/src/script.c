@@ -32,6 +32,7 @@
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -325,7 +326,9 @@ typedef struct {
 ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneScriptEnvComp);
   ecs_access_read(SceneSetEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
 }
@@ -407,6 +410,7 @@ typedef struct {
   String                 scriptId;
   DynArray*              actions; // ScriptAction[].
   DynArray*              debug;   // SceneScriptDebug[].
+  GeoRay                 debugRay;
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
   u32        usedQueries;
@@ -1787,6 +1791,75 @@ static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, Scrip
   return script_null();
 }
 
+typedef struct {
+  GeoVector   pos;
+  GeoVector   normal;
+  EcsEntityId entity;
+} DebugInputHit;
+
+static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, DebugInputHit* out) {
+  const SceneTerrainComp*      terrain = ecs_view_read_t(ctx->globalItr, SceneTerrainComp);
+  const SceneCollisionEnvComp* colEnv  = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
+
+  static const f32 g_maxDist = 1e4f;
+
+  f32 terrainHitT = f32_max;
+  if (scene_terrain_loaded(terrain)) {
+    terrainHitT = scene_terrain_intersect_ray(terrain, &ctx->debugRay, g_maxDist);
+  }
+  SceneRayHit            hit;
+  const SceneQueryFilter filter = {.layerMask = layerMask};
+  if (scene_query_ray(colEnv, &ctx->debugRay, g_maxDist, &filter, &hit) && hit.time < terrainHitT) {
+    *out = (DebugInputHit){
+        .pos    = hit.position,
+        .normal = hit.normal,
+        .entity = hit.entity,
+    };
+    return true;
+  }
+  if (terrainHitT < g_maxDist) {
+    const GeoVector terrainHitPos = geo_ray_position(&ctx->debugRay, terrainHitT);
+
+    *out = (DebugInputHit){
+        .pos    = terrainHitPos,
+        .normal = scene_terrain_normal(terrain, terrainHitPos),
+
+    };
+    return true;
+  }
+  return false;
+}
+
+static ScriptVal
+eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
+  DebugInputHit    hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+    return script_vec3(hit.pos);
+  }
+  return script_null();
+}
+
+static ScriptVal
+eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
+  DebugInputHit    hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+    return script_quat(geo_quat_look(hit.normal, geo_up));
+  }
+  return script_null();
+}
+
+static ScriptVal
+eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
+  DebugInputHit    hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+    return script_entity_or_null(hit.entity);
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs, ScriptError* err);
@@ -1888,6 +1961,9 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("debug_text"),             eval_debug_text);
     eval_bind(b, string_lit("debug_trace"),            eval_debug_trace);
     eval_bind(b, string_lit("debug_break"),            eval_debug_break);
+    eval_bind(b, string_lit("debug_input_position"),   eval_debug_input_position);
+    eval_bind(b, string_lit("debug_input_rotation"),   eval_debug_input_rotation);
+    eval_bind(b, string_lit("debug_input_entity"),     eval_debug_input_entity);
     // clang-format on
 
     script_binder_finalize(b);
@@ -1900,6 +1976,8 @@ typedef enum {
   SceneScriptRes_ResourceAcquired  = 1 << 0,
   SceneScriptRes_ResourceUnloading = 1 << 1,
 } SceneScriptResFlags;
+
+ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
@@ -1930,6 +2008,13 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
   SceneScriptResourceComp* a = dataA;
   SceneScriptResourceComp* b = dataB;
   a->flags |= b->flags;
+}
+
+ecs_system_define(SceneScriptEnvInitSys) {
+  const EcsEntityId global = ecs_world_global(world);
+  if (!ecs_world_has_t(world, global, SceneScriptEnvComp)) {
+    ecs_world_add_t(world, global, SceneScriptEnvComp, .debugRay = {.dir = geo_forward});
+  }
 }
 
 ecs_view_define(ScriptUpdateView) {
@@ -2032,6 +2117,7 @@ ecs_system_define(SceneScriptUpdateSys) {
   if (!globalItr) {
     return; // Global dependency not yet initialized.
   }
+  const SceneScriptEnvComp* scriptEnv = ecs_view_read_t(globalItr, SceneScriptEnvComp);
 
   EcsView* scriptView        = ecs_world_view_t(world, ScriptUpdateView);
   EcsView* resourceAssetView = ecs_world_view_t(world, ResourceAssetView);
@@ -2063,6 +2149,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
+      .debugRay         = scriptEnv->debugRay,
       .queries          = queries,
       .transientDup     = &scene_script_transient_dup,
   };
@@ -2483,6 +2570,7 @@ ecs_system_define(ScriptActionApplySys) {
 ecs_module_init(scene_script_module) {
   eval_binder_init();
 
+  ecs_register_comp(SceneScriptEnvComp);
   ecs_register_comp(SceneScriptComp, .destructor = ecs_destruct_script_instance);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
@@ -2491,6 +2579,7 @@ ecs_module_init(scene_script_module) {
   ecs_register_view(ScriptActionApplyView);
   ecs_register_view(ScriptUpdateView);
 
+  ecs_register_system(SceneScriptEnvInitSys);
   ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
 
@@ -2591,6 +2680,10 @@ const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
 }
 
 usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
+
+void scene_script_debug_ray_update(SceneScriptEnvComp* env, const GeoRay ray) {
+  env->debugRay = ray;
+}
 
 SceneScriptComp* scene_script_add(
     EcsWorld*         world,

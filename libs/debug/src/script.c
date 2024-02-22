@@ -12,8 +12,11 @@
 #include "debug_script.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
+#include "input_manager.h"
 #include "log_logger.h"
+#include "scene_camera.h"
 #include "scene_knowledge.h"
+#include "scene_register.h"
 #include "scene_script.h"
 #include "scene_set.h"
 #include "script_mem.h"
@@ -119,7 +122,11 @@ ecs_view_define(AssetView) {
   ecs_access_maybe_read(AssetScriptComp); // Maybe-read because it could have been unloaded since.
 }
 
-ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
+ecs_view_define(WindowView) {
+  ecs_access_with(GapWindowComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_maybe_read(SceneTransformComp);
+}
 
 static void info_panel_tab_script_draw(
     EcsWorld*             world,
@@ -771,23 +778,56 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   }
 }
 
+ecs_view_define(RayUpdateGlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_write(SceneScriptEnvComp);
+}
+
+ecs_system_define(DebugScriptUpdateRaySys) {
+  EcsView*     globalView = ecs_world_view_t(world, RayUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  SceneScriptEnvComp*     scriptEnv = ecs_view_write_t(globalItr, SceneScriptEnvComp);
+  const InputManagerComp* input     = ecs_view_read_t(globalItr, InputManagerComp);
+
+  EcsView*     camView = ecs_world_view_t(world, WindowView);
+  EcsIterator* camItr  = ecs_view_maybe_at(camView, input_active_window(input));
+  if (!camItr) {
+    return; // No active window.
+  }
+
+  const SceneCameraComp*    cam      = ecs_view_read_t(camItr, SceneCameraComp);
+  const SceneTransformComp* camTrans = ecs_view_read_t(camItr, SceneTransformComp);
+
+  const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
+  const f32       inputAspect  = input_cursor_aspect(input);
+  const GeoRay    inputRay     = scene_camera_ray(cam, camTrans, inputAspect, inputNormPos);
+
+  scene_script_debug_ray_update(scriptEnv, inputRay);
+}
+
 ecs_module_init(debug_script_module) {
   ecs_register_comp(DebugScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
   ecs_register_comp(DebugScriptPanelComp, .destructor = ecs_destroy_script_panel);
 
-  ecs_register_view(PanelUpdateGlobalView);
-  ecs_register_view(PanelUpdateView);
   ecs_register_view(SubjectView);
   ecs_register_view(AssetView);
   ecs_register_view(WindowView);
 
   ecs_register_system(
       DebugScriptUpdatePanelSys,
-      ecs_view_id(PanelUpdateGlobalView),
-      ecs_view_id(PanelUpdateView),
+      ecs_register_view(PanelUpdateGlobalView),
+      ecs_register_view(PanelUpdateView),
       ecs_view_id(SubjectView),
       ecs_view_id(AssetView),
       ecs_view_id(WindowView));
+
+  ecs_register_system(
+      DebugScriptUpdateRaySys, ecs_register_view(RayUpdateGlobalView), ecs_view_id(WindowView));
+
+  ecs_order(DebugScriptUpdateRaySys, SceneOrder_ScriptUpdate - 1);
 }
 
 EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {

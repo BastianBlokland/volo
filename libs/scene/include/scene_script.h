@@ -3,7 +3,7 @@
 #include "ecs_module.h"
 #include "geo_color.h"
 #include "geo_quat.h"
-#include "geo_vector.h"
+#include "geo_ray.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -30,6 +30,7 @@ typedef struct {
  */
 typedef u8 SceneScriptSlot;
 
+ecs_comp_extern(SceneScriptEnvComp);
 ecs_comp_extern(SceneScriptComp);
 
 /**
@@ -115,6 +116,7 @@ typedef struct {
 
 const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp*);
 usize                   scene_script_debug_count(const SceneScriptComp*);
+void                    scene_script_debug_ray_update(SceneScriptEnvComp*, GeoRay);
 
 /**
  * Setup a script on the given entity.
