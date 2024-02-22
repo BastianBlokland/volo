@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
@@ -276,7 +277,7 @@ static void debug_camera_draw_input_ray(
   const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllNonDebug};
   const f32              maxDist = 1e5f;
 
-  f32 terrainHitT = -1.0f;
+  f32 terrainHitT = f32_max;
   if (scene_terrain_loaded(terrain)) {
     terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
   }
@@ -292,7 +293,7 @@ static void debug_camera_draw_input_ray(
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
       debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
     }
-  } else if (terrainHitT >= 0.0f) {
+  } else if (terrainHitT < maxDist) {
     const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
     const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
 
