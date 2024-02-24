@@ -25,7 +25,7 @@
 
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
-#define vfx_decal_trail_history_count 8
+#define vfx_decal_trail_history_count 16
 #define vfx_decal_trail_history_spacing 1.0f
 
 typedef struct {
