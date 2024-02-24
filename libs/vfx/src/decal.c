@@ -101,10 +101,7 @@ ecs_view_define(DecalDrawView) {
   ecs_access_without(RendFogDrawComp);
 }
 
-ecs_view_define(DecalSingleView) {
-  ecs_access_read(SceneVfxDecalComp);
-  ecs_access_read(VfxDecalSingleComp);
-}
+ecs_view_define(DecalView) { ecs_access_read(SceneVfxDecalComp); }
 
 static const AssetAtlasComp*
 vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasType type) {
@@ -114,10 +111,10 @@ vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasTyp
 }
 
 static void vfx_decal_instance_reset_all(EcsWorld* world, const EcsEntityId asset) {
-  EcsView* instanceView = ecs_world_view_t(world, DecalSingleView);
-  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+  EcsView* decalView = ecs_world_view_t(world, DecalView);
+  for (EcsIterator* itr = ecs_view_itr(decalView); ecs_view_walk(itr);) {
     if (ecs_view_read_t(itr, SceneVfxDecalComp)->asset == asset) {
-      ecs_world_remove_t(world, ecs_view_entity(itr), VfxDecalSingleComp);
+      ecs_utils_maybe_remove_t(world, ecs_view_entity(itr), VfxDecalSingleComp);
     }
   }
 }
@@ -484,9 +481,9 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(AtlasView);
   ecs_register_view(DecalDrawView);
-  ecs_register_view(DecalSingleView);
+  ecs_register_view(DecalView);
 
-  ecs_register_system(VfxDecalLoadSys, ecs_register_view(LoadView), ecs_view_id(DecalSingleView));
+  ecs_register_system(VfxDecalLoadSys, ecs_register_view(LoadView), ecs_view_id(DecalView));
 
   ecs_register_system(
       VfxDecalInitSys,
