@@ -437,7 +437,7 @@ ecs_view_define(UpdateSingleView) {
   ecs_access_read(VfxDecalSingleComp);
 }
 
-static void vfx_decal_update_single(
+static void vfx_decal_single_update(
     const SceneTimeComp*           timeComp,
     const SceneVisibilitySettings* visibilitySettings,
     RendDrawComp*                  drawNormal,
@@ -486,7 +486,7 @@ ecs_view_define(UpdateTrailView) {
 }
 
 static void
-vfx_decal_update_trail(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
+vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
   VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
@@ -539,13 +539,13 @@ ecs_system_define(VfxDecalUpdateSys) {
   // Update all single decals.
   EcsView* singleView = ecs_world_view_t(world, UpdateSingleView);
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
-    vfx_decal_update_single(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
+    vfx_decal_single_update(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
   }
 
   // Update all trail decals.
   EcsView* trailView = ecs_world_view_t(world, UpdateTrailView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
-    vfx_decal_update_trail(drawNormal, drawDebug, itr);
+    vfx_decal_trail_update(drawNormal, drawDebug, itr);
   }
 }
 
