@@ -59,7 +59,7 @@ typedef enum {
   VfxLoad_Unloading = 1 << 1,
 } VfxLoadFlags;
 
-ecs_comp_define(VfxDecalInstanceComp) {
+ecs_comp_define(VfxDecalSingleComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
   AssetDecalAxis axis : 8;
@@ -101,9 +101,9 @@ ecs_view_define(DecalDrawView) {
   ecs_access_without(RendFogDrawComp);
 }
 
-ecs_view_define(DecalInstanceView) {
+ecs_view_define(DecalSingleView) {
   ecs_access_read(SceneVfxDecalComp);
-  ecs_access_read(VfxDecalInstanceComp);
+  ecs_access_read(VfxDecalSingleComp);
 }
 
 static const AssetAtlasComp*
@@ -114,10 +114,10 @@ vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasTyp
 }
 
 static void vfx_decal_instance_reset_all(EcsWorld* world, const EcsEntityId asset) {
-  EcsView* instanceView = ecs_world_view_t(world, DecalInstanceView);
+  EcsView* instanceView = ecs_world_view_t(world, DecalSingleView);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
     if (ecs_view_read_t(itr, SceneVfxDecalComp)->asset == asset) {
-      ecs_world_remove_t(world, ecs_view_entity(itr), VfxDecalInstanceComp);
+      ecs_world_remove_t(world, ecs_view_entity(itr), VfxDecalSingleComp);
     }
   }
 }
@@ -162,7 +162,7 @@ static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEnti
 
 ecs_view_define(InitView) {
   ecs_access_read(SceneVfxDecalComp);
-  ecs_access_without(VfxDecalInstanceComp);
+  ecs_access_without(VfxDecalSingleComp);
 }
 
 ecs_view_define(InitAssetView) {
@@ -202,7 +202,7 @@ static u8 vfx_decal_mask_to_tags(const AssetDecalMask mask) {
   return excludeTags;
 }
 
-static void vfx_decal_create(
+static void vfx_decal_single_create(
     EcsWorld*             world,
     const EcsEntityId     entity,
     const u16             atlasColorIndex,
@@ -216,7 +216,7 @@ static void vfx_decal_create(
   ecs_world_add_t(
       world,
       entity,
-      VfxDecalInstanceComp,
+      VfxDecalSingleComp,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
       .flags            = vfx_decal_flags(asset),
@@ -290,7 +290,7 @@ ecs_system_define(VfxDecalInitSys) {
       }
       atlasNormalIndex = entry->atlasIndex;
     }
-    vfx_decal_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+    vfx_decal_single_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
 
     if (++numDecalCreate == vfx_decal_max_create_per_tick) {
       break; // Throttle the maximum amount of decals to create per tick.
@@ -299,7 +299,7 @@ ecs_system_define(VfxDecalInitSys) {
 }
 
 ecs_view_define(DeinitView) {
-  ecs_access_with(VfxDecalInstanceComp);
+  ecs_access_with(VfxDecalSingleComp);
   ecs_access_without(SceneVfxDecalComp);
 }
 
@@ -307,18 +307,18 @@ ecs_system_define(VfxDecalDeinitSys) {
   EcsView* deinitView = ecs_world_view_t(world, DeinitView);
   for (EcsIterator* itr = ecs_view_itr(deinitView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_remove_t(world, entity, VfxDecalInstanceComp);
+    ecs_world_remove_t(world, entity, VfxDecalSingleComp);
   }
 }
 
-ecs_view_define(UpdateView) {
+ecs_view_define(UpdateSingleView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
-  ecs_access_read(VfxDecalInstanceComp);
+  ecs_access_read(VfxDecalSingleComp);
 }
 
 static void vfx_decal_draw_init(
@@ -404,20 +404,20 @@ static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f
   return 1.0f;
 }
 
-static void vfx_decal_update_normal(
+static void vfx_decal_update_single(
     const SceneTimeComp*           timeComp,
     const SceneVisibilitySettings* visibilitySettings,
     RendDrawComp*                  drawNormal,
     RendDrawComp*                  drawDebug,
-    EcsIterator*                   decalItr) {
-  const VfxDecalInstanceComp*      inst      = ecs_view_read_t(decalItr, VfxDecalInstanceComp);
-  const SceneTransformComp*        trans     = ecs_view_read_t(decalItr, SceneTransformComp);
-  const SceneScaleComp*            scaleComp = ecs_view_read_t(decalItr, SceneScaleComp);
-  const SceneSetMemberComp*        setMember = ecs_view_read_t(decalItr, SceneSetMemberComp);
-  const SceneVfxDecalComp*         decal     = ecs_view_read_t(decalItr, SceneVfxDecalComp);
-  const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(decalItr, SceneLifetimeDurationComp);
+    EcsIterator*                   singleItr) {
+  const VfxDecalSingleComp*        inst      = ecs_view_read_t(singleItr, VfxDecalSingleComp);
+  const SceneTransformComp*        trans     = ecs_view_read_t(singleItr, SceneTransformComp);
+  const SceneScaleComp*            scaleComp = ecs_view_read_t(singleItr, SceneScaleComp);
+  const SceneSetMemberComp*        setMember = ecs_view_read_t(singleItr, SceneSetMemberComp);
+  const SceneVfxDecalComp*         decal     = ecs_view_read_t(singleItr, SceneVfxDecalComp);
+  const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(singleItr, SceneLifetimeDurationComp);
 
-  const SceneVisibilityComp* visComp = ecs_view_read_t(decalItr, SceneVisibilityComp);
+  const SceneVisibilityComp* visComp = ecs_view_read_t(singleItr, SceneVisibilityComp);
   if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
   }
@@ -470,21 +470,23 @@ ecs_system_define(VfxDecalUpdateSys) {
   vfx_decal_draw_init(drawNormal, atlasColor, atlasNormal);
   vfx_decal_draw_init(drawDebug, atlasColor, atlasNormal);
 
-  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, UpdateView)); ecs_view_walk(itr);) {
-    vfx_decal_update_normal(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
+  // Update all single decals.
+  EcsView* singleView = ecs_world_view_t(world, UpdateSingleView);
+  for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
+    vfx_decal_update_single(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
   }
 }
 
 ecs_module_init(vfx_decal_module) {
-  ecs_register_comp(VfxDecalInstanceComp);
+  ecs_register_comp(VfxDecalSingleComp);
   ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
   ecs_register_view(GlobalView);
   ecs_register_view(AtlasView);
   ecs_register_view(DecalDrawView);
-  ecs_register_view(DecalInstanceView);
+  ecs_register_view(DecalSingleView);
 
-  ecs_register_system(VfxDecalLoadSys, ecs_register_view(LoadView), ecs_view_id(DecalInstanceView));
+  ecs_register_system(VfxDecalLoadSys, ecs_register_view(LoadView), ecs_view_id(DecalSingleView));
 
   ecs_register_system(
       VfxDecalInitSys,
@@ -497,7 +499,7 @@ ecs_module_init(vfx_decal_module) {
 
   ecs_register_system(
       VfxDecalUpdateSys,
-      ecs_register_view(UpdateView),
+      ecs_register_view(UpdateSingleView),
       ecs_view_id(DecalDrawView),
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
