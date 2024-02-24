@@ -22,6 +22,7 @@ typedef struct {
 } DecalMaskDef;
 
 typedef struct {
+  bool             trail;
   AssetDecalAxis   projectionAxis;
   String           colorAtlasEntry;
   String           normalAtlasEntry; // Optional, empty if unused.
@@ -64,6 +65,7 @@ static void decal_datareg_init() {
     data_reg_const_t(reg, AssetDecalMask, Unit);
 
     data_reg_struct_t(reg, DecalDef);
+    data_reg_field_t(reg, DecalDef, trail, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, projectionAxis, t_AssetDecalAxis);
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -116,6 +118,7 @@ static AssetDecalMask decal_build_mask(const DecalMaskDef* def) {
 
 static AssetDecalFlags decal_build_flags(const DecalDef* def) {
   AssetDecalFlags flags = 0;
+  flags |= def->trail ? AssetDecalFlags_Trail : 0;
   flags |= !def->noColorOutput ? AssetDecalFlags_OutputColor : 0;
   flags |= def->fadeUsingDepthNormal ? AssetDecalFlags_FadeUsingDepthNormal : 0;
   flags |= def->randomRotation ? AssetDecalFlags_RandomRotation : 0;
