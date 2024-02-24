@@ -49,6 +49,7 @@ typedef struct {
   f16 data2[4]; // xyzw: rotation quaternion.
   f16 data3[4]; // xyz: scale, w: excludeTags.
   f16 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
+  f16 padding[4];
 } VfxDecalData;
 
 ASSERT(sizeof(VfxDecalData) == 48, "Size needs to match the size defined in glsl");
