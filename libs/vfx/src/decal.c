@@ -404,6 +404,47 @@ static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f
   return 1.0f;
 }
 
+static void vfx_decal_update_normal(
+    const SceneTimeComp*           timeComp,
+    const SceneVisibilitySettings* visibilitySettings,
+    RendDrawComp*                  drawNormal,
+    RendDrawComp*                  drawDebug,
+    EcsIterator*                   decalItr) {
+  const VfxDecalInstanceComp*      inst      = ecs_view_read_t(decalItr, VfxDecalInstanceComp);
+  const SceneTransformComp*        trans     = ecs_view_read_t(decalItr, SceneTransformComp);
+  const SceneScaleComp*            scaleComp = ecs_view_read_t(decalItr, SceneScaleComp);
+  const SceneSetMemberComp*        setMember = ecs_view_read_t(decalItr, SceneSetMemberComp);
+  const SceneVfxDecalComp*         decal     = ecs_view_read_t(decalItr, SceneVfxDecalComp);
+  const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(decalItr, SceneLifetimeDurationComp);
+
+  const SceneVisibilityComp* visComp = ecs_view_read_t(decalItr, SceneVisibilityComp);
+  if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
+    return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+  }
+
+  const f32            scale   = scaleComp ? scaleComp->scale : 1.0f;
+  const f32            fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
+  const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
+  const VfxDecalParams params  = {
+       .pos              = trans->position,
+       .rot              = vfx_decal_rotation(trans->rotation, inst->axis, inst->angle),
+       .width            = inst->width * scale,
+       .height           = inst->height * scale,
+       .thickness        = inst->thickness,
+       .flags            = inst->flags,
+       .excludeTags      = inst->excludeTags,
+       .atlasColorIndex  = inst->atlasColorIndex,
+       .atlasNormalIndex = inst->atlasNormalIndex,
+       .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+       .roughness        = inst->roughness,
+  };
+
+  vfx_decal_draw_output(drawNormal, &params);
+  if (UNLIKELY(setMember && scene_set_member_contains(setMember, g_sceneSetSelected))) {
+    vfx_decal_draw_output(drawDebug, &params);
+  }
+}
+
 ecs_system_define(VfxDecalUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -429,41 +470,8 @@ ecs_system_define(VfxDecalUpdateSys) {
   vfx_decal_draw_init(drawNormal, atlasColor, atlasNormal);
   vfx_decal_draw_init(drawDebug, atlasColor, atlasNormal);
 
-  EcsView* updateView = ecs_world_view_t(world, UpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const VfxDecalInstanceComp*      inst      = ecs_view_read_t(itr, VfxDecalInstanceComp);
-    const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneSetMemberComp*        setMember = ecs_view_read_t(itr, SceneSetMemberComp);
-    const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
-    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
-
-    const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-    if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
-      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
-    }
-
-    const f32            scale   = scaleComp ? scaleComp->scale : 1.0f;
-    const f32            fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
-    const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
-    const VfxDecalParams params  = {
-         .pos              = trans->position,
-         .rot              = vfx_decal_rotation(trans->rotation, inst->axis, inst->angle),
-         .width            = inst->width * scale,
-         .height           = inst->height * scale,
-         .thickness        = inst->thickness,
-         .flags            = inst->flags,
-         .excludeTags      = inst->excludeTags,
-         .atlasColorIndex  = inst->atlasColorIndex,
-         .atlasNormalIndex = inst->atlasNormalIndex,
-         .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
-         .roughness        = inst->roughness,
-    };
-
-    vfx_decal_draw_output(drawNormal, &params);
-    if (UNLIKELY(setMember && scene_set_member_contains(setMember, g_sceneSetSelected))) {
-      vfx_decal_draw_output(drawDebug, &params);
-    }
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, UpdateView)); ecs_view_walk(itr);) {
+    vfx_decal_update_normal(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
   }
 }
 
