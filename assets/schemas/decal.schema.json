@@ -6,6 +6,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "trail": { "title": "bool", "type": "boolean" },
         "projectionAxis": { "title": "AssetDecalAxis", "$ref": "#/$defs/AssetDecalAxis" },
         "colorAtlasEntry": { "title": "String", "type": "string", "minLength": 1 },
         "normalAtlasEntry": { "title": "String", "type": "string", "minLength": 1 },
