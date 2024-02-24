@@ -14,7 +14,7 @@ typedef enum {
 typedef enum {
   AssetDecalNormal_GBuffer,        // The current gbuffer normal.
   AssetDecalNormal_DepthBuffer,    // Flat normals computed from the depth-buffer.
-  AssetDecalNormal_DecalTransform, // The decals own normal.
+  AssetDecalNormal_DecalTransform, // The decal's own normal.
 } AssetDecalNormal;
 
 typedef enum {
