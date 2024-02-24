@@ -100,7 +100,10 @@ ecs_view_define(DecalDrawView) {
   ecs_access_without(RendFogDrawComp);
 }
 
-ecs_view_define(DecalInstanceView) { ecs_access_read(VfxDecalInstanceComp); }
+ecs_view_define(DecalInstanceView) {
+  ecs_access_read(SceneVfxDecalComp);
+  ecs_access_read(VfxDecalInstanceComp);
+}
 
 static const AssetAtlasComp*
 vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasType type) {
@@ -111,17 +114,18 @@ vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasTyp
 
 ecs_view_define(LoadView) { ecs_access_write(VfxDecalAssetComp); }
 
-static void vfx_decal_instance_reset_all(EcsWorld* world) {
+static void vfx_decal_instance_reset_all(EcsWorld* world, const EcsEntityId asset) {
   EcsView* instanceView = ecs_world_view_t(world, DecalInstanceView);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    ecs_world_remove_t(world, ecs_view_entity(itr), VfxDecalInstanceComp);
+    if (ecs_view_read_t(itr, SceneVfxDecalComp)->asset == asset) {
+      ecs_world_remove_t(world, ecs_view_entity(itr), VfxDecalInstanceComp);
+    }
   }
 }
 
 ecs_system_define(VfxDecalLoadSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
 
-  bool decalUnloaded = false;
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity     = ecs_view_entity(itr);
     VfxDecalAssetComp* request    = ecs_view_write_t(itr, VfxDecalAssetComp);
@@ -129,6 +133,7 @@ ecs_system_define(VfxDecalLoadSys) {
     const bool         isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
     const bool         hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
 
+    bool decalUnloaded = false;
     if (request->loadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
       asset_release(world, entity);
       request->loadFlags &= ~VfxLoad_Acquired;
@@ -142,11 +147,9 @@ ecs_system_define(VfxDecalLoadSys) {
       asset_acquire(world, entity);
       request->loadFlags |= VfxLoad_Acquired;
     }
-  }
-
-  if (decalUnloaded) {
-    // TODO: Only reset decals whose asset was actually unloaded.
-    vfx_decal_instance_reset_all(world);
+    if (decalUnloaded) {
+      vfx_decal_instance_reset_all(world, entity);
+    }
   }
 }
 
