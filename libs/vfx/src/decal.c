@@ -340,16 +340,6 @@ ecs_system_define(VfxDecalDeinitSys) {
   }
 }
 
-ecs_view_define(UpdateSingleView) {
-  ecs_access_maybe_read(SceneLifetimeDurationComp);
-  ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneSetMemberComp);
-  ecs_access_maybe_read(SceneVisibilityComp);
-  ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneVfxDecalComp);
-  ecs_access_read(VfxDecalSingleComp);
-}
-
 static void vfx_decal_draw_init(
     RendDrawComp* draw, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal) {
   *rend_draw_set_data_t(draw, VfxDecalMetaData) = (VfxDecalMetaData){
@@ -433,6 +423,16 @@ static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f
   return 1.0f;
 }
 
+ecs_view_define(UpdateSingleView) {
+  ecs_access_maybe_read(SceneLifetimeDurationComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneVfxDecalComp);
+  ecs_access_read(VfxDecalSingleComp);
+}
+
 static void vfx_decal_update_single(
     const SceneTimeComp*           timeComp,
     const SceneVisibilitySettings* visibilitySettings,
@@ -474,6 +474,39 @@ static void vfx_decal_update_single(
   }
 }
 
+ecs_view_define(UpdateTrailView) {
+  ecs_access_maybe_read(SceneSetMemberComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneVfxDecalComp);
+  ecs_access_write(VfxDecalTrailComp);
+}
+
+static void
+vfx_decal_update_trail(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
+  VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
+  const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+
+  const VfxDecalParams params = {
+      .pos              = trans->position,
+      .rot              = trans->rotation,
+      .width            = 1.0f,
+      .height           = 1.0f,
+      .thickness        = 1.0f,
+      .flags            = VfxDecal_OutputColor,
+      .excludeTags      = 0,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alpha            = 1.0f,
+      .roughness        = 1.0f,
+  };
+
+  vfx_decal_draw_output(drawNormal, &params);
+  if (UNLIKELY(setMember && scene_set_member_contains(setMember, g_sceneSetSelected))) {
+    vfx_decal_draw_output(drawDebug, &params);
+  }
+}
+
 ecs_system_define(VfxDecalUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -504,6 +537,12 @@ ecs_system_define(VfxDecalUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
     vfx_decal_update_single(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
   }
+
+  // Update all trail decals.
+  EcsView* trailView = ecs_world_view_t(world, UpdateTrailView);
+  for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
+    vfx_decal_update_trail(drawNormal, drawDebug, itr);
+  }
 }
 
 ecs_module_init(vfx_decal_module) {
@@ -531,6 +570,7 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_system(
       VfxDecalUpdateSys,
       ecs_register_view(UpdateSingleView),
+      ecs_register_view(UpdateTrailView),
       ecs_view_id(DecalDrawView),
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
