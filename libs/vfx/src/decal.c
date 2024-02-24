@@ -25,7 +25,8 @@
 
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
-#define vfx_decal_trail_position_count 8
+#define vfx_decal_trail_history_count 8
+#define vfx_decal_trail_history_spacing 1.0f
 
 typedef struct {
   VfxAtlasDrawData atlasColor, atlasNormal;
@@ -76,7 +77,8 @@ ecs_comp_define(VfxDecalSingleComp) {
 
 ecs_comp_define(VfxDecalTrailComp) {
   u16       atlasColorIndex, atlasNormalIndex;
-  GeoVector positions[vfx_decal_trail_position_count];
+  u32       historyNewest;
+  GeoVector history[vfx_decal_trail_history_count];
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -455,6 +457,8 @@ static void vfx_decal_single_update(
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
   }
 
+  const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+
   const f32            scale   = scaleComp ? scaleComp->scale : 1.0f;
   const f32            fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
@@ -473,7 +477,7 @@ static void vfx_decal_single_update(
   };
 
   vfx_decal_draw_output(drawNormal, &params);
-  if (UNLIKELY(setMember && scene_set_member_contains(setMember, g_sceneSetSelected))) {
+  if (UNLIKELY(debug)) {
     vfx_decal_draw_output(drawDebug, &params);
   }
 }
@@ -485,29 +489,54 @@ ecs_view_define(UpdateTrailView) {
   ecs_access_write(VfxDecalTrailComp);
 }
 
+static u32 vfx_decal_trail_history_oldest(VfxDecalTrailComp* inst) {
+  return (inst->historyNewest + 1) % vfx_decal_trail_history_count;
+}
+
+static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const GeoVector position) {
+  const u32 indexOldest      = vfx_decal_trail_history_oldest(inst);
+  inst->history[indexOldest] = position;
+  inst->historyNewest        = indexOldest;
+}
+
 static void
 vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
   VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
 
-  const VfxDecalParams params = {
-      .pos              = trans->position,
-      .rot              = trans->rotation,
-      .width            = 1.0f,
-      .height           = 1.0f,
-      .thickness        = 1.0f,
-      .flags            = VfxDecal_OutputColor,
-      .excludeTags      = 0,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alpha            = 1.0f,
-      .roughness        = 1.0f,
-  };
+  const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
 
-  vfx_decal_draw_output(drawNormal, &params);
-  if (UNLIKELY(setMember && scene_set_member_contains(setMember, g_sceneSetSelected))) {
-    vfx_decal_draw_output(drawDebug, &params);
+  const GeoVector newestPos      = inst->history[inst->historyNewest];
+  const GeoVector deltaToCurrent = geo_vector_sub(trans->position, newestPos);
+  const f32       distSqr        = geo_vector_mag_sqr(deltaToCurrent);
+  if (distSqr > (vfx_decal_trail_history_spacing * vfx_decal_trail_history_spacing)) {
+    vfx_decal_trail_history_add(inst, trans->position);
+  }
+
+  const u32 historyOldest = vfx_decal_trail_history_oldest(inst);
+  for (u32 historyAge = 0; historyAge != vfx_decal_trail_history_count; ++historyAge) {
+    const u32       historyIndex = (historyOldest + historyAge) % vfx_decal_trail_history_count;
+    const GeoVector historyPos   = inst->history[historyIndex];
+
+    const VfxDecalParams params = {
+        .pos              = historyPos,
+        .rot              = trans->rotation,
+        .width            = 1.0f,
+        .height           = 1.0f,
+        .thickness        = 1.0f,
+        .flags            = VfxDecal_OutputColor,
+        .excludeTags      = 0,
+        .atlasColorIndex  = inst->atlasColorIndex,
+        .atlasNormalIndex = inst->atlasNormalIndex,
+        .alpha            = 1.0f,
+        .roughness        = 1.0f,
+    };
+
+    vfx_decal_draw_output(drawNormal, &params);
+    if (UNLIKELY(debug)) {
+      vfx_decal_draw_output(drawDebug, &params);
+    }
   }
 }
 
