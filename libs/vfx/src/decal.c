@@ -62,7 +62,7 @@ typedef enum {
 ecs_comp_define(VfxDecalInstanceComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
-  AssetDecalAxis projectionAxis : 8;
+  AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            angle;
   f32            roughness, alpha;
@@ -220,7 +220,7 @@ static void vfx_decal_create(
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
       .flags            = vfx_decal_flags(asset),
-      .projectionAxis   = asset->projectionAxis,
+      .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
@@ -370,6 +370,23 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   out->data4[3] = float_f32_to_f16(params->alpha);
 }
 
+static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis, const f32 angle) {
+  GeoQuat res;
+  switch (axis) {
+  case AssetDecalAxis_LocalY:
+    res = geo_quat_mul(rot, geo_quat_forward_to_up);
+    break;
+  case AssetDecalAxis_LocalZ:
+    res = rot;
+    break;
+  case AssetDecalAxis_WorldY:
+    res = geo_quat_forward_to_up;
+    break;
+  }
+  res = geo_quat_mul(res, geo_quat_angle_axis(angle, geo_forward));
+  return res;
+}
+
 ecs_system_define(VfxDecalUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -411,30 +428,18 @@ ecs_system_define(VfxDecalUpdateSys) {
 
     const f32      scale  = scaleComp ? scaleComp->scale : 1.0f;
     VfxDecalParams params = {
-        .pos              = transComp->position,
-        .width            = instance->width * scale,
-        .height           = instance->height * scale,
-        .thickness        = instance->thickness,
-        .flags            = instance->flags,
-        .excludeTags      = instance->excludeTags,
-        .atlasColorIndex  = instance->atlasColorIndex,
+        .pos             = transComp->position,
+        .rot             = vfx_decal_rotation(transComp->rotation, instance->axis, instance->angle),
+        .width           = instance->width * scale,
+        .height          = instance->height * scale,
+        .thickness       = instance->thickness,
+        .flags           = instance->flags,
+        .excludeTags     = instance->excludeTags,
+        .atlasColorIndex = instance->atlasColorIndex,
         .atlasNormalIndex = instance->atlasNormalIndex,
         .alpha            = decal->alpha * instance->alpha,
         .roughness        = instance->roughness,
     };
-
-    switch (instance->projectionAxis) {
-    case AssetDecalAxis_LocalY:
-      params.rot = geo_quat_mul(transComp->rotation, geo_quat_forward_to_up);
-      break;
-    case AssetDecalAxis_LocalZ:
-      params.rot = transComp->rotation;
-      break;
-    case AssetDecalAxis_WorldY:
-      params.rot = geo_quat_forward_to_up;
-      break;
-    }
-    params.rot = geo_quat_mul(params.rot, geo_quat_angle_axis(instance->angle, geo_forward));
 
     if (instance->fadeInSec > 0) {
       const f32 ageSec = (timeComp->time - instance->creationTime) / (f32)time_second;
