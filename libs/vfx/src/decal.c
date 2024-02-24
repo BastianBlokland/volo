@@ -73,6 +73,8 @@ ecs_comp_define(VfxDecalSingleComp) {
   TimeDuration   creationTime;
 };
 
+ecs_comp_define(VfxDecalTrailComp) { u16 atlasColorIndex; };
+
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
 
 static void ecs_combine_decal_asset(void* dataA, void* dataB) {
@@ -122,6 +124,7 @@ static void vfx_decal_reset_all(EcsWorld* world, const EcsEntityId asset) {
       const EcsEntityId entity = ecs_view_entity(itr);
       ecs_world_remove_t(world, entity, VfxDecalAnyComp);
       ecs_utils_maybe_remove_t(world, entity, VfxDecalSingleComp);
+      ecs_utils_maybe_remove_t(world, entity, VfxDecalTrailComp);
     }
   }
 }
@@ -314,6 +317,7 @@ ecs_system_define(VfxDecalDeinitSys) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, VfxDecalAnyComp);
     ecs_utils_maybe_remove_t(world, entity, VfxDecalSingleComp);
+    ecs_utils_maybe_remove_t(world, entity, VfxDecalTrailComp);
   }
 }
 
@@ -486,6 +490,7 @@ ecs_system_define(VfxDecalUpdateSys) {
 ecs_module_init(vfx_decal_module) {
   ecs_register_comp_empty(VfxDecalAnyComp);
   ecs_register_comp(VfxDecalSingleComp);
+  ecs_register_comp(VfxDecalTrailComp);
   ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
   ecs_register_view(GlobalView);
