@@ -175,7 +175,7 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   if (asset->flags & AssetDecalFlags_OutputColor) {
     flags |= VfxDecal_OutputColor;
   }
-  if (asset->normalAtlasEntry) {
+  if (asset->atlasNormalEntry) {
     flags |= VfxDecal_OutputNormal;
   }
   switch (asset->baseNormal) {
@@ -275,15 +275,15 @@ ecs_system_define(VfxDecalInitSys) {
     const AssetDecalComp* asset           = ecs_view_read_t(assetItr, AssetDecalComp);
     u16                   atlasColorIndex = 0, atlasNormalIndex = 0;
     {
-      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->colorAtlasEntry);
+      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->atlasColorEntry);
       if (UNLIKELY(!entry)) {
         log_e("Vfx decal color-atlas entry missing");
         continue;
       }
       atlasColorIndex = entry->atlasIndex;
     }
-    if (asset->normalAtlasEntry) {
-      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasNormal, asset->normalAtlasEntry);
+    if (asset->atlasNormalEntry) {
+      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasNormal, asset->atlasNormalEntry);
       if (UNLIKELY(!entry)) {
         log_e("Vfx decal normal-atlas entry missing");
         continue;

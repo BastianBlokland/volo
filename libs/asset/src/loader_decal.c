@@ -124,8 +124,8 @@ static AssetDecalFlags decal_build_flags(const DecalDef* def) {
 
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->projectionAxis   = def->projectionAxis;
-  out->colorAtlasEntry  = string_hash(def->colorAtlasEntry);
-  out->normalAtlasEntry = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
+  out->atlasColorEntry  = string_hash(def->colorAtlasEntry);
+  out->atlasNormalEntry = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
   out->baseNormal       = def->baseNormal;
   out->flags            = decal_build_flags(def);
   out->excludeMask      = decal_build_mask(&def->excludeMask);
