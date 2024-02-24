@@ -335,35 +335,39 @@ vfx_draw_get(EcsWorld* world, const VfxDrawManagerComp* drawManager, const VfxDr
   return ecs_utils_write_t(world, DecalDrawView, drawEntity, RendDrawComp);
 }
 
-static void vfx_decal_draw_output(
-    RendDrawComp*               draw,
-    const VfxDecalInstanceComp* inst,
-    const GeoVector             pos,
-    const GeoQuat               rot,
-    const f32                   scale,
-    const f32                   alpha) {
-  const GeoVector size   = geo_vector(inst->width * scale, inst->height * scale, inst->thickness);
-  const GeoBox    box    = geo_box_from_center(pos, size);
-  const GeoBox    bounds = geo_box_from_rotated(&box, rot);
+typedef struct {
+  GeoVector     pos;
+  GeoQuat       rot;
+  u16           atlasColorIndex, atlasNormalIndex;
+  VfxDecalFlags flags : 8;
+  u8            excludeTags;
+  f32           alpha, roughness;
+  f32           width, height, thickness;
+} VfxDecalParams;
+
+static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* params) {
+  const GeoVector size   = geo_vector(params->width, params->height, params->thickness);
+  const GeoBox    box    = geo_box_from_center(params->pos, size);
+  const GeoBox    bounds = geo_box_from_rotated(&box, params->rot);
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
-  mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
-  out->data1[3] = (f32)inst->flags;
+  mem_cpy(array_mem(out->data1), mem_create(params->pos.comps, sizeof(f32) * 3));
+  out->data1[3] = (f32)params->flags;
 
-  geo_quat_pack_f16(rot, out->data2);
+  geo_quat_pack_f16(params->rot, out->data2);
 
   out->data3[0] = float_f32_to_f16(size.x);
   out->data3[1] = float_f32_to_f16(size.y);
   out->data3[2] = float_f32_to_f16(size.z);
-  out->data3[3] = float_f32_to_f16((u32)inst->excludeTags);
+  out->data3[3] = float_f32_to_f16((u32)params->excludeTags);
 
-  diag_assert_msg(inst->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
-  diag_assert_msg(inst->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(params->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(params->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
 
-  out->data4[0] = float_f32_to_f16((f32)inst->atlasColorIndex);
-  out->data4[1] = float_f32_to_f16((f32)inst->atlasNormalIndex);
-  out->data4[2] = float_f32_to_f16(inst->roughness);
-  out->data4[3] = float_f32_to_f16(inst->alpha * alpha);
+  out->data4[0] = float_f32_to_f16((f32)params->atlasColorIndex);
+  out->data4[1] = float_f32_to_f16((f32)params->atlasNormalIndex);
+  out->data4[2] = float_f32_to_f16(params->roughness);
+  out->data4[3] = float_f32_to_f16(params->alpha);
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
@@ -405,36 +409,46 @@ ecs_system_define(VfxDecalUpdateSys) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
-    const GeoVector pos        = transComp->position;
-    const f32       scale      = scaleComp ? scaleComp->scale : 1.0f;
-    const f32       timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
+    const f32      scale  = scaleComp ? scaleComp->scale : 1.0f;
+    VfxDecalParams params = {
+        .pos              = transComp->position,
+        .width            = instance->width * scale,
+        .height           = instance->height * scale,
+        .thickness        = instance->thickness,
+        .flags            = instance->flags,
+        .excludeTags      = instance->excludeTags,
+        .atlasColorIndex  = instance->atlasColorIndex,
+        .atlasNormalIndex = instance->atlasNormalIndex,
+        .alpha            = decal->alpha * instance->alpha,
+        .roughness        = instance->roughness,
+    };
 
-    GeoQuat rot;
     switch (instance->projectionAxis) {
     case AssetDecalAxis_LocalY:
-      rot = geo_quat_mul(transComp->rotation, geo_quat_forward_to_up);
+      params.rot = geo_quat_mul(transComp->rotation, geo_quat_forward_to_up);
       break;
     case AssetDecalAxis_LocalZ:
-      rot = transComp->rotation;
+      params.rot = transComp->rotation;
       break;
     case AssetDecalAxis_WorldY:
-      rot = geo_quat_forward_to_up;
+      params.rot = geo_quat_forward_to_up;
       break;
     }
-    rot = geo_quat_mul(rot, geo_quat_angle_axis(instance->angle, geo_forward));
+    params.rot = geo_quat_mul(params.rot, geo_quat_angle_axis(instance->angle, geo_forward));
 
-    f32 alpha = decal->alpha;
     if (instance->fadeInSec > 0) {
       const f32 ageSec = (timeComp->time - instance->creationTime) / (f32)time_second;
-      alpha *= math_min(ageSec / instance->fadeInSec, 1.0f);
+      params.alpha *= math_min(ageSec / instance->fadeInSec, 1.0f);
     }
     if (instance->fadeOutSec > 0) {
-      alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
+      const f32 timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
+      params.alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
     }
-    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale, alpha);
+
+    vfx_decal_draw_output(drawNormal, &params);
 
     if (UNLIKELY(setMemberComp && scene_set_member_contains(setMemberComp, g_sceneSetSelected))) {
-      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale, alpha);
+      vfx_decal_draw_output(drawDebug, &params);
     }
   }
 }
