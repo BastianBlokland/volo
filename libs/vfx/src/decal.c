@@ -25,6 +25,7 @@
 
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
+#define vfx_decal_trail_position_count 8
 
 typedef struct {
   VfxAtlasDrawData atlasColor, atlasNormal;
@@ -73,7 +74,10 @@ ecs_comp_define(VfxDecalSingleComp) {
   TimeDuration   creationTime;
 };
 
-ecs_comp_define(VfxDecalTrailComp) { u16 atlasColorIndex, atlasNormalIndex; };
+ecs_comp_define(VfxDecalTrailComp) {
+  u16       atlasColorIndex, atlasNormalIndex;
+  GeoVector positions[vfx_decal_trail_position_count];
+};
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
 
