@@ -465,17 +465,17 @@ static void vfx_decal_single_update(
   const f32            fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const VfxDecalParams params  = {
-       .pos              = trans->position,
-       .rot              = vfx_decal_rotation(trans->rotation, inst->axis, inst->angle),
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->flags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
-       .roughness        = inst->roughness,
+      .pos              = trans->position,
+      .rot              = vfx_decal_rotation(trans->rotation, inst->axis, inst->angle),
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->flags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+      .roughness        = inst->roughness,
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -516,6 +516,64 @@ static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const GeoVector
   inst->historyNewest        = indexOldest;
 }
 
+static GeoVector vfx_extrapolate(const GeoVector from, const GeoVector to) {
+  return geo_vector_add(to, geo_vector_sub(to, from));
+}
+
+/**
+ * Catmull-rom spline (Cubic Hermite).
+ * Ref: https://andrewhungblog.wordpress.com/2017/03/03/catmull-rom-splines-in-plain-english/
+ * NOTE: Tension hardcoded to 1.
+ */
+static GeoVector vfx_catmullrom(
+    const GeoVector a, const GeoVector b, const GeoVector c, const GeoVector d, const f32 t) {
+  const f32 tSqr  = t * t;
+  const f32 tCube = tSqr * t;
+
+  GeoVector res;
+  res = geo_vector_mul(a, -0.5f * tCube + 1.0f * tSqr - 0.5f * t);
+  res = geo_vector_add(res, geo_vector_mul(b, 1.0f + 0.5f * tSqr * -5.0f + 0.5f * tCube * 3.0f));
+  res = geo_vector_add(res, geo_vector_mul(c, 0.5f * tCube * -3.0f + 0.5f * t - -2.0f * tSqr));
+  res = geo_vector_add(res, geo_vector_mul(d, -0.5f * tSqr + 0.5f * tCube));
+  return res;
+}
+
+typedef struct {
+  const GeoVector* points;
+  u32              count;
+  f32              t, tStep, tMax;
+} VfxSplineSampler;
+
+static VfxSplineSampler vfx_spline_init(const GeoVector* points, const u32 count, const f32 step) {
+  const f32 g_splineEpsilon = 1e-5f;
+  return (VfxSplineSampler){
+      .points = points,
+      .count  = count,
+      .t      = 1.0f,
+      .tMax   = (f32)count - 2.0f - g_splineEpsilon,
+      .tStep  = step,
+  };
+}
+
+static GeoVector vfx_spline_sample(VfxSplineSampler* s) {
+  s->t += s->tStep;
+
+  const f32 tClamped = math_min(s->t, s->tMax);
+  const u32 index    = (u32)math_round_down_f32(tClamped);
+  const f32 frac     = tClamped - (f32)index;
+
+  diag_assert(index > 0 && index < s->count - 2);
+
+  const GeoVector a = s->points[index - 1];
+  const GeoVector b = s->points[index];
+  const GeoVector c = s->points[index + 1];
+  const GeoVector d = s->points[index + 2];
+
+  return vfx_catmullrom(a, b, c, d, frac);
+}
+
+static bool vfx_spline_at_end(const VfxSplineSampler* s) { return s->t >= s->tMax; }
+
 static void
 vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
   VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
@@ -529,6 +587,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     inst->historyReset = false;
   }
 
+  // Append to the history if we've moved enough.
   const GeoVector newestPos      = inst->history[inst->historyNewest];
   const GeoVector deltaToCurrent = geo_vector_sub(trans->position, newestPos);
   const f32       distSqr        = geo_vector_mag_sqr(deltaToCurrent);
@@ -536,15 +595,25 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     vfx_decal_trail_history_add(inst, trans->position);
   }
 
-  for (u32 historyAge = 0; historyAge != vfx_decal_trail_history_count; ++historyAge) {
-    const u32       historyIndex = vfx_decal_trail_history_index(inst, historyAge);
-    const GeoVector historyPos   = inst->history[historyIndex];
+  // Construct the spline control points.
+  GeoVector points[vfx_decal_trail_history_count + 3];
+  u32       pointCount = 0;
+  points[pointCount++] = vfx_extrapolate(newestPos, trans->position);
+  points[pointCount++] = trans->position;
+  for (u32 age = 0; age != vfx_decal_trail_history_count; ++age) {
+    points[pointCount++] = inst->history[vfx_decal_trail_history_index(inst, age)];
+  }
+  points[pointCount] = vfx_extrapolate(points[pointCount - 2], points[pointCount - 1]);
 
+  // Emit decals along the spline.
+  VfxSplineSampler splineSampler = vfx_spline_init(points, pointCount, 0.25f);
+  do {
+    const GeoVector      pos    = vfx_spline_sample(&splineSampler);
     const VfxDecalParams params = {
-        .pos              = historyPos,
-        .rot              = trans->rotation,
-        .width            = 1.0f,
-        .height           = 1.0f,
+        .pos              = pos,
+        .rot              = geo_quat_forward_to_up,
+        .width            = 0.2f,
+        .height           = 0.2f,
         .thickness        = 1.0f,
         .flags            = VfxDecal_OutputColor,
         .excludeTags      = 0,
@@ -558,7 +627,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     if (UNLIKELY(debug)) {
       vfx_decal_draw_output(drawDebug, &params);
     }
-  }
+  } while (!vfx_spline_at_end(&splineSampler));
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
