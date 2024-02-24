@@ -24,8 +24,8 @@ typedef enum {
 } AssetDecalMask;
 
 typedef enum {
-  AssetDecalFlags_FadeUsingDepthNormal = 1 << 0, // Fade using depth-buffer instead of gbuffer nrm.
-  AssetDecalFlags_NoColorOutput        = 1 << 1, // Disable modifying the gbuffer color.
+  AssetDecalFlags_OutputColor          = 1 << 0, // Enable modifying the gbuffer color.
+  AssetDecalFlags_FadeUsingDepthNormal = 1 << 1, // Fade using depth-buffer instead of gbuffer nrm.
   AssetDecalFlags_RandomRotation       = 1 << 2,
 } AssetDecalFlags;
 

@@ -116,8 +116,8 @@ static AssetDecalMask decal_build_mask(const DecalMaskDef* def) {
 
 static AssetDecalFlags decal_build_flags(const DecalDef* def) {
   AssetDecalFlags flags = 0;
+  flags |= !def->noColorOutput ? AssetDecalFlags_OutputColor : 0;
   flags |= def->fadeUsingDepthNormal ? AssetDecalFlags_FadeUsingDepthNormal : 0;
-  flags |= def->noColorOutput ? AssetDecalFlags_NoColorOutput : 0;
   flags |= def->randomRotation ? AssetDecalFlags_RandomRotation : 0;
   return flags;
 }

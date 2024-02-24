@@ -172,7 +172,9 @@ ecs_view_define(InitAssetView) {
 
 static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   VfxDecalFlags flags = 0;
-  flags |= !(asset->flags & AssetDecalFlags_NoColorOutput) ? VfxDecal_OutputColor : 0;
+  if (asset->flags & AssetDecalFlags_OutputColor) {
+    flags |= VfxDecal_OutputColor;
+  }
   if (asset->normalAtlasEntry) {
     flags |= VfxDecal_OutputNormal;
   }
@@ -187,7 +189,9 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
     // DecalTransform as the base-normal is the default.
     break;
   }
-  flags |= asset->flags & AssetDecalFlags_FadeUsingDepthNormal ? VfxDecal_FadeUsingDepthNormal : 0;
+  if (asset->flags & AssetDecalFlags_FadeUsingDepthNormal) {
+    flags |= VfxDecal_FadeUsingDepthNormal;
+  }
   return flags;
 }
 
