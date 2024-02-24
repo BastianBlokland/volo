@@ -73,7 +73,7 @@ ecs_comp_define(VfxDecalSingleComp) {
   TimeDuration   creationTime;
 };
 
-ecs_comp_define(VfxDecalTrailComp) { u16 atlasColorIndex; };
+ecs_comp_define(VfxDecalTrailComp) { u16 atlasColorIndex, atlasNormalIndex; };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
 
@@ -209,7 +209,7 @@ static u8 vfx_decal_mask_to_tags(const AssetDecalMask mask) {
   return excludeTags;
 }
 
-static void vfx_decal_single_create(
+static void vfx_decal_create_single(
     EcsWorld*             world,
     const EcsEntityId     entity,
     const u16             atlasColorIndex,
@@ -239,6 +239,21 @@ static void vfx_decal_single_create(
       .width            = asset->width * scale,
       .height           = asset->height * scale,
       .thickness        = asset->thickness);
+}
+
+static void vfx_decal_create_trail(
+    EcsWorld*         world,
+    const EcsEntityId entity,
+    const u16         atlasColorIndex,
+    const u16         atlasNormalIndex) {
+
+  ecs_world_add_empty_t(world, entity, VfxDecalAnyComp);
+  ecs_world_add_t(
+      world,
+      entity,
+      VfxDecalTrailComp,
+      .atlasColorIndex  = atlasColorIndex,
+      .atlasNormalIndex = atlasNormalIndex);
 }
 
 ecs_system_define(VfxDecalInitSys) {
@@ -298,7 +313,11 @@ ecs_system_define(VfxDecalInitSys) {
       }
       atlasNormalIndex = entry->atlasIndex;
     }
-    vfx_decal_single_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+    if (asset->flags & AssetDecalFlags_Trail) {
+      vfx_decal_create_trail(world, e, atlasColorIndex, atlasNormalIndex);
+    } else {
+      vfx_decal_create_single(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+    }
 
     if (++numDecalCreate == vfx_decal_max_create_per_tick) {
       break; // Throttle the maximum amount of decals to create per tick.
