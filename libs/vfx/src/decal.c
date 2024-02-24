@@ -113,8 +113,6 @@ vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasTyp
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
-ecs_view_define(LoadView) { ecs_access_write(VfxDecalAssetComp); }
-
 static void vfx_decal_instance_reset_all(EcsWorld* world, const EcsEntityId asset) {
   EcsView* instanceView = ecs_world_view_t(world, DecalInstanceView);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
@@ -123,6 +121,8 @@ static void vfx_decal_instance_reset_all(EcsWorld* world, const EcsEntityId asse
     }
   }
 }
+
+ecs_view_define(LoadView) { ecs_access_write(VfxDecalAssetComp); }
 
 ecs_system_define(VfxDecalLoadSys) {
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LoadView)); ecs_view_walk(itr);) {
@@ -315,8 +315,8 @@ ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
-  ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_read(VfxDecalInstanceComp);
 }
@@ -405,18 +405,17 @@ ecs_system_define(VfxDecalUpdateSys) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
-    const GeoVector transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const GeoQuat   transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
-    const f32       transScale = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector pos        = transComp->position;
+    const f32       scale      = scaleComp ? scaleComp->scale : 1.0f;
     const f32       timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
 
     GeoQuat rot;
     switch (instance->projectionAxis) {
     case AssetDecalAxis_LocalY:
-      rot = geo_quat_mul(transRot, geo_quat_forward_to_up);
+      rot = geo_quat_mul(transComp->rotation, geo_quat_forward_to_up);
       break;
     case AssetDecalAxis_LocalZ:
-      rot = transRot;
+      rot = transComp->rotation;
       break;
     case AssetDecalAxis_WorldY:
       rot = geo_quat_forward_to_up;
@@ -432,10 +431,10 @@ ecs_system_define(VfxDecalUpdateSys) {
     if (instance->fadeOutSec > 0) {
       alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
     }
-    vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);
+    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale, alpha);
 
     if (UNLIKELY(setMemberComp && scene_set_member_contains(setMemberComp, g_sceneSetSelected))) {
-      vfx_decal_draw_output(drawDebug, instance, transPos, rot, transScale, alpha);
+      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale, alpha);
     }
   }
 }
