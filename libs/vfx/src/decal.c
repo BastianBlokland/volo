@@ -387,6 +387,23 @@ static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis, 
   return res;
 }
 
+static f32 vfx_decal_fade_in(
+    const SceneTimeComp* timeComp, const TimeDuration creationTime, const f32 fadeInSec) {
+  if (fadeInSec > 0) {
+    const f32 ageSec = (timeComp->time - creationTime) / (f32)time_second;
+    return math_min(ageSec / fadeInSec, 1.0f);
+  }
+  return 1.0f;
+}
+
+static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f32 fadeOutSec) {
+  if (fadeOutSec > 0) {
+    const f32 timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
+    return math_min(timeRemSec / fadeOutSec, 1.0f);
+  }
+  return 1.0f;
+}
+
 ecs_system_define(VfxDecalUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -414,45 +431,37 @@ ecs_system_define(VfxDecalUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const VfxDecalInstanceComp*      instance      = ecs_view_read_t(itr, VfxDecalInstanceComp);
-    const SceneTransformComp*        transComp     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*            scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneSetMemberComp*        setMemberComp = ecs_view_read_t(itr, SceneSetMemberComp);
-    const SceneVfxDecalComp*         decal         = ecs_view_read_t(itr, SceneVfxDecalComp);
-    const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+    const VfxDecalInstanceComp*      inst      = ecs_view_read_t(itr, VfxDecalInstanceComp);
+    const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneSetMemberComp*        setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+    const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
+    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
     if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
-    const f32      scale  = scaleComp ? scaleComp->scale : 1.0f;
-    VfxDecalParams params = {
-        .pos             = transComp->position,
-        .rot             = vfx_decal_rotation(transComp->rotation, instance->axis, instance->angle),
-        .width           = instance->width * scale,
-        .height          = instance->height * scale,
-        .thickness       = instance->thickness,
-        .flags           = instance->flags,
-        .excludeTags     = instance->excludeTags,
-        .atlasColorIndex = instance->atlasColorIndex,
-        .atlasNormalIndex = instance->atlasNormalIndex,
-        .alpha            = decal->alpha * instance->alpha,
-        .roughness        = instance->roughness,
+    const f32            scale   = scaleComp ? scaleComp->scale : 1.0f;
+    const f32            fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
+    const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
+    const VfxDecalParams params  = {
+         .pos              = trans->position,
+         .rot              = vfx_decal_rotation(trans->rotation, inst->axis, inst->angle),
+         .width            = inst->width * scale,
+         .height           = inst->height * scale,
+         .thickness        = inst->thickness,
+         .flags            = inst->flags,
+         .excludeTags      = inst->excludeTags,
+         .atlasColorIndex  = inst->atlasColorIndex,
+         .atlasNormalIndex = inst->atlasNormalIndex,
+         .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+         .roughness        = inst->roughness,
     };
 
-    if (instance->fadeInSec > 0) {
-      const f32 ageSec = (timeComp->time - instance->creationTime) / (f32)time_second;
-      params.alpha *= math_min(ageSec / instance->fadeInSec, 1.0f);
-    }
-    if (instance->fadeOutSec > 0) {
-      const f32 timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
-      params.alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
-    }
-
     vfx_decal_draw_output(drawNormal, &params);
-
-    if (UNLIKELY(setMemberComp && scene_set_member_contains(setMemberComp, g_sceneSetSelected))) {
+    if (UNLIKELY(setMember && scene_set_member_contains(setMember, g_sceneSetSelected))) {
       vfx_decal_draw_output(drawDebug, &params);
     }
   }
