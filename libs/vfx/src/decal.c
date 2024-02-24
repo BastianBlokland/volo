@@ -77,6 +77,7 @@ ecs_comp_define(VfxDecalSingleComp) {
 
 ecs_comp_define(VfxDecalTrailComp) {
   u16       atlasColorIndex, atlasNormalIndex;
+  bool      historyReset;
   u32       historyNewest;
   GeoVector history[vfx_decal_trail_history_count];
 };
@@ -258,6 +259,7 @@ static void vfx_decal_create_trail(
       world,
       entity,
       VfxDecalTrailComp,
+      .historyReset     = true,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex);
 }
@@ -501,9 +503,16 @@ static u32 vfx_decal_trail_history_oldest(const VfxDecalTrailComp* inst) {
   return (inst->historyNewest + 1) % vfx_decal_trail_history_count;
 }
 
-static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const GeoVector position) {
+static void vfx_decal_trail_history_reset(VfxDecalTrailComp* inst, const GeoVector pos) {
+  inst->historyNewest = 0;
+  for (u32 i = 0; i != vfx_decal_trail_history_count; ++i) {
+    inst->history[i] = pos;
+  }
+}
+
+static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const GeoVector pos) {
   const u32 indexOldest      = vfx_decal_trail_history_oldest(inst);
-  inst->history[indexOldest] = position;
+  inst->history[indexOldest] = pos;
   inst->historyNewest        = indexOldest;
 }
 
@@ -514,6 +523,11 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
 
   const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+
+  if (inst->historyReset) {
+    vfx_decal_trail_history_reset(inst, trans->position);
+    inst->historyReset = false;
+  }
 
   const GeoVector newestPos      = inst->history[inst->historyNewest];
   const GeoVector deltaToCurrent = geo_vector_sub(trans->position, newestPos);
