@@ -11,8 +11,8 @@
 const f32 c_fadeAngleMin = 0.2;
 const f32 c_fadeAngleMax = 0.8;
 
-const u32 c_flagNoColorOutput         = 1 << 0;
-const u32 c_flagNormalMap             = 1 << 1;
+const u32 c_flagOutputColor           = 1 << 0;
+const u32 c_flagOutputNormal          = 1 << 1;
 const u32 c_flagGBufferBaseNormal     = 1 << 2;
 const u32 c_flagDepthBufferBaseNormal = 1 << 3;
 const u32 c_flagFadeUsingDepthNormal  = 1 << 4;
@@ -103,7 +103,7 @@ void main() {
 
   // Sample the normal atlas.
   f32v3 normal;
-  if ((in_flags & c_flagNormalMap) != 0) {
+  if ((in_flags & c_flagOutputNormal) != 0) {
     const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, localPos);
     normal                    = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
   } else {
@@ -111,7 +111,7 @@ void main() {
   }
 
   // Output the result into the gbuffer.
-  if ((in_flags & c_flagNoColorOutput) == 0) {
+  if ((in_flags & c_flagOutputColor) != 0) {
     out_data0 = f32v4(color.rgb, color.a * fade * in_alpha);
   } else {
     out_data0 = f32v4(0);

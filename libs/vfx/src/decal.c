@@ -36,8 +36,8 @@ ASSERT(sizeof(VfxDecalMetaData) == 32, "Size needs to match the size defined in 
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
  */
 typedef enum {
-  VfxDecal_NoColorOutput         = 1 << 0, // Disable color output.
-  VfxDecal_NormalMap             = 1 << 1, // Output custom normals to the gbuffer.
+  VfxDecal_OutputColor           = 1 << 0, // Enable color output to the gbuffer.
+  VfxDecal_OutputNormal          = 1 << 1, // Enable normal output to the gbuffer.
   VfxDecal_GBufferBaseNormal     = 1 << 2, // Use the current gbuffer normal as the base normal.
   VfxDecal_DepthBufferBaseNormal = 1 << 3, // Compute the base normal from the depth buffer.
   VfxDecal_FadeUsingDepthNormal  = 1 << 4, // Angle fade using depth-buffer instead of gbuffer nrm.
@@ -172,9 +172,9 @@ ecs_view_define(InitAssetView) {
 
 static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   VfxDecalFlags flags = 0;
-  flags |= asset->flags & AssetDecalFlags_NoColorOutput ? VfxDecal_NoColorOutput : 0;
+  flags |= !(asset->flags & AssetDecalFlags_NoColorOutput) ? VfxDecal_OutputColor : 0;
   if (asset->normalAtlasEntry) {
-    flags |= VfxDecal_NormalMap;
+    flags |= VfxDecal_OutputNormal;
   }
   switch (asset->baseNormal) {
   case AssetDecalNormal_GBuffer:
