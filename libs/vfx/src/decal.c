@@ -489,7 +489,15 @@ ecs_view_define(UpdateTrailView) {
   ecs_access_write(VfxDecalTrailComp);
 }
 
-static u32 vfx_decal_trail_history_oldest(VfxDecalTrailComp* inst) {
+static u32 vfx_decal_trail_history_index(const VfxDecalTrailComp* inst, const u32 age) {
+  diag_assert(age < vfx_decal_trail_history_count);
+  if (inst->historyNewest >= age) {
+    return inst->historyNewest - age;
+  }
+  return vfx_decal_trail_history_count - (age - inst->historyNewest);
+}
+
+static u32 vfx_decal_trail_history_oldest(const VfxDecalTrailComp* inst) {
   return (inst->historyNewest + 1) % vfx_decal_trail_history_count;
 }
 
@@ -514,9 +522,8 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     vfx_decal_trail_history_add(inst, trans->position);
   }
 
-  const u32 historyOldest = vfx_decal_trail_history_oldest(inst);
   for (u32 historyAge = 0; historyAge != vfx_decal_trail_history_count; ++historyAge) {
-    const u32       historyIndex = (historyOldest + historyAge) % vfx_decal_trail_history_count;
+    const u32       historyIndex = vfx_decal_trail_history_index(inst, historyAge);
     const GeoVector historyPos   = inst->history[historyIndex];
 
     const VfxDecalParams params = {
