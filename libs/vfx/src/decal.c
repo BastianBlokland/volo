@@ -124,16 +124,13 @@ static void vfx_decal_instance_reset_all(EcsWorld* world, const EcsEntityId asse
 }
 
 ecs_system_define(VfxDecalLoadSys) {
-  EcsView* loadView = ecs_world_view_t(world, LoadView);
-
-  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LoadView)); ecs_view_walk(itr);) {
     const EcsEntityId  entity     = ecs_view_entity(itr);
     VfxDecalAssetComp* request    = ecs_view_write_t(itr, VfxDecalAssetComp);
     const bool         isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
     const bool         isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
     const bool         hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
 
-    bool decalUnloaded = false;
     if (request->loadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
       asset_release(world, entity);
       request->loadFlags &= ~VfxLoad_Acquired;
@@ -141,14 +138,11 @@ ecs_system_define(VfxDecalLoadSys) {
     }
     if (request->loadFlags & VfxLoad_Unloading && !isLoaded) {
       request->loadFlags &= ~VfxLoad_Unloading;
-      decalUnloaded = true;
+      vfx_decal_instance_reset_all(world, entity);
     }
     if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
       asset_acquire(world, entity);
       request->loadFlags |= VfxLoad_Acquired;
-    }
-    if (decalUnloaded) {
-      vfx_decal_instance_reset_all(world, entity);
     }
   }
 }
