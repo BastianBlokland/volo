@@ -2,7 +2,7 @@
   "trail": true,
   "projectionAxis": "LocalZ",
   "colorAtlasEntry": "square_alpha",
-  "excludeMask": [ "Unit" ],
+  "excludeMask": [ ],
   "roughness": 0.5,
   "width": 1,
   "height": 1,

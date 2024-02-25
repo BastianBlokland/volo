@@ -6,8 +6,8 @@
  * - "assetDecalTrail": Trail decal asset.
  */
 
-var inputPos = debug_input_position("Environment") ?? vec3(0, 0, 0)
-var inputRot = debug_input_rotation("Environment") ?? quat_ident
+var inputPos = debug_input_position("Environment", "Structure") ?? vec3(0, 0, 0)
+var inputRot = debug_input_rotation("Environment", "Structure") ?? quat_ident
 
 if (!$decalTrail && $assetDecalTrail) {
   var alpha   = 1.0
