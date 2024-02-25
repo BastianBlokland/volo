@@ -66,7 +66,7 @@ ecs_comp_define(VfxDecalAnyComp);
 
 ecs_comp_define(VfxDecalSingleComp) {
   u16            atlasColorIndex, atlasNormalIndex;
-  VfxDecalFlags  flags : 16;
+  VfxDecalFlags  flags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            angle;
@@ -83,6 +83,7 @@ typedef struct {
 
 ecs_comp_define(VfxDecalTrailComp) {
   u16            atlasColorIndex, atlasNormalIndex;
+  VfxDecalFlags  flags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   bool           historyReset;
@@ -274,6 +275,7 @@ static void vfx_decal_create_trail(
       .historyReset     = true,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
+      .flags            = vfx_decal_flags(asset),
       .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .roughness        = asset->roughness,
@@ -666,7 +668,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
         .width            = 0.2f,
         .height           = 0.2f,
         .thickness        = inst->thickness,
-        .flags            = VfxDecal_OutputColor,
+        .flags            = inst->flags,
         .excludeTags      = inst->excludeTags,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
