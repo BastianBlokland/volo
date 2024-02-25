@@ -27,6 +27,7 @@
 #define vfx_decal_max_asset_requests 4
 #define vfx_decal_trail_history_count 16
 #define vfx_decal_trail_history_spacing 1.0f
+#define vfx_decal_trail_spline_points (vfx_decal_trail_history_count + 3)
 
 typedef struct {
   VfxAtlasDrawData atlasColor, atlasNormal;
@@ -521,6 +522,27 @@ static GeoVector vfx_extrapolate(const GeoVector from, const GeoVector to) {
 }
 
 /**
+ * The trail spline consists out of the current head position followed by all the history positions.
+ * Additionally there's an extra control point at the beginning and end to control the curvature of
+ * the first and last segments.
+ */
+static void vfx_decal_trail_spline_fill(
+    VfxDecalTrailComp* inst,
+    const GeoVector    headPoint,
+    GeoVector          out[PARAM_ARRAY_SIZE(vfx_decal_trail_spline_points)]) {
+  u32 i    = 0;
+  out[i++] = vfx_extrapolate(inst->history[inst->historyNewest], headPoint);
+  out[i++] = headPoint;
+  for (u32 age = 0; age != vfx_decal_trail_history_count; ++age) {
+    out[i++] = inst->history[vfx_decal_trail_history_index(inst, age)];
+  }
+  out[i] = vfx_extrapolate(out[i - 2], out[i - 1]);
+  ++i;
+
+  diag_assert(i == vfx_decal_trail_spline_points);
+}
+
+/**
  * Catmull-rom spline (Cubic Hermite).
  * Ref: https://andrewhungblog.wordpress.com/2017/03/03/catmull-rom-splines-in-plain-english/
  * NOTE: Tension hardcoded to 1.
@@ -574,22 +596,15 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   }
 
   // Append to the history if we've moved enough.
-  const GeoVector newestPos      = inst->history[inst->historyNewest];
-  const GeoVector deltaToCurrent = geo_vector_sub(trans->position, newestPos);
-  const f32       distSqr        = geo_vector_mag_sqr(deltaToCurrent);
+  const GeoVector delta   = geo_vector_sub(trans->position, inst->history[inst->historyNewest]);
+  const f32       distSqr = geo_vector_mag_sqr(delta);
   if (distSqr > (vfx_decal_trail_history_spacing * vfx_decal_trail_history_spacing)) {
     vfx_decal_trail_history_add(inst, trans->position);
   }
 
   // Construct the spline control points.
-  GeoVector points[vfx_decal_trail_history_count + 3];
-  u32       pointCount = 0;
-  points[pointCount++] = vfx_extrapolate(newestPos, trans->position);
-  points[pointCount++] = trans->position;
-  for (u32 age = 0; age != vfx_decal_trail_history_count; ++age) {
-    points[pointCount++] = inst->history[vfx_decal_trail_history_index(inst, age)];
-  }
-  points[pointCount] = vfx_extrapolate(points[pointCount - 2], points[pointCount - 1]);
+  GeoVector points[vfx_decal_trail_spline_points];
+  vfx_decal_trail_spline_fill(inst, trans->position, points);
 
   // Emit decals along the spline.
   f32 t = 0.0f, tStep = 0.25f, tMax = (f32)(vfx_decal_trail_history_count + 1);
