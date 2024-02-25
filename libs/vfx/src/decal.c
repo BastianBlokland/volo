@@ -83,6 +83,7 @@ ecs_comp_define(VfxDecalSingleComp) {
 
 ecs_comp_define(VfxDecalTrailComp) {
   u16     atlasColorIndex, atlasNormalIndex;
+  u8      excludeTags; // First 8 entries of SceneTags are supported.
   f32     roughness, alpha;
   f32     thickness;
   bool    historyReset;
@@ -272,6 +273,7 @@ static void vfx_decal_create_trail(
       .historyReset     = true,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
+      .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .roughness        = asset->roughness,
       .alpha            = alpha,
       .thickness        = asset->thickness);
@@ -653,7 +655,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
         .height           = 0.2f,
         .thickness        = inst->thickness,
         .flags            = VfxDecal_OutputColor,
-        .excludeTags      = 0,
+        .excludeTags      = inst->excludeTags,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
         .alpha            = trailAlpha,
