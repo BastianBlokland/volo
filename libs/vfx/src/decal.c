@@ -504,6 +504,7 @@ static void vfx_decal_single_update(
 ecs_view_define(UpdateTrailView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_read(SceneVfxDecalComp);
@@ -613,13 +614,23 @@ static VfxTrailPoint vfx_spline_sample(const VfxTrailPoint* points, const u32 co
   return res;
 }
 
-static void
-vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
+static void vfx_decal_trail_update(
+    const SceneVisibilitySettings* visibilitySettings,
+    RendDrawComp*                  drawNormal,
+    RendDrawComp*                  drawDebug,
+    EcsIterator*                   itr) {
   VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   const SceneVfxDecalComp*  decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
+
+  const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
+  if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
+    // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    // TODO: This should probably be per segment instead of the whole trail.
+    return;
+  }
 
   const VfxTrailPoint headPoint = {
       .pos = trans->position,
@@ -723,7 +734,7 @@ ecs_system_define(VfxDecalUpdateSys) {
   // Update all trail decals.
   EcsView* trailView = ecs_world_view_t(world, UpdateTrailView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
-    vfx_decal_trail_update(drawNormal, drawDebug, itr);
+    vfx_decal_trail_update(visibilitySettings, drawNormal, drawDebug, itr);
   }
 }
 
