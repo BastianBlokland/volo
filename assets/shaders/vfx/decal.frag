@@ -47,13 +47,13 @@ bind_internal(8) in flat u32 in_excludeTags;
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
 
-f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
+f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 decalPos) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
   const f32v2 texcoord = atlasMeta.xy + (f32v2(decalPos.x, -decalPos.y) + 0.5) * atlasMeta.z;
   return texture(atlas, texcoord);
 }
 
-f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
+f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 decalPos) {
   return normal_tex_decode(atlas_sample(atlas, atlasMeta, decalPos).xyz);
 }
 
@@ -94,14 +94,15 @@ void main() {
   const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
 
   // Transform back to coordinates local to the unit cube.
-  const f32v3 boxPos = project_to_box(worldPos);
+  const f32v3 boxPos    = project_to_box(worldPos);
+  const f32v3 boxPosAbs = abs(boxPos);
 
   // Discard pixels on invalid surface or outside of the decal space.
-  const bool  validSurface = (tags & in_excludeTags) == 0;
-  const f32v3 boxPosAbs    = abs(boxPos);
+  const bool validSurface = (tags & in_excludeTags) == 0;
   if (!validSurface || boxPosAbs.x > 0.5 || boxPosAbs.y > 0.5 || boxPosAbs.z > 0.5) {
     discard;
   }
+  const f32v2 decalPos = boxPos.xy;
 
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
   const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
@@ -114,12 +115,12 @@ void main() {
   const f32 fade = smoothstep(c_fadeAngleMax, c_fadeAngleMin, 1 - dot(fadeNormal, decalNormal));
 
   // Sample the color atlas.
-  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, boxPos);
+  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, decalPos);
 
   // Sample the normal atlas.
   f32v3 normal;
   if ((in_flags & c_flagOutputNormal) != 0) {
-    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, boxPos);
+    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, decalPos);
     normal                    = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
   } else {
     normal = baseNormal;
