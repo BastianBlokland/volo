@@ -538,41 +538,27 @@ static GeoVector vfx_catmullrom(
   return res;
 }
 
-typedef struct {
-  const GeoVector* points;
-  u32              count;
-  f32              t, tStep, tMax;
-} VfxSplineSampler;
+/**
+ * Sample a position on the spline formed by the given points.
+ * NOTE: First and last points are only control points, the spline will not pass through them.
+ * NOTE: t = 0.0f results in points[1] and t = (pointCount - 2) results in points[pointCount - 2].
+ */
+static GeoVector vfx_spline_sample(const GeoVector* points, const u32 pointCount, const f32 t) {
+  static const f32 g_splineEpsilon = 1e-5f;
+  const f32        tMin = 1.0f, tMax = (f32)pointCount - 2.0f - g_splineEpsilon;
+  const f32        tAbs  = math_min(t + tMin, tMax);
+  const u32        index = (u32)math_round_down_f32(tAbs);
+  const f32        frac  = tAbs - (f32)index;
 
-static VfxSplineSampler vfx_spline_init(const GeoVector* points, const u32 count, const f32 step) {
-  const f32 g_splineEpsilon = 1e-5f;
-  return (VfxSplineSampler){
-      .points = points,
-      .count  = count,
-      .t      = 1.0f,
-      .tMax   = (f32)count - 2.0f - g_splineEpsilon,
-      .tStep  = step,
-  };
-}
+  diag_assert(index > 0 && index < pointCount - 2);
 
-static GeoVector vfx_spline_sample(VfxSplineSampler* s) {
-  s->t += s->tStep;
-
-  const f32 tClamped = math_min(s->t, s->tMax);
-  const u32 index    = (u32)math_round_down_f32(tClamped);
-  const f32 frac     = tClamped - (f32)index;
-
-  diag_assert(index > 0 && index < s->count - 2);
-
-  const GeoVector a = s->points[index - 1];
-  const GeoVector b = s->points[index];
-  const GeoVector c = s->points[index + 1];
-  const GeoVector d = s->points[index + 2];
+  const GeoVector a = points[index - 1];
+  const GeoVector b = points[index];
+  const GeoVector c = points[index + 1];
+  const GeoVector d = points[index + 2];
 
   return vfx_catmullrom(a, b, c, d, frac);
 }
-
-static bool vfx_spline_at_end(const VfxSplineSampler* s) { return s->t >= s->tMax; }
 
 static void
 vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
@@ -606,9 +592,9 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   points[pointCount] = vfx_extrapolate(points[pointCount - 2], points[pointCount - 1]);
 
   // Emit decals along the spline.
-  VfxSplineSampler splineSampler = vfx_spline_init(points, pointCount, 0.25f);
-  do {
-    const GeoVector      pos    = vfx_spline_sample(&splineSampler);
+  f32 t = 0.0f, tStep = 0.25f, tMax = (f32)(vfx_decal_trail_history_count + 1);
+  for (; t += tStep, t < tMax;) {
+    const GeoVector      pos    = vfx_spline_sample(points, array_elems(points), t);
     const VfxDecalParams params = {
         .pos              = pos,
         .rot              = geo_quat_forward_to_up,
@@ -627,7 +613,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     if (UNLIKELY(debug)) {
       vfx_decal_draw_output(drawDebug, &params);
     }
-  } while (!vfx_spline_at_end(&splineSampler));
+  }
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
