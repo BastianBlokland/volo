@@ -494,6 +494,7 @@ ecs_view_define(UpdateTrailView) {
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
+  ecs_access_read(SceneVfxDecalComp);
   ecs_access_write(VfxDecalTrailComp);
 }
 
@@ -598,6 +599,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+  const SceneVfxDecalComp*  decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
 
   const VfxPose headPose = {.pos = trans->position, .rot = trans->rotation};
   const bool    debug    = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
@@ -646,7 +648,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
         .excludeTags      = 0,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
-        .alpha            = 1.0f,
+        .alpha            = decal->alpha,
         .roughness        = 1.0f,
     };
 
