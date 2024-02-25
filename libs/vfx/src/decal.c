@@ -82,13 +82,14 @@ ecs_comp_define(VfxDecalSingleComp) {
 };
 
 ecs_comp_define(VfxDecalTrailComp) {
-  u16     atlasColorIndex, atlasNormalIndex;
-  u8      excludeTags; // First 8 entries of SceneTags are supported.
-  f32     roughness, alpha;
-  f32     thickness;
-  bool    historyReset;
-  u32     historyNewest;
-  VfxPose history[vfx_decal_trail_history_count];
+  u16            atlasColorIndex, atlasNormalIndex;
+  AssetDecalAxis axis : 8;
+  u8             excludeTags; // First 8 entries of SceneTags are supported.
+  bool           historyReset;
+  f32            roughness, alpha;
+  f32            thickness;
+  u32            historyNewest;
+  VfxPose        history[vfx_decal_trail_history_count];
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -273,6 +274,7 @@ static void vfx_decal_create_trail(
       .historyReset     = true,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
+      .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .roughness        = asset->roughness,
       .alpha            = alpha,
@@ -610,9 +612,12 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   const SceneVfxDecalComp*  decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
 
-  const VfxPose headPose   = {.pos = trans->position, .rot = trans->rotation};
-  const bool    debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
-  const f32     trailAlpha = decal->alpha * inst->alpha;
+  const VfxPose headPose = {
+      .pos = trans->position,
+      .rot = vfx_decal_rotation(trans->rotation, inst->axis, 0),
+  };
+  const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const f32  trailAlpha = decal->alpha * inst->alpha;
 
   if (inst->historyReset) {
     vfx_decal_trail_history_reset(inst, headPose);
@@ -643,14 +648,20 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     if (segLengthSqr < (minSegLength * minSegLength)) {
       continue;
     }
-    const f32       segLength = math_sqrt_f32(segLengthSqr);
-    const GeoVector segDir    = geo_vector_div(segDelta, segLength);
-    const GeoQuat   segRot    = geo_quat_look(segDir, geo_quat_rotate(segEnd.rot, geo_forward));
-    const GeoVector segCenter = geo_vector_mul(geo_vector_add(segBegin.pos, segEnd.pos), 0.5f);
+    const f32       segLength    = math_sqrt_f32(segLengthSqr);
+    const GeoVector segCenterPos = geo_vector_mul(geo_vector_add(segBegin.pos, segEnd.pos), 0.5f);
+    const GeoQuat   segCenterRot = geo_quat_slerp(segBegin.rot, segEnd.rot, 0.5f);
+
+    // Orient 'up' to point to the end and 'forward' mostly in projection axis of the segment.
+    const GeoVector segUp         = geo_vector_div(segDelta, segLength);
+    const GeoVector segForwardRef = geo_quat_rotate(segCenterRot, geo_forward);
+    const GeoVector segRight      = geo_vector_norm(geo_vector_cross3(segUp, segForwardRef));
+    const GeoVector segForward    = geo_vector_cross3(segRight, segUp);
+    const GeoMatrix segRot        = geo_matrix_rotate(segRight, segUp, segForward);
 
     const VfxDecalParams params = {
-        .pos              = segCenter,
-        .rot              = geo_quat_mul(segRot, geo_quat_forward_to_up),
+        .pos              = segCenterPos,
+        .rot              = geo_matrix_to_quat(&segRot),
         .width            = 0.2f,
         .height           = 0.2f,
         .thickness        = inst->thickness,
