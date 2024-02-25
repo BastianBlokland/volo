@@ -88,7 +88,7 @@ ecs_comp_define(VfxDecalTrailComp) {
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   bool           historyReset;
   f32            roughness, alpha;
-  f32            thickness;
+  f32            width, thickness;
   u32            historyNewest;
   VfxTrailPoint  history[vfx_decal_trail_history_count];
 };
@@ -267,6 +267,7 @@ static void vfx_decal_create_trail(
     const AssetDecalComp* asset) {
 
   const f32 alpha = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
+  const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
   ecs_world_add_empty_t(world, entity, VfxDecalAnyComp);
   ecs_world_add_t(
       world,
@@ -280,6 +281,7 @@ static void vfx_decal_create_trail(
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .roughness        = asset->roughness,
       .alpha            = alpha,
+      .width            = asset->width * scale,
       .thickness        = asset->thickness);
 }
 
@@ -500,6 +502,7 @@ static void vfx_decal_single_update(
 }
 
 ecs_view_define(UpdateTrailView) {
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
@@ -614,6 +617,7 @@ static void
 vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIterator* itr) {
   VfxDecalTrailComp*        inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   const SceneVfxDecalComp*  decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
 
@@ -623,6 +627,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   };
   const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
   const f32  trailAlpha = decal->alpha * inst->alpha;
+  const f32  trailScale = scaleComp ? scaleComp->scale : 1.0f;
 
   if (inst->historyReset) {
     vfx_decal_trail_history_reset(inst, headPoint);
@@ -665,7 +670,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     const VfxDecalParams params = {
         .pos              = segCenter.pos,
         .rot              = geo_matrix_to_quat(&segRot),
-        .width            = 0.2f,
+        .width            = inst->width * trailScale,
         .height           = 0.2f,
         .thickness        = inst->thickness,
         .flags            = inst->flags,
