@@ -130,6 +130,11 @@ GeoVector geo_vector_norm(const GeoVector v) {
 #endif
 }
 
+GeoVector geo_vector_norm_or(const GeoVector v, const GeoVector fallback) {
+  const f32 mag = geo_vector_mag(v);
+  return mag > f32_epsilon ? geo_vector_div(v, mag) : fallback;
+}
+
 f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
 #if geo_vec_simd_enable
   return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));

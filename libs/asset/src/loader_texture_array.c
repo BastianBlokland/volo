@@ -110,6 +110,7 @@ typedef enum {
   ArrayTexError_UnsupportedInputTypeForResampling,
   ArrayTexError_InvalidCubeTextureCount,
   ArrayTexError_InvalidCubeIrradianceInputType,
+  ArrayTexError_InvalidCubeIrradianceOutputSize,
 
   ArrayTexError_Count,
 } ArrayTexError;
@@ -130,6 +131,7 @@ static String arraytex_error_str(const ArrayTexError err) {
       string_static("ArrayTex resampling is only supported for rgba 8bit input textures"),
       string_static("ArrayTex cube / cube-irradiance needs 6 textures"),
       string_static("ArrayTex cube-irradiance needs rgba 8bit input textures"),
+      string_static("ArrayTex specifies a size smaller then is supported for spec irradiance"),
   };
   ASSERT(array_elems(g_msgs) == ArrayTexError_Count, "Incorrect number of array-error messages");
   return g_msgs[err];
@@ -481,6 +483,10 @@ static void arraytex_generate(
   if (UNLIKELY(irradianceMap && type != AssetTextureType_U8)) {
     // TODO: Support hdr input texture for cube-irradiance maps.
     *err = ArrayTexError_InvalidCubeIrradianceInputType;
+    return;
+  }
+  if (UNLIKELY(def->type == ArrayTexType_CubeSpecIrradiance && def->sizeX < 64)) {
+    *err = ArrayTexError_InvalidCubeIrradianceOutputSize;
     return;
   }
 

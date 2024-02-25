@@ -1200,6 +1200,17 @@
           "looping": true
         }
       ]
+    },
+    {
+      "name": "TestTrail",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/effects/test_trail.script" ],
+          "knowledge": [
+            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/test_trail.decal" }
+          ]
+        }
+      ]
     }
   ]
 }

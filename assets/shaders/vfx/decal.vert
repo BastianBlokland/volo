@@ -17,6 +17,7 @@ struct DecalData {
   f16v4 data2; // x, y, z, w: rotation quaternion.
   f16v4 data3; // x, y, z: scale, w: excludeTags.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
+  f16v4 padding;
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };

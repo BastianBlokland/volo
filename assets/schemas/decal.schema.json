@@ -6,6 +6,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "trail": { "title": "bool", "type": "boolean" },
         "projectionAxis": { "title": "AssetDecalAxis", "$ref": "#/$defs/AssetDecalAxis" },
         "colorAtlasEntry": { "title": "String", "type": "string", "minLength": 1 },
         "normalAtlasEntry": { "title": "String", "type": "string", "minLength": 1 },
@@ -28,15 +29,9 @@
         "fadeInTime": { "title": "f32", "type": "number" },
         "fadeOutTime": { "title": "f32", "type": "number" }
       },
-      "required": [
-        "projectionAxis",
-        "colorAtlasEntry",
-        "roughness",
-        "width",
-        "height"
-      ],
+      "required": [ "projectionAxis", "colorAtlasEntry", "roughness" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"projectionAxis\": \"LocalY\",\n  \"colorAtlasEntry\": \"placeholder\",\n  \"roughness\": 0,\n  \"width\": 1,\n  \"height\": 1\n}" }
+        { "label": "New", "body": "^{\n  \"projectionAxis\": \"LocalY\",\n  \"colorAtlasEntry\": \"placeholder\",\n  \"roughness\": 0\n}" }
       ]
     },
     "AssetDecalAxis": {

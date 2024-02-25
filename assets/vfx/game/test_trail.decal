@@ -1,0 +1,10 @@
+{
+  "trail": true,
+  "projectionAxis": "LocalZ",
+  "colorAtlasEntry": "square",
+  "excludeMask": [ ],
+  "roughness": 0.5,
+  "width": 0.5,
+  "thickness": 1.5,
+  "alphaMin": 0.75
+}
