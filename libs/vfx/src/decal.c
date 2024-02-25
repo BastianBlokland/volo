@@ -83,6 +83,8 @@ ecs_comp_define(VfxDecalSingleComp) {
 
 ecs_comp_define(VfxDecalTrailComp) {
   u16     atlasColorIndex, atlasNormalIndex;
+  f32     roughness, alpha;
+  f32     thickness;
   bool    historyReset;
   u32     historyNewest;
   VfxPose history[vfx_decal_trail_history_count];
@@ -255,11 +257,13 @@ static void vfx_decal_create_single(
 }
 
 static void vfx_decal_create_trail(
-    EcsWorld*         world,
-    const EcsEntityId entity,
-    const u16         atlasColorIndex,
-    const u16         atlasNormalIndex) {
+    EcsWorld*             world,
+    const EcsEntityId     entity,
+    const u16             atlasColorIndex,
+    const u16             atlasNormalIndex,
+    const AssetDecalComp* asset) {
 
+  const f32 alpha = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
   ecs_world_add_empty_t(world, entity, VfxDecalAnyComp);
   ecs_world_add_t(
       world,
@@ -267,7 +271,10 @@ static void vfx_decal_create_trail(
       VfxDecalTrailComp,
       .historyReset     = true,
       .atlasColorIndex  = atlasColorIndex,
-      .atlasNormalIndex = atlasNormalIndex);
+      .atlasNormalIndex = atlasNormalIndex,
+      .roughness        = asset->roughness,
+      .alpha            = alpha,
+      .thickness        = asset->thickness);
 }
 
 ecs_system_define(VfxDecalInitSys) {
@@ -328,7 +335,7 @@ ecs_system_define(VfxDecalInitSys) {
       atlasNormalIndex = entry->atlasIndex;
     }
     if (asset->flags & AssetDecalFlags_Trail) {
-      vfx_decal_create_trail(world, e, atlasColorIndex, atlasNormalIndex);
+      vfx_decal_create_trail(world, e, atlasColorIndex, atlasNormalIndex, asset);
     } else {
       vfx_decal_create_single(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
     }
@@ -601,8 +608,9 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   const SceneVfxDecalComp*  decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
 
-  const VfxPose headPose = {.pos = trans->position, .rot = trans->rotation};
-  const bool    debug    = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const VfxPose headPose   = {.pos = trans->position, .rot = trans->rotation};
+  const bool    debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const f32     trailAlpha = decal->alpha * inst->alpha;
 
   if (inst->historyReset) {
     vfx_decal_trail_history_reset(inst, headPose);
@@ -643,13 +651,13 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
         .rot              = geo_quat_mul(segRot, geo_quat_forward_to_up),
         .width            = 0.2f,
         .height           = 0.2f,
-        .thickness        = 1.0f,
+        .thickness        = inst->thickness,
         .flags            = VfxDecal_OutputColor,
         .excludeTags      = 0,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
-        .alpha            = decal->alpha,
-        .roughness        = 1.0f,
+        .alpha            = trailAlpha,
+        .roughness        = inst->roughness,
     };
 
     vfx_decal_draw_output(drawNormal, &params);
