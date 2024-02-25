@@ -631,11 +631,14 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     if (segLengthSqr < (minSegLength * minSegLength)) {
       continue;
     }
+    const f32       segLength = math_sqrt_f32(segLengthSqr);
+    const GeoVector segDir    = geo_vector_div(segDelta, segLength);
+    const GeoQuat   segRot    = geo_quat_look(segDir, geo_quat_rotate(segEnd.rot, geo_forward));
     const GeoVector segCenter = geo_vector_mul(geo_vector_add(segBegin.pos, segEnd.pos), 0.5f);
 
     const VfxDecalParams params = {
         .pos              = segCenter,
-        .rot              = geo_quat_forward_to_up,
+        .rot              = geo_quat_mul(segRot, geo_quat_forward_to_up),
         .width            = 0.2f,
         .height           = 0.2f,
         .thickness        = 1.0f,
