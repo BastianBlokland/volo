@@ -607,11 +607,21 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
   vfx_decal_trail_spline_fill(inst, trans->position, points);
 
   // Emit decals along the spline.
-  f32 t = 0.0f, tStep = 0.25f, tMax = (f32)(vfx_decal_trail_history_count + 1);
-  for (; t += tStep, t < tMax;) {
-    const GeoVector      pos    = vfx_spline_sample(points, array_elems(points), t);
+  const f32 minSegLength = 0.2f;
+  const f32 tStep        = 0.25f;
+  const f32 tMax         = (f32)(vfx_decal_trail_history_count + 1);
+  GeoVector segBegin     = trans->position;
+  for (f32 t = tStep; t < tMax; t += tStep) {
+    const GeoVector segEnd       = vfx_spline_sample(points, array_elems(points), t);
+    const GeoVector segDelta     = geo_vector_sub(segEnd, segBegin);
+    const f32       segLengthSqr = geo_vector_mag_sqr(segDelta);
+    if (segLengthSqr < (minSegLength * minSegLength)) {
+      continue;
+    }
+    const GeoVector segCenter = geo_vector_mul(geo_vector_add(segBegin, segEnd), 0.5f);
+
     const VfxDecalParams params = {
-        .pos              = pos,
+        .pos              = segCenter,
         .rot              = geo_quat_forward_to_up,
         .width            = 0.2f,
         .height           = 0.2f,
@@ -628,6 +638,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     if (UNLIKELY(debug)) {
       vfx_decal_draw_output(drawDebug, &params);
     }
+    segBegin = segEnd;
   }
 }
 
