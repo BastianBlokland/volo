@@ -105,6 +105,12 @@ spec(vector) {
         geo_vector_mag(geo_vector_norm(geo_vector(.x = .1337f, .y = 42, .w = -42))), 1, 1e-6f);
   }
 
+  it("supports normalizing with a fallback for 0") {
+    check_eq_vector(geo_vector_norm_or(geo_vector(0), geo_down), geo_down);
+    check_eq_vector(geo_vector_norm_or(geo_up, geo_down), geo_up);
+    check_eq_vector(geo_vector_norm_or(geo_vector(.y = 42), geo_down), geo_up);
+  }
+
   it("returns 0 as the dot product of perpendicular unit vectors") {
     check_eq_float(geo_vector_dot(geo_up, geo_right), 0, 1e-6f);
     check_eq_float(geo_vector_dot(geo_right, geo_forward), 0, 1e-6f);
