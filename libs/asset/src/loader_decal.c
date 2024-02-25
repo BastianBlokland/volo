@@ -11,6 +11,7 @@
 
 #include "repo_internal.h"
 
+#define decal_default_size 1.0f
 #define decal_default_thickness 0.25f
 
 static DataReg* g_dataReg;
@@ -77,8 +78,8 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, scaleMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, scaleMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -135,8 +136,8 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->roughness        = def->roughness;
   out->alphaMin         = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
   out->alphaMax         = math_max(out->alphaMin, def->alphaMax);
-  out->width            = def->width;
-  out->height           = def->height;
+  out->width            = def->width > f32_epsilon ? def->width : decal_default_size;
+  out->height           = def->height > f32_epsilon ? def->height : decal_default_size;
   out->thickness        = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
   out->scaleMin         = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
   out->scaleMax         = math_max(out->scaleMin, def->scaleMax);
