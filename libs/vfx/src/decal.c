@@ -414,21 +414,15 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   out->data4[3] = float_f32_to_f16(params->alpha);
 }
 
-static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis, const f32 angle) {
-  GeoQuat res;
+static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) {
   switch (axis) {
   case AssetDecalAxis_LocalY:
-    res = geo_quat_mul(rot, geo_quat_forward_to_up);
-    break;
+    return geo_quat_mul(rot, geo_quat_forward_to_up);
   case AssetDecalAxis_LocalZ:
-    res = rot;
-    break;
+    return rot;
   case AssetDecalAxis_WorldY:
-    res = geo_quat_forward_to_up;
-    break;
+    return geo_quat_forward_to_up;
   }
-  res = geo_quat_mul(res, geo_quat_angle_axis(angle, geo_forward));
-  return res;
 }
 
 static f32 vfx_decal_fade_in(
@@ -478,12 +472,14 @@ static void vfx_decal_single_update(
 
   const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
 
-  const f32            scale   = scaleComp ? scaleComp->scale : 1.0f;
-  const f32            fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
+  const GeoQuat        rotRaw = vfx_decal_rotation(trans->rotation, inst->axis);
+  const GeoQuat        rot    = geo_quat_mul(rotRaw, geo_quat_angle_axis(inst->angle, geo_forward));
+  const f32            scale  = scaleComp ? scaleComp->scale : 1.0f;
+  const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const VfxDecalParams params  = {
        .pos              = trans->position,
-       .rot              = vfx_decal_rotation(trans->rotation, inst->axis, inst->angle),
+       .rot              = rot,
        .width            = inst->width * scale,
        .height           = inst->height * scale,
        .thickness        = inst->thickness,
@@ -614,7 +610,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
 
   const VfxPose headPose = {
       .pos = trans->position,
-      .rot = vfx_decal_rotation(trans->rotation, inst->axis, 0),
+      .rot = vfx_decal_rotation(trans->rotation, inst->axis),
   };
   const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
   const f32  trailAlpha = decal->alpha * inst->alpha;
