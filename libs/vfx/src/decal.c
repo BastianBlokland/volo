@@ -427,6 +427,7 @@ static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) 
   case AssetDecalAxis_WorldY:
     return geo_quat_forward_to_up;
   }
+  UNREACHABLE
 }
 
 static f32 vfx_decal_fade_in(
@@ -482,17 +483,17 @@ static void vfx_decal_single_update(
   const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const VfxDecalParams params  = {
-       .pos              = trans->position,
-       .rot              = rot,
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->flags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
-       .roughness        = inst->roughness,
+      .pos              = trans->position,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->flags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+      .roughness        = inst->roughness,
   };
 
   vfx_decal_draw_output(drawNormal, &params);
