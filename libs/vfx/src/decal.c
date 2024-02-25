@@ -78,7 +78,7 @@ ecs_comp_define(VfxDecalSingleComp) {
 
 typedef struct {
   GeoVector pos;
-  GeoQuat   rot;
+  GeoVector dir; // Projection axis.
 } VfxTrailPoint;
 
 ecs_comp_define(VfxDecalTrailComp) {
@@ -530,10 +530,17 @@ static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const VfxTrailP
   inst->historyNewest        = indexOldest;
 }
 
+static VfxTrailPoint vfx_trail_point_center(const VfxTrailPoint from, const VfxTrailPoint to) {
+  VfxTrailPoint res;
+  res.pos = geo_vector_mul(geo_vector_add(from.pos, to.pos), 0.5f);
+  res.dir = geo_vector_norm_or(geo_vector_mul(geo_vector_add(from.dir, to.dir), 0.5f), geo_up);
+  return res;
+}
+
 static VfxTrailPoint vfx_trail_point_extrapolate(const VfxTrailPoint from, const VfxTrailPoint to) {
   VfxTrailPoint res;
   res.pos = geo_vector_add(to.pos, geo_vector_sub(to.pos, from.pos));
-  res.rot = to.rot; // TODO: Extrapolate rotation.
+  res.dir = to.dir; // TODO: Extrapolate projection direction.
   return res;
 }
 
@@ -597,7 +604,7 @@ static VfxTrailPoint vfx_spline_sample(const VfxTrailPoint* points, const u32 co
 
   VfxTrailPoint res;
   res.pos = vfx_catmullrom(a.pos, b.pos, c.pos, d.pos, frac);
-  res.rot = geo_quat_slerp(b.rot, c.rot, frac);
+  res.dir = geo_vector_norm_or(geo_vector_lerp(b.dir, c.dir, frac), geo_up);
   return res;
 }
 
@@ -610,7 +617,7 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
 
   const VfxTrailPoint headPoint = {
       .pos = trans->position,
-      .rot = vfx_decal_rotation(trans->rotation, inst->axis),
+      .dir = geo_quat_rotate(vfx_decal_rotation(trans->rotation, inst->axis), geo_forward),
   };
   const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
   const f32  trailAlpha = decal->alpha * inst->alpha;
@@ -644,19 +651,17 @@ vfx_decal_trail_update(RendDrawComp* drawNormal, RendDrawComp* drawDebug, EcsIte
     if (segLengthSqr < (minSegLength * minSegLength)) {
       continue;
     }
-    const f32       segLength    = math_sqrt_f32(segLengthSqr);
-    const GeoVector segCenterPos = geo_vector_mul(geo_vector_add(segBegin.pos, segEnd.pos), 0.5f);
-    const GeoQuat   segCenterRot = geo_quat_slerp(segBegin.rot, segEnd.rot, 0.5f);
+    const f32           segLength = math_sqrt_f32(segLengthSqr);
+    const VfxTrailPoint segCenter = vfx_trail_point_center(segBegin, segEnd);
 
-    // Orient 'up' to point to the end and 'forward' mostly in projection axis of the segment.
-    const GeoVector segUp         = geo_vector_div(segDelta, segLength);
-    const GeoVector segForwardRef = geo_quat_rotate(segCenterRot, geo_forward);
-    const GeoVector segRight      = geo_vector_norm(geo_vector_cross3(segUp, segForwardRef));
-    const GeoVector segForward    = geo_vector_cross3(segRight, segUp);
-    const GeoMatrix segRot        = geo_matrix_rotate(segRight, segUp, segForward);
+    // Orient 'up' to point to the end and 'forward' mostly in projection direction of the segment.
+    const GeoVector segUp      = geo_vector_div(segDelta, segLength);
+    const GeoVector segRight   = geo_vector_norm(geo_vector_cross3(segUp, segCenter.dir));
+    const GeoVector segForward = geo_vector_cross3(segRight, segUp);
+    const GeoMatrix segRot     = geo_matrix_rotate(segRight, segUp, segForward);
 
     const VfxDecalParams params = {
-        .pos              = segCenterPos,
+        .pos              = segCenter.pos,
         .rot              = geo_matrix_to_quat(&segRot),
         .width            = 0.2f,
         .height           = 0.2f,
