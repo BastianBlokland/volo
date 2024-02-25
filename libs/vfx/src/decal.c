@@ -682,7 +682,7 @@ static void vfx_decal_trail_update(
         .pos              = segCenter.pos,
         .rot              = geo_matrix_to_quat(&segRot),
         .width            = inst->width * trailScale,
-        .height           = 0.2f,
+        .height           = segLength,
         .thickness        = inst->thickness,
         .flags            = inst->flags,
         .excludeTags      = inst->excludeTags,
