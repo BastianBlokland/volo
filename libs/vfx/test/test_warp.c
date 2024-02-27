@@ -49,6 +49,33 @@ static VfxWarpVec vfx_warp_apply(const VfxWarp* warp, const VfxWarpVec p) {
   return (VfxWarpVec){.x = x * w, .y = y * w};
 }
 
+static VfxWarp vfx_warp_invert(const VfxWarp* w) {
+  const f32 d0 = w->columns[1].y * w->columns[2].z - w->columns[2].y * w->columns[1].z;
+  const f32 d1 = w->columns[2].x * w->columns[1].z - w->columns[1].x * w->columns[2].z;
+  const f32 d2 = w->columns[1].x * w->columns[2].y - w->columns[2].x * w->columns[1].y;
+  const f32 d  = w->columns[0].x * d0 + w->columns[0].y * d1 + w->columns[0].z * d2;
+  diag_assert_msg(math_abs(d) > f32_epsilon, "Singular vfx warp matrix");
+  const f32 dInv = 1.0f / d;
+  return (VfxWarp){
+      .columns = {
+          {
+              d0 * dInv,
+              (w->columns[2].y * w->columns[0].z - w->columns[0].y * w->columns[2].z) * dInv,
+              (w->columns[0].y * w->columns[1].z - w->columns[1].y * w->columns[0].z) * dInv,
+          },
+          {
+              d1,
+              (w->columns[0].x * w->columns[2].z - w->columns[2].x * w->columns[0].z) * dInv,
+              (w->columns[1].x * w->columns[0].z - w->columns[0].x * w->columns[1].z) * dInv,
+          },
+          {
+              d2,
+              (w->columns[2].x * w->columns[0].y - w->columns[0].x * w->columns[2].y) * dInv,
+              (w->columns[0].x * w->columns[1].y - w->columns[1].x * w->columns[0].y) * dInv,
+          },
+      }};
+}
+
 static VfxWarp vfx_warp_ident() {
   return (VfxWarp){
       .columns = {
@@ -193,6 +220,49 @@ spec(warp) {
       const VfxWarpVec p       = unitPoints[i];
       const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
       check_eq_warp_vec(trapeziumPoints[i], pWarped);
+    }
+  }
+
+  it("can invert a identity warp") {
+    const VfxWarp w    = vfx_warp_ident();
+    const VfxWarp wInv = vfx_warp_invert(&w);
+    for (u32 i = 0; i != 100; ++i) {
+      const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
+      const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
+      check_eq_warp_vec(p, pWarped);
+    }
+  }
+
+  it("can invert an offset warp") {
+    const VfxWarpVec offset      = {.x = 1.337f, .y = 0.42f};
+    const VfxWarpVec toPoints[4] = {
+        vfx_warp_vec_add((VfxWarpVec){0.0f, 0.0f}, offset),
+        vfx_warp_vec_add((VfxWarpVec){1.0f, 0.0f}, offset),
+        vfx_warp_vec_add((VfxWarpVec){1.0f, 1.0f}, offset),
+        vfx_warp_vec_add((VfxWarpVec){0.0f, 1.0f}, offset),
+    };
+    const VfxWarp w    = vfx_warp_to_points(toPoints);
+    const VfxWarp wInv = vfx_warp_invert(&w);
+    for (u32 i = 0; i != 100; ++i) {
+      const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
+      const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
+      check_eq_warp_vec(vfx_warp_vec_sub(p, offset), pWarped);
+    }
+  }
+
+  it("can invert a scale warp") {
+    const VfxWarpVec toPoints[4] = {
+        {0.0f, 0.0f},
+        {2.0f, 0.0f},
+        {2.0f, 2.0f},
+        {0.0f, 2.0f},
+    };
+    const VfxWarp w    = vfx_warp_to_points(toPoints);
+    const VfxWarp wInv = vfx_warp_invert(&w);
+    for (u32 i = 0; i != 100; ++i) {
+      const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
+      const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
+      check_eq_warp_vec(vfx_warp_vec_mul(p, 0.5f), pWarped);
     }
   }
 
