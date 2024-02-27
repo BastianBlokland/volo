@@ -61,9 +61,9 @@ static VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
     const VfxWarpVec b = vfx_warp_vec_sub(p[2], p[1]);
     return (VfxWarp){
         .columns = {
-            {a.x, b.x, p[0].x},
-            {a.y, b.y, p[0].y},
-            {0.0f, 0.0f, 1.0f},
+            {a.x, a.y, 0.0f},
+            {b.x, b.y, 0.0f},
+            {p[0].x, p[0].y, 1.0f},
         }};
   }
   diag_crash_msg("Non-affine point warping not supported");
@@ -107,6 +107,22 @@ spec(warp) {
       const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
       const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
       check_eq_warp_vec(p, pWarped);
+    }
+  }
+
+  it("returns offset points when applying an offset point warp") {
+    const VfxWarpVec offset      = {.x = 1.337f, .y = 0.42f};
+    const VfxWarpVec toPoints[4] = {
+        vfx_warp_vec_add((VfxWarpVec){0.0f, 0.0f}, offset),
+        vfx_warp_vec_add((VfxWarpVec){1.0f, 0.0f}, offset),
+        vfx_warp_vec_add((VfxWarpVec){1.0f, 1.0f}, offset),
+        vfx_warp_vec_add((VfxWarpVec){0.0f, 1.0f}, offset),
+    };
+    const VfxWarp w = vfx_warp_to_points(toPoints);
+    for (u32 i = 0; i != 100; ++i) {
+      const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
+      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      check_eq_warp_vec(vfx_warp_vec_add(p, offset), pWarped);
     }
   }
 
