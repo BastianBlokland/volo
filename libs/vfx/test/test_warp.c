@@ -64,12 +64,12 @@ static VfxWarp vfx_warp_invert(const VfxWarp* w) {
               (w->columns[0].y * w->columns[1].z - w->columns[1].y * w->columns[0].z) * dInv,
           },
           {
-              d1,
+              d1 * dInv,
               (w->columns[0].x * w->columns[2].z - w->columns[2].x * w->columns[0].z) * dInv,
               (w->columns[1].x * w->columns[0].z - w->columns[0].x * w->columns[1].z) * dInv,
           },
           {
-              d2,
+              d2 * dInv,
               (w->columns[2].x * w->columns[0].y - w->columns[0].x * w->columns[2].y) * dInv,
               (w->columns[0].x * w->columns[1].y - w->columns[1].x * w->columns[0].y) * dInv,
           },
@@ -113,6 +113,11 @@ static VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
           {to3.x + v * p[3].x, to3.y + v * p[3].y, v},
           {p[0].x, p[0].y, 1.0f},
       }};
+}
+
+static VfxWarp vfx_warp_from_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
+  const VfxWarp w = vfx_warp_to_points(p);
+  return vfx_warp_invert(&w);
 }
 
 void eq_warp_vec_impl(
@@ -202,27 +207,6 @@ spec(warp) {
     }
   }
 
-  it("can map a trapezium") {
-    const VfxWarpVec unitPoints[4] = {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f},
-    };
-    const VfxWarpVec trapeziumPoints[4] = {
-        {-0.1f, 0.0f},
-        {1.2f, 0.0f},
-        {0.75f, 1.0f},
-        {0.15f, 1.0f},
-    };
-    const VfxWarp w = vfx_warp_to_points(trapeziumPoints);
-    for (u32 i = 0; i != array_elems(unitPoints); ++i) {
-      const VfxWarpVec p       = unitPoints[i];
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
-      check_eq_warp_vec(trapeziumPoints[i], pWarped);
-    }
-  }
-
   it("can invert a identity warp") {
     const VfxWarp w    = vfx_warp_ident();
     const VfxWarp wInv = vfx_warp_invert(&w);
@@ -263,6 +247,48 @@ spec(warp) {
       const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
       const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
       check_eq_warp_vec(vfx_warp_vec_mul(p, 0.5f), pWarped);
+    }
+  }
+
+  it("can map to a trapezium") {
+    const VfxWarpVec unitPoints[4] = {
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f},
+    };
+    const VfxWarpVec trapeziumPoints[4] = {
+        {-0.1f, 0.0f},
+        {1.2f, 0.0f},
+        {0.75f, 1.0f},
+        {0.15f, 1.0f},
+    };
+    const VfxWarp w = vfx_warp_to_points(trapeziumPoints);
+    for (u32 i = 0; i != array_elems(unitPoints); ++i) {
+      const VfxWarpVec p       = unitPoints[i];
+      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      check_eq_warp_vec(trapeziumPoints[i], pWarped);
+    }
+  }
+
+  it("can map from a trapezium") {
+    const VfxWarpVec unitPoints[4] = {
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f},
+    };
+    const VfxWarpVec trapeziumPoints[4] = {
+        {-0.1f, 0.0f},
+        {1.2f, 0.0f},
+        {0.75f, 1.0f},
+        {0.15f, 1.0f},
+    };
+    const VfxWarp w = vfx_warp_from_points(trapeziumPoints);
+    for (u32 i = 0; i != array_elems(unitPoints); ++i) {
+      const VfxWarpVec p       = trapeziumPoints[i];
+      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      check_eq_warp_vec(unitPoints[i], pWarped);
     }
   }
 
