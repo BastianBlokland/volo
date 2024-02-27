@@ -29,6 +29,10 @@ static VfxWarpVec vfx_warp_vec_sub(const VfxWarpVec a, const VfxWarpVec b) {
   return (VfxWarpVec){.x = a.x - b.x, .y = a.y - b.y};
 }
 
+static VfxWarpVec vfx_warp_vec_mul(const VfxWarpVec a, const f32 scalar) {
+  return (VfxWarpVec){.x = a.x * scalar, .y = a.y * scalar};
+}
+
 static VfxWarpVec vfx_warp_vec_rand_in_box(Rng* rng, const f32 min, const f32 max) {
   return (VfxWarpVec){.x = rng_sample_range(rng, min, max), .y = rng_sample_range(rng, min, max)};
 }
@@ -123,6 +127,21 @@ spec(warp) {
       const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
       const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
       check_eq_warp_vec(vfx_warp_vec_add(p, offset), pWarped);
+    }
+  }
+
+  it("returns flipped points when applying an flipped point warp") {
+    const VfxWarpVec toPoints[4] = {
+        {0.0f, 0.0f},
+        {-1.0f, 0.0f},
+        {-1.0f, -1.0f},
+        {0.0f, -1.0f},
+    };
+    const VfxWarp w = vfx_warp_to_points(toPoints);
+    for (u32 i = 0; i != 100; ++i) {
+      const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
+      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      check_eq_warp_vec(vfx_warp_vec_mul(p, -1.0f), pWarped);
     }
   }
 
