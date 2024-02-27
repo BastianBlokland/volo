@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_rng.h"
@@ -61,16 +62,30 @@ static VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   const VfxWarpVec d = vfx_warp_vec_add(vfx_warp_vec_sub(p[0], p[1]), vfx_warp_vec_sub(p[2], p[3]));
   if (math_abs(d.x) < f32_epsilon && math_abs(d.y) < f32_epsilon) {
     // Affine transformation.
-    const VfxWarpVec a = vfx_warp_vec_sub(p[1], p[0]);
-    const VfxWarpVec b = vfx_warp_vec_sub(p[2], p[1]);
+    const VfxWarpVec to1 = vfx_warp_vec_sub(p[1], p[0]);
+    const VfxWarpVec to2 = vfx_warp_vec_sub(p[2], p[1]);
     return (VfxWarp){
         .columns = {
-            {a.x, a.y, 0.0f},
-            {b.x, b.y, 0.0f},
+            {to1.x, to1.y, 0.0f},
+            {to2.x, to2.y, 0.0f},
             {p[0].x, p[0].y, 1.0f},
         }};
   }
-  diag_crash_msg("Non-affine point warping not supported");
+  const VfxWarpVec d1  = vfx_warp_vec_sub(p[1], p[2]);
+  const VfxWarpVec d2  = vfx_warp_vec_sub(p[3], p[2]);
+  const f32        den = d1.x * d2.y - d2.x * d1.y;
+  diag_assert_msg(math_abs(den) > f32_epsilon, "Singular vfx warp matrix");
+  const f32        denInv = 1.0f / den;
+  const f32        u      = (d.x * d2.y - d.y * d2.x) * denInv;
+  const f32        v      = (d.y * d1.x - d.x * d1.y) * denInv;
+  const VfxWarpVec to1    = vfx_warp_vec_sub(p[1], p[0]);
+  const VfxWarpVec to3    = vfx_warp_vec_sub(p[3], p[0]);
+  return (VfxWarp){
+      .columns = {
+          {to1.x + u * p[1].x, to1.y + u * p[1].y, u},
+          {to3.x + v * p[3].x, to3.y + v * p[3].y, v},
+          {p[0].x, p[0].y, 1.0f},
+      }};
 }
 
 void eq_warp_vec_impl(
@@ -157,6 +172,27 @@ spec(warp) {
       const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
       const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
       check_eq_warp_vec(vfx_warp_vec_mul(p, 2.0f), pWarped);
+    }
+  }
+
+  it("can map a trapezium") {
+    const VfxWarpVec unitPoints[4] = {
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f},
+    };
+    const VfxWarpVec trapeziumPoints[4] = {
+        {-0.1f, 0.0f},
+        {1.2f, 0.0f},
+        {0.75f, 1.0f},
+        {0.15f, 1.0f},
+    };
+    const VfxWarp w = vfx_warp_to_points(trapeziumPoints);
+    for (u32 i = 0; i != array_elems(unitPoints); ++i) {
+      const VfxWarpVec p       = unitPoints[i];
+      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      check_eq_warp_vec(trapeziumPoints[i], pWarped);
     }
   }
 
