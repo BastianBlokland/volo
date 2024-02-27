@@ -59,7 +59,7 @@ static VfxWarp vfx_warp_ident() {
 
 static VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   const VfxWarpVec d = vfx_warp_vec_add(vfx_warp_vec_sub(p[0], p[1]), vfx_warp_vec_sub(p[2], p[3]));
-  if (d.x < f32_epsilon && d.y < f32_epsilon) {
+  if (math_abs(d.x) < f32_epsilon && math_abs(d.y) < f32_epsilon) {
     // Affine transformation.
     const VfxWarpVec a = vfx_warp_vec_sub(p[1], p[0]);
     const VfxWarpVec b = vfx_warp_vec_sub(p[2], p[1]);
