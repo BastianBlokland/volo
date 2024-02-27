@@ -145,5 +145,20 @@ spec(warp) {
     }
   }
 
+  it("returns scaled points when applying an scaled point warp") {
+    const VfxWarpVec toPoints[4] = {
+        {0.0f, 0.0f},
+        {2.0f, 0.0f},
+        {2.0f, 2.0f},
+        {0.0f, 2.0f},
+    };
+    const VfxWarp w = vfx_warp_to_points(toPoints);
+    for (u32 i = 0; i != 100; ++i) {
+      const VfxWarpVec p       = vfx_warp_vec_rand_in_box(testRng, -10.0f, 10.0f);
+      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      check_eq_warp_vec(vfx_warp_vec_mul(p, 2.0f), pWarped);
+    }
+  }
+
   teardown() { rng_destroy(testRng); }
 }
