@@ -19,6 +19,10 @@ VfxWarpVec vfx_warp_vec_add(VfxWarpVec, VfxWarpVec);
 VfxWarpVec vfx_warp_vec_sub(VfxWarpVec, VfxWarpVec);
 VfxWarpVec vfx_warp_vec_mul(VfxWarpVec, f32 scalar);
 bool       vfx_warp_vec_eq(VfxWarpVec, VfxWarpVec, f32 threshold);
+f32        vfx_warp_vec_dot(VfxWarpVec, VfxWarpVec);
+f32        vfx_warp_vec_cross(VfxWarpVec, VfxWarpVec);
+VfxWarpVec vfx_warp_vec_perpendicular(VfxWarpVec);
+
 
 VfxWarpVec vfx_warp_apply(const VfxWarp*, VfxWarpVec point);
 VfxWarp    vfx_warp_invert(const VfxWarp*);

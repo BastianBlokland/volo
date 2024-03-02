@@ -19,6 +19,11 @@ bool vfx_warp_vec_eq(const VfxWarpVec a, const VfxWarpVec b, const f32 threshold
   return math_abs(a.x - b.x) <= threshold && math_abs(a.y - b.y) <= threshold;
 }
 
+f32 vfx_warp_vec_dot(const VfxWarpVec a, const VfxWarpVec b) { return a.x * b.x + a.y * b.y; }
+f32 vfx_warp_vec_cross(const VfxWarpVec a, const VfxWarpVec b) { return a.x * b.y - a.y * b.x; }
+VfxWarpVec vfx_warp_vec_perpendicular(const VfxWarpVec v) { return (VfxWarpVec){v.y, -v.x}; }
+
+
 VfxWarpVec vfx_warp_apply(const VfxWarp* warp, const VfxWarpVec p) {
   const f32 w = 1.0f / (warp->columns[0].z * p.x + warp->columns[1].z * p.y + warp->columns[2].z);
   const f32 x = warp->columns[0].x * p.x + warp->columns[1].x * p.y + warp->columns[2].x;
