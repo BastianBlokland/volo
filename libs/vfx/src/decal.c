@@ -499,19 +499,19 @@ static void vfx_decal_single_update(
   const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const VfxDecalParams params  = {
-       .pos              = trans->position,
-       .rot              = rot,
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->flags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
-       .roughness        = inst->roughness,
-       .warpScale        = {1.0f, 1.0f},
-       .warp             = vfx_warp_ident(),
+      .pos              = trans->position,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->flags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+      .roughness        = inst->roughness,
+      .warpScale        = {1.0f, 1.0f},
+      .warp             = vfx_warp_ident(),
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -755,7 +755,7 @@ static void vfx_decal_trail_update(
     VfxWarpVec warpScale;
     if (vfx_warp_is_convex(corners, array_elems(corners))) {
       warp      = vfx_warp_from_points(corners);
-      warpScale = vfx_warp_bounds_size(corners, array_elems(corners));
+      warpScale = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f});
     } else {
       warp      = vfx_warp_ident();
       warpScale = (VfxWarpVec){1.0f, 1.0f};
