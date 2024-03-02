@@ -56,8 +56,8 @@ typedef struct {
   f16     data2[4]; // xyzw: rotation quaternion.
   f16     data3[4]; // xyz: scale, w: excludeTags.
   f16     data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
-  f16     padding[4];
-  VfxWarp warp; // 3x3 warp matrix.
+  f16     data5[4]; // xyz: boxSize.
+  VfxWarp warp;     // 3x3 warp matrix.
 } VfxDecalData;
 
 ASSERT(sizeof(VfxDecalData) == 96, "Size needs to match the size defined in glsl");
@@ -396,13 +396,17 @@ typedef struct {
   u8            excludeTags;
   f32           alpha, roughness;
   f32           width, height, thickness;
+  VfxWarpVec    warpScale;
   VfxWarp       warp;
 } VfxDecalParams;
 
 static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* params) {
-  const GeoVector size   = geo_vector(params->width, params->height, params->thickness);
-  const GeoBox    box    = geo_box_from_center(params->pos, geo_vector_mul(size, 2));
-  const GeoBox    bounds = geo_box_from_rotated(&box, params->rot);
+  const GeoVector decalSize = geo_vector(params->width, params->height, params->thickness);
+  const GeoVector warpScale = geo_vector(params->warpScale.x, params->warpScale.y, 1);
+  const GeoVector boxSize   = geo_vector_mul_comps(decalSize, warpScale);
+
+  const GeoBox box    = geo_box_from_center(params->pos, boxSize);
+  const GeoBox bounds = geo_box_from_rotated(&box, params->rot);
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(params->pos.comps, sizeof(f32) * 3));
@@ -410,9 +414,9 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
 
   geo_quat_pack_f16(params->rot, out->data2);
 
-  out->data3[0] = float_f32_to_f16(size.x);
-  out->data3[1] = float_f32_to_f16(size.y);
-  out->data3[2] = float_f32_to_f16(size.z);
+  out->data3[0] = float_f32_to_f16(decalSize.x);
+  out->data3[1] = float_f32_to_f16(decalSize.y);
+  out->data3[2] = float_f32_to_f16(decalSize.z);
   out->data3[3] = float_f32_to_f16((u32)params->excludeTags);
 
   diag_assert_msg(params->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
@@ -422,7 +426,12 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   out->data4[1] = float_f32_to_f16((f32)params->atlasNormalIndex);
   out->data4[2] = float_f32_to_f16(params->roughness);
   out->data4[3] = float_f32_to_f16(params->alpha);
-  out->warp     = params->warp;
+
+  out->data5[0] = float_f32_to_f16(boxSize.x);
+  out->data5[1] = float_f32_to_f16(boxSize.y);
+  out->data5[2] = float_f32_to_f16(boxSize.z);
+
+  out->warp = params->warp;
 }
 
 static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) {
@@ -501,6 +510,7 @@ static void vfx_decal_single_update(
        .atlasNormalIndex = inst->atlasNormalIndex,
        .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
        .roughness        = inst->roughness,
+       .warpScale        = {1.0f, 1.0f},
        .warp             = vfx_warp_ident(),
   };
 
@@ -741,11 +751,14 @@ static void vfx_decal_trail_update(
         vfx_warp_vec_sub((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
     };
 
-    VfxWarp warp;
+    VfxWarp    warp;
+    VfxWarpVec warpScale;
     if (vfx_warp_is_convex(corners, array_elems(corners))) {
-      warp = vfx_warp_from_points(corners);
+      warp      = vfx_warp_from_points(corners);
+      warpScale = vfx_warp_bounds_size(corners, array_elems(corners));
     } else {
-      warp = vfx_warp_ident();
+      warp      = vfx_warp_ident();
+      warpScale = (VfxWarpVec){1.0f, 1.0f};
     }
 
     const VfxDecalParams params = {
@@ -760,6 +773,7 @@ static void vfx_decal_trail_update(
         .atlasNormalIndex = inst->atlasNormalIndex,
         .alpha            = trailAlpha,
         .roughness        = inst->roughness,
+        .warpScale        = warpScale,
         .warp             = warp,
     };
 
