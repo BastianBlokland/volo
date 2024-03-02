@@ -31,6 +31,7 @@
 #define vfx_decal_trail_spline_points (vfx_decal_trail_history_count + 3)
 #define vfx_decal_trail_seg_min_length 0.2f
 #define vfx_decal_trail_seg_count_max 64
+#define vfx_decal_trail_step 0.25f
 
 typedef struct {
   VfxAtlasDrawData atlasColor, atlasNormal;
@@ -682,8 +683,8 @@ static void vfx_decal_trail_update(
   VfxTrailSegment segs[vfx_decal_trail_seg_count_max];
   u32             segCount = 0;
   const f32       tMax     = (f32)(vfx_decal_trail_history_count + 1);
+  const f32       tStep    = vfx_decal_trail_step;
   VfxTrailPoint   segBegin = headPoint;
-  f32             tStep    = 0.25;
   for (f32 t = tStep; t < tMax && segCount != array_elems(segs); t += tStep) {
     const VfxTrailPoint segEnd       = vfx_spline_sample(spline, array_elems(spline), t);
     const GeoVector     segDelta     = geo_vector_sub(segEnd.pos, segBegin.pos);
