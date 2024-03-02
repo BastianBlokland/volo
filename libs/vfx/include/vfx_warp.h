@@ -33,5 +33,6 @@ bool       vfx_warp_is_convex(const VfxWarpVec points[], u32 pointCount);
 VfxWarpVec vfx_warp_apply(const VfxWarp*, VfxWarpVec point);
 VfxWarp    vfx_warp_invert(const VfxWarp*);
 VfxWarp    vfx_warp_ident();
+VfxWarp    vfx_warp_offset_scale(VfxWarpVec offset, VfxWarpVec scale);
 VfxWarp    vfx_warp_to_points(const VfxWarpVec points[PARAM_ARRAY_SIZE(4)]);
 VfxWarp    vfx_warp_from_points(const VfxWarpVec points[PARAM_ARRAY_SIZE(4)]);

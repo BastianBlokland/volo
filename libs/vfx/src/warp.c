@@ -111,6 +111,15 @@ VfxWarp vfx_warp_ident() {
       }};
 }
 
+VfxWarp vfx_warp_offset_scale(const VfxWarpVec offset, const VfxWarpVec scale) {
+  return (VfxWarp){
+      .columns = {
+          {scale.x, 0, 0},
+          {0, scale.y, 0},
+          {offset.x, offset.y, 1},
+      }};
+}
+
 VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   const VfxWarpVec d = vfx_warp_vec_add(vfx_warp_vec_sub(p[0], p[1]), vfx_warp_vec_sub(p[2], p[3]));
   if (math_abs(d.x) < f32_epsilon && math_abs(d.y) < f32_epsilon) {
