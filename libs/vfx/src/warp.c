@@ -28,7 +28,7 @@ bool vfx_warp_is_convex(const VfxWarpVec points[], const u32 pointCount) {
     const VfxWarpVec a = points[i];
     const VfxWarpVec b = points[(i + 1) % pointCount];
     const VfxWarpVec c = points[(i + 2) % pointCount];
-    if (vfx_warp_vec_cross(vfx_warp_vec_sub(b, a), vfx_warp_vec_sub(c, a)) < -f32_epsilon) {
+    if (vfx_warp_vec_cross(vfx_warp_vec_sub(b, a), vfx_warp_vec_sub(c, a)) < 0) {
       return false;
     }
   }
