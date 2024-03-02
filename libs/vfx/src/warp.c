@@ -15,6 +15,10 @@ VfxWarpVec vfx_warp_vec_mul(const VfxWarpVec a, const f32 scalar) {
   return (VfxWarpVec){.x = a.x * scalar, .y = a.y * scalar};
 }
 
+VfxWarpVec vfx_warp_vec_div(const VfxWarpVec a, const f32 scalar) {
+  return (VfxWarpVec){.x = a.x / scalar, .y = a.y / scalar};
+}
+
 VfxWarpVec vfx_warp_vec_min(const VfxWarpVec a, const VfxWarpVec b) {
   return (VfxWarpVec){math_min(a.x, b.x), math_min(a.y, b.y)};
 }
