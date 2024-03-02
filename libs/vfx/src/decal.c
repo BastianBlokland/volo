@@ -573,9 +573,9 @@ static void vfx_decal_trail_spline_init(
 }
 
 /**
- * Catmull-rom spline (Cubic Hermite).
+ * Catmull-rom spline (cubic hermite) with uniform parametrization.
  * Ref: https://andrewhungblog.wordpress.com/2017/03/03/catmull-rom-splines-in-plain-english/
- * NOTE: Tension hardcoded to 1.
+ * NOTE: Tension hardcoded to 0.
  */
 static GeoVector vfx_catmullrom(
     const GeoVector a, const GeoVector b, const GeoVector c, const GeoVector d, const f32 t) {
