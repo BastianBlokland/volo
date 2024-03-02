@@ -27,6 +27,10 @@ VfxWarpVec vfx_warp_vec_max(const VfxWarpVec a, const VfxWarpVec b) {
   return (VfxWarpVec){math_max(a.x, b.x), math_max(a.y, b.y)};
 }
 
+VfxWarpVec vfx_warp_vec_abs(const VfxWarpVec v) {
+  return (VfxWarpVec){math_abs(v.x), math_abs(v.y)};
+}
+
 bool vfx_warp_vec_eq(const VfxWarpVec a, const VfxWarpVec b, const f32 threshold) {
   return math_abs(a.x - b.x) <= threshold && math_abs(a.y - b.y) <= threshold;
 }
