@@ -34,6 +34,7 @@ bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
 bind_internal(7) in flat f32 in_alpha;
 bind_internal(8) in flat u32 in_excludeTags;
+bind_internal(9) in flat f32m3 in_warp; // 3x3 warp matrix.
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -63,8 +64,18 @@ f32v3 flat_normal_from_position(const f32v3 pos) {
   return normalize(cross(deltaPosX, deltaPosY));
 }
 
+f32v3 project_box_warp(const f32v3 boxPos) {
+  /**
+   * BoxPos is centered around 0.0 (-0.5 to 0.5) while the warp is centered around 0.5 (0.0 to 1.0),
+   * this means we need to apply an offset before and after warping to compensate.
+   */
+  const f32v3 v = in_warp * f32v3(boxPos.xy + 0.5, 1);
+  return f32v3(v.xy / v.z /* Perspective divide */ - 0.5, boxPos.z);
+}
+
 f32v3 project_to_box(const f32v3 worldPos) {
-  return quat_rotate(quat_inverse(in_rotation), worldPos - in_position) / in_scale;
+  const f32v3 boxPos = quat_rotate(quat_inverse(in_rotation), worldPos - in_position) / in_scale;
+  return project_box_warp(boxPos);
 }
 
 f32v3 base_normal(const f32v3 geoNormal, const f32v3 decalNormal, const f32v3 depthNormal) {

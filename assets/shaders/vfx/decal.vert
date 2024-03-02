@@ -18,6 +18,7 @@ struct DecalData {
   f16v4 data3; // x, y, z: scale, w: excludeTags.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
   f16v4 padding;
+  f32m3 warp; // 3x3 warp matrix.
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -34,6 +35,7 @@ bind_internal(5) out flat u32 out_flags;
 bind_internal(6) out flat f32 out_roughness;
 bind_internal(7) out flat f32 out_alpha;
 bind_internal(8) out flat u32 out_excludeTags;
+bind_internal(9) out flat f32m3 out_warp;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -47,8 +49,9 @@ void main() {
   const u32   instanceFlags            = u32(f32(u_instances[in_instanceIndex].data1.w));
   const f32   instanceRoughness        = f32(u_instances[in_instanceIndex].data4.z);
   const f32   instanceAlpha            = f32(u_instances[in_instanceIndex].data4.w);
+  const f32m3 instanceWarp             = u_instances[in_instanceIndex].warp;
 
-  const f32v3 worldPos = quat_rotate(instanceQuat, vert.position * instanceScale) + instancePos;
+  const f32v3 worldPos = quat_rotate(instanceQuat, vert.position * instanceScale * 2) + instancePos;
   const f32v2 colorTexOrigin  = atlas_entry_origin(u_meta.atlasColor, instanceAtlasColorIndex);
   const f32v2 normalTexOrigin = atlas_entry_origin(u_meta.atlasNormal, instanceAtlasNormalIndex);
 
@@ -62,4 +65,5 @@ void main() {
   out_roughness       = instanceRoughness;
   out_alpha           = instanceAlpha;
   out_excludeTags     = instanceExcludeTags;
+  out_warp            = instanceWarp;
 }
