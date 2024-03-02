@@ -23,7 +23,7 @@ f32        vfx_warp_vec_dot(VfxWarpVec, VfxWarpVec);
 f32        vfx_warp_vec_cross(VfxWarpVec, VfxWarpVec);
 VfxWarpVec vfx_warp_vec_perpendicular(VfxWarpVec);
 
-
+bool       vfx_warp_is_convex(const VfxWarpVec points[], u32 pointCount);
 VfxWarpVec vfx_warp_apply(const VfxWarp*, VfxWarpVec point);
 VfxWarp    vfx_warp_invert(const VfxWarp*);
 VfxWarp    vfx_warp_ident();

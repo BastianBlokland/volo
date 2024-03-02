@@ -23,6 +23,17 @@ f32 vfx_warp_vec_dot(const VfxWarpVec a, const VfxWarpVec b) { return a.x * b.x 
 f32 vfx_warp_vec_cross(const VfxWarpVec a, const VfxWarpVec b) { return a.x * b.y - a.y * b.x; }
 VfxWarpVec vfx_warp_vec_perpendicular(const VfxWarpVec v) { return (VfxWarpVec){v.y, -v.x}; }
 
+bool vfx_warp_is_convex(const VfxWarpVec points[], const u32 pointCount) {
+  for (u32 i = 0; i != pointCount; ++i) {
+    const VfxWarpVec a = points[i];
+    const VfxWarpVec b = points[(i + 1) % pointCount];
+    const VfxWarpVec c = points[(i + 2) % pointCount];
+    if (vfx_warp_vec_cross(vfx_warp_vec_sub(b, a), vfx_warp_vec_sub(c, a)) < -f32_epsilon) {
+      return false;
+    }
+  }
+  return true;
+}
 
 VfxWarpVec vfx_warp_apply(const VfxWarp* warp, const VfxWarpVec p) {
   const f32 w = 1.0f / (warp->columns[0].z * p.x + warp->columns[1].z * p.y + warp->columns[2].z);
@@ -98,6 +109,7 @@ VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
 }
 
 VfxWarp vfx_warp_from_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
+  diag_assert(vfx_warp_is_convex(p, 4));
   const VfxWarp w = vfx_warp_to_points(p);
   return vfx_warp_invert(&w);
 }
