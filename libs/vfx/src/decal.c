@@ -29,7 +29,6 @@
 #define vfx_decal_trail_history_count 12
 #define vfx_decal_trail_history_spacing 1.0f
 #define vfx_decal_trail_spline_points (vfx_decal_trail_history_count + 3)
-#define vfx_decal_trail_spline_step 0.25f
 #define vfx_decal_trail_seg_min_length 0.2f
 #define vfx_decal_trail_seg_count_max 64
 
@@ -684,7 +683,8 @@ static void vfx_decal_trail_update(
   u32             segCount = 0;
   const f32       tMax     = (f32)(vfx_decal_trail_history_count + 1);
   VfxTrailPoint   segBegin = headPoint;
-  for (f32 t = vfx_decal_trail_spline_step; t < tMax; t += vfx_decal_trail_spline_step) {
+  f32             tStep    = 0.25;
+  for (f32 t = tStep; t < tMax && segCount != array_elems(segs); t += tStep) {
     const VfxTrailPoint segEnd       = vfx_spline_sample(spline, array_elems(spline), t);
     const GeoVector     segDelta     = geo_vector_sub(segEnd.pos, segBegin.pos);
     const f32           segLengthSqr = geo_vector_mag_sqr(segDelta);
@@ -696,9 +696,6 @@ static void vfx_decal_trail_update(
     const GeoVector     segNormal  = geo_vector_div(segDelta, segLength);
     const GeoVector     segTangent = geo_vector_norm(geo_vector_cross3(segNormal, segCenter.dir));
 
-    if (segCount == vfx_decal_trail_seg_count_max) {
-      break;
-    }
     segs[segCount++] = (VfxTrailSegment){
         .position = segCenter.pos,
         .normal   = segNormal,
