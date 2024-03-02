@@ -35,6 +35,16 @@ f32 vfx_warp_vec_dot(const VfxWarpVec a, const VfxWarpVec b) { return a.x * b.x 
 f32 vfx_warp_vec_cross(const VfxWarpVec a, const VfxWarpVec b) { return a.x * b.y - a.y * b.x; }
 VfxWarpVec vfx_warp_vec_perpendicular(const VfxWarpVec v) { return (VfxWarpVec){v.y, -v.x}; }
 
+VfxWarpVec vfx_warp_bounds_center(const VfxWarpVec points[], const u32 pointCount) {
+  diag_assert(pointCount);
+
+  VfxWarpVec sum = points[0];
+  for (u32 i = 1; i != pointCount; ++i) {
+    sum = vfx_warp_vec_add(sum, points[i]);
+  }
+  return vfx_warp_vec_div(sum, (f32)pointCount);
+}
+
 VfxWarpVec vfx_warp_bounds_size(const VfxWarpVec points[], const u32 pointCount) {
   diag_assert(pointCount);
 
