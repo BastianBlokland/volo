@@ -735,7 +735,8 @@ static void vfx_decal_trail_update(
     /**
      * Compute a warp (3x3 transformation matrix) to deform our rectangle decals so that they will
      * seamlessly connect.
-     * NOTE: This only works when resulting quad is convex, if not then there will be visible gaps.
+     * NOTE: Only works when resulting quad is convex, if not then there will be visible gaps or
+     * overlaps.
      */
 
     const GeoVector localTangentBegin = geo_quat_rotate(rotInv, tangentBegin);
@@ -744,21 +745,26 @@ static void vfx_decal_trail_update(
     const VfxWarpVec warpTangentBegin = {localTangentBegin.x, localTangentBegin.y * segAspectInv};
     const VfxWarpVec warpTangentEnd   = {localTangentEnd.x, localTangentEnd.y * segAspectInv};
 
-    const VfxWarpVec corners[4] = {
+    VfxWarpVec corners[4] = {
         vfx_warp_vec_sub((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
         vfx_warp_vec_add((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
         vfx_warp_vec_add((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
         vfx_warp_vec_sub((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
     };
 
-    VfxWarp    warp;
-    VfxWarpVec warpScale;
-    if (vfx_warp_is_convex(corners, array_elems(corners))) {
-      warp      = vfx_warp_from_points(corners);
-      warpScale = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f});
-    } else {
-      warp      = vfx_warp_ident();
-      warpScale = (VfxWarpVec){1.0f, 1.0f};
+    if (!vfx_warp_is_convex(corners, array_elems(corners))) {
+      /**
+       * The quad is concave (which we cannot represent with a warp), make it convex by making the
+       * left and the right edges parallel to each other. This still results in visible gaps and/or
+       * overlap but its allot better then skipping the segment altogether.
+       */
+      const VfxWarpVec edgeA = vfx_warp_vec_sub(corners[0], corners[3]);
+      const VfxWarpVec edgeB = vfx_warp_vec_sub(corners[1], corners[2]);
+      if (math_abs(edgeA.y) < math_abs(edgeB.y)) {
+        corners[0] = vfx_warp_vec_add(corners[3], vfx_warp_vec_project_forward(edgeA, edgeB));
+      } else {
+        corners[1] = vfx_warp_vec_add(corners[2], vfx_warp_vec_project_forward(edgeB, edgeA));
+      }
     }
 
     const VfxDecalParams params = {
@@ -773,8 +779,8 @@ static void vfx_decal_trail_update(
         .atlasNormalIndex = inst->atlasNormalIndex,
         .alpha            = trailAlpha,
         .roughness        = inst->roughness,
-        .warpScale        = warpScale,
-        .warp             = warp,
+        .warpScale = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
+        .warp      = vfx_warp_from_points(corners),
     };
 
     vfx_decal_draw_output(drawNormal, &params);
