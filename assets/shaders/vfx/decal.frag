@@ -34,7 +34,8 @@ bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
 bind_internal(7) in flat f32 in_alpha;
 bind_internal(8) in flat u32 in_excludeTags;
-bind_internal(9) in flat f32m3 in_warp; // 3x3 warp matrix.
+bind_internal(9) in flat f32v2 in_texScale;
+bind_internal(10) in flat f32m3 in_warp; // 3x3 warp matrix.
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -48,14 +49,14 @@ bind_internal(9) in flat f32m3 in_warp; // 3x3 warp matrix.
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
 
-f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
+f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 atlasCoord) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
-  const f32v2 texcoord = atlasMeta.xy + f32v2(decalPos.x, 1.0 - decalPos.y) * atlasMeta.z;
+  const f32v2 texcoord = atlasMeta.xy + f32v2(atlasCoord.x, 1.0 - atlasCoord.y) * atlasMeta.z;
   return texture(atlas, texcoord);
 }
 
-f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
-  return normal_tex_decode(atlas_sample(atlas, atlasMeta, decalPos).xyz);
+f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 atlasCoord) {
+  return normal_tex_decode(atlas_sample(atlas, atlasMeta, atlasCoord).xyz);
 }
 
 f32v3 flat_normal_from_position(const f32v3 pos) {
@@ -73,6 +74,8 @@ f32v3 project_box(const f32v3 worldPos) {
   const f32v3 boxPos = quat_rotate(quat_inverse(in_rotation), worldPos - in_position) / in_scale;
   return project_warp(boxPos + 0.5 /* Move the center from (0, 0, 0) to (0.5, 0.5, 0.5) */);
 }
+
+f32v2 decal_texcoord(const f32v3 decalPos) { return mod(decalPos.xy * in_texScale, 1.0); }
 
 f32v3 base_normal(const f32v3 geoNormal, const f32v3 decalNormal, const f32v3 depthNormal) {
   if ((in_flags & c_flagGBufferBaseNormal) != 0) {
@@ -108,6 +111,7 @@ void main() {
   if (!valid || any(lessThan(decalPos, f32v3(0))) || any(greaterThan(decalPos, f32v3(1, 1, 1)))) {
     discard;
   }
+  const f32v2 decalCoord = decal_texcoord(decalPos);
 
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
   const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
@@ -120,12 +124,12 @@ void main() {
   const f32 fade = smoothstep(c_fadeAngleMax, c_fadeAngleMin, 1 - dot(fadeNormal, decalNormal));
 
   // Sample the color atlas.
-  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, decalPos);
+  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, decalCoord);
 
   // Sample the normal atlas.
   f32v3 normal;
   if ((in_flags & c_flagOutputNormal) != 0) {
-    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, decalPos);
+    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, decalCoord);
     normal                    = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
   } else {
     normal = baseNormal;

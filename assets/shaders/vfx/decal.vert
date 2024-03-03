@@ -35,7 +35,8 @@ bind_internal(5) out flat u32 out_flags;
 bind_internal(6) out flat f32 out_roughness;
 bind_internal(7) out flat f32 out_alpha;
 bind_internal(8) out flat u32 out_excludeTags;
-bind_internal(9) out flat f32m3 out_warp;
+bind_internal(9) out flat f32v2 out_texScale;
+bind_internal(10) out flat f32m3 out_warp;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -67,5 +68,6 @@ void main() {
   out_roughness       = instanceRoughness;
   out_alpha           = instanceAlpha;
   out_excludeTags     = instanceExcludeTags;
+  out_texScale        = f32v2(1, 1);
   out_warp            = instanceWarp;
 }
