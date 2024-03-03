@@ -17,7 +17,7 @@ struct DecalData {
   f16v4 data2; // x, y, z, w: rotation quaternion.
   f16v4 data3; // x, y, z: decalScale, w: excludeTags.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
-  f16v4 data5; // x, y: warpScale, z, w: unused.
+  f16v4 data5; // x, y: warpScale, z: texScaleY
   f32m3 warp;  // 3x3 warp matrix.
 };
 
@@ -51,6 +51,7 @@ void main() {
   const f32   instanceRoughness        = f32(u_instances[in_instanceIndex].data4.z);
   const f32   instanceAlpha            = f32(u_instances[in_instanceIndex].data4.w);
   const f32v2 instanceWarpScale        = f32v4(u_instances[in_instanceIndex].data5).xy;
+  const f32   instanceTexScaleY        = f32v4(u_instances[in_instanceIndex].data5).z;
   const f32m3 instanceWarp             = u_instances[in_instanceIndex].warp;
 
   const f32v3 boxSize         = f32v3(instanceScale.xy * instanceWarpScale, instanceScale.z);
@@ -68,6 +69,6 @@ void main() {
   out_roughness       = instanceRoughness;
   out_alpha           = instanceAlpha;
   out_excludeTags     = instanceExcludeTags;
-  out_texScale        = f32v2(1, 1);
+  out_texScale        = f32v2(1, instanceTexScaleY);
   out_warp            = instanceWarp;
 }

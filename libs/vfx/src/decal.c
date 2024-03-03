@@ -56,7 +56,7 @@ typedef struct {
   f16     data2[4]; // xyzw: rotation quaternion.
   f16     data3[4]; // xyz: scale, w: excludeTags.
   f16     data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
-  f16     data5[4]; // xy: warpScale, zw: unused.
+  f16     data5[4]; // xy: warpScale, z: texScaleY, w: unused.
   VfxWarp warp;     // 3x3 warp matrix.
 } VfxDecalData;
 
@@ -396,6 +396,7 @@ typedef struct {
   u8            excludeTags;
   f32           alpha, roughness;
   f32           width, height, thickness;
+  f32           texScaleY;
   VfxWarpVec    warpScale;
   VfxWarp       warp;
 } VfxDecalParams;
@@ -428,6 +429,7 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
 
   out->data5[0] = float_f32_to_f16(warpScale.x);
   out->data5[1] = float_f32_to_f16(warpScale.y);
+  out->data5[2] = float_f32_to_f16(params->texScaleY);
 
   out->warp = params->warp;
 }
@@ -508,6 +510,7 @@ static void vfx_decal_single_update(
        .atlasNormalIndex = inst->atlasNormalIndex,
        .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
        .roughness        = inst->roughness,
+       .texScaleY        = 1.0f,
        .warpScale        = {1.0f, 1.0f},
        .warp             = vfx_warp_ident(),
   };
@@ -781,6 +784,7 @@ static void vfx_decal_trail_update(
         .atlasNormalIndex = inst->atlasNormalIndex,
         .alpha            = trailAlpha,
         .roughness        = inst->roughness,
+        .texScaleY        = 1.0f,
         .warpScale = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
         .warp      = vfx_warp_from_points(corners),
     };
