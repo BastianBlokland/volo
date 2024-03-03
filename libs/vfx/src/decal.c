@@ -767,6 +767,10 @@ static void vfx_decal_trail_update(
       }
     }
 
+    if (!vfx_warp_is_convex(corners, array_elems(corners))) {
+      continue;
+    }
+
     const VfxDecalParams params = {
         .pos              = seg->position,
         .rot              = rot,
