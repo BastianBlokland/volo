@@ -55,8 +55,8 @@ typedef struct {
   f32     data1[4]; // xyz: position, w: flags.
   f16     data2[4]; // xyzw: rotation quaternion.
   f16     data3[4]; // xyz: scale, w: excludeTags.
-  f16     data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
-  f16     data5[4]; // xyz: boxSize.
+  f16     data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
+  f16     data5[4]; // xy: warpScale, zw: unused.
   VfxWarp warp;     // 3x3 warp matrix.
 } VfxDecalData;
 
@@ -403,9 +403,8 @@ typedef struct {
 static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* params) {
   const GeoVector decalSize = geo_vector(params->width, params->height, params->thickness);
   const GeoVector warpScale = geo_vector(params->warpScale.x, params->warpScale.y, 1);
-  const GeoVector boxSize   = geo_vector_mul_comps(decalSize, warpScale);
 
-  const GeoBox box    = geo_box_from_center(params->pos, boxSize);
+  const GeoBox box = geo_box_from_center(params->pos, geo_vector_mul_comps(decalSize, warpScale));
   const GeoBox bounds = geo_box_from_rotated(&box, params->rot);
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
@@ -427,9 +426,8 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   out->data4[2] = float_f32_to_f16(params->roughness);
   out->data4[3] = float_f32_to_f16(params->alpha);
 
-  out->data5[0] = float_f32_to_f16(boxSize.x);
-  out->data5[1] = float_f32_to_f16(boxSize.y);
-  out->data5[2] = float_f32_to_f16(boxSize.z);
+  out->data5[0] = float_f32_to_f16(warpScale.x);
+  out->data5[1] = float_f32_to_f16(warpScale.y);
 
   out->warp = params->warp;
 }
@@ -499,19 +497,19 @@ static void vfx_decal_single_update(
   const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const VfxDecalParams params  = {
-      .pos              = trans->position,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->flags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
-      .roughness        = inst->roughness,
-      .warpScale        = {1.0f, 1.0f},
-      .warp             = vfx_warp_ident(),
+       .pos              = trans->position,
+       .rot              = rot,
+       .width            = inst->width * scale,
+       .height           = inst->height * scale,
+       .thickness        = inst->thickness,
+       .flags            = inst->flags,
+       .excludeTags      = inst->excludeTags,
+       .atlasColorIndex  = inst->atlasColorIndex,
+       .atlasNormalIndex = inst->atlasNormalIndex,
+       .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+       .roughness        = inst->roughness,
+       .warpScale        = {1.0f, 1.0f},
+       .warp             = vfx_warp_ident(),
   };
 
   vfx_decal_draw_output(drawNormal, &params);

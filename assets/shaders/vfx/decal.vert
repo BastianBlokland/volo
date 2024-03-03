@@ -15,9 +15,9 @@ struct MetaData {
 struct DecalData {
   f32v4 data1; // x, y, z: position, w: flags
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  f16v4 data3; // x, y, z: scale, w: excludeTags.
+  f16v4 data3; // x, y, z: decalScale, w: excludeTags.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
-  f16v4 data5; // x, y, z: boxSize
+  f16v4 data5; // x, y: warpScale, z, w: unused.
   f32m3 warp;  // 3x3 warp matrix.
 };
 
@@ -49,10 +49,11 @@ void main() {
   const u32   instanceFlags            = u32(f32(u_instances[in_instanceIndex].data1.w));
   const f32   instanceRoughness        = f32(u_instances[in_instanceIndex].data4.z);
   const f32   instanceAlpha            = f32(u_instances[in_instanceIndex].data4.w);
-  const f32v3 instanceBoxSize          = f32v4(u_instances[in_instanceIndex].data5).xyz;
+  const f32v2 instanceWarpScale        = f32v4(u_instances[in_instanceIndex].data5).xy;
   const f32m3 instanceWarp             = u_instances[in_instanceIndex].warp;
 
-  const f32v3 worldPos = quat_rotate(instanceQuat, vert.position * instanceBoxSize) + instancePos;
+  const f32v3 boxSize         = f32v3(instanceScale.xy * instanceWarpScale, instanceScale.z);
+  const f32v3 worldPos        = quat_rotate(instanceQuat, vert.position * boxSize) + instancePos;
   const f32v2 colorTexOrigin  = atlas_entry_origin(u_meta.atlasColor, instanceAtlasColorIndex);
   const f32v2 normalTexOrigin = atlas_entry_origin(u_meta.atlasNormal, instanceAtlasNormalIndex);
 
