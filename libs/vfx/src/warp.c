@@ -27,6 +27,10 @@ VfxWarpVec vfx_warp_vec_max(const VfxWarpVec a, const VfxWarpVec b) {
   return (VfxWarpVec){math_max(a.x, b.x), math_max(a.y, b.y)};
 }
 
+VfxWarpVec vfx_warp_vec_mid(const VfxWarpVec a, const VfxWarpVec b) {
+  return vfx_warp_vec_mul(vfx_warp_vec_add(a, b), 0.5f);
+}
+
 VfxWarpVec vfx_warp_vec_abs(const VfxWarpVec v) {
   return (VfxWarpVec){math_abs(v.x), math_abs(v.y)};
 }
