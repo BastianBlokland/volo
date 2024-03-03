@@ -77,7 +77,7 @@ f32v3 project_box(const f32v3 worldPos) {
 
 f32v2 decal_texcoord(const f32v3 decalPos) {
   const f32v2 texOffset = in_texTransform.xy;
-  const f32v3 texScale  = in_texTransform.zw;
+  const f32v2 texScale  = in_texTransform.zw;
   return mod(texOffset + decalPos.xy * texScale, 1.0);
 }
 
