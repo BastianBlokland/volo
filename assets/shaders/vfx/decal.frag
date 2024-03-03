@@ -48,13 +48,13 @@ bind_internal(9) in flat f32m3 in_warp; // 3x3 warp matrix.
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
 
-f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 decalPos) {
+f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
-  const f32v2 texcoord = atlasMeta.xy + (f32v2(decalPos.x, -decalPos.y) + 0.5) * atlasMeta.z;
+  const f32v2 texcoord = atlasMeta.xy + f32v2(decalPos.x, 1.0 - decalPos.y) * atlasMeta.z;
   return texture(atlas, texcoord);
 }
 
-f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 decalPos) {
+f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
   return normal_tex_decode(atlas_sample(atlas, atlasMeta, decalPos).xyz);
 }
 
@@ -64,18 +64,14 @@ f32v3 flat_normal_from_position(const f32v3 pos) {
   return normalize(cross(deltaPosX, deltaPosY));
 }
 
-f32v3 project_box_warp(const f32v3 boxPos) {
-  /**
-   * BoxPos is centered around 0.0 (-0.5 to 0.5) while the warp is centered around 0.5 (0.0 to 1.0),
-   * this means we need to apply an offset before and after warping to compensate.
-   */
-  const f32v3 v = in_warp * f32v3(boxPos.xy + 0.5, 1);
-  return f32v3(v.xy / v.z /* Perspective divide */ - 0.5, boxPos.z);
+f32v3 project_warp(const f32v3 decalPos) {
+  const f32v3 v = in_warp * f32v3(decalPos.xy, 1);
+  return f32v3(v.xy / v.z /* Perspective divide */, decalPos.z);
 }
 
-f32v3 project_to_box(const f32v3 worldPos) {
+f32v3 project_box(const f32v3 worldPos) {
   const f32v3 boxPos = quat_rotate(quat_inverse(in_rotation), worldPos - in_position) / in_scale;
-  return project_box_warp(boxPos);
+  return project_warp(boxPos + 0.5 /* Move the center from (0, 0, 0) to (0.5, 0.5, 0.5) */);
 }
 
 f32v3 base_normal(const f32v3 geoNormal, const f32v3 decalNormal, const f32v3 depthNormal) {
@@ -104,16 +100,14 @@ void main() {
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
 
-  // Transform back to coordinates local to the unit cube.
-  const f32v3 boxPos    = project_to_box(worldPos);
-  const f32v3 boxPosAbs = abs(boxPos);
+  // Project the coordinates to the decal box.
+  const f32v3 decalPos = project_box(worldPos);
 
   // Discard pixels on invalid surface or outside of the decal space.
-  const bool validSurface = (tags & in_excludeTags) == 0;
-  if (!validSurface || boxPosAbs.x > 0.5 || boxPosAbs.y > 0.5 || boxPosAbs.z > 0.5) {
+  const bool valid = (tags & in_excludeTags) == 0;
+  if (!valid || any(lessThan(decalPos, f32v3(0))) || any(greaterThan(decalPos, f32v3(1, 1, 1)))) {
     discard;
   }
-  const f32v2 decalPos = boxPos.xy;
 
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
   const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
