@@ -771,7 +771,7 @@ static void vfx_decal_trail_update(
     }
 
     if (!vfx_warp_is_convex(corners, array_elems(corners))) {
-      continue;
+      continue; // Quad was still concave after attempting to fix it; discard the segment.
     }
 
     const VfxDecalParams params = {
