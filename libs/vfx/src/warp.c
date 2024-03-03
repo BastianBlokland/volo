@@ -79,7 +79,7 @@ VfxWarp vfx_warp_invert(const VfxWarp* w) {
   const f32 d1 = w->columns[2].x * w->columns[1].z - w->columns[1].x * w->columns[2].z;
   const f32 d2 = w->columns[1].x * w->columns[2].y - w->columns[2].x * w->columns[1].y;
   const f32 d  = w->columns[0].x * d0 + w->columns[0].y * d1 + w->columns[0].z * d2;
-  diag_assert_msg(math_abs(d) > f32_epsilon, "Singular vfx warp matrix");
+  diag_assert_msg(math_abs(d) > 0, "Singular vfx warp matrix");
   const f32 dInv = 1.0f / d;
   return (VfxWarp){
       .columns = {
@@ -135,7 +135,7 @@ VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   const VfxWarpVec d1  = vfx_warp_vec_sub(p[1], p[2]);
   const VfxWarpVec d2  = vfx_warp_vec_sub(p[3], p[2]);
   const f32        den = d1.x * d2.y - d2.x * d1.y;
-  diag_assert_msg(math_abs(den) > f32_epsilon, "Singular vfx warp matrix");
+  diag_assert_msg(math_abs(den) > 0, "Singular vfx warp matrix");
   const f32        denInv = 1.0f / den;
   const f32        u      = (d.x * d2.y - d.y * d2.x) * denInv;
   const f32        v      = (d.y * d1.x - d.x * d1.y) * denInv;
