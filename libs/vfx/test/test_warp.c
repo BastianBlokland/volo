@@ -28,31 +28,31 @@ spec(warp) {
 
   setup() { testRng = rng_create_xorwow(g_alloc_heap, 1337); }
 
-  it("returns the same points when applying a identity warp") {
-    const VfxWarp w = vfx_warp_ident();
+  it("matrix returns the same points when applying a identity warp") {
+    const VfxWarpMatrix w = vfx_warp_matrix_ident();
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(p, pWarped);
     }
   }
 
-  it("returns the same points when applying a unit points warp") {
+  it("matrix returns the same points when applying a unit points warp") {
     const VfxWarpVec toPoints[4] = {
         {0.0f, 0.0f},
         {1.0f, 0.0f},
         {1.0f, 1.0f},
         {0.0f, 1.0f},
     };
-    const VfxWarp w = vfx_warp_to_points(toPoints);
+    const VfxWarpMatrix w = vfx_warp_matrix_to_points(toPoints);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(p, pWarped);
     }
   }
 
-  it("returns offset points when applying an offset point warp") {
+  it("matrix returns offset points when applying an offset point warp") {
     const VfxWarpVec offset      = {.x = 1.337f, .y = 0.42f};
     const VfxWarpVec toPoints[4] = {
         vfx_warp_vec_add((VfxWarpVec){0.0f, 0.0f}, offset),
@@ -60,55 +60,55 @@ spec(warp) {
         vfx_warp_vec_add((VfxWarpVec){1.0f, 1.0f}, offset),
         vfx_warp_vec_add((VfxWarpVec){0.0f, 1.0f}, offset),
     };
-    const VfxWarp w = vfx_warp_to_points(toPoints);
+    const VfxWarpMatrix w = vfx_warp_matrix_to_points(toPoints);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(vfx_warp_vec_add(p, offset), pWarped);
     }
   }
 
-  it("returns flipped points when applying an flipped point warp") {
+  it("matrix returns flipped points when applying an flipped point warp") {
     const VfxWarpVec toPoints[4] = {
         {0.0f, 0.0f},
         {-1.0f, 0.0f},
         {-1.0f, -1.0f},
         {0.0f, -1.0f},
     };
-    const VfxWarp w = vfx_warp_to_points(toPoints);
+    const VfxWarpMatrix w = vfx_warp_matrix_to_points(toPoints);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(vfx_warp_vec_mul(p, -1.0f), pWarped);
     }
   }
 
-  it("returns scaled points when applying an scaled point warp") {
+  it("matrix returns scaled points when applying an scaled point warp") {
     const VfxWarpVec toPoints[4] = {
         {0.0f, 0.0f},
         {2.0f, 0.0f},
         {2.0f, 2.0f},
         {0.0f, 2.0f},
     };
-    const VfxWarp w = vfx_warp_to_points(toPoints);
+    const VfxWarpMatrix w = vfx_warp_matrix_to_points(toPoints);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(vfx_warp_vec_mul(p, 2.0f), pWarped);
     }
   }
 
-  it("can invert a identity warp") {
-    const VfxWarp w    = vfx_warp_ident();
-    const VfxWarp wInv = vfx_warp_invert(&w);
+  it("matrix can invert a identity warp") {
+    const VfxWarpMatrix w    = vfx_warp_matrix_ident();
+    const VfxWarpMatrix wInv = vfx_warp_matrix_invert(&w);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&wInv, p);
       check_eq_vec(p, pWarped);
     }
   }
 
-  it("can invert an offset warp") {
+  it("matrix can invert an offset warp") {
     const VfxWarpVec offset      = {.x = 1.337f, .y = 0.42f};
     const VfxWarpVec toPoints[4] = {
         vfx_warp_vec_add((VfxWarpVec){0.0f, 0.0f}, offset),
@@ -116,32 +116,32 @@ spec(warp) {
         vfx_warp_vec_add((VfxWarpVec){1.0f, 1.0f}, offset),
         vfx_warp_vec_add((VfxWarpVec){0.0f, 1.0f}, offset),
     };
-    const VfxWarp w    = vfx_warp_to_points(toPoints);
-    const VfxWarp wInv = vfx_warp_invert(&w);
+    const VfxWarpMatrix w    = vfx_warp_matrix_to_points(toPoints);
+    const VfxWarpMatrix wInv = vfx_warp_matrix_invert(&w);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&wInv, p);
       check_eq_vec(vfx_warp_vec_sub(p, offset), pWarped);
     }
   }
 
-  it("can invert a scale warp") {
+  it("matrix can invert a scale warp") {
     const VfxWarpVec toPoints[4] = {
         {0.0f, 0.0f},
         {2.0f, 0.0f},
         {2.0f, 2.0f},
         {0.0f, 2.0f},
     };
-    const VfxWarp w    = vfx_warp_to_points(toPoints);
-    const VfxWarp wInv = vfx_warp_invert(&w);
+    const VfxWarpMatrix w    = vfx_warp_matrix_to_points(toPoints);
+    const VfxWarpMatrix wInv = vfx_warp_matrix_invert(&w);
     for (u32 i = 0; i != 100; ++i) {
       const VfxWarpVec p       = test_vec_rand_in_box(testRng, -10.0f, 10.0f);
-      const VfxWarpVec pWarped = vfx_warp_apply(&wInv, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&wInv, p);
       check_eq_vec(vfx_warp_vec_mul(p, 0.5f), pWarped);
     }
   }
 
-  it("can map to a trapezium") {
+  it("matrix can map to a trapezium") {
     const VfxWarpVec unitPoints[4] = {
         {0.0f, 0.0f},
         {1.0f, 0.0f},
@@ -154,15 +154,15 @@ spec(warp) {
         {0.75f, 1.0f},
         {0.15f, 1.0f},
     };
-    const VfxWarp w = vfx_warp_to_points(trapeziumPoints);
+    const VfxWarpMatrix w = vfx_warp_matrix_to_points(trapeziumPoints);
     for (u32 i = 0; i != array_elems(unitPoints); ++i) {
       const VfxWarpVec p       = unitPoints[i];
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(trapeziumPoints[i], pWarped);
     }
   }
 
-  it("can map from a trapezium") {
+  it("matrix can map from a trapezium") {
     const VfxWarpVec unitPoints[4] = {
         {0.0f, 0.0f},
         {1.0f, 0.0f},
@@ -175,10 +175,10 @@ spec(warp) {
         {0.75f, 1.0f},
         {0.15f, 1.0f},
     };
-    const VfxWarp w = vfx_warp_from_points(trapeziumPoints);
+    const VfxWarpMatrix w = vfx_warp_matrix_from_points(trapeziumPoints);
     for (u32 i = 0; i != array_elems(unitPoints); ++i) {
       const VfxWarpVec p       = trapeziumPoints[i];
-      const VfxWarpVec pWarped = vfx_warp_apply(&w, p);
+      const VfxWarpVec pWarped = vfx_warp_matrix_apply(&w, p);
       check_eq_vec(unitPoints[i], pWarped);
     }
   }

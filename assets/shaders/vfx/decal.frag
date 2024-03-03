@@ -35,7 +35,7 @@ bind_internal(6) in flat f32 in_roughness;
 bind_internal(7) in flat f32 in_alpha;
 bind_internal(8) in flat u32 in_excludeTags;
 bind_internal(9) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
-bind_internal(10) in flat f32m3 in_warp;        // 3x3 warp matrix.
+bind_internal(10) in flat f32m3 in_warpMatrix;  // 3x3 warp matrix.
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -66,7 +66,7 @@ f32v3 flat_normal_from_position(const f32v3 pos) {
 }
 
 f32v3 project_warp(const f32v3 decalPos) {
-  const f32v3 v = in_warp * f32v3(decalPos.xy, 1);
+  const f32v3 v = in_warpMatrix * f32v3(decalPos.xy, 1);
   return f32v3(v.xy / v.z /* Perspective divide */, decalPos.z);
 }
 

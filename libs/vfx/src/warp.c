@@ -76,21 +76,21 @@ bool vfx_warp_is_convex(const VfxWarpVec points[], const u32 pointCount) {
   return true;
 }
 
-VfxWarpVec vfx_warp_apply(const VfxWarp* warp, const VfxWarpVec p) {
+VfxWarpVec vfx_warp_matrix_apply(const VfxWarpMatrix* warp, const VfxWarpVec p) {
   const f32 w = 1.0f / (warp->columns[0].z * p.x + warp->columns[1].z * p.y + warp->columns[2].z);
   const f32 x = warp->columns[0].x * p.x + warp->columns[1].x * p.y + warp->columns[2].x;
   const f32 y = warp->columns[0].y * p.x + warp->columns[1].y * p.y + warp->columns[2].y;
   return (VfxWarpVec){.x = x * w, .y = y * w};
 }
 
-VfxWarp vfx_warp_invert(const VfxWarp* w) {
+VfxWarpMatrix vfx_warp_matrix_invert(const VfxWarpMatrix* w) {
   const f32 d0 = w->columns[1].y * w->columns[2].z - w->columns[2].y * w->columns[1].z;
   const f32 d1 = w->columns[2].x * w->columns[1].z - w->columns[1].x * w->columns[2].z;
   const f32 d2 = w->columns[1].x * w->columns[2].y - w->columns[2].x * w->columns[1].y;
   const f32 d  = w->columns[0].x * d0 + w->columns[0].y * d1 + w->columns[0].z * d2;
   diag_assert_msg(math_abs(d) > 0, "Singular vfx warp matrix");
   const f32 dInv = 1.0f / d;
-  return (VfxWarp){
+  return (VfxWarpMatrix){
       .columns = {
           {
               d0 * dInv,
@@ -110,8 +110,8 @@ VfxWarp vfx_warp_invert(const VfxWarp* w) {
       }};
 }
 
-VfxWarp vfx_warp_ident() {
-  return (VfxWarp){
+VfxWarpMatrix vfx_warp_matrix_ident() {
+  return (VfxWarpMatrix){
       .columns = {
           {1, 0, 0},
           {0, 1, 0},
@@ -119,8 +119,8 @@ VfxWarp vfx_warp_ident() {
       }};
 }
 
-VfxWarp vfx_warp_offset_scale(const VfxWarpVec offset, const VfxWarpVec scale) {
-  return (VfxWarp){
+VfxWarpMatrix vfx_warp_matrix_offset_scale(const VfxWarpVec offset, const VfxWarpVec scale) {
+  return (VfxWarpMatrix){
       .columns = {
           {scale.x, 0, 0},
           {0, scale.y, 0},
@@ -128,13 +128,13 @@ VfxWarp vfx_warp_offset_scale(const VfxWarpVec offset, const VfxWarpVec scale) {
       }};
 }
 
-VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
+VfxWarpMatrix vfx_warp_matrix_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   const VfxWarpVec d = vfx_warp_vec_add(vfx_warp_vec_sub(p[0], p[1]), vfx_warp_vec_sub(p[2], p[3]));
   if (math_abs(d.x) < f32_epsilon && math_abs(d.y) < f32_epsilon) {
     // Affine transformation.
     const VfxWarpVec to1 = vfx_warp_vec_sub(p[1], p[0]);
     const VfxWarpVec to2 = vfx_warp_vec_sub(p[2], p[1]);
-    return (VfxWarp){
+    return (VfxWarpMatrix){
         .columns = {
             {to1.x, to1.y, 0.0f},
             {to2.x, to2.y, 0.0f},
@@ -150,7 +150,7 @@ VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   const f32        v      = (d.y * d1.x - d.x * d1.y) * denInv;
   const VfxWarpVec to1    = vfx_warp_vec_sub(p[1], p[0]);
   const VfxWarpVec to3    = vfx_warp_vec_sub(p[3], p[0]);
-  return (VfxWarp){
+  return (VfxWarpMatrix){
       .columns = {
           {to1.x + u * p[1].x, to1.y + u * p[1].y, u},
           {to3.x + v * p[3].x, to3.y + v * p[3].y, v},
@@ -158,8 +158,8 @@ VfxWarp vfx_warp_to_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
       }};
 }
 
-VfxWarp vfx_warp_from_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
+VfxWarpMatrix vfx_warp_matrix_from_points(const VfxWarpVec p[PARAM_ARRAY_SIZE(4)]) {
   diag_assert(vfx_warp_is_convex(p, 4));
-  const VfxWarp w = vfx_warp_to_points(p);
-  return vfx_warp_invert(&w);
+  const VfxWarpMatrix w = vfx_warp_matrix_to_points(p);
+  return vfx_warp_matrix_invert(&w);
 }
