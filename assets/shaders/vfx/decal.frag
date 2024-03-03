@@ -34,8 +34,8 @@ bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
 bind_internal(7) in flat f32 in_alpha;
 bind_internal(8) in flat u32 in_excludeTags;
-bind_internal(9) in flat f32v2 in_texScale;
-bind_internal(10) in flat f32m3 in_warp; // 3x3 warp matrix.
+bind_internal(9) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
+bind_internal(10) in flat f32m3 in_warp;        // 3x3 warp matrix.
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -75,7 +75,11 @@ f32v3 project_box(const f32v3 worldPos) {
   return project_warp(boxPos + 0.5 /* Move the center from (0, 0, 0) to (0.5, 0.5, 0.5) */);
 }
 
-f32v2 decal_texcoord(const f32v3 decalPos) { return mod(decalPos.xy * in_texScale, 1.0); }
+f32v2 decal_texcoord(const f32v3 decalPos) {
+  const f32v2 texOffset = in_texTransform.xy;
+  const f32v3 texScale  = in_texTransform.zw;
+  return mod(texOffset + decalPos.xy * texScale, 1.0);
+}
 
 f32v3 base_normal(const f32v3 geoNormal, const f32v3 decalNormal, const f32v3 depthNormal) {
   if ((in_flags & c_flagGBufferBaseNormal) != 0) {
