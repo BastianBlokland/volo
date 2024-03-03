@@ -22,6 +22,7 @@ VfxWarpVec vfx_warp_vec_div(VfxWarpVec, f32 scalar);
 VfxWarpVec vfx_warp_vec_min(VfxWarpVec, VfxWarpVec);
 VfxWarpVec vfx_warp_vec_max(VfxWarpVec, VfxWarpVec);
 VfxWarpVec vfx_warp_vec_mid(VfxWarpVec, VfxWarpVec);
+VfxWarpVec vfx_warp_vec_project_forward(VfxWarpVec, VfxWarpVec normal);
 VfxWarpVec vfx_warp_vec_abs(VfxWarpVec);
 bool       vfx_warp_vec_eq(VfxWarpVec, VfxWarpVec, f32 threshold);
 f32        vfx_warp_vec_dot(VfxWarpVec, VfxWarpVec);

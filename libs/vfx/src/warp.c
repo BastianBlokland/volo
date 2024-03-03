@@ -31,6 +31,15 @@ VfxWarpVec vfx_warp_vec_mid(const VfxWarpVec a, const VfxWarpVec b) {
   return vfx_warp_vec_mul(vfx_warp_vec_add(a, b), 0.5f);
 }
 
+VfxWarpVec vfx_warp_vec_project_forward(const VfxWarpVec v, const VfxWarpVec normal) {
+  const f32 nrmSqrMag = vfx_warp_vec_dot(normal, normal);
+  if (nrmSqrMag <= f32_epsilon) {
+    return (VfxWarpVec){0.0f, 0.0f};
+  }
+  // NOTE: Taking the absolute here makes sure we only project forward and not backward.
+  return vfx_warp_vec_mul(normal, math_abs(vfx_warp_vec_dot(v, normal)) / nrmSqrMag);
+}
+
 VfxWarpVec vfx_warp_vec_abs(const VfxWarpVec v) {
   return (VfxWarpVec){math_abs(v.x), math_abs(v.y)};
 }
