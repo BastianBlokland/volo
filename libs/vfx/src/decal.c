@@ -95,7 +95,8 @@ ecs_comp_define(VfxDecalTrailComp) {
   bool           historyReset;
   f32            roughness, alpha;
   f32            width, height, thickness;
-  u32            historyNewest;
+  f32            nextPointFrac;
+  u32            historyNewest, historyCountTotal;
   VfxTrailPoint  history[vfx_decal_trail_history_count];
 };
 
@@ -563,6 +564,7 @@ static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const VfxTrailP
   const u32 indexOldest      = vfx_decal_trail_history_oldest(inst);
   inst->history[indexOldest] = point;
   inst->historyNewest        = indexOldest;
+  ++inst->historyCountTotal;
 }
 
 static VfxTrailPoint vfx_trail_point_center(const VfxTrailPoint from, const VfxTrailPoint to) {
@@ -647,6 +649,7 @@ typedef struct {
   GeoVector position;
   GeoVector normal, tangent;
   f32       length;
+  f32       splineBegin, splineEnd;
 } VfxTrailSegment;
 
 static GeoVector vfx_trail_segment_tangent_avg(const VfxTrailSegment* a, const VfxTrailSegment* b) {
@@ -690,11 +693,14 @@ static void vfx_decal_trail_update(
   }
 
   // Append to the history if we've moved enough.
-  const GeoVector newestPos = inst->history[inst->historyNewest].pos;
-  const GeoVector delta     = geo_vector_sub(trans->position, newestPos);
-  const f32       distSqr   = geo_vector_mag_sqr(delta);
-  if (distSqr > (vfx_decal_trail_history_spacing * vfx_decal_trail_history_spacing)) {
+  const GeoVector newestPos  = inst->history[inst->historyNewest].pos;
+  const GeoVector toHead     = geo_vector_sub(trans->position, newestPos);
+  const f32       toHeadFrac = geo_vector_mag(toHead) / vfx_decal_trail_history_spacing;
+  if (toHeadFrac >= 1.0f) {
     vfx_decal_trail_history_add(inst, headPoint);
+    inst->nextPointFrac = 0.0f;
+  } else {
+    inst->nextPointFrac = math_max(inst->nextPointFrac, toHeadFrac);
   }
 
   // Construct the spline control points.
@@ -707,7 +713,7 @@ static void vfx_decal_trail_update(
   const f32       tMax     = (f32)(vfx_decal_trail_history_count + 1);
   const f32       tStep    = vfx_decal_trail_step;
   VfxTrailPoint   segBegin = headPoint;
-  for (f32 t = tStep; t < tMax && segCount != array_elems(segs); t += tStep) {
+  for (f32 t = tStep, tLast = 0; t < tMax && segCount != array_elems(segs); t += tStep) {
     const VfxTrailPoint segEnd       = vfx_spline_sample(spline, array_elems(spline), t);
     const GeoVector     segDelta     = geo_vector_sub(segEnd.pos, segBegin.pos);
     const f32           segLengthSqr = geo_vector_mag_sqr(segDelta);
@@ -720,16 +726,19 @@ static void vfx_decal_trail_update(
     const GeoVector     segTangent = geo_vector_norm(geo_vector_cross3(segNormal, segCenter.dir));
 
     segs[segCount++] = (VfxTrailSegment){
-        .position = segCenter.pos,
-        .normal   = segNormal,
-        .tangent  = segTangent,
-        .length   = segLength,
+        .position    = segCenter.pos,
+        .normal      = segNormal,
+        .tangent     = segTangent,
+        .length      = segLength,
+        .splineBegin = tLast,
+        .splineEnd   = t,
     };
     segBegin = segEnd;
+    tLast    = t;
   }
 
   // Emit decals for the segments.
-  f32 texOffset = 0.0f;
+  f32 texOffset = (f32)inst->historyCountTotal * trailHeightInv;
   for (u32 i = 0; i != segCount; ++i) {
     const VfxTrailSegment* seg     = &segs[i];
     const VfxTrailSegment* segPrev = i ? &segs[i - 1] : seg;
@@ -765,7 +774,13 @@ static void vfx_decal_trail_update(
         vfx_warp_vec_add((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
     };
 
-    const f32            texScale = seg->length * trailHeightInv;
+    const f32 splineBegin         = seg->splineBegin + inst->nextPointFrac;
+    const f32 splineEnd           = seg->splineEnd + inst->nextPointFrac;
+    const f32 splineFadeThreshold = (f32)vfx_decal_trail_history_count - 1.0f;
+    const f32 alphaBegin = (1.0f - math_max(0.0f, splineBegin - splineFadeThreshold)) * trailAlpha;
+    const f32 alphaEnd   = (1.0f - math_max(0.0f, splineEnd - splineFadeThreshold)) * trailAlpha;
+
+    const f32            texScale = (seg->splineEnd - seg->splineBegin) * trailHeightInv;
     const VfxDecalParams params   = {
         .pos              = seg->position,
         .rot              = rot,
@@ -776,8 +791,8 @@ static void vfx_decal_trail_update(
         .excludeTags      = inst->excludeTags,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
-        .alphaBegin       = trailAlpha,
-        .alphaEnd         = trailAlpha,
+        .alphaBegin       = i ? alphaBegin : 0.0f,
+        .alphaEnd         = alphaEnd,
         .roughness        = inst->roughness,
         .texOffsetY       = texOffset,
         .texScaleY        = texScale,
