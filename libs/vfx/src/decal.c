@@ -2,6 +2,7 @@
 #include "asset_decal.h"
 #include "asset_manager.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -52,9 +53,9 @@ typedef enum {
 
 typedef struct {
   ALIGNAS(16)
-  f32 data1[4]; // xyz: position, w: flags.
+  f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
   f16 data2[4]; // xyzw: rotation quaternion.
-  f16 data3[4]; // xyz: scale, w: excludeTags.
+  f16 data3[4]; // xyz: scale, w: unused.
   f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
   f16 warpPoints[4][2];
@@ -411,14 +412,13 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(params->pos.comps, sizeof(f32) * 3));
-  out->data1[3] = (f32)params->flags;
+  out->data1[3] = bits_u32_as_f32((u32)params->flags | ((u32)params->excludeTags << 16));
 
   geo_quat_pack_f16(params->rot, out->data2);
 
   out->data3[0] = float_f32_to_f16(decalSize.x);
   out->data3[1] = float_f32_to_f16(decalSize.y);
   out->data3[2] = float_f32_to_f16(decalSize.z);
-  out->data3[3] = float_f32_to_f16((u32)params->excludeTags);
 
   diag_assert_msg(params->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
   diag_assert_msg(params->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");

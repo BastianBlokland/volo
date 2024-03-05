@@ -13,9 +13,9 @@ struct MetaData {
 };
 
 struct DecalData {
-  f32v4 data1; // x, y, z: position, w: flags.
+  f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  f16v4 data3; // x, y, z: decalScale, w: excludeTags.
+  f16v4 data3; // x, y, z: decalScale, w: unused.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
@@ -43,19 +43,27 @@ bind_internal(11) out flat f32v4 out_warpP23;     // top left and top right.
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
-  const f32v3 instancePos              = u_instances[in_instanceIndex].data1.xyz;
-  const f32v4 instanceQuat             = f32v4(u_instances[in_instanceIndex].data2);
-  const f32v3 instanceScale            = f32v4(u_instances[in_instanceIndex].data3).xyz;
-  const u32   instanceExcludeTags      = u32(f32(u_instances[in_instanceIndex].data3.w));
-  const f32   instanceAtlasColorIndex  = f32(u_instances[in_instanceIndex].data4.x);
-  const f32   instanceAtlasNormalIndex = f32(u_instances[in_instanceIndex].data4.y);
-  const u32   instanceFlags            = u32(f32(u_instances[in_instanceIndex].data1.w));
-  const f32   instanceRoughness        = f32(u_instances[in_instanceIndex].data4.z);
-  const f32   instanceAlpha            = f32(u_instances[in_instanceIndex].data4.w);
-  const f32v2 instanceWarpScale        = f32v4(u_instances[in_instanceIndex].data5).xy;
-  const f32v2 instanceTexTransformY    = f32v4(u_instances[in_instanceIndex].data5).zw;
-  const f32v4 instanceWarpP01          = f32v4(u_instances[in_instanceIndex].data6);
-  const f32v4 instanceWarpP23          = f32v4(u_instances[in_instanceIndex].data7);
+  const f32v4 instanceData1 = u_instances[in_instanceIndex].data1;
+  const f32v4 instanceData2 = f32v4(u_instances[in_instanceIndex].data2);
+  const f32v4 instanceData3 = f32v4(u_instances[in_instanceIndex].data3);
+  const f32v4 instanceData4 = f32v4(u_instances[in_instanceIndex].data4);
+  const f32v4 instanceData5 = f32v4(u_instances[in_instanceIndex].data5);
+  const f32v4 instanceData6 = f32v4(u_instances[in_instanceIndex].data6);
+  const f32v4 instanceData7 = f32v4(u_instances[in_instanceIndex].data7);
+
+  const f32v3 instancePos              = instanceData1.xyz;
+  const f32v4 instanceQuat             = instanceData2;
+  const f32v3 instanceScale            = instanceData3.xyz;
+  const f32   instanceAtlasColorIndex  = instanceData4.x;
+  const f32   instanceAtlasNormalIndex = instanceData4.y;
+  const u32   instanceFlags            = floatBitsToUint(instanceData1.w) & 0xFFFF;
+  const u32   instanceExcludeTags      = (floatBitsToUint(instanceData1.w) >> 16) & 0xFFFF;
+  const f32   instanceRoughness        = instanceData4.z;
+  const f32   instanceAlpha            = instanceData4.w;
+  const f32v2 instanceWarpScale        = instanceData5.xy;
+  const f32v2 instanceTexTransformY    = instanceData5.zw;
+  const f32v4 instanceWarpP01          = instanceData6;
+  const f32v4 instanceWarpP23          = instanceData7;
 
   const f32v3 boxSize         = f32v3(instanceScale.xy * instanceWarpScale, instanceScale.z);
   const f32v3 worldPos        = quat_rotate(instanceQuat, vert.position * boxSize) + instancePos;
