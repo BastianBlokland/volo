@@ -2,6 +2,7 @@
 #include "asset_decal.h"
 #include "asset_manager.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -52,15 +53,15 @@ typedef enum {
 
 typedef struct {
   ALIGNAS(16)
-  f32     data1[4]; // xyz: position, w: flags.
-  f16     data2[4]; // xyzw: rotation quaternion.
-  f16     data3[4]; // xyz: scale, w: excludeTags.
-  f16     data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
-  f16     data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
-  VfxWarp warp;     // 3x3 warp matrix.
+  f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
+  f16 data2[4]; // xyzw: rotation quaternion.
+  f16 data3[4]; // xyz: scale, w: roughness.
+  f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: alphaBegin, w: alphaEnd.
+  f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
+  f16 warpPoints[4][2];
 } VfxDecalData;
 
-ASSERT(sizeof(VfxDecalData) == 96, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxDecalData) == 64, "Size needs to match the size defined in glsl");
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -94,7 +95,8 @@ ecs_comp_define(VfxDecalTrailComp) {
   bool           historyReset;
   f32            roughness, alpha;
   f32            width, height, thickness;
-  u32            historyNewest;
+  f32            nextPointFrac;
+  u32            historyNewest, historyCountTotal;
   VfxTrailPoint  history[vfx_decal_trail_history_count];
 };
 
@@ -395,11 +397,11 @@ typedef struct {
   u16           atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags flags : 8;
   u8            excludeTags;
-  f32           alpha, roughness;
+  f32           alphaBegin, alphaEnd, roughness;
   f32           width, height, thickness;
   f32           texOffsetY, texScaleY;
   VfxWarpVec    warpScale;
-  VfxWarp       warp;
+  VfxWarpVec    warpPoints[4];
 } VfxDecalParams;
 
 static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* params) {
@@ -411,29 +413,32 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(params->pos.comps, sizeof(f32) * 3));
-  out->data1[3] = (f32)params->flags;
+  out->data1[3] = bits_u32_as_f32((u32)params->flags | ((u32)params->excludeTags << 16));
 
   geo_quat_pack_f16(params->rot, out->data2);
 
   out->data3[0] = float_f32_to_f16(decalSize.x);
   out->data3[1] = float_f32_to_f16(decalSize.y);
   out->data3[2] = float_f32_to_f16(decalSize.z);
-  out->data3[3] = float_f32_to_f16((u32)params->excludeTags);
+  out->data3[3] = float_f32_to_f16(params->roughness);
 
   diag_assert_msg(params->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
   diag_assert_msg(params->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
 
   out->data4[0] = float_f32_to_f16((f32)params->atlasColorIndex);
   out->data4[1] = float_f32_to_f16((f32)params->atlasNormalIndex);
-  out->data4[2] = float_f32_to_f16(params->roughness);
-  out->data4[3] = float_f32_to_f16(params->alpha);
+  out->data4[2] = float_f32_to_f16(params->alphaBegin);
+  out->data4[3] = float_f32_to_f16(params->alphaEnd);
 
   out->data5[0] = float_f32_to_f16(warpScale.x);
   out->data5[1] = float_f32_to_f16(warpScale.y);
   out->data5[2] = float_f32_to_f16(params->texOffsetY);
   out->data5[3] = float_f32_to_f16(params->texScaleY);
 
-  out->warp = params->warp;
+  for (u32 i = 0; i != 4; ++i) {
+    out->warpPoints[i][0] = float_f32_to_f16(params->warpPoints[i].x);
+    out->warpPoints[i][1] = float_f32_to_f16(params->warpPoints[i].y);
+  }
 }
 
 static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) {
@@ -500,22 +505,24 @@ static void vfx_decal_single_update(
   const f32            scale  = scaleComp ? scaleComp->scale : 1.0f;
   const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
+  const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-       .pos              = trans->position,
-       .rot              = rot,
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->flags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
-       .roughness        = inst->roughness,
-       .texOffsetY       = 0.0f,
-       .texScaleY        = 1.0f,
-       .warpScale        = {1.0f, 1.0f},
-       .warp             = vfx_warp_ident(),
+      .pos              = trans->position,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->flags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alphaBegin       = alpha,
+      .alphaEnd         = alpha,
+      .roughness        = inst->roughness,
+      .texOffsetY       = 0.0f,
+      .texScaleY        = 1.0f,
+      .warpScale        = {1.0f, 1.0f},
+      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -557,6 +564,7 @@ static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const VfxTrailP
   const u32 indexOldest      = vfx_decal_trail_history_oldest(inst);
   inst->history[indexOldest] = point;
   inst->historyNewest        = indexOldest;
+  ++inst->historyCountTotal;
 }
 
 static VfxTrailPoint vfx_trail_point_center(const VfxTrailPoint from, const VfxTrailPoint to) {
@@ -641,6 +649,7 @@ typedef struct {
   GeoVector position;
   GeoVector normal, tangent;
   f32       length;
+  f32       splineBegin, splineEnd;
 } VfxTrailSegment;
 
 static GeoVector vfx_trail_segment_tangent_avg(const VfxTrailSegment* a, const VfxTrailSegment* b) {
@@ -684,11 +693,14 @@ static void vfx_decal_trail_update(
   }
 
   // Append to the history if we've moved enough.
-  const GeoVector newestPos = inst->history[inst->historyNewest].pos;
-  const GeoVector delta     = geo_vector_sub(trans->position, newestPos);
-  const f32       distSqr   = geo_vector_mag_sqr(delta);
-  if (distSqr > (vfx_decal_trail_history_spacing * vfx_decal_trail_history_spacing)) {
+  const GeoVector newestPos  = inst->history[inst->historyNewest].pos;
+  const GeoVector toHead     = geo_vector_sub(trans->position, newestPos);
+  const f32       toHeadFrac = geo_vector_mag(toHead) / vfx_decal_trail_history_spacing;
+  if (toHeadFrac >= 1.0f) {
     vfx_decal_trail_history_add(inst, headPoint);
+    inst->nextPointFrac = 0.0f;
+  } else {
+    inst->nextPointFrac = math_max(inst->nextPointFrac, toHeadFrac);
   }
 
   // Construct the spline control points.
@@ -701,7 +713,7 @@ static void vfx_decal_trail_update(
   const f32       tMax     = (f32)(vfx_decal_trail_history_count + 1);
   const f32       tStep    = vfx_decal_trail_step;
   VfxTrailPoint   segBegin = headPoint;
-  for (f32 t = tStep; t < tMax && segCount != array_elems(segs); t += tStep) {
+  for (f32 t = tStep, tLast = 0; t < tMax && segCount != array_elems(segs); t += tStep) {
     const VfxTrailPoint segEnd       = vfx_spline_sample(spline, array_elems(spline), t);
     const GeoVector     segDelta     = geo_vector_sub(segEnd.pos, segBegin.pos);
     const f32           segLengthSqr = geo_vector_mag_sqr(segDelta);
@@ -714,16 +726,19 @@ static void vfx_decal_trail_update(
     const GeoVector     segTangent = geo_vector_norm(geo_vector_cross3(segNormal, segCenter.dir));
 
     segs[segCount++] = (VfxTrailSegment){
-        .position = segCenter.pos,
-        .normal   = segNormal,
-        .tangent  = segTangent,
-        .length   = segLength,
+        .position    = segCenter.pos,
+        .normal      = segNormal,
+        .tangent     = segTangent,
+        .length      = segLength,
+        .splineBegin = tLast,
+        .splineEnd   = t,
     };
     segBegin = segEnd;
+    tLast    = t;
   }
 
   // Emit decals for the segments.
-  f32 texOffset = 0.0f;
+  f32 texOffset = math_mod_f32((f32)inst->historyCountTotal * trailHeightInv, 1.0f);
   for (u32 i = 0; i != segCount; ++i) {
     const VfxTrailSegment* seg     = &segs[i];
     const VfxTrailSegment* segPrev = i ? &segs[i - 1] : seg;
@@ -752,49 +767,37 @@ static void vfx_decal_trail_update(
     const VfxWarpVec warpTangentBegin = {localTangentBegin.x, localTangentBegin.y * segAspectInv};
     const VfxWarpVec warpTangentEnd   = {localTangentEnd.x, localTangentEnd.y * segAspectInv};
 
-    VfxWarpVec corners[4] = {
-        vfx_warp_vec_sub((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
+    const VfxWarpVec corners[4] = {
         vfx_warp_vec_add((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
-        vfx_warp_vec_add((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
+        vfx_warp_vec_sub((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
         vfx_warp_vec_sub((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
+        vfx_warp_vec_add((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
     };
 
-    if (!vfx_warp_is_convex(corners, array_elems(corners))) {
-      /**
-       * The quad is concave (which we cannot represent with a warp), make it convex by making the
-       * left and the right edges parallel to each other. This still results in visible gaps and/or
-       * overlap but its allot better then skipping the segment altogether.
-       */
-      const VfxWarpVec edgeA = vfx_warp_vec_sub(corners[0], corners[3]);
-      const VfxWarpVec edgeB = vfx_warp_vec_sub(corners[1], corners[2]);
-      if (math_abs(edgeA.y) < math_abs(edgeB.y)) {
-        corners[0] = vfx_warp_vec_add(corners[3], vfx_warp_vec_project_forward(edgeA, edgeB));
-      } else {
-        corners[1] = vfx_warp_vec_add(corners[2], vfx_warp_vec_project_forward(edgeB, edgeA));
-      }
-    }
+    const f32 splineBegin         = seg->splineBegin + inst->nextPointFrac;
+    const f32 splineEnd           = seg->splineEnd + inst->nextPointFrac;
+    const f32 splineFadeThreshold = (f32)vfx_decal_trail_history_count - 1.0f;
+    const f32 alphaBegin = (1.0f - math_max(0.0f, splineBegin - splineFadeThreshold)) * trailAlpha;
+    const f32 alphaEnd   = (1.0f - math_max(0.0f, splineEnd - splineFadeThreshold)) * trailAlpha;
 
-    if (!vfx_warp_is_convex(corners, array_elems(corners))) {
-      continue; // Quad was still concave after attempting to fix it; discard the segment.
-    }
-
-    const f32            texScale = seg->length * trailHeightInv;
+    const f32            texScale = (seg->splineEnd - seg->splineBegin) * trailHeightInv;
     const VfxDecalParams params   = {
-          .pos              = seg->position,
-          .rot              = rot,
-          .width            = inst->width,
-          .height           = seg->length,
-          .thickness        = inst->thickness,
-          .flags            = inst->flags,
-          .excludeTags      = inst->excludeTags,
-          .atlasColorIndex  = inst->atlasColorIndex,
-          .atlasNormalIndex = inst->atlasNormalIndex,
-          .alpha            = trailAlpha,
-          .roughness        = inst->roughness,
-          .texOffsetY       = texOffset,
-          .texScaleY        = texScale,
-          .warpScale = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
-          .warp      = vfx_warp_from_points(corners),
+        .pos              = seg->position,
+        .rot              = rot,
+        .width            = inst->width,
+        .height           = seg->length,
+        .thickness        = inst->thickness,
+        .flags            = inst->flags,
+        .excludeTags      = inst->excludeTags,
+        .atlasColorIndex  = inst->atlasColorIndex,
+        .atlasNormalIndex = inst->atlasNormalIndex,
+        .alphaBegin       = i ? alphaBegin : 0.0f,
+        .alphaEnd         = alphaEnd,
+        .roughness        = inst->roughness,
+        .texOffsetY       = texOffset,
+        .texScaleY        = texScale,
+        .warpScale  = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
+        .warpPoints = {corners[0], corners[1], corners[2], corners[3]},
     };
 
     vfx_decal_draw_output(drawNormal, &params);

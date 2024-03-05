@@ -32,10 +32,11 @@ bind_internal(3) in flat f32v3 in_atlasColorMeta;  // xy: origin, z: scale.
 bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
-bind_internal(7) in flat f32 in_alpha;
+bind_internal(7) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
 bind_internal(8) in flat u32 in_excludeTags;
 bind_internal(9) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
-bind_internal(10) in flat f32m3 in_warp;        // 3x3 warp matrix.
+bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
+bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -65,9 +66,43 @@ f32v3 flat_normal_from_position(const f32v3 pos) {
   return normalize(cross(deltaPosX, deltaPosY));
 }
 
+/**
+ * 2D wedge product (Grassmann algebra).
+ * Reference: http://www.terathon.com/gdc12_lengyel.pdf
+ */
+f32 wedge2(const f32v2 v, const f32v2 w) { return v.x * w.y - v.y * w.x; }
+
 f32v3 project_warp(const f32v3 decalPos) {
-  const f32v3 v = in_warp * f32v3(decalPos.xy, 1);
-  return f32v3(v.xy / v.z /* Perspective divide */, decalPos.z);
+  /**
+   * Inverse bilinear interpolation to warp the corners of the decal quad.
+   * Reference: https://www.reedbeta.com/blog/quadrilateral-interpolation-part-2/
+   */
+  const f32v2 q  = decalPos.xy - in_warpP01.xy;
+  const f32v2 b1 = in_warpP01.zw - in_warpP01.xy;
+  const f32v2 b2 = in_warpP23.zw - in_warpP01.xy;
+  const f32v2 b3 = in_warpP01.xy - in_warpP01.zw - in_warpP23.zw + in_warpP23.xy;
+
+  const f32 a = wedge2(b2, b3);
+  const f32 b = wedge2(b3, q) - wedge2(b1, b2);
+  const f32 c = wedge2(b1, q);
+
+  f32 texcoordY;
+  if (abs(a) < 0.001) /* Linear form */ {
+    texcoordY = -c / b;
+  } else /* Quadratic form */ {
+    const f32 discrim = b * b - 4 * a * c;
+    texcoordY         = 0.5 * (-b + sqrt(discrim)) / a;
+  }
+
+  // Solve for x, using largest-magnitude component.
+  f32         texcoordX;
+  const f32v2 denom = b1 + texcoordY * b3;
+  if (abs(denom.x) > abs(denom.y)) {
+    texcoordX = (q.x - b2.x * texcoordY) / denom.x;
+  } else {
+    texcoordX = (q.y - b2.y * texcoordY) / denom.y;
+  }
+  return f32v3(texcoordX, texcoordY, decalPos.z);
 }
 
 f32v3 project_box(const f32v3 worldPos) {
@@ -139,11 +174,13 @@ void main() {
     normal = baseNormal;
   }
 
+  const f32 alpha = color.a * fade * mix(in_alpha.x, in_alpha.y, decalPos.y);
+
   // Output the result into the gbuffer.
   if ((in_flags & c_flagOutputColor) != 0) {
-    out_data0 = f32v4(color.rgb, color.a * fade * in_alpha);
+    out_data0 = f32v4(color.rgb, alpha);
   } else {
     out_data0 = f32v4(0);
   }
-  out_data1 = f32v4(math_normal_encode(normal), in_roughness, color.a * fade * in_alpha);
+  out_data1 = f32v4(math_normal_encode(normal), in_roughness, alpha);
 }
