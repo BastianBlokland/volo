@@ -52,15 +52,15 @@ typedef enum {
 
 typedef struct {
   ALIGNAS(16)
-  f32           data1[4];   // xyz: position, w: flags.
-  f16           data2[4];   // xyzw: rotation quaternion.
-  f16           data3[4];   // xyz: scale, w: excludeTags.
-  f16           data4[4];   // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
-  f16           data5[4];   // xy: warpScale, z: texOffsetY, w: texScaleY.
-  VfxWarpMatrix warpMatrix; // 3x3 warp matrix.
+  f32 data1[4]; // xyz: position, w: flags.
+  f16 data2[4]; // xyzw: rotation quaternion.
+  f16 data3[4]; // xyz: scale, w: excludeTags.
+  f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
+  f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
+  f16 warpPoints[4][2];
 } VfxDecalData;
 
-ASSERT(sizeof(VfxDecalData) == 96, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxDecalData) == 64, "Size needs to match the size defined in glsl");
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -399,7 +399,7 @@ typedef struct {
   f32           width, height, thickness;
   f32           texOffsetY, texScaleY;
   VfxWarpVec    warpScale;
-  VfxWarpMatrix warpMatrix;
+  VfxWarpVec    warpPoints[4];
 } VfxDecalParams;
 
 static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* params) {
@@ -433,7 +433,10 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   out->data5[2] = float_f32_to_f16(params->texOffsetY);
   out->data5[3] = float_f32_to_f16(params->texScaleY);
 
-  out->warpMatrix = params->warpMatrix;
+  for (u32 i = 0; i != 4; ++i) {
+    out->warpPoints[i][0] = float_f32_to_f16(params->warpPoints[i].x);
+    out->warpPoints[i][1] = float_f32_to_f16(params->warpPoints[i].y);
+  }
 }
 
 static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) {
@@ -515,7 +518,7 @@ static void vfx_decal_single_update(
       .texOffsetY       = 0.0f,
       .texScaleY        = 1.0f,
       .warpScale        = {1.0f, 1.0f},
-      .warpMatrix       = vfx_warp_matrix_ident(),
+      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -752,31 +755,12 @@ static void vfx_decal_trail_update(
     const VfxWarpVec warpTangentBegin = {localTangentBegin.x, localTangentBegin.y * segAspectInv};
     const VfxWarpVec warpTangentEnd   = {localTangentEnd.x, localTangentEnd.y * segAspectInv};
 
-    VfxWarpVec corners[4] = {
-        vfx_warp_vec_sub((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
+    const VfxWarpVec corners[4] = {
         vfx_warp_vec_add((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
-        vfx_warp_vec_add((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
+        vfx_warp_vec_sub((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
         vfx_warp_vec_sub((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
+        vfx_warp_vec_add((VfxWarpVec){0.5f, 1.0f}, vfx_warp_vec_mul(warpTangentEnd, 0.5f)),
     };
-
-    if (!vfx_warp_is_convex(corners, array_elems(corners))) {
-      /**
-       * The quad is concave (which we cannot represent with a warp), make it convex by making the
-       * left and the right edges parallel to each other. This still results in visible gaps and/or
-       * overlap but its allot better then skipping the segment altogether.
-       */
-      const VfxWarpVec edgeA = vfx_warp_vec_sub(corners[0], corners[3]);
-      const VfxWarpVec edgeB = vfx_warp_vec_sub(corners[1], corners[2]);
-      if (math_abs(edgeA.y) < math_abs(edgeB.y)) {
-        corners[0] = vfx_warp_vec_add(corners[3], vfx_warp_vec_project_forward(edgeA, edgeB));
-      } else {
-        corners[1] = vfx_warp_vec_add(corners[2], vfx_warp_vec_project_forward(edgeB, edgeA));
-      }
-    }
-
-    if (!vfx_warp_is_convex(corners, array_elems(corners))) {
-      continue; // Quad was still concave after attempting to fix it; discard the segment.
-    }
 
     const f32            texScale = seg->length * trailHeightInv;
     const VfxDecalParams params   = {
@@ -794,7 +778,7 @@ static void vfx_decal_trail_update(
         .texOffsetY       = texOffset,
         .texScaleY        = texScale,
         .warpScale  = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
-        .warpMatrix = vfx_warp_matrix_from_points(corners),
+        .warpPoints = {corners[0], corners[1], corners[2], corners[3]},
     };
 
     vfx_decal_draw_output(drawNormal, &params);
