@@ -64,7 +64,7 @@ ecs_comp_extern_public(AssetTextureComp) {
     const AssetTexturePixelF1* pixelsF1;
     const AssetTexturePixelF4* pixelsF4;
   };
-  u32 width, height, layers, srcMipLevels;
+  u32 width, height, layers, srcMipLevels, maxMipLevels;
 };
 
 String asset_texture_type_str(AssetTextureType);

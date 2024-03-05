@@ -33,7 +33,7 @@ typedef struct {
 } AtlasEntryDef;
 
 typedef struct {
-  u32         size, entrySize, entryPadding;
+  u32         size, entrySize, entryPadding, maxMipMaps;
   bool        mipmaps, srgb;
   AtlasColor* paddingColor;
   struct {
@@ -66,6 +66,7 @@ static void atlas_datareg_init() {
     data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, entryPadding, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, paddingColor, t_AtlasColor, .flags = DataFlags_Opt, .container = DataContainer_Pointer);
@@ -254,6 +255,7 @@ static void atlas_generate(
       .height       = def->size,
       .layers       = 1,
       .srcMipLevels = 1,
+      .maxMipLevels = def->maxMipMaps,
   };
   *err = AtlasError_None;
 }

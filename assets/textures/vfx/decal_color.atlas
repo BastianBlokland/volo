@@ -1,8 +1,9 @@
 {
   "size": 1024,
   "entrySize": 256,
-  "entryPadding": 5,
+  "entryPadding": 6,
   "mipmaps": true,
+  "maxMipMaps": 4,
   "srgb": true,
   "entries": [
     { "name": "text_volo", "texture": "external/decal/text_volo.tga" },
