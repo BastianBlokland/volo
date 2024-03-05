@@ -27,7 +27,8 @@ typedef enum {
  */
 static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
   const u16 biggestSide = math_max(asset->width, asset->height);
-  return (u16)(32 - bits_clz_32(biggestSide));
+  const u16 mipCount    = (u16)(32 - bits_clz_32(biggestSide));
+  return asset->maxMipLevels ? math_min(mipCount, asset->maxMipLevels) : mipCount;
 }
 
 static RvkTextureCompress rvk_texture_compression(RvkDevice* dev, const AssetTextureComp* asset) {
@@ -294,8 +295,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *tex            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .device  = dev,
+                 .dbgName = string_dup(g_alloc_heap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(dev, asset);
