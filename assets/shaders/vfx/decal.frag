@@ -174,7 +174,7 @@ void main() {
     normal = baseNormal;
   }
 
-  const f32 alpha = color.a * fade * mix(in_alpha.x, in_alpha.y, decalCoord.y);
+  const f32 alpha = color.a * fade * mix(in_alpha.x, in_alpha.y, decalPos.y);
 
   // Output the result into the gbuffer.
   if ((in_flags & c_flagOutputColor) != 0) {
