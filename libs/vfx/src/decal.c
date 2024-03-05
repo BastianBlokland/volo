@@ -55,8 +55,8 @@ typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
   f16 data2[4]; // xyzw: rotation quaternion.
-  f16 data3[4]; // xyz: scale, w: unused.
-  f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
+  f16 data3[4]; // xyz: scale, w: roughness.
+  f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: unused, w: alpha.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
   f16 warpPoints[4][2];
 } VfxDecalData;
@@ -419,13 +419,13 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   out->data3[0] = float_f32_to_f16(decalSize.x);
   out->data3[1] = float_f32_to_f16(decalSize.y);
   out->data3[2] = float_f32_to_f16(decalSize.z);
+  out->data3[3] = float_f32_to_f16(params->roughness);
 
   diag_assert_msg(params->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
   diag_assert_msg(params->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
 
   out->data4[0] = float_f32_to_f16((f32)params->atlasColorIndex);
   out->data4[1] = float_f32_to_f16((f32)params->atlasNormalIndex);
-  out->data4[2] = float_f32_to_f16(params->roughness);
   out->data4[3] = float_f32_to_f16(params->alpha);
 
   out->data5[0] = float_f32_to_f16(warpScale.x);

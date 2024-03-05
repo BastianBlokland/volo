@@ -15,8 +15,8 @@ struct MetaData {
 struct DecalData {
   f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  f16v4 data3; // x, y, z: decalScale, w: unused.
-  f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
+  f16v4 data3; // x, y, z: decalScale, w: roughness.
+  f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: unused, w: alpha.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
   f16v4 data7; // x, y: warpP2 (top left),    z, w: warpP3 (top right).
@@ -52,13 +52,13 @@ void main() {
   const f32v4 instanceData7 = f32v4(u_instances[in_instanceIndex].data7);
 
   const f32v3 instancePos              = instanceData1.xyz;
-  const f32v4 instanceQuat             = instanceData2;
-  const f32v3 instanceScale            = instanceData3.xyz;
-  const f32   instanceAtlasColorIndex  = instanceData4.x;
-  const f32   instanceAtlasNormalIndex = instanceData4.y;
   const u32   instanceFlags            = floatBitsToUint(instanceData1.w) & 0xFFFF;
   const u32   instanceExcludeTags      = (floatBitsToUint(instanceData1.w) >> 16) & 0xFFFF;
-  const f32   instanceRoughness        = instanceData4.z;
+  const f32v4 instanceQuat             = instanceData2;
+  const f32v3 instanceScale            = instanceData3.xyz;
+  const f32   instanceRoughness        = instanceData3.w;
+  const f32   instanceAtlasColorIndex  = instanceData4.x;
+  const f32   instanceAtlasNormalIndex = instanceData4.y;
   const f32   instanceAlpha            = instanceData4.w;
   const f32v2 instanceWarpScale        = instanceData5.xy;
   const f32v2 instanceTexTransformY    = instanceData5.zw;
