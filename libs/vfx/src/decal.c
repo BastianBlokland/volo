@@ -56,7 +56,7 @@ typedef struct {
   f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
   f16 data2[4]; // xyzw: rotation quaternion.
   f16 data3[4]; // xyz: scale, w: roughness.
-  f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: unused, w: alpha.
+  f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: alphaBegin, w: alphaEnd.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
   f16 warpPoints[4][2];
 } VfxDecalData;
@@ -396,7 +396,7 @@ typedef struct {
   u16           atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags flags : 8;
   u8            excludeTags;
-  f32           alpha, roughness;
+  f32           alphaBegin, alphaEnd, roughness;
   f32           width, height, thickness;
   f32           texOffsetY, texScaleY;
   VfxWarpVec    warpScale;
@@ -426,7 +426,8 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
 
   out->data4[0] = float_f32_to_f16((f32)params->atlasColorIndex);
   out->data4[1] = float_f32_to_f16((f32)params->atlasNormalIndex);
-  out->data4[3] = float_f32_to_f16(params->alpha);
+  out->data4[2] = float_f32_to_f16(params->alphaBegin);
+  out->data4[3] = float_f32_to_f16(params->alphaEnd);
 
   out->data5[0] = float_f32_to_f16(warpScale.x);
   out->data5[1] = float_f32_to_f16(warpScale.y);
@@ -503,6 +504,7 @@ static void vfx_decal_single_update(
   const f32            scale  = scaleComp ? scaleComp->scale : 1.0f;
   const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
+  const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
       .pos              = trans->position,
       .rot              = rot,
@@ -513,7 +515,8 @@ static void vfx_decal_single_update(
       .excludeTags      = inst->excludeTags,
       .atlasColorIndex  = inst->atlasColorIndex,
       .atlasNormalIndex = inst->atlasNormalIndex,
-      .alpha            = decal->alpha * inst->alpha * fadeIn * fadeOut,
+      .alphaBegin       = alpha,
+      .alphaEnd         = alpha,
       .roughness        = inst->roughness,
       .texOffsetY       = 0.0f,
       .texScaleY        = 1.0f,
@@ -773,7 +776,8 @@ static void vfx_decal_trail_update(
         .excludeTags      = inst->excludeTags,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
-        .alpha            = trailAlpha,
+        .alphaBegin       = trailAlpha,
+        .alphaEnd         = trailAlpha,
         .roughness        = inst->roughness,
         .texOffsetY       = texOffset,
         .texScaleY        = texScale,

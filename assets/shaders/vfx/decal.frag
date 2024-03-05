@@ -32,7 +32,7 @@ bind_internal(3) in flat f32v3 in_atlasColorMeta;  // xy: origin, z: scale.
 bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
-bind_internal(7) in flat f32 in_alpha;
+bind_internal(7) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
 bind_internal(8) in flat u32 in_excludeTags;
 bind_internal(9) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
 bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
@@ -174,11 +174,13 @@ void main() {
     normal = baseNormal;
   }
 
+  const f32 alpha = color.a * fade * mix(in_alpha.x, in_alpha.y, decalCoord.y);
+
   // Output the result into the gbuffer.
   if ((in_flags & c_flagOutputColor) != 0) {
-    out_data0 = f32v4(color.rgb, color.a * fade * in_alpha);
+    out_data0 = f32v4(color.rgb, alpha);
   } else {
     out_data0 = f32v4(0);
   }
-  out_data1 = f32v4(math_normal_encode(normal), in_roughness, color.a * fade * in_alpha);
+  out_data1 = f32v4(math_normal_encode(normal), in_roughness, alpha);
 }
