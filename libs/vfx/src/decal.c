@@ -738,7 +738,7 @@ static void vfx_decal_trail_update(
   }
 
   // Emit decals for the segments.
-  f32 texOffset = (f32)inst->historyCountTotal * trailHeightInv;
+  f32 texOffset = math_mod_f32((f32)inst->historyCountTotal * trailHeightInv, 1.0f);
   for (u32 i = 0; i != segCount; ++i) {
     const VfxTrailSegment* seg     = &segs[i];
     const VfxTrailSegment* segPrev = i ? &segs[i - 1] : seg;
