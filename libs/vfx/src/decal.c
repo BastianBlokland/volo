@@ -71,7 +71,7 @@ ecs_comp_define(VfxDecalAnyComp);
 
 ecs_comp_define(VfxDecalSingleComp) {
   u16            atlasColorIndex, atlasNormalIndex;
-  VfxDecalFlags  flags : 8;
+  VfxDecalFlags  decalFlags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            angle;
@@ -86,12 +86,16 @@ typedef struct {
   GeoVector dir; // Projection axis.
 } VfxTrailPoint;
 
+typedef enum {
+  VfxTrailFlags_HistoryReset = 1 << 0,
+} VfxTrailFlags;
+
 ecs_comp_define(VfxDecalTrailComp) {
   u16            atlasColorIndex, atlasNormalIndex;
-  VfxDecalFlags  flags : 8;
+  VfxDecalFlags  decalFlags : 8;
+  VfxTrailFlags  trailFlags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
-  bool           historyReset;
   f32            roughness, alpha;
   f32            width, height, thickness;
   f32            pointSpacing, nextPointFrac;
@@ -251,7 +255,7 @@ static void vfx_decal_create_single(
       VfxDecalSingleComp,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
-      .flags            = vfx_decal_flags(asset),
+      .decalFlags       = vfx_decal_flags(asset),
       .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
@@ -279,10 +283,10 @@ static void vfx_decal_create_trail(
       world,
       entity,
       VfxDecalTrailComp,
-      .historyReset     = true,
+      .decalFlags       = vfx_decal_flags(asset),
+      .trailFlags       = VfxTrailFlags_HistoryReset,
       .atlasColorIndex  = atlasColorIndex,
       .atlasNormalIndex = atlasNormalIndex,
-      .flags            = vfx_decal_flags(asset),
       .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .pointSpacing     = asset->spacing,
@@ -512,7 +516,7 @@ static void vfx_decal_single_update(
       .width            = inst->width * scale,
       .height           = inst->height * scale,
       .thickness        = inst->thickness,
-      .flags            = inst->flags,
+      .flags            = inst->decalFlags,
       .excludeTags      = inst->excludeTags,
       .atlasColorIndex  = inst->atlasColorIndex,
       .atlasNormalIndex = inst->atlasNormalIndex,
@@ -687,9 +691,9 @@ static void vfx_decal_trail_update(
   const f32  trailWidthInv  = 1.0f / trailWidth;
   const f32  trailHeightInv = 1.0f / trailHeight;
 
-  if (inst->historyReset) {
+  if (inst->trailFlags & VfxTrailFlags_HistoryReset) {
     vfx_decal_trail_history_reset(inst, headPoint);
-    inst->historyReset = false;
+    inst->trailFlags &= ~VfxTrailFlags_HistoryReset;
   }
 
   // Append to the history if we've moved enough.
@@ -787,7 +791,7 @@ static void vfx_decal_trail_update(
         .width            = inst->width,
         .height           = seg->length,
         .thickness        = inst->thickness,
-        .flags            = inst->flags,
+        .flags            = inst->decalFlags,
         .excludeTags      = inst->excludeTags,
         .atlasColorIndex  = inst->atlasColorIndex,
         .atlasNormalIndex = inst->atlasNormalIndex,
