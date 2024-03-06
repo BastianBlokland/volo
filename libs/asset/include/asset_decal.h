@@ -37,6 +37,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   AssetDecalNormal baseNormal : 8; // Base normal where the normal-map is optionally applied on top.
   AssetDecalFlags  flags : 8;
   AssetDecalMask   excludeMask : 8;
+  f32              spacing;
   f32              roughness;
   f32              alphaMin, alphaMax;
   f32              width, height;

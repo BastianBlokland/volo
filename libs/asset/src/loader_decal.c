@@ -13,6 +13,7 @@
 
 #define decal_default_size 1.0f
 #define decal_default_thickness 0.25f
+#define decal_default_spacing 1.0f
 
 static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
@@ -24,6 +25,7 @@ typedef struct {
 
 typedef struct {
   bool             trail;
+  f32              spacing;
   AssetDecalAxis   projectionAxis;
   String           colorAtlasEntry;
   String           normalAtlasEntry; // Optional, empty if unused.
@@ -67,6 +69,7 @@ static void decal_datareg_init() {
 
     data_reg_struct_t(reg, DecalDef);
     data_reg_field_t(reg, DecalDef, trail, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, DecalDef, spacing, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, projectionAxis, t_AssetDecalAxis);
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -127,6 +130,7 @@ static AssetDecalFlags decal_build_flags(const DecalDef* def) {
 }
 
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
+  out->spacing          = def->spacing < f32_epsilon ? decal_default_spacing : def->spacing;
   out->projectionAxis   = def->projectionAxis;
   out->atlasColorEntry  = string_hash(def->colorAtlasEntry);
   out->atlasNormalEntry = string_maybe_hash(def->normalAtlasEntry);

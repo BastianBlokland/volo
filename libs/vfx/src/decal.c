@@ -28,7 +28,6 @@
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
 #define vfx_decal_trail_history_count 12
-#define vfx_decal_trail_history_spacing 1.0f
 #define vfx_decal_trail_spline_points (vfx_decal_trail_history_count + 3)
 #define vfx_decal_trail_seg_min_length 0.2f
 #define vfx_decal_trail_seg_count_max 64
@@ -95,7 +94,7 @@ ecs_comp_define(VfxDecalTrailComp) {
   bool           historyReset;
   f32            roughness, alpha;
   f32            width, height, thickness;
-  f32            nextPointFrac;
+  f32            pointSpacing, nextPointFrac;
   u32            historyNewest, historyCountTotal;
   VfxTrailPoint  history[vfx_decal_trail_history_count];
 };
@@ -286,6 +285,7 @@ static void vfx_decal_create_trail(
       .flags            = vfx_decal_flags(asset),
       .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
+      .pointSpacing     = asset->spacing,
       .roughness        = asset->roughness,
       .alpha            = alpha,
       .width            = asset->width * scale,
@@ -695,7 +695,7 @@ static void vfx_decal_trail_update(
   // Append to the history if we've moved enough.
   const GeoVector newestPos  = inst->history[inst->historyNewest].pos;
   const GeoVector toHead     = geo_vector_sub(trans->position, newestPos);
-  const f32       toHeadFrac = geo_vector_mag(toHead) / vfx_decal_trail_history_spacing;
+  const f32       toHeadFrac = geo_vector_mag(toHead) / inst->pointSpacing;
   if (toHeadFrac >= 1.0f) {
     vfx_decal_trail_history_add(inst, headPoint);
     inst->nextPointFrac = 0.0f;
