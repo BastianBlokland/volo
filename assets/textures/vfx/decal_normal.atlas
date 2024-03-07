@@ -3,7 +3,7 @@
   "entrySize": 256,
   "entryPadding": 6,
   "mipmaps": true,
-  "maxMipMaps": 4,
+  "maxMipMaps": 3,
   "srgb": false,
   "entries": [
     { "name": "oil_splatter", "texture": "external/decal/oil_splatter_normal.tga" },
