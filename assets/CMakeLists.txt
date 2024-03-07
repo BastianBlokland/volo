@@ -112,6 +112,7 @@ if(${EXTERNAL_ASSETS})
       decal/sand_normal.tga
       decal/sand.tga
       decal/scorch.tga
+      decal/square_alpha_trail.tga
       decal/square_alpha.tga
       decal/tarp_normal.tga
       decal/tarp.tga

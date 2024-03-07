@@ -24,18 +24,13 @@ static DataReg* g_dataReg;
 static DataMeta g_dataAtlasDefMeta;
 
 typedef struct {
-  u8 r, g, b, a;
-} AtlasColor;
-
-typedef struct {
   String name;
   String texture;
 } AtlasEntryDef;
 
 typedef struct {
-  u32         size, entrySize, entryPadding, maxMipMaps;
-  bool        mipmaps, srgb;
-  AtlasColor* paddingColor;
+  u32  size, entrySize, entryPadding, maxMipMaps;
+  bool mipmaps, srgb;
   struct {
     AtlasEntryDef* values;
     usize          count;
@@ -52,12 +47,6 @@ static void atlas_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_struct_t(g_dataReg, AtlasColor);
-    data_reg_field_t(g_dataReg, AtlasColor, r, data_prim_t(u8));
-    data_reg_field_t(g_dataReg, AtlasColor, g, data_prim_t(u8));
-    data_reg_field_t(g_dataReg, AtlasColor, b, data_prim_t(u8));
-    data_reg_field_t(g_dataReg, AtlasColor, a, data_prim_t(u8));
-
     data_reg_struct_t(g_dataReg, AtlasEntryDef);
     data_reg_field_t(g_dataReg, AtlasEntryDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasEntryDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -69,7 +58,6 @@ static void atlas_datareg_init() {
     data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, paddingColor, t_AtlasColor, .flags = DataFlags_Opt, .container = DataContainer_Pointer);
     data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
@@ -156,25 +144,38 @@ static AssetTexturePixelB4 atlas_color_to_b4(const GeoColor color) {
   };
 }
 
+static f32 atlas_clamp01(const f32 val) {
+  if (val < 0.0f) {
+    return 0.0f;
+  }
+  if (val > 1.0f) {
+    return 1.0f;
+  }
+  return val;
+}
+
 static void atlas_generate_entry(
     const AtlasDef*         def,
     const AssetTextureComp* texture,
     const u32               index,
     AssetTexturePixelB4*    out) {
 
-  const u32 texY       = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
-  const u32 texX       = index * def->entrySize % def->size + def->entryPadding;
-  const u32 texSize    = def->entrySize - def->entryPadding * 2;
-  const f32 texSizeInv = 1.0f / texSize;
+  const u32 padding               = def->entryPadding;
+  const u32 sizeWithPadding       = def->entrySize;
+  const u32 sizeWithoutPadding    = sizeWithPadding - padding * 2;
+  const f32 sizeWithoutPaddingInv = 1.0f / sizeWithoutPadding;
 
-  diag_assert(texY + texSize <= def->size);
-  diag_assert(texX + texSize <= def->size);
+  const u32 texY = index * sizeWithPadding / def->size * sizeWithPadding;
+  const u32 texX = index * sizeWithPadding % def->size;
 
-  for (u32 entryPixelY = 0; entryPixelY != texSize; ++entryPixelY) {
-    const f32 yNorm = (entryPixelY + 0.5f) * texSizeInv;
-    for (u32 entryPixelX = 0; entryPixelX != texSize; ++entryPixelX) {
+  diag_assert(texY + sizeWithPadding <= def->size);
+  diag_assert(texX + sizeWithPadding <= def->size);
+
+  for (u32 entryPixelY = 0; entryPixelY != sizeWithPadding; ++entryPixelY) {
+    const f32 yNorm = atlas_clamp01((entryPixelY - padding + 0.5f) * sizeWithoutPaddingInv);
+    for (u32 entryPixelX = 0; entryPixelX != sizeWithPadding; ++entryPixelX) {
       const u32 layer = 0;
-      const f32 xNorm = (entryPixelX + 0.5f) * texSizeInv;
+      const f32 xNorm = atlas_clamp01((entryPixelX - padding + 0.5f) * sizeWithoutPaddingInv);
 
       GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
       if (def->srgb) {
@@ -185,13 +186,6 @@ static void atlas_generate_entry(
       const usize outTexPixelX                     = texX + entryPixelX;
       out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4(color);
     }
-  }
-}
-
-static void atlas_fill(const Mem pixelMem, const u32 size, const AtlasColor color) {
-  AssetTexturePixelB4* pixels = mem_as_t(pixelMem, AssetTexturePixelB4);
-  for (u32 i = 0; i != (size * size); ++i) {
-    pixels[i] = (AssetTexturePixelB4){.r = color.r, .g = color.g, .b = color.b, .a = color.a};
   }
 }
 
@@ -211,15 +205,9 @@ static void atlas_generate(
   }
 
   // Allocate output texture.
-  bool hasAlpha;
-  Mem  pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
-  if (def->paddingColor) {
-    atlas_fill(pixelMem, def->size, *def->paddingColor);
-    hasAlpha = def->paddingColor->a != 255;
-  } else {
-    mem_set(pixelMem, 0); // Initialize to transparent.
-    hasAlpha = true;
-  }
+  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
+  mem_set(pixelMem, 0); // Initialize to black.
+  bool hasAlpha = false;
 
   const u32        entryCount = (u32)def->entries.count;
   AssetAtlasEntry* entries    = alloc_array_t(g_alloc_heap, AssetAtlasEntry, entryCount);
