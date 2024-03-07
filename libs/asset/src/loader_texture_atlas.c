@@ -144,25 +144,38 @@ static AssetTexturePixelB4 atlas_color_to_b4(const GeoColor color) {
   };
 }
 
+static f32 atlas_clamp01(const f32 val) {
+  if (val < 0.0f) {
+    return 0.0f;
+  }
+  if (val > 1.0f) {
+    return 1.0f;
+  }
+  return val;
+}
+
 static void atlas_generate_entry(
     const AtlasDef*         def,
     const AssetTextureComp* texture,
     const u32               index,
     AssetTexturePixelB4*    out) {
 
-  const u32 texY       = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
-  const u32 texX       = index * def->entrySize % def->size + def->entryPadding;
-  const u32 texSize    = def->entrySize - def->entryPadding * 2;
-  const f32 texSizeInv = 1.0f / texSize;
+  const u32 padding               = def->entryPadding;
+  const u32 sizeWithPadding       = def->entrySize;
+  const u32 sizeWithoutPadding    = sizeWithPadding - padding * 2;
+  const f32 sizeWithoutPaddingInv = 1.0f / sizeWithoutPadding;
 
-  diag_assert(texY + texSize <= def->size);
-  diag_assert(texX + texSize <= def->size);
+  const u32 texY = index * sizeWithPadding / def->size * sizeWithPadding;
+  const u32 texX = index * sizeWithPadding % def->size;
 
-  for (u32 entryPixelY = 0; entryPixelY != texSize; ++entryPixelY) {
-    const f32 yNorm = (entryPixelY + 0.5f) * texSizeInv;
-    for (u32 entryPixelX = 0; entryPixelX != texSize; ++entryPixelX) {
+  diag_assert(texY + sizeWithPadding <= def->size);
+  diag_assert(texX + sizeWithPadding <= def->size);
+
+  for (u32 entryPixelY = 0; entryPixelY != sizeWithPadding; ++entryPixelY) {
+    const f32 yNorm = atlas_clamp01((entryPixelY - padding + 0.5f) * sizeWithoutPaddingInv);
+    for (u32 entryPixelX = 0; entryPixelX != sizeWithPadding; ++entryPixelX) {
       const u32 layer = 0;
-      const f32 xNorm = (entryPixelX + 0.5f) * texSizeInv;
+      const f32 xNorm = atlas_clamp01((entryPixelX - padding + 0.5f) * sizeWithoutPaddingInv);
 
       GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
       if (def->srgb) {
