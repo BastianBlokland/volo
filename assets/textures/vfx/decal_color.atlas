@@ -16,6 +16,7 @@
     { "name": "tarp", "texture": "external/decal/tarp.tga" },
     { "name": "dirt", "texture": "external/decal/dirt.tga" },
     { "name": "square", "texture": "textures/white.proctex" },
-    { "name": "square_alpha", "texture": "external/decal/square_alpha.tga" }
+    { "name": "square_alpha", "texture": "external/decal/square_alpha.tga" },
+    { "name": "square_alpha_trail", "texture": "external/decal/square_alpha_trail.tga" }
   ]
 }
