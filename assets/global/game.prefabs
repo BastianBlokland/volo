@@ -347,7 +347,8 @@
             { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
             { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
             { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
-            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" }
+            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" },
+            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/tank_track.decal" }
           ]
         },
         {

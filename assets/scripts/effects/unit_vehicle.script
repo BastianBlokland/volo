@@ -3,10 +3,11 @@
  * Vehicle effects.
  *
  * Supports the following input knowledge:
- * - "assetSndIdle": Looping sound effect to play while stationary.
- * - "assetSndMove": Looping sound effect to play while moving.
- * - "assetVfxDust": Looping dust particle system.
- * - "assetVfxHeat": Looping heat particle system.
+ * - "assetSndIdle"   : Looping sound effect to play while stationary.
+ * - "assetSndMove"   : Looping sound effect to play while moving.
+ * - "assetVfxDust"   : Looping dust particle system.
+ * - "assetVfxHeat"   : Looping heat particle system.
+ * - "assetDecalTrail": Trail decal.
  */
 
 var me        = self()
@@ -54,4 +55,17 @@ if ($vfxHeat) {
   $vfxHeat = vfx_system_spawn($assetVfxHeat, position(me), rotation(me), 1.0, 0.0)
   attach($vfxHeat, me, "body", vec3(0, 0.5, 2.5))
   destroy_after($vfxHeat, me)
+}
+
+// Trails vfx.
+if (!$trailsInitialized) {
+  var trailLeft = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0)
+  attach(trailLeft, me, null, vec3(-1, 0, 0))
+  destroy_after(trailLeft, me)
+
+  var trailRight = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0)
+  attach(trailRight, me, null, vec3(1, 0, 0))
+  destroy_after(trailRight, me)
+
+  $trailsInitialized = true
 }
