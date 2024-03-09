@@ -27,7 +27,7 @@
 
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
-#define vfx_decal_trail_history_count 10
+#define vfx_decal_trail_history_count 12
 #define vfx_decal_trail_spline_points (vfx_decal_trail_history_count + 3)
 #define vfx_decal_trail_seg_min_length 0.2f
 #define vfx_decal_trail_seg_count_max 64
