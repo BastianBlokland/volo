@@ -345,13 +345,6 @@
       "rotation": { "y": -0.3569, "w": 0.9341 }
     },
     {
-      "id": 223392746,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 20.0629, "y": 0.7782, "z": -32.6431 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
-    },
-    {
       "id": 244694503,
       "prefab": "PropWreck",
       "position": { "x": 119.8779, "y": 0.6686, "z": 20.0422 },
@@ -1195,13 +1188,6 @@
       "prefab": "PropPlant",
       "position": { "x": 95.8533, "y": 0.5328, "z": -128.8762 },
       "rotation": { "y": 0.5898, "w": 0.8075 }
-    },
-    {
-      "id": 743001611,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 18.2873, "y": 0.7782, "z": -36.6914 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
     },
     {
       "id": 745958361,
@@ -2833,13 +2819,6 @@
       "rotation": { "y": 0.324, "w": 0.9461 }
     },
     {
-      "id": 1854090720,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 16.7883, "y": 0.7782, "z": -28.1899 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
-    },
-    {
       "id": 1858642058,
       "prefab": "InfantryMonster",
       "faction": "B",
@@ -3653,13 +3632,6 @@
       "rotation": { "y": -0.1106, "w": 0.9939 }
     },
     {
-      "id": 2325836533,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 17.6531, "y": 0.7782, "z": -33.0947 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
-    },
-    {
       "id": 2331005167,
       "prefab": "PropPlant",
       "position": { "x": 3.479, "y": 0.9813, "z": -96.7338 },
@@ -3783,13 +3755,6 @@
       "prefab": "PropRock",
       "position": { "x": 93.4437, "y": 0.6497, "z": -75.9928 },
       "rotation": { "y": -0.064, "w": 0.9979 }
-    },
-    {
-      "id": 2405422941,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 20.6971, "y": 0.7782, "z": -36.2398 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
     },
     {
       "id": 2406124243,
@@ -4064,13 +4029,6 @@
       "prefab": "PropPlant",
       "position": { "x": 65.4353, "y": 0.6439, "z": -102.3349 },
       "rotation": { "y": 0.0978, "w": 0.9952 }
-    },
-    {
-      "id": 2547906022,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 19.1981, "y": 0.7782, "z": -27.7384 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
     },
     {
       "id": 2554366901,
@@ -5423,13 +5381,6 @@
       "rotation": { "y": 0.0322, "w": 0.9995 }
     },
     {
-      "id": 3413618819,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 16.1541, "y": 0.7782, "z": -24.5932 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
-    },
-    {
       "id": 3418693834,
       "prefab": "PropWreck",
       "position": { "x": -127.6531, "y": 0.2196, "z": 72.1265 },
@@ -6204,13 +6155,6 @@
       "prefab": "PropPlant",
       "position": { "x": -104.7125, "y": 0.4348, "z": 80.1897 },
       "rotation": { "y": 0.0444, "w": 0.999 }
-    },
-    {
-      "id": 3846514667,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 18.5639, "y": 0.7782, "z": -24.1417 },
-      "rotation": { "y": 0.9962, "w": 0.0872 }
     },
     {
       "id": 3848661594,

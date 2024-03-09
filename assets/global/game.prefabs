@@ -893,12 +893,6 @@
       ]
     },
     {
-      "name": "DecalTireTrack",
-      "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/tire_track.decal" }
-      ]
-    },
-    {
       "name": "SpawnerInfantryEnemy",
       "traits": [
         {

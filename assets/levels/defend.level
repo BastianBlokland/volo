@@ -134,13 +134,6 @@
       "rotation": { "y": 0.5244, "w": 0.8515 }
     },
     {
-      "id": 69204398,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -16.5957, "y": 0.6737, "z": 0.3537 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
       "id": 69705438,
       "prefab": "PropPlant",
       "position": { "x": -29.5823, "y": 0.4936, "z": -6.5143 },
@@ -193,13 +186,6 @@
       "prefab": "PropPlant",
       "position": { "x": -40.1475, "y": 0.82, "z": 130.8623 },
       "rotation": { "y": -0.4768, "w": 0.879 }
-    },
-    {
-      "id": 98374629,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 32.7166, "y": 0.6313, "z": -5.3495 },
-      "rotation": { "y": -0.6944, "w": 0.7196 }
     },
     {
       "id": 99803100,
@@ -287,13 +273,6 @@
       "prefab": "PropPlant",
       "position": { "x": -43.7036, "y": 0.655, "z": -106.7113 },
       "rotation": { "y": 0.6789, "w": 0.7342 }
-    },
-    {
-      "id": 134215276,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -16.5193, "y": 0.5663, "z": -1.6616 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 135723752,
@@ -972,13 +951,6 @@
       "faction": "A",
       "position": { "x": -1.5, "y": 0.8872, "z": 11.5 },
       "rotation": { "w": 1 }
-    },
-    {
-      "id": 476333851,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 36.3901, "y": 0.5253, "z": -5.3957 },
-      "rotation": { "y": -0.707, "w": 0.7072 }
     },
     {
       "id": 484402734,
@@ -2031,13 +2003,6 @@
       "rotation": { "y": -0.2274, "w": 0.9738 }
     },
     {
-      "id": 1020203607,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 29.4852, "y": 0.7622, "z": -3.056 },
-      "rotation": { "y": 0.7365, "w": 0.6764 }
-    },
-    {
       "id": 1020232026,
       "prefab": "PropPlant",
       "position": { "x": 110.3454, "y": 0.3108, "z": 3.4093 },
@@ -2459,13 +2424,6 @@
       "rotation": { "y": 0.501, "w": 0.8655 }
     },
     {
-      "id": 1249659934,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 22.5185, "y": 0.8558, "z": -2.0924 },
-      "rotation": { "y": 0.7582, "w": 0.652 }
-    },
-    {
       "id": 1251019297,
       "prefab": "PropTree",
       "position": { "x": -81.0686, "y": 0.6485, "z": -1.6183 },
@@ -2652,13 +2610,6 @@
       "rotation": { "y": 0.088, "w": 0.9961 }
     },
     {
-      "id": 1336778949,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 47.9543, "y": 0.4617, "z": -2.9354 },
-      "rotation": { "y": 0.6981, "w": 0.716 }
-    },
-    {
       "id": 1338423465,
       "prefab": "PropPlant",
       "position": { "x": 126.7412, "y": 0.341, "z": 21.4534 },
@@ -2701,13 +2652,6 @@
       "prefab": "PropWreck",
       "position": { "x": 18.1371, "y": 1.2147, "z": 21.4857 },
       "rotation": { "x": -0.3545, "y": -0.3426, "z": 0.585, "w": 0.644 }
-    },
-    {
-      "id": 1353549547,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 25.6267, "y": 0.7782, "z": -4.6817 },
-      "rotation": { "y": -0.6468, "w": 0.7627 }
     },
     {
       "id": 1357915356,
@@ -2873,13 +2817,6 @@
       "rotation": { "y": 0.6438, "w": 0.7652 }
     },
     {
-      "id": 1495034633,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -23.5375, "y": 0.6083, "z": -1.6582 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
       "id": 1498034991,
       "prefab": "PropPlant",
       "position": { "x": 68.4991, "y": 1.2949, "z": -5.8523 },
@@ -2927,13 +2864,6 @@
       "prefab": "PropPlant",
       "position": { "x": -40.2915, "y": 0.6298, "z": -4.6062 },
       "rotation": { "y": -0.5068, "w": 0.8621 }
-    },
-    {
-      "id": 1525924909,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -27.2858, "y": 0.8331, "z": 0.374 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 1529954655,
@@ -3192,13 +3122,6 @@
       "prefab": "PropPlant",
       "position": { "x": -29.3323, "y": 0.6406, "z": 73.4104 },
       "rotation": { "y": -0.2671, "w": 0.9637 }
-    },
-    {
-      "id": 1657506155,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 22.3594, "y": 1.0861, "z": -4.1924 },
-      "rotation": { "y": -0.6607, "w": 0.7507 }
     },
     {
       "id": 1658053684,
@@ -3798,13 +3721,6 @@
       "rotation": { "y": -0.129, "w": 0.9916 }
     },
     {
-      "id": 1998664216,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -20.1415, "y": 0.7789, "z": 0.355 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
       "id": 1998873012,
       "prefab": "PropRock",
       "position": { "x": 43.4452, "y": 1.033, "z": 35.893 },
@@ -4055,13 +3971,6 @@
       "prefab": "PropRock",
       "position": { "x": 30.4092, "y": 0.4197, "z": -123.2788 },
       "rotation": { "y": -0.5216, "w": 0.8532 }
-    },
-    {
-      "id": 2101940065,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 44.2497, "y": 0.4537, "z": -3.1159 },
-      "rotation": { "y": 0.6873, "w": 0.7264 }
     },
     {
       "id": 2106450005,
@@ -4935,13 +4844,6 @@
       "rotation": { "y": 0.6464, "w": 0.763 }
     },
     {
-      "id": 2522232756,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 40.6051, "y": 0.5013, "z": -3.2488 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
       "id": 2527835798,
       "prefab": "PropPlant",
       "position": { "x": 9.7898, "y": 0.9552, "z": -43.8433 },
@@ -5017,13 +4919,6 @@
       "rotation": { "y": 0.3644, "w": 0.9312 }
     },
     {
-      "id": 2565282786,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 33.1206, "y": 0.7124, "z": -3.2559 },
-      "rotation": { "y": 0.719, "w": 0.695 }
-    },
-    {
       "id": 2576519096,
       "prefab": "PropPlant",
       "position": { "x": -5.7255, "y": 1.559, "z": -95.3002 },
@@ -5040,13 +4935,6 @@
       "prefab": "PropPlant",
       "position": { "x": -130.0298, "y": 0.4134, "z": -29.3547 },
       "rotation": { "y": 0.5158, "w": 0.8567 }
-    },
-    {
-      "id": 2582226404,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 47.426, "y": 0.56, "z": -5.1323 },
-      "rotation": { "y": 0.7201, "w": -0.6939 }
     },
     {
       "id": 2582760852,
@@ -5113,13 +5001,6 @@
       "prefab": "PropPlant",
       "position": { "x": -13.1377, "y": 0.4183, "z": -60.7814 },
       "rotation": { "y": -0.3019, "w": 0.9533 }
-    },
-    {
-      "id": 2611345443,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 36.873, "y": 0.7421, "z": -3.2855 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 2618135970,
@@ -5711,13 +5592,6 @@
       "position": { "x": 3.027, "y": 1.7306, "z": 14.3798 },
       "rotation": { "y": -0.7048, "w": 0.7094 },
       "scale": 0.7803
-    },
-    {
-      "id": 2927476229,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -30.9446, "y": 0.9406, "z": 0.3912 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 2928931148,
@@ -6632,20 +6506,6 @@
       "rotation": { "y": -0.32, "w": 0.9474 }
     },
     {
-      "id": 3442652506,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -34.6098, "y": 0.7815, "z": -1.6432 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
-      "id": 3445820025,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -34.6319, "y": 0.73, "z": 0.373 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
       "id": 3449785865,
       "prefab": "PropPlant",
       "position": { "x": 30.9933, "y": 0.7475, "z": -1.74 },
@@ -6764,24 +6624,10 @@
       "rotation": { "y": 0.2123, "w": 0.9772 }
     },
     {
-      "id": 3504398389,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -30.9049, "y": 0.7697, "z": -1.6573 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
-    },
-    {
       "id": 3506495481,
       "prefab": "PropTree",
       "position": { "x": 6.0046, "y": 0.3208, "z": 22.905 },
       "rotation": { "y": 0.1528, "w": 0.9883 }
-    },
-    {
-      "id": 3507480443,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 40.0848, "y": 0.3944, "z": -5.3994 },
-      "rotation": { "y": -0.707, "w": 0.7072 }
     },
     {
       "id": 3509327209,
@@ -6849,13 +6695,6 @@
       "prefab": "PropRock",
       "position": { "x": 21.2735, "y": 0.651, "z": -103.253 },
       "rotation": { "y": 0.6617, "w": 0.7498 }
-    },
-    {
-      "id": 3551708916,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -27.1863, "y": 0.6552, "z": -1.6605 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 3552945044,
@@ -7371,13 +7210,6 @@
       "rotation": { "y": -0.2995, "w": 0.9541 }
     },
     {
-      "id": 3782856717,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 43.7894, "y": 0.3784, "z": -5.2867 },
-      "rotation": { "y": 0.7286, "w": -0.685 }
-    },
-    {
       "id": 3786136496,
       "prefab": "PropPlant",
       "position": { "x": -134.4077, "y": 0.249, "z": 27.8239 },
@@ -7440,13 +7272,6 @@
       "prefab": "PropPlant",
       "position": { "x": 54.0945, "y": 0.9872, "z": -109.9028 },
       "rotation": { "y": -0.2087, "w": 0.978 }
-    },
-    {
-      "id": 3811141276,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 25.9524, "y": 0.95, "z": -2.6142 },
-      "rotation": { "y": 0.7602, "w": 0.6497 }
     },
     {
       "id": 3816321778,
@@ -7692,13 +7517,6 @@
       "faction": "A",
       "position": { "x": -3, "y": 1.0488, "z": -17 },
       "rotation": { "w": 1 }
-    },
-    {
-      "id": 3915103464,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -23.6475, "y": 0.8466, "z": 0.3719 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 3917398374,
@@ -8024,13 +7842,6 @@
       "prefab": "PropPlant",
       "position": { "x": 12.7809, "y": 0.9718, "z": 115.7377 },
       "rotation": { "y": 0.6133, "w": 0.7899 }
-    },
-    {
-      "id": 4106072831,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": 29.0679, "y": 0.6508, "z": -5.1079 },
-      "rotation": { "y": -0.6718, "w": 0.7407 }
     },
     {
       "id": 4107088771,
@@ -8418,13 +8229,6 @@
       "prefab": "PropPlant",
       "position": { "x": -109.0115, "y": 0.5194, "z": 103.4433 },
       "rotation": { "y": 0.6334, "w": 0.7738 }
-    },
-    {
-      "id": 4285907937,
-      "prefab": "DecalTireTrack",
-      "faction": "A",
-      "position": { "x": -20.0229, "y": 0.5836, "z": -1.6603 },
-      "rotation": { "y": 0.707, "w": 0.7072 }
     },
     {
       "id": 4294299298,
