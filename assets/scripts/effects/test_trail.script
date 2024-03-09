@@ -7,13 +7,12 @@
  */
 
 var inputPos = debug_input_position("Environment", "Structure") ?? vec3(0, 0, 0)
-var inputRot = debug_input_rotation("Environment", "Structure") ?? quat_ident
 
 if (!$decalTrail && $assetDecalTrail) {
   var alpha   = 1.0
-  $decalTrail = vfx_decal_spawn($assetDecalTrail, inputPos, inputRot, alpha)
+  $decalTrail = vfx_decal_spawn($assetDecalTrail, inputPos, quat_ident, alpha)
 }
 
 if ($decalTrail) {
-  teleport($decalTrail, inputPos, inputRot)
+  teleport($decalTrail, inputPos, quat_ident)
 }

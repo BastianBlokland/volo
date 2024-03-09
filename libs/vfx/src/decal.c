@@ -81,11 +81,6 @@ ecs_comp_define(VfxDecalSingleComp) {
   TimeDuration   creationTime;
 };
 
-typedef struct {
-  GeoVector pos;
-  GeoVector dir; // Projection axis.
-} VfxTrailPoint;
-
 typedef enum {
   VfxTrailFlags_HistoryReset = 1 << 0,
 } VfxTrailFlags;
@@ -100,7 +95,7 @@ ecs_comp_define(VfxDecalTrailComp) {
   f32            width, height, thickness;
   f32            pointSpacing, nextPointFrac;
   u32            historyNewest, historyCountTotal;
-  VfxTrailPoint  history[vfx_decal_trail_history_count];
+  GeoVector      history[vfx_decal_trail_history_count];
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -557,32 +552,26 @@ static u32 vfx_decal_trail_history_oldest(const VfxDecalTrailComp* inst) {
   return (inst->historyNewest + 1) % vfx_decal_trail_history_count;
 }
 
-static void vfx_decal_trail_history_reset(VfxDecalTrailComp* inst, const VfxTrailPoint point) {
+static void vfx_decal_trail_history_reset(VfxDecalTrailComp* inst, const GeoVector point) {
   inst->historyNewest = 0;
   for (u32 i = 0; i != vfx_decal_trail_history_count; ++i) {
     inst->history[i] = point;
   }
 }
 
-static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const VfxTrailPoint point) {
+static void vfx_decal_trail_history_add(VfxDecalTrailComp* inst, const GeoVector point) {
   const u32 indexOldest      = vfx_decal_trail_history_oldest(inst);
   inst->history[indexOldest] = point;
   inst->historyNewest        = indexOldest;
   ++inst->historyCountTotal;
 }
 
-static VfxTrailPoint vfx_trail_point_center(const VfxTrailPoint from, const VfxTrailPoint to) {
-  VfxTrailPoint res;
-  res.pos = geo_vector_mul(geo_vector_add(from.pos, to.pos), 0.5f);
-  res.dir = geo_vector_norm_or(geo_vector_mul(geo_vector_add(from.dir, to.dir), 0.5f), geo_up);
-  return res;
+static GeoVector vfx_trail_point_center(const GeoVector from, const GeoVector to) {
+  return geo_vector_mul(geo_vector_add(from, to), 0.5f);
 }
 
-static VfxTrailPoint vfx_trail_point_extrapolate(const VfxTrailPoint from, const VfxTrailPoint to) {
-  VfxTrailPoint res;
-  res.pos = geo_vector_add(to.pos, geo_vector_sub(to.pos, from.pos));
-  res.dir = to.dir; // TODO: Extrapolate projection direction.
-  return res;
+static GeoVector vfx_trail_point_extrapolate(const GeoVector from, const GeoVector to) {
+  return geo_vector_add(to, geo_vector_sub(to, from));
 }
 
 /**
@@ -591,9 +580,9 @@ static VfxTrailPoint vfx_trail_point_extrapolate(const VfxTrailPoint from, const
  * the first and last segments.
  */
 static void vfx_decal_trail_spline_init(
-    VfxDecalTrailComp*  inst,
-    const VfxTrailPoint headPoint,
-    VfxTrailPoint       out[PARAM_ARRAY_SIZE(vfx_decal_trail_spline_points)]) {
+    VfxDecalTrailComp* inst,
+    const GeoVector    headPoint,
+    GeoVector          out[PARAM_ARRAY_SIZE(vfx_decal_trail_spline_points)]) {
   u32 i    = 0;
   out[i++] = vfx_trail_point_extrapolate(inst->history[inst->historyNewest], headPoint);
   out[i++] = headPoint;
@@ -629,7 +618,7 @@ static GeoVector vfx_catmullrom(
  * NOTE: The first and last are only control points, the spline will not pass through them.
  * NOTE: t = 0.0f results in points[1] and t = (count - 2) results in points[count - 2].
  */
-static VfxTrailPoint vfx_spline_sample(const VfxTrailPoint* points, const u32 count, const f32 t) {
+static GeoVector vfx_spline_sample(const GeoVector* points, const u32 count, const f32 t) {
   static const f32 g_splineEpsilon = 1e-5f;
   const f32        tMin = 1.0f, tMax = (f32)count - 2.0f - g_splineEpsilon;
   const f32        tAbs  = math_min(t + tMin, tMax);
@@ -638,15 +627,12 @@ static VfxTrailPoint vfx_spline_sample(const VfxTrailPoint* points, const u32 co
 
   diag_assert(index > 0 && index < count - 2);
 
-  const VfxTrailPoint a = points[index - 1];
-  const VfxTrailPoint b = points[index];
-  const VfxTrailPoint c = points[index + 1];
-  const VfxTrailPoint d = points[index + 2];
+  const GeoVector a = points[index - 1];
+  const GeoVector b = points[index];
+  const GeoVector c = points[index + 1];
+  const GeoVector d = points[index + 2];
 
-  VfxTrailPoint res;
-  res.pos = vfx_catmullrom(a.pos, b.pos, c.pos, d.pos, frac);
-  res.dir = geo_vector_norm_or(geo_vector_lerp(b.dir, c.dir, frac), geo_up);
-  return res;
+  return vfx_catmullrom(a, b, c, d, frac);
 }
 
 typedef struct {
@@ -679,10 +665,9 @@ static void vfx_decal_trail_update(
     return;
   }
 
-  const VfxTrailPoint headPoint = {
-      .pos = trans->position,
-      .dir = geo_quat_rotate(vfx_decal_rotation(trans->rotation, inst->axis), geo_forward),
-  };
+  const GeoVector headPoint   = trans->position;
+  const GeoVector projAxisRef = geo_up; // TODO: Make the projection axis configurable.
+
   const bool debug          = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
   const f32  trailAlpha     = decal->alpha * inst->alpha;
   const f32  trailScale     = scaleComp ? scaleComp->scale : 1.0f;
@@ -697,7 +682,7 @@ static void vfx_decal_trail_update(
   }
 
   // Append to the history if we've moved enough.
-  const GeoVector newestPos  = inst->history[inst->historyNewest].pos;
+  const GeoVector newestPos  = inst->history[inst->historyNewest];
   const GeoVector toHead     = geo_vector_sub(trans->position, newestPos);
   const f32       toHeadFrac = geo_vector_mag(toHead) / inst->pointSpacing;
   if (toHeadFrac >= 1.0f) {
@@ -708,7 +693,7 @@ static void vfx_decal_trail_update(
   }
 
   // Construct the spline control points.
-  VfxTrailPoint spline[vfx_decal_trail_spline_points];
+  GeoVector spline[vfx_decal_trail_spline_points];
   vfx_decal_trail_spline_init(inst, headPoint, spline);
 
   // Compute trail segments by sampling the spline.
@@ -716,21 +701,21 @@ static void vfx_decal_trail_update(
   u32             segCount = 0;
   const f32       tMax     = (f32)(vfx_decal_trail_history_count + 1);
   const f32       tStep    = vfx_decal_trail_step;
-  VfxTrailPoint   segBegin = headPoint;
+  GeoVector       segBegin = headPoint;
   for (f32 t = tStep, tLast = 0; t < tMax && segCount != array_elems(segs); t += tStep) {
-    const VfxTrailPoint segEnd       = vfx_spline_sample(spline, array_elems(spline), t);
-    const GeoVector     segDelta     = geo_vector_sub(segEnd.pos, segBegin.pos);
-    const f32           segLengthSqr = geo_vector_mag_sqr(segDelta);
+    const GeoVector segEnd       = vfx_spline_sample(spline, array_elems(spline), t);
+    const GeoVector segDelta     = geo_vector_sub(segEnd, segBegin);
+    const f32       segLengthSqr = geo_vector_mag_sqr(segDelta);
     if (segLengthSqr < (vfx_decal_trail_seg_min_length * vfx_decal_trail_seg_min_length)) {
       continue;
     }
-    const f32           segLength  = math_sqrt_f32(segLengthSqr);
-    const VfxTrailPoint segCenter  = vfx_trail_point_center(segBegin, segEnd);
-    const GeoVector     segNormal  = geo_vector_div(segDelta, segLength);
-    const GeoVector     segTangent = geo_vector_norm(geo_vector_cross3(segNormal, segCenter.dir));
+    const f32       segLength  = math_sqrt_f32(segLengthSqr);
+    const GeoVector segCenter  = vfx_trail_point_center(segBegin, segEnd);
+    const GeoVector segNormal  = geo_vector_div(segDelta, segLength);
+    const GeoVector segTangent = geo_vector_norm(geo_vector_cross3(segNormal, projAxisRef));
 
     segs[segCount++] = (VfxTrailSegment){
-        .position    = segCenter.pos,
+        .position    = segCenter,
         .normal      = segNormal,
         .tangent     = segTangent,
         .length      = segLength,

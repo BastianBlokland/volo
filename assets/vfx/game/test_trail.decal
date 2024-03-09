@@ -1,6 +1,6 @@
 {
   "trail": true,
-  "projectionAxis": "LocalZ",
+  "projectionAxis": "WorldY",
   "colorAtlasEntry": "square_alpha_trail",
   "excludeMask": [ ],
   "roughness": 0.5,

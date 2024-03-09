@@ -173,6 +173,11 @@ void asset_load_decal(
     goto Error;
   }
 
+  if (UNLIKELY(decalDef.trail && decalDef.projectionAxis != AssetDecalAxis_WorldY)) {
+    errMsg = string_lit("Trail decals only support 'WorldY' projection");
+    goto Error;
+  }
+
   AssetDecalComp* result = ecs_world_add_t(world, entity, AssetDecalComp);
   decal_build_def(&decalDef, result);
 
