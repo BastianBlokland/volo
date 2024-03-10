@@ -36,6 +36,7 @@
   X(0xE5D7, UnfoldMore)                                                                            \
   X(0xE645, Error)                                                                                 \
   X(0xE71C, Animation)                                                                             \
+  X(0xE798, Droplet)                                                                               \
   X(0xE7EF, Group)                                                                                 \
   X(0xE80B, Globe)                                                                                 \
   X(0xE80E, Whatshot)                                                                              \
