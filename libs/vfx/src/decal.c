@@ -675,7 +675,7 @@ static void vfx_decal_trail_update(
   const f32  trailWidth     = inst->width * trailScale;
   const f32  trailHeight    = inst->height * trailScale;
   const f32  trailWidthInv  = 1.0f / trailWidth;
-  const f32  trailHeightInv = 1.0f / trailHeight;
+  const f32  trailTexYScale = trailSpacing / trailHeight;
 
   if (inst->trailFlags & VfxTrailFlags_HistoryReset) {
     vfx_decal_trail_history_reset(inst, headPoint);
@@ -728,7 +728,8 @@ static void vfx_decal_trail_update(
   }
 
   // Emit decals for the segments.
-  f32 texOffset = math_mod_f32((f32)inst->historyCountTotal * trailSpacing * trailHeightInv, 1.0f);
+  // NOTE: '1.0 -' because we are modelling the texture space growing backwards not forwards.
+  f32 texOffset = 1.0f - math_mod_f32((f32)inst->historyCountTotal * trailTexYScale, 1.0f);
   for (u32 i = 0; i != segCount; ++i) {
     const VfxTrailSegment* seg     = &segs[i];
     const VfxTrailSegment* segPrev = i ? &segs[i - 1] : seg;
@@ -740,6 +741,7 @@ static void vfx_decal_trail_update(
     const GeoQuat   rotInv       = geo_quat_inverse(rot);
     const f32       segAspect    = seg->length * trailWidthInv;
     const f32       segAspectInv = 1.0f / segAspect;
+    const f32       segTexScale  = (seg->splineEnd - seg->splineBegin) * trailTexYScale;
 
     const GeoVector tangentBegin = vfx_trail_segment_tangent_avg(seg, segPrev);
     const GeoVector tangentEnd   = vfx_trail_segment_tangent_avg(seg, segNext);
@@ -770,7 +772,6 @@ static void vfx_decal_trail_update(
     const f32 alphaBegin = (1.0f - math_max(0.0f, splineBegin - splineFadeThreshold)) * trailAlpha;
     const f32 alphaEnd   = (1.0f - math_max(0.0f, splineEnd - splineFadeThreshold)) * trailAlpha;
 
-    const f32 texScale = (seg->splineEnd - seg->splineBegin) * trailSpacing * trailHeightInv;
     const VfxDecalParams params = {
         .pos              = seg->position,
         .rot              = rot,
@@ -785,7 +786,7 @@ static void vfx_decal_trail_update(
         .alphaEnd         = alphaEnd,
         .roughness        = inst->roughness,
         .texOffsetY       = texOffset,
-        .texScaleY        = texScale,
+        .texScaleY        = segTexScale,
         .warpScale  = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
         .warpPoints = {corners[0], corners[1], corners[2], corners[3]},
     };
@@ -794,7 +795,7 @@ static void vfx_decal_trail_update(
     if (UNLIKELY(debug)) {
       vfx_decal_draw_output(drawDebug, &params);
     }
-    texOffset += texScale;
+    texOffset += segTexScale;
   }
 }
 
