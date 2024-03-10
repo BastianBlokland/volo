@@ -553,7 +553,8 @@ static u32 vfx_decal_trail_history_oldest(const VfxDecalTrailComp* inst) {
 }
 
 static void vfx_decal_trail_history_reset(VfxDecalTrailComp* inst, const GeoVector point) {
-  inst->historyNewest = 0;
+  inst->historyNewest     = 0;
+  inst->historyCountTotal = 0;
   for (u32 i = 0; i != vfx_decal_trail_history_count; ++i) {
     inst->history[i] = point;
   }
