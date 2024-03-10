@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_bitset.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
@@ -190,6 +191,8 @@ void scene_status_add_many(
     const EcsEntityId     target,
     const SceneStatusMask mask,
     const EcsEntityId     instigator) {
+  diag_assert(mask);
+
   SceneStatusRequestComp* req = ecs_world_add_t(world, target, SceneStatusRequestComp, .add = mask);
   bitset_for(bitset_from_var(mask), typeIndex) { req->instigators[typeIndex] = instigator; }
 }
@@ -200,5 +203,7 @@ void scene_status_remove(EcsWorld* world, const EcsEntityId target, const SceneS
 
 void scene_status_remove_many(
     EcsWorld* world, const EcsEntityId target, const SceneStatusMask mask) {
+  diag_assert(mask);
+
   ecs_world_add_t(world, target, SceneStatusRequestComp, .remove = mask);
 }
