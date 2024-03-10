@@ -27,7 +27,7 @@
 
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
-#define vfx_decal_trail_history_count 10
+#define vfx_decal_trail_history_count 12
 #define vfx_decal_trail_spline_points (vfx_decal_trail_history_count + 3)
 #define vfx_decal_trail_seg_min_length 0.2f
 #define vfx_decal_trail_seg_count_max 64
@@ -506,22 +506,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-      .pos              = trans->position,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->decalFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+       .pos              = trans->position,
+       .rot              = rot,
+       .width            = inst->width * scale,
+       .height           = inst->height * scale,
+       .thickness        = inst->thickness,
+       .flags            = inst->decalFlags,
+       .excludeTags      = inst->excludeTags,
+       .atlasColorIndex  = inst->atlasColorIndex,
+       .atlasNormalIndex = inst->atlasNormalIndex,
+       .alphaBegin       = alpha,
+       .alphaEnd         = alpha,
+       .roughness        = inst->roughness,
+       .texOffsetY       = 0.0f,
+       .texScaleY        = 1.0f,
+       .warpScale        = {1.0f, 1.0f},
+       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -553,7 +553,8 @@ static u32 vfx_decal_trail_history_oldest(const VfxDecalTrailComp* inst) {
 }
 
 static void vfx_decal_trail_history_reset(VfxDecalTrailComp* inst, const GeoVector point) {
-  inst->historyNewest = 0;
+  inst->historyNewest     = 0;
+  inst->historyCountTotal = 0;
   for (u32 i = 0; i != vfx_decal_trail_history_count; ++i) {
     inst->history[i] = point;
   }
@@ -671,10 +672,11 @@ static void vfx_decal_trail_update(
   const bool debug          = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
   const f32  trailAlpha     = decal->alpha * inst->alpha;
   const f32  trailScale     = scaleComp ? scaleComp->scale : 1.0f;
+  const f32  trailSpacing   = inst->pointSpacing * trailScale;
   const f32  trailWidth     = inst->width * trailScale;
   const f32  trailHeight    = inst->height * trailScale;
   const f32  trailWidthInv  = 1.0f / trailWidth;
-  const f32  trailHeightInv = 1.0f / trailHeight;
+  const f32  trailTexYScale = trailSpacing / trailHeight;
 
   if (inst->trailFlags & VfxTrailFlags_HistoryReset) {
     vfx_decal_trail_history_reset(inst, headPoint);
@@ -684,7 +686,7 @@ static void vfx_decal_trail_update(
   // Append to the history if we've moved enough.
   const GeoVector newestPos  = inst->history[inst->historyNewest];
   const GeoVector toHead     = geo_vector_sub(trans->position, newestPos);
-  const f32       toHeadFrac = geo_vector_mag(toHead) / inst->pointSpacing;
+  const f32       toHeadFrac = geo_vector_mag(toHead) / trailSpacing;
   if (toHeadFrac >= 1.0f) {
     vfx_decal_trail_history_add(inst, headPoint);
     inst->nextPointFrac = 0.0f;
@@ -727,7 +729,8 @@ static void vfx_decal_trail_update(
   }
 
   // Emit decals for the segments.
-  f32 texOffset = math_mod_f32((f32)inst->historyCountTotal * trailHeightInv, 1.0f);
+  // NOTE: '1.0 -' because we are modelling the texture space growing backwards not forwards.
+  f32 texOffset = 1.0f - math_mod_f32((f32)inst->historyCountTotal * trailTexYScale, 1.0f);
   for (u32 i = 0; i != segCount; ++i) {
     const VfxTrailSegment* seg     = &segs[i];
     const VfxTrailSegment* segPrev = i ? &segs[i - 1] : seg;
@@ -739,6 +742,7 @@ static void vfx_decal_trail_update(
     const GeoQuat   rotInv       = geo_quat_inverse(rot);
     const f32       segAspect    = seg->length * trailWidthInv;
     const f32       segAspectInv = 1.0f / segAspect;
+    const f32       segTexScale  = (seg->splineEnd - seg->splineBegin) * trailTexYScale;
 
     const GeoVector tangentBegin = vfx_trail_segment_tangent_avg(seg, segPrev);
     const GeoVector tangentEnd   = vfx_trail_segment_tangent_avg(seg, segNext);
@@ -769,8 +773,7 @@ static void vfx_decal_trail_update(
     const f32 alphaBegin = (1.0f - math_max(0.0f, splineBegin - splineFadeThreshold)) * trailAlpha;
     const f32 alphaEnd   = (1.0f - math_max(0.0f, splineEnd - splineFadeThreshold)) * trailAlpha;
 
-    const f32            texScale = (seg->splineEnd - seg->splineBegin) * trailHeightInv;
-    const VfxDecalParams params   = {
+    const VfxDecalParams params = {
         .pos              = seg->position,
         .rot              = rot,
         .width            = inst->width,
@@ -784,7 +787,7 @@ static void vfx_decal_trail_update(
         .alphaEnd         = alphaEnd,
         .roughness        = inst->roughness,
         .texOffsetY       = texOffset,
-        .texScaleY        = texScale,
+        .texScaleY        = segTexScale,
         .warpScale  = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
         .warpPoints = {corners[0], corners[1], corners[2], corners[3]},
     };
@@ -793,7 +796,7 @@ static void vfx_decal_trail_update(
     if (UNLIKELY(debug)) {
       vfx_decal_draw_output(drawDebug, &params);
     }
-    texOffset += texScale;
+    texOffset += segTexScale;
   }
 }
 
