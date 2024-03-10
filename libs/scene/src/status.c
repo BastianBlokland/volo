@@ -182,11 +182,23 @@ void scene_status_add(
     const EcsEntityId     target,
     const SceneStatusType type,
     const EcsEntityId     instigator) {
-  SceneStatusRequestComp* req =
-      ecs_world_add_t(world, target, SceneStatusRequestComp, .add = 1 << type);
-  req->instigators[type] = instigator;
+  scene_status_add_many(world, target, 1 << type, instigator);
+}
+
+void scene_status_add_many(
+    EcsWorld*             world,
+    const EcsEntityId     target,
+    const SceneStatusMask mask,
+    const EcsEntityId     instigator) {
+  SceneStatusRequestComp* req = ecs_world_add_t(world, target, SceneStatusRequestComp, .add = mask);
+  bitset_for(bitset_from_var(mask), typeIndex) { req->instigators[typeIndex] = instigator; }
 }
 
 void scene_status_remove(EcsWorld* world, const EcsEntityId target, const SceneStatusType type) {
-  ecs_world_add_t(world, target, SceneStatusRequestComp, .remove = 1 << type);
+  scene_status_remove_many(world, target, 1 << type);
+}
+
+void scene_status_remove_many(
+    EcsWorld* world, const EcsEntityId target, const SceneStatusMask mask) {
+  ecs_world_add_t(world, target, SceneStatusRequestComp, .remove = mask);
 }

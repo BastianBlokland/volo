@@ -31,4 +31,7 @@ bool   scene_status_active(const SceneStatusComp*, SceneStatusType);
 String scene_status_name(SceneStatusType);
 
 void scene_status_add(EcsWorld*, EcsEntityId target, SceneStatusType, EcsEntityId instigator);
+void scene_status_add_many(EcsWorld*, EcsEntityId target, SceneStatusMask, EcsEntityId instigator);
+
 void scene_status_remove(EcsWorld*, EcsEntityId target, SceneStatusType);
+void scene_status_remove_many(EcsWorld*, EcsEntityId target, SceneStatusMask);
