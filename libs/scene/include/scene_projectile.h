@@ -4,13 +4,16 @@
 #include "ecs_module.h"
 #include "geo_vector.h"
 
+// Forward declare from 'scene_status.h'.
+typedef u8 SceneStatusMask;
+
 typedef enum {
-  SceneProjectile_Seek          = 1 << 0,
-  SceneProjectile_ApplyBleeding = 1 << 1,
+  SceneProjectile_Seek = 1 << 0,
 } SceneProjectileFlags;
 
 ecs_comp_extern_public(SceneProjectileComp) {
-  SceneProjectileFlags flags;
+  SceneProjectileFlags flags : 8;
+  SceneStatusMask      applyStatus;
   f32                  speed;
   f32                  damage, damageRadius;
   TimeDuration         age;

@@ -333,15 +333,13 @@ static EffectResult effect_update_proj(
 
   SceneProjectileFlags projectileFlags = 0;
   projectileFlags |= def->seekTowardsTarget ? SceneProjectile_Seek : 0;
-  if (def->applyStatusMask & (1 << 1)) {
-    projectileFlags |= SceneProjectile_ApplyBleeding;
-  }
 
   ecs_world_add_t(
       ctx->world,
       projectileEntity,
       SceneProjectileComp,
       .flags        = projectileFlags,
+      .applyStatus  = def->applyStatusMask,
       .speed        = def->speed,
       .damage       = def->damage,
       .damageRadius = def->damageRadius,

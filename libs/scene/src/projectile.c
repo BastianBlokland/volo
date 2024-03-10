@@ -151,7 +151,6 @@ static void projectile_hit(
   }
 
   // Damage all the found entities.
-  const bool applyBleeding = (proj->flags & SceneProjectile_ApplyBleeding) != 0;
   for (u32 i = 0; i != hitCount; ++i) {
     if (!ecs_world_exists(world, hits[i])) {
       continue;
@@ -165,8 +164,8 @@ static void projectile_hit(
               .amount     = proj->damage,
           });
     }
-    if (applyBleeding && ecs_world_has_t(world, hits[i], SceneStatusComp)) {
-      scene_status_add(world, hits[i], SceneStatusType_Bleeding, proj->instigator);
+    if (proj->applyStatus && ecs_world_has_t(world, hits[i], SceneStatusComp)) {
+      scene_status_add_many(world, hits[i], proj->applyStatus, proj->instigator);
     }
   }
 }
