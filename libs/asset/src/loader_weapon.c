@@ -557,20 +557,16 @@ f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon
   return damage;
 }
 
-bool asset_weapon_applies(
-    const AssetWeaponMapComp* map, const AssetWeapon* weapon, const u8 statusMask) {
+u8 asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
+  u8 result = 0;
   for (u16 i = 0; i != weapon->effectCount; ++i) {
     const AssetWeaponEffect* effect = &map->effects[weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Damage:
-      if (effect->data_dmg.applyStatusMask & statusMask) {
-        return true;
-      }
+      result |= effect->data_dmg.applyStatusMask;
       break;
     case AssetWeaponEffect_Projectile:
-      if (effect->data_proj.applyStatusMask & statusMask) {
-        return true;
-      }
+      result |= effect->data_proj.applyStatusMask;
       break;
     case AssetWeaponEffect_Animation:
     case AssetWeaponEffect_Vfx:
@@ -578,7 +574,7 @@ bool asset_weapon_applies(
       break;
     }
   }
-  return false;
+  return result;
 }
 
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {
