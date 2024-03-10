@@ -5,7 +5,8 @@
 #include "geo_vector.h"
 
 typedef enum {
-  SceneProjectile_Seek = 1 << 0,
+  SceneProjectile_Seek          = 1 << 0,
+  SceneProjectile_ApplyBleeding = 1 << 1,
 } SceneProjectileFlags;
 
 ecs_comp_extern_public(SceneProjectileComp) {

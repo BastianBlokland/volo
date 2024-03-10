@@ -21,6 +21,7 @@ typedef enum {
 typedef struct {
   StringHash   originJoint;
   bool         launchTowardsTarget, seekTowardsTarget;
+  bool         applyBleeding;
   f32          spreadAngle;
   f32          speed;
   f32          damage, damageRadius;

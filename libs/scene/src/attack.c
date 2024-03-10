@@ -332,9 +332,9 @@ static EffectResult effect_update_proj(
       });
 
   SceneProjectileFlags projectileFlags = 0;
-  if (def->seekTowardsTarget) {
-    projectileFlags |= SceneProjectile_Seek;
-  }
+  projectileFlags |= def->seekTowardsTarget ? SceneProjectile_Seek : 0;
+  projectileFlags |= def->applyBleeding ? SceneProjectile_ApplyBleeding : 0;
+
   ecs_world_add_t(
       ctx->world,
       projectileEntity,

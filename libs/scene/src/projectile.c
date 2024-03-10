@@ -10,6 +10,7 @@
 #include "scene_prefab.h"
 #include "scene_projectile.h"
 #include "scene_sound.h"
+#include "scene_status.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -150,9 +151,12 @@ static void projectile_hit(
   }
 
   // Damage all the found entities.
+  const bool applyBleeding = (proj->flags & SceneProjectile_ApplyBleeding) != 0;
   for (u32 i = 0; i != hitCount; ++i) {
-    const bool exists = ecs_world_exists(world, hits[i]);
-    if (exists && ecs_world_has_t(world, hits[i], SceneHealthComp)) {
+    if (!ecs_world_exists(world, hits[i])) {
+      continue;
+    }
+    if (ecs_world_has_t(world, hits[i], SceneHealthComp)) {
       scene_health_damage(
           world,
           hits[i],
@@ -160,6 +164,9 @@ static void projectile_hit(
               .instigator = proj->instigator,
               .amount     = proj->damage,
           });
+    }
+    if (applyBleeding && ecs_world_has_t(world, hits[i], SceneStatusComp)) {
+      scene_status_add(world, hits[i], SceneStatusType_Bleeding, proj->instigator);
     }
   }
 }
@@ -206,9 +213,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.

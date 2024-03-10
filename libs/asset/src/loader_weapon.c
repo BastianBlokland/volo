@@ -22,6 +22,7 @@ static DataMeta g_dataMapDefMeta;
 typedef struct {
   String originJoint;
   bool   launchTowardsTarget, seekTowardsTarget;
+  bool   applyBleeding;
   f32    delay;
   f32    spreadAngle;
   f32    speed;
@@ -113,6 +114,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, applyBleeding, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -226,6 +228,7 @@ static void weapon_effect_proj_build(
       .originJoint         = string_hash(def->originJoint),
       .launchTowardsTarget = def->launchTowardsTarget,
       .seekTowardsTarget   = def->seekTowardsTarget,
+      .applyBleeding       = def->applyBleeding,
       .delay               = (TimeDuration)time_seconds(def->delay),
       .spreadAngle         = def->spreadAngle,
       .speed               = def->speed,
