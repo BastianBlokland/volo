@@ -9,9 +9,9 @@
     { "name": "oil_splatter", "texture": "external/decal/oil_splatter_normal.tga" },
     { "name": "sand", "texture": "external/decal/sand_normal.tga" },
     { "name": "tarp", "texture": "external/decal/tarp_normal.tga" },
-    { "name": "tire_track", "texture": "external/decal/tire_track_normal.tga" },
     { "name": "explosion", "texture": "external/decal/explosion_normal.tga" },
     { "name": "foot_boot_left", "texture": "external/decal/foot_shoe_left_4_normal.tga" },
-    { "name": "foot_boot_right", "texture": "external/decal/foot_shoe_right_4_normal.tga" }
+    { "name": "foot_boot_right", "texture": "external/decal/foot_shoe_right_4_normal.tga" },
+    { "name": "tank_track", "texture": "external/decal/tank_track_normal.tga" }
   ]
 }

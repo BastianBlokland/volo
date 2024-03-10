@@ -3,12 +3,13 @@
   "spacing": 2.0,
   "projectionAxis": "WorldY",
   "colorAtlasEntry": "square_alpha_trail",
-  "normalAtlasEntry": "tire_track",
+  "normalAtlasEntry": "tank_track",
   "baseNormal": "GBuffer",
   "noColorOutput": true,
   "excludeMask": [ "Geometry" ],
   "roughness": 0.9,
   "width": 0.75,
-  "height": 2.0,
-  "thickness": 0.25
+  "height": 0.75,
+  "thickness": 0.5,
+  "alphaMin": 0.9
 }

@@ -114,10 +114,10 @@ if(${EXTERNAL_ASSETS})
       decal/scorch.tga
       decal/square_alpha_trail.tga
       decal/square_alpha.tga
+      decal/tank_track_normal.tga
       decal/tarp_normal.tga
       decal/tarp.tga
       decal/text_volo.tga
-      decal/tire_track_normal.tga
       factory/factory_color_rough.tga
       factory/factory_normal.tga
       factory/factory.bin
