@@ -566,10 +566,12 @@ bool asset_weapon_applies(
       if (effect->data_dmg.applyStatusMask & statusMask) {
         return true;
       }
+      break;
     case AssetWeaponEffect_Projectile:
       if (effect->data_proj.applyStatusMask & statusMask) {
         return true;
       }
+      break;
     case AssetWeaponEffect_Animation:
     case AssetWeaponEffect_Vfx:
     case AssetWeaponEffect_Sound:
