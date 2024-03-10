@@ -440,6 +440,7 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
   SceneStatusMask supported = 0;
   supported |= t->burnable ? (1 << SceneStatusType_Burning) : 0;
+  supported |= t->bleedable ? (1 << SceneStatusType_Bleeding) : 0;
 
   ecs_world_add_t(w, e, SceneStatusComp, .supported = supported, .effectJoint = t->effectJoint);
   ecs_world_add_t(w, e, SceneStatusRequestComp);

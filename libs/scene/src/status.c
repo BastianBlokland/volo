@@ -12,13 +12,15 @@
 #include "scene_time.h"
 
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = 50,
+    [SceneStatusType_Burning]  = 50,
+    [SceneStatusType_Bleeding] = 10,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = string_static("EffectBurning"),
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = time_seconds(4),
+    [SceneStatusType_Burning]  = time_seconds(4),
+    [SceneStatusType_Bleeding] = time_seconds(2),
 };
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
@@ -169,6 +171,7 @@ bool scene_status_active(const SceneStatusComp* status, const SceneStatusType ty
 String scene_status_name(const SceneStatusType type) {
   static const String g_names[] = {
       string_static("Burning"),
+      string_static("Bleeding"),
   };
   ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
   return g_names[type];
