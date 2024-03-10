@@ -333,7 +333,9 @@ static EffectResult effect_update_proj(
 
   SceneProjectileFlags projectileFlags = 0;
   projectileFlags |= def->seekTowardsTarget ? SceneProjectile_Seek : 0;
-  projectileFlags |= def->applyBleeding ? SceneProjectile_ApplyBleeding : 0;
+  if (def->applyStatusMask & (1 << 1)) {
+    projectileFlags |= SceneProjectile_ApplyBleeding;
+  }
 
   ecs_world_add_t(
       ctx->world,
@@ -440,8 +442,8 @@ static EffectResult effect_update_dmg(
     }
 
     // Apply status.
-    if (def->applyBurning && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
-      scene_status_add(ctx->world, hits[i], SceneStatusType_Burning, ctx->instigator);
+    if (def->applyStatusMask && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
+      scene_status_add_many(ctx->world, hits[i], def->applyStatusMask, ctx->instigator);
     }
 
     // Spawn impact.

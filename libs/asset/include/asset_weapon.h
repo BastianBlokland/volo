@@ -21,7 +21,7 @@ typedef enum {
 typedef struct {
   StringHash   originJoint;
   bool         launchTowardsTarget, seekTowardsTarget;
-  bool         applyBleeding;
+  u8           applyStatusMask; // Mask of status-effects to apply on hit.
   f32          spreadAngle;
   f32          speed;
   f32          damage, damageRadius;
@@ -36,7 +36,7 @@ typedef struct {
   f32          radius, radiusEnd;
   f32          length;
   f32          damage;
-  bool         applyBurning;
+  u8           applyStatusMask; // Mask of status-effects to apply.
   TimeDuration lengthGrowTime;
   TimeDuration delay;
   StringHash   impactPrefab; // Optional, 0 if unused.
@@ -103,7 +103,7 @@ ecs_comp_extern_public(AssetWeaponMapComp) {
  * Lookup weapon statistics.
  */
 f32  asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon*);
-bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon*);
+bool asset_weapon_applies(const AssetWeaponMapComp* map, const AssetWeapon*, u8 statusMask);
 
 /**
  * Lookup a weapon by the hash of its name.
