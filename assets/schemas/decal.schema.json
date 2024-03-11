@@ -15,6 +15,7 @@
         "fadeUsingDepthNormal": { "title": "bool", "type": "boolean" },
         "noColorOutput": { "title": "bool", "type": "boolean" },
         "randomRotation": { "title": "bool", "type": "boolean" },
+        "snapToTerrain": { "title": "bool", "type": "boolean" },
         "excludeMask": {
           "type": "array",
           "items": { "title": "AssetDecalMask", "$ref": "#/$defs/AssetDecalMask" }
