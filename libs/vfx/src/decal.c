@@ -15,6 +15,7 @@
 #include "rend_instance.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -74,6 +75,7 @@ ecs_comp_define(VfxDecalSingleComp) {
   VfxDecalFlags  decalFlags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
+  bool           snapToTerrain;
   f32            angle;
   f32            roughness, alpha;
   f32            fadeInSec, fadeOutSec;
@@ -90,6 +92,7 @@ ecs_comp_define(VfxDecalTrailComp) {
   VfxDecalFlags  decalFlags : 8;
   VfxTrailFlags  trailFlags : 8;
   AssetDecalAxis axis : 8;
+  bool           snapToTerrain;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            roughness, alpha;
   f32            width, height, thickness;
@@ -107,6 +110,7 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_read(VfxAtlasManagerComp);
@@ -253,6 +257,7 @@ static void vfx_decal_create_single(
       .decalFlags       = vfx_decal_flags(asset),
       .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
+      .snapToTerrain    = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
       .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = alpha,
@@ -284,6 +289,7 @@ static void vfx_decal_create_trail(
       .atlasNormalIndex = atlasNormalIndex,
       .axis             = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
+      .snapToTerrain    = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
       .pointSpacing     = asset->spacing,
       .roughness        = asset->roughness,
       .alpha            = alpha,
@@ -481,6 +487,7 @@ ecs_view_define(UpdateSingleView) {
 
 static void vfx_decal_single_update(
     const SceneTimeComp*           timeComp,
+    const SceneTerrainComp*        terrainComp,
     const SceneVisibilitySettings* visibilitySettings,
     RendDrawComp*                  drawNormal,
     RendDrawComp*                  drawDebug,
@@ -499,6 +506,11 @@ static void vfx_decal_single_update(
 
   const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
 
+  GeoVector pos = trans->position;
+  if (inst->snapToTerrain) {
+    scene_terrain_snap(terrainComp, &pos);
+  }
+
   const GeoQuat        rotRaw = vfx_decal_rotation(trans->rotation, inst->axis);
   const GeoQuat        rot    = geo_quat_mul(rotRaw, geo_quat_angle_axis(inst->angle, geo_forward));
   const f32            scale  = scaleComp ? scaleComp->scale : 1.0f;
@@ -506,22 +518,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-       .pos              = trans->position,
-       .rot              = rot,
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->decalFlags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alphaBegin       = alpha,
-       .alphaEnd         = alpha,
-       .roughness        = inst->roughness,
-       .texOffsetY       = 0.0f,
-       .texScaleY        = 1.0f,
-       .warpScale        = {1.0f, 1.0f},
-       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+      .pos              = pos,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->decalFlags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alphaBegin       = alpha,
+      .alphaEnd         = alpha,
+      .roughness        = inst->roughness,
+      .texOffsetY       = 0.0f,
+      .texScaleY        = 1.0f,
+      .warpScale        = {1.0f, 1.0f},
+      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -649,6 +661,7 @@ static GeoVector vfx_trail_segment_tangent_avg(const VfxTrailSegment* a, const V
 }
 
 static void vfx_decal_trail_update(
+    const SceneTerrainComp*        terrainComp,
     const SceneVisibilitySettings* visibilitySettings,
     RendDrawComp*                  drawNormal,
     RendDrawComp*                  drawDebug,
@@ -666,8 +679,11 @@ static void vfx_decal_trail_update(
     return;
   }
 
-  const GeoVector headPoint   = trans->position;
   const GeoVector projAxisRef = geo_up; // TODO: Make the projection axis configurable.
+  GeoVector       headPoint   = trans->position;
+  if (inst->snapToTerrain) {
+    scene_terrain_snap(terrainComp, &headPoint);
+  }
 
   const bool debug          = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
   const f32  trailAlpha     = decal->alpha * inst->alpha;
@@ -685,7 +701,7 @@ static void vfx_decal_trail_update(
 
   // Append to the history if we've moved enough.
   const GeoVector newestPos  = inst->history[inst->historyNewest];
-  const GeoVector toHead     = geo_vector_sub(trans->position, newestPos);
+  const GeoVector toHead     = geo_vector_sub(headPoint, newestPos);
   const f32       toHeadFrac = geo_vector_mag(toHead) / trailSpacing;
   if (toHeadFrac >= 1.0f) {
     vfx_decal_trail_history_add(inst, headPoint);
@@ -807,6 +823,7 @@ ecs_system_define(VfxDecalUpdateSys) {
     return;
   }
   const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTerrainComp*    terrainComp  = ecs_view_read_t(globalItr, SceneTerrainComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
   const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
@@ -828,13 +845,13 @@ ecs_system_define(VfxDecalUpdateSys) {
   // Update all single decals.
   EcsView* singleView = ecs_world_view_t(world, UpdateSingleView);
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
-    vfx_decal_single_update(timeComp, visibilitySettings, drawNormal, drawDebug, itr);
+    vfx_decal_single_update(timeComp, terrainComp, visibilitySettings, drawNormal, drawDebug, itr);
   }
 
   // Update all trail decals.
   EcsView* trailView = ecs_world_view_t(world, UpdateTrailView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
-    vfx_decal_trail_update(visibilitySettings, drawNormal, drawDebug, itr);
+    vfx_decal_trail_update(terrainComp, visibilitySettings, drawNormal, drawDebug, itr);
   }
 }
 
