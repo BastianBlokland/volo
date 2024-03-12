@@ -509,7 +509,7 @@ ecs_system_define(AppUpdateSys) {
       input_layer_disable(input, string_hash_lit("Debug"));
       input_layer_enable(input, string_hash_lit("Game"));
       rendSetWin->flags |= RendFlags_Fog;
-      scene_visibility_settings_mut(visibilityEnv)->renderAll = false;
+      scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceVisibleForRender);
       break;
     case AppMode_Debug:
       if (!appWindow->debugMenu)  { appWindow->debugMenu = debug_menu_create(world, windowEntity); }
@@ -519,7 +519,7 @@ ecs_system_define(AppUpdateSys) {
       input_layer_enable(input, string_hash_lit("Debug"));
       input_layer_disable(input, string_hash_lit("Game"));
       rendSetWin->flags &= ~RendFlags_Fog;
-      scene_visibility_settings_mut(visibilityEnv)->renderAll = true;
+      scene_visibility_flags_set(visibilityEnv, SceneVisibilityFlags_ForceVisibleForRender);
       break;
     }
     // clang-format on

@@ -14,10 +14,10 @@
 #endif
 
 ecs_comp_define(SceneVisibilityEnvComp) {
-  SceneVisibilitySettings settings;
-  GeoVector*              visionPositions;    // GeoVector[scene_vision_areas_max]
-  f32*                    visionSquaredRadii; // (radius * radius)[scene_vision_areas_max]
-  u32                     visionCount;
+  SceneVisibilityFlags flags;
+  GeoVector*           visionPositions;    // GeoVector[scene_vision_areas_max]
+  f32*                 visionSquaredRadii; // (radius * radius)[scene_vision_areas_max]
+  u32                  visionCount;
 };
 
 static void ecs_destruct_visibility_env_comp(void* data) {
@@ -162,12 +162,16 @@ ecs_module_init(scene_visibility_module) {
   ecs_parallel(SceneVisibilityUpdateSys, 4);
 }
 
-const SceneVisibilitySettings* scene_visibility_settings(const SceneVisibilityEnvComp* env) {
-  return &env->settings;
+SceneVisibilityFlags scene_visibility_flags(const SceneVisibilityEnvComp* env) {
+  return env->flags;
 }
 
-SceneVisibilitySettings* scene_visibility_settings_mut(SceneVisibilityEnvComp* env) {
-  return &env->settings;
+void scene_visibility_flags_set(SceneVisibilityEnvComp* env, const SceneVisibilityFlags flags) {
+  env->flags |= flags;
+}
+
+void scene_visibility_flags_clear(SceneVisibilityEnvComp* env, const SceneVisibilityFlags flags) {
+  env->flags &= ~flags;
 }
 
 bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction faction) {
@@ -178,7 +182,7 @@ bool scene_visible_for_render(
     const SceneVisibilityEnvComp* env,
     const SceneVisibilityComp*    visibility,
     const SceneFaction            faction) {
-  if (scene_visibility_settings(env)->renderAll) {
+  if (env->flags & SceneVisibilityFlags_ForceVisibleForRender) {
     return true;
   }
   return (visibility->visibleToFactionsMask & (1 << faction)) != 0;
