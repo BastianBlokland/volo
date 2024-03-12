@@ -11,6 +11,7 @@
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_time.h"
+#include "scene_visibility.h"
 
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 50,
@@ -64,6 +65,7 @@ static EcsEntityId status_effect_create(
   } else {
     scene_attach_to_entity(world, result, owner);
   }
+  ecs_world_add_t(world, result, SceneVisibilityComp); // Seeing status-effects requires visibility.
   return result;
 }
 
