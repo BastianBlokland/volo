@@ -97,8 +97,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   if (!globalItr) {
     return; // Global dependencies not yet available.
   }
-  const SceneVisibilityEnvComp*  visibilityEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
-  const SceneVisibilitySettings* visibilitySettings = scene_visibility_settings(visibilityEnv);
+  const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   EcsView* renderables = ecs_world_view_t(world, RenderableView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
@@ -112,7 +111,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       continue;
     }
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-    if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
+    if (visComp && !scene_visible_for_render(visEnv, visComp, SceneFaction_A)) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 

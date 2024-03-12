@@ -494,12 +494,12 @@ ecs_view_define(UpdateSingleView) {
 }
 
 static void vfx_decal_single_update(
-    const SceneTimeComp*           timeComp,
-    const SceneTerrainComp*        terrainComp,
-    const SceneVisibilitySettings* visibilitySettings,
-    RendDrawComp*                  drawNormal,
-    RendDrawComp*                  drawDebug,
-    EcsIterator*                   itr) {
+    const SceneTimeComp*          timeComp,
+    const SceneTerrainComp*       terrainComp,
+    const SceneVisibilityEnvComp* visEnv,
+    RendDrawComp*                 drawNormal,
+    RendDrawComp*                 drawDebug,
+    EcsIterator*                  itr) {
   const VfxDecalSingleComp*        inst      = ecs_view_read_t(itr, VfxDecalSingleComp);
   const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
@@ -508,7 +508,7 @@ static void vfx_decal_single_update(
   const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
   const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-  if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
+  if (visComp && !scene_visible_for_render(visEnv, visComp, SceneFaction_A)) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
   }
 
@@ -689,12 +689,12 @@ static GeoVector vfx_trail_segment_tangent_avg(const VfxTrailSegment* a, const V
 }
 
 static void vfx_decal_trail_update(
-    const SceneTimeComp*           timeComp,
-    const SceneTerrainComp*        terrainComp,
-    const SceneVisibilitySettings* visibilitySettings,
-    RendDrawComp*                  drawNormal,
-    RendDrawComp*                  drawDebug,
-    EcsIterator*                   itr) {
+    const SceneTimeComp*          timeComp,
+    const SceneTerrainComp*       terrainComp,
+    const SceneVisibilityEnvComp* visEnv,
+    RendDrawComp*                 drawNormal,
+    RendDrawComp*                 drawDebug,
+    EcsIterator*                  itr) {
   VfxDecalTrailComp*               inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
@@ -709,7 +709,7 @@ static void vfx_decal_trail_update(
     shouldEmit = false;
   }
   // TODO: Make the local faction configurable instead of hardcoding 'A'.
-  if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
+  if (visComp && !scene_visible_for_render(visEnv, visComp, SceneFaction_A)) {
     shouldEmit = false;
   }
 
@@ -869,10 +869,8 @@ ecs_system_define(VfxDecalUpdateSys) {
     return; // Atlas hasn't loaded yet.
   }
 
-  const SceneVisibilityEnvComp*  visibilityEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
-  const SceneVisibilitySettings* visibilitySettings = scene_visibility_settings(visibilityEnv);
-
-  const VfxDrawManagerComp* drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
   RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_Decal);
   RendDrawComp* drawDebug  = vfx_draw_get(world, drawManager, VfxDrawType_DecalDebug);
@@ -883,13 +881,13 @@ ecs_system_define(VfxDecalUpdateSys) {
   // Update all single decals.
   EcsView* singleView = ecs_world_view_t(world, UpdateSingleView);
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
-    vfx_decal_single_update(timeComp, terrainComp, visibilitySettings, drawNormal, drawDebug, itr);
+    vfx_decal_single_update(timeComp, terrainComp, visEnv, drawNormal, drawDebug, itr);
   }
 
   // Update all trail decals.
   EcsView* trailView = ecs_world_view_t(world, UpdateTrailView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
-    vfx_decal_trail_update(timeComp, terrainComp, visibilitySettings, drawNormal, drawDebug, itr);
+    vfx_decal_trail_update(timeComp, terrainComp, visEnv, drawNormal, drawDebug, itr);
   }
 }
 

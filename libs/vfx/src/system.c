@@ -349,19 +349,19 @@ static void vfx_system_reset(VfxSystemStateComp* state) {
 }
 
 static void vfx_system_simulate(
-    VfxSystemStateComp*            state,
-    const AssetVfxComp*            asset,
-    const AssetAtlasComp*          atlas,
-    const SceneTimeComp*           time,
-    const SceneVisibilitySettings* visSettings,
-    const SceneTags                tags,
-    const SceneVfxSystemComp*      sysCfg,
-    const VfxTrans*                sysTrans,
-    const SceneVisibilityComp*     sysVis) {
+    VfxSystemStateComp*           state,
+    const AssetVfxComp*           asset,
+    const AssetAtlasComp*         atlas,
+    const SceneTimeComp*          time,
+    const SceneVisibilityEnvComp* visEnv,
+    const SceneTags               tags,
+    const SceneVfxSystemComp*     sysCfg,
+    const VfxTrans*               sysTrans,
+    const SceneVisibilityComp*    sysVis) {
 
   const f32 deltaSec = scene_delta_seconds(time);
   // TODO: Make the local faction configurable instead of hardcoding 'A'.
-  const bool visible = !sysVis || scene_visible(sysVis, SceneFaction_A) || visSettings->renderAll;
+  const bool visible = !sysVis || scene_visible_for_render(visEnv, sysVis, SceneFaction_A);
 
   // Update shared state.
   state->age += time->delta;
@@ -525,13 +525,11 @@ ecs_system_define(VfxSystemUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const VfxDrawManagerComp*  drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
-  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  RendLightComp*             light        = ecs_view_write_t(globalItr, RendLightComp);
-
-  const SceneVisibilityEnvComp*  visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
-  const SceneVisibilitySettings* visSettings = scene_visibility_settings(visEnv);
+  const SceneTimeComp*          time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxDrawManagerComp*     drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const VfxAtlasManagerComp*    atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  RendLightComp*                light        = ecs_view_write_t(globalItr, RendLightComp);
 
   const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
   if (!particleAtlas) {
@@ -602,8 +600,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(
-        state, asset, particleAtlas, time, visSettings, tags, sysCfg, &sysTrans, sysVis);
+    vfx_system_simulate(state, asset, particleAtlas, time, visEnv, tags, sysCfg, &sysTrans, sysVis);
 
     dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
       vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);

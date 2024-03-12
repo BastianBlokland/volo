@@ -174,6 +174,16 @@ bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction fac
   return (visibility->visibleToFactionsMask & (1 << faction)) != 0;
 }
 
+bool scene_visible_for_render(
+    const SceneVisibilityEnvComp* env,
+    const SceneVisibilityComp*    visibility,
+    const SceneFaction            faction) {
+  if (scene_visibility_settings(env)->renderAll) {
+    return true;
+  }
+  return (visibility->visibleToFactionsMask & (1 << faction)) != 0;
+}
+
 bool scene_visible_pos(
     const SceneVisibilityEnvComp* env, const SceneFaction faction, const GeoVector pos) {
   if (faction != SceneFaction_A) {

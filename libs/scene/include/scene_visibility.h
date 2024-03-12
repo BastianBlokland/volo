@@ -18,6 +18,8 @@ SceneVisibilitySettings*       scene_visibility_settings_mut(SceneVisibilityEnvC
  * Check if the specified visiblity component is visible for this faction.
  */
 bool scene_visible(const SceneVisibilityComp*, SceneFaction);
+bool scene_visible_for_render(
+    const SceneVisibilityEnvComp*, const SceneVisibilityComp*, SceneFaction);
 
 /**
  * Check if the specified position is visible for this faction.
