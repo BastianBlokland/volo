@@ -25,7 +25,7 @@ if ($soundBurning) {
 if ($vfxFire) {
   vfx_param($vfxFire, "EmitMultiplier", effectActive ? 1.0 : 0.0)
 } else if ($assetVfxFire) {
-  $vfxFire = vfx_system_spawn($assetVfxFire, position(me), rotation(me), 1.0, 0.0)
+  $vfxFire = vfx_system_spawn($assetVfxFire, position(me), rotation(me), 1.0, 0.0, true)
   attach($vfxFire, me, effectJoint)
   destroy_after($vfxFire, me)
 }

@@ -42,7 +42,7 @@ if ($vfxDust) {
   var emitMultiplier = moving ? lerp(0.25, 1.0, speedFrac) : 0.0
   vfx_param($vfxDust, "EmitMultiplier", emitMultiplier)
 } else if ($assetVfxDust) {
-  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 0.0)
+  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 0.0, true)
   attach($vfxDust, me)
   destroy_after($vfxDust, me)
 }
@@ -52,18 +52,18 @@ if ($vfxHeat) {
   var emitMultiplier = moving ? 1.0 : 0.25
   vfx_param($vfxHeat, "EmitMultiplier", emitMultiplier)
 } else if ($assetVfxHeat) {
-  $vfxHeat = vfx_system_spawn($assetVfxHeat, position(me), rotation(me), 1.0, 0.0)
+  $vfxHeat = vfx_system_spawn($assetVfxHeat, position(me), rotation(me), 1.0, 0.0, true)
   attach($vfxHeat, me, "body", vec3(0, 0.5, 2.5))
   destroy_after($vfxHeat, me)
 }
 
 // Trails vfx.
 if (!$trailsInitialized) {
-  var trailLeft = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0)
+  var trailLeft = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0, true)
   attach(trailLeft, me, null, vec3(-1, 0, 0))
   destroy_after(trailLeft, me)
 
-  var trailRight = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0)
+  var trailRight = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0, true)
   attach(trailRight, me, null, vec3(1, 0, 0))
   destroy_after(trailRight, me)
 
