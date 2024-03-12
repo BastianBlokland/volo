@@ -89,8 +89,8 @@ ecs_system_define(SceneStatusUpdateSys) {
   const SceneTimeComp* time     = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            deltaSec = scene_delta_seconds(time);
 
-  EcsView*     instanceView = ecs_world_view_t(world, EffectInstanceView);
-  EcsIterator* instanceItr  = ecs_view_itr(instanceView);
+  EcsView*     effectInstanceView = ecs_world_view_t(world, EffectInstanceView);
+  EcsIterator* effectInstanceItr  = ecs_view_itr(effectInstanceView);
 
   EcsView* statusView = ecs_world_view_t(world, StatusView);
   for (EcsIterator* itr = ecs_view_itr(statusView); ecs_view_walk(itr);) {
@@ -130,22 +130,25 @@ ecs_system_define(SceneStatusUpdateSys) {
                 .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
             });
       }
-      if (!status->effectEntities[type]) {
-        status->effectEntities[type] = status_effect_create(world, entity, status, type);
-      }
     }
 
-    // Enable / disable effects.
+    // Create / destroy effects.
     const bool isDead = health && (health->flags & SceneHealthFlags_Dead) != 0;
     if (effectsDirty || isDead) {
       for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-        if (ecs_view_maybe_jump(instanceItr, status->effectEntities[type])) {
-          SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
-          if ((status->active & (1 << type)) && !isDead) {
-            tagComp->tags |= SceneTags_Emit;
-          } else {
-            tagComp->tags &= ~SceneTags_Emit;
+        const bool needsEffect = (status->active & (1 << type)) != 0 && !isDead;
+        if (needsEffect && !status->effectEntities[type]) {
+          status->effectEntities[type] = status_effect_create(world, entity, status, type);
+        } else if (!needsEffect && status->effectEntities[type]) {
+          if (ecs_view_maybe_jump(effectInstanceItr, status->effectEntities[type])) {
+            ecs_view_write_t(effectInstanceItr, SceneTagComp)->tags &= ~SceneTags_Emit;
+            ecs_world_add_t(
+                world,
+                status->effectEntities[type],
+                SceneLifetimeDurationComp,
+                .duration = time_second);
           }
+          status->effectEntities[type] = 0;
         }
       }
     }
