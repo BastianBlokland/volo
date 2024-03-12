@@ -702,32 +702,33 @@ static void vfx_decal_trail_update(
   const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
   const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
   const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+  const SceneVisibilityComp*       visComp   = ecs_view_read_t(itr, SceneVisibilityComp);
 
-  const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
+  bool shouldEmit = true;
+  if (tagComp && !(tagComp->tags & SceneTags_Emit)) {
+    shouldEmit = false;
+  }
+  // TODO: Make the local faction configurable instead of hardcoding 'A'.
   if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
-    // TODO: Make the local faction configurable instead of hardcoding 'A'.
-    // TODO: This should probably be per segment instead of the whole trail.
-    return;
+    shouldEmit = false;
   }
 
-  const GeoVector projAxisRef = geo_up; // TODO: Make the projection axis configurable.
-  const bool      headVisible = !tagComp || (tagComp->tags & SceneTags_Emit) != 0;
-
-  VfxTrailPoint headPoint = {.pos = trans->position, .alpha = headVisible ? 1.0f : 0.0f};
+  VfxTrailPoint headPoint = {.pos = trans->position, .alpha = shouldEmit ? 1.0f : 0.0f};
   if (inst->snapToTerrain) {
     scene_terrain_snap(terrainComp, &headPoint.pos);
   }
 
-  const bool debug          = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
-  const f32  fadeIn         = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
-  const f32  fadeOut        = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
-  const f32  trailAlpha     = decal->alpha * inst->alpha * fadeIn * fadeOut;
-  const f32  trailScale     = scaleComp ? scaleComp->scale : 1.0f;
-  const f32  trailSpacing   = inst->pointSpacing * trailScale;
-  const f32  trailWidth     = inst->width * trailScale;
-  const f32  trailHeight    = inst->height * trailScale;
-  const f32  trailWidthInv  = 1.0f / trailWidth;
-  const f32  trailTexYScale = trailSpacing / trailHeight;
+  const bool      debug   = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const f32       fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
+  const f32       fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
+  const GeoVector projAxisRef    = geo_up; // TODO: Make the projection axis configurable.
+  const f32       trailAlpha     = decal->alpha * inst->alpha * fadeIn * fadeOut;
+  const f32       trailScale     = scaleComp ? scaleComp->scale : 1.0f;
+  const f32       trailSpacing   = inst->pointSpacing * trailScale;
+  const f32       trailWidth     = inst->width * trailScale;
+  const f32       trailHeight    = inst->height * trailScale;
+  const f32       trailWidthInv  = 1.0f / trailWidth;
+  const f32       trailTexYScale = trailSpacing / trailHeight;
 
   if (inst->trailFlags & VfxTrailFlags_HistoryReset) {
     vfx_decal_trail_history_reset(inst, headPoint);
