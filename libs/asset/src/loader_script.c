@@ -484,6 +484,7 @@ static void asset_binder_init() {
           {string_lit("pos"), script_mask_vec3},
           {string_lit("rot"), script_mask_quat},
           {string_lit("alpha"), script_mask_num | script_mask_null},
+          {string_lit("requireVisibility"), script_mask_bool | script_mask_null},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

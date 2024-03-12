@@ -827,6 +827,10 @@
           {
             "name": "alpha",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "requireVisibility",
+            "mask": [ "null", "bool" ]
           }
         ]
       }

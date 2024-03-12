@@ -1308,12 +1308,16 @@ static ScriptVal eval_vfx_decal_spawn(EvalContext* ctx, const ScriptArgs args, S
   const GeoVector   pos   = script_arg_vec3(args, 1, err);
   const GeoQuat     rot   = script_arg_quat(args, 2, err);
   const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  const bool        requireVisibility = script_arg_opt_bool(args, 4, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(ctx->world, result, SceneVfxDecalComp, .asset = asset, .alpha = alpha);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }
