@@ -21,7 +21,7 @@ static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
-    [SceneStatusType_Bleeding] = time_seconds(8),
+    [SceneStatusType_Bleeding] = time_seconds(6),
 };
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
