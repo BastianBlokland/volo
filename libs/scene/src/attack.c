@@ -542,6 +542,7 @@ static EffectResult effect_update_vfx(
     ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
+  ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Seeing attacks requires visibility.
   ecs_world_add_t(
       ctx->world, e, SceneVfxSystemComp, .asset = def->asset, .alpha = 1.0f, .emitMultiplier = 1.0);
   scene_attach_to_joint(ctx->world, e, inst, jointOriginIdx);
