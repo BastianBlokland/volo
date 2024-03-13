@@ -1221,6 +1221,7 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
   const f32         scale    = (f32)script_arg_opt_num_range(args, 3, 0.0001, 10000, 1.0, err);
   const GeoColor    color    = script_arg_opt_color(args, 4, geo_color_white, err);
   const f32         emissive = (f32)script_arg_opt_num_range(args, 5, 0.0, 1.0, 0.0, err);
+  const bool        requireVisibility = script_arg_opt_bool(args, 6, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
@@ -1239,6 +1240,9 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
       .graphic  = asset,
       .emissive = emissive,
       .color    = color);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   return script_entity(result);
 }
 

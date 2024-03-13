@@ -251,6 +251,10 @@
           {
             "name": "emissive",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "requireVisibility",
+            "mask": [ "null", "bool" ]
           }
         ]
       }
