@@ -350,6 +350,9 @@ static EffectResult effect_update_proj(
       .seekEntity   = ctx->attack->targetEntity,
       .seekPos      = ctx->attack->targetPos);
 
+  // Seeing attacks requires visibility.
+  ecs_world_add_t(ctx->world, projectileEntity, SceneVisibilityComp);
+
   return EffectResult_Done;
 }
 
