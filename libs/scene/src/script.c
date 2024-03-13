@@ -1471,9 +1471,10 @@ static ScriptVal eval_sound_spawn(EvalContext* ctx, const ScriptArgs args, Scrip
   if (is3d) {
     pos = script_arg_vec3(args, 1, err);
   }
-  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
-  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
-  const bool looping = script_arg_opt_bool(args, 4, false, err);
+  const f32  gain              = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
+  const f32  pitch             = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
+  const bool looping           = script_arg_opt_bool(args, 4, false, err);
+  const bool requireVisibility = is3d && script_arg_opt_bool(args, 5, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
@@ -1491,6 +1492,9 @@ static ScriptVal eval_sound_spawn(EvalContext* ctx, const ScriptArgs args, Scrip
       .gain    = gain,
       .pitch   = pitch,
       .looping = looping);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   return script_entity(result);
 }
 

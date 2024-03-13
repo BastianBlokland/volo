@@ -557,6 +557,7 @@ static void asset_binder_init() {
           {string_lit("gain"), script_mask_num | script_mask_null},
           {string_lit("pitch"), script_mask_num | script_mask_null},
           {string_lit("looping"), script_mask_bool | script_mask_null},
+          {string_lit("requireVisibility"), script_mask_bool | script_mask_null},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

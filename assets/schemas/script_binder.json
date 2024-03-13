@@ -312,6 +312,10 @@
           {
             "name": "looping",
             "mask": [ "null", "bool" ]
+          },
+          {
+            "name": "requireVisibility",
+            "mask": [ "null", "bool" ]
           }
         ]
       }
