@@ -26,6 +26,13 @@ static void ecs_destruct_visibility_env_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, env->visionSquaredRadii, scene_vision_areas_max);
 }
 
+static void ecs_combine_visibility(void* dataA, void* dataB) {
+  SceneVisibilityComp* compA = dataA;
+  SceneVisibilityComp* compB = dataB;
+
+  compA->visibleToFactionsMask |= compB->visibleToFactionsMask;
+}
+
 ecs_comp_define_public(SceneVisibilityComp);
 ecs_comp_define_public(SceneVisionComp);
 
@@ -146,7 +153,7 @@ ecs_system_define(SceneVisibilityUpdateSys) {
 
 ecs_module_init(scene_visibility_module) {
   ecs_register_comp(SceneVisibilityEnvComp, .destructor = ecs_destruct_visibility_env_comp);
-  ecs_register_comp(SceneVisibilityComp);
+  ecs_register_comp(SceneVisibilityComp, .combinator = ecs_combine_visibility);
   ecs_register_comp(SceneVisionComp);
 
   ecs_register_system(
