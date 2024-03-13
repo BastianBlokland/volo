@@ -13,8 +13,10 @@ var aiming = active(me, "AttackAiming") || active(me, "AttackReadying")
 if ($sndAim) {
   sound_param($sndAim, "Gain", aiming ? 1.0 : 0.0)
 } else if ($assetSndAim) {
-  var pitch = random_between(0.95, 1.05)
-  $sndAim   = sound_spawn($assetSndAim, position(me), 0.0, pitch, true)
+  var pitch             = random_between(0.95, 1.05)
+  var isLooping         = true
+  var requireVisibility = true
+  $sndAim               = sound_spawn($assetSndAim, position(me), 0.0, pitch, isLooping, requireVisibility)
   attach($sndAim, me)
   destroy_after($sndAim, me)
 }

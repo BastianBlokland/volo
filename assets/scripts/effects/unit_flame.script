@@ -15,8 +15,10 @@ var effectJoint  = "muzzle"
 if ($soundBurning) {
   sound_param($soundBurning, "Gain", effectActive ? 1.0 : 0.0)
 } else if ($assetSndBurning) {
-  var pitch     = random_between(1.5, 1.6)
-  $soundBurning = sound_spawn($assetSndBurning, position(me), 0.0, pitch, true)
+  var pitch             = random_between(1.5, 1.6)
+  var isLooping         = true
+  var requireVisibility = true
+  $soundBurning         = sound_spawn($assetSndBurning, position(me), 0.0, pitch, isLooping, requireVisibility)
   attach($soundBurning, me, effectJoint)
   destroy_after($soundBurning, me)
 }
@@ -25,7 +27,8 @@ if ($soundBurning) {
 if ($vfxFire) {
   vfx_param($vfxFire, "EmitMultiplier", effectActive ? 1.0 : 0.0)
 } else if ($assetVfxFire) {
-  $vfxFire = vfx_system_spawn($assetVfxFire, position(me), rotation(me), 1.0, 0.0, true)
+  var requireVisibility = true
+  $vfxFire              = vfx_system_spawn($assetVfxFire, position(me), rotation(me), 1.0, 0.0, requireVisibility)
   attach($vfxFire, me, effectJoint)
   destroy_after($vfxFire, me)
 }
