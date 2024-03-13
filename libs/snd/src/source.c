@@ -242,7 +242,7 @@ ecs_system_define(SndSourceUpdateSys) {
     const SceneTags            tags          = tagComp ? tagComp->tags : SceneTags_Default;
     const GeoVector            srcPos        = spatial ? transformComp->position : geo_vector(0);
     const f32                  srcGain       = tags & SceneTags_Emit ? soundComp->gain : 0.0f;
-    const bool srcVisible = !visComp || scene_visible_for_render(visEnv, visComp, SceneFaction_A);
+    const bool                 srcVisible = !visComp || scene_visible_for_render(visEnv, visComp);
 
     if (!srcComp) {
       if (!ecs_entity_valid(soundComp->asset)) {

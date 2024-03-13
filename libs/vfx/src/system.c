@@ -359,9 +359,8 @@ static void vfx_system_simulate(
     const VfxTrans*               sysTrans,
     const SceneVisibilityComp*    sysVis) {
 
-  const f32 deltaSec = scene_delta_seconds(time);
-  // TODO: Make the local faction configurable instead of hardcoding 'A'.
-  const bool visible = !sysVis || scene_visible_for_render(visEnv, sysVis, SceneFaction_A);
+  const f32  deltaSec = scene_delta_seconds(time);
+  const bool visible  = !sysVis || scene_visible_for_render(visEnv, sysVis);
 
   // Update shared state.
   state->age += time->delta;

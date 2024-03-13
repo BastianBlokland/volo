@@ -508,8 +508,8 @@ static void vfx_decal_single_update(
   const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
   const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-  if (visComp && !scene_visible_for_render(visEnv, visComp, SceneFaction_A)) {
-    return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+  if (visComp && !scene_visible_for_render(visEnv, visComp)) {
+    return;
   }
 
   const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
@@ -708,8 +708,7 @@ static void vfx_decal_trail_update(
   if (tagComp && !(tagComp->tags & SceneTags_Emit)) {
     shouldEmit = false;
   }
-  // TODO: Make the local faction configurable instead of hardcoding 'A'.
-  if (visComp && !scene_visible_for_render(visEnv, visComp, SceneFaction_A)) {
+  if (visComp && !scene_visible_for_render(visEnv, visComp)) {
     shouldEmit = false;
   }
 

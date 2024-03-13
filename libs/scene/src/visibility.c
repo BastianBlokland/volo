@@ -179,13 +179,13 @@ bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction fac
 }
 
 bool scene_visible_for_render(
-    const SceneVisibilityEnvComp* env,
-    const SceneVisibilityComp*    visibility,
-    const SceneFaction            faction) {
+    const SceneVisibilityEnvComp* env, const SceneVisibilityComp* visibility) {
   if (env->flags & SceneVisibilityFlags_ForceVisibleForRender) {
     return true;
   }
-  return (visibility->visibleToFactionsMask & (1 << faction)) != 0;
+  // TODO: Make the render-faction configurable instead of hardcoding 'A'.
+  const SceneFaction renderFaction = SceneFaction_A;
+  return (visibility->visibleToFactionsMask & (1 << renderFaction)) != 0;
 }
 
 bool scene_visible_pos(

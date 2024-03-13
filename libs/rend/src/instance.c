@@ -111,8 +111,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       continue;
     }
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-    if (visComp && !scene_visible_for_render(visEnv, visComp, SceneFaction_A)) {
-      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    if (visComp && !scene_visible_for_render(visEnv, visComp)) {
+      continue;
     }
 
     const SceneTagComp*       tagComp       = ecs_view_read_t(itr, SceneTagComp);
