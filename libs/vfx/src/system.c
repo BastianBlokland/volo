@@ -349,22 +349,19 @@ static void vfx_system_reset(VfxSystemStateComp* state) {
 }
 
 static void vfx_system_simulate(
-    VfxSystemStateComp*           state,
-    const AssetVfxComp*           asset,
-    const AssetAtlasComp*         atlas,
-    const SceneTimeComp*          time,
-    const SceneVisibilityEnvComp* visEnv,
-    const SceneTags               tags,
-    const SceneVfxSystemComp*     sysCfg,
-    const VfxTrans*               sysTrans,
-    const SceneVisibilityComp*    sysVis) {
+    VfxSystemStateComp*       state,
+    const AssetVfxComp*       asset,
+    const AssetAtlasComp*     atlas,
+    const SceneTimeComp*      time,
+    const SceneTags           tags,
+    const SceneVfxSystemComp* sysCfg,
+    const VfxTrans*           sysTrans) {
 
-  const f32  deltaSec = scene_delta_seconds(time);
-  const bool visible  = !sysVis || scene_visible_for_render(visEnv, sysVis);
+  const f32 deltaSec = scene_delta_seconds(time);
 
   // Update shared state.
   state->age += time->delta;
-  if (visible && tags & SceneTags_Emit) {
+  if (tags & SceneTags_Emit) {
     state->emitAge += (TimeDuration)(time->delta * sysCfg->emitMultiplier);
   }
 
@@ -558,7 +555,8 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
 
-    const SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
+    const SceneTags sysTags    = tagComp ? tagComp->tags : SceneTags_Default;
+    const bool      sysVisible = !sysVis || scene_visible_for_render(visEnv, sysVis);
 
     diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
@@ -599,11 +597,13 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, particleAtlas, time, visEnv, tags, sysCfg, &sysTrans, sysVis);
+    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
 
-    dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
-      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
+    if (sysVisible) {
+      dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
+        vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
+        vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
+      }
     }
   }
 }
