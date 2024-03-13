@@ -26,6 +26,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 #include "scene_weapon.h"
 
 #define attack_in_sight_threshold 0.99f
@@ -577,6 +578,7 @@ static EffectResult effect_update_sound(
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneSoundComp, .asset = def->asset, .gain = gain, .pitch = pitch);
+  ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Hearing attacks requires visibility.
 
   return EffectResult_Done;
 }
