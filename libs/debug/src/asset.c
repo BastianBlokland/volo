@@ -61,6 +61,7 @@ ecs_comp_define(DebugAssetPanelComp) {
   UiScrollview       scrollview;
   DynString          idFilter;
   DebugAssetSortMode sortMode;
+  u32                countLoaded;
   DynArray           assets; // DebugAssetInfo[]
 };
 
@@ -108,6 +109,7 @@ static bool asset_filter(DebugAssetPanelComp* panelComp, const AssetComp* assetC
 
 static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->assets);
+  panelComp->countLoaded = 0;
 
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   for (EcsIterator* itr = ecs_view_itr(assetView); ecs_view_walk(itr);) {
@@ -126,6 +128,7 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     } else if (ecs_world_has_t(world, entity, AssetChangedComp)) {
       status = DebugAssetStatus_Changed;
     } else if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
+      ++panelComp->countLoaded;
       status = asset_ref_count(assetComp) ? DebugAssetStatus_LoadedReferenced
                                           : DebugAssetStatus_LoadedUnreferenced;
     } else {
@@ -177,12 +180,14 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
 
 static void asset_options_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
   ui_layout_push(canvas);
+  ui_style_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -194,6 +199,16 @@ static void asset_options_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelC
   ui_table_next_column(canvas, &table);
   ui_select(canvas, (i32*)&panelComp->sortMode, g_sortModeNames, DebugAssetSortMode_Count);
 
+  const String stats = fmt_write_scratch(
+      "Count: {}, Loaded: {}",
+      fmt_int(panelComp->assets.size, .minDigits = 4),
+      fmt_int(panelComp->countLoaded, .minDigits = 4));
+
+  ui_table_next_column(canvas, &table);
+  ui_style_variation(canvas, UiVariation_Monospace);
+  ui_label(canvas, stats, .selectable = true);
+
+  ui_style_pop(canvas);
   ui_layout_pop(canvas);
 }
 
