@@ -277,6 +277,7 @@ if(${EXTERNAL_ASSETS})
       turret/turret_missile_2.gltf
       turret/turret.bin
       vfx/arrow.tga
+      vfx/blood_splash.tga
       vfx/flash_2.tga
       vfx/flash_star_2.tga
       vfx/grid.tga
