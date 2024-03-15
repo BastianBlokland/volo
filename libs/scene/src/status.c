@@ -18,7 +18,8 @@ static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
     [SceneStatusType_Bleeding] = 5,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = string_static("EffectBurning"),
+    [SceneStatusType_Burning]  = string_static("EffectBurning"),
+    [SceneStatusType_Bleeding] = string_static("EffectBleeding"),
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
