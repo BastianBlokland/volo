@@ -1197,6 +1197,14 @@
       ]
     },
     {
+      "name": "EffectBleeding", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_trail.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/blood_status.vfx" }
+
+      ]
+    },
+    {
       "name": "TestTrail",
       "traits": [
         {

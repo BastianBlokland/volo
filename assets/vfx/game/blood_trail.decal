@@ -1,0 +1,15 @@
+{
+  "trail": true,
+  "snapToTerrain": true,
+  "spacing": 0.75,
+  "projectionAxis": "WorldY",
+  "colorAtlasEntry": "blood_splatter",
+  "normalAtlasEntry": "blood_splatter",
+  "baseNormal": "DepthBuffer",
+  "excludeMask": [ "Unit" ],
+  "roughness": 0,
+  "width": 1.15,
+  "height": 2,
+  "thickness": 0.75,
+  "fadeOutTime": 1.0
+}
