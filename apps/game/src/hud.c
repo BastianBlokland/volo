@@ -40,13 +40,16 @@ static const f32      g_hudHealthBarOffsetY = 10.0f;
 static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
 
 static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = UiShape_Whatshot,
+    [SceneStatusType_Burning]  = UiShape_Whatshot,
+    [SceneStatusType_Bleeding] = UiShape_Droplet,
 };
 static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = {.r = 255, .g = 128, .b = 0, .a = 255},
+    [SceneStatusType_Burning]  = {.r = 255, .g = 128, .b = 0, .a = 255},
+    [SceneStatusType_Bleeding] = {.r = 255, .g = 0, .b = 0, .a = 255},
 };
 static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = 2,
+    [SceneStatusType_Burning]  = 2,
+    [SceneStatusType_Bleeding] = 2,
 };
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
@@ -384,6 +387,22 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
   }
 }
 
+static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynString* out) {
+  bool first = true;
+  bitset_for(bitset_from_var(statusMask), typeIndex) {
+    if (!first) {
+      dynstring_append(out, string_lit(", "));
+    }
+    first = false;
+    fmt_write(
+        out,
+        "\a|02{}{}\ar {}",
+        fmt_ui_color(g_hudStatusIconColors[typeIndex]),
+        fmt_text(ui_shape_scratch(g_hudStatusIcons[typeIndex])),
+        fmt_text(scene_status_name((SceneStatusType)typeIndex)));
+  }
+}
+
 static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
   const SceneAttackComp*       attackComp   = ecs_view_read_t(infoItr, SceneAttackComp);
   const SceneDamageStatsComp*  damageStats  = ecs_view_read_t(infoItr, SceneDamageStatsComp);
@@ -417,19 +436,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   }
   if (statusComp && statusComp->active) {
     fmt_write(&buffer, "\a.bStatus\ar:\a>15");
-    bool first = true;
-    bitset_for(bitset_from_var(statusComp->active), typeIndex) {
-      if (!first) {
-        dynstring_append(&buffer, string_lit(", "));
-      }
-      first = false;
-      fmt_write(
-          &buffer,
-          "\a|02{}{}\ar {}",
-          fmt_ui_color(g_hudStatusIconColors[typeIndex]),
-          fmt_text(ui_shape_scratch(g_hudStatusIcons[typeIndex])),
-          fmt_text(scene_status_name((SceneStatusType)typeIndex)));
-    }
+    hud_info_status_mask_write(statusComp->active, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
   if (targetFinder) {
@@ -447,13 +454,11 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
       if (damage > f32_epsilon) {
         fmt_write(&buffer, "\a.bDamage\ar:\a>15{}\n", fmt_float(damage, .maxDecDigits = 1));
       }
-      if (asset_weapon_apply_burning(weaponMap, weapon)) {
-        fmt_write(
-            &buffer,
-            "\a.bApply\ar:\a>15\a|02{}{}\ar {}\n",
-            fmt_ui_color(g_hudStatusIconColors[SceneStatusType_Burning]),
-            fmt_text(ui_shape_scratch(g_hudStatusIcons[SceneStatusType_Burning])),
-            fmt_text(scene_status_name((SceneStatusType)SceneStatusType_Burning)));
+      const SceneStatusMask appliesStatus = asset_weapon_applies_status(weaponMap, weapon);
+      if (appliesStatus) {
+        fmt_write(&buffer, "\a.bApply\ar:\a>15");
+        hud_info_status_mask_write(appliesStatus, &buffer);
+        dynstring_append_char(&buffer, '\n');
       }
     }
   }

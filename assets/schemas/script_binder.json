@@ -251,6 +251,10 @@
           {
             "name": "emissive",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "requireVisibility",
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -311,6 +315,10 @@
           },
           {
             "name": "looping",
+            "mask": [ "null", "bool" ]
+          },
+          {
+            "name": "requireVisibility",
             "mask": [ "null", "bool" ]
           }
         ]
@@ -612,6 +620,10 @@
           {
             "name": "emitMultiplier",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "requireVisibility",
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -827,6 +839,10 @@
           {
             "name": "alpha",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "requireVisibility",
+            "mask": [ "null", "bool" ]
           }
         ]
       }

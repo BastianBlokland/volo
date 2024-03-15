@@ -259,7 +259,8 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Status" },
             "effectJoint": { "title": "String", "type": "string", "minLength": 1 },
-            "burnable": { "title": "bool", "type": "boolean" }
+            "burnable": { "title": "bool", "type": "boolean" },
+            "bleedable": { "title": "bool", "type": "boolean" }
           },
           "required": [ "$type" ]
         },

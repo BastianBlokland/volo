@@ -167,7 +167,7 @@ typedef struct {
 
 typedef struct {
   StringHash effectJoint;
-  bool       burnable;
+  bool       burnable, bleedable;
 } AssetPrefabTraitStatus;
 
 typedef struct {

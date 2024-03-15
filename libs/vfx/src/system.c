@@ -19,6 +19,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 #include "vfx_register.h"
 
 #include "atlas_internal.h"
@@ -167,6 +168,7 @@ ecs_system_define(VfxSystemAssetLoadSys) {
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_read(VfxAtlasManagerComp);
   ecs_access_read(VfxDrawManagerComp);
   ecs_access_write(RendLightComp);
@@ -177,6 +179,7 @@ ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_write(VfxSystemStateComp);
 }
@@ -518,10 +521,11 @@ ecs_system_define(VfxSystemUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const VfxDrawManagerComp*  drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
-  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  RendLightComp*             light        = ecs_view_write_t(globalItr, RendLightComp);
+  const SceneTimeComp*          time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxDrawManagerComp*     drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const VfxAtlasManagerComp*    atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  RendLightComp*                light        = ecs_view_write_t(globalItr, RendLightComp);
 
   const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
   if (!particleAtlas) {
@@ -547,10 +551,12 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
     const SceneVfxSystemComp*        sysCfg    = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneVisibilityComp*       sysVis    = ecs_view_read_t(itr, SceneVisibilityComp);
     const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
 
-    const SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
+    const SceneTags sysTags    = tagComp ? tagComp->tags : SceneTags_Default;
+    const bool      sysVisible = !sysVis || scene_visible_for_render(visEnv, sysVis);
 
     diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
@@ -591,11 +597,13 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, particleAtlas, time, tags, sysCfg, &sysTrans);
+    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
 
-    dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
-      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
+    if (sysVisible) {
+      dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
+        vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
+        vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
+      }
     }
   }
 }

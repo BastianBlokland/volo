@@ -56,7 +56,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
       ]
     },
     {
@@ -115,7 +115,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
       ]
     },
     {
@@ -179,7 +179,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
       ]
     },
     {
@@ -242,7 +242,7 @@
           "barkDeathPrefab": "BarkDeathInfantryMonster"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.1 }, "max": { "y": 1.1 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
       ]
     },
     {
@@ -290,7 +290,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
       ]
     },
     {
@@ -1194,6 +1194,14 @@
           "pitchMin": 1.5, "pitchMax": 1.6,
           "looping": true
         }
+      ]
+    },
+    {
+      "name": "EffectBleeding", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_trail.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/blood_status.vfx" }
+
       ]
     },
     {

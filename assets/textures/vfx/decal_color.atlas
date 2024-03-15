@@ -10,6 +10,7 @@
     { "name": "sign_radioactive", "texture": "external/decal/radioactive.tga" },
     { "name": "rust", "texture": "external/decal/rust.tga" },
     { "name": "oil_splatter", "texture": "external/decal/oil_splatter.tga" },
+    { "name": "blood_splatter", "texture": "external/decal/blood_splatter_2.tga" },
     { "name": "sand", "texture": "external/decal/sand.tga" },
     { "name": "scorch", "texture": "external/decal/scorch.tga" },
     { "name": "explosion", "texture": "external/decal/explosion.tga" },

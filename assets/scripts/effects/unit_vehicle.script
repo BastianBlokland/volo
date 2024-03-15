@@ -10,11 +10,12 @@
  * - "assetDecalTrail": Trail decal.
  */
 
-var me        = self()
-var moving    = active(me, "Moving")
-var speed     = magnitude(velocity(me))
-var maxSpeed  = 5
-var speedFrac = min(1.0, speed / maxSpeed)
+var me                = self()
+var moving            = active(me, "Moving")
+var speed             = magnitude(velocity(me))
+var maxSpeed          = 5
+var speedFrac         = min(1.0, speed / maxSpeed)
+var requireVisibility = true
 
 // Idle sound.
 if ($sndIdle) {
@@ -22,7 +23,7 @@ if ($sndIdle) {
   sound_param($sndIdle, "Gain", gain)
 } else if ($assetSndIdle) {
   var pitch = random_between(0.9, 0.95)
-  $sndIdle  = sound_spawn($assetSndIdle, position(me), 0.0, pitch, true)
+  $sndIdle  = sound_spawn($assetSndIdle, position(me), 0.0, pitch, true, requireVisibility)
   attach($sndIdle, me)
   destroy_after($sndIdle, me)
 }
@@ -32,7 +33,7 @@ if ($sndMove) {
   var gain = moving ? lerp(0.125, 0.2, speedFrac) : 0.0
   sound_param($sndMove, "Gain", gain)
 } else if ($assetSndMove) {
-  $sndMove = sound_spawn($assetSndMove, position(me), 0.0, 1.0, true)
+  $sndMove = sound_spawn($assetSndMove, position(me), 0.0, 1.0, true, requireVisibility)
   attach($sndMove, me)
   destroy_after($sndMove, me)
 }
@@ -42,7 +43,7 @@ if ($vfxDust) {
   var emitMultiplier = moving ? lerp(0.25, 1.0, speedFrac) : 0.0
   vfx_param($vfxDust, "EmitMultiplier", emitMultiplier)
 } else if ($assetVfxDust) {
-  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 0.0)
+  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 0.0, requireVisibility)
   attach($vfxDust, me)
   destroy_after($vfxDust, me)
 }
@@ -52,18 +53,18 @@ if ($vfxHeat) {
   var emitMultiplier = moving ? 1.0 : 0.25
   vfx_param($vfxHeat, "EmitMultiplier", emitMultiplier)
 } else if ($assetVfxHeat) {
-  $vfxHeat = vfx_system_spawn($assetVfxHeat, position(me), rotation(me), 1.0, 0.0)
+  $vfxHeat = vfx_system_spawn($assetVfxHeat, position(me), rotation(me), 1.0, 0.0, requireVisibility)
   attach($vfxHeat, me, "body", vec3(0, 0.5, 2.5))
   destroy_after($vfxHeat, me)
 }
 
 // Trails vfx.
 if (!$trailsInitialized) {
-  var trailLeft = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0)
+  var trailLeft = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0, requireVisibility)
   attach(trailLeft, me, null, vec3(-1, 0, 0))
   destroy_after(trailLeft, me)
 
-  var trailRight = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0)
+  var trailRight = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0, requireVisibility)
   attach(trailRight, me, null, vec3(1, 0, 0))
   destroy_after(trailRight, me)
 

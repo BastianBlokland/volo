@@ -33,6 +33,7 @@ typedef struct {
   bool             fadeUsingDepthNormal;
   bool             noColorOutput;
   bool             randomRotation;
+  bool             snapToTerrain;
   DecalMaskDef     excludeMask;
   f32              roughness;
   f32              alphaMin, alphaMax;
@@ -77,6 +78,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, DecalDef, snapToTerrain, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, excludeMask, t_AssetDecalMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -126,6 +128,7 @@ static AssetDecalFlags decal_build_flags(const DecalDef* def) {
   flags |= !def->noColorOutput ? AssetDecalFlags_OutputColor : 0;
   flags |= def->fadeUsingDepthNormal ? AssetDecalFlags_FadeUsingDepthNormal : 0;
   flags |= def->randomRotation ? AssetDecalFlags_RandomRotation : 0;
+  flags |= def->snapToTerrain ? AssetDecalFlags_SnapToTerrain : 0;
   return flags;
 }
 

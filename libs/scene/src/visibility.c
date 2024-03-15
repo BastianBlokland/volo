@@ -14,16 +14,23 @@
 #endif
 
 ecs_comp_define(SceneVisibilityEnvComp) {
-  SceneVisibilitySettings settings;
-  GeoVector*              visionPositions;    // GeoVector[scene_vision_areas_max]
-  f32*                    visionSquaredRadii; // (radius * radius)[scene_vision_areas_max]
-  u32                     visionCount;
+  SceneVisibilityFlags flags;
+  GeoVector*           visionPositions;    // GeoVector[scene_vision_areas_max]
+  f32*                 visionSquaredRadii; // (radius * radius)[scene_vision_areas_max]
+  u32                  visionCount;
 };
 
 static void ecs_destruct_visibility_env_comp(void* data) {
   SceneVisibilityEnvComp* env = data;
   alloc_free_array_t(g_alloc_heap, env->visionPositions, scene_vision_areas_max);
   alloc_free_array_t(g_alloc_heap, env->visionSquaredRadii, scene_vision_areas_max);
+}
+
+static void ecs_combine_visibility(void* dataA, void* dataB) {
+  SceneVisibilityComp* compA = dataA;
+  SceneVisibilityComp* compB = dataB;
+
+  compA->visibleToFactionsMask |= compB->visibleToFactionsMask;
 }
 
 ecs_comp_define_public(SceneVisibilityComp);
@@ -146,7 +153,7 @@ ecs_system_define(SceneVisibilityUpdateSys) {
 
 ecs_module_init(scene_visibility_module) {
   ecs_register_comp(SceneVisibilityEnvComp, .destructor = ecs_destruct_visibility_env_comp);
-  ecs_register_comp(SceneVisibilityComp);
+  ecs_register_comp(SceneVisibilityComp, .combinator = ecs_combine_visibility);
   ecs_register_comp(SceneVisionComp);
 
   ecs_register_system(
@@ -162,16 +169,30 @@ ecs_module_init(scene_visibility_module) {
   ecs_parallel(SceneVisibilityUpdateSys, 4);
 }
 
-const SceneVisibilitySettings* scene_visibility_settings(const SceneVisibilityEnvComp* env) {
-  return &env->settings;
+SceneVisibilityFlags scene_visibility_flags(const SceneVisibilityEnvComp* env) {
+  return env->flags;
 }
 
-SceneVisibilitySettings* scene_visibility_settings_mut(SceneVisibilityEnvComp* env) {
-  return &env->settings;
+void scene_visibility_flags_set(SceneVisibilityEnvComp* env, const SceneVisibilityFlags flags) {
+  env->flags |= flags;
+}
+
+void scene_visibility_flags_clear(SceneVisibilityEnvComp* env, const SceneVisibilityFlags flags) {
+  env->flags &= ~flags;
 }
 
 bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction faction) {
   return (visibility->visibleToFactionsMask & (1 << faction)) != 0;
+}
+
+bool scene_visible_for_render(
+    const SceneVisibilityEnvComp* env, const SceneVisibilityComp* visibility) {
+  if (env->flags & SceneVisibilityFlags_ForceVisibleForRender) {
+    return true;
+  }
+  // TODO: Make the render-faction configurable instead of hardcoding 'A'.
+  const SceneFaction renderFaction = SceneFaction_A;
+  return (visibility->visibleToFactionsMask & (1 << renderFaction)) != 0;
 }
 
 bool scene_visible_pos(

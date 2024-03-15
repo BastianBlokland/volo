@@ -100,6 +100,8 @@ if(${EXTERNAL_ASSETS})
       crate/crate_normal.tga
       crate/crate.bin
       crate/crate.gltf
+      decal/blood_splatter_2_normal.tga
+      decal/blood_splatter_2.tga
       decal/dirt.tga
       decal/explosion_normal.tga
       decal/explosion.tga
@@ -277,6 +279,7 @@ if(${EXTERNAL_ASSETS})
       turret/turret_missile_2.gltf
       turret/turret.bin
       vfx/arrow.tga
+      vfx/blood_splash.tga
       vfx/flash_2.tga
       vfx/flash_star_2.tga
       vfx/grid.tga

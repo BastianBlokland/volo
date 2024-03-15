@@ -11,6 +11,7 @@
 #include "scene_sound.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 
 static const TimeDuration g_barkEventDuration[SceneBarkType_Count] = {
     [SceneBarkType_Death]   = time_milliseconds(500),
@@ -112,6 +113,7 @@ static void bark_spawn(EcsWorld* world, SceneBarkEvent* barkEvent) {
           .position = barkEvent->position,
           .rotation = geo_quat_ident});
   ecs_world_add_t(world, barkEntity, SceneLifetimeOwnerComp, .owners[0] = barkEvent->instigator);
+  ecs_world_add_t(world, barkEntity, SceneVisibilityComp); // Hearing barks requires visibility.
   scene_attach_to_entity(world, barkEntity, barkEvent->instigator);
 }
 

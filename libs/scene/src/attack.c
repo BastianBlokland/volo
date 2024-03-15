@@ -26,6 +26,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 #include "scene_weapon.h"
 
 #define attack_in_sight_threshold 0.99f
@@ -332,14 +333,14 @@ static EffectResult effect_update_proj(
       });
 
   SceneProjectileFlags projectileFlags = 0;
-  if (def->seekTowardsTarget) {
-    projectileFlags |= SceneProjectile_Seek;
-  }
+  projectileFlags |= def->seekTowardsTarget ? SceneProjectile_Seek : 0;
+
   ecs_world_add_t(
       ctx->world,
       projectileEntity,
       SceneProjectileComp,
       .flags        = projectileFlags,
+      .applyStatus  = def->applyStatusMask,
       .speed        = def->speed,
       .damage       = def->damage,
       .damageRadius = def->damageRadius,
@@ -348,6 +349,9 @@ static EffectResult effect_update_proj(
       .impactPrefab = def->impactPrefab,
       .seekEntity   = ctx->attack->targetEntity,
       .seekPos      = ctx->attack->targetPos);
+
+  // Seeing attacks requires visibility.
+  ecs_world_add_t(ctx->world, projectileEntity, SceneVisibilityComp);
 
   return EffectResult_Done;
 }
@@ -440,8 +444,8 @@ static EffectResult effect_update_dmg(
     }
 
     // Apply status.
-    if (def->applyBurning && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
-      scene_status_add(ctx->world, hits[i], SceneStatusType_Burning, ctx->instigator);
+    if (def->applyStatusMask && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
+      scene_status_add_many(ctx->world, hits[i], def->applyStatusMask, ctx->instigator);
     }
 
     // Spawn impact.
@@ -541,6 +545,7 @@ static EffectResult effect_update_vfx(
     ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
+  ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Seeing attacks requires visibility.
   ecs_world_add_t(
       ctx->world, e, SceneVfxSystemComp, .asset = def->asset, .alpha = 1.0f, .emitMultiplier = 1.0);
   scene_attach_to_joint(ctx->world, e, inst, jointOriginIdx);
@@ -577,6 +582,7 @@ static EffectResult effect_update_sound(
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneSoundComp, .asset = def->asset, .gain = gain, .pitch = pitch);
+  ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Hearing attacks requires visibility.
 
   return EffectResult_Done;
 }

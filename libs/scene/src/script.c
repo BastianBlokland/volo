@@ -44,7 +44,7 @@
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
-#define scene_script_line_of_sight_max 50.0f
+#define scene_script_line_of_sight_max 100.0f
 #define scene_script_query_values_max 512
 #define scene_script_query_max 10
 
@@ -1221,6 +1221,7 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
   const f32         scale    = (f32)script_arg_opt_num_range(args, 3, 0.0001, 10000, 1.0, err);
   const GeoColor    color    = script_arg_opt_color(args, 4, geo_color_white, err);
   const f32         emissive = (f32)script_arg_opt_num_range(args, 5, 0.0, 1.0, 0.0, err);
+  const bool        requireVisibility = script_arg_opt_bool(args, 6, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
@@ -1239,6 +1240,9 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
       .graphic  = asset,
       .emissive = emissive,
       .color    = color);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   return script_entity(result);
 }
 
@@ -1282,11 +1286,12 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
 }
 
 static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset          = arg_asset(ctx, args, 0, err);
-  const GeoVector   pos            = script_arg_vec3(args, 1, err);
-  const GeoQuat     rot            = script_arg_quat(args, 2, err);
-  const f32         alpha          = (f32)script_arg_opt_num_range(args, 3, 0.0, 1.0, 1.0, err);
-  const f32         emitMultiplier = (f32)script_arg_opt_num_range(args, 4, 0.0, 1.0, 1.0, err);
+  const EcsEntityId asset             = arg_asset(ctx, args, 0, err);
+  const GeoVector   pos               = script_arg_vec3(args, 1, err);
+  const GeoQuat     rot               = script_arg_quat(args, 2, err);
+  const f32         alpha             = (f32)script_arg_opt_num_range(args, 3, 0.0, 1.0, 1.0, err);
+  const f32         emitMultiplier    = (f32)script_arg_opt_num_range(args, 4, 0.0, 1.0, 1.0, err);
+  const bool        requireVisibility = script_arg_opt_bool(args, 5, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
@@ -1299,6 +1304,9 @@ static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, 
       .asset          = asset,
       .alpha          = alpha,
       .emitMultiplier = emitMultiplier);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }
@@ -1308,12 +1316,16 @@ static ScriptVal eval_vfx_decal_spawn(EvalContext* ctx, const ScriptArgs args, S
   const GeoVector   pos   = script_arg_vec3(args, 1, err);
   const GeoQuat     rot   = script_arg_quat(args, 2, err);
   const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
+  const bool        requireVisibility = script_arg_opt_bool(args, 4, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(ctx->world, result, SceneVfxDecalComp, .asset = asset, .alpha = alpha);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }
@@ -1463,9 +1475,10 @@ static ScriptVal eval_sound_spawn(EvalContext* ctx, const ScriptArgs args, Scrip
   if (is3d) {
     pos = script_arg_vec3(args, 1, err);
   }
-  const f32  gain    = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
-  const f32  pitch   = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
-  const bool looping = script_arg_opt_bool(args, 4, false, err);
+  const f32  gain              = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
+  const f32  pitch             = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
+  const bool looping           = script_arg_opt_bool(args, 4, false, err);
+  const bool requireVisibility = is3d && script_arg_opt_bool(args, 5, false, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
@@ -1483,6 +1496,9 @@ static ScriptVal eval_sound_spawn(EvalContext* ctx, const ScriptArgs args, Scrip
       .gain    = gain,
       .pitch   = pitch,
       .looping = looping);
+  if (requireVisibility) {
+    ecs_world_add_t(ctx->world, result, SceneVisibilityComp);
+  }
   return script_entity(result);
 }
 

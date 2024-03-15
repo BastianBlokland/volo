@@ -55,6 +55,10 @@
             "originJoint": { "title": "String", "type": "string", "minLength": 1 },
             "launchTowardsTarget": { "title": "bool", "type": "boolean" },
             "seekTowardsTarget": { "title": "bool", "type": "boolean" },
+            "applyStatus": {
+              "type": "array",
+              "items": { "title": "AssetWeaponStatusMask", "$ref": "#/$defs/AssetWeaponStatusMask" }
+            },
             "delay": { "title": "f32", "type": "number" },
             "spreadAngle": { "title": "f32", "type": "number" },
             "speed": { "title": "f32", "type": "number" },
@@ -87,7 +91,10 @@
             "length": { "title": "f32", "type": "number" },
             "lengthGrowTime": { "title": "f32", "type": "number" },
             "damage": { "title": "f32", "type": "number" },
-            "applyBurning": { "title": "bool", "type": "boolean" },
+            "applyStatus": {
+              "type": "array",
+              "items": { "title": "AssetWeaponStatusMask", "$ref": "#/$defs/AssetWeaponStatusMask" }
+            },
             "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [ "$type", "originJoint", "delay", "radius" ]
@@ -156,6 +163,9 @@
         { "label": "New AssetWeaponEffect_Vfx", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Vfx\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" },
         { "label": "New AssetWeaponEffect_Sound", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Sound\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" }
       ]
+    },
+    "AssetWeaponStatusMask": {
+      "enum": [ "Burning", "Bleeding" ]
     }
   }
 }

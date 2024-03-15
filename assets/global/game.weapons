@@ -10,6 +10,7 @@
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
           "launchTowardsTarget": true,
+          "applyStatus": [ "Bleeding" ],
           "delay": 0.035,
           "spreadAngle": 1,
           "speed": 55,
@@ -56,7 +57,7 @@
           "radiusEnd": 1,
           "length": 12.5,
           "lengthGrowTime": 1,
-          "applyBurning": true
+          "applyStatus": [ "Burning" ]
         },
         {
           "$type": "AssetWeaponEffect_Animation",
@@ -203,6 +204,7 @@
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
           "launchTowardsTarget": true,
+          "applyStatus": [ "Bleeding" ],
           "delay": 0.025,
           "spreadAngle": 0.5,
           "speed": 55,

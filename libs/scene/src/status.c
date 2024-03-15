@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_bitset.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
@@ -10,15 +11,19 @@
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_time.h"
+#include "scene_visibility.h"
 
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = 50,
+    [SceneStatusType_Burning]  = 50,
+    [SceneStatusType_Bleeding] = 5,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = string_static("EffectBurning"),
+    [SceneStatusType_Burning]  = string_static("EffectBurning"),
+    [SceneStatusType_Bleeding] = string_static("EffectBleeding"),
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = time_seconds(4),
+    [SceneStatusType_Burning]  = time_seconds(4),
+    [SceneStatusType_Bleeding] = time_seconds(6),
 };
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
@@ -61,6 +66,7 @@ static EcsEntityId status_effect_create(
   } else {
     scene_attach_to_entity(world, result, owner);
   }
+  ecs_world_add_t(world, result, SceneVisibilityComp); // Seeing status-effects requires visibility.
   return result;
 }
 
@@ -84,8 +90,8 @@ ecs_system_define(SceneStatusUpdateSys) {
   const SceneTimeComp* time     = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            deltaSec = scene_delta_seconds(time);
 
-  EcsView*     instanceView = ecs_world_view_t(world, EffectInstanceView);
-  EcsIterator* instanceItr  = ecs_view_itr(instanceView);
+  EcsView*     effectInstanceView = ecs_world_view_t(world, EffectInstanceView);
+  EcsIterator* effectInstanceItr  = ecs_view_itr(effectInstanceView);
 
   EcsView* statusView = ecs_world_view_t(world, StatusView);
   for (EcsIterator* itr = ecs_view_itr(statusView); ecs_view_walk(itr);) {
@@ -125,22 +131,25 @@ ecs_system_define(SceneStatusUpdateSys) {
                 .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
             });
       }
-      if (!status->effectEntities[type]) {
-        status->effectEntities[type] = status_effect_create(world, entity, status, type);
-      }
     }
 
-    // Enable / disable effects.
+    // Create / destroy effects.
     const bool isDead = health && (health->flags & SceneHealthFlags_Dead) != 0;
     if (effectsDirty || isDead) {
       for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-        if (ecs_view_maybe_jump(instanceItr, status->effectEntities[type])) {
-          SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
-          if ((status->active & (1 << type)) && !isDead) {
-            tagComp->tags |= SceneTags_Emit;
-          } else {
-            tagComp->tags &= ~SceneTags_Emit;
+        const bool needsEffect = (status->active & (1 << type)) != 0 && !isDead;
+        if (needsEffect && !status->effectEntities[type]) {
+          status->effectEntities[type] = status_effect_create(world, entity, status, type);
+        } else if (!needsEffect && status->effectEntities[type]) {
+          if (ecs_view_maybe_jump(effectInstanceItr, status->effectEntities[type])) {
+            ecs_view_write_t(effectInstanceItr, SceneTagComp)->tags &= ~SceneTags_Emit;
+            ecs_world_add_t(
+                world,
+                status->effectEntities[type],
+                SceneLifetimeDurationComp,
+                .duration = time_second);
           }
+          status->effectEntities[type] = 0;
         }
       }
     }
@@ -169,6 +178,7 @@ bool scene_status_active(const SceneStatusComp* status, const SceneStatusType ty
 String scene_status_name(const SceneStatusType type) {
   static const String g_names[] = {
       string_static("Burning"),
+      string_static("Bleeding"),
   };
   ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
   return g_names[type];
@@ -179,11 +189,27 @@ void scene_status_add(
     const EcsEntityId     target,
     const SceneStatusType type,
     const EcsEntityId     instigator) {
-  SceneStatusRequestComp* req =
-      ecs_world_add_t(world, target, SceneStatusRequestComp, .add = 1 << type);
-  req->instigators[type] = instigator;
+  scene_status_add_many(world, target, 1 << type, instigator);
+}
+
+void scene_status_add_many(
+    EcsWorld*             world,
+    const EcsEntityId     target,
+    const SceneStatusMask mask,
+    const EcsEntityId     instigator) {
+  diag_assert(mask);
+
+  SceneStatusRequestComp* req = ecs_world_add_t(world, target, SceneStatusRequestComp, .add = mask);
+  bitset_for(bitset_from_var(mask), typeIndex) { req->instigators[typeIndex] = instigator; }
 }
 
 void scene_status_remove(EcsWorld* world, const EcsEntityId target, const SceneStatusType type) {
-  ecs_world_add_t(world, target, SceneStatusRequestComp, .remove = 1 << type);
+  scene_status_remove_many(world, target, 1 << type);
+}
+
+void scene_status_remove_many(
+    EcsWorld* world, const EcsEntityId target, const SceneStatusMask mask) {
+  diag_assert(mask);
+
+  ecs_world_add_t(world, target, SceneStatusRequestComp, .remove = mask);
 }

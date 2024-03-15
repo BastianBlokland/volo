@@ -20,27 +20,33 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
-  String originJoint;
-  bool   launchTowardsTarget, seekTowardsTarget;
-  f32    delay;
-  f32    spreadAngle;
-  f32    speed;
-  f32    damage, damageRadius;
-  f32    destroyDelay;
-  String projectilePrefab;
-  String impactPrefab; // Optional, empty if unused.
+  u32*  values;
+  usize count;
+} WeaponStatusMaskDef;
+
+typedef struct {
+  String              originJoint;
+  bool                launchTowardsTarget, seekTowardsTarget;
+  WeaponStatusMaskDef applyStatus;
+  f32                 delay;
+  f32                 spreadAngle;
+  f32                 speed;
+  f32                 damage, damageRadius;
+  f32                 destroyDelay;
+  String              projectilePrefab;
+  String              impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectProjDef;
 
 typedef struct {
-  bool   continuous;
-  String originJoint;
-  f32    delay;
-  f32    radius, radiusEnd;
-  f32    length;
-  f32    lengthGrowTime;
-  f32    damage;
-  bool   applyBurning;
-  String impactPrefab; // Optional, empty if unused.
+  bool                continuous;
+  String              originJoint;
+  f32                 delay;
+  f32                 radius, radiusEnd;
+  f32                 length;
+  f32                 lengthGrowTime;
+  f32                 damage;
+  WeaponStatusMaskDef applyStatus;
+  String              impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
@@ -109,10 +115,21 @@ static void weapon_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    /**
+     * Status indices correspond to the 'SceneStatusType' values as defined in 'scene_status.h'.
+     * NOTE: Unfortunately we cannot reference the SceneStatusType enum directly as that would
+     * require an undesired dependency on the scene library.
+     * NOTE: This is a virtual data type, meaning there is no matching AssetWeaponStatusMask C type.
+     */
+    data_reg_enum_t(reg, AssetWeaponStatusMask);
+    data_reg_const_custom(reg, AssetWeaponStatusMask, Burning,  1 << 0);
+    data_reg_const_custom(reg, AssetWeaponStatusMask, Bleeding, 1 << 1);
+
     data_reg_struct_t(reg, AssetWeaponEffectProjDef);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -131,7 +148,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, applyBurning, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectAnimDef);
@@ -216,6 +233,12 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
+static u8 weapon_status_mask_build(const WeaponStatusMaskDef* def) {
+  u8 mask = 0;
+  array_ptr_for_t(*def, u32, val) { mask |= *val; }
+  return mask;
+}
+
 static void weapon_effect_proj_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectProjDef* def,
@@ -226,6 +249,7 @@ static void weapon_effect_proj_build(
       .originJoint         = string_hash(def->originJoint),
       .launchTowardsTarget = def->launchTowardsTarget,
       .seekTowardsTarget   = def->seekTowardsTarget,
+      .applyStatusMask     = weapon_status_mask_build(&def->applyStatus),
       .delay               = (TimeDuration)time_seconds(def->delay),
       .spreadAngle         = def->spreadAngle,
       .speed               = def->speed,
@@ -245,16 +269,16 @@ static void weapon_effect_dmg_build(
     WeaponError*                   err) {
   (void)ctx;
   *out = (AssetWeaponEffectDmg){
-      .continuous     = def->continuous,
-      .originJoint    = string_hash(def->originJoint),
-      .delay          = (TimeDuration)time_seconds(def->delay),
-      .damage         = def->damage,
-      .radius         = def->radius,
-      .radiusEnd      = def->radiusEnd,
-      .length         = def->length,
-      .lengthGrowTime = (TimeDuration)time_seconds(def->lengthGrowTime),
-      .applyBurning   = def->applyBurning,
-      .impactPrefab   = string_maybe_hash(def->impactPrefab),
+      .continuous      = def->continuous,
+      .originJoint     = string_hash(def->originJoint),
+      .delay           = (TimeDuration)time_seconds(def->delay),
+      .damage          = def->damage,
+      .radius          = def->radius,
+      .radiusEnd       = def->radiusEnd,
+      .length          = def->length,
+      .lengthGrowTime  = (TimeDuration)time_seconds(def->lengthGrowTime),
+      .applyStatusMask = weapon_status_mask_build(&def->applyStatus),
+      .impactPrefab    = string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }
@@ -533,22 +557,24 @@ f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon
   return damage;
 }
 
-bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
+u8 asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
+  u8 result = 0;
   for (u16 i = 0; i != weapon->effectCount; ++i) {
     const AssetWeaponEffect* effect = &map->effects[weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Damage:
-      if (effect->data_dmg.applyBurning) {
-        return true;
-      }
+      result |= effect->data_dmg.applyStatusMask;
+      break;
     case AssetWeaponEffect_Projectile:
+      result |= effect->data_proj.applyStatusMask;
+      break;
     case AssetWeaponEffect_Animation:
     case AssetWeaponEffect_Vfx:
     case AssetWeaponEffect_Sound:
       break;
     }
   }
-  return false;
+  return result;
 }
 
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {

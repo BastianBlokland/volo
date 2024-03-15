@@ -11,6 +11,7 @@
 #include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
 
@@ -149,14 +150,16 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_maybe_write(SndEventMapComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneTimeSettingsComp);
+  ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
 }
 
 ecs_view_define(UpdateView) {
-  ecs_access_read(SceneSoundComp);
-  ecs_access_maybe_read(SndSourceComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_maybe_read(SndSourceComp);
+  ecs_access_read(SceneSoundComp);
   ecs_access_without(SndSourceDiscardComp);
 }
 
@@ -198,9 +201,10 @@ ecs_system_define(SndSourceUpdateSys) {
   if (!globalItr) {
     return;
   }
-  SndMixerComp*                m            = ecs_view_write_t(globalItr, SndMixerComp);
-  const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
+  SndMixerComp*                 m            = ecs_view_write_t(globalItr, SndMixerComp);
+  const SceneTimeComp*          time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTimeSettingsComp*  timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
+  const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   SndEventMapComp* eventMap = ecs_view_write_t(globalItr, SndEventMapComp);
   if (eventMap) {
@@ -229,14 +233,16 @@ ecs_system_define(SndSourceUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const SceneSoundComp*     soundComp     = ecs_view_read_t(itr, SceneSoundComp);
-    const SndSourceComp*      srcComp       = ecs_view_read_t(itr, SndSourceComp);
-    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneTagComp*       tagComp       = ecs_view_read_t(itr, SceneTagComp);
-    const bool                spatial       = transformComp != null;
-    const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
-    const GeoVector           srcPos        = spatial ? transformComp->position : geo_vector(0);
-    const f32                 srcGain       = tags & SceneTags_Emit ? soundComp->gain : 0.0f;
+    const SceneSoundComp*      soundComp     = ecs_view_read_t(itr, SceneSoundComp);
+    const SndSourceComp*       srcComp       = ecs_view_read_t(itr, SndSourceComp);
+    const SceneTransformComp*  transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneTagComp*        tagComp       = ecs_view_read_t(itr, SceneTagComp);
+    const SceneVisibilityComp* visComp       = ecs_view_read_t(itr, SceneVisibilityComp);
+    const bool                 spatial       = transformComp != null;
+    const SceneTags            tags          = tagComp ? tagComp->tags : SceneTags_Default;
+    const GeoVector            srcPos        = spatial ? transformComp->position : geo_vector(0);
+    const f32                  srcGain       = tags & SceneTags_Emit ? soundComp->gain : 0.0f;
+    const bool                 srcVisible = !visComp || scene_visible_for_render(visEnv, visComp);
 
     if (!srcComp) {
       if (!ecs_entity_valid(soundComp->asset)) {
@@ -271,7 +277,7 @@ ecs_system_define(SndSourceUpdateSys) {
     if (!snd_object_is_active(m, srcComp->objectId)) {
       continue; // Already finished playing on the mixer.
     }
-    if (srcGain < f32_epsilon) {
+    if (srcGain < f32_epsilon || !srcVisible) {
       // Fast-path for muted sounds.
       for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
         snd_object_set_gain(m, srcComp->objectId, chan, 0);
