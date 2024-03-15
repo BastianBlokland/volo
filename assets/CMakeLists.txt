@@ -100,8 +100,8 @@ if(${EXTERNAL_ASSETS})
       crate/crate_normal.tga
       crate/crate.bin
       crate/crate.gltf
-      decal/blood_splatter_normal.tga
-      decal/blood_splatter.tga
+      decal/blood_splatter_2_normal.tga
+      decal/blood_splatter_2.tga
       decal/dirt.tga
       decal/explosion_normal.tga
       decal/explosion.tga
