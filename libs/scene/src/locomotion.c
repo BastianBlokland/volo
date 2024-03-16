@@ -144,7 +144,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
       posDelta                    = geo_vector_mul(forwardFlat, wheeled->speed * scale * dt);
     }
 
-    if (dt > 0.0f) {
+    if (dt > f32_epsilon) {
       /**
        * Push this entity away from other navigation agents and blockers.
        * NOTE: Use current position instead of the next position to avoid two units moving in the
@@ -174,7 +174,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     }
 
     SceneAnimLayer* layerMove = anim ? scene_animation_layer_mut(anim, loco->moveAnimation) : null;
-    if (layerMove && dt > 0.0f) {
+    if (layerMove && dt > f32_epsilon) {
       if (layerMove->weight < f32_epsilon) {
         layerMove->time = 0.0f;
       }
