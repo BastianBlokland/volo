@@ -167,8 +167,8 @@ if(${EXTERNAL_ASSETS})
       icon/icon_vehicle_tank.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
-      maynard/maynard_2.bin
-      maynard/maynard_2.gltf
+      maynard/maynard_3.bin
+      maynard/maynard_3.gltf
       plant_fern/plant_fern_alpha.tga
       plant_fern/plant_fern_color_rough.tga
       plant_fern/plant_fern_normal.tga

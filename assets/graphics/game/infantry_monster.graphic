@@ -12,5 +12,5 @@
     { "textureId": "external/maynard/maynard_2_color_rough.tga", "anisotropy": "x2" },
     { "textureId": "external/maynard/maynard_2_nrm.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/maynard/maynard_2.gltf"
+  "meshId": "external/maynard/maynard_3.gltf"
 }
