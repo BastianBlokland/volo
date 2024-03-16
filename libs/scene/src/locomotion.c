@@ -168,7 +168,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     SceneAnimLayer* layerMove = anim ? scene_animation_layer_mut(anim, loco->moveAnimation) : null;
     if (layerMove) {
       if (layerMove->weight < f32_epsilon) {
-        scene_animation_set_time(anim, loco->moveAnimation, 0);
+        layerMove->time = 0.0f;
       }
       const f32 maxSpeedThisTick = loco->maxSpeed * scale * dt;
       const f32 speedNorm        = math_min(posDeltaMag / maxSpeedThisTick, 1);
