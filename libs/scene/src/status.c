@@ -28,6 +28,8 @@ static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
 
+#define scene_status_effect_destroy_delay time_seconds(2)
+
 ecs_comp_define_public(SceneStatusComp);
 ecs_comp_define_public(SceneStatusRequestComp);
 
@@ -147,7 +149,7 @@ ecs_system_define(SceneStatusUpdateSys) {
                 world,
                 status->effectEntities[type],
                 SceneLifetimeDurationComp,
-                .duration = time_second);
+                .duration = scene_status_effect_destroy_delay);
           }
           status->effectEntities[type] = 0;
         }
