@@ -23,7 +23,7 @@ static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
 };
 static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 1.0,
-    [SceneStatusType_Bleeding] = 0.5f,
+    [SceneStatusType_Bleeding] = 0.75f,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
