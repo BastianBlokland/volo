@@ -13,6 +13,10 @@
 #include "scene_time.h"
 #include "scene_visibility.h"
 
+ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
+
+#define scene_status_effect_destroy_delay time_seconds(2)
+
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 50,
     [SceneStatusType_Bleeding] = 5,
@@ -25,10 +29,7 @@ static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
     [SceneStatusType_Bleeding] = time_seconds(6),
 };
-
-ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
-
-#define scene_status_effect_destroy_delay time_seconds(2)
+static const SceneStatusMask g_sceneStatusSlowing = SceneStatusType_Bleeding;
 
 ecs_comp_define_public(SceneStatusComp);
 ecs_comp_define_public(SceneStatusRequestComp);
@@ -175,6 +176,10 @@ ecs_module_init(scene_status_module) {
 
 bool scene_status_active(const SceneStatusComp* status, const SceneStatusType type) {
   return (status->active & (1 << type)) != 0;
+}
+
+bool scene_status_slowed(const SceneStatusComp* status) {
+  return (status->active & g_sceneStatusSlowing) != 0;
 }
 
 String scene_status_name(const SceneStatusType type) {
