@@ -243,6 +243,7 @@ if(${EXTERNAL_ASSETS})
       tank/tank_04.gltf
       tank/tank_2_color_rough.tga
       tent/tent_color_rough.tga
+      tent/tent_medical_color_rough.tga
       tent/tent_normal.tga
       tent/tent.bin
       tent/tent.gltf

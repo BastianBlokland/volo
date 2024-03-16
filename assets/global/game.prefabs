@@ -531,6 +531,37 @@
       ]
     },
     {
+      "name": "StructureHospital",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Medic Tent" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_hospital.graphic" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 1000,
+          "deathDestroyDelay": 0.8,
+          "deathEffectPrefab": "DeathStructure"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": { "x": -1.75, "y": 0, "z": -2.5 },
+            "max": { "x": 1.75, "y": 1.75, "z": 2.5 }
+          }
+        },
+        {
+          "$type": "AssetPrefabTrait_Location", "aimTarget": {
+            "min": { "x": -1.5, "y": 0.5, "z": -2 },
+            "max": { "x": 1.5, "y": 1.5, "z": 2 }
+          }
+        },
+        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+      ]
+    },
+    {
       "name": "PropFloor",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_panel.graphic" }
