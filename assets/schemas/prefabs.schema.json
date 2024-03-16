@@ -258,9 +258,11 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Status" },
-            "effectJoint": { "title": "String", "type": "string", "minLength": 1 },
-            "burnable": { "title": "bool", "type": "boolean" },
-            "bleedable": { "title": "bool", "type": "boolean" }
+            "supportedStatus": {
+              "type": "array",
+              "items": { "title": "AssetPrefabStatusMask", "$ref": "#/$defs/AssetPrefabStatusMask" }
+            },
+            "effectJoint": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [ "$type" ]
         },
@@ -495,6 +497,9 @@
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"min\": {},\n  \"max\": {}\n}" }
       ]
+    },
+    "AssetPrefabStatusMask": {
+      "enum": [ "Burning", "Bleeding" ]
     }
   }
 }

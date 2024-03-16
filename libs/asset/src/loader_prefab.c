@@ -48,6 +48,11 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
+  u32*  values;
+  usize count;
+} PrefabStatusMaskDef;
+
+typedef struct {
   f32 x, y, z;
 } AssetPrefabVec3Def;
 
@@ -205,8 +210,8 @@ typedef struct {
 } AssetPrefabTraitLocationDef;
 
 typedef struct {
-  String effectJoint;
-  bool   burnable, bleedable;
+  PrefabStatusMaskDef supportedStatus;
+  String              effectJoint;
 } AssetPrefabTraitStatusDef;
 
 typedef struct {
@@ -276,6 +281,16 @@ static void prefab_datareg_init() {
     prefab_set_flags_init();
 
     // clang-format off
+    /**
+     * Status indices correspond to the 'SceneStatusType' values as defined in 'scene_status.h'.
+     * NOTE: Unfortunately we cannot reference the SceneStatusType enum directly as that would
+     * require an undesired dependency on the scene library.
+     * NOTE: This is a virtual data type, meaning there is no matching AssetPrefabStatusMask C type.
+     */
+    data_reg_enum_t(reg, AssetPrefabStatusMask);
+    data_reg_const_custom(reg, AssetPrefabStatusMask, Burning,  1 << 0);
+    data_reg_const_custom(reg, AssetPrefabStatusMask, Bleeding, 1 << 1);
+
     data_reg_struct_t(reg, AssetPrefabVec3Def);
     data_reg_field_t(reg, AssetPrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -404,9 +419,8 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitStatusDef);
+    data_reg_field_t(reg, AssetPrefabTraitStatusDef, supportedStatus, t_AssetPrefabStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabTraitStatusDef, bleedable, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitVisionDef);
     data_reg_field_t(reg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -493,6 +507,12 @@ typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
 } BuildCtx;
+
+static u8 prefab_build_status_mask(const PrefabStatusMaskDef* def) {
+  u8 mask = 0;
+  array_ptr_for_t(*def, u32, val) { mask |= *val; }
+  return mask;
+}
 
 static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
@@ -762,9 +782,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Status:
       outTrait->data_status = (AssetPrefabTraitStatus){
-          .effectJoint = string_maybe_hash(traitDef->data_status.effectJoint),
-          .burnable    = traitDef->data_status.burnable,
-          .bleedable   = traitDef->data_status.bleedable,
+          .supportedStatusMask = prefab_build_status_mask(&traitDef->data_status.supportedStatus),
+          .effectJoint         = string_maybe_hash(traitDef->data_status.effectJoint),
       };
       break;
     case AssetPrefabTrait_Vision:

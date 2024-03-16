@@ -57,7 +57,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -117,7 +117,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -182,7 +182,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -246,7 +246,7 @@
           "barkDeathPrefab": "BarkDeathInfantryMonster"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.1 }, "max": { "y": 1.1 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -295,7 +295,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true, "bleedable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -363,7 +363,7 @@
             "max": { "x": 1.15, "y": 1.5, "z": 2.5 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ], "effectJoint": "turret" }
       ]
     },
     {
@@ -407,7 +407,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ], "effectJoint": "turret" }
       ]
     },
     {
@@ -451,7 +451,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
-        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ], "effectJoint": "turret" }
       ]
     },
     {
@@ -489,7 +489,7 @@
             "max": { "x": 5, "y": 2, "z": 1.5 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
       ]
     },
     {
@@ -527,7 +527,7 @@
             "max": { "x": 4.2, "y": 6.5, "z": 3 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
       ]
     },
     {
@@ -558,7 +558,7 @@
             "max": { "x": 1.5, "y": 1.5, "z": 2 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
       ]
     },
     {
@@ -629,7 +629,7 @@
           "deathEffectPrefab": "ExplosionMedium"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 0.8 }, "max": { "y": 0.8 } } },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
       ]
     },
     {
