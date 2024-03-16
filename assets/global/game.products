@@ -106,7 +106,7 @@
           "$type": "AssetProduct_Placable",
           "meta": {
             "name": "Medic Tent",
-            "iconImage": "icon_structure_barracks",
+            "iconImage": "icon_structure_hospital",
             "costTime": 20,
             "cooldown": 1,
             "queueMax": 1,

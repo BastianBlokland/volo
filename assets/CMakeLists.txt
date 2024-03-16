@@ -162,6 +162,7 @@ if(${EXTERNAL_ASSETS})
       icon/icon_infantry_rocket.tga
       icon/icon_structure_barracks.tga
       icon/icon_structure_factory.tga
+      icon/icon_structure_hospital.tga
       icon/icon_structure_turret_gun.tga
       icon/icon_structure_turret_missile.tga
       icon/icon_vehicle_tank.tga
