@@ -14,7 +14,9 @@
 
 #define loco_arrive_threshold 0.1f
 #define loco_rot_turbulence_freq 5.0f
-#define loco_anim_weight_ease_speed 2.5f
+#define loco_anim_speed_threshold 0.2f
+#define loco_anim_speed_ease 2.0f
+#define loco_anim_weight_ease 3.0f
 #define loco_move_weight_multiplier 4.0f
 #define loco_face_threshold 0.8f
 #define loco_wheeled_deceleration 15.0f
@@ -176,9 +178,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
       if (layerMove->weight < f32_epsilon) {
         layerMove->time = 0.0f;
       }
-      const f32 maxSpeedThisTick = maxSpeedOrg * dt;
-      const f32 speedNorm        = math_min(posDeltaMag / maxSpeedThisTick, 1);
-      math_towards_f32(&layerMove->weight, speedNorm, loco_anim_weight_ease_speed * dt);
+      const f32 targetSpeed  = posDeltaMag / (maxSpeedOrg * dt);
+      const f32 targetWeight = targetSpeed >= loco_anim_speed_threshold ? 1.0 : 0.0f;
+
+      math_towards_f32(&layerMove->speed, targetSpeed, loco_anim_speed_ease * dt);
+      math_towards_f32(&layerMove->weight, targetWeight, loco_anim_weight_ease * dt);
     }
   }
 }
