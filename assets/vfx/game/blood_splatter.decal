@@ -1,6 +1,7 @@
 {
   "projectionAxis": "WorldY",
   "colorAtlasEntry": "blood_splash",
+  "normalAtlasEntry": "blood_splash",
   "baseNormal": "DecalTransform",
   "randomRotation": true,
   "excludeMask": [ "Unit" ],
