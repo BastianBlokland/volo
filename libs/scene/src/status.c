@@ -29,7 +29,7 @@ static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
     [SceneStatusType_Bleeding] = time_seconds(6),
 };
-static const SceneStatusMask g_sceneStatusSlowing = SceneStatusType_Bleeding;
+static const SceneStatusMask g_sceneStatusSlowing = 1 << SceneStatusType_Bleeding;
 
 ecs_comp_define_public(SceneStatusComp);
 ecs_comp_define_public(SceneStatusRequestComp);
