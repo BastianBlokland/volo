@@ -3449,6 +3449,13 @@
       "rotation": { "y": -0.4893, "w": 0.8721 }
     },
     {
+      "id": 2218707565,
+      "prefab": "StructureHospital",
+      "faction": "A",
+      "position": { "x": -28.2757, "y": 0.5212, "z": -2.9684 },
+      "rotation": { "w": 1 }
+    },
+    {
       "id": 2222260326,
       "prefab": "PropPlant",
       "position": { "x": 2.453, "y": 0.5422, "z": -94.6788 },
