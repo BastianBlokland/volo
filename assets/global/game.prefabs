@@ -25,7 +25,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2.5
+          "deathDestroyDelay": 2.5,
+          "deathEffectPrefab": "DeathInfantry"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -84,7 +85,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2.5
+          "deathDestroyDelay": 2.5,
+          "deathEffectPrefab": "DeathInfantry"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -143,7 +145,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2.5
+          "deathDestroyDelay": 2.5,
+          "deathEffectPrefab": "DeathInfantry"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -207,7 +210,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 150,
-          "deathDestroyDelay": 2.5
+          "deathDestroyDelay": 2.5,
+          "deathEffectPrefab": "DeathInfantry"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -270,7 +274,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2.5
+          "deathDestroyDelay": 2.5,
+          "deathEffectPrefab": "DeathInfantry"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -865,6 +870,13 @@
       ]
     },
     {
+      "name": "DecalBloodSplatter",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_splatter.decal" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
       "name": "DecalSand",
       "traits": [
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/sand.decal" },
@@ -1032,6 +1044,13 @@
           "pitchMin": 0.75, "pitchMax": 1
         },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 }
+      ]
+    },
+    {
+      "name": "DeathInfantry", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 4.5 },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_splatter.decal" }
       ]
     },
     {

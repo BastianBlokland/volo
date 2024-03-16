@@ -5,7 +5,7 @@
   "projectionAxis": "WorldY",
   "colorAtlasEntry": "blood_splatter",
   "normalAtlasEntry": "blood_splatter",
-  "baseNormal": "DepthBuffer",
+  "baseNormal": "DecalTransform",
   "excludeMask": [ "Unit" ],
   "roughness": 0,
   "width": 1.15,

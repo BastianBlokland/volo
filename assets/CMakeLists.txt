@@ -167,8 +167,8 @@ if(${EXTERNAL_ASSETS})
       icon/icon_vehicle_tank.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
-      maynard/maynard_2.bin
-      maynard/maynard_2.gltf
+      maynard/maynard_3.bin
+      maynard/maynard_3.gltf
       plant_fern/plant_fern_alpha.tga
       plant_fern/plant_fern_color_rough.tga
       plant_fern/plant_fern_normal.tga
@@ -279,6 +279,7 @@ if(${EXTERNAL_ASSETS})
       turret/turret_missile_2.gltf
       turret/turret.bin
       vfx/arrow.tga
+      vfx/blood_splash_normal.tga
       vfx/blood_splash.tga
       vfx/flash_2.tga
       vfx/flash_star_2.tga

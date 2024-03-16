@@ -28,11 +28,11 @@ typedef struct {
 } SceneDamageStorage;
 
 ecs_comp_extern_public(SceneDamageComp) {
+  bool singleRequest;
   union {
     SceneDamageInfo    request;
     SceneDamageStorage storage;
   };
-  bool singleRequest;
 };
 
 ecs_comp_extern_public(SceneDamageStatsComp) {
