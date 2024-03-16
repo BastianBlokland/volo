@@ -7,6 +7,7 @@
 #include "scene_nav.h"
 #include "scene_register.h"
 #include "scene_skeleton.h"
+#include "scene_status.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -75,6 +76,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(MoveView) {
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneLocomotionWheeledComp);
   ecs_access_write(SceneLocomotionComp);
@@ -101,10 +103,12 @@ ecs_system_define(SceneLocomotionMoveSys) {
     SceneLocomotionWheeledComp* wheeled   = ecs_view_write_t(itr, SceneLocomotionWheeledComp);
     SceneTransformComp*         trans     = ecs_view_write_t(itr, SceneTransformComp);
     const SceneNavAgentComp*    navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
+    const SceneStatusComp*      status    = ecs_view_read_t(itr, SceneStatusComp);
     const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const f32                   scale     = scaleComp ? scaleComp->scale : 1.0f;
-    const f32                   maxSpeed  = loco->maxSpeed * scale;
-    const f32                   maxSpeedThisTick = maxSpeed * dt;
+
+    const f32 scale       = scaleComp ? scaleComp->scale : 1.0f;
+    const f32 maxSpeedOrg = loco->maxSpeed * scale;
+    const f32 maxSpeedMod = maxSpeedOrg * (status ? scene_status_move_speed(status) : 1.0f);
 
     if (loco->flags & SceneLocomotion_Stop) {
       loco->targetPos = trans->position;
@@ -122,14 +126,14 @@ ecs_system_define(SceneLocomotionMoveSys) {
         const f32 dist  = math_sqrt_f32(distSqr);
         loco->targetDir = geo_vector_div(toTarget, dist);
         if (!wheeled) {
-          posDelta = geo_vector_mul(loco->targetDir, math_min(dist, maxSpeedThisTick));
+          posDelta = geo_vector_mul(loco->targetDir, math_min(dist, maxSpeedMod * dt));
         }
       }
     }
 
     if (wheeled) {
       if (loco->flags & SceneLocomotion_Moving && loco_is_facing(loco, trans)) {
-        math_towards_f32(&wheeled->speed, maxSpeed, wheeled->acceleration * scale * dt);
+        math_towards_f32(&wheeled->speed, maxSpeedMod, wheeled->acceleration * scale * dt);
       } else {
         math_towards_f32(&wheeled->speed, 0.0f, loco_wheeled_deceleration * scale * dt);
       }
@@ -172,7 +176,8 @@ ecs_system_define(SceneLocomotionMoveSys) {
       if (layerMove->weight < f32_epsilon) {
         layerMove->time = 0.0f;
       }
-      const f32 speedNorm = math_min(posDeltaMag / maxSpeedThisTick, 1);
+      const f32 maxSpeedThisTick = maxSpeedOrg * dt;
+      const f32 speedNorm        = math_min(posDeltaMag / maxSpeedThisTick, 1);
       math_towards_f32(&layerMove->weight, speedNorm, loco_anim_weight_ease_speed * dt);
     }
   }

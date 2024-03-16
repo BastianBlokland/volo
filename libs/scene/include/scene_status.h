@@ -28,7 +28,7 @@ ecs_comp_extern_public(SceneStatusRequestComp) {
 };
 
 bool   scene_status_active(const SceneStatusComp*, SceneStatusType);
-bool   scene_status_slowed(const SceneStatusComp*);
+f32    scene_status_move_speed(const SceneStatusComp*);
 String scene_status_name(SceneStatusType);
 
 void scene_status_add(EcsWorld*, EcsEntityId target, SceneStatusType, EcsEntityId instigator);
