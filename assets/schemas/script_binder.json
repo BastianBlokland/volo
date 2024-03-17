@@ -142,7 +142,7 @@
     },
     {
       "name": "query_box",
-      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -151,6 +151,10 @@
           {
             "name": "rot",
             "mask": [ "null", "quat" ]
+          },
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
           },
           {
             "name": "layers",
@@ -368,10 +372,14 @@
     },
     {
       "name": "debug_input_rotation",
-      "doc": "Lookup the rotation at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Lookup the rotation at the debug input ray.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "quat" ],
         "args": [
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],
@@ -412,10 +420,14 @@
     },
     {
       "name": "debug_input_position",
-      "doc": "Lookup the position at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Lookup the position at the debug input ray.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "vec3" ],
         "args": [
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],
@@ -765,12 +777,16 @@
     },
     {
       "name": "query_sphere",
-      "doc": "Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
           { "name": "pos", "mask": "vec3" },
           { "name": "radius", "mask": "num" },
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],
@@ -860,10 +876,14 @@
     },
     {
       "name": "debug_input_entity",
-      "doc": "Lookup the entity at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Lookup the entity at the debug input ray.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "entity" ],
         "args": [
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],

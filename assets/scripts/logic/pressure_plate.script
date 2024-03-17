@@ -8,7 +8,7 @@ var detectionCenter = position(me) + vec3(0, 0.4, 0)
 var detectionRot    = rotation(me)
 var detectionSize   = vec3(1.25, 0.5, 1.25)
 
-var triggeringEntities = query_box(detectionCenter, detectionSize, detectionRot, "Unit")
+var triggeringEntities = query_box(detectionCenter, detectionSize, detectionRot, null, "Unit")
 var triggered          = query_pop(triggeringEntities) != null
 
 anim_param(me, "pressed", "Weight", triggered ? 1 : 0)

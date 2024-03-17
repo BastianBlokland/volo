@@ -63,6 +63,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumSoundParam,
                   g_scriptEnumAnimParam,
                   g_scriptEnumLayer,
+                  g_scriptEnumQueryOption,
                   g_scriptEnumStatus,
                   g_scriptEnumBark;
 
@@ -161,6 +162,11 @@ static void eval_enum_init_layer() {
   script_enum_push(&g_scriptEnumLayer, string_lit("AllIncludingDebug"), SceneLayer_AllIncludingDebug);
   script_enum_push(&g_scriptEnumLayer, string_lit("AllNonDebug"),       SceneLayer_AllNonDebug);
   // clang-format on
+}
+
+static void eval_enum_init_query_option() {
+  script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionSelf"), 1);
+  script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionOther"), 2);
 }
 
 static void eval_enum_init_status() {
@@ -403,6 +409,7 @@ typedef struct {
   EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
+  SceneFaction           instigatorFaction;
   SceneScriptSlot        slot;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
@@ -459,8 +466,18 @@ static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* e
   return layerMask;
 }
 
-static SceneQueryFilter arg_query_filter(const ScriptArgs a, const u16 i, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(a, i, err);
+static SceneQueryFilter arg_query_filter(
+    const SceneFaction factionSelf, const ScriptArgs a, const u16 i, ScriptError* err) {
+  const u32  option    = script_arg_opt_enum(a, i, &g_scriptEnumQueryOption, 0, err);
+  SceneLayer layerMask = arg_layer_mask(a, i + 1, err);
+  switch (option) {
+  case 1 /* FactionSelf */:
+    layerMask &= scene_faction_layers(factionSelf);
+    break;
+  case 2 /* FactionOther */:
+    layerMask &= ~scene_faction_layers(factionSelf);
+    break;
+  }
   return (SceneQueryFilter){.layerMask = layerMask};
 }
 
@@ -622,7 +639,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
 
   const GeoVector        pos    = script_arg_vec3(args, 0, err);
   const f32              radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
-  const SceneQueryFilter filter = arg_query_filter(args, 2, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 2, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -650,7 +667,7 @@ static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   const GeoVector        pos    = script_arg_vec3(args, 0, err);
   const GeoVector        size   = script_arg_vec3(args, 1, err);
   const GeoQuat          rot    = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  const SceneQueryFilter filter = arg_query_filter(args, 2, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 3, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -1861,7 +1878,7 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneQueryFilter* f, De
 
 static ScriptVal
 eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneQueryFilter filter = arg_query_filter(args, 0, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
   DebugInputHit          hit;
   if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_vec3(hit.pos);
@@ -1871,7 +1888,7 @@ eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* 
 
 static ScriptVal
 eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneQueryFilter filter = arg_query_filter(args, 0, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
   DebugInputHit          hit;
   if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_quat(geo_quat_look(hit.normal, geo_up));
@@ -1881,7 +1898,7 @@ eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* 
 
 static ScriptVal
 eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneQueryFilter filter = arg_query_filter(args, 0, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
   DebugInputHit          hit;
   if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_entity_or_null(hit.entity);
@@ -1922,6 +1939,7 @@ static void eval_binder_init() {
     eval_enum_init_sound_param();
     eval_enum_init_anim_param();
     eval_enum_init_layer();
+    eval_enum_init_query_option();
     eval_enum_init_status();
     eval_enum_init_bark();
 
@@ -2050,6 +2068,7 @@ ecs_system_define(SceneScriptEnvInitSys) {
 ecs_view_define(ScriptUpdateView) {
   ecs_access_write(SceneScriptComp);
   ecs_access_write(SceneKnowledgeComp);
+  ecs_access_maybe_read(SceneFactionComp);
 }
 
 ecs_view_define(ResourceAssetView) {
@@ -2186,11 +2205,14 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    ctx.instigator      = ecs_view_entity(itr);
-    ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
-    ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
-    ctx.actions         = &ctx.scriptInstance->actions;
-    ctx.debug           = &ctx.scriptInstance->debug;
+    const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
+
+    ctx.instigator        = ecs_view_entity(itr);
+    ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
+    ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
+    ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.actions           = &ctx.scriptInstance->actions;
+    ctx.debug             = &ctx.scriptInstance->debug;
 
     // Clear the previous frame transient data.
     if (ctx.scriptInstance->allocTransient) {
