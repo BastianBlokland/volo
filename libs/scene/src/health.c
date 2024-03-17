@@ -72,6 +72,14 @@ static void ecs_destruct_damage(void* data) {
   }
 }
 
+static void ecs_combine_stats(void* dataA, void* dataB) {
+  SceneHealthStatsComp* statsA = dataA;
+  SceneHealthStatsComp* statsB = dataB;
+
+  statsA->dealtDamage += statsB->dealtDamage;
+  statsA->kills += statsB->kills;
+}
+
 ecs_view_define(HealthAnimInitView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_with(SceneAnimationComp);
@@ -284,7 +292,7 @@ ecs_module_init(scene_health_module) {
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(
       SceneDamageComp, .combinator = ecs_combine_damage, .destructor = ecs_destruct_damage);
-  ecs_register_comp(SceneHealthStatsComp);
+  ecs_register_comp(SceneHealthStatsComp, .combinator = ecs_combine_stats);
   ecs_register_comp_empty(SceneDeadComp);
   ecs_register_comp(SceneHealthAnimComp);
 
