@@ -347,6 +347,7 @@ static void hud_health_draw(
     ui_layout_resize(c, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
 
     // Draw the health-bar background.
+    ui_style_outline(c, 1);
     ui_style_color(c, ui_color(8, 8, 8, 192));
     ui_canvas_draw_glyph(c, UiShape_Circle, 4, UiFlags_None);
 
