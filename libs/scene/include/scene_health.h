@@ -47,7 +47,8 @@ ecs_comp_extern_public(SceneHealthStatsComp) { f32 values[SceneHealthStat_Count]
 
 ecs_comp_extern_public(SceneDeadComp);
 
-f32 scene_health_points(const SceneHealthComp*);
+String scene_health_stat_name(SceneHealthStat);
+f32    scene_health_points(const SceneHealthComp*);
 
 void scene_health_request_add(SceneHealthRequestComp*, const SceneHealthMod*);
 void scene_health_request(EcsWorld*, EcsEntityId target, const SceneHealthMod*);

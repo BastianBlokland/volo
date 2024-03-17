@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -357,6 +358,17 @@ ecs_module_init(scene_health_module) {
       ecs_view_id(GlobalView),
       ecs_register_view(HealthView),
       ecs_register_view(HealthStatsView));
+}
+
+String scene_health_stat_name(const SceneHealthStat stat) {
+  diag_assert(stat < SceneHealthStat_Count);
+  static const String g_names[] = {
+      string_static("DealtDamage"),
+      string_static("DealtHealing"),
+      string_static("Kills"),
+  };
+  ASSERT(array_elems(g_names) == SceneHealthStat_Count, "Incorrect number of names");
+  return g_names[stat];
 }
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }
