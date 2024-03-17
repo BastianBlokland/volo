@@ -134,7 +134,7 @@ ecs_system_define(SceneStatusUpdateSys) {
       if (damage && g_sceneStatusDamagePerSec[type] > 0) {
         scene_health_damage_add(
             damage,
-            &(SceneDamageInfo){
+            &(SceneHealthMod){
                 .instigator = status->instigators[type],
                 .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
             });

@@ -27,10 +27,10 @@ ecs_comp_define_public(SceneHealthStatsComp);
 ecs_comp_define_public(SceneDeadComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
-static SceneDamageInfo* damage_storage_push(SceneDamageStorage* storage) {
+static SceneHealthMod* damage_storage_push(SceneDamageStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {
-    const u32        newCapacity = storage->capacity ? bits_nextpow2(storage->capacity + 1) : 4;
-    SceneDamageInfo* newValues   = alloc_array_t(g_alloc_heap, SceneDamageInfo, newCapacity);
+    const u32       newCapacity = storage->capacity ? bits_nextpow2(storage->capacity + 1) : 4;
+    SceneHealthMod* newValues   = alloc_array_t(g_alloc_heap, SceneHealthMod, newCapacity);
     if (UNLIKELY(!newValues)) {
       diag_crash_msg("damage_storage_push(): Allocation failed");
     }
@@ -228,13 +228,13 @@ ecs_system_define(SceneHealthUpdateSys) {
     // Process damage requests.
     diag_assert_msg(!damage->singleRequest, "Damage requests have to be combined");
     for (u32 i = 0; i != damage->storage.count; ++i) {
-      const SceneDamageInfo* damageInfo = &damage->storage.values[i];
-      const f32 amountNorm = math_min(health_normalize(health, damageInfo->amount), health->norm);
+      const SceneHealthMod* mod = &damage->storage.values[i];
+      const f32 amountNorm      = math_min(health_normalize(health, mod->amount), health->norm);
       health->norm -= amountNorm;
       totalDamageAmount += amountNorm;
 
       // Track damage stats for the instigator.
-      if (amountNorm > f32_epsilon && ecs_view_maybe_jump(statsItr, damageInfo->instigator)) {
+      if (amountNorm > f32_epsilon && ecs_view_maybe_jump(statsItr, mod->instigator)) {
         SceneHealthStatsComp* statsComp = ecs_view_write_t(statsItr, SceneHealthStatsComp);
         statsComp->dealtDamage += amountNorm * health->max;
         if (health->norm < f32_epsilon && !isDead) {
@@ -312,13 +312,13 @@ ecs_module_init(scene_health_module) {
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }
 
-void scene_health_damage_add(SceneDamageComp* damage, const SceneDamageInfo* info) {
-  diag_assert(info->amount >= 0.0f);
+void scene_health_damage_add(SceneDamageComp* damage, const SceneHealthMod* mod) {
+  diag_assert(mod->amount >= 0.0f);
   diag_assert_msg(!damage->singleRequest, "SceneDamageComp needs a storage");
-  *damage_storage_push(&damage->storage) = *info;
+  *damage_storage_push(&damage->storage) = *mod;
 }
 
-void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneDamageInfo* info) {
-  diag_assert(info->amount >= 0.0f);
-  ecs_world_add_t(world, target, SceneDamageComp, .request = *info, .singleRequest = true);
+void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneHealthMod* mod) {
+  diag_assert(mod->amount >= 0.0f);
+  ecs_world_add_t(world, target, SceneDamageComp, .request = *mod, .singleRequest = true);
 }

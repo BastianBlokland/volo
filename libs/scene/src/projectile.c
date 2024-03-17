@@ -159,7 +159,7 @@ static void projectile_hit(
       scene_health_damage(
           world,
           hits[i],
-          &(SceneDamageInfo){
+          &(SceneHealthMod){
               .instigator = proj->instigator,
               .amount     = proj->damage,
           });

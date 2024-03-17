@@ -11,7 +11,7 @@ typedef enum {
 typedef struct {
   EcsEntityId instigator;
   f32         amount;
-} SceneDamageInfo;
+} SceneHealthMod;
 
 ecs_comp_extern_public(SceneHealthComp) {
   SceneHealthFlags flags;
@@ -23,14 +23,14 @@ ecs_comp_extern_public(SceneHealthComp) {
 };
 
 typedef struct {
-  SceneDamageInfo* values;
-  u32              count, capacity;
+  SceneHealthMod* values;
+  u32             count, capacity;
 } SceneDamageStorage;
 
 ecs_comp_extern_public(SceneDamageComp) {
   bool singleRequest;
   union {
-    SceneDamageInfo    request;
+    SceneHealthMod     request;
     SceneDamageStorage storage;
   };
 };
@@ -44,5 +44,5 @@ ecs_comp_extern_public(SceneDeadComp);
 
 f32 scene_health_points(const SceneHealthComp*);
 
-void scene_health_damage_add(SceneDamageComp*, const SceneDamageInfo*);
-void scene_health_damage(EcsWorld*, EcsEntityId target, const SceneDamageInfo*);
+void scene_health_damage_add(SceneDamageComp*, const SceneHealthMod*);
+void scene_health_damage(EcsWorld*, EcsEntityId target, const SceneHealthMod*);

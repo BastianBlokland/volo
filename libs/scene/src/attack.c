@@ -437,7 +437,7 @@ static EffectResult effect_update_dmg(
       scene_health_damage(
           ctx->world,
           hits[i],
-          &(SceneDamageInfo){
+          &(SceneHealthMod){
               .instigator = ctx->instigator,
               .amount     = damageThisTick,
           });
