@@ -459,6 +459,11 @@ static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* e
   return layerMask;
 }
 
+static SceneQueryFilter arg_query_filter(const ScriptArgs a, const u16 i, ScriptError* err) {
+  const SceneLayer layerMask = arg_layer_mask(a, i, err);
+  return (SceneQueryFilter){.layerMask = layerMask};
+}
+
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)args;
   (void)err;
@@ -615,9 +620,9 @@ static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptE
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector  pos       = script_arg_vec3(args, 0, err);
-  const f32        radius    = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
-  const SceneLayer layerMask = arg_layer_mask(args, 2, err);
+  const GeoVector        pos    = script_arg_vec3(args, 0, err);
+  const f32              radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
+  const SceneQueryFilter filter = arg_query_filter(args, 2, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -631,8 +636,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
 
   ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
 
-  const SceneQueryFilter filter = {.layerMask = layerMask};
-  const GeoSphere        sphere = {.point = pos, .radius = radius};
+  const GeoSphere sphere = {.point = pos, .radius = radius};
 
   query->count = scene_query_sphere_all(colEnv, &sphere, &filter, query->values);
   query->itr   = 0;
@@ -643,10 +647,10 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
 static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector  pos       = script_arg_vec3(args, 0, err);
-  const GeoVector  size      = script_arg_vec3(args, 1, err);
-  const GeoQuat    rot       = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  const SceneLayer layerMask = arg_layer_mask(args, 3, err);
+  const GeoVector        pos    = script_arg_vec3(args, 0, err);
+  const GeoVector        size   = script_arg_vec3(args, 1, err);
+  const GeoQuat          rot    = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const SceneQueryFilter filter = arg_query_filter(args, 2, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -659,8 +663,6 @@ static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   }
 
   ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
-
-  const SceneQueryFilter filter = {.layerMask = layerMask};
 
   GeoBoxRotated boxRotated;
   boxRotated.box      = geo_box_from_center(pos, size);
@@ -832,9 +834,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1825,7 +1827,7 @@ typedef struct {
   EcsEntityId entity;
 } DebugInputHit;
 
-static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, DebugInputHit* out) {
+static bool eval_debug_input_hit(EvalContext* ctx, const SceneQueryFilter* f, DebugInputHit* out) {
   const SceneTerrainComp*      terrain = ecs_view_read_t(ctx->globalItr, SceneTerrainComp);
   const SceneCollisionEnvComp* colEnv  = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
@@ -1835,9 +1837,8 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, D
   if (scene_terrain_loaded(terrain)) {
     terrainHitT = scene_terrain_intersect_ray(terrain, &ctx->debugRay, g_maxDist);
   }
-  SceneRayHit            hit;
-  const SceneQueryFilter filter = {.layerMask = layerMask};
-  if (scene_query_ray(colEnv, &ctx->debugRay, g_maxDist, &filter, &hit) && hit.time < terrainHitT) {
+  SceneRayHit hit;
+  if (scene_query_ray(colEnv, &ctx->debugRay, g_maxDist, f, &hit) && hit.time < terrainHitT) {
     *out = (DebugInputHit){
         .pos    = hit.position,
         .normal = hit.normal,
@@ -1860,9 +1861,9 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, D
 
 static ScriptVal
 eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
-  DebugInputHit    hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+  const SceneQueryFilter filter = arg_query_filter(args, 0, err);
+  DebugInputHit          hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_vec3(hit.pos);
   }
   return script_null();
@@ -1870,9 +1871,9 @@ eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* 
 
 static ScriptVal
 eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
-  DebugInputHit    hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+  const SceneQueryFilter filter = arg_query_filter(args, 0, err);
+  DebugInputHit          hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_quat(geo_quat_look(hit.normal, geo_up));
   }
   return script_null();
@@ -1880,9 +1881,9 @@ eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* 
 
 static ScriptVal
 eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
-  DebugInputHit    hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+  const SceneQueryFilter filter = arg_query_filter(args, 0, err);
+  DebugInputHit          hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_entity_or_null(hit.entity);
   }
   return script_null();
