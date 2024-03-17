@@ -10,8 +10,8 @@ typedef enum {
 
 typedef struct {
   EcsEntityId instigator;
-  f32         amount;
-} SceneDamageInfo;
+  f32         amount; // Negative for damage, positive for healing.
+} SceneHealthMod;
 
 ecs_comp_extern_public(SceneHealthComp) {
   SceneHealthFlags flags;
@@ -23,20 +23,20 @@ ecs_comp_extern_public(SceneHealthComp) {
 };
 
 typedef struct {
-  SceneDamageInfo* values;
-  u32              count, capacity;
-} SceneDamageStorage;
+  SceneHealthMod* values;
+  u32             count, capacity;
+} SceneHealthModStorage;
 
-ecs_comp_extern_public(SceneDamageComp) {
+ecs_comp_extern_public(SceneHealthRequestComp) {
   bool singleRequest;
   union {
-    SceneDamageInfo    request;
-    SceneDamageStorage storage;
+    SceneHealthMod        request;
+    SceneHealthModStorage storage;
   };
 };
 
-ecs_comp_extern_public(SceneDamageStatsComp) {
-  f32 dealtDamage;
+ecs_comp_extern_public(SceneHealthStatsComp) {
+  f32 dealtDamage, dealtHealing;
   u32 kills;
 };
 
@@ -44,5 +44,5 @@ ecs_comp_extern_public(SceneDeadComp);
 
 f32 scene_health_points(const SceneHealthComp*);
 
-void scene_health_damage_add(SceneDamageComp*, const SceneDamageInfo*);
-void scene_health_damage(EcsWorld*, EcsEntityId target, const SceneDamageInfo*);
+void scene_health_request_add(SceneHealthRequestComp*, const SceneHealthMod*);
+void scene_health_request(EcsWorld*, EcsEntityId target, const SceneHealthMod*);

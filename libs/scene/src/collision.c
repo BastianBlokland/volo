@@ -221,6 +221,7 @@ void scene_collision_add_sphere(
     const EcsEntityId          entity,
     const SceneCollisionSphere sphere,
     const SceneLayer           layer) {
+  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
       world,
@@ -236,6 +237,7 @@ void scene_collision_add_capsule(
     const EcsEntityId           entity,
     const SceneCollisionCapsule capsule,
     const SceneLayer            layer) {
+  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
       world,
@@ -251,6 +253,7 @@ void scene_collision_add_box(
     const EcsEntityId       entity,
     const SceneCollisionBox box,
     const SceneLayer        layer) {
+  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
       world,

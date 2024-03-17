@@ -105,6 +105,23 @@
         {
           "$type": "AssetProduct_Placable",
           "meta": {
+            "name": "Medic Tent",
+            "iconImage": "icon_structure_hospital",
+            "costTime": 20,
+            "cooldown": 1,
+            "queueMax": 1,
+            "queueBulkSize": 1,
+            "soundBuilding": { "assetId": "external/sound/announcer-building-01.wav", "gain": 0.5 },
+            "soundReady": { "assetId": "external/sound/announcer-structure-ready-01.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 },
+            "soundSuccess": { "assetId": "external/sound/announcer-structure-deployed-01.wav", "gain": 0.5 }
+          },
+          "prefab": "StructureHospital",
+          "soundBlocked": { "assetId": "external/sound/announcer-location-invalid-01.wav", "gain": 0.5 }
+        },
+        {
+          "$type": "AssetProduct_Placable",
+          "meta": {
             "name": "Barracks",
             "iconImage": "icon_structure_barracks",
             "costTime": 30,

@@ -7,8 +7,15 @@ typedef enum {
   SceneVisibilityFlags_ForceVisibleForRender = 1 << 0, // Disable visibility checks for rendering.
 } SceneVisibilityFlags;
 
+typedef enum {
+  SceneVisionFlags_ShowInHud = 1 << 0,
+} SceneVisionFlags;
+
 ecs_comp_extern(SceneVisibilityEnvComp);
-ecs_comp_extern_public(SceneVisionComp) { f32 radius; };
+ecs_comp_extern_public(SceneVisionComp) {
+  SceneVisionFlags flags;
+  f32              radius;
+};
 ecs_comp_extern_public(SceneVisibilityComp) { u8 visibleToFactionsMask; };
 
 SceneVisibilityFlags scene_visibility_flags(const SceneVisibilityEnvComp*);

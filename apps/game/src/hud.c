@@ -42,14 +42,17 @@ static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
 static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = UiShape_Whatshot,
     [SceneStatusType_Bleeding] = UiShape_Droplet,
+    [SceneStatusType_Healing]  = UiShape_Hospital,
 };
 static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = {.r = 255, .g = 128, .b = 0, .a = 255},
     [SceneStatusType_Bleeding] = {.r = 255, .g = 0, .b = 0, .a = 255},
+    [SceneStatusType_Healing]  = {.r = 0, .g = 255, .b = 0, .a = 255},
 };
 static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 2,
     [SceneStatusType_Bleeding] = 2,
+    [SceneStatusType_Healing]  = 2,
 };
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
@@ -98,9 +101,9 @@ ecs_view_define(HealthView) {
 
 ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneAttackComp);
-  ecs_access_maybe_read(SceneDamageStatsComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
+  ecs_access_maybe_read(SceneHealthStatsComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
@@ -120,6 +123,11 @@ ecs_view_define(ProductionView) {
   ecs_access_read(SceneNameComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneProductionComp);
+}
+
+ecs_view_define(VisionView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneVisionComp);
 }
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
@@ -339,6 +347,7 @@ static void hud_health_draw(
     ui_layout_resize(c, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
 
     // Draw the health-bar background.
+    ui_style_outline(c, 1);
     ui_style_color(c, ui_color(8, 8, 8, 192));
     ui_canvas_draw_glyph(c, UiShape_Circle, 4, UiFlags_None);
 
@@ -404,15 +413,15 @@ static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynStri
 }
 
 static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
-  const SceneAttackComp*       attackComp   = ecs_view_read_t(infoItr, SceneAttackComp);
-  const SceneDamageStatsComp*  damageStats  = ecs_view_read_t(infoItr, SceneDamageStatsComp);
-  const SceneFactionComp*      factionComp  = ecs_view_read_t(infoItr, SceneFactionComp);
-  const SceneHealthComp*       healthComp   = ecs_view_read_t(infoItr, SceneHealthComp);
-  const SceneLocomotionComp*   locoComp     = ecs_view_read_t(infoItr, SceneLocomotionComp);
-  const SceneNameComp*         nameComp     = ecs_view_read_t(infoItr, SceneNameComp);
-  const SceneStatusComp*       statusComp   = ecs_view_read_t(infoItr, SceneStatusComp);
-  const SceneTargetFinderComp* targetFinder = ecs_view_read_t(infoItr, SceneTargetFinderComp);
-  const SceneVisibilityComp*   visComp      = ecs_view_read_t(infoItr, SceneVisibilityComp);
+  const SceneAttackComp*       attackComp       = ecs_view_read_t(infoItr, SceneAttackComp);
+  const SceneFactionComp*      factionComp      = ecs_view_read_t(infoItr, SceneFactionComp);
+  const SceneHealthComp*       healthComp       = ecs_view_read_t(infoItr, SceneHealthComp);
+  const SceneHealthStatsComp*  healthStatsComp  = ecs_view_read_t(infoItr, SceneHealthStatsComp);
+  const SceneLocomotionComp*   locoComp         = ecs_view_read_t(infoItr, SceneLocomotionComp);
+  const SceneNameComp*         nameComp         = ecs_view_read_t(infoItr, SceneNameComp);
+  const SceneStatusComp*       statusComp       = ecs_view_read_t(infoItr, SceneStatusComp);
+  const SceneTargetFinderComp* targetFinderComp = ecs_view_read_t(infoItr, SceneTargetFinderComp);
+  const SceneVisibilityComp*   visComp          = ecs_view_read_t(infoItr, SceneVisibilityComp);
 
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
@@ -439,12 +448,12 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     hud_info_status_mask_write(statusComp->active, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
-  if (targetFinder) {
+  if (targetFinderComp) {
     fmt_write(
         &buffer,
         "\a.bRange\ar:\a>15{} - {}\n",
-        fmt_float(targetFinder->rangeMin, .maxDecDigits = 1),
-        fmt_float(targetFinder->rangeMax, .maxDecDigits = 1));
+        fmt_float(targetFinderComp->rangeMin, .maxDecDigits = 1),
+        fmt_float(targetFinderComp->rangeMax, .maxDecDigits = 1));
   }
   if (attackComp && weaponMapItr) {
     const AssetWeaponMapComp* weaponMap = ecs_view_read_t(weaponMapItr, AssetWeaponMapComp);
@@ -465,9 +474,14 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   if (locoComp) {
     fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
-  if (damageStats) {
-    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)damageStats->dealtDamage));
-    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(damageStats->kills));
+  if (healthStatsComp && healthStatsComp->dealtDamage > 0.0f) {
+    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtDamage));
+  }
+  if (healthStatsComp && healthStatsComp->dealtHealing > 0.0f) {
+    fmt_write(&buffer, "\a.bDealt Heal\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtHealing));
+  }
+  if (healthStatsComp && healthStatsComp->kills) {
+    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(healthStatsComp->kills));
   }
 
   ui_tooltip(c, sentinel_u64, dynstring_view(&buffer));
@@ -669,6 +683,14 @@ static void hud_minimap_draw(
 
   ui_style_pop(c);
   ui_layout_pop(c);
+}
+
+static void hud_vision_draw(HudComp* hud, EcsIterator* drawItr, EcsIterator* itr) {
+  const SceneVisionComp* vision = ecs_view_read_t(itr, SceneVisionComp);
+  if (vision->flags & SceneVisionFlags_ShowInHud) {
+    const GeoVector pos = ecs_view_read_t(itr, SceneTransformComp)->position;
+    hud_indicator_ring_draw(hud, drawItr, pos, vision->radius, ui_color_white);
+  }
 }
 
 static void hud_production_bg_draw(UiCanvasComp* c) {
@@ -966,11 +988,13 @@ ecs_system_define(HudDrawUiSys) {
   EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
   EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
   EcsView* productionView    = ecs_world_view_t(world, ProductionView);
+  EcsView* visionView        = ecs_world_view_t(world, VisionView);
 
   EcsIterator* canvasItr     = ecs_view_itr(canvasView);
   EcsIterator* drawItr       = ecs_view_itr(drawView);
   EcsIterator* infoItr       = ecs_view_itr(infoView);
   EcsIterator* productionItr = ecs_view_itr(productionView);
+  EcsIterator* visionItr     = ecs_view_itr(visionView);
   EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
@@ -1007,6 +1031,9 @@ ecs_system_define(HudDrawUiSys) {
     hud_groups_draw(c, cmd);
     hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
 
+    if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
+      hud_vision_draw(hud, drawItr, visionItr);
+    }
     if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_production_draw(c, hud, input, drawItr, productionItr);
     }
@@ -1032,6 +1059,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(WeaponMapView);
   ecs_register_view(MinimapMarkerView);
   ecs_register_view(ProductionView);
+  ecs_register_view(VisionView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -1043,7 +1071,8 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
       ecs_view_id(MinimapMarkerView),
-      ecs_view_id(ProductionView));
+      ecs_view_id(ProductionView),
+      ecs_view_id(VisionView));
 
   enum {
     Order_Normal    = 0,

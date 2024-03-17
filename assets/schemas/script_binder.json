@@ -39,6 +39,17 @@
       }
     },
     {
+      "name": "heal",
+      "doc": "Heal the given entity.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "v", "mask": "entity" },
+          { "name": "amount", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "debug_line",
       "doc": "Draw a 3D debug line between the two given points.",
       "sig": {
@@ -131,7 +142,7 @@
     },
     {
       "name": "query_box",
-      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -140,6 +151,10 @@
           {
             "name": "rot",
             "mask": [ "null", "quat" ]
+          },
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
           },
           {
             "name": "layers",
@@ -210,7 +225,11 @@
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
-          { "name": "v", "mask": "entity" }
+          { "name": "v", "mask": "entity" },
+          {
+            "name": "normalized",
+            "mask": [ "null", "bool" ]
+          }
         ]
       }
     },
@@ -225,6 +244,16 @@
             "name": "target",
             "mask": [ "vec3", "entity" ]
           }
+        ]
+      }
+    },
+    {
+      "name": "vision",
+      "doc": "Lookup the vision radius of the given entity.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
         ]
       }
     },
@@ -357,10 +386,14 @@
     },
     {
       "name": "debug_input_rotation",
-      "doc": "Lookup the rotation at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Lookup the rotation at the debug input ray.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "quat" ],
         "args": [
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],
@@ -401,10 +434,14 @@
     },
     {
       "name": "debug_input_position",
-      "doc": "Lookup the position at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Lookup the position at the debug input ray.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "vec3" ],
         "args": [
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],
@@ -630,7 +667,7 @@
     },
     {
       "name": "status",
-      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
+      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -754,12 +791,16 @@
     },
     {
       "name": "query_sphere",
-      "doc": "Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
           { "name": "pos", "mask": "vec3" },
           { "name": "radius", "mask": "num" },
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],
@@ -849,10 +890,14 @@
     },
     {
       "name": "debug_input_entity",
-      "doc": "Lookup the entity at the debug input ray.\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
+      "doc": "Lookup the entity at the debug input ray.\n\nSupported options:\n\n-`FactionSelf`\n\n-`FactionOther`\n\nSupported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)",
       "sig": {
         "ret": [ "null", "entity" ],
         "args": [
+          {
+            "name": "option",
+            "mask": [ "null", "str" ]
+          },
           {
             "name": "layers",
             "mask": [ "null", "str" ],

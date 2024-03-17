@@ -137,52 +137,13 @@ ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
 
 static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const SceneFaction faction) {
   if (flags & AssetPrefabFlags_Infantry) {
-    switch (faction) {
-    case SceneFaction_A:
-      return SceneLayer_InfantryFactionA;
-    case SceneFaction_B:
-      return SceneLayer_InfantryFactionB;
-    case SceneFaction_C:
-      return SceneLayer_InfantryFactionC;
-    case SceneFaction_D:
-      return SceneLayer_InfantryFactionD;
-    case SceneFaction_None:
-      return SceneLayer_InfantryFactionNone;
-    default:
-      UNREACHABLE
-    }
+    return SceneLayer_Infantry & scene_faction_layers(faction);
   }
   if (flags & AssetPrefabFlags_Vehicle) {
-    switch (faction) {
-    case SceneFaction_A:
-      return SceneLayer_VehicleFactionA;
-    case SceneFaction_B:
-      return SceneLayer_VehicleFactionB;
-    case SceneFaction_C:
-      return SceneLayer_VehicleFactionC;
-    case SceneFaction_D:
-      return SceneLayer_VehicleFactionD;
-    case SceneFaction_None:
-      return SceneLayer_VehicleFactionNone;
-    default:
-      UNREACHABLE
-    }
+    return SceneLayer_Vehicle & scene_faction_layers(faction);
   }
   if (flags & AssetPrefabFlags_Structure) {
-    switch (faction) {
-    case SceneFaction_A:
-      return SceneLayer_StructureFactionA;
-    case SceneFaction_B:
-      return SceneLayer_StructureFactionB;
-    case SceneFaction_C:
-      return SceneLayer_StructureFactionC;
-    case SceneFaction_D:
-      return SceneLayer_StructureFactionD;
-    case SceneFaction_None:
-      return SceneLayer_StructureFactionNone;
-    default:
-      UNREACHABLE
-    }
+    return SceneLayer_Structure & scene_faction_layers(faction);
   }
   if (flags & AssetPrefabFlags_Destructible) {
     return SceneLayer_Destructible;
@@ -297,7 +258,7 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .deathDestroyDelay = t->deathDestroyDelay,
       .deathEffectPrefab = t->deathEffectPrefab);
 
-  ecs_world_add_t(w, e, SceneDamageComp);
+  ecs_world_add_t(w, e, SceneHealthRequestComp);
 }
 
 static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
@@ -332,7 +293,6 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .config   = config,
       .rangeMin = t->targetRangeMin,
       .rangeMax = t->targetRangeMax);
-  ecs_world_add_t(w, e, SceneDamageStatsComp);
 }
 
 static void setup_collision(
@@ -438,16 +398,16 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 }
 
 static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
-  SceneStatusMask supported = 0;
-  supported |= t->burnable ? (1 << SceneStatusType_Burning) : 0;
-  supported |= t->bleedable ? (1 << SceneStatusType_Bleeding) : 0;
-
-  ecs_world_add_t(w, e, SceneStatusComp, .supported = supported, .effectJoint = t->effectJoint);
+  ecs_world_add_t(
+      w, e, SceneStatusComp, .supported = t->supportedStatusMask, .effectJoint = t->effectJoint);
   ecs_world_add_t(w, e, SceneStatusRequestComp);
 }
 
 static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitVision* t) {
-  ecs_world_add_t(w, e, SceneVisionComp, .radius = t->radius);
+  SceneVisionFlags flags = 0;
+  flags |= t->showInHud ? SceneVisionFlags_ShowInHud : 0;
+
+  ecs_world_add_t(w, e, SceneVisionComp, .flags = flags, .radius = t->radius);
 }
 
 static void
@@ -583,6 +543,7 @@ static bool setup_prefab(
 
   if (prefab->flags & AssetPrefabFlags_Unit) {
     ecs_world_add_t(w, e, SceneVisibilityComp);
+    ecs_world_add_t(w, e, SceneHealthStatsComp);
   }
 
   if (spec->faction != SceneFaction_None) {

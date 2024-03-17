@@ -17,13 +17,15 @@ ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status 
 
 #define scene_status_effect_destroy_delay time_seconds(2)
 
-static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = 50,
-    [SceneStatusType_Bleeding] = 5,
+static const f32 g_sceneStatusHealthPerSec[SceneStatusType_Count] = {
+    [SceneStatusType_Burning]  = -50.0,
+    [SceneStatusType_Bleeding] = -5.0,
+    [SceneStatusType_Healing]  = +5.0,
 };
 static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 1.0,
     [SceneStatusType_Bleeding] = 0.75f,
+    [SceneStatusType_Healing]  = 1.0,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
@@ -32,7 +34,9 @@ static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
     [SceneStatusType_Bleeding] = time_seconds(6),
+    [SceneStatusType_Healing]  = time_seconds(2),
 };
+static const SceneStatusMask g_sceneStatusClearOnFullHealth = 1 << SceneStatusType_Healing;
 
 ecs_comp_define_public(SceneStatusComp);
 ecs_comp_define_public(SceneStatusRequestComp);
@@ -80,7 +84,7 @@ ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(StatusView) {
   ecs_access_maybe_read(SceneHealthComp);
-  ecs_access_maybe_write(SceneDamageComp);
+  ecs_access_maybe_write(SceneHealthRequestComp);
   ecs_access_write(SceneStatusComp);
   ecs_access_write(SceneStatusRequestComp);
 }
@@ -101,11 +105,11 @@ ecs_system_define(SceneStatusUpdateSys) {
 
   EcsView* statusView = ecs_world_view_t(world, StatusView);
   for (EcsIterator* itr = ecs_view_itr(statusView); ecs_view_walk(itr);) {
-    const EcsEntityId       entity  = ecs_view_entity(itr);
-    SceneStatusRequestComp* request = ecs_view_write_t(itr, SceneStatusRequestComp);
-    SceneStatusComp*        status  = ecs_view_write_t(itr, SceneStatusComp);
-    const SceneHealthComp*  health  = ecs_view_read_t(itr, SceneHealthComp);
-    SceneDamageComp*        damage  = ecs_view_write_t(itr, SceneDamageComp);
+    const EcsEntityId       entity    = ecs_view_entity(itr);
+    SceneStatusRequestComp* request   = ecs_view_write_t(itr, SceneStatusRequestComp);
+    SceneStatusComp*        status    = ecs_view_write_t(itr, SceneStatusComp);
+    const SceneHealthComp*  health    = ecs_view_read_t(itr, SceneHealthComp);
+    SceneHealthRequestComp* healthReq = ecs_view_write_t(itr, SceneHealthRequestComp);
 
     // Apply the requests.
     bool effectsDirty = false;
@@ -125,17 +129,21 @@ ecs_system_define(SceneStatusUpdateSys) {
     bitset_for(bitset_from_var(status->active), typeIndex) {
       const SceneStatusType type             = (SceneStatusType)typeIndex;
       const TimeDuration    timeSinceRefresh = time->time - status->lastRefreshTime[type];
+      if (healthReq && g_sceneStatusHealthPerSec[type] != 0.0) {
+        scene_health_request_add(
+            healthReq,
+            &(SceneHealthMod){
+                .instigator = status->instigators[type],
+                .amount     = g_sceneStatusHealthPerSec[type] * deltaSec,
+            });
+      }
       if (g_sceneStatusTimeout[type] && timeSinceRefresh > g_sceneStatusTimeout[type]) {
         status->active &= ~(1 << type);
         effectsDirty = true;
       }
-      if (damage && g_sceneStatusDamagePerSec[type] > 0) {
-        scene_health_damage_add(
-            damage,
-            &(SceneDamageInfo){
-                .instigator = status->instigators[type],
-                .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
-            });
+      if ((g_sceneStatusClearOnFullHealth & (1 << typeIndex)) && health->norm == 1.0f) {
+        status->active &= ~(1 << type);
+        effectsDirty = true;
       }
     }
 
@@ -193,6 +201,7 @@ String scene_status_name(const SceneStatusType type) {
   static const String g_names[] = {
       string_static("Burning"),
       string_static("Bleeding"),
+      string_static("Healing"),
   };
   ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
   return g_names[type];

@@ -162,6 +162,7 @@ if(${EXTERNAL_ASSETS})
       icon/icon_infantry_rocket.tga
       icon/icon_structure_barracks.tga
       icon/icon_structure_factory.tga
+      icon/icon_structure_hospital.tga
       icon/icon_structure_turret_gun.tga
       icon/icon_structure_turret_missile.tga
       icon/icon_vehicle_tank.tga
@@ -243,6 +244,7 @@ if(${EXTERNAL_ASSETS})
       tank/tank_04.gltf
       tank/tank_2_color_rough.tga
       tent/tent_color_rough.tga
+      tent/tent_medical_color_rough.tga
       tent/tent_normal.tga
       tent/tent.bin
       tent/tent.gltf

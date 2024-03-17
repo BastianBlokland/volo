@@ -34,8 +34,10 @@ static void asset_binder_init() {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
     // clang-format off
     static const String g_layersDoc       = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+    static const String g_queryOptionDoc  = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
     static const String g_capabilitiesDoc = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
     static const String g_activitiesDoc   = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
+    static const String g_statusDoc       = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`");
     {
       const String     name = string_lit("self");
       const String     doc  = string_lit("Return the entity that is executing the current script.");
@@ -111,6 +113,16 @@ static void asset_binder_init() {
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
+          {string_lit("normalized"), script_mask_bool | script_mask_null},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
+      const String       name   = string_lit("vision");
+      const String       doc    = string_lit("Lookup the vision radius of the given entity.");
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }
@@ -155,23 +167,25 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("query_sphere");
-      const String       doc    = fmt_write_scratch("Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\n{}", fmt_text(g_layersDoc));
+      const String       doc    = fmt_write_scratch("Find all the entities that are touching the given sphere.\n\n*Note*: Returns a query handle.\n\n{}\n\n{}", fmt_text(g_queryOptionDoc), fmt_text(g_layersDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
           {string_lit("radius"), script_mask_num},
+          {string_lit("option"), script_mask_str | script_mask_null},
           {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("query_box");
-      const String       doc    = fmt_write_scratch("Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\n{}", fmt_text(g_layersDoc));
+      const String       doc    = fmt_write_scratch("Find all the entities that are touching the given box.\n\n*Note*: Returns a query handle.\n\n{}\n\n{}", fmt_text(g_queryOptionDoc), fmt_text(g_layersDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
           {string_lit("size"), script_mask_vec3},
           {string_lit("rot"), script_mask_quat | script_mask_null},
+          {string_lit("option"), script_mask_str | script_mask_null},
           {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
@@ -398,8 +412,18 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("heal");
+      const String       doc    = string_lit("Heal the given entity.");
+      const ScriptMask   ret    = script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("amount"), script_mask_num},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("status");
-      const String       doc    = string_lit("Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`");
+      const String       doc    = fmt_write_scratch("Change or query if an entity is affected by the specified status.\n\n{}", fmt_text(g_statusDoc));
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -699,27 +723,30 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("debug_input_position");
-      const String       doc    = fmt_write_scratch("Lookup the position at the debug input ray.\n\n{}", fmt_text(g_layersDoc));
+      const String       doc    = fmt_write_scratch("Lookup the position at the debug input ray.\n\n{}\n\n{}", fmt_text(g_queryOptionDoc), fmt_text(g_layersDoc));
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
+          {string_lit("option"), script_mask_str | script_mask_null},
           {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("debug_input_rotation");
-      const String       doc    = fmt_write_scratch("Lookup the rotation at the debug input ray.\n\n{}", fmt_text(g_layersDoc));
+      const String       doc    = fmt_write_scratch("Lookup the rotation at the debug input ray.\n\n{}\n\n{}", fmt_text(g_queryOptionDoc), fmt_text(g_layersDoc));
       const ScriptMask   ret    = script_mask_quat | script_mask_null;
       const ScriptSigArg args[] = {
+          {string_lit("option"), script_mask_str | script_mask_null},
           {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
       const String       name   = string_lit("debug_input_entity");
-      const String       doc    = fmt_write_scratch("Lookup the entity at the debug input ray.\n\n{}", fmt_text(g_layersDoc));
+      const String       doc    = fmt_write_scratch("Lookup the entity at the debug input ray.\n\n{}\n\n{}", fmt_text(g_queryOptionDoc), fmt_text(g_layersDoc));
       const ScriptMask   ret    = script_mask_entity | script_mask_null;
       const ScriptSigArg args[] = {
+          {string_lit("option"), script_mask_str | script_mask_null},
           {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
       };
       bind(binder, name, doc, ret, args, array_elems(args));

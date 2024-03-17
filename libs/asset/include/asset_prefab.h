@@ -166,12 +166,13 @@ typedef struct {
 } AssetPrefabTraitLocation;
 
 typedef struct {
+  u8         supportedStatusMask; // Mask of status-effects that can be applied to this entity.
   StringHash effectJoint;
-  bool       burnable, bleedable;
 } AssetPrefabTraitStatus;
 
 typedef struct {
-  f32 radius;
+  f32  radius;
+  bool showInHud;
 } AssetPrefabTraitVision;
 
 typedef struct {

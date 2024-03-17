@@ -72,28 +72,10 @@ static bool projectile_query_filter(const void* ctx, const EcsEntityId entity, c
   return true;
 }
 
-static SceneLayer projectile_faction_ignore_layers(const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-    return SceneLayer_UnitFactionA;
-  case SceneFaction_B:
-    return SceneLayer_UnitFactionB;
-  case SceneFaction_C:
-    return SceneLayer_UnitFactionC;
-  case SceneFaction_D:
-    return SceneLayer_UnitFactionD;
-  case SceneFaction_None:
-    return SceneLayer_None;
-  case SceneFaction_Count:
-    break;
-  }
-  diag_crash_msg("Unsupported faction");
-}
-
 static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
   SceneLayer layer = SceneLayer_Environment | SceneLayer_Unit | SceneLayer_Destructible;
   if (faction) {
-    layer &= ~projectile_faction_ignore_layers(faction->id);
+    layer &= ~scene_faction_layers(faction->id); // Ignore units in from the same faction.
   }
   return layer;
 }
@@ -151,17 +133,18 @@ static void projectile_hit(
   }
 
   // Damage all the found entities.
+  diag_assert(proj->damage > f32_epsilon);
   for (u32 i = 0; i != hitCount; ++i) {
     if (!ecs_world_exists(world, hits[i])) {
       continue;
     }
     if (ecs_world_has_t(world, hits[i], SceneHealthComp)) {
-      scene_health_damage(
+      scene_health_request(
           world,
           hits[i],
-          &(SceneDamageInfo){
+          &(SceneHealthMod){
               .instigator = proj->instigator,
-              .amount     = proj->damage,
+              .amount     = -proj->damage /* negate to deal damage */,
           });
     }
     if (proj->applyStatus && ecs_world_has_t(world, hits[i], SceneStatusComp)) {

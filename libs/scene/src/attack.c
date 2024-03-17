@@ -149,28 +149,10 @@ static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* 
   return tgtT > 0 ? geo_ray_position(&ray, tgtT) : origin;
 }
 
-static SceneLayer damage_ignore_layers(const SceneFaction factionId) {
-  switch (factionId) {
-  case SceneFaction_A:
-    return SceneLayer_UnitFactionA;
-  case SceneFaction_B:
-    return SceneLayer_UnitFactionB;
-  case SceneFaction_C:
-    return SceneLayer_UnitFactionC;
-  case SceneFaction_D:
-    return SceneLayer_UnitFactionD;
-  case SceneFaction_None:
-    return SceneLayer_None;
-  case SceneFaction_Count:
-    break;
-  }
-  diag_crash_msg("Unsupported faction");
-}
-
 static SceneLayer damage_query_layer_mask(const SceneFaction factionId) {
   SceneLayer mask = SceneLayer_Unit | SceneLayer_Destructible;
   if (factionId != SceneFaction_None) {
-    mask &= ~damage_ignore_layers(factionId);
+    mask &= ~scene_faction_layers(factionId); // Ignore units in from the same faction.
   }
   return mask;
 }
@@ -434,12 +416,12 @@ static EffectResult effect_update_dmg(
     // Apply damage.
     if (def->damage > f32_epsilon) {
       const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
-      scene_health_damage(
+      scene_health_request(
           ctx->world,
           hits[i],
-          &(SceneDamageInfo){
+          &(SceneHealthMod){
               .instigator = ctx->instigator,
-              .amount     = damageThisTick,
+              .amount     = -damageThisTick /* negate to deal damage */,
           });
     }
 

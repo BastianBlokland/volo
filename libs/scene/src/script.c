@@ -63,6 +63,7 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumSoundParam,
                   g_scriptEnumAnimParam,
                   g_scriptEnumLayer,
+                  g_scriptEnumQueryOption,
                   g_scriptEnumStatus,
                   g_scriptEnumBark;
 
@@ -163,6 +164,11 @@ static void eval_enum_init_layer() {
   // clang-format on
 }
 
+static void eval_enum_init_query_option() {
+  script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionSelf"), 1);
+  script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionOther"), 2);
+}
+
 static void eval_enum_init_status() {
   for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
     script_enum_push(&g_scriptEnumStatus, scene_status_name(type), type);
@@ -183,7 +189,7 @@ typedef enum {
   ScriptActionType_NavStop,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
-  ScriptActionType_Damage,
+  ScriptActionType_HealthMod,
   ScriptActionType_Attack,
   ScriptActionType_Bark,
   ScriptActionType_UpdateSet,
@@ -244,8 +250,8 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
-  f32         amount;
-} ScriptActionDamage;
+  f32         amount; // Negative for damage, positive for healing.
+} ScriptActionHealthMod;
 
 typedef struct {
   EcsEntityId entity;
@@ -311,7 +317,7 @@ typedef struct {
     ScriptActionNavStop               data_navStop;
     ScriptActionAttach                data_attach;
     ScriptActionDetach                data_detach;
-    ScriptActionDamage                data_damage;
+    ScriptActionHealthMod             data_healthMod;
     ScriptActionAttack                data_attack;
     ScriptActionBark                  data_bark;
     ScriptActionUpdateSet             data_updateSet;
@@ -339,6 +345,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalVisionView) { ecs_access_read(SceneVisionComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalRenderableView) { ecs_access_read(SceneRenderableComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
@@ -386,6 +393,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* visionItr;
   EcsIterator* statusItr;
   EcsIterator* renderableItr;
   EcsIterator* vfxSysItr;
@@ -403,6 +411,7 @@ typedef struct {
   EcsIterator* skeletonTemplItr;
 
   EcsEntityId            instigator;
+  SceneFaction           instigatorFaction;
   SceneScriptSlot        slot;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
@@ -457,6 +466,21 @@ static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* e
     layerMask |= (SceneLayer)script_arg_enum(a, argIndex, &g_scriptEnumLayer, err);
   }
   return layerMask;
+}
+
+static SceneQueryFilter arg_query_filter(
+    const SceneFaction factionSelf, const ScriptArgs a, const u16 i, ScriptError* err) {
+  const u32  option    = script_arg_opt_enum(a, i, &g_scriptEnumQueryOption, 0, err);
+  SceneLayer layerMask = arg_layer_mask(a, i + 1, err);
+  switch (option) {
+  case 1 /* FactionSelf */:
+    layerMask &= scene_faction_layers(factionSelf);
+    break;
+  case 2 /* FactionOther */:
+    layerMask &= ~scene_faction_layers(factionSelf);
+    break;
+  }
+  return (SceneQueryFilter){.layerMask = layerMask};
 }
 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -515,17 +539,30 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
 }
 
 static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+  const EcsEntityId e          = script_arg_entity(args, 0, err);
+  const bool        normalized = script_arg_opt_bool(args, 1, false, err);
   if (ecs_view_maybe_jump(ctx->healthItr, e)) {
     const SceneHealthComp* healthComp = ecs_view_read_t(ctx->healthItr, SceneHealthComp);
+    if (normalized) {
+      return script_num(healthComp->norm);
+    }
     return script_num(scene_health_points(healthComp));
+  }
+  return script_null();
+}
+
+static ScriptVal eval_vision(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->visionItr, e)) {
+    const SceneVisionComp* visionComp = ecs_view_read_t(ctx->visionItr, SceneVisionComp);
+    return script_num(visionComp->radius);
   }
   return script_null();
 }
 
 static ScriptVal eval_visible(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const GeoVector    pos        = script_arg_vec3(args, 0, err);
-  const SceneFaction factionDef = SceneFaction_A;
+  const SceneFaction factionDef = ctx->instigatorFaction;
   const SceneFaction faction = script_arg_opt_enum(args, 1, &g_scriptEnumFaction, factionDef, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -615,9 +652,9 @@ static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptE
 static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector  pos       = script_arg_vec3(args, 0, err);
-  const f32        radius    = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
-  const SceneLayer layerMask = arg_layer_mask(args, 2, err);
+  const GeoVector        pos    = script_arg_vec3(args, 0, err);
+  const f32              radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 2, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -631,8 +668,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
 
   ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
 
-  const SceneQueryFilter filter = {.layerMask = layerMask};
-  const GeoSphere        sphere = {.point = pos, .radius = radius};
+  const GeoSphere sphere = {.point = pos, .radius = radius};
 
   query->count = scene_query_sphere_all(colEnv, &sphere, &filter, query->values);
   query->itr   = 0;
@@ -643,10 +679,10 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
 static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector  pos       = script_arg_vec3(args, 0, err);
-  const GeoVector  size      = script_arg_vec3(args, 1, err);
-  const GeoQuat    rot       = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  const SceneLayer layerMask = arg_layer_mask(args, 3, err);
+  const GeoVector        pos    = script_arg_vec3(args, 0, err);
+  const GeoVector        size   = script_arg_vec3(args, 1, err);
+  const GeoQuat          rot    = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 3, err);
 
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
@@ -659,8 +695,6 @@ static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   }
 
   ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
-
-  const SceneQueryFilter filter = {.layerMask = layerMask};
 
   GeoBoxRotated boxRotated;
   boxRotated.box      = geo_box_from_center(pos, size);
@@ -1140,8 +1174,20 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type        = ScriptActionType_Damage,
-        .data_damage = {.entity = entity, .amount = amount},
+        .type           = ScriptActionType_HealthMod,
+        .data_healthMod = {.entity = entity, .amount = -amount /* negate for damage */},
+    };
+  }
+  return script_null();
+}
+
+static ScriptVal eval_heal(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
+  if (LIKELY(entity) && amount > f32_epsilon) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type           = ScriptActionType_HealthMod,
+        .data_healthMod = {.entity = entity, .amount = amount},
     };
   }
   return script_null();
@@ -1813,7 +1859,7 @@ typedef struct {
   EcsEntityId entity;
 } DebugInputHit;
 
-static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, DebugInputHit* out) {
+static bool eval_debug_input_hit(EvalContext* ctx, const SceneQueryFilter* f, DebugInputHit* out) {
   const SceneTerrainComp*      terrain = ecs_view_read_t(ctx->globalItr, SceneTerrainComp);
   const SceneCollisionEnvComp* colEnv  = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
@@ -1823,9 +1869,8 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, D
   if (scene_terrain_loaded(terrain)) {
     terrainHitT = scene_terrain_intersect_ray(terrain, &ctx->debugRay, g_maxDist);
   }
-  SceneRayHit            hit;
-  const SceneQueryFilter filter = {.layerMask = layerMask};
-  if (scene_query_ray(colEnv, &ctx->debugRay, g_maxDist, &filter, &hit) && hit.time < terrainHitT) {
+  SceneRayHit hit;
+  if (scene_query_ray(colEnv, &ctx->debugRay, g_maxDist, f, &hit) && hit.time < terrainHitT) {
     *out = (DebugInputHit){
         .pos    = hit.position,
         .normal = hit.normal,
@@ -1848,9 +1893,9 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneLayer layerMask, D
 
 static ScriptVal
 eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
-  DebugInputHit    hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
+  DebugInputHit          hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_vec3(hit.pos);
   }
   return script_null();
@@ -1858,9 +1903,9 @@ eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* 
 
 static ScriptVal
 eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
-  DebugInputHit    hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
+  DebugInputHit          hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_quat(geo_quat_look(hit.normal, geo_up));
   }
   return script_null();
@@ -1868,9 +1913,9 @@ eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* 
 
 static ScriptVal
 eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneLayer layerMask = arg_layer_mask(args, 0, err);
-  DebugInputHit    hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, layerMask, &hit)) {
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
+  DebugInputHit          hit;
+  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_entity_or_null(hit.entity);
   }
   return script_null();
@@ -1909,6 +1954,7 @@ static void eval_binder_init() {
     eval_enum_init_sound_param();
     eval_enum_init_anim_param();
     eval_enum_init_layer();
+    eval_enum_init_query_option();
     eval_enum_init_status();
     eval_enum_init_bark();
 
@@ -1922,6 +1968,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("name"),                   eval_name);
     eval_bind(b, string_lit("faction"),                eval_faction);
     eval_bind(b, string_lit("health"),                 eval_health);
+    eval_bind(b, string_lit("vision"),                 eval_vision);
     eval_bind(b, string_lit("visible"),                eval_visible);
     eval_bind(b, string_lit("time"),                   eval_time);
     eval_bind(b, string_lit("set"),                    eval_set);
@@ -1950,6 +1997,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("attach"),                 eval_attach);
     eval_bind(b, string_lit("detach"),                 eval_detach);
     eval_bind(b, string_lit("damage"),                 eval_damage);
+    eval_bind(b, string_lit("heal"),                   eval_heal);
     eval_bind(b, string_lit("attack"),                 eval_attack);
     eval_bind(b, string_lit("attack_target"),          eval_attack_target);
     eval_bind(b, string_lit("bark"),                   eval_bark);
@@ -2036,6 +2084,7 @@ ecs_system_define(SceneScriptEnvInitSys) {
 ecs_view_define(ScriptUpdateView) {
   ecs_access_write(SceneScriptComp);
   ecs_access_write(SceneKnowledgeComp);
+  ecs_access_maybe_read(SceneFactionComp);
 }
 
 ecs_view_define(ResourceAssetView) {
@@ -2150,6 +2199,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .visionItr        = ecs_view_itr(ecs_world_view_t(world, EvalVisionView)),
       .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
       .vfxSysItr        = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
@@ -2172,11 +2222,14 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    ctx.instigator      = ecs_view_entity(itr);
-    ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
-    ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
-    ctx.actions         = &ctx.scriptInstance->actions;
-    ctx.debug           = &ctx.scriptInstance->debug;
+    const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
+
+    ctx.instigator        = ecs_view_entity(itr);
+    ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
+    ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
+    ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.actions           = &ctx.scriptInstance->actions;
+    ctx.debug             = &ctx.scriptInstance->debug;
 
     // Clear the previous frame transient data.
     if (ctx.scriptInstance->allocTransient) {
@@ -2226,7 +2279,7 @@ ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
 ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
-ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
+ecs_view_define(ActionHealthReqView) { ecs_access_write(SceneHealthRequestComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 ecs_view_define(ActionBarkView) { ecs_access_write(SceneBarkComp); }
 ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
@@ -2245,7 +2298,7 @@ typedef struct {
   EcsIterator* transItr;
   EcsIterator* navAgentItr;
   EcsIterator* attachItr;
-  EcsIterator* damageItr;
+  EcsIterator* healthReqItr;
   EcsIterator* attackItr;
   EcsIterator* barkItr;
   EcsIterator* renderableItr;
@@ -2349,12 +2402,12 @@ static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
   }
 }
 
-static void action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
-  if (ecs_view_maybe_jump(ctx->damageItr, a->entity)) {
-    SceneDamageComp* damageComp = ecs_view_write_t(ctx->damageItr, SceneDamageComp);
-    scene_health_damage_add(
-        damageComp,
-        &(SceneDamageInfo){
+static void action_health_mod(ActionContext* ctx, const ScriptActionHealthMod* a) {
+  if (ecs_view_maybe_jump(ctx->healthReqItr, a->entity)) {
+    SceneHealthRequestComp* reqComp = ecs_view_write_t(ctx->healthReqItr, SceneHealthRequestComp);
+    scene_health_request_add(
+        reqComp,
+        &(SceneHealthMod){
             .instigator = ctx->instigator,
             .amount     = a->amount,
         });
@@ -2508,7 +2561,7 @@ ecs_system_define(ScriptActionApplySys) {
       .transItr      = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
       .navAgentItr   = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
       .attachItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
-      .damageItr     = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
+      .healthReqItr  = ecs_view_itr(ecs_world_view_t(world, ActionHealthReqView)),
       .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
       .renderableItr = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
@@ -2550,8 +2603,8 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_Detach:
         action_detach(&ctx, &action->data_detach);
         break;
-      case ScriptActionType_Damage:
-        action_damage(&ctx, &action->data_damage);
+      case ScriptActionType_HealthMod:
+        action_health_mod(&ctx, &action->data_healthMod);
         break;
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
@@ -2610,6 +2663,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalVisionView),
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalRenderableView),
       ecs_register_view(EvalVfxSysView),
@@ -2637,7 +2691,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionTransformView),
       ecs_register_view(ActionNavAgentView),
       ecs_register_view(ActionAttachmentView),
-      ecs_register_view(ActionDamageView),
+      ecs_register_view(ActionHealthReqView),
       ecs_register_view(ActionAttackView),
       ecs_register_view(ActionBarkView),
       ecs_register_view(ActionRenderableView),
