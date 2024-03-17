@@ -17,9 +17,10 @@ ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status 
 
 #define scene_status_effect_destroy_delay time_seconds(2)
 
-static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = 50,
-    [SceneStatusType_Bleeding] = 5,
+static const f32 g_sceneStatusHealthPerSec[SceneStatusType_Count] = {
+    [SceneStatusType_Burning]  = -50.0,
+    [SceneStatusType_Bleeding] = -5.0,
+    [SceneStatusType_Healing]  = +5.0,
 };
 static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 1.0,
@@ -131,12 +132,12 @@ ecs_system_define(SceneStatusUpdateSys) {
         status->active &= ~(1 << type);
         effectsDirty = true;
       }
-      if (healthReq && g_sceneStatusDamagePerSec[type] > 0) {
+      if (healthReq && g_sceneStatusHealthPerSec[type] != 0.0) {
         scene_health_request_add(
             healthReq,
             &(SceneHealthMod){
                 .instigator = status->instigators[type],
-                .amount = -g_sceneStatusDamagePerSec[type] * deltaSec /* negate to deal damage */,
+                .amount     = g_sceneStatusHealthPerSec[type] * deltaSec,
             });
       }
     }
