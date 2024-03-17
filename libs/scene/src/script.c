@@ -537,9 +537,13 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
 }
 
 static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+  const EcsEntityId e          = script_arg_entity(args, 0, err);
+  const bool        normalized = script_arg_opt_bool(args, 1, false, err);
   if (ecs_view_maybe_jump(ctx->healthItr, e)) {
     const SceneHealthComp* healthComp = ecs_view_read_t(ctx->healthItr, SceneHealthComp);
+    if (normalized) {
+      return script_num(healthComp->norm);
+    }
     return script_num(scene_health_points(healthComp));
   }
   return script_null();

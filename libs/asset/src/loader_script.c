@@ -112,6 +112,7 @@ static void asset_binder_init() {
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
+          {string_lit("normalized"), script_mask_bool | script_mask_null},
       };
       bind(binder, name, doc, ret, args, array_elems(args));
     }

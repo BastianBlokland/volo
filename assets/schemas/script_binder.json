@@ -225,7 +225,11 @@
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
-          { "name": "v", "mask": "entity" }
+          { "name": "v", "mask": "entity" },
+          {
+            "name": "normalized",
+            "mask": [ "null", "bool" ]
+          }
         ]
       }
     },
