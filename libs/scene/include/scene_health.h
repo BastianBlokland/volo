@@ -25,13 +25,13 @@ ecs_comp_extern_public(SceneHealthComp) {
 typedef struct {
   SceneHealthMod* values;
   u32             count, capacity;
-} SceneDamageStorage;
+} SceneHealthModStorage;
 
 ecs_comp_extern_public(SceneDamageComp) {
   bool singleRequest;
   union {
-    SceneHealthMod     request;
-    SceneDamageStorage storage;
+    SceneHealthMod        request;
+    SceneHealthModStorage storage;
   };
 };
 

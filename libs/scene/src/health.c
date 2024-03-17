@@ -27,7 +27,7 @@ ecs_comp_define_public(SceneHealthStatsComp);
 ecs_comp_define_public(SceneDeadComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
-static SceneHealthMod* damage_storage_push(SceneDamageStorage* storage) {
+static SceneHealthMod* mod_storage_push(SceneHealthModStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {
     const u32       newCapacity = storage->capacity ? bits_nextpow2(storage->capacity + 1) : 4;
     SceneHealthMod* newValues   = alloc_array_t(g_alloc_heap, SceneHealthMod, newCapacity);
@@ -47,9 +47,9 @@ static SceneHealthMod* damage_storage_push(SceneDamageStorage* storage) {
   return &storage->values[storage->count++];
 }
 
-static void damage_storage_clear(SceneDamageStorage* storage) { storage->count = 0; }
+static void mod_storage_clear(SceneHealthModStorage* storage) { storage->count = 0; }
 
-static void damage_storage_destroy(SceneDamageStorage* storage) {
+static void mod_storage_destroy(SceneHealthModStorage* storage) {
   if (storage->capacity) {
     alloc_free_array_t(g_alloc_heap, storage->values, storage->capacity);
   }
@@ -62,13 +62,13 @@ static void ecs_combine_damage(void* dataA, void* dataB) {
   diag_assert_msg(!dmgA->singleRequest, "Existing SceneDamageComp cannot be a single-request");
   diag_assert_msg(dmgB->singleRequest, "Incoming SceneDamageComp has be a single-request");
 
-  *damage_storage_push(&dmgA->storage) = dmgB->request;
+  *mod_storage_push(&dmgA->storage) = dmgB->request;
 }
 
 static void ecs_destruct_damage(void* data) {
   SceneDamageComp* comp = data;
   if (!comp->singleRequest) {
-    damage_storage_destroy(&comp->storage);
+    mod_storage_destroy(&comp->storage);
   }
 }
 
@@ -242,7 +242,7 @@ ecs_system_define(SceneHealthUpdateSys) {
         }
       }
     }
-    damage_storage_clear(&damage->storage);
+    mod_storage_clear(&damage->storage);
 
     // Activate damage effects when we received damage.
     if (totalDamageAmount > 0.0f && !isDead) {
@@ -315,7 +315,7 @@ f32 scene_health_points(const SceneHealthComp* health) { return health->max * he
 void scene_health_damage_add(SceneDamageComp* damage, const SceneHealthMod* mod) {
   diag_assert(mod->amount >= 0.0f);
   diag_assert_msg(!damage->singleRequest, "SceneDamageComp needs a storage");
-  *damage_storage_push(&damage->storage) = *mod;
+  *mod_storage_push(&damage->storage) = *mod;
 }
 
 void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneHealthMod* mod) {
