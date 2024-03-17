@@ -657,7 +657,7 @@
     },
     {
       "name": "status",
-      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`",
+      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [

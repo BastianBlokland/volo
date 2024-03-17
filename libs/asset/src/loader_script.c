@@ -37,6 +37,7 @@ static void asset_binder_init() {
     static const String g_queryOptionDoc  = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
     static const String g_capabilitiesDoc = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
     static const String g_activitiesDoc   = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
+    static const String g_statusDoc       = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`");
     {
       const String     name = string_lit("self");
       const String     doc  = string_lit("Return the entity that is executing the current script.");
@@ -413,7 +414,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("status");
-      const String       doc    = string_lit("Change or query if an entity is affected by the specified status.\n\nSupported parameters:\n\n-`Burning`");
+      const String       doc    = fmt_write_scratch("Change or query if an entity is affected by the specified status.\n\n{}", fmt_text(g_statusDoc));
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
