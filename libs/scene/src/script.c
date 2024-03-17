@@ -176,8 +176,9 @@ static void eval_enum_init_status() {
 }
 
 static void eval_enum_init_bark() {
-  script_enum_push(&g_scriptEnumBark, string_lit("Death"), SceneBarkType_Death);
-  script_enum_push(&g_scriptEnumBark, string_lit("Confirm"), SceneBarkType_Confirm);
+  for (SceneBarkType bark = 0; bark != SceneBarkType_Count; ++bark) {
+    script_enum_push(&g_scriptEnumBark, scene_bark_name(bark), bark);
+  }
 }
 
 typedef enum {
@@ -866,9 +867,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
