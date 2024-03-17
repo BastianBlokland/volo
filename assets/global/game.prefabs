@@ -558,6 +558,10 @@
             "max": { "x": 1.5, "y": 1.5, "z": 2 }
           }
         },
+        {
+          "$type": "AssetPrefabTrait_Script",
+          "scriptIds": [ "scripts/behavior/unit_hospital.script" ]
+        },
         { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
       ]
     },

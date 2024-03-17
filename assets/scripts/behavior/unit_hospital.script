@@ -1,0 +1,16 @@
+
+/**
+ * Heal units in area.
+ */
+
+var me     = self()
+var radius = 10
+var layer  = "Infantry"
+
+var units = query_sphere(position(me), radius, "FactionSelf", layer)
+while (var unit = query_pop(units)) {
+  var unitHealthNorm = health(unit, true)
+  if (unitHealthNorm && unitHealthNorm < 1.0) {
+    status(unit, "Healing", true)
+  }
+}
