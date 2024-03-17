@@ -36,6 +36,7 @@ static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Bleeding] = time_seconds(6),
     [SceneStatusType_Healing]  = time_seconds(1),
 };
+static const SceneStatusMask g_sceneStatusClearOnFullHealth = 1 << SceneStatusType_Healing;
 
 ecs_comp_define_public(SceneStatusComp);
 ecs_comp_define_public(SceneStatusRequestComp);
@@ -128,10 +129,6 @@ ecs_system_define(SceneStatusUpdateSys) {
     bitset_for(bitset_from_var(status->active), typeIndex) {
       const SceneStatusType type             = (SceneStatusType)typeIndex;
       const TimeDuration    timeSinceRefresh = time->time - status->lastRefreshTime[type];
-      if (g_sceneStatusTimeout[type] && timeSinceRefresh > g_sceneStatusTimeout[type]) {
-        status->active &= ~(1 << type);
-        effectsDirty = true;
-      }
       if (healthReq && g_sceneStatusHealthPerSec[type] != 0.0) {
         scene_health_request_add(
             healthReq,
@@ -139,6 +136,14 @@ ecs_system_define(SceneStatusUpdateSys) {
                 .instigator = status->instigators[type],
                 .amount     = g_sceneStatusHealthPerSec[type] * deltaSec,
             });
+      }
+      if (g_sceneStatusTimeout[type] && timeSinceRefresh > g_sceneStatusTimeout[type]) {
+        status->active &= ~(1 << type);
+        effectsDirty = true;
+      }
+      if ((g_sceneStatusClearOnFullHealth & (1 << typeIndex)) && health->norm == 1.0f) {
+        status->active &= ~(1 << type);
+        effectsDirty = true;
       }
     }
 
