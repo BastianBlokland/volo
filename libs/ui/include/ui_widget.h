@@ -23,10 +23,11 @@ typedef enum {
 } UiTextboxType;
 
 typedef struct {
-  u16     fontSize;
-  UiAlign align;
-  bool    selectable; // NOTE: Only supports single-line text.
-  String  tooltip;
+  u16      fontSize;
+  UiAlign  align;
+  bool     selectable; // NOTE: Only supports single-line text.
+  String   tooltip;
+  UiVector tooltipMaxSize;
 } UiLabelOpts;
 
 typedef struct {
@@ -114,8 +115,9 @@ typedef struct {
  */
 #define ui_label(_CANVAS_, _TEXT_, ...) ui_label_with_opts((_CANVAS_), (_TEXT_),                   \
   &((UiLabelOpts){                                                                                 \
-    .fontSize = 16,                                                                                \
-    .align    = UiAlign_MiddleLeft,                                                                \
+    .fontSize        = 16,                                                                         \
+    .align           = UiAlign_MiddleLeft,                                                         \
+    .tooltipMaxSize  = {500, 400},                                                                 \
     __VA_ARGS__}))
 
 /**
