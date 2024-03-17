@@ -4,7 +4,7 @@
  */
 
 var me     = self()
-var radius = 10
+var radius = vision(me)
 var layer  = "Infantry"
 
 var units = query_sphere(position(me), radius, "FactionSelf", layer)

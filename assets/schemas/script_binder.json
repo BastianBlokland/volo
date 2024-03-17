@@ -248,6 +248,16 @@
       }
     },
     {
+      "name": "vision",
+      "doc": "Lookup the vision radius of the given entity.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
       "name": "renderable_spawn",
       "doc": "Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.",
       "sig": {

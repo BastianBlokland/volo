@@ -345,6 +345,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalVisionView) { ecs_access_read(SceneVisionComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalRenderableView) { ecs_access_read(SceneRenderableComp); }
 ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
@@ -392,6 +393,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* visionItr;
   EcsIterator* statusItr;
   EcsIterator* renderableItr;
   EcsIterator* vfxSysItr;
@@ -545,6 +547,15 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
       return script_num(healthComp->norm);
     }
     return script_num(scene_health_points(healthComp));
+  }
+  return script_null();
+}
+
+static ScriptVal eval_vision(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (ecs_view_maybe_jump(ctx->visionItr, e)) {
+    const SceneVisionComp* visionComp = ecs_view_read_t(ctx->visionItr, SceneVisionComp);
+    return script_num(visionComp->radius);
   }
   return script_null();
 }
@@ -1957,6 +1968,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("name"),                   eval_name);
     eval_bind(b, string_lit("faction"),                eval_faction);
     eval_bind(b, string_lit("health"),                 eval_health);
+    eval_bind(b, string_lit("vision"),                 eval_vision);
     eval_bind(b, string_lit("visible"),                eval_visible);
     eval_bind(b, string_lit("time"),                   eval_time);
     eval_bind(b, string_lit("set"),                    eval_set);
@@ -2187,6 +2199,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .visionItr        = ecs_view_itr(ecs_world_view_t(world, EvalVisionView)),
       .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
       .vfxSysItr        = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
@@ -2650,6 +2663,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalVisionView),
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalRenderableView),
       ecs_register_view(EvalVfxSysView),

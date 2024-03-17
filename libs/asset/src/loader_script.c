@@ -118,6 +118,15 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("vision");
+      const String       doc    = string_lit("Lookup the vision radius of the given entity.");
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("visible");
       const String       doc    = string_lit("Check if the given position is visible for this faction.");
       const ScriptMask   ret    = script_mask_bool;
