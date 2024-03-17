@@ -197,6 +197,7 @@ ecs_module_init(scene_bark_module) {
 }
 
 String scene_bark_name(const SceneBarkType type) {
+  diag_assert(type < SceneBarkType_Count);
   static const String g_names[] = {
       string_static("Death"),
       string_static("Confirm"),
