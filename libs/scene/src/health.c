@@ -22,7 +22,7 @@ static const f32 g_healthMinNormDamageForAnim = 0.05f;
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
-ecs_comp_define_public(SceneDamageComp);
+ecs_comp_define_public(SceneHealthRequestComp);
 ecs_comp_define_public(SceneHealthStatsComp);
 ecs_comp_define_public(SceneDeadComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
@@ -55,18 +55,18 @@ static void mod_storage_destroy(SceneHealthModStorage* storage) {
   }
 }
 
-static void ecs_combine_damage(void* dataA, void* dataB) {
-  SceneDamageComp* dmgA = dataA;
-  SceneDamageComp* dmgB = dataB;
+static void ecs_combine_request(void* dataA, void* dataB) {
+  SceneHealthRequestComp* dmgA = dataA;
+  SceneHealthRequestComp* dmgB = dataB;
 
-  diag_assert_msg(!dmgA->singleRequest, "Existing SceneDamageComp cannot be a single-request");
-  diag_assert_msg(dmgB->singleRequest, "Incoming SceneDamageComp has be a single-request");
+  diag_assert_msg(!dmgA->singleRequest, "Existing health-request cannot be a single-request");
+  diag_assert_msg(dmgB->singleRequest, "Incoming health-request has be a single-request");
 
   *mod_storage_push(&dmgA->storage) = dmgB->request;
 }
 
-static void ecs_destruct_damage(void* data) {
-  SceneDamageComp* comp = data;
+static void ecs_destruct_request(void* data) {
+  SceneHealthRequestComp* comp = data;
   if (!comp->singleRequest) {
     mod_storage_destroy(&comp->storage);
   }
@@ -191,10 +191,10 @@ ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneHealthAnimComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
-  ecs_access_maybe_write(SceneTagComp);
   ecs_access_maybe_write(SceneBarkComp);
-  ecs_access_write(SceneDamageComp);
+  ecs_access_maybe_write(SceneTagComp);
   ecs_access_write(SceneHealthComp);
+  ecs_access_write(SceneHealthRequestComp);
 }
 
 ecs_view_define(HealthStatsView) { ecs_access_write(SceneHealthStatsComp); }
@@ -217,7 +217,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     const SceneHealthAnimComp* healthAnim = ecs_view_read_t(itr, SceneHealthAnimComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
+    SceneHealthRequestComp*    request    = ecs_view_write_t(itr, SceneHealthRequestComp);
     SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
     SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
     SceneBarkComp*             bark       = ecs_view_write_t(itr, SceneBarkComp);
@@ -225,10 +225,10 @@ ecs_system_define(SceneHealthUpdateSys) {
     const bool isDead            = (health->flags & SceneHealthFlags_Dead) != 0;
     f32        totalDamageAmount = 0;
 
-    // Process damage requests.
-    diag_assert_msg(!damage->singleRequest, "Damage requests have to be combined");
-    for (u32 i = 0; i != damage->storage.count; ++i) {
-      const SceneHealthMod* mod = &damage->storage.values[i];
+    // Process requests.
+    diag_assert_msg(!request->singleRequest, "Health requests have to be combined");
+    for (u32 i = 0; i != request->storage.count; ++i) {
+      const SceneHealthMod* mod = &request->storage.values[i];
       const f32 amountNorm      = math_min(health_normalize(health, mod->amount), health->norm);
       health->norm -= amountNorm;
       totalDamageAmount += amountNorm;
@@ -242,7 +242,7 @@ ecs_system_define(SceneHealthUpdateSys) {
         }
       }
     }
-    mod_storage_clear(&damage->storage);
+    mod_storage_clear(&request->storage);
 
     // Activate damage effects when we received damage.
     if (totalDamageAmount > 0.0f && !isDead) {
@@ -291,7 +291,9 @@ ecs_module_init(scene_health_module) {
 
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(
-      SceneDamageComp, .combinator = ecs_combine_damage, .destructor = ecs_destruct_damage);
+      SceneHealthRequestComp,
+      .combinator = ecs_combine_request,
+      .destructor = ecs_destruct_request);
   ecs_register_comp(SceneHealthStatsComp, .combinator = ecs_combine_stats);
   ecs_register_comp_empty(SceneDeadComp);
   ecs_register_comp(SceneHealthAnimComp);
@@ -312,13 +314,13 @@ ecs_module_init(scene_health_module) {
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }
 
-void scene_health_damage_add(SceneDamageComp* damage, const SceneHealthMod* mod) {
+void scene_health_damage_add(SceneHealthRequestComp* comp, const SceneHealthMod* mod) {
   diag_assert(mod->amount >= 0.0f);
-  diag_assert_msg(!damage->singleRequest, "SceneDamageComp needs a storage");
-  *mod_storage_push(&damage->storage) = *mod;
+  diag_assert_msg(!comp->singleRequest, "SceneHealthRequestComp needs a storage");
+  *mod_storage_push(&comp->storage) = *mod;
 }
 
 void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneHealthMod* mod) {
   diag_assert(mod->amount >= 0.0f);
-  ecs_world_add_t(world, target, SceneDamageComp, .request = *mod, .singleRequest = true);
+  ecs_world_add_t(world, target, SceneHealthRequestComp, .request = *mod, .singleRequest = true);
 }

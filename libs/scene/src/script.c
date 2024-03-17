@@ -2226,7 +2226,7 @@ ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
 ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
-ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
+ecs_view_define(ActionHealthReqView) { ecs_access_write(SceneHealthRequestComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 ecs_view_define(ActionBarkView) { ecs_access_write(SceneBarkComp); }
 ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
@@ -2245,7 +2245,7 @@ typedef struct {
   EcsIterator* transItr;
   EcsIterator* navAgentItr;
   EcsIterator* attachItr;
-  EcsIterator* damageItr;
+  EcsIterator* healthReqItr;
   EcsIterator* attackItr;
   EcsIterator* barkItr;
   EcsIterator* renderableItr;
@@ -2350,10 +2350,10 @@ static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
 }
 
 static void action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
-  if (ecs_view_maybe_jump(ctx->damageItr, a->entity)) {
-    SceneDamageComp* damageComp = ecs_view_write_t(ctx->damageItr, SceneDamageComp);
+  if (ecs_view_maybe_jump(ctx->healthReqItr, a->entity)) {
+    SceneHealthRequestComp* reqComp = ecs_view_write_t(ctx->healthReqItr, SceneHealthRequestComp);
     scene_health_damage_add(
-        damageComp,
+        reqComp,
         &(SceneHealthMod){
             .instigator = ctx->instigator,
             .amount     = a->amount,
@@ -2508,7 +2508,7 @@ ecs_system_define(ScriptActionApplySys) {
       .transItr      = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
       .navAgentItr   = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
       .attachItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
-      .damageItr     = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
+      .healthReqItr  = ecs_view_itr(ecs_world_view_t(world, ActionHealthReqView)),
       .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
       .renderableItr = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
@@ -2637,7 +2637,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionTransformView),
       ecs_register_view(ActionNavAgentView),
       ecs_register_view(ActionAttachmentView),
-      ecs_register_view(ActionDamageView),
+      ecs_register_view(ActionHealthReqView),
       ecs_register_view(ActionAttackView),
       ecs_register_view(ActionBarkView),
       ecs_register_view(ActionRenderableView),

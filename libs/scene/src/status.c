@@ -82,7 +82,7 @@ ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(StatusView) {
   ecs_access_maybe_read(SceneHealthComp);
-  ecs_access_maybe_write(SceneDamageComp);
+  ecs_access_maybe_write(SceneHealthRequestComp);
   ecs_access_write(SceneStatusComp);
   ecs_access_write(SceneStatusRequestComp);
 }
@@ -103,11 +103,11 @@ ecs_system_define(SceneStatusUpdateSys) {
 
   EcsView* statusView = ecs_world_view_t(world, StatusView);
   for (EcsIterator* itr = ecs_view_itr(statusView); ecs_view_walk(itr);) {
-    const EcsEntityId       entity  = ecs_view_entity(itr);
-    SceneStatusRequestComp* request = ecs_view_write_t(itr, SceneStatusRequestComp);
-    SceneStatusComp*        status  = ecs_view_write_t(itr, SceneStatusComp);
-    const SceneHealthComp*  health  = ecs_view_read_t(itr, SceneHealthComp);
-    SceneDamageComp*        damage  = ecs_view_write_t(itr, SceneDamageComp);
+    const EcsEntityId       entity    = ecs_view_entity(itr);
+    SceneStatusRequestComp* request   = ecs_view_write_t(itr, SceneStatusRequestComp);
+    SceneStatusComp*        status    = ecs_view_write_t(itr, SceneStatusComp);
+    const SceneHealthComp*  health    = ecs_view_read_t(itr, SceneHealthComp);
+    SceneHealthRequestComp* healthReq = ecs_view_write_t(itr, SceneHealthRequestComp);
 
     // Apply the requests.
     bool effectsDirty = false;
@@ -131,9 +131,9 @@ ecs_system_define(SceneStatusUpdateSys) {
         status->active &= ~(1 << type);
         effectsDirty = true;
       }
-      if (damage && g_sceneStatusDamagePerSec[type] > 0) {
+      if (healthReq && g_sceneStatusDamagePerSec[type] > 0) {
         scene_health_damage_add(
-            damage,
+            healthReq,
             &(SceneHealthMod){
                 .instigator = status->instigators[type],
                 .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,

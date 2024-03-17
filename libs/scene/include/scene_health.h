@@ -27,7 +27,7 @@ typedef struct {
   u32             count, capacity;
 } SceneHealthModStorage;
 
-ecs_comp_extern_public(SceneDamageComp) {
+ecs_comp_extern_public(SceneHealthRequestComp) {
   bool singleRequest;
   union {
     SceneHealthMod        request;
@@ -44,5 +44,5 @@ ecs_comp_extern_public(SceneDeadComp);
 
 f32 scene_health_points(const SceneHealthComp*);
 
-void scene_health_damage_add(SceneDamageComp*, const SceneHealthMod*);
+void scene_health_damage_add(SceneHealthRequestComp*, const SceneHealthMod*);
 void scene_health_damage(EcsWorld*, EcsEntityId target, const SceneHealthMod*);

@@ -297,7 +297,7 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .deathDestroyDelay = t->deathDestroyDelay,
       .deathEffectPrefab = t->deathEffectPrefab);
 
-  ecs_world_add_t(w, e, SceneDamageComp);
+  ecs_world_add_t(w, e, SceneHealthRequestComp);
 }
 
 static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
