@@ -36,7 +36,7 @@ ecs_comp_extern_public(SceneHealthRequestComp) {
 };
 
 ecs_comp_extern_public(SceneHealthStatsComp) {
-  f32 dealtDamage;
+  f32 dealtDamage, dealtHealing;
   u32 kills;
 };
 

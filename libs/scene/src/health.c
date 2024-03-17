@@ -77,6 +77,7 @@ static void ecs_combine_stats(void* dataA, void* dataB) {
   SceneHealthStatsComp* statsB = dataB;
 
   statsA->dealtDamage += statsB->dealtDamage;
+  statsA->dealtHealing += statsB->dealtHealing;
   statsA->kills += statsB->kills;
 }
 
@@ -169,7 +170,7 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
 typedef struct {
   SceneHealthComp* health;
   EcsIterator*     statsItr;
-  f32              totalDamage; // Normalized.
+  f32              totalDamage, totalHealing; // Normalized.
 } HealthModContext;
 
 static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
@@ -192,6 +193,25 @@ static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
   if (ctx->health->norm < f32_epsilon) {
     ctx->health->norm = 0.0f;
     ctx->health->flags |= SceneHealthFlags_Dead;
+  }
+}
+
+static void mod_apply_healing(HealthModContext* ctx, const SceneHealthMod* mod) {
+  diag_assert(mod->amount > 0.0f);
+
+  if (ctx->health->flags & SceneHealthFlags_Dead) {
+    return; // No resurrecting.
+  }
+
+  const f32 maxToHealNorm = 1.0f - ctx->health->norm;
+  const f32 amountNorm    = math_min(health_normalize(ctx->health, mod->amount), maxToHealNorm);
+  ctx->health->norm += amountNorm;
+  ctx->totalHealing += amountNorm;
+
+  // Track healing stats for the instigator.
+  if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
+    SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
+    statsComp->dealtHealing += amountNorm * ctx->health->max;
   }
 }
 
@@ -259,6 +279,8 @@ ecs_system_define(SceneHealthUpdateSys) {
       const SceneHealthMod* mod = &request->storage.values[i];
       if (mod->amount < 0.0f) {
         mod_apply_damage(&modCtx, mod);
+      } else if (mod->amount > 0.0f) {
+        mod_apply_healing(&modCtx, mod);
       }
     }
     mod_storage_clear(&request->storage);
