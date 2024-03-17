@@ -35,7 +35,7 @@ ecs_comp_extern_public(SceneDamageComp) {
   };
 };
 
-ecs_comp_extern_public(SceneDamageStatsComp) {
+ecs_comp_extern_public(SceneHealthStatsComp) {
   f32 dealtDamage;
   u32 kills;
 };

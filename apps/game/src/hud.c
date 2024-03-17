@@ -101,9 +101,9 @@ ecs_view_define(HealthView) {
 
 ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneAttackComp);
-  ecs_access_maybe_read(SceneDamageStatsComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
+  ecs_access_maybe_read(SceneHealthStatsComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
@@ -407,15 +407,15 @@ static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynStri
 }
 
 static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
-  const SceneAttackComp*       attackComp   = ecs_view_read_t(infoItr, SceneAttackComp);
-  const SceneDamageStatsComp*  damageStats  = ecs_view_read_t(infoItr, SceneDamageStatsComp);
-  const SceneFactionComp*      factionComp  = ecs_view_read_t(infoItr, SceneFactionComp);
-  const SceneHealthComp*       healthComp   = ecs_view_read_t(infoItr, SceneHealthComp);
-  const SceneLocomotionComp*   locoComp     = ecs_view_read_t(infoItr, SceneLocomotionComp);
-  const SceneNameComp*         nameComp     = ecs_view_read_t(infoItr, SceneNameComp);
-  const SceneStatusComp*       statusComp   = ecs_view_read_t(infoItr, SceneStatusComp);
-  const SceneTargetFinderComp* targetFinder = ecs_view_read_t(infoItr, SceneTargetFinderComp);
-  const SceneVisibilityComp*   visComp      = ecs_view_read_t(infoItr, SceneVisibilityComp);
+  const SceneAttackComp*       attackComp       = ecs_view_read_t(infoItr, SceneAttackComp);
+  const SceneFactionComp*      factionComp      = ecs_view_read_t(infoItr, SceneFactionComp);
+  const SceneHealthComp*       healthComp       = ecs_view_read_t(infoItr, SceneHealthComp);
+  const SceneHealthStatsComp*  healthStatsComp  = ecs_view_read_t(infoItr, SceneHealthStatsComp);
+  const SceneLocomotionComp*   locoComp         = ecs_view_read_t(infoItr, SceneLocomotionComp);
+  const SceneNameComp*         nameComp         = ecs_view_read_t(infoItr, SceneNameComp);
+  const SceneStatusComp*       statusComp       = ecs_view_read_t(infoItr, SceneStatusComp);
+  const SceneTargetFinderComp* targetFinderComp = ecs_view_read_t(infoItr, SceneTargetFinderComp);
+  const SceneVisibilityComp*   visComp          = ecs_view_read_t(infoItr, SceneVisibilityComp);
 
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
@@ -442,12 +442,12 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     hud_info_status_mask_write(statusComp->active, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
-  if (targetFinder) {
+  if (targetFinderComp) {
     fmt_write(
         &buffer,
         "\a.bRange\ar:\a>15{} - {}\n",
-        fmt_float(targetFinder->rangeMin, .maxDecDigits = 1),
-        fmt_float(targetFinder->rangeMax, .maxDecDigits = 1));
+        fmt_float(targetFinderComp->rangeMin, .maxDecDigits = 1),
+        fmt_float(targetFinderComp->rangeMax, .maxDecDigits = 1));
   }
   if (attackComp && weaponMapItr) {
     const AssetWeaponMapComp* weaponMap = ecs_view_read_t(weaponMapItr, AssetWeaponMapComp);
@@ -468,9 +468,9 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   if (locoComp) {
     fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
-  if (damageStats) {
-    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)damageStats->dealtDamage));
-    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(damageStats->kills));
+  if (healthStatsComp) {
+    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtDamage));
+    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(healthStatsComp->kills));
   }
 
   ui_tooltip(c, sentinel_u64, dynstring_view(&buffer));

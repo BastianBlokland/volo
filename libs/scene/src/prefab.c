@@ -332,7 +332,7 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .config   = config,
       .rangeMin = t->targetRangeMin,
       .rangeMax = t->targetRangeMax);
-  ecs_world_add_t(w, e, SceneDamageStatsComp);
+  ecs_world_add_t(w, e, SceneHealthStatsComp);
 }
 
 static void setup_collision(
