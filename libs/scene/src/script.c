@@ -551,7 +551,7 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
 
 static ScriptVal eval_visible(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const GeoVector    pos        = script_arg_vec3(args, 0, err);
-  const SceneFaction factionDef = SceneFaction_A;
+  const SceneFaction factionDef = ctx->instigatorFaction;
   const SceneFaction faction = script_arg_opt_enum(args, 1, &g_scriptEnumFaction, factionDef, err);
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
