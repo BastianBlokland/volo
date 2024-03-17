@@ -132,7 +132,7 @@ ecs_system_define(SceneStatusUpdateSys) {
         effectsDirty = true;
       }
       if (healthReq && g_sceneStatusDamagePerSec[type] > 0) {
-        scene_health_damage_add(
+        scene_health_request_add(
             healthReq,
             &(SceneHealthMod){
                 .instigator = status->instigators[type],

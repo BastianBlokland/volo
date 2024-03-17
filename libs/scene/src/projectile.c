@@ -156,7 +156,7 @@ static void projectile_hit(
       continue;
     }
     if (ecs_world_has_t(world, hits[i], SceneHealthComp)) {
-      scene_health_damage(
+      scene_health_request(
           world,
           hits[i],
           &(SceneHealthMod){

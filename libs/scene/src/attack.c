@@ -434,7 +434,7 @@ static EffectResult effect_update_dmg(
     // Apply damage.
     if (def->damage > f32_epsilon) {
       const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
-      scene_health_damage(
+      scene_health_request(
           ctx->world,
           hits[i],
           &(SceneHealthMod){

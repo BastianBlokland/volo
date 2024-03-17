@@ -2352,7 +2352,7 @@ static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
 static void action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
   if (ecs_view_maybe_jump(ctx->healthReqItr, a->entity)) {
     SceneHealthRequestComp* reqComp = ecs_view_write_t(ctx->healthReqItr, SceneHealthRequestComp);
-    scene_health_damage_add(
+    scene_health_request_add(
         reqComp,
         &(SceneHealthMod){
             .instigator = ctx->instigator,

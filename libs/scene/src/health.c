@@ -314,13 +314,11 @@ ecs_module_init(scene_health_module) {
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }
 
-void scene_health_damage_add(SceneHealthRequestComp* comp, const SceneHealthMod* mod) {
-  diag_assert(mod->amount >= 0.0f);
+void scene_health_request_add(SceneHealthRequestComp* comp, const SceneHealthMod* mod) {
   diag_assert_msg(!comp->singleRequest, "SceneHealthRequestComp needs a storage");
   *mod_storage_push(&comp->storage) = *mod;
 }
 
-void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneHealthMod* mod) {
-  diag_assert(mod->amount >= 0.0f);
+void scene_health_request(EcsWorld* world, const EcsEntityId target, const SceneHealthMod* mod) {
   ecs_world_add_t(world, target, SceneHealthRequestComp, .request = *mod, .singleRequest = true);
 }
