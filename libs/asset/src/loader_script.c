@@ -38,6 +38,10 @@ static void asset_binder_init() {
     static const String g_capabilitiesDoc = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
     static const String g_activitiesDoc   = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
     static const String g_statusDoc       = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`");
+    static const String g_healthStatsDoc  = string_static("Supported stats:\n\n-`DealtDamage`\n\n-`DealtHealing`\n\n-`Kills`");
+    static const String g_clockDoc        = string_static("Supported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
+    static const String g_navLayerDoc     = string_static("Supported layers:\n\n-`Normal` (default)\n\n-`Large`");
+    static const String g_navFindTypeDoc  = string_static("Supported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
     {
       const String     name = string_lit("self");
       const String     doc  = string_lit("Return the entity that is executing the current script.");
@@ -118,6 +122,16 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("health_stat");
+      const String       doc    = fmt_write_scratch("Lookup a health stat of the given entity.\n\n{}", fmt_text(g_healthStatsDoc));
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("stat"), script_mask_str},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("vision");
       const String       doc    = string_lit("Lookup the vision radius of the given entity.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
@@ -138,7 +152,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("time");
-      const String       doc    = string_lit("Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
+      const String       doc    = fmt_write_scratch("Lookup the current time.\n\n{}", fmt_text(g_clockDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("clock"), script_mask_str | script_mask_null},
@@ -210,7 +224,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_find");
-      const String       doc    = string_lit("Find a navigation position.\n\nSupported layers:\n\n-`Normal` (default)\n\n-`Large`\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
+      const String       doc    = fmt_write_scratch("Find a navigation position.\n\n{}\n\n{}", fmt_text(g_navLayerDoc), fmt_text(g_navFindTypeDoc));
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},

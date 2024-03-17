@@ -65,7 +65,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumLayer,
                   g_scriptEnumQueryOption,
                   g_scriptEnumStatus,
-                  g_scriptEnumBark;
+                  g_scriptEnumBark,
+                  g_scriptEnumHealthStat;
 
 // clang-format on
 
@@ -178,6 +179,12 @@ static void eval_enum_init_status() {
 static void eval_enum_init_bark() {
   for (SceneBarkType bark = 0; bark != SceneBarkType_Count; ++bark) {
     script_enum_push(&g_scriptEnumBark, scene_bark_name(bark), bark);
+  }
+}
+
+static void eval_enum_init_Health_stat() {
+  for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
+    script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
   }
 }
 
@@ -346,6 +353,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
 ecs_view_define(EvalVisionView) { ecs_access_read(SceneVisionComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalRenderableView) { ecs_access_read(SceneRenderableComp); }
@@ -394,6 +402,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* healthStatsItr;
   EcsIterator* visionItr;
   EcsIterator* statusItr;
   EcsIterator* renderableItr;
@@ -548,6 +557,15 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
       return script_num(healthComp->norm);
     }
     return script_num(scene_health_points(healthComp));
+  }
+  return script_null();
+}
+
+static ScriptVal eval_health_stat(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId     e    = script_arg_entity(args, 0, err);
+  const SceneHealthStat stat = script_arg_enum(args, 1, &g_scriptEnumHealthStat, err);
+  if (ecs_view_maybe_jump(ctx->healthStatsItr, e)) {
+    return script_num(ecs_view_read_t(ctx->healthStatsItr, SceneHealthStatsComp)->values[stat]);
   }
   return script_null();
 }
@@ -1958,6 +1976,7 @@ static void eval_binder_init() {
     eval_enum_init_query_option();
     eval_enum_init_status();
     eval_enum_init_bark();
+    eval_enum_init_Health_stat();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);
@@ -1969,6 +1988,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("name"),                   eval_name);
     eval_bind(b, string_lit("faction"),                eval_faction);
     eval_bind(b, string_lit("health"),                 eval_health);
+    eval_bind(b, string_lit("health_stat"),            eval_health_stat);
     eval_bind(b, string_lit("vision"),                 eval_vision);
     eval_bind(b, string_lit("visible"),                eval_visible);
     eval_bind(b, string_lit("time"),                   eval_time);
@@ -2200,6 +2220,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .healthStatsItr   = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
       .visionItr        = ecs_view_itr(ecs_world_view_t(world, EvalVisionView)),
       .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
@@ -2664,6 +2685,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalHealthStatsView),
       ecs_register_view(EvalVisionView),
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalRenderableView),

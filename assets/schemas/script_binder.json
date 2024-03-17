@@ -498,6 +498,17 @@
       }
     },
     {
+      "name": "health_stat",
+      "doc": "Lookup a health stat of the given entity.\n\nSupported stats:\n\n-`DealtDamage`\n\n-`DealtHealing`\n\n-`Kills`",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "v", "mask": "entity" },
+          { "name": "stat", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "velocity",
       "doc": "Lookup the velocity of the given entity.",
       "sig": {
