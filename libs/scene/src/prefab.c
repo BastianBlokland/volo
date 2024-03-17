@@ -137,52 +137,13 @@ ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
 
 static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const SceneFaction faction) {
   if (flags & AssetPrefabFlags_Infantry) {
-    switch (faction) {
-    case SceneFaction_A:
-      return SceneLayer_InfantryFactionA;
-    case SceneFaction_B:
-      return SceneLayer_InfantryFactionB;
-    case SceneFaction_C:
-      return SceneLayer_InfantryFactionC;
-    case SceneFaction_D:
-      return SceneLayer_InfantryFactionD;
-    case SceneFaction_None:
-      return SceneLayer_InfantryFactionNone;
-    default:
-      UNREACHABLE
-    }
+    return SceneLayer_Infantry & scene_faction_layers(faction);
   }
   if (flags & AssetPrefabFlags_Vehicle) {
-    switch (faction) {
-    case SceneFaction_A:
-      return SceneLayer_VehicleFactionA;
-    case SceneFaction_B:
-      return SceneLayer_VehicleFactionB;
-    case SceneFaction_C:
-      return SceneLayer_VehicleFactionC;
-    case SceneFaction_D:
-      return SceneLayer_VehicleFactionD;
-    case SceneFaction_None:
-      return SceneLayer_VehicleFactionNone;
-    default:
-      UNREACHABLE
-    }
+    return SceneLayer_Vehicle & scene_faction_layers(faction);
   }
   if (flags & AssetPrefabFlags_Structure) {
-    switch (faction) {
-    case SceneFaction_A:
-      return SceneLayer_StructureFactionA;
-    case SceneFaction_B:
-      return SceneLayer_StructureFactionB;
-    case SceneFaction_C:
-      return SceneLayer_StructureFactionC;
-    case SceneFaction_D:
-      return SceneLayer_StructureFactionD;
-    case SceneFaction_None:
-      return SceneLayer_StructureFactionNone;
-    default:
-      UNREACHABLE
-    }
+    return SceneLayer_Structure & scene_faction_layers(faction);
   }
   if (flags & AssetPrefabFlags_Destructible) {
     return SceneLayer_Destructible;

@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "scene_collision.h"
 #include "scene_faction.h"
 
 ecs_comp_define_public(SceneFactionComp);
@@ -17,6 +18,24 @@ String scene_faction_name(const SceneFaction faction) {
   };
   ASSERT(array_elems(g_names) == SceneFaction_Count, "Incorrect number of faction names");
   return g_names[faction];
+}
+
+SceneLayer scene_faction_layers(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return SceneLayer_UnitFactionA;
+  case SceneFaction_B:
+    return SceneLayer_UnitFactionB;
+  case SceneFaction_C:
+    return SceneLayer_UnitFactionC;
+  case SceneFaction_D:
+    return SceneLayer_UnitFactionD;
+  case SceneFaction_None:
+    return SceneLayer_None;
+  case SceneFaction_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported faction");
 }
 
 bool scene_is_friendly(const SceneFactionComp* a, const SceneFactionComp* b) {

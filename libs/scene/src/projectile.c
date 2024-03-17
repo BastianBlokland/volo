@@ -72,28 +72,10 @@ static bool projectile_query_filter(const void* ctx, const EcsEntityId entity, c
   return true;
 }
 
-static SceneLayer projectile_faction_ignore_layers(const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-    return SceneLayer_UnitFactionA;
-  case SceneFaction_B:
-    return SceneLayer_UnitFactionB;
-  case SceneFaction_C:
-    return SceneLayer_UnitFactionC;
-  case SceneFaction_D:
-    return SceneLayer_UnitFactionD;
-  case SceneFaction_None:
-    return SceneLayer_None;
-  case SceneFaction_Count:
-    break;
-  }
-  diag_crash_msg("Unsupported faction");
-}
-
 static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
   SceneLayer layer = SceneLayer_Environment | SceneLayer_Unit | SceneLayer_Destructible;
   if (faction) {
-    layer &= ~projectile_faction_ignore_layers(faction->id);
+    layer &= ~scene_faction_layers(faction->id); // Ignore units in from the same faction.
   }
   return layer;
 }

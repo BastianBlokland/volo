@@ -19,7 +19,7 @@ ecs_comp_extern(SceneScaleComp);
 
 // clang-format off
 
-typedef enum {
+typedef enum eSceneLayer {
   SceneLayer_Debug                = 1 << 0,
   SceneLayer_Environment          = 1 << 1,
   SceneLayer_InfantryFactionA     = 1 << 2,
