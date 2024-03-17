@@ -39,6 +39,17 @@
       }
     },
     {
+      "name": "heal",
+      "doc": "Heal the given entity.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "v", "mask": "entity" },
+          { "name": "amount", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "debug_line",
       "doc": "Draw a 3D debug line between the two given points.",
       "sig": {

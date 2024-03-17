@@ -1147,6 +1147,18 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
+static ScriptVal eval_heal(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId entity = script_arg_entity(args, 0, err);
+  const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
+  if (LIKELY(entity) && amount > f32_epsilon) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type           = ScriptActionType_HealthMod,
+        .data_healthMod = {.entity = entity, .amount = amount},
+    };
+  }
+  return script_null();
+}
+
 static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity     = script_arg_entity(args, 0, err);
   const ScriptMask  targetMask = script_mask_entity | script_mask_null;
@@ -1950,6 +1962,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("attach"),                 eval_attach);
     eval_bind(b, string_lit("detach"),                 eval_detach);
     eval_bind(b, string_lit("damage"),                 eval_damage);
+    eval_bind(b, string_lit("heal"),                   eval_heal);
     eval_bind(b, string_lit("attack"),                 eval_attack);
     eval_bind(b, string_lit("attack_target"),          eval_attack_target);
     eval_bind(b, string_lit("bark"),                   eval_bark);
