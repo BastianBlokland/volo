@@ -166,6 +166,35 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
   }
 }
 
+typedef struct {
+  SceneHealthComp* health;
+  EcsIterator*     statsItr;
+  f32              totalDamage; // Normalized.
+} HealthModContext;
+
+static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
+  diag_assert(mod->amount < 0.0f);
+
+  const f32 amountNorm = math_min(health_normalize(ctx->health, -mod->amount), ctx->health->norm);
+  ctx->health->norm -= amountNorm;
+  ctx->totalDamage += amountNorm;
+
+  // Track damage stats for the instigator.
+  if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
+    SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
+    statsComp->dealtDamage += amountNorm * ctx->health->max;
+    if (ctx->health->norm < f32_epsilon && (ctx->health->flags & SceneHealthFlags_Dead) == 0) {
+      ++statsComp->kills;
+    }
+  }
+
+  // Check for death.
+  if (ctx->health->norm < f32_epsilon) {
+    ctx->health->norm = 0.0f;
+    ctx->health->flags |= SceneHealthFlags_Dead;
+  }
+}
+
 /**
  * Remove various components on death.
  * TODO: Find another way to handle this, health should't know about all these components.
@@ -177,7 +206,6 @@ ecs_comp_extern(SceneNavPathComp);
 ecs_comp_extern(SceneTargetFinderComp);
 
 static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_empty_t(world, entity, SceneDeadComp);
   ecs_utils_maybe_remove_t(world, entity, SceneCollisionComp);
   ecs_utils_maybe_remove_t(world, entity, SceneLocomotionComp);
   ecs_utils_maybe_remove_t(world, entity, SceneNavAgentComp);
@@ -222,41 +250,32 @@ ecs_system_define(SceneHealthUpdateSys) {
     SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
     SceneBarkComp*             bark       = ecs_view_write_t(itr, SceneBarkComp);
 
-    const bool isDead            = (health->flags & SceneHealthFlags_Dead) != 0;
-    f32        totalDamageAmount = 0;
+    const bool       wasDead = (health->flags & SceneHealthFlags_Dead) != 0;
+    HealthModContext modCtx  = {.health = health, .statsItr = statsItr};
 
     // Process requests.
     diag_assert_msg(!request->singleRequest, "Health requests have to be combined");
     for (u32 i = 0; i != request->storage.count; ++i) {
       const SceneHealthMod* mod = &request->storage.values[i];
-      const f32 amountNorm      = math_min(health_normalize(health, mod->amount), health->norm);
-      health->norm -= amountNorm;
-      totalDamageAmount += amountNorm;
-
-      // Track damage stats for the instigator.
-      if (amountNorm > f32_epsilon && ecs_view_maybe_jump(statsItr, mod->instigator)) {
-        SceneHealthStatsComp* statsComp = ecs_view_write_t(statsItr, SceneHealthStatsComp);
-        statsComp->dealtDamage += amountNorm * health->max;
-        if (health->norm < f32_epsilon && !isDead) {
-          ++statsComp->kills;
-        }
+      if (mod->amount < 0.0f) {
+        mod_apply_damage(&modCtx, mod);
       }
     }
     mod_storage_clear(&request->storage);
 
     // Activate damage effects when we received damage.
-    if (totalDamageAmount > 0.0f && !isDead) {
+    if (modCtx.totalDamage > 0.0f && (health->flags & SceneHealthFlags_Dead) == 0) {
       health->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
-      if (anim && healthAnim && totalDamageAmount > g_healthMinNormDamageForAnim) {
+      if (anim && healthAnim && modCtx.totalDamage > g_healthMinNormDamageForAnim) {
         health_anim_play_hit(anim, healthAnim);
       }
     } else if ((time->time - health->lastDamagedTime) > time_milliseconds(100)) {
       health_clear_damaged(world, entity, tag);
     }
 
-    // Die if health has reached zero.
-    if (!isDead && health->norm <= f32_epsilon) {
+    // Handle entity death.
+    if (!wasDead && health->norm <= f32_epsilon) {
       health->flags |= SceneHealthFlags_Dead;
       health->norm = 0.0f;
 
@@ -277,6 +296,7 @@ ecs_system_define(SceneHealthUpdateSys) {
       if (bark) {
         scene_bark_request(bark, SceneBarkType_Death);
       }
+      ecs_world_add_empty_t(world, entity, SceneDeadComp);
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
       ecs_world_add_t(
