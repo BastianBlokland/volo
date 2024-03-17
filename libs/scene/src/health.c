@@ -213,6 +213,11 @@ static void mod_apply_healing(HealthModContext* ctx, const SceneHealthMod* mod) 
     SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
     statsComp->dealtHealing += amountNorm * ctx->health->max;
   }
+
+  // Check for fully restored.
+  if (ctx->health->norm > 0.9999f) {
+    ctx->health->norm = 1.0f;
+  }
 }
 
 /**
