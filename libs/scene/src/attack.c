@@ -439,7 +439,7 @@ static EffectResult effect_update_dmg(
           hits[i],
           &(SceneHealthMod){
               .instigator = ctx->instigator,
-              .amount     = damageThisTick,
+              .amount     = -damageThisTick /* negate to deal damage */,
           });
     }
 

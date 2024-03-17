@@ -2356,7 +2356,7 @@ static void action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
         reqComp,
         &(SceneHealthMod){
             .instigator = ctx->instigator,
-            .amount     = a->amount,
+            .amount     = -a->amount /* negate to deal damage */,
         });
   }
 }

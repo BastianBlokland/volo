@@ -151,6 +151,7 @@ static void projectile_hit(
   }
 
   // Damage all the found entities.
+  diag_assert(proj->damage > f32_epsilon);
   for (u32 i = 0; i != hitCount; ++i) {
     if (!ecs_world_exists(world, hits[i])) {
       continue;
@@ -161,7 +162,7 @@ static void projectile_hit(
           hits[i],
           &(SceneHealthMod){
               .instigator = proj->instigator,
-              .amount     = proj->damage,
+              .amount     = -proj->damage /* negate to deal damage */,
           });
     }
     if (proj->applyStatus && ecs_world_has_t(world, hits[i], SceneStatusComp)) {

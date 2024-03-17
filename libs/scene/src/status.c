@@ -136,7 +136,7 @@ ecs_system_define(SceneStatusUpdateSys) {
             healthReq,
             &(SceneHealthMod){
                 .instigator = status->instigators[type],
-                .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
+                .amount = -g_sceneStatusDamagePerSec[type] * deltaSec /* negate to deal damage */,
             });
       }
     }

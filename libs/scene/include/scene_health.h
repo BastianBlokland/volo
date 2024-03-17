@@ -10,7 +10,7 @@ typedef enum {
 
 typedef struct {
   EcsEntityId instigator;
-  f32         amount;
+  f32         amount; // Negative for damage, positive for healing.
 } SceneHealthMod;
 
 ecs_comp_extern_public(SceneHealthComp) {
