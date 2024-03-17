@@ -412,6 +412,22 @@ static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynStri
   }
 }
 
+static void hud_info_health_stats_write(const SceneHealthStatsComp* stats, DynString* out) {
+  static const String g_healthStatNames[SceneHealthStat_Count] = {
+      [SceneHealthStat_DealtDamage]  = string_static("Dealt Dmg"),
+      [SceneHealthStat_DealtHealing] = string_static("Dealt Heal"),
+      [SceneHealthStat_Kills]        = string_static("Kills"),
+  };
+  for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
+    const f32 value        = stats->values[stat];
+    const u64 valueRounded = (u64)math_round_nearest_f32(value);
+    if (string_is_empty(g_healthStatNames[stat]) || !valueRounded) {
+      continue;
+    }
+    fmt_write(out, "\a.b{}\ar:\a>15{}\n", fmt_text(g_healthStatNames[stat]), fmt_int(valueRounded));
+  }
+}
+
 static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
   const SceneAttackComp*       attackComp       = ecs_view_read_t(infoItr, SceneAttackComp);
   const SceneFactionComp*      factionComp      = ecs_view_read_t(infoItr, SceneFactionComp);
@@ -474,14 +490,8 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   if (locoComp) {
     fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
-  if (healthStatsComp && healthStatsComp->dealtDamage > 0.0f) {
-    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtDamage));
-  }
-  if (healthStatsComp && healthStatsComp->dealtHealing > 0.0f) {
-    fmt_write(&buffer, "\a.bDealt Heal\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtHealing));
-  }
-  if (healthStatsComp && healthStatsComp->kills) {
-    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(healthStatsComp->kills));
+  if (healthStatsComp) {
+    hud_info_health_stats_write(healthStatsComp, &buffer);
   }
 
   ui_tooltip(c, sentinel_u64, dynstring_view(&buffer));

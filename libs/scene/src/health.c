@@ -76,9 +76,9 @@ static void ecs_combine_stats(void* dataA, void* dataB) {
   SceneHealthStatsComp* statsA = dataA;
   SceneHealthStatsComp* statsB = dataB;
 
-  statsA->dealtDamage += statsB->dealtDamage;
-  statsA->dealtHealing += statsB->dealtHealing;
-  statsA->kills += statsB->kills;
+  for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
+    statsA->values[stat] += statsB->values[stat];
+  }
 }
 
 ecs_view_define(HealthAnimInitView) {
@@ -183,9 +183,9 @@ static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
   // Track damage stats for the instigator.
   if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
     SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
-    statsComp->dealtDamage += amountNorm * ctx->health->max;
+    statsComp->values[SceneHealthStat_DealtDamage] += amountNorm * ctx->health->max;
     if (ctx->health->norm < f32_epsilon && (ctx->health->flags & SceneHealthFlags_Dead) == 0) {
-      ++statsComp->kills;
+      statsComp->values[SceneHealthStat_Kills] += 1.0f;
     }
   }
 
@@ -211,7 +211,7 @@ static void mod_apply_healing(HealthModContext* ctx, const SceneHealthMod* mod) 
   // Track healing stats for the instigator.
   if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
     SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
-    statsComp->dealtHealing += amountNorm * ctx->health->max;
+    statsComp->values[SceneHealthStat_DealtHealing] += amountNorm * ctx->health->max;
   }
 
   // Check for fully restored.
