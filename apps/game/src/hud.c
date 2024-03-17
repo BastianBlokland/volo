@@ -468,16 +468,14 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   if (locoComp) {
     fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
-  if (healthStatsComp) {
-    if (healthStatsComp->dealtDamage > 0.0f) {
-      fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtDamage));
-    }
-    if (healthStatsComp->dealtHealing > 0.0f) {
-      fmt_write(&buffer, "\a.bDealt Ht\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtHealing));
-    }
-    if (healthStatsComp->kills) {
-      fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(healthStatsComp->kills));
-    }
+  if (healthStatsComp && healthStatsComp->dealtDamage > 0.0f) {
+    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtDamage));
+  }
+  if (healthStatsComp && healthStatsComp->dealtHealing > 0.0f) {
+    fmt_write(&buffer, "\a.bDealt Heal\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtHealing));
+  }
+  if (healthStatsComp && healthStatsComp->kills) {
+    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(healthStatsComp->kills));
   }
 
   ui_tooltip(c, sentinel_u64, dynstring_view(&buffer));
