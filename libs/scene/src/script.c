@@ -183,7 +183,7 @@ typedef enum {
   ScriptActionType_NavStop,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
-  ScriptActionType_Damage,
+  ScriptActionType_HealthMod,
   ScriptActionType_Attack,
   ScriptActionType_Bark,
   ScriptActionType_UpdateSet,
@@ -244,8 +244,8 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
-  f32         amount;
-} ScriptActionDamage;
+  f32         amount; // Negative for damage, positive for healing.
+} ScriptActionHealthMod;
 
 typedef struct {
   EcsEntityId entity;
@@ -311,7 +311,7 @@ typedef struct {
     ScriptActionNavStop               data_navStop;
     ScriptActionAttach                data_attach;
     ScriptActionDetach                data_detach;
-    ScriptActionDamage                data_damage;
+    ScriptActionHealthMod             data_healthMod;
     ScriptActionAttack                data_attack;
     ScriptActionBark                  data_bark;
     ScriptActionUpdateSet             data_updateSet;
@@ -1140,8 +1140,8 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type        = ScriptActionType_Damage,
-        .data_damage = {.entity = entity, .amount = amount},
+        .type           = ScriptActionType_HealthMod,
+        .data_healthMod = {.entity = entity, .amount = -amount /* negate for damage */},
     };
   }
   return script_null();
@@ -2349,14 +2349,14 @@ static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
   }
 }
 
-static void action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
+static void action_health_mod(ActionContext* ctx, const ScriptActionHealthMod* a) {
   if (ecs_view_maybe_jump(ctx->healthReqItr, a->entity)) {
     SceneHealthRequestComp* reqComp = ecs_view_write_t(ctx->healthReqItr, SceneHealthRequestComp);
     scene_health_request_add(
         reqComp,
         &(SceneHealthMod){
             .instigator = ctx->instigator,
-            .amount     = -a->amount /* negate to deal damage */,
+            .amount     = a->amount,
         });
   }
 }
@@ -2550,8 +2550,8 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_Detach:
         action_detach(&ctx, &action->data_detach);
         break;
-      case ScriptActionType_Damage:
-        action_damage(&ctx, &action->data_damage);
+      case ScriptActionType_HealthMod:
+        action_health_mod(&ctx, &action->data_healthMod);
         break;
       case ScriptActionType_Attack:
         action_attack(&ctx, &action->data_attack);
