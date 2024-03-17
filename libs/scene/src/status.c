@@ -34,7 +34,7 @@ static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
     [SceneStatusType_Bleeding] = time_seconds(6),
-    [SceneStatusType_Healing]  = time_seconds(1),
+    [SceneStatusType_Healing]  = time_seconds(2),
 };
 static const SceneStatusMask g_sceneStatusClearOnFullHealth = 1 << SceneStatusType_Healing;
 
