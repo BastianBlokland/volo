@@ -215,7 +215,8 @@ typedef struct {
 } AssetPrefabTraitStatusDef;
 
 typedef struct {
-  f32 radius;
+  f32  radius;
+  bool showInHud;
 } AssetPrefabTraitVisionDef;
 
 typedef struct {
@@ -425,6 +426,7 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitVisionDef);
     data_reg_field_t(reg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitVisionDef, showInHud, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitProductionDef);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, spawnPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
@@ -789,7 +791,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Vision:
       outTrait->data_vision = (AssetPrefabTraitVision){
-          .radius = traitDef->data_vision.radius,
+          .radius    = traitDef->data_vision.radius,
+          .showInHud = traitDef->data_vision.showInHud,
       };
       break;
     case AssetPrefabTrait_Production: {

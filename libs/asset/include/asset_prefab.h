@@ -171,7 +171,8 @@ typedef struct {
 } AssetPrefabTraitStatus;
 
 typedef struct {
-  f32 radius;
+  f32  radius;
+  bool showInHud;
 } AssetPrefabTraitVision;
 
 typedef struct {

@@ -271,7 +271,8 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Vision" },
-            "radius": { "title": "f32", "type": "number" }
+            "radius": { "title": "f32", "type": "number" },
+            "showInHud": { "title": "bool", "type": "boolean" }
           },
           "required": [ "$type", "radius" ]
         },

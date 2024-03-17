@@ -404,7 +404,10 @@ static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 }
 
 static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitVision* t) {
-  ecs_world_add_t(w, e, SceneVisionComp, .radius = t->radius);
+  SceneVisionFlags flags = 0;
+  flags |= t->showInHud ? SceneVisionFlags_ShowInHud : 0;
+
+  ecs_world_add_t(w, e, SceneVisionComp, .flags = flags, .radius = t->radius);
 }
 
 static void

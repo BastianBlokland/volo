@@ -536,7 +536,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Medic Tent" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_hospital.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 10, "showInHud": true },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 1000,

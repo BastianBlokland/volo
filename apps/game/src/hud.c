@@ -125,6 +125,11 @@ ecs_view_define(ProductionView) {
   ecs_access_write(SceneProductionComp);
 }
 
+ecs_view_define(VisionView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneVisionComp);
+}
+
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
 static EcsEntityId hud_draw_create(
@@ -679,6 +684,14 @@ static void hud_minimap_draw(
   ui_layout_pop(c);
 }
 
+static void hud_vision_draw(HudComp* hud, EcsIterator* drawItr, EcsIterator* itr) {
+  const SceneVisionComp* vision = ecs_view_read_t(itr, SceneVisionComp);
+  if (vision->flags & SceneVisionFlags_ShowInHud) {
+    const GeoVector pos = ecs_view_read_t(itr, SceneTransformComp)->position;
+    hud_indicator_ring_draw(hud, drawItr, pos, vision->radius, ui_color_white);
+  }
+}
+
 static void hud_production_bg_draw(UiCanvasComp* c) {
   ui_style_push(c);
   ui_style_color(c, ui_color(16, 16, 16, 128));
@@ -974,11 +987,13 @@ ecs_system_define(HudDrawUiSys) {
   EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
   EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
   EcsView* productionView    = ecs_world_view_t(world, ProductionView);
+  EcsView* visionView        = ecs_world_view_t(world, VisionView);
 
   EcsIterator* canvasItr     = ecs_view_itr(canvasView);
   EcsIterator* drawItr       = ecs_view_itr(drawView);
   EcsIterator* infoItr       = ecs_view_itr(infoView);
   EcsIterator* productionItr = ecs_view_itr(productionView);
+  EcsIterator* visionItr     = ecs_view_itr(visionView);
   EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
@@ -1015,6 +1030,9 @@ ecs_system_define(HudDrawUiSys) {
     hud_groups_draw(c, cmd);
     hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
 
+    if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
+      hud_vision_draw(hud, drawItr, visionItr);
+    }
     if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_production_draw(c, hud, input, drawItr, productionItr);
     }
@@ -1040,6 +1058,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(WeaponMapView);
   ecs_register_view(MinimapMarkerView);
   ecs_register_view(ProductionView);
+  ecs_register_view(VisionView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -1051,7 +1070,8 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
       ecs_view_id(MinimapMarkerView),
-      ecs_view_id(ProductionView));
+      ecs_view_id(ProductionView),
+      ecs_view_id(VisionView));
 
   enum {
     Order_Normal    = 0,
