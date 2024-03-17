@@ -42,14 +42,17 @@ static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
 static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = UiShape_Whatshot,
     [SceneStatusType_Bleeding] = UiShape_Droplet,
+    [SceneStatusType_Healing]  = UiShape_Hospital,
 };
 static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = {.r = 255, .g = 128, .b = 0, .a = 255},
     [SceneStatusType_Bleeding] = {.r = 255, .g = 0, .b = 0, .a = 255},
+    [SceneStatusType_Healing]  = {.r = 0, .g = 255, .b = 0, .a = 255},
 };
 static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 2,
     [SceneStatusType_Bleeding] = 2,
+    [SceneStatusType_Healing]  = 2,
 };
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};

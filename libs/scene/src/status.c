@@ -24,6 +24,7 @@ static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
 static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = 1.0,
     [SceneStatusType_Bleeding] = 0.75f,
+    [SceneStatusType_Healing]  = 1.0,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
@@ -32,6 +33,7 @@ static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
     [SceneStatusType_Bleeding] = time_seconds(6),
+    [SceneStatusType_Healing]  = time_seconds(1),
 };
 
 ecs_comp_define_public(SceneStatusComp);
@@ -193,6 +195,7 @@ String scene_status_name(const SceneStatusType type) {
   static const String g_names[] = {
       string_static("Burning"),
       string_static("Bleeding"),
+      string_static("Healing"),
   };
   ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
   return g_names[type];
