@@ -885,9 +885,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -2789,7 +2789,6 @@ SceneScriptComp* scene_script_add(
       .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
       .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 
-  // Set the script-assets for the used slots.
   script->slotCount = (u8)scriptAssetCount;
   script->slots     = alloc_array_t(g_alloc_heap, SceneScriptData, scriptAssetCount);
   for (u32 i = 0; i != scriptAssetCount; ++i) {
