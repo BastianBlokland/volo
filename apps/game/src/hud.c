@@ -472,7 +472,8 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     const AssetWeaponMapComp* weaponMap = ecs_view_read_t(weaponMapItr, AssetWeaponMapComp);
     const AssetWeapon*        weapon    = asset_weapon_get(weaponMap, attackComp->weaponName);
     if (weapon) {
-      const f32 damage = asset_weapon_damage(weaponMap, weapon);
+      const f32 damageMult = statusComp ? scene_status_damage(statusComp) : 1.0f;
+      const f32 damage     = asset_weapon_damage(weaponMap, weapon) * damageMult;
       if (damage > f32_epsilon) {
         fmt_write(&buffer, "\a.bDamage\ar:\a>15{}\n", fmt_float(damage, .maxDecDigits = 1));
       }
@@ -485,7 +486,9 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     }
   }
   if (locoComp) {
-    fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
+    const f32 speedMult = scene_status_move_speed(statusComp);
+    const f32 speed     = locoComp->maxSpeed * speedMult;
+    fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(speed, .maxDecDigits = 1));
   }
   if (healthStatsComp) {
     hud_info_health_stats_write(healthStatsComp, &buffer);
