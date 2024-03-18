@@ -58,7 +58,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing" ], "effectJoint": "Hips" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing", "Veteran" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -119,7 +119,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing" ], "effectJoint": "Hips" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing", "Veteran" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -185,7 +185,7 @@
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing" ], "effectJoint": "Hips" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing", "Veteran" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -250,7 +250,7 @@
           "barkDeathPrefab": "BarkDeathInfantryMonster"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.1 }, "max": { "y": 1.1 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing" ], "effectJoint": "Hips" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing", "Veteran" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -299,7 +299,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing" ], "effectJoint": "Hips" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Bleeding", "Healing", "Veteran" ], "effectJoint": "Hips" }
       ]
     },
     {
@@ -368,7 +368,7 @@
             "max": { "x": 1.15, "y": 1.5, "z": 2.5 }
           }
         },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ], "effectJoint": "turret" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Veteran" ], "effectJoint": "turret" }
       ]
     },
     {
@@ -413,7 +413,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ], "effectJoint": "turret" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Veteran" ], "effectJoint": "turret" }
       ]
     },
     {
@@ -458,7 +458,7 @@
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
-        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ], "effectJoint": "turret" }
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning", "Veteran" ], "effectJoint": "turret" }
       ]
     },
     {
