@@ -2074,7 +2074,7 @@ ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               slotCount;
-  SceneScriptData  slots[4]; // TODO: Support more then 4 slots.
+  SceneScriptData* slots; // SceneScriptData[slotCount].
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
@@ -2087,6 +2087,7 @@ ecs_comp_define(SceneScriptResourceComp) {
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
+  alloc_free_array_t(g_alloc_heap, scriptInstance->slots, scriptInstance->slotCount);
   if (scriptInstance->allocTransient) {
     alloc_chunked_destroy(scriptInstance->allocTransient);
   }
@@ -2778,8 +2779,8 @@ SceneScriptComp* scene_script_add(
     const EcsEntityId entity,
     const EcsEntityId scriptAssets[],
     const u32         scriptAssetCount) {
-  diag_assert(ecs_world_exists(world, scriptAssets[0]));
   diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8bit integers.
+  diag_assert(scriptAssetCount);           // Need at least one script asset.
 
   SceneScriptComp* script = ecs_world_add_t(
       world,
@@ -2790,7 +2791,9 @@ SceneScriptComp* scene_script_add(
 
   // Set the script-assets for the used slots.
   script->slotCount = (u8)scriptAssetCount;
+  script->slots     = alloc_array_t(g_alloc_heap, SceneScriptData, scriptAssetCount);
   for (u32 i = 0; i != scriptAssetCount; ++i) {
+    diag_assert(ecs_world_exists(world, scriptAssets[i]));
     script->slots[i].asset = scriptAssets[i];
   }
 
