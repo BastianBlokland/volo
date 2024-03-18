@@ -43,16 +43,13 @@ static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = UiShape_Whatshot,
     [SceneStatusType_Bleeding] = UiShape_Droplet,
     [SceneStatusType_Healing]  = UiShape_Hospital,
+    [SceneStatusType_Veteran]  = UiShape_Star,
 };
 static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = {.r = 255, .g = 128, .b = 0, .a = 255},
     [SceneStatusType_Bleeding] = {.r = 255, .g = 0, .b = 0, .a = 255},
     [SceneStatusType_Healing]  = {.r = 0, .g = 255, .b = 0, .a = 255},
-};
-static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = 2,
-    [SceneStatusType_Bleeding] = 2,
-    [SceneStatusType_Healing]  = 2,
+    [SceneStatusType_Veteran]  = {.r = 255, .g = 175, .b = 55, .a = 255},
 };
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
@@ -360,8 +357,8 @@ static void hud_health_draw(
       ui_layout_next(c, Ui_Up, g_hudStatusSpacing.y);
       ui_layout_resize(c, UiAlign_BottomLeft, g_hudStatusIconSize, UiBase_Absolute, Ui_XY);
       bitset_for(bitset_from_var(status->active), typeIndex) {
+        ui_style_outline(c, 2);
         ui_style_color(c, g_hudStatusIconColors[typeIndex]);
-        ui_style_outline(c, g_hudStatusIconOutline[typeIndex]);
         ui_canvas_draw_glyph(c, g_hudStatusIcons[typeIndex], 0, UiFlags_None);
         ui_layout_next(c, Ui_Right, g_hudStatusSpacing.x);
       }
@@ -396,6 +393,21 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
   }
 }
 
+static void hud_info_stat_write(const f32 org, const f32 modified, DynString* out) {
+  format_write_float(out, modified, .maxDecDigits = 1);
+
+  const f32 modDiff    = modified - org;
+  const f32 modDiffAbs = math_abs(modDiff);
+  if (modDiffAbs > f32_epsilon) {
+    fmt_write(
+        out,
+        " ({}{}{}\ar)",
+        fmt_ui_color(modDiff < 0.0f ? ui_color_red : ui_color_green),
+        fmt_char(modDiff < 0.0f ? '-' : '+'),
+        fmt_float(modDiffAbs, .maxDecDigits = 1));
+  }
+}
+
 static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynString* out) {
   bool first = true;
   bitset_for(bitset_from_var(statusMask), typeIndex) {
@@ -409,6 +421,22 @@ static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynStri
         fmt_ui_color(g_hudStatusIconColors[typeIndex]),
         fmt_text(ui_shape_scratch(g_hudStatusIcons[typeIndex])),
         fmt_text(scene_status_name((SceneStatusType)typeIndex)));
+  }
+}
+
+static void hud_info_health_stats_write(const SceneHealthStatsComp* stats, DynString* out) {
+  static const String g_healthStatNames[SceneHealthStat_Count] = {
+      [SceneHealthStat_DealtDamage]  = string_static("Dealt Dmg"),
+      [SceneHealthStat_DealtHealing] = string_static("Dealt Heal"),
+      [SceneHealthStat_Kills]        = string_static("Kills"),
+  };
+  for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
+    const f32 value        = stats->values[stat];
+    const u64 valueRounded = (u64)math_round_nearest_f32(value);
+    if (string_is_empty(g_healthStatNames[stat]) || !valueRounded) {
+      continue;
+    }
+    fmt_write(out, "\a.b{}\ar:\a>15{}\n", fmt_text(g_healthStatNames[stat]), fmt_int(valueRounded));
   }
 }
 
@@ -459,9 +487,13 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     const AssetWeaponMapComp* weaponMap = ecs_view_read_t(weaponMapItr, AssetWeaponMapComp);
     const AssetWeapon*        weapon    = asset_weapon_get(weaponMap, attackComp->weaponName);
     if (weapon) {
-      const f32 damage = asset_weapon_damage(weaponMap, weapon);
-      if (damage > f32_epsilon) {
-        fmt_write(&buffer, "\a.bDamage\ar:\a>15{}\n", fmt_float(damage, .maxDecDigits = 1));
+      const f32 damageMult = statusComp ? scene_status_damage(statusComp) : 1.0f;
+      const f32 damageOrg  = asset_weapon_damage(weaponMap, weapon);
+      const f32 damageMod  = damageOrg * damageMult;
+      if (damageOrg > f32_epsilon) {
+        fmt_write(&buffer, "\a.bDamage\ar:\a>15");
+        hud_info_stat_write(damageOrg, damageMod, &buffer);
+        dynstring_append_char(&buffer, '\n');
       }
       const SceneStatusMask appliesStatus = asset_weapon_applies_status(weaponMap, weapon);
       if (appliesStatus) {
@@ -472,16 +504,15 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     }
   }
   if (locoComp) {
-    fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
+    const f32 speedMult = scene_status_move_speed(statusComp);
+    const f32 speedOrg  = locoComp->maxSpeed;
+    const f32 speedMod  = speedOrg * speedMult;
+    fmt_write(&buffer, "\a.bSpeed\ar:\a>15");
+    hud_info_stat_write(speedOrg, speedMod, &buffer);
+    dynstring_append_char(&buffer, '\n');
   }
-  if (healthStatsComp && healthStatsComp->dealtDamage > 0.0f) {
-    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtDamage));
-  }
-  if (healthStatsComp && healthStatsComp->dealtHealing > 0.0f) {
-    fmt_write(&buffer, "\a.bDealt Heal\ar:\a>15{}\n", fmt_int((u64)healthStatsComp->dealtHealing));
-  }
-  if (healthStatsComp && healthStatsComp->kills) {
-    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(healthStatsComp->kills));
+  if (healthStatsComp) {
+    hud_info_health_stats_write(healthStatsComp, &buffer);
   }
 
   ui_tooltip(c, sentinel_u64, dynstring_view(&buffer));

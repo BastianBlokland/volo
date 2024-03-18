@@ -12,7 +12,7 @@ typedef struct sDynArray DynString;
  * Prefab database.
  */
 
-#define asset_prefab_scripts_max 4
+#define asset_prefab_scripts_max 7
 
 typedef enum {
   AssetPrefabShape_Sphere,
@@ -152,6 +152,7 @@ typedef struct {
 
 typedef struct {
   EcsEntityId scriptAssets[asset_prefab_scripts_max];
+  u8          scriptAssetCount;
   u16         knowledgeIndex, knowledgeCount; // Stored in the values array.
 } AssetPrefabTraitScript;
 
@@ -209,6 +210,12 @@ typedef struct {
     AssetPrefabTraitProduction   data_production;
   };
 } AssetPrefabTrait;
+
+/**
+ * Sanity check that we are not making the trait's very big.
+ * NOTE: This is not a hard limit but when making this bigger consider changing this to SOA storage.
+ */
+ASSERT(sizeof(AssetPrefabTrait) <= 80, "AssetPrefabTrait too big");
 
 typedef enum {
   AssetPrefabFlags_Infantry     = 1 << 0,

@@ -23,13 +23,21 @@ static const f32 g_sceneStatusHealthPerSec[SceneStatusType_Count] = {
     [SceneStatusType_Healing]  = +5.0,
 };
 static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = 1.0,
+    [SceneStatusType_Burning]  = 1.0f,
     [SceneStatusType_Bleeding] = 0.75f,
-    [SceneStatusType_Healing]  = 1.0,
+    [SceneStatusType_Healing]  = 1.0f,
+    [SceneStatusType_Veteran]  = 1.1f,
+};
+static const f32 g_sceneStatusDamage[SceneStatusType_Count] = {
+    [SceneStatusType_Burning]  = 1.0f,
+    [SceneStatusType_Bleeding] = 1.0f,
+    [SceneStatusType_Healing]  = 1.0f,
+    [SceneStatusType_Veteran]  = 1.25f,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
     [SceneStatusType_Bleeding] = string_static("EffectBleeding"),
+    [SceneStatusType_Veteran]  = string_static("EffectVeteran"),
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
@@ -197,11 +205,20 @@ f32 scene_status_move_speed(const SceneStatusComp* status) {
   return speed;
 }
 
+f32 scene_status_damage(const SceneStatusComp* status) {
+  f32 speed = 1.0f;
+  bitset_for(bitset_from_var(status->active), typeIndex) {
+    speed *= g_sceneStatusDamage[typeIndex];
+  }
+  return speed;
+}
+
 String scene_status_name(const SceneStatusType type) {
   static const String g_names[] = {
       string_static("Burning"),
       string_static("Bleeding"),
       string_static("Healing"),
+      string_static("Veteran"),
   };
   ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
   return g_names[type];

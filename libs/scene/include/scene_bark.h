@@ -14,4 +14,5 @@ ecs_comp_extern_public(SceneBarkComp) {
   StringHash barkPrefabs[SceneBarkType_Count];
 };
 
-void scene_bark_request(SceneBarkComp*, SceneBarkType);
+String scene_bark_name(SceneBarkType);
+void   scene_bark_request(SceneBarkComp*, SceneBarkType);

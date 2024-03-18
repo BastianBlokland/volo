@@ -125,6 +125,7 @@ static void weapon_datareg_init() {
     data_reg_const_custom(reg, AssetWeaponStatusMask, Burning,  1 << 0);
     data_reg_const_custom(reg, AssetWeaponStatusMask, Bleeding, 1 << 1);
     data_reg_const_custom(reg, AssetWeaponStatusMask, Healing,  1 << 2);
+    data_reg_const_custom(reg, AssetWeaponStatusMask, Veteran,  1 << 3);
 
     data_reg_struct_t(reg, AssetWeaponEffectProjDef);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);

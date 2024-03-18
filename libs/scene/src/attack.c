@@ -243,6 +243,7 @@ typedef struct {
   const SceneScaleComp*         scale;
   const SceneSkeletonComp*      skel;
   const SceneSkeletonTemplComp* skelTempl;
+  const SceneStatusComp*        status;
   SceneAttackComp*              attack;
   SceneAttackTraceComp*         trace;
   SceneAnimationComp*           anim;
@@ -314,6 +315,8 @@ static EffectResult effect_update_proj(
           .scale    = 1.0f,
       });
 
+  const f32 damageMult = ctx->status ? scene_status_damage(ctx->status) : 1.0f;
+
   SceneProjectileFlags projectileFlags = 0;
   projectileFlags |= def->seekTowardsTarget ? SceneProjectile_Seek : 0;
 
@@ -324,7 +327,7 @@ static EffectResult effect_update_proj(
       .flags        = projectileFlags,
       .applyStatus  = def->applyStatusMask,
       .speed        = def->speed,
-      .damage       = def->damage,
+      .damage       = def->damage * damageMult,
       .damageRadius = def->damageRadius,
       .destroyDelay = def->destroyDelay,
       .instigator   = ctx->instigator,
@@ -404,6 +407,9 @@ static EffectResult effect_update_dmg(
     }
   }
 
+  const f32 damageMult = ctx->status ? scene_status_damage(ctx->status) : 1.0f;
+  const f32 damage     = def->damage * damageMult;
+
   EcsIterator* hitItr = ecs_view_itr(ctx->targetView);
   for (u32 i = 0; i != hitCount; ++i) {
     if (hits[i] == ctx->instigator) {
@@ -414,8 +420,8 @@ static EffectResult effect_update_dmg(
     }
 
     // Apply damage.
-    if (def->damage > f32_epsilon) {
-      const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
+    if (damage > f32_epsilon) {
+      const f32 damageThisTick = def->continuous ? (damage * ctx->deltaSeconds) : damage;
       scene_health_request(
           ctx->world,
           hits[i],
@@ -600,6 +606,7 @@ effect_update(const AttackCtx* ctx, const TimeDuration effectTime, const bool in
 ecs_view_define(AttackView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_write(SceneAttackAimComp);
   ecs_access_maybe_write(SceneAttackTraceComp);
   ecs_access_maybe_write(SceneLocomotionComp);
@@ -648,6 +655,7 @@ ecs_system_define(SceneAttackSys) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneStatusComp*     status     = ecs_view_read_t(itr, SceneStatusComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackAimComp*        attackAim  = ecs_view_write_t(itr, SceneAttackAimComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
@@ -751,6 +759,7 @@ ecs_system_define(SceneAttackSys) {
           .scale        = scale,
           .skel         = skel,
           .skelTempl    = skelTempl,
+          .status       = status,
           .attack       = attack,
           .trace        = trace,
           .anim         = anim,

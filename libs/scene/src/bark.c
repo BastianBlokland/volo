@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_float.h"
@@ -193,6 +194,16 @@ ecs_module_init(scene_bark_module) {
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView),
       ecs_register_view(ListenerView));
+}
+
+String scene_bark_name(const SceneBarkType type) {
+  diag_assert(type < SceneBarkType_Count);
+  static const String g_names[] = {
+      string_static("Death"),
+      string_static("Confirm"),
+  };
+  ASSERT(array_elems(g_names) == SceneBarkType_Count, "Incorrect number of names");
+  return g_names[type];
 }
 
 void scene_bark_request(SceneBarkComp* bark, const SceneBarkType type) {

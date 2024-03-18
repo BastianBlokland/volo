@@ -7,6 +7,7 @@ typedef enum {
   SceneStatusType_Burning,
   SceneStatusType_Bleeding,
   SceneStatusType_Healing,
+  SceneStatusType_Veteran,
 
   SceneStatusType_Count,
 } SceneStatusType;
@@ -29,7 +30,8 @@ ecs_comp_extern_public(SceneStatusRequestComp) {
 };
 
 bool   scene_status_active(const SceneStatusComp*, SceneStatusType);
-f32    scene_status_move_speed(const SceneStatusComp*);
+f32    scene_status_move_speed(const SceneStatusComp*); // Move speed multiplier.
+f32    scene_status_damage(const SceneStatusComp*);     // Damage multiplier.
 String scene_status_name(SceneStatusType);
 
 void scene_status_add(EcsWorld*, EcsEntityId target, SceneStatusType, EcsEntityId instigator);

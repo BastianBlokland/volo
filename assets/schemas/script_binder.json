@@ -498,6 +498,17 @@
       }
     },
     {
+      "name": "health_stat",
+      "doc": "Lookup a health stat of the given entity.\n\nSupported stats:\n\n-`DealtDamage`\n\n-`DealtHealing`\n\n-`Kills`",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "v", "mask": "entity" },
+          { "name": "stat", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "velocity",
       "doc": "Lookup the velocity of the given entity.",
       "sig": {
@@ -667,7 +678,7 @@
     },
     {
       "name": "status",
-      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`",
+      "doc": "Change or query if an entity is affected by the specified status.\n\nSupported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`\n\n-`Veteran`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [

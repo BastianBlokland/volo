@@ -33,11 +33,22 @@ static void asset_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
     // clang-format off
-    static const String g_layersDoc       = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
-    static const String g_queryOptionDoc  = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
-    static const String g_capabilitiesDoc = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
-    static const String g_activitiesDoc   = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
-    static const String g_statusDoc       = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`");
+    static const String g_layersDoc          = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
+    static const String g_queryOptionDoc     = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
+    static const String g_capabilitiesDoc    = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
+    static const String g_activitiesDoc      = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
+    static const String g_statusDoc          = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`\n\n-`Veteran`");
+    static const String g_barkDoc            = string_static("Supported types:\n\n-`Death`\n\n-`Confirm`");
+    static const String g_healthStatsDoc     = string_static("Supported stats:\n\n-`DealtDamage`\n\n-`DealtHealing`\n\n-`Kills`");
+    static const String g_targetExcludeDoc   = string_static("Supported options:\n\n-`Unreachable`\n\n-`Obscured`");
+    static const String g_clockDoc           = string_static("Supported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
+    static const String g_navLayerDoc        = string_static("Supported layers:\n\n-`Normal` (default)\n\n-`Large`");
+    static const String g_navFindTypeDoc     = string_static("Supported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
+    static const String g_vfxParamDoc        = string_static("Supported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
+    static const String g_renderableParamDoc = string_static("Supported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
+    static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Radiance`");
+    static const String g_soundParamDoc      = string_static("Supported parameters:\n\n-`Gain`\n\n-`Pitch`");
+    static const String g_animParamDoc       = string_static("Supported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`");
     {
       const String     name = string_lit("self");
       const String     doc  = string_lit("Return the entity that is executing the current script.");
@@ -118,6 +129,16 @@ static void asset_binder_init() {
       bind(binder, name, doc, ret, args, array_elems(args));
     }
     {
+      const String       name   = string_lit("health_stat");
+      const String       doc    = fmt_write_scratch("Lookup a health stat of the given entity.\n\n{}", fmt_text(g_healthStatsDoc));
+      const ScriptMask   ret    = script_mask_num | script_mask_null;
+      const ScriptSigArg args[] = {
+          {string_lit("v"), script_mask_entity},
+          {string_lit("stat"), script_mask_str},
+      };
+      bind(binder, name, doc, ret, args, array_elems(args));
+    }
+    {
       const String       name   = string_lit("vision");
       const String       doc    = string_lit("Lookup the vision radius of the given entity.");
       const ScriptMask   ret    = script_mask_num | script_mask_null;
@@ -138,7 +159,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("time");
-      const String       doc    = string_lit("Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
+      const String       doc    = fmt_write_scratch("Lookup the current time.\n\n{}", fmt_text(g_clockDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("clock"), script_mask_str | script_mask_null},
@@ -210,7 +231,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_find");
-      const String       doc    = string_lit("Find a navigation position.\n\nSupported layers:\n\n-`Normal` (default)\n\n-`Large`\n\nSupported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
+      const String       doc    = fmt_write_scratch("Find a navigation position.\n\n{}\n\n{}", fmt_text(g_navLayerDoc), fmt_text(g_navFindTypeDoc));
       const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("pos"), script_mask_vec3},
@@ -288,7 +309,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("target_exclude");
-      const String       doc    = string_lit("Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`");
+      const String       doc    = fmt_write_scratch("Test if the given target exclude option is set.\n\n{}", fmt_text(g_targetExcludeDoc));
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -453,7 +474,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("bark");
-      const String       doc    = string_lit("Request a bark to be played.\n\nSupported types:\n\n-`Death`\n\n-`Confirm`");
+      const String       doc    = fmt_write_scratch("Request a bark to be played.\n\n{}", fmt_text(g_barkDoc));
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -478,7 +499,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("renderable_param");
-      const String       doc    = string_lit("Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
+      const String       doc    = fmt_write_scratch("Change or query a renderable parameter on the given entity.\n\n{}", fmt_text(g_renderableParamDoc));
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -516,7 +537,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("vfx_param");
-      const String       doc    = string_lit("Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
+      const String       doc    = fmt_write_scratch("Change or query a vfx parameter on the given entity.\n\n{}", fmt_text(g_vfxParamDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -563,7 +584,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("light_param");
-      const String       doc    = string_lit("Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`");
+      const String       doc    = fmt_write_scratch("Change or query a light parameter on the given entity.\n\n{}", fmt_text(g_lightParamDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -588,7 +609,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("sound_param");
-      const String       doc    = string_lit("Change or query a sound parameter on the given entity.\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`");
+      const String       doc    = fmt_write_scratch("Change or query a sound parameter on the given entity.\n\n{}", fmt_text(g_soundParamDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -599,7 +620,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("anim_param");
-      const String       doc    = string_lit("Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`");
+      const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\n{}", fmt_text(g_animParamDoc));
       const ScriptMask   ret    = script_mask_any;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},

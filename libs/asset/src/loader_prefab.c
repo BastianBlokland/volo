@@ -292,6 +292,7 @@ static void prefab_datareg_init() {
     data_reg_const_custom(reg, AssetPrefabStatusMask, Burning,  1 << 0);
     data_reg_const_custom(reg, AssetPrefabStatusMask, Bleeding, 1 << 1);
     data_reg_const_custom(reg, AssetPrefabStatusMask, Healing,  1 << 2);
+    data_reg_const_custom(reg, AssetPrefabStatusMask, Veteran,  1 << 3);
 
     data_reg_struct_t(reg, AssetPrefabVec3Def);
     data_reg_field_t(reg, AssetPrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -759,8 +760,9 @@ static void prefab_build(
         return;
       }
       outTrait->data_script = (AssetPrefabTraitScript){
-          .knowledgeIndex = (u16)outValues->size,
-          .knowledgeCount = (u16)scriptDef->knowledge.count,
+          .scriptAssetCount = (u8)scriptCount,
+          .knowledgeIndex   = (u16)outValues->size,
+          .knowledgeCount   = (u16)scriptDef->knowledge.count,
       };
       for (u32 i = 0; i != scriptCount; ++i) {
         const String assetId                  = scriptDef->scriptIds.values[i];

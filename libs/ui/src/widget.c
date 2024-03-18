@@ -79,7 +79,7 @@ void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOp
     id                  = ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, flags);
   }
   if (!string_is_empty(opts->tooltip)) {
-    ui_tooltip(canvas, id, opts->tooltip);
+    ui_tooltip(canvas, id, opts->tooltip, .maxSize = opts->tooltipMaxSize);
   }
 }
 

@@ -500,7 +500,7 @@
       ]
     },
     "AssetPrefabStatusMask": {
-      "enum": [ "Burning", "Bleeding", "Healing" ]
+      "enum": [ "Burning", "Bleeding", "Healing", "Veteran" ]
     }
   }
 }

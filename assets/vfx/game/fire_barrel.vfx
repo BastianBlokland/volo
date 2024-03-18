@@ -10,7 +10,7 @@
       },
       "force": { "y": 1 },
       "sprite": {
-        "atlasEntry": "fire_0",
+        "atlasEntry": "fire_00",
         "color": { "r": 1, "g": 0.3, "b": 0.1, "a": 125 },
         "blend": "Additive",
         "facing": "BillboardSphere",

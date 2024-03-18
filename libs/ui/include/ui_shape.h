@@ -41,6 +41,7 @@
   X(0xE7EF, Group)                                                                                 \
   X(0xE80B, Globe)                                                                                 \
   X(0xE80E, Whatshot)                                                                              \
+  X(0xE838, Star)                                                                                  \
   X(0xE868, Bug)                                                                                   \
   X(0xE871, Dashboard)                                                                             \
   X(0xE873, Description)                                                                           \

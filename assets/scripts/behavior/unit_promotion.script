@@ -1,0 +1,12 @@
+
+/**
+ * Promote this unit when it has enough kills.
+ */
+
+var me            = self()
+var killThreshold = 15
+
+if (!$promoted && health_stat(me, "Kills") >= killThreshold) {
+  status(me, "Veteran", true)
+  $promoted = true
+}

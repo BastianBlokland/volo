@@ -65,7 +65,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumLayer,
                   g_scriptEnumQueryOption,
                   g_scriptEnumStatus,
-                  g_scriptEnumBark;
+                  g_scriptEnumBark,
+                  g_scriptEnumHealthStat;
 
 // clang-format on
 
@@ -176,8 +177,15 @@ static void eval_enum_init_status() {
 }
 
 static void eval_enum_init_bark() {
-  script_enum_push(&g_scriptEnumBark, string_lit("Death"), SceneBarkType_Death);
-  script_enum_push(&g_scriptEnumBark, string_lit("Confirm"), SceneBarkType_Confirm);
+  for (SceneBarkType bark = 0; bark != SceneBarkType_Count; ++bark) {
+    script_enum_push(&g_scriptEnumBark, scene_bark_name(bark), bark);
+  }
+}
+
+static void eval_enum_init_Health_stat() {
+  for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
+    script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
+  }
 }
 
 typedef enum {
@@ -345,6 +353,7 @@ ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
 ecs_view_define(EvalVisionView) { ecs_access_read(SceneVisionComp); }
 ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalRenderableView) { ecs_access_read(SceneRenderableComp); }
@@ -393,6 +402,7 @@ typedef struct {
   EcsIterator* nameItr;
   EcsIterator* factionItr;
   EcsIterator* healthItr;
+  EcsIterator* healthStatsItr;
   EcsIterator* visionItr;
   EcsIterator* statusItr;
   EcsIterator* renderableItr;
@@ -547,6 +557,15 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
       return script_num(healthComp->norm);
     }
     return script_num(scene_health_points(healthComp));
+  }
+  return script_null();
+}
+
+static ScriptVal eval_health_stat(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+  const EcsEntityId     e    = script_arg_entity(args, 0, err);
+  const SceneHealthStat stat = script_arg_enum(args, 1, &g_scriptEnumHealthStat, err);
+  if (ecs_view_maybe_jump(ctx->healthStatsItr, e)) {
+    return script_num(ecs_view_read_t(ctx->healthStatsItr, SceneHealthStatsComp)->values[stat]);
   }
   return script_null();
 }
@@ -866,9 +885,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1957,6 +1976,7 @@ static void eval_binder_init() {
     eval_enum_init_query_option();
     eval_enum_init_status();
     eval_enum_init_bark();
+    eval_enum_init_Health_stat();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);
@@ -1968,6 +1988,7 @@ static void eval_binder_init() {
     eval_bind(b, string_lit("name"),                   eval_name);
     eval_bind(b, string_lit("faction"),                eval_faction);
     eval_bind(b, string_lit("health"),                 eval_health);
+    eval_bind(b, string_lit("health_stat"),            eval_health_stat);
     eval_bind(b, string_lit("vision"),                 eval_vision);
     eval_bind(b, string_lit("visible"),                eval_visible);
     eval_bind(b, string_lit("time"),                   eval_time);
@@ -2041,14 +2062,19 @@ typedef enum {
   SceneScriptRes_ResourceUnloading = 1 << 1,
 } SceneScriptResFlags;
 
+typedef struct {
+  u8               resVersion;
+  EcsEntityId      asset;
+  SceneScriptStats stats;
+  ScriptPanic      panic;
+} SceneScriptData;
+
 ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
-  u8               resVersions[scene_script_slots];
-  EcsEntityId      assets[scene_script_slots];
-  SceneScriptStats stats[scene_script_slots];
-  ScriptPanic      panics[scene_script_slots];
+  u8               slotCount;
+  SceneScriptData* slots; // SceneScriptData[slotCount].
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
@@ -2061,6 +2087,7 @@ ecs_comp_define(SceneScriptResourceComp) {
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
+  alloc_free_array_t(g_alloc_heap, scriptInstance->slots, scriptInstance->slotCount);
   if (scriptInstance->allocTransient) {
     alloc_chunked_destroy(scriptInstance->allocTransient);
   }
@@ -2132,9 +2159,10 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 }
 
 static void scene_script_eval(EvalContext* ctx) {
+  SceneScriptData* data = &ctx->scriptInstance->slots[ctx->slot];
   if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
-    ctx->scriptInstance->stats[ctx->slot]  = (SceneScriptStats){0};
-    ctx->scriptInstance->panics[ctx->slot] = (ScriptPanic){0};
+    data->stats = (SceneScriptStats){0};
+    data->panic = (ScriptPanic){0};
     return;
   }
 
@@ -2157,15 +2185,14 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("entity", fmt_int(ctx->instigator, .base = 16)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
-    ctx->scriptInstance->panics[ctx->slot] = evalRes.panic;
+    data->panic = evalRes.panic;
   } else {
-    ctx->scriptInstance->panics[ctx->slot] = (ScriptPanic){0};
+    data->panic = (ScriptPanic){0};
   }
 
   // Update stats.
-  SceneScriptStats* stats = &ctx->scriptInstance->stats[ctx->slot];
-  stats->executedExprs    = evalRes.executedExprs;
-  stats->executedDur      = time_steady_duration(startTime, time_steady_clock());
+  data->stats.executedExprs = evalRes.executedExprs;
+  data->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
 }
 
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
@@ -2199,6 +2226,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
       .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .healthStatsItr   = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
       .visionItr        = ecs_view_itr(ecs_world_view_t(world, EvalVisionView)),
       .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
       .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
@@ -2237,32 +2265,29 @@ ecs_system_define(SceneScriptUpdateSys) {
     }
     dynarray_clear(ctx.debug);
 
-    for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
-      const EcsEntityId asset = ctx.scriptInstance->assets[slot];
-      if (!asset) {
-        break; // End of used slots.
-      }
-      ctx.slot        = slot;
-      ctx.usedQueries = 0;
+    for (SceneScriptSlot slot = 0; slot != ctx.scriptInstance->slotCount; ++slot) {
+      SceneScriptData* data = &ctx.scriptInstance->slots[slot];
+      ctx.slot              = slot;
+      ctx.usedQueries       = 0;
 
       // Evaluate the script if the asset is loaded.
-      if (ecs_view_maybe_jump(resourceAssetItr, asset)) {
+      if (ecs_view_maybe_jump(resourceAssetItr, data->asset)) {
         ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
         ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
 
         const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
-        if (UNLIKELY(ctx.scriptInstance->resVersions[slot] != version)) {
+        if (UNLIKELY(data->resVersion != version)) {
           ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
-          ctx.scriptInstance->resVersions[slot] = version;
+          data->resVersion = version;
         }
         scene_script_eval(&ctx);
       } else {
         // Script asset not loaded; clear any previous stats and start loading it.
-        ctx.scriptInstance->stats[slot]  = (SceneScriptStats){0};
-        ctx.scriptInstance->panics[slot] = (ScriptPanic){0};
-        if (!ecs_world_has_t(world, asset, SceneScriptResourceComp)) {
+        data->stats = (SceneScriptStats){0};
+        data->panic = (ScriptPanic){0};
+        if (!ecs_world_has_t(world, data->asset, SceneScriptResourceComp)) {
           if (++startedAssetLoads < scene_script_max_asset_loads) {
-            ecs_world_add_t(world, asset, SceneScriptResourceComp);
+            ecs_world_add_t(world, data->asset, SceneScriptResourceComp);
           }
         }
       }
@@ -2663,6 +2688,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNameView),
       ecs_register_view(EvalFactionView),
       ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalHealthStatsView),
       ecs_register_view(EvalVisionView),
       ecs_register_view(EvalStatusView),
       ecs_register_view(EvalRenderableView),
@@ -2719,30 +2745,23 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
   script->flags ^= flags;
 }
 
-u32 scene_script_count(const SceneScriptComp* script) {
-  for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
-    if (!script->assets[slot]) {
-      return slot;
-    }
-  }
-  return scene_script_slots;
-}
+u32 scene_script_count(const SceneScriptComp* script) { return script->slotCount; }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptSlot slot) {
-  diag_assert(slot < scene_script_slots);
-  return script->assets[slot];
+  diag_assert(slot < script->slotCount);
+  return script->slots[slot].asset;
 }
 
 const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptSlot slot) {
-  diag_assert(slot < scene_script_slots);
-  const ScriptPanic* panic = &script->panics[slot];
+  diag_assert(slot < script->slotCount);
+  const ScriptPanic* panic = &script->slots[slot].panic;
   return script_panic_valid(panic) ? panic : null;
 }
 
 const SceneScriptStats*
 scene_script_stats(const SceneScriptComp* script, const SceneScriptSlot slot) {
-  diag_assert(slot < scene_script_slots);
-  return &script->stats[slot];
+  diag_assert(slot < script->slotCount);
+  return &script->slots[slot].stats;
 }
 
 const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
@@ -2758,8 +2777,10 @@ void scene_script_debug_ray_update(SceneScriptEnvComp* env, const GeoRay ray) {
 SceneScriptComp* scene_script_add(
     EcsWorld*         world,
     const EcsEntityId entity,
-    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]) {
-  diag_assert(ecs_world_exists(world, scriptAssets[0]));
+    const EcsEntityId scriptAssets[],
+    const u32         scriptAssetCount) {
+  diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8bit integers.
+  diag_assert(scriptAssetCount);           // Need at least one script asset.
 
   SceneScriptComp* script = ecs_world_add_t(
       world,
@@ -2768,12 +2789,11 @@ SceneScriptComp* scene_script_add(
       .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
       .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 
-  // NOTE: Store the used slots consecutively.
-  SceneScriptSlot slot = 0;
-  for (u32 i = 0; i != scene_script_slots; ++i) {
-    if (scriptAssets[i]) {
-      script->assets[slot++] = scriptAssets[i];
-    }
+  script->slotCount = (u8)scriptAssetCount;
+  script->slots     = alloc_array_t(g_alloc_heap, SceneScriptData, scriptAssetCount);
+  for (u32 i = 0; i != scriptAssetCount; ++i) {
+    diag_assert(ecs_world_exists(world, scriptAssets[i]));
+    script->slots[i].asset = scriptAssets[i];
   }
 
   return script;

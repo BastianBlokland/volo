@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -76,9 +77,9 @@ static void ecs_combine_stats(void* dataA, void* dataB) {
   SceneHealthStatsComp* statsA = dataA;
   SceneHealthStatsComp* statsB = dataB;
 
-  statsA->dealtDamage += statsB->dealtDamage;
-  statsA->dealtHealing += statsB->dealtHealing;
-  statsA->kills += statsB->kills;
+  for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
+    statsA->values[stat] += statsB->values[stat];
+  }
 }
 
 ecs_view_define(HealthAnimInitView) {
@@ -183,9 +184,9 @@ static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
   // Track damage stats for the instigator.
   if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
     SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
-    statsComp->dealtDamage += amountNorm * ctx->health->max;
+    statsComp->values[SceneHealthStat_DealtDamage] += amountNorm * ctx->health->max;
     if (ctx->health->norm < f32_epsilon && (ctx->health->flags & SceneHealthFlags_Dead) == 0) {
-      ++statsComp->kills;
+      statsComp->values[SceneHealthStat_Kills] += 1.0f;
     }
   }
 
@@ -211,7 +212,7 @@ static void mod_apply_healing(HealthModContext* ctx, const SceneHealthMod* mod) 
   // Track healing stats for the instigator.
   if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
     SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
-    statsComp->dealtHealing += amountNorm * ctx->health->max;
+    statsComp->values[SceneHealthStat_DealtHealing] += amountNorm * ctx->health->max;
   }
 
   // Check for fully restored.
@@ -357,6 +358,17 @@ ecs_module_init(scene_health_module) {
       ecs_view_id(GlobalView),
       ecs_register_view(HealthView),
       ecs_register_view(HealthStatsView));
+}
+
+String scene_health_stat_name(const SceneHealthStat stat) {
+  diag_assert(stat < SceneHealthStat_Count);
+  static const String g_names[] = {
+      string_static("DealtDamage"),
+      string_static("DealtHealing"),
+      string_static("Kills"),
+  };
+  ASSERT(array_elems(g_names) == SceneHealthStat_Count, "Incorrect number of names");
+  return g_names[stat];
 }
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }

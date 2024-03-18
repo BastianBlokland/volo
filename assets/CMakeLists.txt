@@ -223,6 +223,7 @@ if(${EXTERNAL_ASSETS})
       sound/launch-01.wav
       sound/launch-02.wav
       sound/projectile-loop-01.wav
+      sound/rank-up-01.wav
       sound/swoosh-01.wav
       sound/tank-idle-01.wav
       sound/tank-move-01.wav
@@ -290,6 +291,7 @@ if(${EXTERNAL_ASSETS})
       vfx/ring_distortion_nrm.tga
       vfx/rock.tga
       vfx/smoke.tga
+      vfx/star.tga
       vfx/trail_2.tga
       water_tower/water_tower_color_rough.tga
       water_tower/water_tower_normal.tga

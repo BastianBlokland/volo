@@ -549,7 +549,8 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
     ui_label(
         canvas,
         fmt_write_scratch("{}", fmt_int(archInfo->compCount)),
-        .tooltip = arch_comp_mask_tooltip_scratch(ecsDef, archInfo->compMask));
+        .tooltip        = arch_comp_mask_tooltip_scratch(ecsDef, archInfo->compMask),
+        .tooltipMaxSize = {500, 1000});
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->entityCount)));
     ui_table_next_column(canvas, &table);

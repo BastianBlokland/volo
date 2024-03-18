@@ -146,7 +146,7 @@ static void info_panel_tab_script_draw(
 
   ui_table_next_row(canvas, table);
   ui_table_draw_row_bg(canvas, table, ui_color(48, 48, 48, 192));
-  ui_label(canvas, fmt_write_scratch("Script [{}]", fmt_int(slot)));
+  const bool active = ui_section(canvas, .label = fmt_write_scratch("Script [{}]", fmt_int(slot)));
   ui_table_next_column(canvas, table);
   ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
@@ -157,35 +157,37 @@ static void info_panel_tab_script_draw(
   }
   ui_layout_pop(canvas);
 
-  ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("> Status:"));
-  ui_table_next_column(canvas, table);
-  if (scriptAssetError) {
-    ui_style_push(canvas);
-    ui_style_color(canvas, ui_color_red);
-    ui_label(canvas, string_lit("Invalid script"));
-    ui_style_pop(canvas);
-  } else {
-    String label;
-    if (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) {
-      label = string_lit("Paused");
-    } else if (scriptAssetLoaded) {
-      label = string_lit("Running");
+  if (active) {
+    ui_table_next_row(canvas, table);
+    ui_label(canvas, string_lit("Status"));
+    ui_table_next_column(canvas, table);
+    if (scriptAssetError) {
+      ui_style_push(canvas);
+      ui_style_color(canvas, ui_color_red);
+      ui_label(canvas, string_lit("Invalid script"));
+      ui_style_pop(canvas);
     } else {
-      label = string_lit("Loading script");
+      String label;
+      if (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) {
+        label = string_lit("Paused");
+      } else if (scriptAssetLoaded) {
+        label = string_lit("Running");
+      } else {
+        label = string_lit("Loading script");
+      }
+      ui_label(canvas, label);
     }
-    ui_label(canvas, label);
+
+    ui_table_next_row(canvas, table);
+    ui_label(canvas, string_lit("Expressions"));
+    ui_table_next_column(canvas, table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
+
+    ui_table_next_row(canvas, table);
+    ui_label(canvas, string_lit("Duration"));
+    ui_table_next_column(canvas, table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
   }
-
-  ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("> Expressions:"));
-  ui_table_next_column(canvas, table);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
-
-  ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("> Duration:"));
-  ui_table_next_column(canvas, table);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
 }
 
 static void info_panel_tab_draw(
@@ -208,7 +210,7 @@ static void info_panel_tab_draw(
 
   ui_table_next_row(canvas, &table);
   bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause:"));
+  ui_label(canvas, string_lit("Pause"));
   ui_table_next_column(canvas, &table);
   if (ui_toggle(canvas, &pauseEval)) {
     scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
@@ -476,8 +478,8 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   output_prune_older(tracker, oldestToKeep);
 
-  const AssetComp*       assetComps[scene_script_slots];
-  const AssetScriptComp* assetScripts[scene_script_slots];
+  const AssetComp*       assetComps[64];
+  const AssetScriptComp* assetScripts[64];
 
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
@@ -487,6 +489,8 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     }
     const u32 scriptCount = scene_script_count(scriptInstance);
     for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
+      diag_assert(slot < array_elems(assetComps));
+
       ecs_view_jump(assetItr, scene_script_asset(scriptInstance, slot));
       assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
       assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);
