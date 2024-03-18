@@ -48,7 +48,8 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script"
+            "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script"
           ]
         },
         {
@@ -108,7 +109,8 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script"
+            "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script"
           ]
         },
         {
@@ -169,6 +171,7 @@
           "scriptIds": [
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script",
             "scripts/effects/unit_flame.script"
           ],
           "knowledge": [
@@ -233,7 +236,8 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script"
+            "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script"
           ],
           "knowledge": [
             { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.3 },
@@ -343,6 +347,7 @@
           "scriptIds": [
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script",
             "scripts/effects/unit_aim.script",
             "scripts/effects/unit_vehicle.script"
           ],
@@ -400,6 +405,7 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script",
             "scripts/effects/unit_aim.script"
           ],
           "knowledge": [
@@ -444,6 +450,7 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
             "scripts/behavior/unit_attack.script",
+            "scripts/behavior/unit_promotion.script",
             "scripts/effects/unit_aim.script"
           ],
           "knowledge": [

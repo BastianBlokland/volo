@@ -1,0 +1,11 @@
+
+/**
+ * Promote this unit when it has enough kills.
+ */
+
+var killThreshold = 15
+
+if (!$promoted && health_stat(self(), "Kills") >= killThreshold) {
+  debug_log("Promote!") // TODO: Apply veterancy.
+  $promoted = true
+}
