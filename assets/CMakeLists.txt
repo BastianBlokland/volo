@@ -291,6 +291,7 @@ if(${EXTERNAL_ASSETS})
       vfx/ring_distortion_nrm.tga
       vfx/rock.tga
       vfx/smoke.tga
+      vfx/star.tga
       vfx/trail_2.tga
       water_tower/water_tower_color_rough.tga
       water_tower/water_tower_normal.tga

@@ -1262,13 +1262,13 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_trail.decal" },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/blood_status.vfx" }
-
       ]
     },
     {
       "name": "EffectVeteran", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.25 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/veteran_promote.vfx" },
         { "$type": "AssetPrefabTrait_Sound", "assetIds": [ "external/sound/rank-up-01.wav" ], "gainMin": 2.0 }
       ]
     },
