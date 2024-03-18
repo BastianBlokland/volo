@@ -11,8 +11,6 @@ typedef i64 TimeDuration;
 // Forward declare from 'script_panic.h'.
 typedef struct sScriptPanic ScriptPanic;
 
-#define scene_script_slots 4
-
 typedef enum {
   SceneScriptFlags_None            = 0,
   SceneScriptFlags_DidPanic        = 1 << 0,
@@ -120,9 +118,6 @@ void                    scene_script_debug_ray_update(SceneScriptEnvComp*, GeoRa
 
 /**
  * Setup a script on the given entity.
- * NOTE: Supports running multiple script assets, to use less pass 0 in the unused slots.
  */
 SceneScriptComp* scene_script_add(
-    EcsWorld*,
-    EcsEntityId       entity,
-    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]);
+    EcsWorld*, EcsEntityId entity, const EcsEntityId scriptAssets[], u32 scriptAssetCount);

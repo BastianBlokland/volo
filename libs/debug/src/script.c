@@ -476,8 +476,8 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   output_prune_older(tracker, oldestToKeep);
 
-  const AssetComp*       assetComps[scene_script_slots];
-  const AssetScriptComp* assetScripts[scene_script_slots];
+  const AssetComp*       assetComps[64];
+  const AssetScriptComp* assetScripts[64];
 
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
@@ -487,6 +487,8 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     }
     const u32 scriptCount = scene_script_count(scriptInstance);
     for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
+      diag_assert(slot < array_elems(assetComps));
+
       ecs_view_jump(assetItr, scene_script_asset(scriptInstance, slot));
       assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
       assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);

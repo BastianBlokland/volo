@@ -2074,7 +2074,7 @@ ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               slotCount;
-  SceneScriptData  slots[scene_script_slots];
+  SceneScriptData  slots[4]; // TODO: Support more then 4 slots.
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
   DynArray         debug;   // SceneScriptDebug[].
@@ -2776,8 +2776,10 @@ void scene_script_debug_ray_update(SceneScriptEnvComp* env, const GeoRay ray) {
 SceneScriptComp* scene_script_add(
     EcsWorld*         world,
     const EcsEntityId entity,
-    const EcsEntityId scriptAssets[PARAM_ARRAY_SIZE(scene_script_slots)]) {
+    const EcsEntityId scriptAssets[],
+    const u32         scriptAssetCount) {
   diag_assert(ecs_world_exists(world, scriptAssets[0]));
+  diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8bit integers.
 
   SceneScriptComp* script = ecs_world_add_t(
       world,
@@ -2786,14 +2788,11 @@ SceneScriptComp* scene_script_add(
       .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
       .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
 
-  // NOTE: Store the used slots consecutively.
-  SceneScriptSlot slot = 0;
-  for (u32 i = 0; i != scene_script_slots; ++i) {
-    if (scriptAssets[i]) {
-      script->slots[slot++].asset = scriptAssets[i];
-    }
+  // Set the script-assets for the used slots.
+  script->slotCount = (u8)scriptAssetCount;
+  for (u32 i = 0; i != scriptAssetCount; ++i) {
+    script->slots[i].asset = scriptAssets[i];
   }
-  script->slotCount = slot;
 
   return script;
 }
