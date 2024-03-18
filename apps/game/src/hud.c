@@ -43,16 +43,13 @@ static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = UiShape_Whatshot,
     [SceneStatusType_Bleeding] = UiShape_Droplet,
     [SceneStatusType_Healing]  = UiShape_Hospital,
+    [SceneStatusType_Veteran]  = UiShape_Star,
 };
 static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = {.r = 255, .g = 128, .b = 0, .a = 255},
     [SceneStatusType_Bleeding] = {.r = 255, .g = 0, .b = 0, .a = 255},
     [SceneStatusType_Healing]  = {.r = 0, .g = 255, .b = 0, .a = 255},
-};
-static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = 2,
-    [SceneStatusType_Bleeding] = 2,
-    [SceneStatusType_Healing]  = 2,
+    [SceneStatusType_Veteran]  = {.r = 255, .g = 175, .b = 55, .a = 255},
 };
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
@@ -360,8 +357,8 @@ static void hud_health_draw(
       ui_layout_next(c, Ui_Up, g_hudStatusSpacing.y);
       ui_layout_resize(c, UiAlign_BottomLeft, g_hudStatusIconSize, UiBase_Absolute, Ui_XY);
       bitset_for(bitset_from_var(status->active), typeIndex) {
+        ui_style_outline(c, 2);
         ui_style_color(c, g_hudStatusIconColors[typeIndex]);
-        ui_style_outline(c, g_hudStatusIconOutline[typeIndex]);
         ui_canvas_draw_glyph(c, g_hudStatusIcons[typeIndex], 0, UiFlags_None);
         ui_layout_next(c, Ui_Right, g_hudStatusSpacing.x);
       }

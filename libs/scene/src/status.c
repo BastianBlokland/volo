@@ -23,9 +23,10 @@ static const f32 g_sceneStatusHealthPerSec[SceneStatusType_Count] = {
     [SceneStatusType_Healing]  = +5.0,
 };
 static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = 1.0,
+    [SceneStatusType_Burning]  = 1.0f,
     [SceneStatusType_Bleeding] = 0.75f,
-    [SceneStatusType_Healing]  = 1.0,
+    [SceneStatusType_Healing]  = 1.0f,
+    [SceneStatusType_Veteran]  = 1.1f,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
@@ -202,6 +203,7 @@ String scene_status_name(const SceneStatusType type) {
       string_static("Burning"),
       string_static("Bleeding"),
       string_static("Healing"),
+      string_static("Veteran"),
   };
   ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
   return g_names[type];

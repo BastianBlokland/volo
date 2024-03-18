@@ -7,6 +7,7 @@ typedef enum {
   SceneStatusType_Burning,
   SceneStatusType_Bleeding,
   SceneStatusType_Healing,
+  SceneStatusType_Veteran,
 
   SceneStatusType_Count,
 } SceneStatusType;

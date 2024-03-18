@@ -37,7 +37,7 @@ static void asset_binder_init() {
     static const String g_queryOptionDoc     = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
     static const String g_capabilitiesDoc    = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
     static const String g_activitiesDoc      = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
-    static const String g_statusDoc          = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`");
+    static const String g_statusDoc          = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`\n\n-`Veteran`");
     static const String g_barkDoc            = string_static("Supported types:\n\n-`Death`\n\n-`Confirm`");
     static const String g_healthStatsDoc     = string_static("Supported stats:\n\n-`DealtDamage`\n\n-`DealtHealing`\n\n-`Kills`");
     static const String g_targetExcludeDoc   = string_static("Supported options:\n\n-`Unreachable`\n\n-`Obscured`");
