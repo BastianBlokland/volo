@@ -28,6 +28,12 @@ static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
     [SceneStatusType_Healing]  = 1.0f,
     [SceneStatusType_Veteran]  = 1.1f,
 };
+static const f32 g_sceneStatusDamage[SceneStatusType_Count] = {
+    [SceneStatusType_Burning]  = 1.0f,
+    [SceneStatusType_Bleeding] = 1.0f,
+    [SceneStatusType_Healing]  = 1.0f,
+    [SceneStatusType_Veteran]  = 1.25f,
+};
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
     [SceneStatusType_Bleeding] = string_static("EffectBleeding"),
@@ -195,6 +201,14 @@ f32 scene_status_move_speed(const SceneStatusComp* status) {
   f32 speed = 1.0f;
   bitset_for(bitset_from_var(status->active), typeIndex) {
     speed *= g_sceneStatusMoveSpeed[typeIndex];
+  }
+  return speed;
+}
+
+f32 scene_status_damage(const SceneStatusComp* status) {
+  f32 speed = 1.0f;
+  bitset_for(bitset_from_var(status->active), typeIndex) {
+    speed *= g_sceneStatusDamage[typeIndex];
   }
   return speed;
 }
