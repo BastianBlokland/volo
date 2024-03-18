@@ -2073,6 +2073,7 @@ ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
 
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
+  u8               slotCount;
   SceneScriptData  slots[scene_script_slots];
   Allocator*       allocTransient;
   DynArray         actions; // ScriptAction[].
@@ -2263,13 +2264,10 @@ ecs_system_define(SceneScriptUpdateSys) {
     }
     dynarray_clear(ctx.debug);
 
-    for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
+    for (SceneScriptSlot slot = 0; slot != ctx.scriptInstance->slotCount; ++slot) {
       SceneScriptData* data = &ctx.scriptInstance->slots[slot];
-      if (!data->asset) {
-        break; // End of used slots.
-      }
-      ctx.slot        = slot;
-      ctx.usedQueries = 0;
+      ctx.slot              = slot;
+      ctx.usedQueries       = 0;
 
       // Evaluate the script if the asset is loaded.
       if (ecs_view_maybe_jump(resourceAssetItr, data->asset)) {
@@ -2746,29 +2744,22 @@ void scene_script_flags_toggle(SceneScriptComp* script, const SceneScriptFlags f
   script->flags ^= flags;
 }
 
-u32 scene_script_count(const SceneScriptComp* script) {
-  for (SceneScriptSlot slot = 0; slot != scene_script_slots; ++slot) {
-    if (!script->slots[slot].asset) {
-      return slot;
-    }
-  }
-  return scene_script_slots;
-}
+u32 scene_script_count(const SceneScriptComp* script) { return script->slotCount; }
 
 EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptSlot slot) {
-  diag_assert(slot < scene_script_slots);
+  diag_assert(slot < script->slotCount);
   return script->slots[slot].asset;
 }
 
 const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptSlot slot) {
-  diag_assert(slot < scene_script_slots);
+  diag_assert(slot < script->slotCount);
   const ScriptPanic* panic = &script->slots[slot].panic;
   return script_panic_valid(panic) ? panic : null;
 }
 
 const SceneScriptStats*
 scene_script_stats(const SceneScriptComp* script, const SceneScriptSlot slot) {
-  diag_assert(slot < scene_script_slots);
+  diag_assert(slot < script->slotCount);
   return &script->slots[slot].stats;
 }
 
@@ -2802,6 +2793,7 @@ SceneScriptComp* scene_script_add(
       script->slots[slot++].asset = scriptAssets[i];
     }
   }
+  script->slotCount = slot;
 
   return script;
 }
