@@ -393,6 +393,21 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
   }
 }
 
+static void hud_info_stat_write(const f32 org, const f32 modified, DynString* out) {
+  format_write_float(out, modified, .maxDecDigits = 1);
+
+  const f32 modDiff    = modified - org;
+  const f32 modDiffAbs = math_abs(modDiff);
+  if (modDiffAbs > f32_epsilon) {
+    fmt_write(
+        out,
+        " ({}{}{}\ar)",
+        fmt_ui_color(modDiff < 0.0f ? ui_color_red : ui_color_green),
+        fmt_char(modDiff < 0.0f ? '-' : '+'),
+        fmt_float(modDiffAbs, .maxDecDigits = 1));
+  }
+}
+
 static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynString* out) {
   bool first = true;
   bitset_for(bitset_from_var(statusMask), typeIndex) {
@@ -473,9 +488,12 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     const AssetWeapon*        weapon    = asset_weapon_get(weaponMap, attackComp->weaponName);
     if (weapon) {
       const f32 damageMult = statusComp ? scene_status_damage(statusComp) : 1.0f;
-      const f32 damage     = asset_weapon_damage(weaponMap, weapon) * damageMult;
-      if (damage > f32_epsilon) {
-        fmt_write(&buffer, "\a.bDamage\ar:\a>15{}\n", fmt_float(damage, .maxDecDigits = 1));
+      const f32 damageOrg  = asset_weapon_damage(weaponMap, weapon);
+      const f32 damageMod  = damageOrg * damageMult;
+      if (damageOrg > f32_epsilon) {
+        fmt_write(&buffer, "\a.bDamage\ar:\a>15");
+        hud_info_stat_write(damageOrg, damageMod, &buffer);
+        dynstring_append_char(&buffer, '\n');
       }
       const SceneStatusMask appliesStatus = asset_weapon_applies_status(weaponMap, weapon);
       if (appliesStatus) {
@@ -487,8 +505,11 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   }
   if (locoComp) {
     const f32 speedMult = scene_status_move_speed(statusComp);
-    const f32 speed     = locoComp->maxSpeed * speedMult;
-    fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(speed, .maxDecDigits = 1));
+    const f32 speedOrg  = locoComp->maxSpeed;
+    const f32 speedMod  = speedOrg * speedMult;
+    fmt_write(&buffer, "\a.bSpeed\ar:\a>15");
+    hud_info_stat_write(speedOrg, speedMod, &buffer);
+    dynstring_append_char(&buffer, '\n');
   }
   if (healthStatsComp) {
     hud_info_health_stats_write(healthStatsComp, &buffer);
