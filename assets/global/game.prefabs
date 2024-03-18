@@ -1266,6 +1266,13 @@
       ]
     },
     {
+      "name": "EffectVeteran", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.25 },
+        { "$type": "AssetPrefabTrait_Sound", "assetIds": [ "external/sound/rank-up-01.wav" ], "gainMin": 2.0 }
+      ]
+    },
+    {
       "name": "TestTrail",
       "traits": [
         {

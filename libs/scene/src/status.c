@@ -31,6 +31,7 @@ static const f32 g_sceneStatusMoveSpeed[SceneStatusType_Count] = {
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = string_static("EffectBurning"),
     [SceneStatusType_Bleeding] = string_static("EffectBleeding"),
+    [SceneStatusType_Veteran]  = string_static("EffectVeteran"),
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
