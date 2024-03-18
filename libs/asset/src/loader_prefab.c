@@ -759,8 +759,9 @@ static void prefab_build(
         return;
       }
       outTrait->data_script = (AssetPrefabTraitScript){
-          .knowledgeIndex = (u16)outValues->size,
-          .knowledgeCount = (u16)scriptDef->knowledge.count,
+          .scriptAssetCount = (u8)scriptCount,
+          .knowledgeIndex   = (u16)outValues->size,
+          .knowledgeCount   = (u16)scriptDef->knowledge.count,
       };
       for (u32 i = 0; i != scriptCount; ++i) {
         const String assetId                  = scriptDef->scriptIds.values[i];
