@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_panel.h"
 #include "debug_prefab.h"
@@ -108,11 +109,8 @@ static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName
   return string_match_glob(prefabName, filter, StringMatchFlags_IgnoreCase);
 }
 
-static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
-  Mem mem = alloc_alloc(g_alloc_scratch, ctx->prefabMap->prefabCount * sizeof(u32), alignof(u32));
-  mem_set(mem, 0);
-
-  u32* res = mem.ptr;
+static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], const u32 maxCount) {
+  mem_set(mem_from_to(out, out + math_min(maxCount, ctx->prefabMap->prefabCount)), 0);
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
@@ -120,11 +118,10 @@ static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
 
     const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
     // NOTE: PrefabIndex can be sentinel_u16 if the prefabMap was hot-loaded after spawning.
-    if (!sentinel_check(prefabIndex)) {
-      ++res[prefabIndex];
+    if (prefabIndex < maxCount) {
+      ++out[prefabIndex];
     }
   }
-  return res;
 }
 
 static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
@@ -356,7 +353,8 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
           {string_lit("Actions"), string_empty},
       });
 
-  const u32* instanceCounts = prefab_instance_counts_scratch(ctx);
+  u32 instanceCounts[1024];
+  prefab_instance_counts(ctx, instanceCounts, array_elems(instanceCounts));
 
   const f32 totalHeight = ui_table_height(&table, ctx->panelComp->totalRows);
   ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, totalHeight);
@@ -381,7 +379,8 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
     ui_label(canvas, name, .selectable = true, .tooltip = nameTooltip);
     ui_table_next_column(canvas, &table);
 
-    ui_label(canvas, fmt_write_scratch("{}", fmt_int(instanceCounts[prefabIdx])));
+    const u32 count = prefabIdx < array_elems(instanceCounts) ? instanceCounts[prefabIdx] : 0;
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(count)));
     ui_table_next_column(canvas, &table);
 
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
