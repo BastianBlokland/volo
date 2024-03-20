@@ -115,7 +115,7 @@
     {
       "name": "TankTurret",
       "intervalMin": 1.25, "intervalMax": 1.5,
-      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim", "readyWhileMoving": true,
+      "readySpeed": 2.5, "readyMinTime": 7, "readyAnim": "aim", "readyWhileMoving": true,
       "predictiveAim": true,
       "effects": [
         {
@@ -197,7 +197,7 @@
     {
       "name": "TurretGun",
       "intervalMin": 0, "intervalMax": 0,
-      "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
+      "readySpeed": 2.5, "readyMinTime": 5, "readyAnim": "aim",
       "predictiveAim": true,
       "effects": [
         {
@@ -241,7 +241,7 @@
     {
       "name": "TurretMissile",
       "intervalMin": 2, "intervalMax": 2.5,
-      "readySpeed": 2, "readyMinTime": 5, "readyAnim": "aim",
+      "readySpeed": 2, "readyMinTime": 7, "readyAnim": "aim",
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
