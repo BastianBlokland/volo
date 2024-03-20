@@ -693,11 +693,15 @@
     },
     {
       "name": "faction",
-      "doc": "Lookup the faction of the given entity.",
+      "doc": "Lookup or change the faction of the given entity.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
         "ret": [ "null", "str" ],
         "args": [
-          { "name": "v", "mask": "entity" }
+          { "name": "v", "mask": "entity" },
+          {
+            "name": "faction",
+            "mask": [ "null", "str" ]
+          }
         ]
       }
     },
