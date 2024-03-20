@@ -54,6 +54,7 @@ if (!attackWhileMoving && active(me, "Traveling")) {
 }
 
 if (!target || active(target, "Dead")) {
+  attack(me, null)
   return // No target to attack; early out.
 }
 

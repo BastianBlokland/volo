@@ -18,6 +18,8 @@
 #include "scene_terrain.h"
 #include "ui.h"
 
+#include "widget_internal.h"
+
 // clang-format off
 
 static const String       g_tooltipFilter         = string_static("Filter prefab's by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
@@ -67,37 +69,6 @@ ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); 
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
-}
-
-static bool prefab_faction_select(UiCanvasComp* canvas, SceneFaction* faction) {
-  static const String g_names[] = {
-      string_static("None"),
-      string_static("A"),
-      string_static("B"),
-      string_static("C"),
-      string_static("D"),
-  };
-  static const SceneFaction g_values[] = {
-      SceneFaction_None,
-      SceneFaction_A,
-      SceneFaction_B,
-      SceneFaction_C,
-      SceneFaction_D,
-  };
-  ASSERT(array_elems(g_names) == array_elems(g_values), "Mismatching faction options");
-
-  i32 index = 0;
-  for (u32 i = 0; i != array_elems(g_values); ++i) {
-    if (g_values[i] == *faction) {
-      index = i;
-      break;
-    }
-  }
-  if (ui_select(canvas, &index, g_names, array_elems(g_values))) {
-    *faction = g_values[index];
-    return true;
-  }
-  return false;
 }
 
 static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName) {
@@ -292,7 +263,7 @@ static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelCo
 
   ui_label(canvas, string_lit("Faction:"));
   ui_table_next_column(canvas, &table);
-  prefab_faction_select(canvas, &ctx->panelComp->createFaction);
+  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
   ui_table_next_column(canvas, &table);
 
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleRight, Ui_X);

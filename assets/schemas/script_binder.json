@@ -693,11 +693,15 @@
     },
     {
       "name": "faction",
-      "doc": "Lookup the faction of the given entity.",
+      "doc": "Lookup or change the faction of the given entity.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
         "ret": [ "null", "str" ],
         "args": [
-          { "name": "v", "mask": "entity" }
+          { "name": "v", "mask": "entity" },
+          {
+            "name": "faction",
+            "mask": [ "null", "str" ]
+          }
         ]
       }
     },
@@ -770,7 +774,7 @@
     },
     {
       "name": "attack",
-      "doc": "Instruct the given entity to attack another entity.",
+      "doc": "Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.",
       "sig": {
         "ret": "null",
         "args": [

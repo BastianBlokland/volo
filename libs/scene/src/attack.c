@@ -332,7 +332,7 @@ static EffectResult effect_update_proj(
       .destroyDelay = def->destroyDelay,
       .instigator   = ctx->instigator,
       .impactPrefab = def->impactPrefab,
-      .seekEntity   = ctx->attack->targetEntity,
+      .seekEntity   = ctx->attack->targetCurrent,
       .seekPos      = ctx->attack->targetPos);
 
   // Seeing attacks requires visibility.
@@ -686,19 +686,13 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
-    if (hasTarget) {
-      attack->lastHasTargetTime = time->time;
-    } else {
-      attack->targetEntity = 0;
-    }
     const TimeDuration timeSinceHadTarget = time->time - attack->lastHasTargetTime;
     const bool         isMoving           = loco && (loco->flags & SceneLocomotion_Moving) != 0;
     const bool         allowReady         = weapon->readyWhileMoving || !isMoving;
 
     bool weaponReady = false;
     attack->flags &= ~SceneAttackFlags_Readying;
-    if (allowReady && (hasTarget || timeSinceHadTarget < weapon->readyMinTime)) {
+    if (allowReady && (attack->targetCurrent || timeSinceHadTarget < weapon->readyMinTime)) {
       if (!(weaponReady = math_towards_f32(&attack->readyNorm, 1, weapon->readySpeed * deltaSec))) {
         attack->flags |= SceneAttackFlags_Readying;
       }
@@ -716,9 +710,18 @@ ecs_system_define(SceneAttackSys) {
       scene_animation_set_weight(anim, weapon->readyAnim, attack->readyNorm);
     }
 
-    // Potentially start a new attack.
+    // Change target if currently not attacking.
     bool interruptFiring = false;
-    if (hasTarget) {
+    if (attack->flags & SceneAttackFlags_Firing) {
+      interruptFiring = attack->targetCurrent != attack->targetDesired;
+    } else {
+      attack->targetCurrent = attack->targetDesired;
+    }
+
+    // Aim at target and potentially start a new attack.
+    if (ecs_view_maybe_jump(targetItr, attack->targetCurrent)) {
+      attack->lastHasTargetTime = time->time;
+
       const f32    distEst       = aim_estimate_distance(trans->position, targetItr);
       TimeDuration impactTimeEst = 0;
       if (weapon->flags & AssetWeapon_PredictiveAim) {
@@ -727,13 +730,12 @@ ecs_system_define(SceneAttackSys) {
       const GeoVector targetPos = aim_position(trans->position, targetItr, impactTimeEst);
       aim_face(attackAim, loco, trans, targetPos);
 
-      const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
       const bool      isCoolingDown = time->time < attack->nextFireTime;
       const GeoVector pos           = trans->position;
       const GeoQuat   aimRot        = scene_attack_aim_rot(trans, attackAim);
       const bool canFire = weaponReady && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos);
 
-      if (!isFiring && canFire) {
+      if (!(attack->flags & SceneAttackFlags_Firing) && canFire) {
         // Start the attack.
         attack->lastFireTime = time->time;
         attack->flags |= SceneAttackFlags_Firing;
@@ -744,6 +746,10 @@ ecs_system_define(SceneAttackSys) {
       }
     } else {
       interruptFiring = true;
+      if (attack->targetDesired == attack->targetCurrent) {
+        attack->targetDesired = 0;
+      }
+      attack->targetCurrent = 0;
     }
 
     // Update the current attack.

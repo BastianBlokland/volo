@@ -15,6 +15,7 @@ ecs_comp_extern(ScenePrefabEnvComp);
 ecs_comp_extern_public(ScenePrefabInstanceComp) {
   u32        id; // Optional persistent id.
   StringHash prefabId;
+  u16        assetFlags; // AssetPrefabFlags.
   bool       isVolatile; // Prefab should not be persisted.
 };
 

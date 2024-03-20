@@ -39,7 +39,10 @@ SceneLayer scene_faction_layers(const SceneFaction faction) {
 }
 
 bool scene_is_friendly(const SceneFactionComp* a, const SceneFactionComp* b) {
-  if (!a || !b) {
+  if (a == null || b == null) {
+    return false;
+  }
+  if (a->id == SceneFaction_None || b->id == SceneFaction_None) {
     return false;
   }
   return a->id == b->id;

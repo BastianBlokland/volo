@@ -515,7 +515,7 @@ static void inspector_panel_draw_faction(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Id"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(canvas, scene_faction_name(faction->id));
+      debug_widget_editor_faction(canvas, &faction->id);
     }
   }
 }

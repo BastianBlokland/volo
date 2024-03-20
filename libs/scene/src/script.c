@@ -200,6 +200,7 @@ typedef enum {
   ScriptActionType_HealthMod,
   ScriptActionType_Attack,
   ScriptActionType_Bark,
+  ScriptActionType_UpdateFaction,
   ScriptActionType_UpdateSet,
   ScriptActionType_UpdateRenderableParam,
   ScriptActionType_UpdateVfxParam,
@@ -272,6 +273,11 @@ typedef struct {
 } ScriptActionBark;
 
 typedef struct {
+  EcsEntityId  entity;
+  SceneFaction faction;
+} ScriptActionUpdateFaction;
+
+typedef struct {
   EcsEntityId entity;
   StringHash  set;
   bool        add;
@@ -328,6 +334,7 @@ typedef struct {
     ScriptActionHealthMod             data_healthMod;
     ScriptActionAttack                data_attack;
     ScriptActionBark                  data_bark;
+    ScriptActionUpdateFaction         data_updateFaction;
     ScriptActionUpdateSet             data_updateSet;
     ScriptActionUpdateRenderableParam data_updateRenderableParam;
     ScriptActionUpdateVfxParam        data_updateVfxParam;
@@ -538,13 +545,23 @@ static ScriptVal eval_name(EvalContext* ctx, const ScriptArgs args, ScriptError*
 }
 
 static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->factionItr, e);
-  if (itr) {
-    const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
-    const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
-    return factionName ? script_str(factionName) : script_null();
+  const EcsEntityId e = script_arg_entity(args, 0, err);
+  if (args.count == 1) {
+    if (ecs_view_maybe_jump(ctx->factionItr, e)) {
+      const SceneFactionComp* factionComp = ecs_view_read_t(ctx->factionItr, SceneFactionComp);
+      const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
+      return factionName ? script_str(factionName) : script_null();
+    }
+    return script_null();
   }
+  const SceneFaction faction = script_arg_enum(args, 1, &g_scriptEnumFaction, err);
+  if (UNLIKELY(script_error_valid(err))) {
+    return script_null();
+  }
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type               = ScriptActionType_UpdateFaction,
+      .data_updateFaction = {.entity = e, .faction = faction},
+  };
   return script_null();
 }
 
@@ -885,9 +902,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -944,7 +961,7 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptErro
   case 3 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
-    return script_bool(attack && ecs_entity_valid(attack->targetEntity));
+    return script_bool(attack && ecs_entity_valid(attack->targetCurrent));
   }
   case 4 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
@@ -1230,7 +1247,7 @@ static ScriptVal eval_attack_target(EvalContext* ctx, const ScriptArgs args, Scr
   const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
   const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
   if (attack) {
-    return script_entity_or_null(attack->targetEntity);
+    return script_entity_or_null(attack->targetCurrent);
   }
   return script_null();
 }
@@ -2307,6 +2324,7 @@ ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
 ecs_view_define(ActionHealthReqView) { ecs_access_write(SceneHealthRequestComp); }
 ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 ecs_view_define(ActionBarkView) { ecs_access_write(SceneBarkComp); }
+ecs_view_define(ActionFactionView) { ecs_access_write(SceneFactionComp); }
 ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
@@ -2326,6 +2344,7 @@ typedef struct {
   EcsIterator* healthReqItr;
   EcsIterator* attackItr;
   EcsIterator* barkItr;
+  EcsIterator* factionItr;
   EcsIterator* renderableItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
@@ -2441,11 +2460,7 @@ static void action_health_mod(ActionContext* ctx, const ScriptActionHealthMod* a
 
 static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   if (ecs_view_maybe_jump(ctx->attackItr, a->entity)) {
-    SceneAttackComp* attackComp = ecs_view_write_t(ctx->attackItr, SceneAttackComp);
-    // TODO: Instead of dropping the request if we are already firing we should queue it up.
-    if (!(attackComp->flags & SceneAttackFlags_Firing)) {
-      attackComp->targetEntity = a->target;
-    }
+    ecs_view_write_t(ctx->attackItr, SceneAttackComp)->targetDesired = a->target;
   }
 }
 
@@ -2453,6 +2468,12 @@ static void action_bark(ActionContext* ctx, const ScriptActionBark* a) {
   if (ecs_view_maybe_jump(ctx->barkItr, a->entity)) {
     SceneBarkComp* barkComp = ecs_view_write_t(ctx->barkItr, SceneBarkComp);
     scene_bark_request(barkComp, a->type);
+  }
+}
+
+static void action_update_faction(ActionContext* ctx, const ScriptActionUpdateFaction* a) {
+  if (ecs_view_maybe_jump(ctx->factionItr, a->entity)) {
+    ecs_view_write_t(ctx->factionItr, SceneFactionComp)->id = a->faction;
   }
 }
 
@@ -2589,6 +2610,7 @@ ecs_system_define(ScriptActionApplySys) {
       .healthReqItr  = ecs_view_itr(ecs_world_view_t(world, ActionHealthReqView)),
       .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
       .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
+      .factionItr    = ecs_view_itr(ecs_world_view_t(world, ActionFactionView)),
       .renderableItr = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
       .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
       .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
@@ -2636,6 +2658,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Bark:
         action_bark(&ctx, &action->data_bark);
+        break;
+      case ScriptActionType_UpdateFaction:
+        action_update_faction(&ctx, &action->data_updateFaction);
         break;
       case ScriptActionType_UpdateSet:
         action_update_set(&ctx, &action->data_updateSet);
@@ -2720,6 +2745,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionHealthReqView),
       ecs_register_view(ActionAttackView),
       ecs_register_view(ActionBarkView),
+      ecs_register_view(ActionFactionView),
       ecs_register_view(ActionRenderableView),
       ecs_register_view(ActionVfxSysView),
       ecs_register_view(ActionVfxDecalView),

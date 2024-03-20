@@ -10,7 +10,7 @@ ecs_comp_extern(SceneTransformComp);
 typedef enum {
   SceneAttackFlags_Firing   = 1 << 0,
   SceneAttackFlags_Readying = 1 << 1,
-  SceneAttackFlags_Trace    = 1 << 3, // Enable diagnostic tracing.
+  SceneAttackFlags_Trace    = 1 << 2, // Enable diagnostic tracing.
 } SceneAttackFlags;
 
 ecs_comp_extern_public(SceneAttackComp) {
@@ -20,7 +20,7 @@ ecs_comp_extern_public(SceneAttackComp) {
   f32              readyNorm; // Process of readying the weapon, 1.0 = ready.
   TimeDuration     lastHasTargetTime;
   TimeDuration     lastFireTime, nextFireTime;
-  EcsEntityId      targetEntity;
+  EcsEntityId      targetCurrent, targetDesired;
   GeoVector        targetPos;
 };
 
