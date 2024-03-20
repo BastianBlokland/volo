@@ -961,7 +961,7 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptErro
   case 3 /* Attacking */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
-    return script_bool(attack && ecs_entity_valid(attack->targetEntity));
+    return script_bool(attack && ecs_entity_valid(attack->targetCurrent));
   }
   case 4 /* Firing */: {
     const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
@@ -1247,7 +1247,7 @@ static ScriptVal eval_attack_target(EvalContext* ctx, const ScriptArgs args, Scr
   const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
   const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
   if (attack) {
-    return script_entity_or_null(attack->targetEntity);
+    return script_entity_or_null(attack->targetCurrent);
   }
   return script_null();
 }
@@ -2460,11 +2460,7 @@ static void action_health_mod(ActionContext* ctx, const ScriptActionHealthMod* a
 
 static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   if (ecs_view_maybe_jump(ctx->attackItr, a->entity)) {
-    SceneAttackComp* attackComp = ecs_view_write_t(ctx->attackItr, SceneAttackComp);
-    // TODO: Instead of dropping the request if we are already firing we should queue it up.
-    if (!(attackComp->flags & SceneAttackFlags_Firing)) {
-      attackComp->targetEntity = a->target;
-    }
+    ecs_view_write_t(ctx->attackItr, SceneAttackComp)->targetDesired = a->target;
   }
 }
 

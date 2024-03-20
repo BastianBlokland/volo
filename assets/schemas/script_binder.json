@@ -774,7 +774,7 @@
     },
     {
       "name": "attack",
-      "doc": "Instruct the given entity to attack another entity.",
+      "doc": "Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.",
       "sig": {
         "ret": "null",
         "args": [
