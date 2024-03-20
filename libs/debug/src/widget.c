@@ -1,4 +1,6 @@
+#include "core_array.h"
 #include "core_float.h"
+#include "scene_faction.h"
 #include "ui_layout.h"
 #include "ui_shape.h"
 
@@ -89,4 +91,35 @@ bool debug_widget_editor_vec4_resettable(
 
 bool debug_widget_editor_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
   return debug_widget_editor_vec_internal(canvas, (GeoVector*)val, 4, flags);
+}
+
+bool debug_widget_editor_faction(UiCanvasComp* canvas, SceneFaction* val) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("A"),
+      string_static("B"),
+      string_static("C"),
+      string_static("D"),
+  };
+  static const SceneFaction g_values[] = {
+      SceneFaction_None,
+      SceneFaction_A,
+      SceneFaction_B,
+      SceneFaction_C,
+      SceneFaction_D,
+  };
+  ASSERT(array_elems(g_names) == array_elems(g_values), "Mismatching faction options");
+
+  i32 index = 0;
+  for (u32 i = 0; i != array_elems(g_values); ++i) {
+    if (g_values[i] == *val) {
+      index = i;
+      break;
+    }
+  }
+  if (ui_select(canvas, &index, g_names, array_elems(g_values))) {
+    *val = g_values[index];
+    return true;
+  }
+  return false;
 }

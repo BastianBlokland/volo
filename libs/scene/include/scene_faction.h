@@ -5,7 +5,7 @@
 // Forward declare from 'scene_collision.h'.
 typedef enum eSceneLayer SceneLayer;
 
-typedef enum {
+typedef enum eSceneFaction {
   SceneFaction_A,
   SceneFaction_B,
   SceneFaction_C,
