@@ -77,8 +77,30 @@ ecs_view_define(GlobalSpawnView) {
   ecs_access_write(ScenePrefabEnvComp);
 }
 
+ecs_view_define(InstanceLayerUpdateView) {
+  ecs_access_read(SceneFactionComp);
+  ecs_access_read(ScenePrefabInstanceComp);
+  ecs_access_write(SceneCollisionComp);
+}
+
 ecs_view_define(PrefabMapAssetView) { ecs_access_read(AssetPrefabMapComp); }
 ecs_view_define(PrefabSpawnView) { ecs_access_read(ScenePrefabRequestComp); }
+
+static SceneLayer prefab_instance_layer(const SceneFaction faction, const AssetPrefabFlags flags) {
+  if (flags & AssetPrefabFlags_Infantry) {
+    return SceneLayer_Infantry & scene_faction_layers(faction);
+  }
+  if (flags & AssetPrefabFlags_Vehicle) {
+    return SceneLayer_Vehicle & scene_faction_layers(faction);
+  }
+  if (flags & AssetPrefabFlags_Structure) {
+    return SceneLayer_Structure & scene_faction_layers(faction);
+  }
+  if (flags & AssetPrefabFlags_Destructible) {
+    return SceneLayer_Destructible;
+  }
+  return SceneLayer_Environment;
+}
 
 ecs_system_define(ScenePrefabResourceInitSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalResourceUpdateView);
@@ -135,20 +157,18 @@ ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
   }
 }
 
-static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const SceneFaction faction) {
-  if (flags & AssetPrefabFlags_Infantry) {
-    return SceneLayer_Infantry & scene_faction_layers(faction);
+ecs_system_define(ScenePrefabInstanceLayerUpdateSys) {
+  /**
+   * Update the collision layer for prefab instances to support changing factions at runtime.
+   */
+  EcsView* instanceView = ecs_world_view_t(world, InstanceLayerUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const ScenePrefabInstanceComp* instanceComp  = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+    const SceneFactionComp*        factionComp   = ecs_view_read_t(itr, SceneFactionComp);
+    SceneCollisionComp*            collisionComp = ecs_view_write_t(itr, SceneCollisionComp);
+
+    collisionComp->layer = prefab_instance_layer(factionComp->id, instanceComp->assetFlags);
   }
-  if (flags & AssetPrefabFlags_Vehicle) {
-    return SceneLayer_Vehicle & scene_faction_layers(faction);
-  }
-  if (flags & AssetPrefabFlags_Structure) {
-    return SceneLayer_Structure & scene_faction_layers(faction);
-  }
-  if (flags & AssetPrefabFlags_Destructible) {
-    return SceneLayer_Destructible;
-  }
-  return SceneLayer_Environment;
 }
 
 static void setup_name(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitName* t) {
@@ -304,7 +324,7 @@ static void setup_collision(
   if (t->navBlocker) {
     scene_nav_add_blocker(w, e, SceneNavBlockerMask_All);
   }
-  const SceneLayer layer = prefab_instance_layer(p->flags, s->faction);
+  const SceneLayer layer = prefab_instance_layer(s->faction, p->flags);
   switch (t->shape.type) {
   case AssetPrefabShape_Sphere: {
     const SceneCollisionSphere sphere = {
@@ -527,6 +547,7 @@ static bool setup_prefab(
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
     return true; // No point in retrying; mark the prefab as done.
   }
+  instanceComp->assetFlags = prefab->flags;
   if ((spec->flags & ScenePrefabFlags_Volatile) || (prefab->flags & AssetPrefabFlags_Volatile)) {
     instanceComp->isVolatile = true;
   }
@@ -599,12 +620,14 @@ ecs_module_init(scene_prefab_module) {
 
   ecs_register_view(GlobalResourceUpdateView);
   ecs_register_view(GlobalSpawnView);
+  ecs_register_view(InstanceLayerUpdateView);
   ecs_register_view(PrefabMapAssetView);
   ecs_register_view(PrefabSpawnView);
 
   ecs_register_system(ScenePrefabResourceInitSys, ecs_view_id(GlobalResourceUpdateView));
-
   ecs_register_system(ScenePrefabResourceUnloadChangedSys, ecs_view_id(GlobalResourceUpdateView));
+
+  ecs_register_system(ScenePrefabInstanceLayerUpdateSys, ecs_view_id(InstanceLayerUpdateView));
 
   ecs_register_system(
       ScenePrefabSpawnSys,
