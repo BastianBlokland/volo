@@ -39,7 +39,10 @@ typedef enum {
 
 typedef enum {
   PrefabCreateFlags_Multiple        = 1 << 0,
-  PrefabCreateFlags_RandomRotationY = 1 << 1,
+  PrefabCreateFlags_AutoSelect      = 1 << 1,
+  PrefabCreateFlags_RandomRotationY = 1 << 2,
+
+  PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect
 } PrefabCreateFlags;
 
 ecs_comp_define(DebugPrefabPanelComp) {
@@ -165,7 +168,11 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
 
   scene_set_clear(ctx->setEnv, g_sceneSetSelected);
 
-  if (!(input_modifiers(ctx->input) & InputModifier_Shift)) {
+  bool select = (ctx->panelComp->createFlags & PrefabCreateFlags_AutoSelect) != 0;
+  if (input_modifiers(ctx->input) & InputModifier_Shift) {
+    select = false;
+  }
+  if (select) {
     scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
@@ -364,6 +371,11 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_Multiple);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Auto Select"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_AutoSelect);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Faction"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
@@ -512,6 +524,7 @@ EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
       panelEntity,
       DebugPrefabPanelComp,
       .mode          = PrefabPanelMode_Normal,
+      .createFlags   = PrefabCreateFlags_Default,
       .createFaction = SceneFaction_A,
       .createScale   = 1.0f,
       .idFilter      = dynstring_create(g_alloc_heap, 32),
