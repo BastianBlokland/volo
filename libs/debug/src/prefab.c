@@ -24,6 +24,7 @@
 // clang-format off
 
 static const String       g_tooltipFilter         = string_static("Filter prefab's by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String       g_tooltipVolatile       = string_static("Volatile prefab instances will not be persisted in the level.");
 static const f32          g_createMinInteractDist = 1.0f;
 static const f32          g_createMaxInteractDist = 250.0f;
 static const InputBlocker g_createInputBlockers   = InputBlocker_HoveringUi | InputBlocker_HoveringGizmo | InputBlocker_TextInput | InputBlocker_CursorLocked;
@@ -41,6 +42,7 @@ typedef enum {
   PrefabCreateFlags_Multiple        = 1 << 0,
   PrefabCreateFlags_AutoSelect      = 1 << 1,
   PrefabCreateFlags_RandomRotationY = 1 << 2,
+  PrefabCreateFlags_Volatile        = 1 << 3,
 
   PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect
 } PrefabCreateFlags;
@@ -156,10 +158,16 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
     rot = geo_quat_angle_axis(rng_sample_f32(g_rng) * math_pi_f32 * 2.0f, geo_up);
   }
 
+  ScenePrefabFlags prefabFlags = 0;
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_Volatile) {
+    prefabFlags |= ScenePrefabFlags_Volatile;
+  }
+
   const EcsEntityId spawnedEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
           .prefabId = ctx->panelComp->createPrefabId,
+          .flags    = prefabFlags,
           .position = pos,
           .rotation = rot,
           .scale    = ctx->panelComp->createScale,
@@ -391,6 +399,15 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_label(canvas, string_lit("Random Rotation Y"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomRotationY);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Volatile"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas,
+      &ctx->panelComp->createFlags,
+      PrefabCreateFlags_Volatile,
+      .tooltip = g_tooltipVolatile);
 
   ui_layout_pop(canvas);
 }
