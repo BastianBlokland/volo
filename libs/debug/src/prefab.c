@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_stringtable.h"
 #include "debug_panel.h"
 #include "debug_prefab.h"
@@ -36,15 +37,20 @@ typedef enum {
   PrefabPanelMode_Count,
 } PrefabPanelMode;
 
+typedef enum {
+  PrefabCreateFlags_Multiple        = 1 << 0,
+  PrefabCreateFlags_RandomRotationY = 1 << 1,
+} PrefabCreateFlags;
+
 ecs_comp_define(DebugPrefabPanelComp) {
-  PrefabPanelMode mode;
-  StringHash      createPrefabId;
-  SceneFaction    createFaction;
-  bool            createMultiple;
-  DynString       idFilter;
-  UiPanel         panel;
-  UiScrollview    scrollview;
-  u32             totalRows;
+  PrefabPanelMode   mode;
+  PrefabCreateFlags createFlags;
+  StringHash        createPrefabId;
+  SceneFaction      createFaction;
+  DynString         idFilter;
+  UiPanel           panel;
+  UiScrollview      scrollview;
+  u32               totalRows;
 };
 
 static void ecs_destruct_prefab_panel(void* data) {
@@ -141,12 +147,17 @@ static void prefab_create_cancel(const PrefabPanelContext* ctx) {
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
 
+  GeoQuat rot = geo_quat_ident;
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_RandomRotationY) {
+    rot = geo_quat_angle_axis(rng_sample_f32(g_rng) * math_pi_f32 * 2.0f, geo_up);
+  }
+
   const EcsEntityId spawnedEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
           .prefabId = ctx->panelComp->createPrefabId,
           .position = pos,
-          .rotation = geo_quat_ident,
+          .rotation = rot,
           .faction  = ctx->panelComp->createFaction,
       });
 
@@ -156,7 +167,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
     scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
-  if (!ctx->panelComp->createMultiple) {
+  if (!(ctx->panelComp->createFlags & PrefabCreateFlags_Multiple)) {
     ctx->panelComp->mode = PrefabPanelMode_Normal;
   }
 }
@@ -346,12 +357,17 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Multiple"));
   ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &ctx->panelComp->createMultiple);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_Multiple);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Faction"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Random Rotation Y"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomRotationY);
 
   ui_layout_pop(canvas);
 }
