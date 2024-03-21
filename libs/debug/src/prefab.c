@@ -174,13 +174,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .faction  = ctx->panelComp->createFaction,
       });
 
-  scene_set_clear(ctx->setEnv, g_sceneSetSelected);
-
-  bool select = (ctx->panelComp->createFlags & PrefabCreateFlags_AutoSelect) != 0;
-  if (input_modifiers(ctx->input) & InputModifier_Shift) {
-    select = false;
-  }
-  if (select) {
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_AutoSelect) {
+    if ((input_modifiers(ctx->input) & InputModifier_Shift) == 0) {
+      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    }
     scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
