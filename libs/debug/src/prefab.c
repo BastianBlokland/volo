@@ -87,7 +87,11 @@ typedef struct {
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); }
-ecs_view_define(PrefabPreviewView) { ecs_access_write(SceneTransformComp); }
+
+ecs_view_define(PrefabPreviewView) {
+  ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneScaleComp);
+}
 
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
@@ -155,6 +159,10 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
     EcsIterator* previewItr  = ecs_view_maybe_at(previewView, ctx->panelComp->createPreview);
     if (previewView) {
       ecs_view_write_t(previewItr, SceneTransformComp)->position = pos;
+      SceneScaleComp* scaleComp = ecs_view_write_t(previewItr, SceneScaleComp);
+      if (scaleComp) {
+        scaleComp->scale = ctx->panelComp->createScale;
+      }
     }
     return;
   }
@@ -170,6 +178,10 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+
+  if (asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Scalable)) {
+    ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = ctx->panelComp->createScale);
+  }
 
   if (renderable) {
     const EcsEntityId graphic = renderable->data_renderable.graphic;
