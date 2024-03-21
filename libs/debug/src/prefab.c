@@ -20,6 +20,7 @@
 #include "scene_set.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -157,21 +158,28 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
     }
     return;
   }
+  const AssetPrefabMapComp* pMap = ctx->prefabMap;
+  const AssetPrefab*        p    = asset_prefab_get(pMap, ctx->panelComp->createPrefabId);
 
-  const AssetPrefab*      prefab = asset_prefab_get(ctx->prefabMap, ctx->panelComp->createPrefabId);
-  const AssetPrefabTrait* renderableTrait =
-      asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Renderable);
+  const AssetPrefabTrait* renderable = asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Renderable);
+  const AssetPrefabTrait* decal      = asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Decal);
 
-  if (!renderableTrait) {
+  if (!renderable && !decal) {
     return;
   }
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
 
-  const EcsEntityId graphic = renderableTrait->data_renderable.graphic;
-  const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
-  ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
+  if (renderable) {
+    const EcsEntityId graphic = renderable->data_renderable.graphic;
+    const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
+    ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
+  }
+  if (decal) {
+    const EcsEntityId asset = decal->data_decal.asset;
+    ecs_world_add_t(ctx->world, e, SceneVfxDecalComp, .asset = asset, .alpha = 0.5f);
+  }
 
   ctx->panelComp->createPreview = e;
 }
