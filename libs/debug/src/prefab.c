@@ -186,29 +186,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
   }
 }
 
-static void prefab_create_update(const PrefabPanelContext* ctx) {
-  diag_assert(ctx->panelComp->mode == PrefabPanelMode_Create);
-  diag_assert(ctx->panelComp->createPrefabId);
-
-  EcsView* cameraView = ecs_world_view_t(ctx->world, CameraView);
-  if (!ecs_view_contains(cameraView, input_active_window(ctx->input))) {
-    prefab_create_cancel(ctx); // No active window.
-    return;
-  }
-  if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
-    prefab_create_cancel(ctx); // Debug input no longer active.
-    return;
-  }
-  if (input_triggered_lit(ctx->input, "DebugPrefabCreateCancel")) {
-    prefab_create_cancel(ctx); // Cancel requested.
-    return;
-  }
-
-  EcsIterator*              camItr      = ecs_view_at(cameraView, input_active_window(ctx->input));
+static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr, GeoVector* out) {
   const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
   const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-  const bool      blocked      = (input_blockers(ctx->input) & g_createInputBlockers) != 0;
   const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
@@ -227,10 +208,40 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   if (rayT < 0) {
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, &inputRay);
   }
-  if (rayT < g_createMinInteractDist || blocked) {
+  if (rayT < g_createMinInteractDist) {
+    return false;
+  }
+  *out = geo_ray_position(&inputRay, rayT);
+  return true;
+}
+
+static void prefab_create_update(const PrefabPanelContext* ctx) {
+  diag_assert(ctx->panelComp->mode == PrefabPanelMode_Create);
+  diag_assert(ctx->panelComp->createPrefabId);
+
+  EcsView*     cameraView = ecs_world_view_t(ctx->world, CameraView);
+  EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(ctx->input));
+  if (!cameraItr) {
+    prefab_create_cancel(ctx); // No active window.
     return;
   }
-  const GeoVector pos = geo_ray_position(&inputRay, rayT);
+  if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
+    prefab_create_cancel(ctx); // Debug input no longer active.
+    return;
+  }
+  if (input_triggered_lit(ctx->input, "DebugPrefabCreateCancel")) {
+    prefab_create_cancel(ctx); // Cancel requested.
+    return;
+  }
+  if (input_blockers(ctx->input) & g_createInputBlockers) {
+    return; // Input blocked.
+  }
+
+  GeoVector  pos;
+  const bool posValid = prefab_create_pos(ctx, cameraItr, &pos);
+  if (!posValid) {
+    return;
+  }
   debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
 
   debug_stats_notify(
