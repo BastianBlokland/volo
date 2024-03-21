@@ -221,7 +221,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   }
 }
 
-static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+static void prefab_panel_normal_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
@@ -240,75 +240,16 @@ static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelCo
   ui_layout_pop(canvas);
 }
 
-static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  ui_layout_push(canvas);
-
-  UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 35);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
-
-  ui_table_next_row(canvas, &table);
-  ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
-  ui_label(canvas, string_lit("Create"));
-  ui_table_next_column(canvas, &table);
-
-  ui_label(canvas, string_lit("Multiple:"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &ctx->panelComp->createMultiple);
-  ui_table_next_column(canvas, &table);
-
-  ui_label(canvas, string_lit("Faction:"));
-  ui_table_next_column(canvas, &table);
-  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
-  ui_table_next_column(canvas, &table);
-
-  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleRight, Ui_X);
-  ui_layout_resize(canvas, UiAlign_MiddleRight, ui_vector(75, 0), UiBase_Absolute, Ui_X);
-  if (ui_button(canvas, .label = string_lit("Cancel"), .frameColor = ui_color(255, 16, 0, 192))) {
-    prefab_create_cancel(ctx);
-  }
-  ui_layout_pop(canvas);
-}
-
-static void prefab_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  switch (ctx->panelComp->mode) {
-  case PrefabPanelMode_Normal:
-    prefab_options_normal_draw(canvas, ctx);
-    break;
-  case PrefabPanelMode_Create:
-    prefab_options_create_draw(canvas, ctx);
-    break;
-  case PrefabPanelMode_Count:
-    break;
-  }
-  ui_canvas_id_block_next(canvas);
-}
-
-static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
-  ui_panel_begin(
-      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
-
-  prefab_options_draw(canvas, ctx);
+static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+  prefab_panel_normal_options_draw(canvas, ctx);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
-
-  const bool disabled = ctx->panelComp->mode != PrefabPanelMode_Normal;
 
   /**
    * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
    * input to detect place accept / cancel. This can happen when pinning the window.
    */
-  const bool disableCreate = disabled || !input_layer_active(ctx->input, string_hash_lit("Debug"));
-
-  ui_style_push(canvas);
-  if (disabled) {
-    ui_style_color_mult(canvas, 0.5f);
-  }
+  const bool disableCreate = !input_layer_active(ctx->input, string_hash_lit("Debug"));
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 225);
@@ -357,20 +298,18 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
     if (ui_button(
             canvas,
-            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Delete),
             .fontSize   = 18,
-            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(255, 16, 0, 192),
+            .frameColor = ui_color(255, 16, 0, 192),
             .tooltip    = string_lit("Destroy all instances."))) {
       prefab_destroy_all(ctx, prefab->nameHash);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
             canvas,
-            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .fontSize   = 18,
-            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+            .frameColor = ui_color(0, 16, 255, 192),
             .tooltip    = string_lit("Select all instances."))) {
       prefab_select_all(ctx, prefab->nameHash);
     }
@@ -387,9 +326,52 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
   }
 
   ui_scrollview_end(canvas, &ctx->panelComp->scrollview);
-
-  ui_style_pop(canvas);
   ui_layout_container_pop(canvas);
+}
+
+static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Create"));
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("Cancel"), .frameColor = ui_color(255, 16, 0, 192))) {
+    prefab_create_cancel(ctx);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Multiple"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &ctx->panelComp->createMultiple);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Faction"));
+  ui_table_next_column(canvas, &table);
+  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
+
+  ui_layout_pop(canvas);
+}
+
+static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+  const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
+  ui_panel_begin(
+      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+
+  switch (ctx->panelComp->mode) {
+  case PrefabPanelMode_Normal:
+    prefab_panel_normal_draw(canvas, ctx);
+    break;
+  case PrefabPanelMode_Create:
+    prefab_panel_create_draw(canvas, ctx);
+    break;
+  case PrefabPanelMode_Count:
+    UNREACHABLE
+  }
+
   ui_panel_end(canvas, &ctx->panelComp->panel);
 }
 
