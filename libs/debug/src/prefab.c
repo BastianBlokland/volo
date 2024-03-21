@@ -16,8 +16,10 @@
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_prefab.h"
+#include "scene_renderable.h"
 #include "scene_set.h"
 #include "scene_terrain.h"
+#include "scene_transform.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -48,8 +50,8 @@ typedef enum {
   PrefabCreateFlags_SnapTerrain     = 1 << 5,
   PrefabCreateFlags_SnapGeo         = 1 << 6,
 
-  PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapGrid |
-                              PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
+  PrefabCreateFlags_Default =
+      PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
 } PrefabCreateFlags;
 
 ecs_comp_define(DebugPrefabPanelComp) {
@@ -58,6 +60,7 @@ ecs_comp_define(DebugPrefabPanelComp) {
   StringHash        createPrefabId;
   SceneFaction      createFaction;
   f32               createScale;
+  EcsEntityId       createPreview;
   DynString         idFilter;
   UiPanel           panel;
   UiScrollview      scrollview;
@@ -83,6 +86,8 @@ typedef struct {
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); }
+ecs_view_define(PrefabPreviewView) { ecs_access_write(SceneTransformComp); }
+
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
@@ -143,6 +148,41 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   }
 }
 
+static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector pos) {
+  if (ctx->panelComp->createPreview) {
+    EcsView*     previewView = ecs_world_view_t(ctx->world, PrefabPreviewView);
+    EcsIterator* previewItr  = ecs_view_maybe_at(previewView, ctx->panelComp->createPreview);
+    if (previewView) {
+      ecs_view_write_t(previewItr, SceneTransformComp)->position = pos;
+    }
+    return;
+  }
+
+  const AssetPrefab*      prefab = asset_prefab_get(ctx->prefabMap, ctx->panelComp->createPrefabId);
+  const AssetPrefabTrait* renderableTrait =
+      asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Renderable);
+
+  if (!renderableTrait) {
+    return;
+  }
+
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+
+  const EcsEntityId graphic = renderableTrait->data_renderable.graphic;
+  const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
+  ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
+
+  ctx->panelComp->createPreview = e;
+}
+
+static void prefab_create_preview_stop(const PrefabPanelContext* ctx) {
+  if (ctx->panelComp->createPreview) {
+    ecs_world_entity_destroy(ctx->world, ctx->panelComp->createPreview);
+    ctx->panelComp->createPreview = 0;
+  }
+}
+
 static void prefab_create_start(const PrefabPanelContext* ctx, const StringHash prefabId) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create start"));
 
@@ -154,6 +194,7 @@ static void prefab_create_cancel(const PrefabPanelContext* ctx) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create cancel"));
 
   ctx->panelComp->mode = PrefabPanelMode_Normal;
+  prefab_create_preview_stop(ctx);
 }
 
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
@@ -187,8 +228,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
     scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
-  if (!(ctx->panelComp->createFlags & PrefabCreateFlags_Multiple)) {
+  const bool createMultiple = (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) != 0;
+  if (!createMultiple) {
     ctx->panelComp->mode = PrefabPanelMode_Normal;
+    prefab_create_preview_stop(ctx);
   }
 }
 
@@ -250,14 +293,18 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     return;
   }
   if (input_blockers(ctx->input) & g_createInputBlockers) {
+    prefab_create_preview_stop(ctx);
     return; // Input blocked.
   }
 
   GeoVector  pos;
   const bool posValid = prefab_create_pos(ctx, cameraItr, &pos);
   if (!posValid) {
-    return;
+    prefab_create_preview_stop(ctx);
+    return; // Position not valid.
   }
+
+  prefab_create_preview(ctx, pos);
   debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
 
   debug_stats_notify(
@@ -560,6 +607,7 @@ ecs_module_init(debug_prefab_module) {
 
   ecs_register_view(PrefabMapView);
   ecs_register_view(PrefabInstanceView);
+  ecs_register_view(PrefabPreviewView);
   ecs_register_view(CameraView);
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
@@ -568,6 +616,7 @@ ecs_module_init(debug_prefab_module) {
       DebugPrefabUpdatePanelSys,
       ecs_view_id(PrefabMapView),
       ecs_view_id(PrefabInstanceView),
+      ecs_view_id(PrefabPreviewView),
       ecs_view_id(CameraView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView));
