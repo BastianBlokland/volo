@@ -43,13 +43,13 @@ typedef enum {
 } PrefabPanelMode;
 
 typedef enum {
-  PrefabCreateFlags_Multiple        = 1 << 0,
-  PrefabCreateFlags_AutoSelect      = 1 << 1,
-  PrefabCreateFlags_RandomRotationY = 1 << 2,
-  PrefabCreateFlags_Volatile        = 1 << 3,
-  PrefabCreateFlags_SnapGrid        = 1 << 4,
-  PrefabCreateFlags_SnapTerrain     = 1 << 5,
-  PrefabCreateFlags_SnapGeo         = 1 << 6,
+  PrefabCreateFlags_Multiple    = 1 << 0,
+  PrefabCreateFlags_AutoSelect  = 1 << 1,
+  PrefabCreateFlags_RandomAngle = 1 << 2,
+  PrefabCreateFlags_Volatile    = 1 << 3,
+  PrefabCreateFlags_SnapGrid    = 1 << 4,
+  PrefabCreateFlags_SnapTerrain = 1 << 5,
+  PrefabCreateFlags_SnapGeo     = 1 << 6,
 
   PrefabCreateFlags_Default =
       PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
@@ -61,6 +61,7 @@ ecs_comp_define(DebugPrefabPanelComp) {
   StringHash        createPrefabId;
   SceneFaction      createFaction;
   f32               createScale;
+  f32               createAngle;
   EcsEntityId       createPreview;
   DynString         idFilter;
   UiPanel           panel;
@@ -153,13 +154,24 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   }
 }
 
+static void prefab_create_update_angle(const PrefabPanelContext* ctx) {
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_RandomAngle) {
+    ctx->panelComp->createAngle = rng_sample_f32(g_rng) * math_pi_f32 * 2.0f;
+  } else {
+    ctx->panelComp->createAngle = 0;
+  }
+}
+
 static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector pos) {
   if (ctx->panelComp->createPreview) {
     EcsView*     previewView = ecs_world_view_t(ctx->world, PrefabPreviewView);
     EcsIterator* previewItr  = ecs_view_maybe_at(previewView, ctx->panelComp->createPreview);
     if (previewView) {
-      ecs_view_write_t(previewItr, SceneTransformComp)->position = pos;
-      SceneScaleComp* scaleComp = ecs_view_write_t(previewItr, SceneScaleComp);
+      SceneTransformComp* transComp = ecs_view_write_t(previewItr, SceneTransformComp);
+      SceneScaleComp*     scaleComp = ecs_view_write_t(previewItr, SceneScaleComp);
+
+      transComp->position = pos;
+      transComp->rotation = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
       if (scaleComp) {
         scaleComp->scale = ctx->panelComp->createScale;
       }
@@ -176,8 +188,9 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
     return;
   }
 
-  const EcsEntityId e = ecs_world_entity_create(ctx->world);
-  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+  const EcsEntityId e   = ecs_world_entity_create(ctx->world);
+  const GeoQuat     rot = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
+  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = rot);
 
   if (asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Scalable)) {
     ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = ctx->panelComp->createScale);
@@ -208,6 +221,7 @@ static void prefab_create_start(const PrefabPanelContext* ctx, const StringHash 
 
   ctx->panelComp->mode           = PrefabPanelMode_Create;
   ctx->panelComp->createPrefabId = prefabId;
+  prefab_create_update_angle(ctx);
 }
 
 static void prefab_create_cancel(const PrefabPanelContext* ctx) {
@@ -220,11 +234,6 @@ static void prefab_create_cancel(const PrefabPanelContext* ctx) {
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
 
-  GeoQuat rot = geo_quat_ident;
-  if (ctx->panelComp->createFlags & PrefabCreateFlags_RandomRotationY) {
-    rot = geo_quat_angle_axis(rng_sample_f32(g_rng) * math_pi_f32 * 2.0f, geo_up);
-  }
-
   ScenePrefabFlags prefabFlags = 0;
   if (ctx->panelComp->createFlags & PrefabCreateFlags_Volatile) {
     prefabFlags |= ScenePrefabFlags_Volatile;
@@ -236,7 +245,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .prefabId = ctx->panelComp->createPrefabId,
           .flags    = prefabFlags,
           .position = pos,
-          .rotation = rot,
+          .rotation = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up),
           .scale    = ctx->panelComp->createScale,
           .faction  = ctx->panelComp->createFaction,
       });
@@ -248,8 +257,9 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
     scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
-  const bool createMultiple = (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) != 0;
-  if (!createMultiple) {
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) {
+    prefab_create_update_angle(ctx);
+  } else {
     ctx->panelComp->mode = PrefabPanelMode_Normal;
     prefab_create_preview_stop(ctx);
   }
@@ -487,9 +497,11 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   }
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Random Rotation Y"));
+  ui_label(canvas, string_lit("Random Angle"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomRotationY);
+  if (ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomAngle)) {
+    prefab_create_update_angle(ctx);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Snap Grid"));
