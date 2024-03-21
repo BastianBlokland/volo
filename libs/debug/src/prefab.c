@@ -477,12 +477,12 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Multiple"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_Multiple);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_Multiple);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Auto Select"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_AutoSelect);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_AutoSelect);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Faction"));
@@ -499,31 +499,31 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Random Angle"));
   ui_table_next_column(canvas, &table);
-  if (ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomAngle)) {
+  if (ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_RandomAngle)) {
     prefab_create_update_angle(ctx);
   }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Snap Grid"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_SnapGrid);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_SnapGrid);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Snap Terrain"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_SnapTerrain);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_SnapTerrain);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Snap Geometry"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_SnapGeo);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_SnapGeo);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Volatile"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas,
-      &ctx->panelComp->createFlags,
+      (u32*)&ctx->panelComp->createFlags,
       PrefabCreateFlags_Volatile,
       .tooltip = g_tooltipVolatile);
 
