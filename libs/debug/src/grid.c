@@ -363,9 +363,8 @@ void debug_grid_show(DebugGridComp* comp, const f32 height) {
 }
 
 void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
-  for (u8 axis = 0; axis != 3; ++axis) {
-    debug_grid_snap_axis(comp, position, axis);
-  }
+  debug_grid_snap_axis(comp, position, 0 /* X */);
+  debug_grid_snap_axis(comp, position, 2 /* Z */);
 }
 
 void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const u8 axis) {

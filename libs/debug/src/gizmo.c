@@ -440,8 +440,7 @@ static bool gizmo_update_interaction_translation(
   data->result          = geo_vector_add(data->basePos, delta);
 
   if (grid && gap_window_key_down(window, GapKey_Shift)) {
-    debug_grid_snap_axis(grid, &data->result, DebugGizmoSection_X);
-    debug_grid_snap_axis(grid, &data->result, DebugGizmoSection_Z);
+    debug_grid_snap(grid, &data->result);
   }
 
   const f32 statDeltaMag = geo_vector_mag(geo_vector_sub(data->result, data->basePos));

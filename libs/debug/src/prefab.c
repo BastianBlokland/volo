@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_stringtable.h"
+#include "debug_grid.h"
 #include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
@@ -43,8 +44,9 @@ typedef enum {
   PrefabCreateFlags_AutoSelect      = 1 << 1,
   PrefabCreateFlags_RandomRotationY = 1 << 2,
   PrefabCreateFlags_Volatile        = 1 << 3,
+  PrefabCreateFlags_GridSnap        = 1 << 4,
 
-  PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect
+  PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect | PrefabCreateFlags_GridSnap
 } PrefabCreateFlags;
 
 ecs_comp_define(DebugPrefabPanelComp) {
@@ -81,6 +83,7 @@ ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); 
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(DebugGridComp);
 }
 
 static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName) {
@@ -189,6 +192,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
 static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr, GeoVector* out) {
   const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
   const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
+  const DebugGridComp*      debugGrid   = ecs_view_read_t(camItr, DebugGridComp);
 
   const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
@@ -212,6 +216,11 @@ static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr
     return false;
   }
   *out = geo_ray_position(&inputRay, rayT);
+
+  if (debugGrid && ctx->panelComp->createFlags & PrefabCreateFlags_GridSnap) {
+    debug_grid_snap(debugGrid, out);
+  }
+
   return true;
 }
 
@@ -407,6 +416,11 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_label(canvas, string_lit("Random Rotation Y"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomRotationY);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Grid Snap"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_GridSnap);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Volatile"));
