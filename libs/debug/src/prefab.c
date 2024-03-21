@@ -47,6 +47,7 @@ ecs_comp_define(DebugPrefabPanelComp) {
   PrefabCreateFlags createFlags;
   StringHash        createPrefabId;
   SceneFaction      createFaction;
+  f32               createScale;
   DynString         idFilter;
   UiPanel           panel;
   UiScrollview      scrollview;
@@ -158,6 +159,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .prefabId = ctx->panelComp->createPrefabId,
           .position = pos,
           .rotation = rot,
+          .scale    = ctx->panelComp->createScale,
           .faction  = ctx->panelComp->createFaction,
       });
 
@@ -343,6 +345,8 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
 static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
+  const AssetPrefab* prefab = asset_prefab_get(ctx->prefabMap, ctx->panelComp->createPrefabId);
+
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
@@ -363,6 +367,13 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_label(canvas, string_lit("Faction"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
+
+  if (asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Scalable)) {
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("Scale"));
+    ui_table_next_column(canvas, &table);
+    ui_slider(canvas, &ctx->panelComp->createScale, .min = 0.1f, .max = 5.0f);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Random Rotation Y"));
@@ -502,6 +513,7 @@ EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
       DebugPrefabPanelComp,
       .mode          = PrefabPanelMode_Normal,
       .createFaction = SceneFaction_A,
+      .createScale   = 1.0f,
       .idFilter      = dynstring_create(g_alloc_heap, 32),
       .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
