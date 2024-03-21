@@ -3,7 +3,9 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_stringtable.h"
+#include "debug_grid.h"
 #include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
@@ -14,8 +16,11 @@
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_prefab.h"
+#include "scene_renderable.h"
 #include "scene_set.h"
 #include "scene_terrain.h"
+#include "scene_transform.h"
+#include "scene_vfx.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -23,6 +28,7 @@
 // clang-format off
 
 static const String       g_tooltipFilter         = string_static("Filter prefab's by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String       g_tooltipVolatile       = string_static("Volatile prefab instances will not be persisted in the level.");
 static const f32          g_createMinInteractDist = 1.0f;
 static const f32          g_createMaxInteractDist = 250.0f;
 static const InputBlocker g_createInputBlockers   = InputBlocker_HoveringUi | InputBlocker_HoveringGizmo | InputBlocker_TextInput | InputBlocker_CursorLocked;
@@ -36,15 +42,31 @@ typedef enum {
   PrefabPanelMode_Count,
 } PrefabPanelMode;
 
+typedef enum {
+  PrefabCreateFlags_Multiple    = 1 << 0,
+  PrefabCreateFlags_AutoSelect  = 1 << 1,
+  PrefabCreateFlags_RandomAngle = 1 << 2,
+  PrefabCreateFlags_Volatile    = 1 << 3,
+  PrefabCreateFlags_SnapGrid    = 1 << 4,
+  PrefabCreateFlags_SnapTerrain = 1 << 5,
+  PrefabCreateFlags_SnapGeo     = 1 << 6,
+
+  PrefabCreateFlags_Default =
+      PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
+} PrefabCreateFlags;
+
 ecs_comp_define(DebugPrefabPanelComp) {
-  PrefabPanelMode mode;
-  StringHash      createPrefabId;
-  SceneFaction    createFaction;
-  bool            createMultiple;
-  DynString       idFilter;
-  UiPanel         panel;
-  UiScrollview    scrollview;
-  u32             totalRows;
+  PrefabPanelMode   mode;
+  PrefabCreateFlags createFlags;
+  StringHash        createPrefabId;
+  SceneFaction      createFaction;
+  f32               createScale;
+  f32               createAngle;
+  EcsEntityId       createPreview;
+  DynString         idFilter;
+  UiPanel           panel;
+  UiScrollview      scrollview;
+  u32               totalRows;
 };
 
 static void ecs_destruct_prefab_panel(void* data) {
@@ -66,9 +88,16 @@ typedef struct {
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); }
+
+ecs_view_define(PrefabPreviewView) {
+  ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneScaleComp);
+}
+
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(DebugGridComp);
 }
 
 static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName) {
@@ -125,48 +154,163 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   }
 }
 
+static void prefab_create_update_angle(const PrefabPanelContext* ctx) {
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_RandomAngle) {
+    ctx->panelComp->createAngle = rng_sample_f32(g_rng) * math_pi_f32 * 2.0f;
+  } else {
+    ctx->panelComp->createAngle = 0;
+  }
+}
+
+static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector pos) {
+  if (ctx->panelComp->createPreview) {
+    EcsView*     previewView = ecs_world_view_t(ctx->world, PrefabPreviewView);
+    EcsIterator* previewItr  = ecs_view_maybe_at(previewView, ctx->panelComp->createPreview);
+    if (previewView) {
+      SceneTransformComp* transComp = ecs_view_write_t(previewItr, SceneTransformComp);
+      SceneScaleComp*     scaleComp = ecs_view_write_t(previewItr, SceneScaleComp);
+
+      transComp->position = pos;
+      transComp->rotation = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
+      if (scaleComp) {
+        scaleComp->scale = ctx->panelComp->createScale;
+      }
+    }
+    return;
+  }
+  const AssetPrefabMapComp* pMap = ctx->prefabMap;
+  const AssetPrefab*        p    = asset_prefab_get(pMap, ctx->panelComp->createPrefabId);
+
+  const AssetPrefabTrait* renderable = asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Renderable);
+  const AssetPrefabTrait* decal      = asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Decal);
+
+  if (!renderable && !decal) {
+    return;
+  }
+
+  const EcsEntityId e   = ecs_world_entity_create(ctx->world);
+  const GeoQuat     rot = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
+  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = rot);
+
+  if (asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Scalable)) {
+    ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = ctx->panelComp->createScale);
+  }
+
+  if (renderable) {
+    const EcsEntityId graphic = renderable->data_renderable.graphic;
+    const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
+    ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
+  }
+  if (decal) {
+    const EcsEntityId asset = decal->data_decal.asset;
+    ecs_world_add_t(ctx->world, e, SceneVfxDecalComp, .asset = asset, .alpha = 0.5f);
+  }
+
+  ctx->panelComp->createPreview = e;
+}
+
+static void prefab_create_preview_stop(const PrefabPanelContext* ctx) {
+  if (ctx->panelComp->createPreview) {
+    ecs_world_entity_destroy(ctx->world, ctx->panelComp->createPreview);
+    ctx->panelComp->createPreview = 0;
+  }
+}
+
 static void prefab_create_start(const PrefabPanelContext* ctx, const StringHash prefabId) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create start"));
 
   ctx->panelComp->mode           = PrefabPanelMode_Create;
   ctx->panelComp->createPrefabId = prefabId;
+  prefab_create_update_angle(ctx);
 }
 
 static void prefab_create_cancel(const PrefabPanelContext* ctx) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create cancel"));
 
   ctx->panelComp->mode = PrefabPanelMode_Normal;
+  prefab_create_preview_stop(ctx);
 }
 
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
 
+  ScenePrefabFlags prefabFlags = 0;
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_Volatile) {
+    prefabFlags |= ScenePrefabFlags_Volatile;
+  }
+
   const EcsEntityId spawnedEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
           .prefabId = ctx->panelComp->createPrefabId,
+          .flags    = prefabFlags,
           .position = pos,
-          .rotation = geo_quat_ident,
+          .rotation = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up),
+          .scale    = ctx->panelComp->createScale,
           .faction  = ctx->panelComp->createFaction,
       });
 
-  scene_set_clear(ctx->setEnv, g_sceneSetSelected);
-
-  if (!(input_modifiers(ctx->input) & InputModifier_Shift)) {
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_AutoSelect) {
+    if ((input_modifiers(ctx->input) & InputModifier_Shift) == 0) {
+      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    }
     scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
   }
 
-  if (!ctx->panelComp->createMultiple) {
+  if (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) {
+    prefab_create_update_angle(ctx);
+  } else {
     ctx->panelComp->mode = PrefabPanelMode_Normal;
+    prefab_create_preview_stop(ctx);
   }
+}
+
+static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr, GeoVector* out) {
+  const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
+  const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
+  const DebugGridComp*      debugGrid   = ecs_view_read_t(camItr, DebugGridComp);
+
+  const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
+  const f32       inputAspect  = input_cursor_aspect(ctx->input);
+  const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+
+  const bool snapGeo     = (ctx->panelComp->createFlags & PrefabCreateFlags_SnapGeo) != 0;
+  const bool snapTerrain = (ctx->panelComp->createFlags & PrefabCreateFlags_SnapTerrain) != 0;
+  const bool snapGrid    = (ctx->panelComp->createFlags & PrefabCreateFlags_SnapGrid) != 0;
+
+  f32 rayT = -1.0f;
+  if (ctx->collision && snapGeo) {
+    const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
+    SceneRayHit            hit;
+    if (scene_query_ray(ctx->collision, &inputRay, g_createMaxInteractDist, &filter, &hit)) {
+      rayT = hit.time;
+    }
+  }
+  if (rayT < 0 && snapTerrain && scene_terrain_loaded(ctx->terrain)) {
+    rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay, g_createMaxInteractDist);
+  }
+  if (rayT < 0) {
+    rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, &inputRay);
+  }
+  if (rayT < g_createMinInteractDist) {
+    return false;
+  }
+  *out = geo_ray_position(&inputRay, rayT);
+
+  if (debugGrid && snapGrid) {
+    debug_grid_snap(debugGrid, out);
+  }
+
+  return true;
 }
 
 static void prefab_create_update(const PrefabPanelContext* ctx) {
   diag_assert(ctx->panelComp->mode == PrefabPanelMode_Create);
   diag_assert(ctx->panelComp->createPrefabId);
 
-  EcsView* cameraView = ecs_world_view_t(ctx->world, CameraView);
-  if (!ecs_view_contains(cameraView, input_active_window(ctx->input))) {
+  EcsView*     cameraView = ecs_world_view_t(ctx->world, CameraView);
+  EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(ctx->input));
+  if (!cameraItr) {
     prefab_create_cancel(ctx); // No active window.
     return;
   }
@@ -178,34 +322,19 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
+  if (input_blockers(ctx->input) & g_createInputBlockers) {
+    prefab_create_preview_stop(ctx);
+    return; // Input blocked.
+  }
 
-  EcsIterator*              camItr      = ecs_view_at(cameraView, input_active_window(ctx->input));
-  const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
-  const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
+  GeoVector  pos;
+  const bool posValid = prefab_create_pos(ctx, cameraItr, &pos);
+  if (!posValid) {
+    prefab_create_preview_stop(ctx);
+    return; // Position not valid.
+  }
 
-  const bool      blocked      = (input_blockers(ctx->input) & g_createInputBlockers) != 0;
-  const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
-  const f32       inputAspect  = input_cursor_aspect(ctx->input);
-  const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
-
-  f32 rayT = -1.0f;
-  if (ctx->collision) {
-    const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
-    SceneRayHit            hit;
-    if (scene_query_ray(ctx->collision, &inputRay, g_createMaxInteractDist, &filter, &hit)) {
-      rayT = hit.time;
-    }
-  }
-  if (rayT < 0 && scene_terrain_loaded(ctx->terrain)) {
-    rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay, g_createMaxInteractDist);
-  }
-  if (rayT < 0) {
-    rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, &inputRay);
-  }
-  if (rayT < g_createMinInteractDist || blocked) {
-    return;
-  }
-  const GeoVector pos = geo_ray_position(&inputRay, rayT);
+  prefab_create_preview(ctx, pos);
   debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
 
   debug_stats_notify(
@@ -221,7 +350,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   }
 }
 
-static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+static void prefab_panel_normal_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
@@ -240,75 +369,16 @@ static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelCo
   ui_layout_pop(canvas);
 }
 
-static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  ui_layout_push(canvas);
-
-  UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 35);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
-
-  ui_table_next_row(canvas, &table);
-  ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
-  ui_label(canvas, string_lit("Create"));
-  ui_table_next_column(canvas, &table);
-
-  ui_label(canvas, string_lit("Multiple:"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &ctx->panelComp->createMultiple);
-  ui_table_next_column(canvas, &table);
-
-  ui_label(canvas, string_lit("Faction:"));
-  ui_table_next_column(canvas, &table);
-  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
-  ui_table_next_column(canvas, &table);
-
-  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleRight, Ui_X);
-  ui_layout_resize(canvas, UiAlign_MiddleRight, ui_vector(75, 0), UiBase_Absolute, Ui_X);
-  if (ui_button(canvas, .label = string_lit("Cancel"), .frameColor = ui_color(255, 16, 0, 192))) {
-    prefab_create_cancel(ctx);
-  }
-  ui_layout_pop(canvas);
-}
-
-static void prefab_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  switch (ctx->panelComp->mode) {
-  case PrefabPanelMode_Normal:
-    prefab_options_normal_draw(canvas, ctx);
-    break;
-  case PrefabPanelMode_Create:
-    prefab_options_create_draw(canvas, ctx);
-    break;
-  case PrefabPanelMode_Count:
-    break;
-  }
-  ui_canvas_id_block_next(canvas);
-}
-
-static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
-  ui_panel_begin(
-      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
-
-  prefab_options_draw(canvas, ctx);
+static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+  prefab_panel_normal_options_draw(canvas, ctx);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
-
-  const bool disabled = ctx->panelComp->mode != PrefabPanelMode_Normal;
 
   /**
    * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
    * input to detect place accept / cancel. This can happen when pinning the window.
    */
-  const bool disableCreate = disabled || !input_layer_active(ctx->input, string_hash_lit("Debug"));
-
-  ui_style_push(canvas);
-  if (disabled) {
-    ui_style_color_mult(canvas, 0.5f);
-  }
+  const bool disableCreate = !input_layer_active(ctx->input, string_hash_lit("Debug"));
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 225);
@@ -357,20 +427,18 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
     if (ui_button(
             canvas,
-            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Delete),
             .fontSize   = 18,
-            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(255, 16, 0, 192),
+            .frameColor = ui_color(255, 16, 0, 192),
             .tooltip    = string_lit("Destroy all instances."))) {
       prefab_destroy_all(ctx, prefab->nameHash);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
             canvas,
-            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .fontSize   = 18,
-            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+            .frameColor = ui_color(0, 16, 255, 192),
             .tooltip    = string_lit("Select all instances."))) {
       prefab_select_all(ctx, prefab->nameHash);
     }
@@ -387,9 +455,97 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
   }
 
   ui_scrollview_end(canvas, &ctx->panelComp->scrollview);
-
-  ui_style_pop(canvas);
   ui_layout_container_pop(canvas);
+}
+
+static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+  ui_layout_push(canvas);
+
+  const AssetPrefab* prefab = asset_prefab_get(ctx->prefabMap, ctx->panelComp->createPrefabId);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Create"));
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("Cancel"), .frameColor = ui_color(255, 16, 0, 192))) {
+    prefab_create_cancel(ctx);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Multiple"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_Multiple);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Auto Select"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_AutoSelect);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Faction"));
+  ui_table_next_column(canvas, &table);
+  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
+
+  if (asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Scalable)) {
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("Scale"));
+    ui_table_next_column(canvas, &table);
+    ui_slider(canvas, &ctx->panelComp->createScale, .min = 0.1f, .max = 5.0f);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Random Angle"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_RandomAngle)) {
+    prefab_create_update_angle(ctx);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Snap Grid"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_SnapGrid);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Snap Terrain"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_SnapTerrain);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Snap Geometry"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&ctx->panelComp->createFlags, PrefabCreateFlags_SnapGeo);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Volatile"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&ctx->panelComp->createFlags,
+      PrefabCreateFlags_Volatile,
+      .tooltip = g_tooltipVolatile);
+
+  ui_layout_pop(canvas);
+}
+
+static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+  const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
+  ui_panel_begin(
+      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+
+  switch (ctx->panelComp->mode) {
+  case PrefabPanelMode_Normal:
+    prefab_panel_normal_draw(canvas, ctx);
+    break;
+  case PrefabPanelMode_Create:
+    prefab_panel_create_draw(canvas, ctx);
+    break;
+  case PrefabPanelMode_Count:
+    UNREACHABLE
+  }
+
   ui_panel_end(canvas, &ctx->panelComp->panel);
 }
 
@@ -483,6 +639,7 @@ ecs_module_init(debug_prefab_module) {
 
   ecs_register_view(PrefabMapView);
   ecs_register_view(PrefabInstanceView);
+  ecs_register_view(PrefabPreviewView);
   ecs_register_view(CameraView);
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
@@ -491,6 +648,7 @@ ecs_module_init(debug_prefab_module) {
       DebugPrefabUpdatePanelSys,
       ecs_view_id(PrefabMapView),
       ecs_view_id(PrefabInstanceView),
+      ecs_view_id(PrefabPreviewView),
       ecs_view_id(CameraView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView));
@@ -503,7 +661,9 @@ EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
       panelEntity,
       DebugPrefabPanelComp,
       .mode          = PrefabPanelMode_Normal,
+      .createFlags   = PrefabCreateFlags_Default,
       .createFaction = SceneFaction_A,
+      .createScale   = 1.0f,
       .idFilter      = dynstring_create(g_alloc_heap, 32),
       .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
