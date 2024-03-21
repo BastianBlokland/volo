@@ -44,9 +44,12 @@ typedef enum {
   PrefabCreateFlags_AutoSelect      = 1 << 1,
   PrefabCreateFlags_RandomRotationY = 1 << 2,
   PrefabCreateFlags_Volatile        = 1 << 3,
-  PrefabCreateFlags_GridSnap        = 1 << 4,
+  PrefabCreateFlags_SnapGrid        = 1 << 4,
+  PrefabCreateFlags_SnapTerrain     = 1 << 5,
+  PrefabCreateFlags_SnapGeo         = 1 << 6,
 
-  PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect | PrefabCreateFlags_GridSnap
+  PrefabCreateFlags_Default = PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapGrid |
+                              PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
 } PrefabCreateFlags;
 
 ecs_comp_define(DebugPrefabPanelComp) {
@@ -198,15 +201,19 @@ static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
+  const bool snapGeo     = (ctx->panelComp->createFlags & PrefabCreateFlags_SnapGeo) != 0;
+  const bool snapTerrain = (ctx->panelComp->createFlags & PrefabCreateFlags_SnapTerrain) != 0;
+  const bool snapGrid    = (ctx->panelComp->createFlags & PrefabCreateFlags_SnapGrid) != 0;
+
   f32 rayT = -1.0f;
-  if (ctx->collision) {
+  if (ctx->collision && snapGeo) {
     const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
     SceneRayHit            hit;
     if (scene_query_ray(ctx->collision, &inputRay, g_createMaxInteractDist, &filter, &hit)) {
       rayT = hit.time;
     }
   }
-  if (rayT < 0 && scene_terrain_loaded(ctx->terrain)) {
+  if (rayT < 0 && snapTerrain && scene_terrain_loaded(ctx->terrain)) {
     rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay, g_createMaxInteractDist);
   }
   if (rayT < 0) {
@@ -217,7 +224,7 @@ static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr
   }
   *out = geo_ray_position(&inputRay, rayT);
 
-  if (debugGrid && ctx->panelComp->createFlags & PrefabCreateFlags_GridSnap) {
+  if (debugGrid && snapGrid) {
     debug_grid_snap(debugGrid, out);
   }
 
@@ -418,9 +425,19 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_RandomRotationY);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Grid Snap"));
+  ui_label(canvas, string_lit("Snap Grid"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_GridSnap);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_SnapGrid);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Snap Terrain"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_SnapTerrain);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Snap Geometry"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, &ctx->panelComp->createFlags, PrefabCreateFlags_SnapGeo);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Volatile"));
