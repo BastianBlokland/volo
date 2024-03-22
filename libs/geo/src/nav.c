@@ -43,9 +43,8 @@ typedef struct {
 typedef struct {
   BitSet      markedCells; // bit[cellCountTotal]
   GeoNavCell* cameFrom;    // GeoNavCell[cellCountTotal]
-  u16*        gScores;     // u16[cellCountTotal]
-
-  u32 stats[GeoNavStat_Count];
+  u16*        costs;       // u16[cellCountTotal]
+  u32         stats[GeoNavStat_Count];
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
@@ -79,7 +78,7 @@ NO_INLINE_HINT static GeoNavWorkerState* nav_worker_state_create(const GeoNavGri
   *state = (GeoNavWorkerState){
       .markedCells = alloc_alloc(grid->alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
       .cameFrom    = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
-      .gScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
+      .costs       = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
   };
   return state;
 }
@@ -416,12 +415,12 @@ static void path_queue_push(NavPathQueue* q, const GeoNavCell cell, const u16 co
 static bool
 nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, const GeoNavCell to) {
   mem_set(s->markedCells, 0);
-  mem_set(mem_create(s->gScores, grid->cellCountTotal * sizeof(u16)), 0xFF);
+  mem_set(mem_create(s->costs, grid->cellCountTotal * sizeof(u16)), 0xFF);
 
   ++s->stats[GeoNavStat_PathCount];       // Track amount of path queries.
   ++s->stats[GeoNavStat_PathItrEnqueues]; // Include the initial enqueue in the tracking.
 
-  s->gScores[nav_cell_index(grid, from)] = 0;
+  s->costs[nav_cell_index(grid, from)] = 0;
 
   NavPathQueue queue;
   queue.count = 0; // NOTE: No need to clear the whole queue but count needs to be initialized.
@@ -445,16 +444,16 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
       if (grid->cellBlockerCount[neighborIndex]) {
         continue; // Ignore blocked cells;
       }
-      const u16 tentativeGScore = s->gScores[cellIndex] + nav_path_cost(grid, neighborIndex);
-      if (tentativeGScore < s->gScores[neighborIndex]) {
+      const u16 tentativeCost = s->costs[cellIndex] + nav_path_cost(grid, neighborIndex);
+      if (tentativeCost < s->costs[neighborIndex]) {
         /**
          * This path to the neighbor is better then the previous, record it and enqueue the neighbor
          * for rechecking.
          */
         s->cameFrom[neighborIndex] = cell;
-        s->gScores[neighborIndex]  = tentativeGScore;
+        s->costs[neighborIndex]    = tentativeCost;
 
-        const u16 expectedCost = tentativeGScore + nav_path_heuristic(neighbor, to);
+        const u16 expectedCostToGoal = tentativeCost + nav_path_heuristic(neighbor, to);
         if (!nav_bit_test(s->markedCells, neighborIndex)) {
           /**
            * Enqueue the neighbor to be checked.
@@ -463,7 +462,7 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
            */
           if (!path_queue_full(&queue)) {
             ++s->stats[GeoNavStat_PathItrEnqueues]; // Track total amount of path cell enqueues.
-            path_queue_push(&queue, neighbor, expectedCost);
+            path_queue_push(&queue, neighbor, expectedCostToGoal);
           }
           nav_bit_set(s->markedCells, neighborIndex);
         }
@@ -1028,7 +1027,7 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
     GeoNavWorkerState* state = grid->workerStates[i];
     if (state) {
       alloc_free(grid->alloc, state->markedCells);
-      alloc_free_array_t(grid->alloc, state->gScores, grid->cellCountTotal);
+      alloc_free_array_t(grid->alloc, state->costs, grid->cellCountTotal);
       alloc_free_array_t(grid->alloc, state->cameFrom, grid->cellCountTotal);
       alloc_free_t(grid->alloc, state);
     }
@@ -1521,7 +1520,7 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
 
   u32 dataSizePerWorker = sizeof(GeoNavWorkerState);
   dataSizePerWorker += (bits_to_bytes(grid->cellCountTotal) + 1);   // state.markedCells
-  dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.gScores
+  dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.costs
   dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.cameFrom
 
   grid->stats[GeoNavStat_CellCountTotal] = grid->cellCountTotal;
