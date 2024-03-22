@@ -18,6 +18,7 @@
 #define geo_nav_blocker_max_cells 256
 #define geo_nav_island_max (u8_max - 1)
 #define geo_nav_island_blocked u8_max
+#define geo_nav_path_queue_size 1024
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
@@ -44,8 +45,6 @@ typedef struct {
   GeoNavCell* cameFrom;    // GeoNavCell[cellCountTotal]
   u16*        gScores;     // u16[cellCountTotal]
   u16*        fScores;     // u16[cellCountTotal]
-  GeoNavCell* fScoreQueue; // GeoNavCell[cellCountTotal], queue sorted on the fScore, highest first.
-  u32         fScoreQueueCount;
 
   u32 stats[GeoNavStat_Count];
 } GeoNavWorkerState;
@@ -83,7 +82,6 @@ NO_INLINE_HINT static GeoNavWorkerState* nav_worker_state_create(const GeoNavGri
       .cameFrom    = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
       .gScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
       .fScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
-      .fScoreQueue = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
   };
   return state;
 }
@@ -342,21 +340,31 @@ static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
   return NormalCost;
 }
 
+typedef struct {
+  GeoNavCell cells[geo_nav_path_queue_size];
+  u32        count;
+} NavPathQueue;
+
+static bool nav_path_queue_empty(NavPathQueue* q) { return q->count == 0; }
+static bool nav_path_queue_full(NavPathQueue* q) { return q->count == geo_nav_path_queue_size; }
+static GeoNavCell nav_path_queue_pop(NavPathQueue* q) { return q->cells[--q->count]; }
+
 /**
- * Insert the given cell into the fScoreQueue, sorted on fScore (highest first).
+ * Insert the given cell into the queue, sorted on fScore (highest first).
  * Pre-condition: Cell does not exist in the queue yet.
  */
-static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell c) {
+static void nav_path_enqueue(
+    const GeoNavGrid* grid, GeoNavWorkerState* s, NavPathQueue* q, const GeoNavCell cell) {
   ++s->stats[GeoNavStat_PathItrEnqueues]; // Track total amount of path cell enqueues.
 
   /**
    * Binary search to find the first openCell with a lower fScore and insert before it.
    * NOTE: This can probably be implemented more efficiently using some from of a priority queue.
    */
-  const u16   fScore = s->fScores[nav_cell_index(grid, c)];
-  GeoNavCell* itr    = s->fScoreQueue;
-  GeoNavCell* end    = s->fScoreQueue + s->fScoreQueueCount;
-  u32         count  = s->fScoreQueueCount;
+  const u16   fScore = s->fScores[nav_cell_index(grid, cell)];
+  GeoNavCell* itr    = q->cells;
+  GeoNavCell* end    = q->cells + q->count;
+  u32         count  = q->count;
   while (count) {
     const u32   step   = count / 2;
     GeoNavCell* middle = itr + step;
@@ -369,33 +377,35 @@ static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const
   }
   if (itr == end) {
     // No lower FScore found; insert it at the end.
-    s->fScoreQueue[s->fScoreQueueCount++] = c;
+    q->cells[q->count++] = cell;
   } else {
     // FScore at itr was better; shift the collection 1 towards the end.
     mem_move(mem_from_to(itr + 1, end + 1), mem_from_to(itr, end));
-    *itr = c;
-    ++s->fScoreQueueCount;
+    *itr = cell;
+    ++q->count;
   }
 }
 
 static bool
 nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, const GeoNavCell to) {
   mem_set(s->markedCells, 0);
-  mem_set(mem_create(s->fScores, grid->cellCountTotal * sizeof(u16)), 255);
-  mem_set(mem_create(s->gScores, grid->cellCountTotal * sizeof(u16)), 255);
+  mem_set(mem_create(s->fScores, grid->cellCountTotal * sizeof(u16)), 0xFF);
+  mem_set(mem_create(s->gScores, grid->cellCountTotal * sizeof(u16)), 0xFF);
 
   ++s->stats[GeoNavStat_PathCount];       // Track amount of path queries.
   ++s->stats[GeoNavStat_PathItrEnqueues]; // Include the initial enqueue in the tracking.
 
   s->gScores[nav_cell_index(grid, from)] = 0;
   s->fScores[nav_cell_index(grid, from)] = nav_path_heuristic(from, to);
-  s->fScoreQueueCount                    = 1;
-  s->fScoreQueue[0]                      = from;
 
-  while (s->fScoreQueueCount) {
+  NavPathQueue queue; // Queue sorted on the fScore, highest first.
+  queue.count    = 1;
+  queue.cells[0] = from;
+
+  while (!nav_path_queue_empty(&queue)) {
     ++s->stats[GeoNavStat_PathItrCells]; // Track total amount of path iterations.
 
-    const GeoNavCell cell      = s->fScoreQueue[--s->fScoreQueueCount];
+    const GeoNavCell cell      = nav_path_queue_pop(&queue);
     const u32        cellIndex = nav_cell_index(grid, cell);
     if (cell.data == to.data) {
       return true; // Destination reached.
@@ -420,7 +430,14 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
         s->gScores[neighborIndex]  = tentativeGScore;
         s->fScores[neighborIndex]  = tentativeGScore + nav_path_heuristic(neighbor, to);
         if (!nav_bit_test(s->markedCells, neighborIndex)) {
-          nav_path_enqueue(grid, s, neighbor);
+          /**
+           * Enqueue the neighbour to be checked.
+           * NOTE: If the queue is full we skip the neighbour instead of bailing; reason is we could
+           * still find a valid path with the currently queued cells.
+           */
+          if (!nav_path_queue_full(&queue)) {
+            nav_path_enqueue(grid, s, &queue, neighbor);
+          }
           nav_bit_set(s->markedCells, neighborIndex);
         }
       }
@@ -984,7 +1001,6 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
     GeoNavWorkerState* state = grid->workerStates[i];
     if (state) {
       alloc_free(grid->alloc, state->markedCells);
-      alloc_free_array_t(grid->alloc, state->fScoreQueue, grid->cellCountTotal);
       alloc_free_array_t(grid->alloc, state->gScores, grid->cellCountTotal);
       alloc_free_array_t(grid->alloc, state->fScores, grid->cellCountTotal);
       alloc_free_array_t(grid->alloc, state->cameFrom, grid->cellCountTotal);
@@ -1479,7 +1495,6 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
 
   u32 dataSizePerWorker = sizeof(GeoNavWorkerState);
   dataSizePerWorker += (bits_to_bytes(grid->cellCountTotal) + 1);   // state.markedCells
-  dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.fScoreQueue
   dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.gScores
   dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.fScores
   dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.cameFrom
