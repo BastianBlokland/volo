@@ -162,6 +162,7 @@ typedef enum {
   GeoNavStat_PathOutputCells,
   GeoNavStat_PathItrCells,
   GeoNavStat_PathItrEnqueues,
+  GeoNavStat_PathLimiterCount,
   GeoNavStat_FindCount,
   GeoNavStat_FindItrCells,
   GeoNavStat_FindItrEnqueues,

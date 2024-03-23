@@ -510,7 +510,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Blockers"), fmt_write_scratch("total: {<4} additions: {}", fmt_int(navStats[GeoNavStat_BlockerCount]), fmt_int(navStats[GeoNavStat_BlockerAddCount])));
     stats_draw_val_entry(canvas, string_lit("Occupants"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_OccupantCount])));
     stats_draw_val_entry(canvas, string_lit("Islands"), fmt_write_scratch("{<11} computes: {}", fmt_int(navStats[GeoNavStat_IslandCount]), fmt_int(navStats[GeoNavStat_IslandComputes])));
-    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_PathCount])));
+    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{<11} limiter: {}", fmt_int(navStats[GeoNavStat_PathCount]), fmt_int(navStats[GeoNavStat_PathLimiterCount])));
     stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats[GeoNavStat_PathOutputCells])));
     stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_PathItrCells]), fmt_int(navStats[GeoNavStat_PathItrEnqueues])));
     stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_FindCount])));

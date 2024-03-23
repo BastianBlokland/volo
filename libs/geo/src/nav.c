@@ -432,6 +432,7 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
     ++s->stats[GeoNavStat_PathItrCells]; // Track total amount of path iterations.
 
     if (++iterations > geo_nav_path_iterations_max) {
+      ++s->stats[GeoNavStat_PathLimiterCount];
       break; // Finding a path to destination takes too many iterations; treat it as unreachable.
     }
 
