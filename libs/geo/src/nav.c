@@ -936,6 +936,11 @@ static GeoNavCell nav_blocker_closest_reachable(
   return bestCell;
 }
 
+static void nav_island_update_start(NavIslandUpdater* u) {
+  u->currentIsland = 0;
+  mem_set(u->markedCells, 0);
+}
+
 static void nav_island_queue_clear(NavIslandUpdater* u) { u->queueStart = u->queueEnd = 0; }
 static bool nav_island_queue_empty(NavIslandUpdater* u) { return u->queueStart == u->queueEnd; }
 static GeoNavCell nav_island_queue_pop(NavIslandUpdater* u) { return u->queue[u->queueStart++]; }
@@ -990,10 +995,7 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start) {
 
 static u32 nav_islands_compute(GeoNavGrid* grid) {
   NavIslandUpdater* u = &grid->islandUpdater;
-  u->currentIsland    = 0;
-
-  u->markedCells = mem_stack(bits_to_bytes(grid->cellCountTotal) + 1);
-  mem_set(u->markedCells, 0);
+  nav_island_update_start(u);
 
   // Assign an island to each cell.
   const GeoNavRegion region = geo_nav_bounds(grid);
@@ -1051,6 +1053,7 @@ GeoNavGrid* geo_nav_grid_create(
       .blockers         = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
       .blockerFreeSet   = alloc_alloc(alloc, bits_to_bytes(geo_nav_blockers_max), 1),
       .occupants        = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
+      .islandUpdater    = {.markedCells = alloc_alloc(alloc, bits_to_bytes(cellCountTotal) + 1, 1)},
       .alloc            = alloc,
   };
 
@@ -1070,6 +1073,7 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free_array_t(grid->alloc, grid->blockers, geo_nav_blockers_max);
   alloc_free(grid->alloc, grid->blockerFreeSet);
   alloc_free_array_t(grid->alloc, grid->occupants, geo_nav_occupants_max);
+  alloc_free(grid->alloc, grid->islandUpdater.markedCells);
 
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];
@@ -1573,6 +1577,7 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
   dataSizeGrid += (sizeof(GeoNavBlocker) * geo_nav_blockers_max);     // grid.blockers
   dataSizeGrid += bits_to_bytes(geo_nav_blockers_max);                // grid.blockerFreeSet
   dataSizeGrid += (sizeof(GeoNavOccupant) * geo_nav_occupants_max);   // grid.occupants
+  dataSizeGrid += (bits_to_bytes(grid->cellCountTotal) + 1); // grid.islandUpdater.markedCells
 
   u32 dataSizePerWorker = sizeof(GeoNavWorkerState);
   dataSizePerWorker += (bits_to_bytes(grid->cellCountTotal) + 1);   // state.markedCells
