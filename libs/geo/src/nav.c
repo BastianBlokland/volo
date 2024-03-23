@@ -49,6 +49,14 @@ typedef struct {
   u32         stats[GeoNavStat_Count];
 } GeoNavWorkerState;
 
+typedef struct {
+  BitSet       markedCells; // Marked cells already have their island updated.
+  GeoNavCell   queue[512];
+  u32          queueStart;
+  u32          queueEnd;
+  GeoNavIsland currentIsland;
+} NavIslandUpdater;
+
 struct sGeoNavGrid {
   f32           size;
   u32           cellCountAxis, cellCountTotal;
@@ -67,6 +75,8 @@ struct sGeoNavGrid {
 
   GeoNavOccupant* occupants; // GeoNavOccupant[geo_nav_occupants_max]
   u32             occupantCount;
+
+  NavIslandUpdater islandUpdater;
 
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
@@ -926,14 +936,6 @@ static GeoNavCell nav_blocker_closest_reachable(
   return bestCell;
 }
 
-typedef struct {
-  BitSet       markedCells; // Marked cells already have their island updated.
-  GeoNavCell   queue[512];
-  u32          queueStart;
-  u32          queueEnd;
-  GeoNavIsland island;
-} NavIslandUpdater;
-
 static void nav_island_queue_clear(NavIslandUpdater* u) { u->queueStart = u->queueEnd = 0; }
 static bool nav_island_queue_empty(NavIslandUpdater* u) { return u->queueStart == u->queueEnd; }
 static GeoNavCell nav_island_queue_pop(NavIslandUpdater* u) { return u->queue[u->queueStart++]; }
@@ -952,10 +954,12 @@ static void nav_island_queue_push(NavIslandUpdater* u, const GeoNavCell cell) {
   u->queue[u->queueEnd++] = cell;
 }
 
-static void nav_islands_fill(GeoNavGrid* grid, NavIslandUpdater* u, const GeoNavCell start) {
+static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start) {
+  NavIslandUpdater* u = &grid->islandUpdater;
+
   // Assign the starting cell to the island.
   const u32 startIndex          = nav_cell_index(grid, start);
-  grid->cellIslands[startIndex] = u->island;
+  grid->cellIslands[startIndex] = u->currentIsland;
   nav_bit_set(u->markedCells, startIndex);
 
   // And insert it into the queue.
@@ -977,7 +981,7 @@ static void nav_islands_fill(GeoNavGrid* grid, NavIslandUpdater* u, const GeoNav
       if (grid->cellBlockerCount[neighborIndex] != 0) {
         continue; // Neighbor blocked.
       }
-      grid->cellIslands[neighborIndex] = u->island;
+      grid->cellIslands[neighborIndex] = u->currentIsland;
       nav_bit_set(u->markedCells, neighborIndex);
       nav_island_queue_push(u, neighbor);
     }
@@ -985,37 +989,36 @@ static void nav_islands_fill(GeoNavGrid* grid, NavIslandUpdater* u, const GeoNav
 }
 
 static u32 nav_islands_compute(GeoNavGrid* grid) {
-  NavIslandUpdater updater;
-  updater.island = 0;
+  NavIslandUpdater* u = &grid->islandUpdater;
+  u->currentIsland    = 0;
 
-  updater.markedCells = mem_stack(bits_to_bytes(grid->cellCountTotal) + 1);
-  mem_set(updater.markedCells, 0);
+  u->markedCells = mem_stack(bits_to_bytes(grid->cellCountTotal) + 1);
+  mem_set(u->markedCells, 0);
 
   // Assign an island to each cell.
   const GeoNavRegion region = geo_nav_bounds(grid);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
     for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
-      if (nav_bit_test(updater.markedCells, cellIndex)) {
+      if (nav_bit_test(u->markedCells, cellIndex)) {
         continue; // Cell already processed.
       }
       if (grid->cellBlockerCount[cellIndex] != 0) {
         // Assign it to the 'blocked' island.
         grid->cellIslands[cellIndex] = geo_nav_island_blocked;
-        nav_bit_set(updater.markedCells, cellIndex);
+        nav_bit_set(u->markedCells, cellIndex);
         continue;
       }
-      if (updater.island == geo_nav_island_max) {
+      if (u->currentIsland == geo_nav_island_max) {
         log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
-        return updater.island;
+        return u->currentIsland;
       }
-      const GeoNavCell cell = {.x = x, .y = y};
-      nav_islands_fill(grid, &updater, cell);
-      ++updater.island;
+      nav_islands_fill(grid, (GeoNavCell){.x = x, .y = y});
+      ++u->currentIsland;
     }
   }
 
-  return updater.island;
+  return u->currentIsland;
 }
 
 GeoNavGrid* geo_nav_grid_create(
