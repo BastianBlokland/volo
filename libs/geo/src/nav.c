@@ -62,6 +62,7 @@ typedef struct {
   u32                      queueEnd;
   GeoNavIslandUpdaterFlags flags : 8;
   GeoNavIsland             currentIsland;
+  u16                      currentRegionY;
   u32                      currentItr;
 } GeoNavIslandUpdater;
 
@@ -725,8 +726,8 @@ static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const GeoNa
 static u32 nav_region_occupants(
     const GeoNavGrid* grid, const GeoNavRegion region, const GeoNavOccupant** out) {
   u32 count = 0;
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+  for (u16 y = region.min.y; y != region.max.y; ++y) {
+    for (u16 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell          = {.x = x, .y = y};
       const u32        occupantCount = nav_cell_occupants(grid, cell, out);
       count += occupantCount;
@@ -745,8 +746,8 @@ static GeoVector nav_separate_from_blockers(
   static const f32 g_strength = 25.0f;
 
   GeoVector result = {0};
-  for (u32 y = reg.min.y; y != reg.max.y; ++y) {
-    for (u32 x = reg.min.x; x != reg.max.x; ++x) {
+  for (u16 y = reg.min.y; y != reg.max.y; ++y) {
+    for (u16 x = reg.min.x; x != reg.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
       // TODO: Optimizable as horizontal neighbors are consecutive in memory.
       if (!nav_pred_blocked(grid, null, cell)) {
@@ -859,8 +860,8 @@ static bool nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerI
   bool anyBecameUnblocked = false;
 
   u32 indexInRegion = 0;
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+  for (u16 y = region.min.y; y != region.max.y; ++y) {
+    for (u16 x = region.min.x; x != region.max.x; ++x) {
       if (nav_bit_test(blockedInRegion, indexInRegion)) {
         anyBecameUnblocked |= nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
       }
@@ -888,8 +889,8 @@ static bool nav_blocker_neighbors_island(
   const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
 
   u32 indexInRegion = 0;
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+  for (u16 y = region.min.y; y != region.max.y; ++y) {
+    for (u16 x = region.min.x; x != region.max.x; ++x) {
       if (nav_bit_test(blockedInRegion, indexInRegion)) {
         const GeoNavCell cell = {.x = x, .y = y};
 
@@ -919,8 +920,8 @@ static GeoNavCell nav_blocker_closest_reachable(
   GeoNavCell bestCell      = from;
   u16        bestCost      = u16_max;
   u32        indexInRegion = 0;
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+  for (u16 y = region.min.y; y != region.max.y; ++y) {
+    for (u16 x = region.min.x; x != region.max.x; ++x) {
       if (nav_bit_test(blockedInRegion, indexInRegion)) {
         const GeoNavCell cell = {.x = x, .y = y};
 
@@ -1006,7 +1007,8 @@ static void nav_island_update_start(GeoNavGrid* grid) {
   u->flags |= GeoNavIslandUpdater_Active;
   u->flags &= ~GeoNavIslandUpdater_Dirty;
 
-  u->currentIsland = 0;
+  u->currentIsland  = 0;
+  u->currentRegionY = geo_nav_bounds(grid).min.y;
   mem_set(u->markedCells, 0);
 }
 
@@ -1036,9 +1038,9 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
 
   // Assign an island to each cell.
   const GeoNavRegion region = geo_nav_bounds(grid);
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
-    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
+  for (; u->currentRegionY != region.max.y; ++u->currentRegionY) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = u->currentRegionY});
+    for (u16 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       if (nav_bit_test(u->markedCells, cellIndex)) {
         continue; // Cell already processed.
       }
@@ -1052,7 +1054,7 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
         log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
         return NavIslandUpdate_Done;
       }
-      const GeoNavCell cell = {.x = x, .y = y};
+      const GeoNavCell cell = {.x = x, .y = u->currentRegionY};
 
       // Assign the starting cell to the island.
       grid->cellIslands[cellIndex] = u->currentIsland;
