@@ -1481,9 +1481,11 @@ GeoNavCell geo_nav_blocker_closest(
   return nav_blocker_closest_reachable(grid, blockerId, from);
 }
 
-void geo_nav_compute_islands(GeoNavGrid* grid) {
-  grid->islandCount = nav_islands_compute(grid);
-  ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
+void geo_nav_islands_update(GeoNavGrid* grid, const bool refresh) {
+  if (refresh) {
+    grid->islandCount = nav_islands_compute(grid);
+    ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
+  }
 }
 
 void geo_nav_occupant_add(
