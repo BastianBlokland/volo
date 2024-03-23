@@ -122,7 +122,7 @@ GeoNavCell      geo_nav_blocker_closest(const GeoNavGrid*, GeoNavBlockerId, GeoN
 /**
  * (Re-)compute the islands.
  */
-void geo_nav_islands_update(GeoNavGrid*, bool refresh);
+void geo_nav_island_update(GeoNavGrid*, bool refresh);
 
 /**
  * Register occupants.

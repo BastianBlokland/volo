@@ -106,7 +106,7 @@ typedef enum {
   NavChange_BlockerAdded    = 1 << 2,
   NavChange_PathInvalidated = 1 << 3,
 
-  NavChange_IslandsRefresh = NavChange_BlockerRemoved | NavChange_BlockerAdded,
+  NavChange_IslandRefresh = NavChange_BlockerRemoved | NavChange_BlockerAdded,
 } NavChange;
 
 typedef struct {
@@ -375,8 +375,8 @@ ecs_system_define(SceneNavInitSys) {
     nav_refresh_paths(&ctx, pathView);
     nav_refresh_occupants(&ctx, occupantView);
 
-    const bool islandsRefresh = (ctx.change & NavChange_IslandsRefresh) != 0;
-    geo_nav_islands_update(ctx.grid, islandsRefresh);
+    const bool islandRefresh = (ctx.change & NavChange_IslandRefresh) != 0;
+    geo_nav_island_update(ctx.grid, islandRefresh);
     env->grids[layer] = ctx.grid;
   }
   env->terrainVersion = scene_terrain_version(terrain);

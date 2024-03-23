@@ -50,7 +50,8 @@ typedef struct {
 } GeoNavWorkerState;
 
 typedef enum {
-  GeoNavIslandUpdater_Dirty = 1 << 0,
+  GeoNavIslandUpdater_Dirty  = 1 << 0,
+  GeoNavIslandUpdater_Active = 1 << 1,
 } GeoNavIslandUpdaterFlags;
 
 typedef struct {
@@ -941,11 +942,6 @@ static GeoNavCell nav_blocker_closest_reachable(
   return bestCell;
 }
 
-static void nav_island_update_start(GeoNavIslandUpdater* u) {
-  u->currentIsland = 0;
-  mem_set(u->markedCells, 0);
-}
-
 static void nav_island_queue_clear(GeoNavIslandUpdater* u) { u->queueStart = u->queueEnd = 0; }
 static bool nav_island_queue_empty(GeoNavIslandUpdater* u) { return u->queueStart == u->queueEnd; }
 static GeoNavCell nav_island_queue_pop(GeoNavIslandUpdater* u) { return u->queue[u->queueStart++]; }
@@ -964,7 +960,7 @@ static void nav_island_queue_push(GeoNavIslandUpdater* u, const GeoNavCell cell)
   u->queue[u->queueEnd++] = cell;
 }
 
-static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start) {
+static void nav_island_fill(GeoNavGrid* grid, const GeoNavCell start) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
 
   // Assign the starting cell to the island.
@@ -998,9 +994,31 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start) {
   }
 }
 
-static u32 nav_islands_compute(GeoNavGrid* grid) {
+static void nav_island_update_start(GeoNavGrid* grid) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
-  nav_island_update_start(u);
+  diag_assert((u->flags & GeoNavIslandUpdater_Active) == 0);
+  diag_assert((u->flags & GeoNavIslandUpdater_Dirty) != 0);
+
+  u->flags |= GeoNavIslandUpdater_Active;
+  u->flags &= ~GeoNavIslandUpdater_Dirty;
+
+  u->currentIsland = 0;
+  mem_set(u->markedCells, 0);
+}
+
+static void nav_island_update_stop(GeoNavGrid* grid) {
+  GeoNavIslandUpdater* u = &grid->islandUpdater;
+  diag_assert((u->flags & GeoNavIslandUpdater_Active) != 0);
+
+  u->flags &= ~GeoNavIslandUpdater_Active;
+  grid->islandCount = u->currentIsland;
+}
+
+static void nav_island_update_tick(GeoNavGrid* grid) {
+  GeoNavIslandUpdater* u = &grid->islandUpdater;
+  diag_assert((u->flags & GeoNavIslandUpdater_Active) != 0);
+
+  ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
 
   // Assign an island to each cell.
   const GeoNavRegion region = geo_nav_bounds(grid);
@@ -1018,14 +1036,15 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
       }
       if (u->currentIsland == geo_nav_island_max) {
         log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
-        return u->currentIsland;
+        goto Done;
       }
-      nav_islands_fill(grid, (GeoNavCell){.x = x, .y = y});
+      nav_island_fill(grid, (GeoNavCell){.x = x, .y = y});
       ++u->currentIsland;
     }
   }
 
-  return u->currentIsland;
+Done:
+  nav_island_update_stop(grid);
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -1486,15 +1505,16 @@ GeoNavCell geo_nav_blocker_closest(
   return nav_blocker_closest_reachable(grid, blockerId, from);
 }
 
-void geo_nav_islands_update(GeoNavGrid* grid, const bool refresh) {
+void geo_nav_island_update(GeoNavGrid* grid, const bool refresh) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
   if (refresh) {
     u->flags |= GeoNavIslandUpdater_Dirty;
   }
-  if (u->flags & GeoNavIslandUpdater_Dirty) {
-    grid->islandCount = nav_islands_compute(grid);
-    ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
-    u->flags &= ~GeoNavIslandUpdater_Dirty;
+  if ((u->flags & GeoNavIslandUpdater_Dirty) && !(u->flags & GeoNavIslandUpdater_Active)) {
+    nav_island_update_start(grid);
+  }
+  if (u->flags & GeoNavIslandUpdater_Active) {
+    nav_island_update_tick(grid);
   }
 }
 
