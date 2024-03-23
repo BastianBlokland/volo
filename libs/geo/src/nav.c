@@ -18,6 +18,7 @@
 #define geo_nav_blocker_max_cells 256
 #define geo_nav_island_max (u8_max - 1)
 #define geo_nav_island_blocked u8_max
+#define geo_nav_island_itr_per_tick 10000
 #define geo_nav_path_queue_size 1024
 #define geo_nav_path_iterations_max 10000
 #define geo_nav_path_chebyshev_heuristic true
@@ -61,6 +62,7 @@ typedef struct {
   u32                      queueEnd;
   GeoNavIslandUpdaterFlags flags : 8;
   GeoNavIsland             currentIsland;
+  u32                      currentItr;
 } GeoNavIslandUpdater;
 
 struct sGeoNavGrid {
@@ -960,11 +962,19 @@ static void nav_island_queue_push(GeoNavIslandUpdater* u, const GeoNavCell cell)
   u->queue[u->queueEnd++] = cell;
 }
 
-static void nav_island_queue_process(GeoNavIslandUpdater* u, GeoNavGrid* grid) {
+typedef enum {
+  NavIslandUpdate_Done,
+  NavIslandUpdate_Busy,
+} NavIslandUpdateResult;
+
+static NavIslandUpdateResult nav_island_queue_update(GeoNavIslandUpdater* u, GeoNavGrid* grid) {
   diag_assert(!nav_island_queue_empty(u));
 
   // Flood fill to all unblocked neighbors.
   do {
+    if (UNLIKELY(++u->currentItr > geo_nav_island_itr_per_tick)) {
+      return NavIslandUpdate_Busy;
+    }
     const GeoNavCell cell = nav_island_queue_pop(u);
 
     GeoNavCell neighbors[4];
@@ -982,13 +992,16 @@ static void nav_island_queue_process(GeoNavIslandUpdater* u, GeoNavGrid* grid) {
       nav_bit_set(u->markedCells, neighborIndex);
       nav_island_queue_push(u, neighbor);
     }
-  } while ((!nav_island_queue_empty(u)));
+  } while (!nav_island_queue_empty(u));
+
+  return NavIslandUpdate_Done;
 }
 
 static void nav_island_update_start(GeoNavGrid* grid) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
   diag_assert((u->flags & GeoNavIslandUpdater_Active) == 0);
   diag_assert((u->flags & GeoNavIslandUpdater_Dirty) != 0);
+  diag_assert(nav_island_queue_empty(u));
 
   u->flags |= GeoNavIslandUpdater_Active;
   u->flags &= ~GeoNavIslandUpdater_Dirty;
@@ -1000,16 +1013,26 @@ static void nav_island_update_start(GeoNavGrid* grid) {
 static void nav_island_update_stop(GeoNavGrid* grid) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
   diag_assert((u->flags & GeoNavIslandUpdater_Active) != 0);
+  diag_assert(nav_island_queue_empty(u));
 
   u->flags &= ~GeoNavIslandUpdater_Active;
   grid->islandCount = u->currentIsland;
 }
 
-static void nav_island_update_tick(GeoNavGrid* grid) {
+static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
   diag_assert((u->flags & GeoNavIslandUpdater_Active) != 0);
 
   ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
+  u->currentItr = 0;                        // Reset the 'per frame' interation counter.
+
+  // If there's still cells left in the queue then process them first.
+  if (!nav_island_queue_empty(u)) {
+    if (nav_island_queue_update(u, grid) != NavIslandUpdate_Done) {
+      return NavIslandUpdate_Busy;
+    }
+    ++u->currentIsland;
+  }
 
   // Assign an island to each cell.
   const GeoNavRegion region = geo_nav_bounds(grid);
@@ -1027,7 +1050,7 @@ static void nav_island_update_tick(GeoNavGrid* grid) {
       }
       if (u->currentIsland == geo_nav_island_max) {
         log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
-        goto Done;
+        return NavIslandUpdate_Done;
       }
       const GeoNavCell cell = {.x = x, .y = y};
 
@@ -1038,14 +1061,13 @@ static void nav_island_update_tick(GeoNavGrid* grid) {
       // And flood fill its unblocked neighbors.
       nav_island_queue_clear(u);
       nav_island_queue_push(u, cell);
-      nav_island_queue_process(u, grid);
-
+      if (nav_island_queue_update(u, grid) != NavIslandUpdate_Done) {
+        return NavIslandUpdate_Busy;
+      }
       ++u->currentIsland;
     }
   }
-
-Done:
-  nav_island_update_stop(grid);
+  return NavIslandUpdate_Done;
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -1515,7 +1537,9 @@ void geo_nav_island_update(GeoNavGrid* grid, const bool refresh) {
     nav_island_update_start(grid);
   }
   if (u->flags & GeoNavIslandUpdater_Active) {
-    nav_island_update_tick(grid);
+    if (nav_island_update_tick(grid) == NavIslandUpdate_Done) {
+      nav_island_update_stop(grid);
+    }
   }
 }
 
