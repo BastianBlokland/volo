@@ -928,7 +928,7 @@ static GeoNavCell nav_blocker_closest_reachable(
 
 static void nav_islands_fill(
     GeoNavGrid* grid, const BitSet markedCells, const GeoNavCell start, const GeoNavIsland island) {
-  GeoNavCell queue[1024];
+  GeoNavCell queue[512];
   u32        queueStart = 0;
   u32        queueEnd   = 0;
 
