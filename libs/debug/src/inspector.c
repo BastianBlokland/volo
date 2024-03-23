@@ -9,6 +9,7 @@
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
 #include "debug_panel.h"
+#include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_stats.h"
@@ -1779,6 +1780,8 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
   } else {
     if (scriptComp) {
       icon = UiShape_Description;
+    } else if (ecs_world_has_t(world, e, DebugPrefabPreviewComp)) {
+      icon = 0; // No icon for previews.
     } else if (ecs_world_has_t(world, e, SceneVfxDecalComp)) {
       icon = UiShape_Image;
     } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
