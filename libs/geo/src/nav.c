@@ -960,20 +960,11 @@ static void nav_island_queue_push(GeoNavIslandUpdater* u, const GeoNavCell cell)
   u->queue[u->queueEnd++] = cell;
 }
 
-static void nav_island_fill(GeoNavGrid* grid, const GeoNavCell start) {
-  GeoNavIslandUpdater* u = &grid->islandUpdater;
-
-  // Assign the starting cell to the island.
-  const u32 startIndex          = nav_cell_index(grid, start);
-  grid->cellIslands[startIndex] = u->currentIsland;
-  nav_bit_set(u->markedCells, startIndex);
-
-  // And insert it into the queue.
-  nav_island_queue_clear(u);
-  nav_island_queue_push(u, start);
+static void nav_island_queue_process(GeoNavIslandUpdater* u, GeoNavGrid* grid) {
+  diag_assert(!nav_island_queue_empty(u));
 
   // Flood fill to all unblocked neighbors.
-  while (!nav_island_queue_empty(u)) {
+  do {
     const GeoNavCell cell = nav_island_queue_pop(u);
 
     GeoNavCell neighbors[4];
@@ -991,7 +982,7 @@ static void nav_island_fill(GeoNavGrid* grid, const GeoNavCell start) {
       nav_bit_set(u->markedCells, neighborIndex);
       nav_island_queue_push(u, neighbor);
     }
-  }
+  } while ((!nav_island_queue_empty(u)));
 }
 
 static void nav_island_update_start(GeoNavGrid* grid) {
@@ -1038,7 +1029,17 @@ static void nav_island_update_tick(GeoNavGrid* grid) {
         log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
         goto Done;
       }
-      nav_island_fill(grid, (GeoNavCell){.x = x, .y = y});
+      const GeoNavCell cell = {.x = x, .y = y};
+
+      // Assign the starting cell to the island.
+      grid->cellIslands[cellIndex] = u->currentIsland;
+      nav_bit_set(u->markedCells, cellIndex);
+
+      // And flood fill its unblocked neighbors.
+      nav_island_queue_clear(u);
+      nav_island_queue_push(u, cell);
+      nav_island_queue_process(u, grid);
+
       ++u->currentIsland;
     }
   }
