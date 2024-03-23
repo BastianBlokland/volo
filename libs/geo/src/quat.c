@@ -311,6 +311,7 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
 #ifndef VOLO_FAST
   assert_normalized(twistAxis);
 #endif
+  static const f32 g_twistEpsilon = 1e-9f;
 
   /**
    * Quaternion swing-twist decomposition.
@@ -320,12 +321,12 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
   GeoSwingTwist   result;
   const GeoVector qAxis       = geo_vector(q.x, q.y, q.z);
   const f32       qAxisSqrMag = geo_vector_mag_sqr(qAxis);
-  if (qAxisSqrMag < f32_epsilon) {
+  if (qAxisSqrMag < g_twistEpsilon) {
     // Singularity: rotation by 180 degrees.
     const GeoVector rotatedTwistAxis = geo_quat_rotate(q, twistAxis);
     const GeoVector swingAxis        = geo_vector_cross3(twistAxis, rotatedTwistAxis);
     const f32       swingAxisSqrMag  = geo_vector_mag_sqr(swingAxis);
-    if (swingAxisSqrMag > f32_epsilon) {
+    if (swingAxisSqrMag > g_twistEpsilon) {
       const f32 swingAngle = geo_vector_angle(twistAxis, rotatedTwistAxis);
       result.swing         = geo_quat_angle_axis(swingAngle, swingAxis);
     } else {
@@ -345,9 +346,10 @@ GeoQuat geo_quat_to_twist(const GeoQuat q, const GeoVector twistAxis) {
 #ifndef VOLO_FAST
   assert_normalized(twistAxis);
 #endif
+  static const f32 g_twistEpsilon = 1e-9f;
 
   const GeoVector qAxis = geo_vector(q.x, q.y, q.z);
-  if (geo_vector_mag_sqr(qAxis) < f32_epsilon) {
+  if (geo_vector_mag_sqr(qAxis) < g_twistEpsilon) {
     return geo_quat_angle_axis(math_pi_f32, twistAxis);
   }
   const GeoVector p = geo_vector_project(qAxis, twistAxis);
