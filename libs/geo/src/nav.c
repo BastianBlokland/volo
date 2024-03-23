@@ -104,6 +104,10 @@ INLINE_HINT static void nav_bit_set(const BitSet bits, const u32 idx) {
   *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
 }
 
+INLINE_HINT static void nav_bit_clear(const BitSet bits, const u32 idx) {
+  *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
+}
+
 INLINE_HINT static bool nav_bit_test(const BitSet bits, const u32 idx) {
   return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
 }
@@ -455,7 +459,7 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
     if (cell.data == to.data) {
       return true; // Destination reached.
     }
-    bitset_clear(s->markedCells, cellIndex);
+    nav_bit_clear(s->markedCells, cellIndex);
 
     GeoNavCell neighbors[4];
     const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
@@ -823,7 +827,7 @@ static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
     log_e("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
     return geo_blocker_invalid;
   }
-  bitset_clear(grid->blockerFreeSet, index);
+  nav_bit_clear(grid->blockerFreeSet, (u32)index);
   return (GeoNavBlockerId)index;
 }
 
