@@ -971,7 +971,7 @@ typedef enum {
 static NavIslandUpdateResult nav_island_queue_update(GeoNavIslandUpdater* u, GeoNavGrid* grid) {
   diag_assert(!nav_island_queue_empty(u));
 
-  // Flood fill to all unblocked neighbors.
+  // Flood-fill to all unblocked neighbors.
   do {
     if (UNLIKELY(++u->currentItr > geo_nav_island_itr_per_tick)) {
       return NavIslandUpdate_Busy;
@@ -1028,7 +1028,13 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
   ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
   u->currentItr = 0;                        // Reset the 'per frame' interation counter.
 
-  // If there's still cells left in the queue then process them first.
+  /**
+   * Assign an island to each cell. For each non-processed cell we start a flood fill that assigns
+   * the same island to each of its unblocked neighbors. A flood fill can take multiple ticks to
+   * finish due to the 'geo_nav_island_itr_per_tick' limit on the amount of iterations per tick.
+   */
+
+  // If there's a flood-fill active then keep processing it.
   if (!nav_island_queue_empty(u)) {
     if (nav_island_queue_update(u, grid) != NavIslandUpdate_Done) {
       return NavIslandUpdate_Busy;
@@ -1036,7 +1042,7 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
     ++u->currentIsland;
   }
 
-  // Assign an island to each cell.
+  // If not; start a new flood-fill for the first non-processed cell.
   const GeoNavRegion region = geo_nav_bounds(grid);
   for (; u->currentRegionY != region.max.y; ++u->currentRegionY) {
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = u->currentRegionY});
@@ -1060,7 +1066,7 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
       grid->cellIslands[cellIndex] = u->currentIsland;
       nav_bit_set(u->markedCells, cellIndex);
 
-      // And flood fill its unblocked neighbors.
+      // And flood-fill its unblocked neighbors.
       nav_island_queue_clear(u);
       nav_island_queue_push(u, cell);
       if (nav_island_queue_update(u, grid) != NavIslandUpdate_Done) {
@@ -1069,6 +1075,8 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
       ++u->currentIsland;
     }
   }
+
+  // All cells have been processed.
   return NavIslandUpdate_Done;
 }
 
