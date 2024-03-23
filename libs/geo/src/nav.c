@@ -55,7 +55,7 @@ typedef struct {
   u32          queueStart;
   u32          queueEnd;
   GeoNavIsland currentIsland;
-} NavIslandUpdater;
+} GeoNavIslandUpdater;
 
 struct sGeoNavGrid {
   f32           size;
@@ -76,7 +76,7 @@ struct sGeoNavGrid {
   GeoNavOccupant* occupants; // GeoNavOccupant[geo_nav_occupants_max]
   u32             occupantCount;
 
-  NavIslandUpdater islandUpdater;
+  GeoNavIslandUpdater islandUpdater;
 
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
@@ -936,16 +936,16 @@ static GeoNavCell nav_blocker_closest_reachable(
   return bestCell;
 }
 
-static void nav_island_update_start(NavIslandUpdater* u) {
+static void nav_island_update_start(GeoNavIslandUpdater* u) {
   u->currentIsland = 0;
   mem_set(u->markedCells, 0);
 }
 
-static void nav_island_queue_clear(NavIslandUpdater* u) { u->queueStart = u->queueEnd = 0; }
-static bool nav_island_queue_empty(NavIslandUpdater* u) { return u->queueStart == u->queueEnd; }
-static GeoNavCell nav_island_queue_pop(NavIslandUpdater* u) { return u->queue[u->queueStart++]; }
+static void nav_island_queue_clear(GeoNavIslandUpdater* u) { u->queueStart = u->queueEnd = 0; }
+static bool nav_island_queue_empty(GeoNavIslandUpdater* u) { return u->queueStart == u->queueEnd; }
+static GeoNavCell nav_island_queue_pop(GeoNavIslandUpdater* u) { return u->queue[u->queueStart++]; }
 
-static void nav_island_queue_push(NavIslandUpdater* u, const GeoNavCell cell) {
+static void nav_island_queue_push(GeoNavIslandUpdater* u, const GeoNavCell cell) {
   if (UNLIKELY(u->queueEnd == array_elems(u->queue))) {
     // Queue exhausted; reclaim the unused space at the beginning of the queue.
     mem_move(array_mem(u->queue), mem_from_to(u->queue + u->queueStart, u->queue + u->queueEnd));
@@ -960,7 +960,7 @@ static void nav_island_queue_push(NavIslandUpdater* u, const GeoNavCell cell) {
 }
 
 static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start) {
-  NavIslandUpdater* u = &grid->islandUpdater;
+  GeoNavIslandUpdater* u = &grid->islandUpdater;
 
   // Assign the starting cell to the island.
   const u32 startIndex          = nav_cell_index(grid, start);
@@ -994,7 +994,7 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start) {
 }
 
 static u32 nav_islands_compute(GeoNavGrid* grid) {
-  NavIslandUpdater* u = &grid->islandUpdater;
+  GeoNavIslandUpdater* u = &grid->islandUpdater;
   nav_island_update_start(u);
 
   // Assign an island to each cell.
