@@ -55,6 +55,8 @@ typedef enum {
       PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
 } PrefabCreateFlags;
 
+ecs_comp_define(DebugPrefabPreviewComp);
+
 ecs_comp_define(DebugPrefabPanelComp) {
   PrefabPanelMode   mode;
   PrefabCreateFlags createFlags;
@@ -188,8 +190,10 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
     return;
   }
 
-  const EcsEntityId e   = ecs_world_entity_create(ctx->world);
-  const GeoQuat     rot = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, e, DebugPrefabPreviewComp);
+
+  const GeoQuat rot = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = rot);
 
   if (asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Scalable)) {
@@ -636,6 +640,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
 
 ecs_module_init(debug_prefab_module) {
   ecs_register_comp(DebugPrefabPanelComp, .destructor = ecs_destruct_prefab_panel);
+  ecs_register_comp_empty(DebugPrefabPreviewComp);
 
   ecs_register_view(PrefabMapView);
   ecs_register_view(PrefabInstanceView);
