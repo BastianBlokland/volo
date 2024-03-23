@@ -20,6 +20,7 @@
 #define geo_nav_island_blocked u8_max
 #define geo_nav_path_queue_size 1024
 #define geo_nav_path_iterations_max 10000
+#define geo_nav_path_chebyshev_heuristic true
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
@@ -313,14 +314,24 @@ static u16 nav_manhattan_dist(const GeoNavCell from, const GeoNavCell to) {
   return nav_abs_i16(diffX) + nav_abs_i16(diffY);
 }
 
+static u16 nav_chebyshev_dist(const GeoNavCell from, const GeoNavCell to) {
+  const i16 diffX = to.x - (i16)from.x;
+  const i16 diffY = to.y - (i16)from.y;
+  return math_max(nav_abs_i16(diffX), nav_abs_i16(diffY));
+}
+
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
   /**
-   * Basic manhattan distance to estimate the cost between the two cells.
+   * Basic distance to estimate the cost between the two cells.
    * Additionally we add a multiplier to make the A* search more greedy to reduce the amount of
    * visited cells with the trade-off of less optimal paths.
    */
   enum { ExpectedCostPerCell = 1, Greediness = 2 };
+#if geo_nav_path_chebyshev_heuristic
+  return nav_chebyshev_dist(from, to) * ExpectedCostPerCell * Greediness;
+#else
   return nav_manhattan_dist(from, to) * ExpectedCostPerCell * Greediness;
+#endif
 }
 
 static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
