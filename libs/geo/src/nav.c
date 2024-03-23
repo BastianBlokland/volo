@@ -19,6 +19,7 @@
 #define geo_nav_island_max (u8_max - 1)
 #define geo_nav_island_blocked u8_max
 #define geo_nav_path_queue_size 1024
+#define geo_nav_path_iterations_max 10000
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
@@ -426,8 +427,13 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
   queue.count = 0; // NOTE: No need to clear the whole queue but count needs to be initialized.
   path_queue_append(&queue, from, nav_path_heuristic(from, to));
 
+  u32 iterations = 0;
   while (!path_queue_empty(&queue)) {
     ++s->stats[GeoNavStat_PathItrCells]; // Track total amount of path iterations.
+
+    if (++iterations > geo_nav_path_iterations_max) {
+      break; // Finding a path to destination takes too many iterations; treat it as unreachable.
+    }
 
     const GeoNavCell cell      = path_queue_pop(&queue);
     const u32        cellIndex = nav_cell_index(grid, cell);
