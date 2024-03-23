@@ -35,7 +35,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 0.5f
 #define path_arrive_threshold 1.2f
-#define path_avoid_occupied_manhattan_dist 7
+#define path_avoid_occupied_cell_dist 4
 
 const String g_sceneNavLayerNames[] = {
     [SceneNavLayer_Normal] = string_static("Normal"),
@@ -476,8 +476,8 @@ nav_shortcut_block_cond(const GeoNavGrid* grid, const GeoNavCell from, const Geo
    * that we can take a route that only crosses free cells, once we start getting close allow moving
    * through occupied cells.
    */
-  const u16 manhattanDist = geo_nav_manhattan_dist(grid, from, to);
-  if (manhattanDist >= path_avoid_occupied_manhattan_dist) {
+  const u16 cellDist = geo_nav_chebyshev_dist(grid, from, to);
+  if (cellDist >= path_avoid_occupied_cell_dist) {
     return GeoNavCond_NonFree;
   }
   return GeoNavCond_Blocked;
