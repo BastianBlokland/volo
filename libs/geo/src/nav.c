@@ -49,12 +49,17 @@ typedef struct {
   u32         stats[GeoNavStat_Count];
 } GeoNavWorkerState;
 
+typedef enum {
+  GeoNavIslandUpdater_Dirty = 1 << 0,
+} GeoNavIslandUpdaterFlags;
+
 typedef struct {
-  BitSet       markedCells; // Marked cells already have their island updated.
-  GeoNavCell   queue[512];
-  u32          queueStart;
-  u32          queueEnd;
-  GeoNavIsland currentIsland;
+  BitSet                   markedCells; // Marked cells already have their island updated.
+  GeoNavCell               queue[512];
+  u32                      queueStart;
+  u32                      queueEnd;
+  GeoNavIslandUpdaterFlags flags : 8;
+  GeoNavIsland             currentIsland;
 } GeoNavIslandUpdater;
 
 struct sGeoNavGrid {
@@ -1482,9 +1487,14 @@ GeoNavCell geo_nav_blocker_closest(
 }
 
 void geo_nav_islands_update(GeoNavGrid* grid, const bool refresh) {
+  GeoNavIslandUpdater* u = &grid->islandUpdater;
   if (refresh) {
+    u->flags |= GeoNavIslandUpdater_Dirty;
+  }
+  if (u->flags & GeoNavIslandUpdater_Dirty) {
     grid->islandCount = nav_islands_compute(grid);
     ++grid->stats[GeoNavStat_IslandComputes]; // Track island computes.
+    u->flags &= ~GeoNavIslandUpdater_Dirty;
   }
 }
 
