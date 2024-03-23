@@ -1051,11 +1051,11 @@ GeoNavGrid* geo_nav_grid_create(
       .alloc            = alloc,
   };
 
-  // Initialize cell y's to 0.
+  // Initialize cell y's and islands to 0.
   mem_set(mem_create(grid->cellY, sizeof(f32) * grid->cellCountTotal), 0);
+  mem_set(mem_create(grid->cellIslands, sizeof(GeoNavIsland) * grid->cellCountTotal), 0);
 
   nav_blocker_release_all(grid);
-  grid->islandCount = nav_islands_compute(grid);
   return grid;
 }
 
