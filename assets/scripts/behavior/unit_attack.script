@@ -31,7 +31,7 @@ if (!canMove && exists(target)) {
   }
 }
 
-// Confirm attack the requested target if its valid.
+// Confirm attacking the requested target if its valid.
 if (exists(target)) {
   if (target != $lastAttackTarget) {
     bark(me, "Confirm")
@@ -48,9 +48,9 @@ if (!target) {
   isAutoTarget = true
 }
 
-// Stop attacking when traveling.
-if (!attackWhileMoving && active(me, "Traveling")) {
+if (isAutoTarget && !attackWhileMoving && active(me, "Traveling")) {
   attack(me, null)
+  return // Cannot attack while moving; early out.
 }
 
 if (!target || active(target, "Dead")) {
