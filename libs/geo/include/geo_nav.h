@@ -79,6 +79,7 @@ typedef enum {
  * Lookup cell information.
  */
 u16          geo_nav_manhattan_dist(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
+u16          geo_nav_chebyshev_dist(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 GeoNavIsland geo_nav_island(const GeoNavGrid*, GeoNavCell);
