@@ -926,15 +926,20 @@ static GeoNavCell nav_blocker_closest_reachable(
   return bestCell;
 }
 
-static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
+static void nav_islands_fill(
+    GeoNavGrid* grid, const BitSet markedCells, const GeoNavCell start, const GeoNavIsland island) {
   GeoNavCell queue[1024];
   u32        queueStart = 0;
   u32        queueEnd   = 0;
 
-  // Assign the starting cell to the island and insert it into the queue.
-  grid->cellIslands[nav_cell_index(grid, start)] = island;
-  queue[0]                                       = start;
-  queueEnd                                       = 1;
+  // Assign the starting cell to the island.
+  const u32 startIndex          = nav_cell_index(grid, start);
+  grid->cellIslands[startIndex] = island;
+  nav_bit_set(markedCells, startIndex);
+
+  // And insert it into the queue.
+  queue[0] = start;
+  queueEnd = 1;
 
   // Flood fill to all unblocked neighbors.
   while (queueStart != queueEnd) {
@@ -945,8 +950,8 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const Geo
     for (u32 i = 0; i != neighborCount; ++i) {
       const GeoNavCell neighbor      = neighbors[i];
       const u32        neighborIndex = nav_cell_index(grid, neighbor);
-      if (grid->cellIslands[neighborIndex]) {
-        continue; // Neighbor is already assigned to an island.
+      if (nav_bit_test(markedCells, neighborIndex)) {
+        continue; // Cell already processed.
       }
       if (grid->cellBlockerCount[neighborIndex] != 0) {
         continue; // Neighbor blocked.
@@ -962,14 +967,16 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const Geo
         }
       }
       grid->cellIslands[neighborIndex] = island;
-      queue[queueEnd++]                = neighbor;
+      nav_bit_set(markedCells, neighborIndex);
+      queue[queueEnd++] = neighbor;
     }
   }
 }
 
 static u32 nav_islands_compute(GeoNavGrid* grid) {
-  // Set all cell islands to 0.
-  mem_set(mem_create(grid->cellIslands, sizeof(GeoNavIsland) * grid->cellCountTotal), 0);
+  // Bitset to track the cells we've already processed..
+  const BitSet markedCells = mem_stack(bits_to_bytes(grid->cellCountTotal) + 1);
+  mem_set(markedCells, 0);
 
   // Assign an island to each cell.
   u32                islandCount = 0;
@@ -977,12 +984,13 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
     for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
-      if (grid->cellIslands[cellIndex]) {
-        continue; // Cell is already assigned to an island.
+      if (nav_bit_test(markedCells, cellIndex)) {
+        continue; // Cell already processed.
       }
       if (grid->cellBlockerCount[cellIndex] != 0) {
         // Assign it to the 'blocked' island.
         grid->cellIslands[cellIndex] = geo_nav_island_blocked;
+        nav_bit_set(markedCells, cellIndex);
         continue;
       }
       if (++islandCount == geo_nav_island_max) {
@@ -991,7 +999,7 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
       }
       const GeoNavCell   cell   = {.x = x, .y = y};
       const GeoNavIsland island = (GeoNavIsland)islandCount;
-      nav_islands_fill(grid, cell, island);
+      nav_islands_fill(grid, markedCells, cell, island);
     }
   }
 
