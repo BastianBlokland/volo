@@ -1733,7 +1733,7 @@ static void inspector_vis_draw_navigation_grid(
       const GeoNavIsland island   = geo_nav_island(grid, cell);
       const bool         occupied = geo_nav_check(grid, cell, GeoNavCond_Occupied);
 
-      if (island == 1 && !occupied) {
+      if (island == 0 && !occupied) {
         continue; // Skip drawing unblocked and un-occupied cells on the main island.
       }
 

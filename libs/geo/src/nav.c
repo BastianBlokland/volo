@@ -953,7 +953,6 @@ static void nav_island_queue_push(NavIslandUpdater* u, const GeoNavCell cell) {
 }
 
 static void nav_islands_fill(GeoNavGrid* grid, NavIslandUpdater* u, const GeoNavCell start) {
-
   // Assign the starting cell to the island.
   const u32 startIndex          = nav_cell_index(grid, start);
   grid->cellIslands[startIndex] = u->island;
@@ -1006,12 +1005,13 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
         nav_bit_set(updater.markedCells, cellIndex);
         continue;
       }
-      if (++updater.island == geo_nav_island_max) {
+      if (updater.island == geo_nav_island_max) {
         log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
         return updater.island;
       }
       const GeoNavCell cell = {.x = x, .y = y};
       nav_islands_fill(grid, &updater, cell);
+      ++updater.island;
     }
   }
 
