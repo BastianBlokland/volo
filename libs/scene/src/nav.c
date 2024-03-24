@@ -326,6 +326,15 @@ static SceneNavBlockerMask nav_mask_smaller(const SceneNavLayer layer) {
 }
 
 ecs_system_define(SceneNavBlockerDirtySys) {
+  if (!ecs_world_has_t(world, ecs_world_global(world), SceneTerrainComp) ||
+      !ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
+    /**
+     * Global dependencies for 'SceneNavInitSys" are not ready yet, that means we also need to wait
+     * with updating the blocker dirty flags as otherwise we risk it being missed.
+     */
+    return;
+  }
+
   EcsView* blockerView = ecs_world_view_t(world, BlockerView);
 
   for (EcsIterator* itr = ecs_view_itr_step(blockerView, parCount, parIndex); ecs_view_walk(itr);) {
