@@ -615,12 +615,14 @@ static u32 nav_find(
         continue;
       }
       if (queueEnd == array_elems(queue)) {
-        /**
-         * Queue exhausted.
-         * TODO: Either reclaim the unused space at the beginning of the queue and keep searching or
-         * report to the caller that we stopped searching.
-         */
-        return outCount;
+        // Queue exhausted; reclaim the unused space at the beginning of the queue.
+        mem_move(array_mem(queue), mem_from_to(queue + queueStart, queue + queueEnd));
+        queueEnd -= queueStart;
+        queueStart = 0;
+        if (UNLIKELY(queueEnd == array_elems(queue))) {
+          log_e("Find queue was not big enough to satisfy request");
+          return outCount;
+        }
       }
       ++s->stats[GeoNavStat_FindItrEnqueues]; // Track total amount of find cell enqueues.
       queue[queueEnd++] = neighbor;
