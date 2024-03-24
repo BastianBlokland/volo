@@ -97,9 +97,8 @@ static GeoVector product_rally_pos(EcsIterator* itr) {
 static SceneNavLayer product_nav_layer(const AssetPrefabMapComp* map, const AssetPrefab* prefab) {
   const AssetPrefabTrait* t = asset_prefab_trait_get(map, prefab, AssetPrefabTrait_Movement);
   if (t) {
-    const f32 radius = t->data_movement.radius;
-    // NOTE: This needs to match the logic in 'setup_movement' of 'prefab.c'.
-    return radius > 1.0f ? SceneNavLayer_Large : SceneNavLayer_Normal;
+    diag_assert(t->data_movement.navLayer < SceneNavLayer_Count);
+    return (SceneNavLayer)t->data_movement.navLayer;
   }
   return SceneNavLayer_Normal;
 }
