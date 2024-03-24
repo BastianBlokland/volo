@@ -121,6 +121,7 @@ typedef struct {
   f32        rotationSpeedRad; // Radians per second.
   f32        radius, weight;
   StringHash moveAnimation; // Optional: 0 to disable.
+  u8         navLayer;
   bool       wheeled;
   f32        wheeledAcceleration;
 } AssetPrefabTraitMovement;

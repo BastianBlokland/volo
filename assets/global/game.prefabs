@@ -316,6 +316,7 @@
           "radius": 1.4,
           "weight": 1000.0,
           "moveAnimation": "move",
+          "navLayer": "Large",
           "wheeled": true,
           "wheeledAcceleration": 2.5
         },

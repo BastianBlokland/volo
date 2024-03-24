@@ -253,8 +253,8 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
         .terrainNormal = geo_up);
   }
 
-  const SceneNavLayer navLayer = t->radius > 1.0f ? SceneNavLayer_Large : SceneNavLayer_Normal;
-  scene_nav_add_agent(w, e, navLayer);
+  diag_assert(t->navLayer < SceneNavLayer_Count);
+  scene_nav_add_agent(w, e, (SceneNavLayer)t->navLayer);
 }
 
 static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitFootstep* t) {

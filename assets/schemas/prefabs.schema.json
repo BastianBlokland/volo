@@ -151,6 +151,7 @@
             "radius": { "title": "f32", "type": "number" },
             "weight": { "title": "f32", "type": "number" },
             "moveAnimation": { "title": "String", "type": "string" },
+            "navLayer": { "title": "AssetPrefabNavLayer", "$ref": "#/$defs/AssetPrefabNavLayer" },
             "wheeled": { "title": "bool", "type": "boolean" },
             "wheeledAcceleration": { "title": "f32", "type": "number" }
           },
@@ -337,6 +338,9 @@
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
       ]
+    },
+    "AssetPrefabNavLayer": {
+      "enum": [ "Normal", "Large" ]
     },
     "AssetPrefabShapeDef": {
       "anyOf": [

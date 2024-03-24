@@ -159,6 +159,7 @@ typedef struct {
   f32    rotationSpeed; // Degrees per second.
   f32    radius, weight;
   String moveAnimation;
+  u32    navLayer;
   bool   wheeled;
   f32    wheeledAcceleration;
 } AssetPrefabTraitMovementDef;
@@ -294,6 +295,13 @@ static void prefab_datareg_init() {
     data_reg_const_custom(reg, AssetPrefabStatusMask, Healing,  1 << 2);
     data_reg_const_custom(reg, AssetPrefabStatusMask, Veteran,  1 << 3);
 
+    /**
+     * NOTE: This is a virtual data type, meaning there is no matching AssetPrefabNavLayer C type.
+     */
+    data_reg_enum_t(reg, AssetPrefabNavLayer);
+    data_reg_const_custom(reg, AssetPrefabNavLayer, Normal,  0);
+    data_reg_const_custom(reg, AssetPrefabNavLayer, Large, 1);
+
     data_reg_struct_t(reg, AssetPrefabVec3Def);
     data_reg_field_t(reg, AssetPrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -382,6 +390,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, weight, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitMovementDef, navLayer, t_AssetPrefabNavLayer, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, wheeled, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitMovementDef, wheeledAcceleration, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
@@ -716,6 +725,7 @@ static void prefab_build(
           .radius           = traitDef->data_movement.radius,
           .weight           = math_max(traitDef->data_movement.weight, trait_movement_weight_min),
           .moveAnimation    = string_maybe_hash(traitDef->data_movement.moveAnimation),
+          .navLayer         = (u8)traitDef->data_movement.navLayer,
           .wheeled          = traitDef->data_movement.wheeled,
           .wheeledAcceleration = traitDef->data_movement.wheeledAcceleration,
       };
@@ -801,12 +811,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
