@@ -121,8 +121,10 @@ GeoNavCell      geo_nav_blocker_closest(const GeoNavGrid*, GeoNavBlockerId, GeoN
 
 /**
  * (Re-)compute the islands.
+ * NOTE: Island computation will take multiple ticks on larger grids, the return value indicates if
+ * the computation is still on-going.
  */
-void geo_nav_island_update(GeoNavGrid*, bool refresh);
+bool geo_nav_island_update(GeoNavGrid*, bool refresh);
 
 /**
  * Register occupants.
