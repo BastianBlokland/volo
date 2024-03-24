@@ -288,6 +288,7 @@ static void nav_refresh_occupants(NavInitContext* ctx, EcsView* occupantView) {
 }
 
 ecs_view_define(BlockerView) {
+  ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneCollisionComp);
@@ -325,16 +326,24 @@ ecs_system_define(SceneNavBlockerDirtySys) {
 
   for (EcsIterator* itr = ecs_view_itr_step(blockerView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
-    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneNavAgentComp*  navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     SceneNavBlockerComp*      blocker   = ecs_view_write_t(itr, SceneNavBlockerComp);
 
+    // Check if the blocker was changed (for example moved).
     const u32 newHash = nav_blocker_hash(collision, trans, scale);
     if (newHash == blocker->hash) {
       blocker->flags &= ~SceneNavBlockerFlags_Dirty;
     } else {
       blocker->flags |= SceneNavBlockerFlags_Dirty;
       blocker->hash = newHash;
+    }
+
+    // Make sure that nav-agents that are also blockers never block their own layer.
+    if (navAgent && (blocker->mask & (1 << navAgent->layer))) {
+      blocker->mask &= ~(1 << navAgent->layer);
+      blocker->flags |= SceneNavBlockerFlags_Dirty;
     }
   }
 }
