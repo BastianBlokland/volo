@@ -53,6 +53,8 @@ typedef struct {
 typedef enum {
   GeoNavIslandUpdater_Dirty  = 1 << 0,
   GeoNavIslandUpdater_Active = 1 << 1,
+
+  GeoNavIslandUpdater_Busy = GeoNavIslandUpdater_Dirty | GeoNavIslandUpdater_Active,
 } GeoNavIslandUpdaterFlags;
 
 typedef struct {
@@ -1538,12 +1540,13 @@ GeoNavCell geo_nav_blocker_closest(
   return nav_blocker_closest_reachable(grid, blockerId, from);
 }
 
-void geo_nav_island_update(GeoNavGrid* grid, const bool refresh) {
+bool geo_nav_island_update(GeoNavGrid* grid, const bool refresh) {
   GeoNavIslandUpdater* u = &grid->islandUpdater;
   if (refresh) {
     u->flags |= GeoNavIslandUpdater_Dirty;
   }
-  if ((u->flags & GeoNavIslandUpdater_Dirty) && !(u->flags & GeoNavIslandUpdater_Active)) {
+  const bool isDirty = (u->flags & GeoNavIslandUpdater_Dirty) != 0;
+  if (isDirty && (u->flags & GeoNavIslandUpdater_Active) == 0) {
     nav_island_update_start(grid);
   }
   if (u->flags & GeoNavIslandUpdater_Active) {
@@ -1551,6 +1554,7 @@ void geo_nav_island_update(GeoNavGrid* grid, const bool refresh) {
       nav_island_update_stop(grid);
     }
   }
+  return (u->flags & GeoNavIslandUpdater_Busy) != 0;
 }
 
 void geo_nav_occupant_add(

@@ -288,6 +288,7 @@ static void nav_refresh_occupants(NavInitContext* ctx, EcsView* occupantView) {
 }
 
 ecs_view_define(BlockerView) {
+  ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneCollisionComp);
@@ -320,21 +321,40 @@ static u32 nav_blocker_hash(
   return hash;
 }
 
+static SceneNavBlockerMask nav_mask_smaller(const SceneNavLayer layer) {
+  return SceneNavBlockerMask_All & ~bit_range_32(layer, SceneNavLayer_Count);
+}
+
 ecs_system_define(SceneNavBlockerDirtySys) {
   EcsView* blockerView = ecs_world_view_t(world, BlockerView);
 
   for (EcsIterator* itr = ecs_view_itr_step(blockerView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
-    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneNavAgentComp*  navAgent  = ecs_view_read_t(itr, SceneNavAgentComp);
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     SceneNavBlockerComp*      blocker   = ecs_view_write_t(itr, SceneNavBlockerComp);
 
+    // Check if the blocker was changed (for example moved).
     const u32 newHash = nav_blocker_hash(collision, trans, scale);
     if (newHash == blocker->hash) {
       blocker->flags &= ~SceneNavBlockerFlags_Dirty;
     } else {
       blocker->flags |= SceneNavBlockerFlags_Dirty;
       blocker->hash = newHash;
+    }
+
+    /**
+     * Navigation agents that are also blockers will block the smaller nav-layers (they cannot
+     * block their own layer or bigger) if they are not traveling.
+     */
+    if (navAgent) {
+      const bool                isTraveling = (navAgent->flags & SceneNavAgent_Traveling) != 0;
+      const SceneNavBlockerMask desiredMask = isTraveling ? 0 : nav_mask_smaller(navAgent->layer);
+      if (blocker->mask != desiredMask) {
+        blocker->mask = desiredMask;
+        blocker->flags |= SceneNavBlockerFlags_Dirty;
+      }
     }
   }
 }
@@ -511,9 +531,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    diag_assert_msg(
-        loco->radius < g_sceneNavCellSize[agent->layer],
-        "Navigation agent too wide for its navigation layer");
+    if (UNLIKELY(loco->radius >= g_sceneNavCellSize[agent->layer])) {
+      log_e("Navigation agent too wide for its navigation layer");
+    }
 
     const GeoNavGrid* grid     = env->grids[agent->layer];
     const GeoNavCell  fromCell = geo_nav_at_position(grid, trans->position);

@@ -316,6 +316,7 @@
           "radius": 1.4,
           "weight": 1000.0,
           "moveAnimation": "move",
+          "navLayer": "Large",
           "wheeled": true,
           "wheeledAcceleration": 2.5
         },
@@ -335,7 +336,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Collision",
-          "navBlocker": false,
+          "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
             "min": { "x": -1.35, "y": 0, "z": -2.8 },
