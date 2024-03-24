@@ -321,6 +321,10 @@ static u32 nav_blocker_hash(
   return hash;
 }
 
+static SceneNavBlockerMask nav_mask_smaller(const SceneNavLayer layer) {
+  return SceneNavBlockerMask_All & ~bit_range_32(layer, SceneNavLayer_Count);
+}
+
 ecs_system_define(SceneNavBlockerDirtySys) {
   EcsView* blockerView = ecs_world_view_t(world, BlockerView);
 
@@ -340,10 +344,17 @@ ecs_system_define(SceneNavBlockerDirtySys) {
       blocker->hash = newHash;
     }
 
-    // Make sure that nav-agents that are also blockers never block their own layer.
-    if (navAgent && (blocker->mask & (1 << navAgent->layer))) {
-      blocker->mask &= ~(1 << navAgent->layer);
-      blocker->flags |= SceneNavBlockerFlags_Dirty;
+    /**
+     * Navigation agents that are also blockers will block the smaller nav-layers (they cannot
+     * block their own layer or bigger) if they are not traveling.
+     */
+    if (navAgent) {
+      const bool                isTraveling = (navAgent->flags & SceneNavAgent_Traveling) != 0;
+      const SceneNavBlockerMask desiredMask = isTraveling ? 0 : nav_mask_smaller(navAgent->layer);
+      if (blocker->mask != desiredMask) {
+        blocker->mask = desiredMask;
+        blocker->flags |= SceneNavBlockerFlags_Dirty;
+      }
     }
   }
 }
