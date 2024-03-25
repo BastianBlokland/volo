@@ -20,6 +20,7 @@
 #include "debug_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "input.h"
 #include "scene_lifetime.h"
 #include "ui.h"
@@ -28,6 +29,7 @@
 
 static const String  g_menuChildTooltipOpen       = string_static("Open the \a.b{}\ar panel.");
 static const String  g_menuChildTooltipClose      = string_static("Close the \a.b{}\ar panel.");
+static const String  g_menuChildTooltipDetach     = string_static("\a.bNote:\ar Hold \a.bControl\ar while clicking to open a new detached panel.");
 static const UiColor g_menuChildFrameColorNormal  = {32, 32, 32, 192};
 static const UiColor g_menuChildFrameColorOpen    = {96, 96, 96, 255};
 
@@ -38,7 +40,7 @@ typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId);
 static const struct {
   String        name;
   u32           iconShape;
-  bool          autoOpen;
+  bool          autoOpen, canDetach;
   ChildOpenFunc openFunc;
   String        hotkeyName;
 } g_menuChildConfig[] = {
@@ -48,6 +50,7 @@ static const struct {
         .openFunc   = debug_inspector_panel_open,
         .hotkeyName = string_static("DebugPanelInspector"),
         .autoOpen   = true,
+        .canDetach  = true,
     },
     {
         .name       = string_static("Prefab"),
@@ -55,48 +58,56 @@ static const struct {
         .openFunc   = debug_prefab_panel_open,
         .hotkeyName = string_static("DebugPanelPrefab"),
         .autoOpen   = true,
+        .canDetach  = true,
     },
     {
         .name       = string_static("Level"),
         .iconShape  = UiShape_Globe,
         .openFunc   = debug_level_panel_open,
         .hotkeyName = string_static("DebugPanelLevel"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Sound"),
         .iconShape  = UiShape_MusicNote,
         .openFunc   = debug_sound_panel_open,
         .hotkeyName = string_static("DebugPanelSound"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Time"),
         .iconShape  = UiShape_Timer,
         .openFunc   = debug_time_panel_open,
         .hotkeyName = string_static("DebugPanelTime"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Animation"),
         .iconShape  = UiShape_Animation,
         .openFunc   = debug_animation_panel_open,
         .hotkeyName = string_static("DebugPanelAnimation"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Script"),
         .iconShape  = UiShape_Description,
         .openFunc   = debug_script_panel_open,
         .hotkeyName = string_static("DebugPanelScript"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Asset"),
         .iconShape  = UiShape_Storage,
         .openFunc   = debug_asset_panel_open,
         .hotkeyName = string_static("DebugPanelAsset"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Ecs"),
         .iconShape  = UiShape_Extension,
         .openFunc   = debug_ecs_panel_open,
         .hotkeyName = string_static("DebugPanelEcs"),
+        .canDetach  = true,
     },
     {
         .name       = string_static("Camera"),
@@ -122,9 +133,21 @@ static const struct {
     },
 };
 
-static String menu_child_tooltip_scratch(const String name, const bool open) {
-  return format_write_formatted_scratch(
-      open ? g_menuChildTooltipClose : g_menuChildTooltipOpen, fmt_args(fmt_text(name)));
+static String menu_child_tooltip_scratch(const u32 childIndex, const bool open) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, 1024, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  format_write_formatted(
+      &str,
+      open ? g_menuChildTooltipClose : g_menuChildTooltipOpen,
+      fmt_args(fmt_text(g_menuChildConfig[childIndex].name)));
+
+  if (g_menuChildConfig[childIndex].canDetach) {
+    dynstring_append_char(&str, '\n');
+    dynstring_append(&str, g_menuChildTooltipDetach);
+  }
+
+  return dynstring_view(&str);
 }
 
 ecs_comp_define(DebugMenuComp) {
@@ -161,6 +184,15 @@ static void menu_child_open(
   const EcsEntityId e = g_menuChildConfig[childIndex].openFunc(world, menu->window);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
   menu->childEntities[childIndex] = e;
+}
+
+static void menu_child_open_detached(EcsWorld* world, const u32 childIndex) {
+  const GapVector      size  = gap_vector(500, 500);
+  const GapWindowMode  mode  = GapWindowMode_Windowed;
+  const GapWindowFlags flags = GapWindowFlags_CloseOnRequest;
+
+  const EcsEntityId detachedWindow = gap_window_create(world, mode, flags, size);
+  g_menuChildConfig[childIndex].openFunc(world, detachedWindow);
 }
 
 static EcsEntityId menu_child_topmost(EcsWorld* world, const DebugMenuComp* menu) {
@@ -211,17 +243,23 @@ static void menu_action_bar_draw(
             canvas,
             .label      = ui_shape_scratch(g_menuChildConfig[childIndex].iconShape),
             .fontSize   = 25,
-            .tooltip    = menu_child_tooltip_scratch(g_menuChildConfig[childIndex].name, isOpen),
+            .tooltip    = menu_child_tooltip_scratch(childIndex, isOpen),
             .frameColor = isOpen ? g_menuChildFrameColorOpen : g_menuChildFrameColorNormal,
             .activate   = hotkeyPressed)) {
 
-      if (isOpen) {
-        ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
-        menu->childEntities[childIndex] = 0;
-        menu_notify_child_state(statsGlobal, childIndex, string_lit("closed"));
+      const bool canDetach = g_menuChildConfig[childIndex].canDetach;
+      if (canDetach && (input_modifiers(input) & InputModifier_Control)) {
+        menu_child_open_detached(world, childIndex);
+        menu_notify_child_state(statsGlobal, childIndex, string_lit("detached"));
       } else {
-        menu_child_open(world, menu, menuEntity, childIndex);
-        menu_notify_child_state(statsGlobal, childIndex, string_lit("open"));
+        if (isOpen) {
+          ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
+          menu->childEntities[childIndex] = 0;
+          menu_notify_child_state(statsGlobal, childIndex, string_lit("closed"));
+        } else {
+          menu_child_open(world, menu, menuEntity, childIndex);
+          menu_notify_child_state(statsGlobal, childIndex, string_lit("open"));
+        }
       }
     }
   }
