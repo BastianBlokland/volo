@@ -1,9 +1,10 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
-#include "debug_panel.h"
+#include "debug_rend.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
@@ -1223,8 +1224,11 @@ ecs_module_init(debug_rend_module) {
   ecs_order(DebugRendUpdatePanelSys, RendOrder_DrawClear - 1);
 }
 
-EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  diag_assert_msg(type == DebugPanelType_Normal, "Renderer panel cannot be detached");
+
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

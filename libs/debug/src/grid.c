@@ -3,7 +3,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "debug_grid.h"
-#include "debug_panel.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -373,8 +372,11 @@ void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const 
   position->comps[axis] = round;
 }
 
-EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_grid_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  diag_assert_msg(type == DebugPanelType_Normal, "Grid panel cannot be detached");
+
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

@@ -4,7 +4,6 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_animation.h"
-#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_text.h"
@@ -583,8 +582,9 @@ ecs_module_init(debug_animation_module) {
   ecs_order(DebugAnimationDrawSys, DebugOrder_AnimationDebugDraw);
 }
 
-EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_animation_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
   return panelEntity;

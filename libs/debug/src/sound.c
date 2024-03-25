@@ -4,7 +4,6 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_path.h"
-#include "debug_panel.h"
 #include "debug_sound.h"
 #include "ecs_world.h"
 #include "snd.h"
@@ -507,8 +506,9 @@ ecs_module_init(debug_sound_module) {
       DebugSoundUpdatePanelSys, ecs_view_id(GlobalView), ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

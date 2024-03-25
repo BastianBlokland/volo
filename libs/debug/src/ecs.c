@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_format.h"
 #include "debug_ecs.h"
-#include "debug_panel.h"
 #include "debug_register.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
@@ -779,8 +778,9 @@ ecs_module_init(debug_ecs_module) {
   ecs_register_system(DebugEcsUpdatePanelSys, ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

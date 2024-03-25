@@ -1,8 +1,8 @@
 #include "asset_manager.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "debug_interface.h"
-#include "debug_panel.h"
 #include "ecs_world.h"
 #include "ui.h"
 #include "ui_settings.h"
@@ -173,8 +173,11 @@ ecs_module_init(debug_interface_module) {
       DebugInterfaceUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(WindowView));
 }
 
-EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  diag_assert_msg(type == DebugPanelType_Normal, "Interface panel cannot be detached");
+
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

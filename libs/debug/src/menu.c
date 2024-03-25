@@ -11,7 +11,6 @@
 #include "debug_interface.h"
 #include "debug_level.h"
 #include "debug_menu.h"
-#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
 #include "debug_script.h"
@@ -35,7 +34,7 @@ static const UiColor g_menuChildFrameColorOpen    = {96, 96, 96, 255};
 
 // clang-format on
 
-typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId);
+typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId, DebugPanelType);
 
 static const struct {
   String        name;
@@ -58,7 +57,6 @@ static const struct {
         .openFunc   = debug_prefab_panel_open,
         .hotkeyName = string_static("DebugPanelPrefab"),
         .autoOpen   = true,
-        .canDetach  = true,
     },
     {
         .name       = string_static("Level"),
@@ -181,18 +179,20 @@ static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const
 
 static void menu_child_open(
     EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
-  const EcsEntityId e = g_menuChildConfig[childIndex].openFunc(world, menu->window);
+  const DebugPanelType type = DebugPanelType_Normal;
+  const EcsEntityId    e    = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
   menu->childEntities[childIndex] = e;
 }
 
 static void menu_child_open_detached(EcsWorld* world, const u32 childIndex) {
-  const GapVector      size  = gap_vector(500, 500);
-  const GapWindowMode  mode  = GapWindowMode_Windowed;
-  const GapWindowFlags flags = GapWindowFlags_CloseOnRequest;
+  const GapVector      size           = gap_vector(500, 500);
+  const GapWindowMode  mode           = GapWindowMode_Windowed;
+  const GapWindowFlags flags          = GapWindowFlags_CloseOnRequest;
+  const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size);
 
-  const EcsEntityId detachedWindow = gap_window_create(world, mode, flags, size);
-  g_menuChildConfig[childIndex].openFunc(world, detachedWindow);
+  const DebugPanelType type = DebugPanelType_Detached;
+  g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);
 }
 
 static EcsEntityId menu_child_topmost(EcsWorld* world, const DebugMenuComp* menu) {
@@ -311,7 +311,7 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = debug_panel_create(world, window);
+  const EcsEntityId menuEntity = debug_panel_create(world, window, DebugPanelType_Normal);
   DebugMenuComp*    menu = ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
 
   for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {

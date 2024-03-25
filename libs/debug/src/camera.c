@@ -1,11 +1,11 @@
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_camera.h"
 #include "debug_gizmo.h"
-#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_text.h"
@@ -373,8 +373,11 @@ ecs_module_init(debug_camera_module) {
   ecs_order(DebugCameraDrawSys, DebugOrder_CameraDebugDraw);
 }
 
-EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_camera_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  diag_assert_msg(type == DebugPanelType_Normal, "Camera panel cannot be detached");
+
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

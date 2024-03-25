@@ -3,7 +3,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "debug_asset.h"
-#include "debug_panel.h"
 #include "ecs_world.h"
 #include "ui.h"
 
@@ -329,8 +328,9 @@ ecs_module_init(debug_asset_module) {
       DebugAssetUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(AssetView));
 }
 
-EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

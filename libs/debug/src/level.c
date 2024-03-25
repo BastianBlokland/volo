@@ -3,7 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
-#include "debug_panel.h"
+#include "debug_level.h"
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene_camera.h"
@@ -414,8 +414,9 @@ ecs_module_init(debug_level_module) {
       ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,

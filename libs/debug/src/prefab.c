@@ -6,7 +6,6 @@
 #include "core_rng.h"
 #include "core_stringtable.h"
 #include "debug_grid.h"
-#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -659,8 +658,11 @@ ecs_module_init(debug_prefab_module) {
       ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
+EcsEntityId
+debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  diag_assert_msg(type == DebugPanelType_Normal, "Prefab panel cannot be detached");
+
+  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
   ecs_world_add_t(
       world,
       panelEntity,
