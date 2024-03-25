@@ -582,6 +582,11 @@ ecs_system_define(UiRenderSys) {
     stats->atomOverlayCount = (u32)renderer->overlayAtoms.size;
     stats->clipRectCount    = renderState.clipRectCount;
 
+    if (!canvasCount) {
+      diag_assert(!rend_draw_instance_count(draw));
+      continue;
+    }
+
     // Add the overlay atoms, at this stage all the normal atoms have already been added.
     dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
       *rend_draw_add_instance_t(draw, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
