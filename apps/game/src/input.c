@@ -678,7 +678,7 @@ ecs_system_define(InputUpdateSys) {
     return;
   }
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneLevelManagerComp* levelManger   = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneNavEnvComp*       nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneSetEnvComp*       setEnv        = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
@@ -722,7 +722,7 @@ ecs_system_define(InputUpdateSys) {
           state,
           cmdController,
           input,
-          levelManger,
+          levelManager,
           colEnv,
           setEnv,
           time,
