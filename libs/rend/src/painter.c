@@ -761,7 +761,7 @@ static bool rend_canvas_paint(
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
-    const SceneTransformComp*     trans,
+    const SceneTransformComp*     camTrans,
     EcsView*                      drawView,
     EcsView*                      resourceView) {
   const RvkSize winSize = painter_win_size(win);
@@ -770,7 +770,7 @@ static bool rend_canvas_paint(
   }
   const f32 winAspect = (f32)winSize.width / (f32)winSize.height;
 
-  const GeoMatrix      camMat   = trans ? scene_transform_matrix(trans) : geo_matrix_ident();
+  const GeoMatrix      camMat   = camTrans ? scene_transform_matrix(camTrans) : geo_matrix_ident();
   const GeoMatrix      projMat  = cam ? scene_camera_proj(cam, winAspect)
                                       : geo_matrix_proj_ortho_hor(2.0, winAspect, -100, 100);
   const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
@@ -1126,12 +1126,12 @@ ecs_system_define(RendPainterDrawSys) {
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity    = ecs_view_entity(itr);
-    const GapWindowComp*      win       = ecs_view_read_t(itr, GapWindowComp);
-    RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
-    const RendSettingsComp*   settings  = ecs_view_read_t(itr, RendSettingsComp);
-    const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
-    const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
+    const EcsEntityId         entity   = ecs_view_entity(itr);
+    const GapWindowComp*      win      = ecs_view_read_t(itr, GapWindowComp);
+    RendPainterComp*          painter  = ecs_view_write_t(itr, RendPainterComp);
+    const RendSettingsComp*   settings = ecs_view_read_t(itr, RendSettingsComp);
+    const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
     anyPainterDrawn |= rend_canvas_paint(
         painter,
@@ -1142,8 +1142,8 @@ ecs_system_define(RendPainterDrawSys) {
         fog,
         win,
         entity,
-        camera,
-        transform,
+        cam,
+        camTrans,
         drawView,
         resourceView);
   }
