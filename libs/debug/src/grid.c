@@ -8,6 +8,7 @@
 #include "gap_window.h"
 #include "input_manager.h"
 #include "rend_draw.h"
+#include "scene_camera.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
 #include "scene_terrain.h"
@@ -65,6 +66,7 @@ ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 
 ecs_view_define(GridCreateView) {
   ecs_access_with(GapWindowComp);
+  ecs_access_with(SceneCameraComp);
   ecs_access_without(DebugGridComp);
 }
 
@@ -290,7 +292,11 @@ ecs_system_define(DebugGridUpdateSys) {
       grid->flags |= DebugGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
-    // NOTE: Only draw grid when requested and when in debug mode.
+  }
+
+  // NOTE: Enable grid draw when requested and when in debug mode.
+  for (EcsIterator* itr = ecs_view_itr_reset(gridItr); ecs_view_walk(itr);) {
+    DebugGridComp* grid = ecs_view_write_t(itr, DebugGridComp);
     if (grid->flags & DebugGridFlags_Show && input_layer_active(input, string_hash_lit("Debug"))) {
       grid->flags |= DebugGridFlags_Draw;
     } else {
@@ -303,9 +309,11 @@ ecs_system_define(DebugGridUpdateSys) {
     DebugGridPanelComp* panelComp = ecs_view_write_t(itr, DebugGridPanelComp);
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(gridItr, panelComp->window)) {
-      // The window has been destroyed, this panel will be destroyed next frame.
-      continue;
+    ecs_view_itr_reset(gridItr);
+
+    // NOTE: Detached panels have no grid on the window; in that case use the first found grid.
+    if (!ecs_view_maybe_jump(gridItr, panelComp->window) && !ecs_view_walk(gridItr)) {
+      continue; // No grid found.
     }
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
 
@@ -374,14 +382,17 @@ void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const 
 
 EcsEntityId
 debug_grid_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  diag_assert_msg(type == DebugPanelType_Normal, "Grid panel cannot be detached");
-
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
+  DebugGridPanelComp* gridPanel   = ecs_world_add_t(
       world,
       panelEntity,
       DebugGridPanelComp,
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 220)),
       .window = window);
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&gridPanel->panel);
+  }
+
   return panelEntity;
 }

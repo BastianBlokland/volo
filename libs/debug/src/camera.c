@@ -198,6 +198,8 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     DebugCameraPanelComp* panelComp = ecs_view_write_t(itr, DebugCameraPanelComp);
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
+    ecs_view_itr_reset(cameraItr);
+
     // NOTE: Detached panels have no camera on the window; in that case use the first found camera.
     if (!ecs_view_maybe_jump(cameraItr, panelComp->window) && !ecs_view_walk(cameraItr)) {
       continue; // No camera found.

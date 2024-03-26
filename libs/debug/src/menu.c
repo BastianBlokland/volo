@@ -127,9 +127,11 @@ static const struct {
         .canDetach    = true,
     },
     {
-        .name      = string_static("Grid"),
-        .iconShape = UiShape_Grid4x4,
-        .openFunc  = debug_grid_panel_open,
+        .name         = string_static("Grid"),
+        .iconShape    = UiShape_Grid4x4,
+        .detachedSize = {.x = 500, .y = 220},
+        .openFunc     = debug_grid_panel_open,
+        .canDetach    = true,
     },
     {
         .name       = string_static("Renderer"),
