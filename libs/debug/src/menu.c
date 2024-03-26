@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "debug_animation.h"
 #include "debug_asset.h"
 #include "debug_camera.h"
@@ -202,9 +203,15 @@ static void menu_child_open(
   menu->childEntities[childIndex] = e;
 }
 
-static void menu_child_open_detached(EcsWorld* world, const u32 childIndex) {
+static void menu_child_open_detached(EcsWorld* world, UiCanvasComp* canvas, const u32 childIndex) {
+  const f32 scale = ui_canvas_scale(canvas);
+
   GapVector size = g_menuChildConfig[childIndex].detachedSize;
-  size           = (GapVector){.x = size.x ? size.x : 500, .y = size.y ? size.y : 500};
+
+  size = (GapVector){
+      .x = (i32)math_round_up_f32((size.x ? size.x : 500) * scale),
+      .y = (i32)math_round_up_f32((size.y ? size.y : 500) * scale),
+  };
 
   const GapWindowMode  mode           = GapWindowMode_Windowed;
   const GapWindowFlags flags          = GapWindowFlags_CloseOnRequest;
@@ -276,7 +283,7 @@ static void menu_action_bar_draw(
 
       const bool canDetach = g_menuChildConfig[childIndex].canDetach;
       if (allowDetach && canDetach && (input_modifiers(input) & InputModifier_Control)) {
-        menu_child_open_detached(world, childIndex);
+        menu_child_open_detached(world, canvas, childIndex);
         menu_notify_child_state(statsGlobal, childIndex, string_lit("detached"));
       } else {
         if (isOpen) {
