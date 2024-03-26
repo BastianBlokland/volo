@@ -416,8 +416,8 @@ ecs_module_init(debug_level_module) {
 
 EcsEntityId
 debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
+  DebugLevelPanelComp* levelPanel  = ecs_world_add_t(
       world,
       panelEntity,
       DebugLevelPanelComp,
@@ -428,5 +428,10 @@ debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       .assetsLevel   = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
       .assetsTerrain = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
       .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&levelPanel->panel);
+  }
+
   return panelEntity;
 }

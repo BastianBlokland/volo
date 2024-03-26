@@ -584,8 +584,13 @@ ecs_module_init(debug_animation_module) {
 
 EcsEntityId
 debug_animation_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId        panelEntity    = debug_panel_create(world, window, type);
+  DebugAnimationPanelComp* animationPanel = ecs_world_add_t(
       world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&animationPanel->panel);
+  }
+
   return panelEntity;
 }

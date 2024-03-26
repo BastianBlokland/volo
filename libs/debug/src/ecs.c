@@ -780,8 +780,8 @@ ecs_module_init(debug_ecs_module) {
 
 EcsEntityId
 debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId  panelEntity = debug_panel_create(world, window, type);
+  DebugEcsPanelComp* ecsPanel    = ecs_world_add_t(
       world,
       panelEntity,
       DebugEcsPanelComp,
@@ -795,5 +795,10 @@ debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
       .views        = dynarray_create_t(g_alloc_heap, DebugEcsViewInfo, 256),
       .archetypes   = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
       .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&ecsPanel->panel);
+  }
+
   return panelEntity;
 }

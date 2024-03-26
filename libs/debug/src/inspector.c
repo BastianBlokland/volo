@@ -1960,12 +1960,17 @@ ecs_module_init(debug_inspector_module) {
 
 EcsEntityId
 debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId        panelEntity    = debug_panel_create(world, window, type);
+  DebugInspectorPanelComp* inspectorPanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugInspectorPanelComp,
       .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
       .setNameBuffer = dynstring_create(g_alloc_heap, 0));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&inspectorPanel->panel);
+  }
+
   return panelEntity;
 }

@@ -187,11 +187,16 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId
 debug_time_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
+  DebugTimePanelComp* timePanel   = ecs_world_add_t(
       world,
       panelEntity,
       DebugTimePanelComp,
       .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&timePanel->panel);
+  }
+
   return panelEntity;
 }

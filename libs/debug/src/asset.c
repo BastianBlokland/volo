@@ -330,8 +330,8 @@ ecs_module_init(debug_asset_module) {
 
 EcsEntityId
 debug_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
+  DebugAssetPanelComp* assetPanel  = ecs_world_add_t(
       world,
       panelEntity,
       DebugAssetPanelComp,
@@ -340,5 +340,10 @@ debug_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       .idFilter   = dynstring_create(g_alloc_heap, 32),
       .sortMode   = DebugAssetSortMode_Status,
       .assets     = dynarray_create_t(g_alloc_heap, DebugAssetInfo, 256));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&assetPanel->panel);
+  }
+
   return panelEntity;
 }

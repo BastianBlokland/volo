@@ -508,13 +508,18 @@ ecs_module_init(debug_sound_module) {
 
 EcsEntityId
 debug_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
+  DebugSoundPanelComp* soundPanel  = ecs_world_add_t(
       world,
       panelEntity,
       DebugSoundPanelComp,
       .panel      = ui_panel(.size = ui_vector(800, 685)),
       .scrollview = ui_scrollview(),
       .nameFilter = dynstring_create(g_alloc_heap, 32));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&soundPanel->panel);
+  }
+
   return panelEntity;
 }
