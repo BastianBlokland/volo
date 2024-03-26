@@ -212,6 +212,14 @@ static EcsEntityId menu_child_topmost(EcsWorld* world, const DebugMenuComp* menu
   return topmost;
 }
 
+static bool menu_child_hotkey_pressed(const InputManagerComp* input, const u32 childIndex) {
+  const String hotkeyName = g_menuChildConfig[childIndex].hotkeyName;
+  if (string_is_empty(hotkeyName)) {
+    return false;
+  }
+  return input_triggered_hash(input, string_hash(hotkeyName));
+}
+
 static void menu_action_bar_draw(
     EcsWorld*               world,
     const EcsEntityId       menuEntity,
@@ -236,17 +244,13 @@ static void menu_action_bar_draw(
     ui_table_next_row(canvas, &table);
     const bool isOpen = menu_child_is_open(world, menu, childIndex);
 
-    const bool hotkeyPressed =
-        windowActive && !string_is_empty(g_menuChildConfig[childIndex].hotkeyName) &&
-        input_triggered_hash(input, string_hash(g_menuChildConfig[childIndex].hotkeyName));
-
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(g_menuChildConfig[childIndex].iconShape),
             .fontSize   = 25,
             .tooltip    = menu_child_tooltip_scratch(childIndex, isOpen),
             .frameColor = isOpen ? g_menuChildFrameColorOpen : g_menuChildFrameColorNormal,
-            .activate   = hotkeyPressed)) {
+            .activate   = windowActive && menu_child_hotkey_pressed(input, childIndex))) {
 
       const bool canDetach = g_menuChildConfig[childIndex].canDetach;
       if (canDetach && (input_modifiers(input) & InputModifier_Control)) {
