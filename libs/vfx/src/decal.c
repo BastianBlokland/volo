@@ -762,10 +762,15 @@ static void vfx_decal_trail_update(
     if (segLengthSqr < (vfx_decal_trail_seg_min_length * vfx_decal_trail_seg_min_length)) {
       continue;
     }
-    const f32       segLength  = math_sqrt_f32(segLengthSqr);
-    const GeoVector segCenter  = geo_vector_mul(geo_vector_add(segBegin.pos, segEnd.pos), 0.5f);
-    const GeoVector segNormal  = geo_vector_div(segDelta, segLength);
-    const GeoVector segTangent = geo_vector_norm(geo_vector_cross3(segNormal, projAxisRef));
+    const f32       segLength     = math_sqrt_f32(segLengthSqr);
+    const GeoVector segCenter     = geo_vector_mul(geo_vector_add(segBegin.pos, segEnd.pos), 0.5f);
+    const GeoVector segNormal     = geo_vector_div(segDelta, segLength);
+    const GeoVector segTangentRaw = geo_vector_cross3(segNormal, projAxisRef);
+    const f32       segTangentLen = geo_vector_mag(segTangentRaw);
+    if (segTangentLen < f32_epsilon) {
+      continue;
+    }
+    const GeoVector segTangent = geo_vector_div(segTangentRaw, segTangentLen);
 
     segs[segCount++] = (VfxTrailSegment){
         .position    = segCenter,
