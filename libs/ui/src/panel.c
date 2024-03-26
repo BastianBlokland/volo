@@ -282,15 +282,20 @@ void ui_panel_begin_with_opts(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts
   diag_assert_msg(!(panel->flags & UiPanelFlags_Active), "The given panel is already active");
   panel->flags |= UiPanelFlags_Active;
 
-  const UiId resizeHandleId = ui_canvas_id_peek(c);
-  const UiId dragHandleId   = resizeHandleId + 1;
-  ui_panel_update_drag_and_resize(c, panel, dragHandleId, resizeHandleId);
+  if (panel->flags & UiPanelFlags_Maximized) {
+    ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(1, 1), UiBase_Canvas, Ui_XY);
+  } else {
+    const UiId resizeHandleId = ui_canvas_id_peek(c);
+    const UiId dragHandleId   = resizeHandleId + 1;
+    ui_panel_update_drag_and_resize(c, panel, dragHandleId, resizeHandleId);
 
-  ui_layout_move(c, panel->position, UiBase_Canvas, Ui_XY);
-  ui_layout_resize(c, UiAlign_MiddleCenter, panel->size, UiBase_Absolute, Ui_XY);
+    ui_layout_move(c, panel->position, UiBase_Canvas, Ui_XY);
+    ui_layout_resize(c, UiAlign_MiddleCenter, panel->size, UiBase_Absolute, Ui_XY);
 
-  ui_panel_resize_handle(c);
-  ui_panel_topbar(c, panel, opts);
+    ui_panel_resize_handle(c);
+    ui_panel_topbar(c, panel, opts);
+  }
+
   ui_panel_background(c);
   if (opts->tabCount) {
     ui_panel_tabs(c, panel, opts);
@@ -307,5 +312,13 @@ void ui_panel_end(UiCanvasComp* c, UiPanel* panel) {
 }
 
 void ui_panel_pin(UiPanel* panel) { panel->flags |= UiPanelFlags_Pinned; }
+
+void ui_panel_maximize(UiPanel* panel) { panel->flags |= UiPanelFlags_Maximized; }
+
 bool ui_panel_closed(const UiPanel* panel) { return (panel->flags & UiPanelFlags_Close) != 0; }
+
 bool ui_panel_pinned(const UiPanel* panel) { return (panel->flags & UiPanelFlags_Pinned) != 0; }
+
+bool ui_panel_maximized(const UiPanel* panel) {
+  return (panel->flags & UiPanelFlags_Maximized) != 0;
+}
