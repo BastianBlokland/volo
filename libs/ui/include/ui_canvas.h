@@ -109,6 +109,7 @@ bool     ui_canvas_input_any(const UiCanvasComp*);
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
 UiVector ui_canvas_input_scroll(const UiCanvasComp*);
+f32      ui_canvas_scale(const UiCanvasComp*);
 
 /**
  * Query information about a specific element.

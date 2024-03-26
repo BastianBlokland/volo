@@ -762,6 +762,7 @@ bool     ui_canvas_input_any(const UiCanvasComp* comp) {
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 UiVector ui_canvas_input_scroll(const UiCanvasComp* comp) { return comp->inputScroll; }
+f32      ui_canvas_scale(const UiCanvasComp* comp) { return comp->scale; }
 
 UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp* comp, const UiId id) {
   return ui_canvas_persistent((UiCanvasComp*)comp, id)->flags;
