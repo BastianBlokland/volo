@@ -360,7 +360,8 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
         .assetView    = assetView,
     };
 
-    if (ecs_view_maybe_jump(cameraItr, panelComp->window)) {
+    // NOTE: Detached panels have no camera on the window; in that case use the first found camera.
+    if (ecs_view_maybe_jump(cameraItr, panelComp->window) || ecs_view_walk(cameraItr)) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
 
