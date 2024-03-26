@@ -131,7 +131,8 @@ static const struct {
     },
 };
 
-static String menu_child_tooltip_scratch(const u32 childIndex, const bool open) {
+static String
+menu_child_tooltip_scratch(const u32 childIndex, const bool open, const bool allowDetach) {
   Mem       scratchMem = alloc_alloc(g_alloc_scratch, 1024, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
@@ -140,7 +141,7 @@ static String menu_child_tooltip_scratch(const u32 childIndex, const bool open) 
       open ? g_menuChildTooltipClose : g_menuChildTooltipOpen,
       fmt_args(fmt_text(g_menuChildConfig[childIndex].name)));
 
-  if (g_menuChildConfig[childIndex].canDetach) {
+  if (allowDetach && g_menuChildConfig[childIndex].canDetach) {
     dynstring_append_char(&str, '\n');
     dynstring_append(&str, g_menuChildTooltipDetach);
   }
@@ -163,6 +164,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
+ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
 static void menu_notify_child_state(
     DebugStatsGlobalComp* statsGlobal, const u32 childIndex, const String state) {
@@ -227,10 +229,13 @@ static void menu_action_bar_draw(
     const InputManagerComp* input,
     DebugMenuComp*          menu,
     DebugStatsGlobalComp*   statsGlobal,
-    const EcsEntityId       winEntity) {
+    const EcsEntityId       winEntity,
+    const GapWindowComp*    win) {
 
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 35);
   ui_table_add_column(&table, UiTableColumn_Fixed, 45);
+
+  const bool allowDetach = gap_window_mode(win) == GapWindowMode_Windowed;
 
   const bool windowActive = input_active_window(input) == winEntity;
   const u32  rows         = 1 /* Icon */ + array_elems(g_menuChildConfig) /* Panels */;
@@ -248,12 +253,12 @@ static void menu_action_bar_draw(
             canvas,
             .label      = ui_shape_scratch(g_menuChildConfig[childIndex].iconShape),
             .fontSize   = 25,
-            .tooltip    = menu_child_tooltip_scratch(childIndex, isOpen),
+            .tooltip    = menu_child_tooltip_scratch(childIndex, isOpen, allowDetach),
             .frameColor = isOpen ? g_menuChildFrameColorOpen : g_menuChildFrameColorNormal,
             .activate   = windowActive && menu_child_hotkey_pressed(input, childIndex))) {
 
       const bool canDetach = g_menuChildConfig[childIndex].canDetach;
-      if (canDetach && (input_modifiers(input) & InputModifier_Control)) {
+      if (allowDetach && canDetach && (input_modifiers(input) & InputModifier_Control)) {
         menu_child_open_detached(world, childIndex);
         menu_notify_child_state(statsGlobal, childIndex, string_lit("detached"));
       } else {
@@ -279,6 +284,9 @@ ecs_system_define(DebugMenuUpdateSys) {
   const InputManagerComp* input       = ecs_view_read_t(globalItr, InputManagerComp);
   DebugStatsGlobalComp*   statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
+  EcsView*     windowView = ecs_world_view_t(world, WindowView);
+  EcsIterator* windowItr  = ecs_view_itr(windowView);
+
   EcsView* menuView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(menuView); ecs_view_walk(itr);) {
     const EcsEntityId panelEntity = ecs_view_entity(itr);
@@ -289,7 +297,12 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
       continue;
     }
-    menu_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window);
+    if (!ecs_view_maybe_jump(windowItr, menu->window)) {
+      continue;
+    }
+    const GapWindowComp* win = ecs_view_read_t(windowItr, GapWindowComp);
+
+    menu_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window, win);
 
     if (input_triggered_lit(input, "DebugPanelClose")) {
       const EcsEntityId topmostChild = menu_child_topmost(world, menu);
@@ -307,12 +320,14 @@ ecs_module_init(debug_menu_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(CanvasView);
+  ecs_register_view(WindowView);
 
   ecs_register_system(
       DebugMenuUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(CanvasView));
+      ecs_view_id(CanvasView),
+      ecs_view_id(WindowView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
