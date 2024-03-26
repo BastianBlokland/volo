@@ -119,10 +119,12 @@ static const struct {
         .canDetach    = true,
     },
     {
-        .name       = string_static("Camera"),
-        .iconShape  = UiShape_PhotoCamera,
-        .openFunc   = debug_camera_panel_open,
-        .hotkeyName = string_static("DebugPanelCamera"),
+        .name         = string_static("Camera"),
+        .iconShape    = UiShape_PhotoCamera,
+        .detachedSize = {.x = 500, .y = 400},
+        .openFunc     = debug_camera_panel_open,
+        .hotkeyName   = string_static("DebugPanelCamera"),
+        .canDetach    = true,
     },
     {
         .name      = string_static("Grid"),

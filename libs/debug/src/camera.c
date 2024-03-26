@@ -47,7 +47,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(WindowView) {
+ecs_view_define(CameraView) {
   ecs_access_write(SceneCameraComp);
   ecs_access_maybe_write(SceneTransformComp);
 }
@@ -191,18 +191,19 @@ static void camera_panel_draw(
 }
 
 ecs_system_define(DebugCameraUpdatePanelSys) {
-  EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
+  EcsIterator* cameraItr = ecs_view_itr(ecs_world_view_t(world, CameraView));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugCameraPanelComp* panelComp = ecs_view_write_t(itr, DebugCameraPanelComp);
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
-      continue; // Window has been destroyed, or has no camera.
+    // NOTE: Detached panels have no camera on the window; in that case use the first found camera.
+    if (!ecs_view_maybe_jump(cameraItr, panelComp->window) && !ecs_view_walk(cameraItr)) {
+      continue; // No camera found.
     }
-    SceneCameraComp*    camera    = ecs_view_write_t(windowItr, SceneCameraComp);
-    SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
+    SceneCameraComp*    camera    = ecs_view_write_t(cameraItr, SceneCameraComp);
+    SceneTransformComp* transform = ecs_view_write_t(cameraItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -356,13 +357,13 @@ ecs_module_init(debug_camera_module) {
   ecs_register_comp(DebugCameraPanelComp);
 
   ecs_register_view(PanelUpdateView);
-  ecs_register_view(WindowView);
+  ecs_register_view(CameraView);
   ecs_register_view(GlobalDrawView);
   ecs_register_view(DrawView);
   ecs_register_view(NameView);
 
   ecs_register_system(
-      DebugCameraUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(WindowView));
+      DebugCameraUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(CameraView));
 
   ecs_register_system(
       DebugCameraDrawSys,
@@ -375,14 +376,17 @@ ecs_module_init(debug_camera_module) {
 
 EcsEntityId
 debug_camera_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  diag_assert_msg(type == DebugPanelType_Normal, "Camera panel cannot be detached");
-
-  const EcsEntityId panelEntity = debug_panel_create(world, window, type);
-  ecs_world_add_t(
+  const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
+  DebugCameraPanelComp* cameraPanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugCameraPanelComp,
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 400)),
       .window = window);
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&cameraPanel->panel);
+  }
+
   return panelEntity;
 }
