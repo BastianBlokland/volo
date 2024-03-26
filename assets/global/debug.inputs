@@ -115,7 +115,8 @@
       "name": "DebugPrefabCreateCancel",
       "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [
-        { "type": "Pressed", "key": "MouseRight" }
+        { "type": "Pressed", "key": "MouseRight" },
+        { "type": "Pressed", "key": "Escape" }
       ]
     },
     {
