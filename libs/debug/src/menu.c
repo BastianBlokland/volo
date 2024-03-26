@@ -189,7 +189,8 @@ static void menu_child_open_detached(EcsWorld* world, const u32 childIndex) {
   const GapVector      size           = gap_vector(500, 500);
   const GapWindowMode  mode           = GapWindowMode_Windowed;
   const GapWindowFlags flags          = GapWindowFlags_CloseOnRequest;
-  const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size);
+  const String         title          = g_menuChildConfig[childIndex].name;
+  const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size, title);
 
   const DebugPanelType type = DebugPanelType_Detached;
   g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);

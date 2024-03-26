@@ -97,7 +97,8 @@ static void window_update(
       window->params[GapParam_WindowSizePreFullscreen] = createdWinSize;
       gap_pal_window_resize(pal, window->id, createdWinSize, true);
     }
-    if (window->flags & GapWindowFlags_DefaultTitle) {
+    const bool defaultTitle = (window->flags & GapWindowFlags_DefaultTitle) != 0;
+    if (defaultTitle && (window->requests & GapWindowRequests_UpdateTitle) == 0) {
       gap_window_title_set(window, window_default_title_scratch(window));
     }
   }
@@ -263,7 +264,11 @@ ecs_module_init(gap_window_module) {
 }
 
 EcsEntityId gap_window_create(
-    EcsWorld* world, const GapWindowMode mode, const GapWindowFlags flags, const GapVector size) {
+    EcsWorld*            world,
+    const GapWindowMode  mode,
+    const GapWindowFlags flags,
+    const GapVector      size,
+    const String         title) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   GapWindowComp*    comp         = ecs_world_add_t(
       world,
@@ -277,6 +282,11 @@ EcsEntityId gap_window_create(
       .inputText                   = dynstring_create(g_alloc_heap, 64));
 
   gap_window_flags_set(comp, flags);
+
+  if (!string_is_empty(title)) {
+    gap_window_title_set(comp, title);
+  }
+
   return windowEntity;
 }
 
