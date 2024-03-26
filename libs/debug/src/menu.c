@@ -60,6 +60,7 @@ static const struct {
         .openFunc     = debug_prefab_panel_open,
         .hotkeyName   = string_static("DebugPanelPrefab"),
         .autoOpen     = true,
+        .canDetach    = true,
     },
     {
         .name         = string_static("Level"),
