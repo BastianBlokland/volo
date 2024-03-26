@@ -151,6 +151,8 @@ static void inputmap_datareg_init() {
     data_reg_const_custom(reg, AssetInputBlocker, HoveringGizmo, 2);
     data_reg_const_custom(reg, AssetInputBlocker, PrefabCreateMode, 3);
     data_reg_const_custom(reg, AssetInputBlocker, CursorLocked, 4);
+    data_reg_const_custom(reg, AssetInputBlocker, CursorConfined, 5);
+    data_reg_const_custom(reg, AssetInputBlocker, WindowFullscreen, 6);
 
     /**
      * Modifiers correspond to the 'InputModifier' values as defined in 'input_manager.h'.
