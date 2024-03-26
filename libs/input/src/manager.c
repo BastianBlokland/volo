@@ -131,6 +131,11 @@ static void input_update_blockers(InputManagerComp* manager, GapWindowComp* win)
   } else {
     manager->blockers &= ~InputBlocker_CursorConfined;
   }
+  if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
+    manager->blockers |= InputBlocker_WindowFullscreen;
+  } else {
+    manager->blockers &= ~InputBlocker_WindowFullscreen;
+  }
 }
 
 static void input_update_modifiers(InputManagerComp* manager, GapWindowComp* win) {
