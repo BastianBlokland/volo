@@ -40,72 +40,82 @@ static const struct {
   String        name;
   u32           iconShape;
   bool          autoOpen, canDetach;
+  GapVector     detachedSize;
   ChildOpenFunc openFunc;
   String        hotkeyName;
 } g_menuChildConfig[] = {
     {
-        .name       = string_static("Inspector"),
-        .iconShape  = UiShape_ViewInAr,
-        .openFunc   = debug_inspector_panel_open,
-        .hotkeyName = string_static("DebugPanelInspector"),
-        .autoOpen   = true,
-        .canDetach  = true,
+        .name         = string_static("Inspector"),
+        .iconShape    = UiShape_ViewInAr,
+        .detachedSize = {.x = 500, .y = 500},
+        .openFunc     = debug_inspector_panel_open,
+        .hotkeyName   = string_static("DebugPanelInspector"),
+        .autoOpen     = true,
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Prefab"),
-        .iconShape  = UiShape_Construction,
-        .openFunc   = debug_prefab_panel_open,
-        .hotkeyName = string_static("DebugPanelPrefab"),
-        .autoOpen   = true,
+        .name         = string_static("Prefab"),
+        .iconShape    = UiShape_Construction,
+        .detachedSize = {.x = 500, .y = 350},
+        .openFunc     = debug_prefab_panel_open,
+        .hotkeyName   = string_static("DebugPanelPrefab"),
+        .autoOpen     = true,
     },
     {
-        .name       = string_static("Level"),
-        .iconShape  = UiShape_Globe,
-        .openFunc   = debug_level_panel_open,
-        .hotkeyName = string_static("DebugPanelLevel"),
-        .canDetach  = true,
+        .name         = string_static("Level"),
+        .iconShape    = UiShape_Globe,
+        .detachedSize = {.x = 500, .y = 300},
+        .openFunc     = debug_level_panel_open,
+        .hotkeyName   = string_static("DebugPanelLevel"),
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Sound"),
-        .iconShape  = UiShape_MusicNote,
-        .openFunc   = debug_sound_panel_open,
-        .hotkeyName = string_static("DebugPanelSound"),
-        .canDetach  = true,
+        .name         = string_static("Sound"),
+        .iconShape    = UiShape_MusicNote,
+        .detachedSize = {.x = 800, .y = 685},
+        .openFunc     = debug_sound_panel_open,
+        .hotkeyName   = string_static("DebugPanelSound"),
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Time"),
-        .iconShape  = UiShape_Timer,
-        .openFunc   = debug_time_panel_open,
-        .hotkeyName = string_static("DebugPanelTime"),
-        .canDetach  = true,
+        .name         = string_static("Time"),
+        .iconShape    = UiShape_Timer,
+        .detachedSize = {.x = 500, .y = 250},
+        .openFunc     = debug_time_panel_open,
+        .hotkeyName   = string_static("DebugPanelTime"),
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Animation"),
-        .iconShape  = UiShape_Animation,
-        .openFunc   = debug_animation_panel_open,
-        .hotkeyName = string_static("DebugPanelAnimation"),
-        .canDetach  = true,
+        .name         = string_static("Animation"),
+        .iconShape    = UiShape_Animation,
+        .detachedSize = {.x = 950, .y = 350},
+        .openFunc     = debug_animation_panel_open,
+        .hotkeyName   = string_static("DebugPanelAnimation"),
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Script"),
-        .iconShape  = UiShape_Description,
-        .openFunc   = debug_script_panel_open,
-        .hotkeyName = string_static("DebugPanelScript"),
-        .canDetach  = true,
+        .name         = string_static("Script"),
+        .iconShape    = UiShape_Description,
+        .detachedSize = {.x = 800, .y = 600},
+        .openFunc     = debug_script_panel_open,
+        .hotkeyName   = string_static("DebugPanelScript"),
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Asset"),
-        .iconShape  = UiShape_Storage,
-        .openFunc   = debug_asset_panel_open,
-        .hotkeyName = string_static("DebugPanelAsset"),
-        .canDetach  = true,
+        .name         = string_static("Asset"),
+        .iconShape    = UiShape_Storage,
+        .detachedSize = {.x = 950, .y = 500},
+        .openFunc     = debug_asset_panel_open,
+        .hotkeyName   = string_static("DebugPanelAsset"),
+        .canDetach    = true,
     },
     {
-        .name       = string_static("Ecs"),
-        .iconShape  = UiShape_Extension,
-        .openFunc   = debug_ecs_panel_open,
-        .hotkeyName = string_static("DebugPanelEcs"),
-        .canDetach  = true,
+        .name         = string_static("Ecs"),
+        .iconShape    = UiShape_Extension,
+        .detachedSize = {.x = 800, .y = 500},
+        .openFunc     = debug_ecs_panel_open,
+        .hotkeyName   = string_static("DebugPanelEcs"),
+        .canDetach    = true,
     },
     {
         .name       = string_static("Camera"),
@@ -188,7 +198,9 @@ static void menu_child_open(
 }
 
 static void menu_child_open_detached(EcsWorld* world, const u32 childIndex) {
-  const GapVector      size           = gap_vector(500, 500);
+  GapVector size = g_menuChildConfig[childIndex].detachedSize;
+  size           = (GapVector){.x = size.x ? size.x : 500, .y = size.y ? size.y : 500};
+
   const GapWindowMode  mode           = GapWindowMode_Windowed;
   const GapWindowFlags flags          = GapWindowFlags_CloseOnRequest;
   const String         title          = g_menuChildConfig[childIndex].name;
