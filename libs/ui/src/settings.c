@@ -1,14 +1,14 @@
 #include "ui_settings.h"
 
-ecs_comp_define_public(UiSettingsComp);
+ecs_comp_define_public(UiSettingsGlobalComp);
 
-ecs_module_init(ui_settings_module) { ecs_register_comp(UiSettingsComp); }
+ecs_module_init(ui_settings_module) { ecs_register_comp(UiSettingsGlobalComp); }
 
-void ui_settings_to_default(UiSettingsComp* settings) {
-  settings->flags            = UiSettingFlags_DpiScaling;
-  settings->scale            = 1.0f;
-  settings->defaultColor     = ui_color_white;
-  settings->defaultOutline   = 1;
-  settings->defaultVariation = 0;
-  settings->defaultWeight    = UiWeight_Normal;
+void ui_settings_global_to_default(UiSettingsGlobalComp* s) {
+  s->flags            = UiSettingGlobal_DpiScaling;
+  s->scale            = 1.0f;
+  s->defaultColor     = ui_color_white;
+  s->defaultOutline   = 1;
+  s->defaultVariation = 0;
+  s->defaultWeight    = UiWeight_Normal;
 }

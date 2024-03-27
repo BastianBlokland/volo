@@ -126,14 +126,14 @@ typedef struct {
 ASSERT(sizeof(UiDrawMetaData) == 848, "Size needs to match the size defined in glsl");
 
 typedef struct {
-  const UiSettingsComp*   settings;
-  const AssetFontTexComp* atlasFont;
-  const AssetAtlasComp*   atlasImage;
-  UiRendererComp*         renderer;
-  RendDrawComp*           draw;
-  UiCanvasComp*           canvas;
-  UiRect                  clipRects[ui_canvas_clip_rects_max];
-  u32                     clipRectCount;
+  const UiSettingsGlobalComp* settings;
+  const AssetFontTexComp*     atlasFont;
+  const AssetAtlasComp*       atlasImage;
+  UiRendererComp*             renderer;
+  RendDrawComp*               draw;
+  UiCanvasComp*               canvas;
+  UiRect                      clipRects[ui_canvas_clip_rects_max];
+  u32                         clipRectCount;
 } UiRenderState;
 
 static UiAtlasData ui_atlas_metadata_font(const AssetFontTexComp* font) {
@@ -192,9 +192,9 @@ static UiPersistentElem* ui_canvas_persistent(UiCanvasComp* canvas, const UiId i
   return res;
 }
 
-static f32 ui_window_scale(const GapWindowComp* window, const UiSettingsComp* settings) {
+static f32 ui_window_scale(const GapWindowComp* window, const UiSettingsGlobalComp* settings) {
   const u16  dpi        = gap_window_dpi(window);
-  const bool dpiScaling = settings && (settings->flags & UiSettingFlags_DpiScaling) != 0;
+  const bool dpiScaling = (settings->flags & UiSettingGlobal_DpiScaling) != 0;
   const f32  dpiScale   = math_max(dpi / (f32)ui_canvas_dpi_reference, ui_canvas_dpi_min_scale);
   return (dpiScaling ? dpiScale : 1.0f) * (settings ? settings->scale : 1.0f);
 }
@@ -242,19 +242,19 @@ static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiSt
 }
 
 static void ui_canvas_update_interaction(
-    UiCanvasComp*        canvas,
-    UiSettingsComp*      settings,
-    const GapWindowComp* window,
-    const UiId           hoveredId,
-    const UiFlags        hoveredFlags) {
+    UiCanvasComp*         canvas,
+    UiSettingsGlobalComp* settings,
+    const GapWindowComp*  window,
+    const UiId            hoveredId,
+    const UiFlags         hoveredFlags) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputPressed  = gap_window_key_pressed(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
-  if (UNLIKELY(settings->flags & UiSettingFlags_DebugInspector)) {
+  if (UNLIKELY(settings->flags & UiSettingGlobal_DebugInspector)) {
     if (inputReleased) {
-      settings->flags ^= UiSettingFlags_DebugInspector;
+      settings->flags ^= UiSettingGlobal_DebugInspector;
     }
     ui_canvas_set_active(canvas, hoveredId, UiStatus_Idle);
     return; // Normal input is disabled while using the debug inspector.
@@ -316,9 +316,11 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
   return ui_build(state->canvas->cmdBuffer, &buildCtx);
 }
 
+ecs_view_define(InputGlobalView) { ecs_access_read(UiSettingsGlobalComp); }
 ecs_view_define(RenderGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
   ecs_access_maybe_write(InputManagerComp);
+  ecs_access_maybe_write(UiSettingsGlobalComp);
 }
 ecs_view_define(SoundGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
@@ -329,7 +331,6 @@ ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(WindowView) {
   ecs_access_write(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
-  ecs_access_maybe_write(UiSettingsComp);
   ecs_access_maybe_write(UiStatsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
@@ -350,6 +351,13 @@ ui_atlas_get(EcsWorld* world, const UiGlobalResourcesComp* globalRes, const UiAt
 }
 
 ecs_system_define(UiCanvasInputSys) {
+  EcsView*     globalView = ecs_world_view_t(world, InputGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized yet.
+  }
+  const UiSettingsGlobalComp* settings = ecs_view_read_t(globalItr, UiSettingsGlobalComp);
+
   EcsView*     windowView = ecs_world_view_t(world, WindowView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
@@ -358,12 +366,11 @@ ecs_system_define(UiCanvasInputSys) {
     if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
       continue;
     }
-    const GapWindowComp*  window      = ecs_view_read_t(windowItr, GapWindowComp);
-    const UiSettingsComp* settings    = ecs_view_read_t(windowItr, UiSettingsComp);
-    const GapVector       winSize     = gap_window_param(window, GapParam_WindowSize);
-    const GapVector       cursorDelta = gap_window_param(window, GapParam_CursorDelta);
-    const GapVector       cursorPos   = gap_window_param(window, GapParam_CursorPos);
-    const GapVector       scrollDelta = gap_window_param(window, GapParam_ScrollDelta);
+    const GapWindowComp* window      = ecs_view_read_t(windowItr, GapWindowComp);
+    const GapVector      winSize     = gap_window_param(window, GapParam_WindowSize);
+    const GapVector      cursorDelta = gap_window_param(window, GapParam_CursorDelta);
+    const GapVector      cursorPos   = gap_window_param(window, GapParam_CursorPos);
+    const GapVector      scrollDelta = gap_window_param(window, GapParam_ScrollDelta);
 
     if (!winSize.x || !winSize.y) {
       // Clear any input when the window is zero sized.
@@ -424,14 +431,11 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
       .draw         = drawEntity,
       .overlayAtoms = dynarray_create_t(g_alloc_heap, UiAtomData, 32));
 
-  UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
-  ui_settings_to_default(settings);
-
   ecs_world_add_t(world, window, UiStatsComp);
 }
 
-static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsComp* settings) {
-  if (UNLIKELY(settings->flags & UiSettingFlags_DebugInspector)) {
+static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsGlobalComp* settings) {
+  if (UNLIKELY(settings->flags & UiSettingGlobal_DebugInspector)) {
     return canvas->activeId;
   }
   return sentinel_u64;
@@ -470,6 +474,12 @@ ecs_system_define(UiRenderSys) {
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
   InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
+  UiSettingsGlobalComp* settings = ecs_view_write_t(globalItr, UiSettingsGlobalComp);
+  if (!settings) {
+    settings = ecs_world_add_t(world, ecs_world_global(world), UiSettingsGlobalComp);
+    ui_settings_global_to_default(settings);
+  }
+
   const AssetFontTexComp* atlasFont  = ui_atlas_font_get(world, globalRes);
   const AssetAtlasComp*   atlasImage = ui_atlas_get(world, globalRes, UiAtlasRes_Image);
   if (!atlasFont || !atlasImage) {
@@ -480,7 +490,6 @@ ecs_system_define(UiRenderSys) {
     const EcsEntityId windowEntity = ecs_view_entity(itr);
     GapWindowComp*    window       = ecs_view_write_t(itr, GapWindowComp);
     UiRendererComp*   renderer     = ecs_view_write_t(itr, UiRendererComp);
-    UiSettingsComp*   settings     = ecs_view_write_t(itr, UiSettingsComp);
     UiStatsComp*      stats        = ecs_view_write_t(itr, UiStatsComp);
     if (!renderer) {
       ui_renderer_create(world, windowEntity);
@@ -500,7 +509,7 @@ ecs_system_define(UiRenderSys) {
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
 
     EcsEntityId graphic;
-    if (settings->flags & UiSettingFlags_DebugShading) {
+    if (settings->flags & UiSettingGlobal_DebugShading) {
       graphic = ui_resource_graphic(globalRes, UiGraphicRes_Debug);
     } else {
       graphic = ui_resource_graphic(globalRes, UiGraphicRes_Normal);
@@ -645,13 +654,18 @@ ecs_module_init(ui_canvas_module) {
 
   ecs_register_view(CanvasView);
   ecs_register_view(DrawView);
+  ecs_register_view(InputGlobalView);
   ecs_register_view(RenderGlobalView);
   ecs_register_view(SoundGlobalView);
   ecs_register_view(AtlasFontView);
   ecs_register_view(AtlasView);
   ecs_register_view(WindowView);
 
-  ecs_register_system(UiCanvasInputSys, ecs_view_id(CanvasView), ecs_view_id(WindowView));
+  ecs_register_system(
+      UiCanvasInputSys,
+      ecs_view_id(InputGlobalView),
+      ecs_view_id(CanvasView),
+      ecs_view_id(WindowView));
 
   ecs_register_system(
       UiRenderSys,
