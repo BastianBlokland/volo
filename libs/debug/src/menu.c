@@ -40,7 +40,7 @@ typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId, DebugPanelType);
 static const struct {
   String        name;
   u32           iconShape;
-  bool          autoOpen, canDetach;
+  bool          autoOpen;
   GapVector     detachedSize;
   ChildOpenFunc openFunc;
   String        hotkeyName;
@@ -52,7 +52,6 @@ static const struct {
         .openFunc     = debug_inspector_panel_open,
         .hotkeyName   = string_static("DebugPanelInspector"),
         .autoOpen     = true,
-        .canDetach    = true,
     },
     {
         .name         = string_static("Prefab"),
@@ -61,7 +60,6 @@ static const struct {
         .openFunc     = debug_prefab_panel_open,
         .hotkeyName   = string_static("DebugPanelPrefab"),
         .autoOpen     = true,
-        .canDetach    = true,
     },
     {
         .name         = string_static("Level"),
@@ -69,7 +67,6 @@ static const struct {
         .detachedSize = {.x = 500, .y = 300},
         .openFunc     = debug_level_panel_open,
         .hotkeyName   = string_static("DebugPanelLevel"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Sound"),
@@ -77,7 +74,6 @@ static const struct {
         .detachedSize = {.x = 800, .y = 685},
         .openFunc     = debug_sound_panel_open,
         .hotkeyName   = string_static("DebugPanelSound"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Time"),
@@ -85,7 +81,6 @@ static const struct {
         .detachedSize = {.x = 500, .y = 250},
         .openFunc     = debug_time_panel_open,
         .hotkeyName   = string_static("DebugPanelTime"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Animation"),
@@ -93,7 +88,6 @@ static const struct {
         .detachedSize = {.x = 950, .y = 350},
         .openFunc     = debug_animation_panel_open,
         .hotkeyName   = string_static("DebugPanelAnimation"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Script"),
@@ -101,7 +95,6 @@ static const struct {
         .detachedSize = {.x = 800, .y = 600},
         .openFunc     = debug_script_panel_open,
         .hotkeyName   = string_static("DebugPanelScript"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Asset"),
@@ -109,7 +102,6 @@ static const struct {
         .detachedSize = {.x = 950, .y = 500},
         .openFunc     = debug_asset_panel_open,
         .hotkeyName   = string_static("DebugPanelAsset"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Ecs"),
@@ -117,7 +109,6 @@ static const struct {
         .detachedSize = {.x = 800, .y = 500},
         .openFunc     = debug_ecs_panel_open,
         .hotkeyName   = string_static("DebugPanelEcs"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Camera"),
@@ -125,14 +116,12 @@ static const struct {
         .detachedSize = {.x = 500, .y = 400},
         .openFunc     = debug_camera_panel_open,
         .hotkeyName   = string_static("DebugPanelCamera"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Grid"),
         .iconShape    = UiShape_Grid4x4,
         .detachedSize = {.x = 500, .y = 220},
         .openFunc     = debug_grid_panel_open,
-        .canDetach    = true,
     },
     {
         .name         = string_static("Renderer"),
@@ -140,14 +129,12 @@ static const struct {
         .detachedSize = {.x = 800, .y = 520},
         .openFunc     = debug_rend_panel_open,
         .hotkeyName   = string_static("DebugPanelRenderer"),
-        .canDetach    = true,
     },
     {
         .name         = string_static("Interface"),
         .iconShape    = UiShape_FormatShapes,
         .detachedSize = {.x = 500, .y = 190},
         .openFunc     = debug_interface_panel_open,
-        .canDetach    = true,
     },
 };
 
@@ -161,7 +148,7 @@ menu_child_tooltip_scratch(const u32 childIndex, const bool open, const bool all
       open ? g_menuChildTooltipClose : g_menuChildTooltipOpen,
       fmt_args(fmt_text(g_menuChildConfig[childIndex].name)));
 
-  if (allowDetach && g_menuChildConfig[childIndex].canDetach) {
+  if (allowDetach) {
     dynstring_append_char(&str, '\n');
     dynstring_append(&str, g_menuChildTooltipDetach);
   }
@@ -285,8 +272,7 @@ static void menu_action_bar_draw(
             .frameColor = isOpen ? g_menuChildFrameColorOpen : g_menuChildFrameColorNormal,
             .activate   = windowActive && menu_child_hotkey_pressed(input, childIndex))) {
 
-      const bool canDetach = g_menuChildConfig[childIndex].canDetach;
-      if (allowDetach && canDetach && (input_modifiers(input) & InputModifier_Control)) {
+      if (allowDetach && (input_modifiers(input) & InputModifier_Control)) {
         menu_child_open_detached(world, canvas, childIndex);
         menu_notify_child_state(statsGlobal, childIndex, string_lit("detached"));
       } else {
