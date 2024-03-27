@@ -141,9 +141,11 @@ static const struct {
         .hotkeyName = string_static("DebugPanelRenderer"),
     },
     {
-        .name      = string_static("Interface"),
-        .iconShape = UiShape_FormatShapes,
-        .openFunc  = debug_interface_panel_open,
+        .name         = string_static("Interface"),
+        .iconShape    = UiShape_FormatShapes,
+        .detachedSize = {.x = 500, .y = 190},
+        .openFunc     = debug_interface_panel_open,
+        .canDetach    = true,
     },
 };
 
