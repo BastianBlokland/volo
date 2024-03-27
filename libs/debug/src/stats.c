@@ -10,6 +10,7 @@
 #include "geo_query.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
+#include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_nav.h"
 #include "scene_time.h"
@@ -582,6 +583,7 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(StatsCreateView) {
   ecs_access_with(GapWindowComp);
+  ecs_access_with(SceneCameraComp); // Only track stats for windows with 3d content.
   ecs_access_without(DebugStatsComp);
 }
 
@@ -603,7 +605,7 @@ ecs_system_define(DebugStatsCreateSys) {
         .notifications = dynarray_create_t(g_alloc_heap, DebugStatsNotification, 8));
   }
 
-  // Create a stats component for each window.
+  // Create a stats component for each window with 3d content (so with a camera).
   EcsView* createView = ecs_world_view_t(world, StatsCreateView);
   for (EcsIterator* itr = ecs_view_itr(createView); ecs_view_walk(itr);) {
     ecs_world_add_t(world, ecs_view_entity(itr), DebugStatsComp);

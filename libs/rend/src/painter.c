@@ -177,7 +177,7 @@ static RvkSize painter_win_size(const GapWindowComp* win) {
   return rvk_size((u16)winSize.width, (u16)winSize.height);
 }
 
-static RendView painter_view_create(
+static RendView painter_view_3d_create(
     const GeoMatrix*     cameraMatrix,
     const GeoMatrix*     projMatrix,
     const EcsEntityId    sceneCameraEntity,
@@ -185,6 +185,13 @@ static RendView painter_view_create(
   const GeoVector cameraPosition = geo_matrix_to_translation(cameraMatrix);
   const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
   const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
+  return rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter);
+}
+
+static RendView painter_view_2d_create(const EcsEntityId sceneCameraEntity) {
+  const GeoVector      cameraPosition = geo_vector(0);
+  const GeoMatrix      viewProjMatrix = geo_matrix_ident();
+  const SceneTagFilter sceneFilter    = {0};
   return rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter);
 }
 
@@ -751,7 +758,7 @@ static void painter_flush(RendPaintContext* ctx) {
   rvk_pass_end(ctx->pass);
 }
 
-static bool rend_canvas_paint(
+static bool rend_canvas_paint_3d(
     RendPainterComp*              painter,
     const RendSettingsComp*       set,
     const RendSettingsGlobalComp* setGlobal,
@@ -761,7 +768,7 @@ static bool rend_canvas_paint(
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
-    const SceneTransformComp*     trans,
+    const SceneTransformComp*     camTrans,
     EcsView*                      drawView,
     EcsView*                      resourceView) {
   const RvkSize winSize = painter_win_size(win);
@@ -770,15 +777,15 @@ static bool rend_canvas_paint(
   }
   const f32 winAspect = (f32)winSize.width / (f32)winSize.height;
 
-  const GeoMatrix      camMat   = trans ? scene_transform_matrix(trans) : geo_matrix_ident();
-  const GeoMatrix      projMat  = cam ? scene_camera_proj(cam, winAspect)
-                                      : geo_matrix_proj_ortho_hor(2.0, winAspect, -100, 100);
-  const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
-  const RendView       mainView = painter_view_create(&camMat, &projMat, camEntity, filter);
-
   if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }
+
+  const GeoMatrix      camMat   = camTrans ? scene_transform_matrix(camTrans) : geo_matrix_ident();
+  const GeoMatrix      projMat  = cam ? scene_camera_proj(cam, winAspect)
+                                      : geo_matrix_proj_ortho_hor(2.0, winAspect, -100, 100);
+  const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
+  const RendView       mainView = painter_view_3d_create(&camMat, &projMat, camEntity, filter);
 
   RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
   const RvkSize swapchainSize  = swapchainImage->size;
@@ -835,7 +842,7 @@ static bool rend_canvas_paint(
     const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
     const GeoMatrix*     fogProj   = rend_fog_proj(fog);
     const SceneTagFilter fogFilter = {0};
-    const RendView       fogView   = painter_view_create(fogTrans, fogProj, camEntity, fogFilter);
+    const RendView       fogView = painter_view_3d_create(fogTrans, fogProj, camEntity, fogFilter);
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
@@ -887,7 +894,7 @@ static bool rend_canvas_paint(
         .required = filter.required | SceneTags_ShadowCaster,
         .illegal  = filter.illegal,
     };
-    const RendView   shadView = painter_view_create(shadTrans, shadProj, camEntity, shadFilter);
+    const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
@@ -1076,7 +1083,40 @@ static bool rend_canvas_paint(
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
+  return true;
+}
 
+static bool rend_canvas_paint_2d(
+    RendPainterComp*              painter,
+    const RendSettingsComp*       set,
+    const RendSettingsGlobalComp* setGlobal,
+    const SceneTimeComp*          time,
+    const GapWindowComp*          win,
+    const EcsEntityId             camEntity,
+    EcsView*                      drawView,
+    EcsView*                      resourceView) {
+  const RvkSize winSize = painter_win_size(win);
+  if (!winSize.width || !winSize.height) {
+    return false; // Window is zero sized; no need to render.
+  }
+  if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
+    return false; // Canvas not ready for rendering.
+  }
+  const RendView mainView = painter_view_2d_create(camEntity);
+
+  RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+  rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
+
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
+  {
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
+    rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
+    painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
+
+    painter_flush(&ctx);
+  }
+
+  rvk_canvas_end(painter->canvas);
   return true;
 }
 
@@ -1126,26 +1166,31 @@ ecs_system_define(RendPainterDrawSys) {
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity    = ecs_view_entity(itr);
-    const GapWindowComp*      win       = ecs_view_read_t(itr, GapWindowComp);
-    RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
-    const RendSettingsComp*   settings  = ecs_view_read_t(itr, RendSettingsComp);
-    const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
-    const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
+    const EcsEntityId         entity   = ecs_view_entity(itr);
+    const GapWindowComp*      win      = ecs_view_read_t(itr, GapWindowComp);
+    RendPainterComp*          painter  = ecs_view_write_t(itr, RendPainterComp);
+    const RendSettingsComp*   settings = ecs_view_read_t(itr, RendSettingsComp);
+    const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
-    anyPainterDrawn |= rend_canvas_paint(
-        painter,
-        settings,
-        settingsGlobal,
-        time,
-        light,
-        fog,
-        win,
-        entity,
-        camera,
-        transform,
-        drawView,
-        resourceView);
+    if (cam) {
+      anyPainterDrawn |= rend_canvas_paint_3d(
+          painter,
+          settings,
+          settingsGlobal,
+          time,
+          light,
+          fog,
+          win,
+          entity,
+          cam,
+          camTrans,
+          drawView,
+          resourceView);
+    } else {
+      anyPainterDrawn |= rend_canvas_paint_2d(
+          painter, settings, settingsGlobal, time, win, entity, drawView, resourceView);
+    }
   }
 
   if (!anyPainterDrawn) {

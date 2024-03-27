@@ -3,7 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
-#include "debug_panel.h"
+#include "debug_level.h"
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene_camera.h"
@@ -360,7 +360,10 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
         .assetView    = assetView,
     };
 
-    if (ecs_view_maybe_jump(cameraItr, panelComp->window)) {
+    ecs_view_itr_reset(cameraItr);
+
+    // NOTE: Detached panels have no camera on the window; in that case use the first found camera.
+    if (ecs_view_maybe_jump(cameraItr, panelComp->window) || ecs_view_walk(cameraItr)) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
 
@@ -414,9 +417,10 @@ ecs_module_init(debug_level_module) {
       ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
+  DebugLevelPanelComp* levelPanel  = ecs_world_add_t(
       world,
       panelEntity,
       DebugLevelPanelComp,
@@ -427,5 +431,10 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       .assetsLevel   = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
       .assetsTerrain = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
       .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&levelPanel->panel);
+  }
+
   return panelEntity;
 }

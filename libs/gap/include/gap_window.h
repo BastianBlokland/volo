@@ -54,7 +54,8 @@ ecs_comp_extern(GapWindowComp);
 /**
  * Create a new window with the given size.
  */
-EcsEntityId gap_window_create(EcsWorld*, GapWindowMode, GapWindowFlags, GapVector size);
+EcsEntityId
+gap_window_create(EcsWorld*, GapWindowMode, GapWindowFlags, GapVector size, String title);
 
 /**
  * Close a currently open window.

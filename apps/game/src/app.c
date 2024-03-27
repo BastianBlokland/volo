@@ -43,28 +43,31 @@ ecs_comp_define(AppComp) {
   EcsEntityId mainWindow;
 };
 
-ecs_comp_define(AppWindowComp) {
+ecs_comp_define(AppMainWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId debugMenu;
   EcsEntityId debugLogViewer;
 };
 
-static EcsEntityId app_window_create(
+static EcsEntityId app_main_window_create(
     EcsWorld*         world,
     AssetManagerComp* assets,
     const bool        fullscreen,
     const u16         width,
     const u16         height) {
-  const GapVector      size   = {.width = (i32)width, .height = (i32)height};
-  const GapWindowMode  mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
-  const GapWindowFlags flags  = fullscreen ? GapWindowFlags_CursorConfine : GapWindowFlags_Default;
-  const EcsEntityId    window = gap_window_create(world, mode, flags, size);
+  GapWindowFlags flags = GapWindowFlags_Default;
+  flags |= fullscreen ? GapWindowFlags_CursorConfine : 0;
+
+  const GapVector     size   = {.width = (i32)width, .height = (i32)height};
+  const GapWindowMode mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
+  const String        title  = string_empty; // Use default title.
+  const EcsEntityId   window = gap_window_create(world, mode, flags, size, title);
 
   const EcsEntityId uiCanvas       = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   const EcsEntityId debugLogViewer = debug_log_viewer_create(world, window, LogMask_None);
 
   ecs_world_add_t(
-      world, window, AppWindowComp, .uiCanvas = uiCanvas, .debugLogViewer = debugLogViewer);
+      world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .debugLogViewer = debugLogViewer);
 
   ecs_world_add_t(
       world,
@@ -418,10 +421,10 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_maybe_write(DebugStatsGlobalComp);
 }
 
-ecs_view_define(WindowView) {
+ecs_view_define(MainWindowView) {
   ecs_access_maybe_write(DebugStatsComp);
   ecs_access_maybe_write(RendSettingsComp);
-  ecs_access_write(AppWindowComp);
+  ecs_access_write(AppMainWindowComp);
   ecs_access_write(GapWindowComp);
 }
 
@@ -433,7 +436,9 @@ static void app_debug_hide(EcsWorld* world, const bool hidden) {
   EcsView* debugPanelView = ecs_world_view_t(world, DebugPanelView);
   for (EcsIterator* itr = ecs_view_itr(debugPanelView); ecs_view_walk(itr);) {
     DebugPanelComp* panel = ecs_view_write_t(itr, DebugPanelComp);
-    debug_panel_hide(panel, hidden);
+    if (debug_panel_type(panel) != DebugPanelType_Detached) {
+      debug_panel_hide(panel, hidden);
+    }
   }
 }
 
@@ -456,14 +461,14 @@ ecs_system_define(AppUpdateSys) {
   EcsIterator* canvasItr         = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsIterator* debugLogViewerItr = ecs_view_itr(ecs_world_view_t(world, DebugLogViewerView));
 
-  EcsView*     windowView = ecs_world_view_t(world, WindowView);
-  EcsIterator* mainWinItr = ecs_view_maybe_at(windowView, app->mainWindow);
+  EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
+  EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, app->mainWindow);
   if (mainWinItr) {
-    const EcsEntityId windowEntity = ecs_view_entity(mainWinItr);
-    AppWindowComp*    appWindow    = ecs_view_write_t(mainWinItr, AppWindowComp);
-    GapWindowComp*    win          = ecs_view_write_t(mainWinItr, GapWindowComp);
-    DebugStatsComp*   stats        = ecs_view_write_t(mainWinItr, DebugStatsComp);
-    RendSettingsComp* rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
+    const EcsEntityId  windowEntity = ecs_view_entity(mainWinItr);
+    AppMainWindowComp* appWindow    = ecs_view_write_t(mainWinItr, AppMainWindowComp);
+    GapWindowComp*     win          = ecs_view_write_t(mainWinItr, GapWindowComp);
+    DebugStatsComp*    stats        = ecs_view_write_t(mainWinItr, DebugStatsComp);
+    RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
     // Save last window size.
     if (gap_window_events(win) & GapWindowEvents_Resized) {
@@ -528,10 +533,10 @@ ecs_system_define(AppUpdateSys) {
 
 ecs_module_init(game_app_module) {
   ecs_register_comp(AppComp);
-  ecs_register_comp(AppWindowComp);
+  ecs_register_comp(AppMainWindowComp);
 
   ecs_register_view(AppUpdateGlobalView);
-  ecs_register_view(WindowView);
+  ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
   ecs_register_view(DebugPanelView);
   ecs_register_view(DebugLogViewerView);
@@ -539,7 +544,7 @@ ecs_module_init(game_app_module) {
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
-      ecs_view_id(WindowView),
+      ecs_view_id(MainWindowView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(DebugPanelView),
       ecs_view_id(DebugLogViewerView));
@@ -619,12 +624,12 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId win             = app_window_create(world, assets, fullscreen, width, height);
-  RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, win);
+  const EcsEntityId mainWin = app_main_window_create(world, assets, fullscreen, width, height);
+  RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = win);
+  ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = mainWin);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
@@ -637,4 +642,4 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_product_init(world, string_lit("global/game.products"));
 }
 
-bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowView); }
+bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }

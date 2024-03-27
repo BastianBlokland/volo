@@ -49,16 +49,16 @@ typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 typedef void (*UiOutputTextInfo)(void* userCtx, UiId, UiBuildTextInfo);
 
 typedef struct {
-  const UiSettingsComp*   settings;
-  const AssetFontTexComp* atlasFont;
-  const AssetAtlasComp*   atlasImage;
-  UiId                    debugElem;
-  UiVector                canvasRes, inputPos;
-  void*                   userCtx;
-  UiOutputClipRectFunc    outputClipRect;
-  UiOutputAtomFunc        outputAtom;
-  UiOutputRect            outputRect;
-  UiOutputTextInfo        outputTextInfo;
+  const UiSettingsGlobalComp* settings;
+  const AssetFontTexComp*     atlasFont;
+  const AssetAtlasComp*       atlasImage;
+  UiId                        debugElem;
+  UiVector                    canvasRes, inputPos;
+  void*                       userCtx;
+  UiOutputClipRectFunc        outputClipRect;
+  UiOutputAtomFunc            outputAtom;
+  UiOutputRect                outputRect;
+  UiOutputTextInfo            outputTextInfo;
 } UiBuildCtx;
 
 typedef struct {

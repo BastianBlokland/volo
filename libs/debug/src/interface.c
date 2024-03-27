@@ -1,8 +1,8 @@
 #include "asset_manager.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "debug_interface.h"
-#include "debug_panel.h"
 #include "ecs_world.h"
 #include "ui.h"
 #include "ui_settings.h"
@@ -48,7 +48,7 @@ ecs_comp_define(DebugInterfacePanelComp) {
   i32         defaultColorIndex;
 };
 
-ecs_view_define(WindowView) { ecs_access_write(UiSettingsComp); }
+ecs_view_define(GlobalView) { ecs_access_write(UiSettingsGlobalComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_read(DebugPanelComp);
@@ -57,7 +57,7 @@ ecs_view_define(PanelUpdateView) {
 }
 
 static void interface_panel_draw(
-    UiCanvasComp* canvas, DebugInterfacePanelComp* panelComp, UiSettingsComp* settings) {
+    UiCanvasComp* canvas, DebugInterfacePanelComp* panelComp, UiSettingsGlobalComp* settings) {
 
   const String title = fmt_write_scratch("{} Interface Panel", fmt_ui_shape(FormatShapes));
   ui_panel_begin(
@@ -79,7 +79,7 @@ static void interface_panel_draw(
   ui_label(canvas, string_lit("Dpi scaling"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
-      canvas, (u32*)&settings->flags, UiSettingFlags_DpiScaling, .tooltip = g_tooltipDpiScaling);
+      canvas, (u32*)&settings->flags, UiSettingGlobal_DpiScaling, .tooltip = g_tooltipDpiScaling);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Default color"));
@@ -94,7 +94,7 @@ static void interface_panel_draw(
   ui_toggle_flag(
       canvas,
       (u32*)&settings->flags,
-      UiSettingFlags_DebugInspector,
+      UiSettingGlobal_DebugInspector,
       .tooltip = g_tooltipDebugInspector);
 
   ui_table_next_row(canvas, &table);
@@ -103,12 +103,12 @@ static void interface_panel_draw(
   ui_toggle_flag(
       canvas,
       (u32*)&settings->flags,
-      UiSettingFlags_DebugShading,
+      UiSettingGlobal_DebugShading,
       .tooltip = g_tooltipDebugShading);
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
-    ui_settings_to_default(settings);
+    ui_settings_global_to_default(settings);
     panelComp->newScale          = settings->scale;
     panelComp->defaultColorIndex = 0;
   }
@@ -129,18 +129,18 @@ static void interface_panel_draw(
 }
 
 ecs_system_define(DebugInterfaceUpdatePanelSys) {
-  EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized yet.
+  }
+  UiSettingsGlobalComp* settings = ecs_view_write_t(globalItr, UiSettingsGlobalComp);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId        entity    = ecs_view_entity(itr);
     DebugInterfacePanelComp* panelComp = ecs_view_write_t(itr, DebugInterfacePanelComp);
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
-
-    if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
-      continue; // Window has been destroyed, or has no ui settings.
-    }
-    UiSettingsComp* settings = ecs_view_write_t(windowItr, UiSettingsComp);
 
     if (panelComp->newScale == 0) {
       panelComp->newScale = settings->scale;
@@ -149,7 +149,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
-      settings->flags &= ~(UiSettingFlags_DebugInspector | UiSettingFlags_DebugShading);
+      settings->flags &= ~(UiSettingGlobal_DebugInspector | UiSettingGlobal_DebugShading);
       continue;
     }
     interface_panel_draw(canvas, panelComp, settings);
@@ -166,20 +166,26 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 ecs_module_init(debug_interface_module) {
   ecs_register_comp(DebugInterfacePanelComp);
 
-  ecs_register_view(WindowView);
+  ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugInterfaceUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(WindowView));
+      DebugInterfaceUpdatePanelSys, ecs_view_id(GlobalView), ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId        panelEntity    = debug_panel_create(world, window, type);
+  DebugInterfacePanelComp* interfacePanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugInterfacePanelComp,
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 190)),
       .window = window);
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&interfacePanel->panel);
+  }
+
   return panelEntity;
 }

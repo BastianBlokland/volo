@@ -2,6 +2,7 @@
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "rend_stats.h"
+#include "scene_camera.h"
 
 #include "limiter_internal.h"
 #include "painter_internal.h"
@@ -42,6 +43,7 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(UpdateStatsView) {
   ecs_access_read(RendPainterComp);
+  ecs_access_with(SceneCameraComp); // Only track stats for painters with 3d content.
   ecs_access_maybe_write(RendStatsComp);
 }
 

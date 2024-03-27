@@ -4,18 +4,18 @@
 #include "ui_units.h"
 
 typedef enum {
-  UiSettingFlags_DpiScaling     = 1 << 0,
-  UiSettingFlags_DebugShading   = 1 << 1,
-  UiSettingFlags_DebugInspector = 1 << 2,
-} UiSettingFlags;
+  UiSettingGlobal_DpiScaling     = 1 << 0,
+  UiSettingGlobal_DebugShading   = 1 << 1,
+  UiSettingGlobal_DebugInspector = 1 << 2,
+} UiSettingGlobalFlags;
 
-ecs_comp_extern_public(UiSettingsComp) {
-  UiSettingFlags flags;
-  f32            scale;
-  UiColor        defaultColor;
-  u8             defaultOutline;
-  u8             defaultVariation;
-  UiWeight       defaultWeight : 8;
+ecs_comp_extern_public(UiSettingsGlobalComp) {
+  UiSettingGlobalFlags flags;
+  f32                  scale;
+  UiColor              defaultColor;
+  u8                   defaultOutline;
+  u8                   defaultVariation;
+  UiWeight             defaultWeight : 8;
 };
 
-void ui_settings_to_default(UiSettingsComp*);
+void ui_settings_global_to_default(UiSettingsGlobalComp*);

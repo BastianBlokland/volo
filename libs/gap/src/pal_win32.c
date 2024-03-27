@@ -831,15 +831,25 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
-  pal_check_thread_ownership(pal);
-
-  if (!DestroyWindow((HWND)windowId)) {
-    pal_crash_with_win32_err(string_lit("DestroyWindow"));
+  const bool isWindowOwner = g_thread_tid == pal->owningThreadId;
+  if (isWindowOwner) {
+    if (!DestroyWindow((HWND)windowId)) {
+      pal_crash_with_win32_err(string_lit("DestroyWindow"));
+    }
+  } else {
+    /**
+     * NOTE: Unfortunately there's an edge case that when shutting down the application while still
+     * having windows open we end up calling 'gap_pal_window_destroy' from a different thread then
+     * the owner. In this case we won't be able to cleanup the win32 side as it uses thread-local
+     * resources on the owner thread, luckily at exit Windows will clean them up for us.
+     */
+    log_w("Failed to cleanup win32 window", log_param("id", fmt_int(windowId)));
   }
+
   for (usize i = 0; i != pal->windows.size; ++i) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
     if (window->id == windowId) {
-      if (!UnregisterClass(window->className.ptr, pal->moduleInstance)) {
+      if (isWindowOwner && !UnregisterClass(window->className.ptr, pal->moduleInstance)) {
         pal_crash_with_win32_err(string_lit("UnregisterClass"));
       }
       alloc_free(pal->alloc, window->className);

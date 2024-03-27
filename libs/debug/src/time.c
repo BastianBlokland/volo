@@ -1,7 +1,7 @@
 #include "core_format.h"
 #include "core_math.h"
-#include "debug_panel.h"
 #include "debug_stats.h"
+#include "debug_time.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
@@ -185,12 +185,18 @@ ecs_module_init(debug_time_module) {
   ecs_register_system(DebugTimeUpdateSys, ecs_view_id(PanelUpdateView), ecs_view_id(GlobalView));
 }
 
-EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_time_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
+  DebugTimePanelComp* timePanel   = ecs_world_add_t(
       world,
       panelEntity,
       DebugTimePanelComp,
       .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&timePanel->panel);
+  }
+
   return panelEntity;
 }

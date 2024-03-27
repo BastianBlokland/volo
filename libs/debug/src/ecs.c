@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_format.h"
 #include "debug_ecs.h"
-#include "debug_panel.h"
 #include "debug_register.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
@@ -779,9 +778,10 @@ ecs_module_init(debug_ecs_module) {
   ecs_register_system(DebugEcsUpdatePanelSys, ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId  panelEntity = debug_panel_create(world, window, type);
+  DebugEcsPanelComp* ecsPanel    = ecs_world_add_t(
       world,
       panelEntity,
       DebugEcsPanelComp,
@@ -795,5 +795,10 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       .views        = dynarray_create_t(g_alloc_heap, DebugEcsViewInfo, 256),
       .archetypes   = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
       .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&ecsPanel->panel);
+  }
+
   return panelEntity;
 }

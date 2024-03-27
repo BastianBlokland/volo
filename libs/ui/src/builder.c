@@ -350,7 +350,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
     rect = result.rect;
   }
 
-  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool debugInspector = state->ctx->settings->flags & UiSettingGlobal_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
@@ -386,7 +386,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   if (!rotated && ui_build_cull(container, rect, style)) {
     return;
   }
-  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool debugInspector = state->ctx->settings->flags & UiSettingGlobal_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
@@ -417,7 +417,7 @@ static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
   if (!rotated && ui_build_cull(container, rect, style)) {
     return;
   }
-  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool debugInspector = state->ctx->settings->flags & UiSettingGlobal_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {

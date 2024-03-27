@@ -8,7 +8,6 @@
 #include "core_utf8.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
-#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -1959,13 +1958,19 @@ ecs_module_init(debug_inspector_module) {
   ecs_order(DebugInspectorVisDrawSys, DebugOrder_InspectorDebugDraw);
 }
 
-EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId        panelEntity    = debug_panel_create(world, window, type);
+  DebugInspectorPanelComp* inspectorPanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugInspectorPanelComp,
       .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
       .setNameBuffer = dynstring_create(g_alloc_heap, 0));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&inspectorPanel->panel);
+  }
+
   return panelEntity;
 }

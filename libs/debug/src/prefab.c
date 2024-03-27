@@ -6,7 +6,6 @@
 #include "core_rng.h"
 #include "core_stringtable.h"
 #include "debug_grid.h"
-#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -314,10 +313,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
 
   EcsView*     cameraView = ecs_world_view_t(ctx->world, CameraView);
   EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(ctx->input));
-  if (!cameraItr) {
-    prefab_create_cancel(ctx); // No active window.
-    return;
-  }
+
   if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
     prefab_create_cancel(ctx); // Debug input no longer active.
     return;
@@ -326,7 +322,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
-  if (input_blockers(ctx->input) & g_createInputBlockers) {
+  if (!cameraItr || (input_blockers(ctx->input) & g_createInputBlockers) != 0) {
     prefab_create_preview_stop(ctx);
     return; // Input blocked.
   }
@@ -659,9 +655,10 @@ ecs_module_init(debug_prefab_module) {
       ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
+  DebugPrefabPanelComp* prefabPanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugPrefabPanelComp,
@@ -672,5 +669,10 @@ EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
       .idFilter      = dynstring_create(g_alloc_heap, 32),
       .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&prefabPanel->panel);
+  }
+
   return panelEntity;
 }

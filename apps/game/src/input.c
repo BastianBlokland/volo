@@ -678,7 +678,7 @@ ecs_system_define(InputUpdateSys) {
     return;
   }
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneLevelManagerComp* levelManger   = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneNavEnvComp*       nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneSetEnvComp*       setEnv        = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
@@ -710,19 +710,20 @@ ecs_system_define(InputUpdateSys) {
       input_report_selection_count(debugStats, state->lastSelectionCount);
     }
 
+    if (input_layer_active(input, string_hash_lit("Debug"))) {
+      update_camera_movement_debug(input, time, cam, camTrans);
+    } else {
+      update_camera_movement(state, input, time, terrain, camTrans);
+    }
+
     if (input_active_window(input) == ecs_view_entity(camItr)) {
       update_group_input(state, cmdController, input, setEnv, time, debugStats);
-      if (input_layer_active(input, string_hash_lit("Debug"))) {
-        update_camera_movement_debug(input, time, cam, camTrans);
-      } else {
-        update_camera_movement(state, input, time, terrain, camTrans);
-      }
       update_camera_interact(
           world,
           state,
           cmdController,
           input,
-          levelManger,
+          levelManager,
           colEnv,
           setEnv,
           time,

@@ -1,9 +1,10 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
-#include "debug_panel.h"
+#include "debug_rend.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
@@ -11,6 +12,7 @@
 #include "rend_reset.h"
 #include "rend_resource.h"
 #include "rend_settings.h"
+#include "scene_camera.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -1130,7 +1132,11 @@ static void rend_panel_draw(
 }
 
 ecs_view_define(GlobalView) { ecs_access_write(RendSettingsGlobalComp); }
-ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
+
+ecs_view_define(PainterView) {
+  ecs_access_with(SceneCameraComp);
+  ecs_access_write(RendSettingsComp);
+}
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_read(DebugPanelComp);
@@ -1146,17 +1152,20 @@ ecs_system_define(DebugRendUpdatePanelSys) {
   }
   RendSettingsGlobalComp* settingsGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
 
-  EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
+  EcsIterator* painterItr = ecs_view_itr(ecs_world_view_t(world, PainterView));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugRendPanelComp* panelComp = ecs_view_write_t(itr, DebugRendPanelComp);
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
-      continue; // Window has been destroyed, or has no render settings.
+    ecs_view_itr_reset(painterItr);
+
+    // NOTE: Target a 3d painter (with camera), for detached panels we use the first camera we find.
+    if (!ecs_view_maybe_jump(painterItr, panelComp->window) && !ecs_view_walk(painterItr)) {
+      continue; // No painter found.
     }
-    RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
+    RendSettingsComp* settings = ecs_view_write_t(painterItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -1192,8 +1201,8 @@ ecs_system_define(DebugRendUpdatePanelSys) {
    * Can happen when a panel is closed external to this module while having an overlay active.
    */
   if (!ecs_utils_any(world, PanelUpdateView)) {
-    for (ecs_view_itr_reset(windowItr); ecs_view_walk(windowItr);) {
-      RendSettingsComp* settings    = ecs_view_write_t(windowItr, RendSettingsComp);
+    for (ecs_view_itr_reset(painterItr); ecs_view_walk(painterItr);) {
+      RendSettingsComp* settings    = ecs_view_write_t(painterItr, RendSettingsComp);
       settings->debugViewerResource = 0;
       settings->flags &= ~RendFlags_DebugOverlay;
     }
@@ -1207,7 +1216,7 @@ ecs_module_init(debug_rend_module) {
   ecs_register_view(GraphicView);
   ecs_register_view(ResourceView);
   ecs_register_view(GlobalView);
-  ecs_register_view(WindowView);
+  ecs_register_view(PainterView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
@@ -1216,16 +1225,17 @@ ecs_module_init(debug_rend_module) {
       ecs_view_id(GraphicView),
       ecs_view_id(ResourceView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(WindowView),
+      ecs_view_id(PainterView),
       ecs_view_id(GlobalView));
 
   // NOTE: Update the panel before clearing the draws so we can inspect the last frame's draw.
   ecs_order(DebugRendUpdatePanelSys, RendOrder_DrawClear - 1);
 }
 
-EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
+  DebugRendPanelComp* rendPanel   = ecs_world_add_t(
       world,
       panelEntity,
       DebugRendPanelComp,
@@ -1238,5 +1248,10 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       .draws          = dynarray_create_t(g_alloc_heap, DebugDrawInfo, 256),
       .resources      = dynarray_create_t(g_alloc_heap, DebugResourceInfo, 256),
       .hideEmptyDraws = true);
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&rendPanel->panel);
+  }
+
   return panelEntity;
 }

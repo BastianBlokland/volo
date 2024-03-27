@@ -7,7 +7,6 @@
 #include "core_math.h"
 #include "core_process.h"
 #include "core_stringtable.h"
-#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_script.h"
 #include "ecs_utils.h"
@@ -834,23 +833,29 @@ ecs_module_init(debug_script_module) {
   ecs_order(DebugScriptUpdateRaySys, SceneOrder_ScriptUpdate - 1);
 }
 
-EcsEntityId debug_script_panel_open(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId panelEntity = debug_panel_create(world, window);
-  ecs_world_add_t(
+EcsEntityId
+debug_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
+  DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 600)));
+
+  if (type == DebugPanelType_Detached) {
+    ui_panel_maximize(&scriptPanel->panel);
+  }
+
   return panelEntity;
 }
 
 EcsEntityId
 debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window, const bool pinned) {
-  const EcsEntityId     panelEntity = debug_panel_create(world, window);
-  DebugScriptPanelComp* panelComp   = ecs_world_add_t(
+  const EcsEntityId     panelEntity = debug_panel_create(world, window, DebugPanelType_Normal);
+  DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugScriptPanelComp,
       .panel = ui_panel(.size = ui_vector(800, 600), .activeTab = DebugScriptTab_Output));
   if (pinned) {
-    ui_panel_pin(&panelComp->panel);
+    ui_panel_pin(&scriptPanel->panel);
   }
   return panelEntity;
 }
