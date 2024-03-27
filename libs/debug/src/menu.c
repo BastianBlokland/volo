@@ -29,7 +29,7 @@
 
 static const String  g_menuChildTooltipOpen       = string_static("Open the \a.b{}\ar panel.");
 static const String  g_menuChildTooltipClose      = string_static("Close the \a.b{}\ar panel.");
-static const String  g_menuChildTooltipDetach     = string_static("\a.bNote:\ar Hold \a.bControl\ar while clicking to open a new detached panel.");
+static const String  g_menuChildTooltipDetach     = string_static("\a.bNote:\ar Hold \a.bControl\ar while clicking to open it detached.");
 static const UiColor g_menuChildFrameColorNormal  = {32, 32, 32, 192};
 static const UiColor g_menuChildFrameColorOpen    = {96, 96, 96, 255};
 
@@ -148,7 +148,7 @@ menu_child_tooltip_scratch(const u32 childIndex, const bool open, const bool all
       open ? g_menuChildTooltipClose : g_menuChildTooltipOpen,
       fmt_args(fmt_text(g_menuChildConfig[childIndex].name)));
 
-  if (allowDetach) {
+  if (!open && allowDetach) {
     dynstring_append_char(&str, '\n');
     dynstring_append(&str, g_menuChildTooltipDetach);
   }
@@ -188,13 +188,18 @@ static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const
 
 static void menu_child_open(
     EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
-  const DebugPanelType type = DebugPanelType_Normal;
-  const EcsEntityId    e    = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
-  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
-  menu->childEntities[childIndex] = e;
+  const DebugPanelType type  = DebugPanelType_Normal;
+  const EcsEntityId    panel = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
+  ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
+  menu->childEntities[childIndex] = panel;
 }
 
-static void menu_child_open_detached(EcsWorld* world, UiCanvasComp* canvas, const u32 childIndex) {
+static void menu_child_open_detached(
+    EcsWorld*         world,
+    UiCanvasComp*     canvas,
+    DebugMenuComp*    menu,
+    const EcsEntityId menuEntity,
+    const u32         childIndex) {
   const f32 scale = ui_canvas_scale(canvas);
 
   GapVector size = g_menuChildConfig[childIndex].detachedSize;
@@ -209,8 +214,13 @@ static void menu_child_open_detached(EcsWorld* world, UiCanvasComp* canvas, cons
   const String         title          = g_menuChildConfig[childIndex].name;
   const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size, title);
 
-  const DebugPanelType type = DebugPanelType_Detached;
-  g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);
+  const DebugPanelType type  = DebugPanelType_Detached;
+  const EcsEntityId    panel = g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);
+
+  ecs_world_add_t(world, detachedWindow, SceneLifetimeOwnerComp, .owners[0] = panel);
+  ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
+
+  menu->childEntities[childIndex] = panel;
 }
 
 static EcsEntityId menu_child_topmost(EcsWorld* world, const DebugMenuComp* menu) {
@@ -272,18 +282,16 @@ static void menu_action_bar_draw(
             .frameColor = isOpen ? g_menuChildFrameColorOpen : g_menuChildFrameColorNormal,
             .activate   = windowActive && menu_child_hotkey_pressed(input, childIndex))) {
 
-      if (allowDetach && (input_modifiers(input) & InputModifier_Control)) {
-        menu_child_open_detached(world, canvas, childIndex);
-        menu_notify_child_state(statsGlobal, childIndex, string_lit("detached"));
+      if (isOpen) {
+        ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
+        menu->childEntities[childIndex] = 0;
+        menu_notify_child_state(statsGlobal, childIndex, string_lit("closed"));
+      } else if (allowDetach && (input_modifiers(input) & InputModifier_Control)) {
+        menu_child_open_detached(world, canvas, menu, menuEntity, childIndex);
+        menu_notify_child_state(statsGlobal, childIndex, string_lit("open detached"));
       } else {
-        if (isOpen) {
-          ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
-          menu->childEntities[childIndex] = 0;
-          menu_notify_child_state(statsGlobal, childIndex, string_lit("closed"));
-        } else {
-          menu_child_open(world, menu, menuEntity, childIndex);
-          menu_notify_child_state(statsGlobal, childIndex, string_lit("open"));
-        }
+        menu_child_open(world, menu, menuEntity, childIndex);
+        menu_notify_child_state(statsGlobal, childIndex, string_lit("open"));
       }
     }
   }
