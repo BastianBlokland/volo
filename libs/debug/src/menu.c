@@ -135,10 +135,12 @@ static const struct {
         .canDetach    = true,
     },
     {
-        .name       = string_static("Renderer"),
-        .iconShape  = UiShape_Brush,
-        .openFunc   = debug_rend_panel_open,
-        .hotkeyName = string_static("DebugPanelRenderer"),
+        .name         = string_static("Renderer"),
+        .iconShape    = UiShape_Brush,
+        .detachedSize = {.x = 800, .y = 520},
+        .openFunc     = debug_rend_panel_open,
+        .hotkeyName   = string_static("DebugPanelRenderer"),
+        .canDetach    = true,
     },
     {
         .name         = string_static("Interface"),
