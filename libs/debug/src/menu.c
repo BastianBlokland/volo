@@ -22,6 +22,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input.h"
+#include "rend_settings.h"
 #include "scene_lifetime.h"
 #include "ui.h"
 
@@ -213,6 +214,11 @@ static void menu_child_open_detached(
   const GapWindowFlags flags          = GapWindowFlags_CloseOnRequest;
   const String         title          = g_menuChildConfig[childIndex].name;
   const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size, title);
+  RendSettingsComp*    rendSettings   = rend_settings_window_init(world, detachedWindow);
+
+  // No vsync on the detached window to reduce impact on the rendering of the main window.
+  rendSettings->flags       = 0;
+  rendSettings->presentMode = RendPresentMode_Immediate;
 
   const DebugPanelType type  = DebugPanelType_Detached;
   const EcsEntityId    panel = g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);
