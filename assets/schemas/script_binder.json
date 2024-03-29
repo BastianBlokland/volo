@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -738,7 +738,7 @@
     },
     {
       "name": "light_param",
-      "doc": "Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`",
+      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Radiance`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
