@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`\n\n-`Sound`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -544,7 +544,7 @@
     },
     {
       "name": "sound_param",
-      "doc": "Change or query a sound parameter on the given entity.\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`",
+      "doc": "Change or query a sound parameter on the given entity.\n\nRequired capability: 'Sound'\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [

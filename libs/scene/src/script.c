@@ -58,6 +58,7 @@ typedef enum {
   SceneScriptCapability_Renderable,
   SceneScriptCapability_Vfx,
   SceneScriptCapability_Light,
+  SceneScriptCapability_Sound,
 
   SceneScriptCapability_Count
 } SceneScriptCapability;
@@ -72,6 +73,7 @@ static const String g_sceneScriptCapabilityNames[] = {
     string_static("Renderable"),
     string_static("Vfx"),
     string_static("Light"),
+    string_static("Sound"),
 };
 ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count, "Missing name");
 
@@ -496,6 +498,8 @@ context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapab
   case SceneScriptCapability_Light:
     return ecs_world_has_t(ctx->world, e, SceneLightDirComp) ||
            ecs_world_has_t(ctx->world, e, SceneLightPointComp);
+  case SceneScriptCapability_Sound:
+    return ecs_world_has_t(ctx->world, e, SceneSoundComp);
   case SceneScriptCapability_Count:
     break;
   }
@@ -1673,6 +1677,9 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
       }
     }
     return script_null();
+  }
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Sound))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
       .type = ScriptActionType_UpdateSoundParam,
