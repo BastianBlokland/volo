@@ -1672,6 +1672,11 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
     }
     return script_null();
   }
+
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Animation))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
+  }
+
   ScriptActionUpdateAnimParam update;
   update.entity    = entity;
   update.layerName = layerName;
