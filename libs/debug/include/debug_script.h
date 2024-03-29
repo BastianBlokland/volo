@@ -4,4 +4,4 @@
 #include "ecs_module.h"
 
 EcsEntityId debug_script_panel_open(EcsWorld*, EcsEntityId window, DebugPanelType);
-EcsEntityId debug_script_output_panel_open(EcsWorld*, EcsEntityId window, bool pinned);
+EcsEntityId debug_script_panel_open_output(EcsWorld*, EcsEntityId window);

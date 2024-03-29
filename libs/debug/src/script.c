@@ -91,6 +91,7 @@ ecs_comp_define(DebugScriptTrackerComp) {
 
 ecs_comp_define(DebugScriptPanelComp) {
   UiPanel               panel;
+  bool                  outputOnly;
   bool                  hideNullMemory;
   DebugScriptOutputMode outputMode;
   UiScrollview          scrollview;
@@ -678,6 +679,21 @@ static void script_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
+static void script_panel_draw_output_only(
+    UiCanvasComp*           canvas,
+    DebugScriptPanelComp*   panelComp,
+    DebugScriptTrackerComp* tracker,
+    SceneSetEnvComp*        setEnv,
+    EcsIterator*            subjectItr) {
+  const String title = fmt_write_scratch("{} Script Output", fmt_ui_shape(Description));
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+
+  output_panel_tab_draw(canvas, panelComp, tracker, setEnv, subjectItr);
+
+  ui_panel_end(canvas, &panelComp->panel);
+}
+
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_write(DebugScriptTrackerComp);
   ecs_access_read(AssetManagerComp);
@@ -752,8 +768,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (tracker->autoOpenOnPanic && output_has_panic(tracker)) {
     EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
     if (windowItr) {
-      const bool openPinned = true;
-      debug_script_output_panel_open(world, ecs_view_entity(windowItr), openPinned);
+      debug_script_panel_open_output(world, ecs_view_entity(windowItr));
       tracker->autoOpenOnPanic = false;
     }
   }
@@ -770,7 +785,11 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
-    script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
+    if (panelComp->outputOnly) {
+      script_panel_draw_output_only(canvas, panelComp, tracker, setEnv, subjectItr);
+    } else {
+      script_panel_draw(world, canvas, panelComp, tracker, setEnv, assetItr, subjectItr);
+    }
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -846,16 +865,16 @@ debug_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPa
   return panelEntity;
 }
 
-EcsEntityId
-debug_script_output_panel_open(EcsWorld* world, const EcsEntityId window, const bool pinned) {
+EcsEntityId debug_script_panel_open_output(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId     panelEntity = debug_panel_create(world, window, DebugPanelType_Normal);
   DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world,
       panelEntity,
       DebugScriptPanelComp,
-      .panel = ui_panel(.size = ui_vector(800, 600), .activeTab = DebugScriptTab_Output));
-  if (pinned) {
-    ui_panel_pin(&scriptPanel->panel);
-  }
+      .panel      = ui_panel(.size = ui_vector(800, 600)),
+      .outputOnly = true);
+
+  ui_panel_pin(&scriptPanel->panel); // Output panel is always pinned.
+
   return panelEntity;
 }

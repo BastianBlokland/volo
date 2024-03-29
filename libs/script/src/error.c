@@ -31,6 +31,7 @@ ScriptPanicKind script_error_to_panic(const ScriptErrorKind kind) {
       [ScriptError_QueryLimitExceeded]          = ScriptPanic_QueryLimitExceeded,
       [ScriptError_QueryInvalid]                = ScriptPanic_QueryInvalid,
       [ScriptError_ReadonlyParam]               = ScriptPanic_ReadonlyParam,
+      [ScriptError_MissingCapability]           = ScriptPanic_MissingCapability,
   };
   diag_assert(kind < ScriptErrorKind_Count);
   return g_panics[kind];

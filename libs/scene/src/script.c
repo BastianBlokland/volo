@@ -48,6 +48,35 @@
 #define scene_script_query_values_max 512
 #define scene_script_query_max 10
 
+typedef enum {
+  SceneScriptCapability_NavTravel,
+  SceneScriptCapability_Animation,
+  SceneScriptCapability_Attack,
+  SceneScriptCapability_Status,
+  SceneScriptCapability_Teleport,
+  SceneScriptCapability_Bark,
+  SceneScriptCapability_Renderable,
+  SceneScriptCapability_Vfx,
+  SceneScriptCapability_Light,
+  SceneScriptCapability_Sound,
+
+  SceneScriptCapability_Count
+} SceneScriptCapability;
+
+static const String g_sceneScriptCapabilityNames[] = {
+    string_static("NavTravel"),
+    string_static("Animation"),
+    string_static("Attack"),
+    string_static("Status"),
+    string_static("Teleport"),
+    string_static("Bark"),
+    string_static("Renderable"),
+    string_static("Vfx"),
+    string_static("Light"),
+    string_static("Sound"),
+};
+ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count, "Missing name");
+
 // clang-format off
 
 static ScriptEnum g_scriptEnumFaction,
@@ -99,10 +128,9 @@ static void eval_enum_init_nav_find() {
 }
 
 static void eval_enum_init_capability() {
-  script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Animation"), 1);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 2);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Status"), 3);
+  for (SceneScriptCapability cap = 0; cap != SceneScriptCapability_Count; ++cap) {
+    script_enum_push(&g_scriptEnumCapability, g_sceneScriptCapabilityNames[cap], cap);
+  }
 }
 
 static void eval_enum_init_activity() {
@@ -182,7 +210,7 @@ static void eval_enum_init_bark() {
   }
 }
 
-static void eval_enum_init_Health_stat() {
+static void eval_enum_init_health_stat() {
   for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
     script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
   }
@@ -443,6 +471,40 @@ typedef struct {
 
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
+
+static bool
+context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapability cap) {
+  if (!ecs_world_exists(ctx->world, e)) {
+    return false;
+  }
+  switch (cap) {
+  case SceneScriptCapability_NavTravel:
+    return ecs_world_has_t(ctx->world, e, SceneNavAgentComp);
+  case SceneScriptCapability_Animation:
+    return ecs_world_has_t(ctx->world, e, SceneAnimationComp);
+  case SceneScriptCapability_Attack:
+    return ecs_world_has_t(ctx->world, e, SceneAttackComp);
+  case SceneScriptCapability_Status:
+    return ecs_world_has_t(ctx->world, e, SceneStatusComp);
+  case SceneScriptCapability_Teleport:
+    return ecs_world_has_t(ctx->world, e, SceneTransformComp);
+  case SceneScriptCapability_Bark:
+    return ecs_world_has_t(ctx->world, e, SceneBarkComp);
+  case SceneScriptCapability_Renderable:
+    return ecs_world_has_t(ctx->world, e, SceneRenderableComp);
+  case SceneScriptCapability_Vfx:
+    return ecs_world_has_t(ctx->world, e, SceneVfxSystemComp) ||
+           ecs_world_has_t(ctx->world, e, SceneVfxDecalComp);
+  case SceneScriptCapability_Light:
+    return ecs_world_has_t(ctx->world, e, SceneLightDirComp) ||
+           ecs_world_has_t(ctx->world, e, SceneLightPointComp);
+  case SceneScriptCapability_Sound:
+    return ecs_world_has_t(ctx->world, e, SceneSoundComp);
+  case SceneScriptCapability_Count:
+    break;
+  }
+  UNREACHABLE
+}
 
 static EvalQuery* context_query_alloc(EvalContext* ctx) {
   return ctx->usedQueries < scene_script_query_max ? &ctx->queries[ctx->usedQueries++] : null;
@@ -902,9 +964,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -921,21 +983,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 }
 
 static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
-  if (!e || !ecs_world_exists(ctx->world, e)) {
-    return script_bool(false);
-  }
-  switch (script_arg_enum(args, 1, &g_scriptEnumCapability, err)) {
-  case 0 /* NavTravel */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
-  case 1 /* Animation */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneAnimationComp));
-  case 2 /* Attack */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
-  case 3 /* Status */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneStatusComp));
-  }
-  return script_null();
+  const EcsEntityId           e   = script_arg_entity(args, 0, err);
+  const SceneScriptCapability cap = script_arg_enum(args, 1, &g_scriptEnumCapability, err);
+  return script_bool(e && context_is_capable(ctx, e, cap));
 }
 
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
@@ -1120,6 +1170,9 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, Scr
 static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Animation))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type = ScriptActionType_Teleport,
         .data_teleport =
@@ -1137,6 +1190,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
   const EcsEntityId entity     = script_arg_entity(args, 0, err);
   const ScriptMask  targetMask = script_mask_entity | script_mask_vec3;
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type = ScriptActionType_NavTravel,
         .data_navTravel =
@@ -1153,6 +1209,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type         = ScriptActionType_NavStop,
         .data_navStop = {.entity = entity},
@@ -1234,6 +1293,9 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const ScriptMask  targetMask = script_mask_entity | script_mask_null;
   const EcsEntityId target     = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Attack))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type        = ScriptActionType_Attack,
         .data_attack = {.entity = entity, .target = target},
@@ -1256,6 +1318,9 @@ static ScriptVal eval_bark(EvalContext* ctx, const ScriptArgs args, ScriptError*
   const EcsEntityId   entity = script_arg_entity(args, 0, err);
   const SceneBarkType type   = (SceneBarkType)script_arg_enum(args, 1, &g_scriptEnumBark, err);
   if (LIKELY(!script_error_valid(err))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Bark))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type      = ScriptActionType_Bark,
         .data_bark = {.entity = entity, .type = type},
@@ -1348,6 +1413,11 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
     }
     return script_null();
   }
+
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Renderable))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
+  }
+
   ScriptActionUpdateRenderableParam update;
   update.entity = entity;
   update.param  = param;
@@ -1436,6 +1506,9 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
       }
     }
     return script_null();
+  }
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Vfx))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
       .type = ScriptActionType_UpdateVfxParam,
@@ -1538,6 +1611,9 @@ static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, Scrip
     }
     return script_null();
   }
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Light))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
+  }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
       .type = ScriptActionType_UpdateLightParam,
       .data_updateLightParam =
@@ -1602,6 +1678,9 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
     }
     return script_null();
   }
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Sound))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
+  }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
       .type = ScriptActionType_UpdateSoundParam,
       .data_updateSoundParam =
@@ -1648,6 +1727,11 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
     }
     return script_null();
   }
+
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Animation))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
+  }
+
   ScriptActionUpdateAnimParam update;
   update.entity    = entity;
   update.layerName = layerName;
@@ -1993,7 +2077,7 @@ static void eval_binder_init() {
     eval_enum_init_query_option();
     eval_enum_init_status();
     eval_enum_init_bark();
-    eval_enum_init_Health_stat();
+    eval_enum_init_health_stat();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);

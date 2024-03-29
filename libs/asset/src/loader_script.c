@@ -36,7 +36,7 @@ static void asset_binder_init() {
     static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
     static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
     static const String g_queryOptionDoc     = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
-    static const String g_capabilityDoc      = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`");
+    static const String g_capabilityDoc      = string_static("Supported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`\n\n-`Sound`");
     static const String g_activityDoc        = string_static("Supported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`");
     static const String g_statusDoc          = string_static("Supported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`\n\n-`Veteran`");
     static const String g_barkDoc            = string_static("Supported types:\n\n-`Death`\n\n-`Confirm`");
@@ -375,7 +375,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("teleport");
-      const String       doc    = string_lit("Teleport the given entity.");
+      const String       doc    = string_lit("Teleport the given entity.\n\nRequired capability: 'Teleport'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -386,7 +386,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_travel");
-      const String       doc    = string_lit("Instruct the given entity to travel to a target location or entity.");
+      const String       doc    = string_lit("Instruct the given entity to travel to a target location or entity.\n\nRequired capability: 'NavTravel'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -396,7 +396,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_stop");
-      const String       doc    = string_lit("Instruct the given entity to stop traveling.");
+      const String       doc    = string_lit("Instruct the given entity to stop traveling.\n\nRequired capability: 'NavTravel'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -457,7 +457,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("attack");
-      const String       doc    = string_lit("Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.");
+      const String       doc    = string_lit("Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.\n\nRequired capability: 'Attack'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -476,7 +476,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("bark");
-      const String       doc    = fmt_write_scratch("Request a bark to be played.\n\n{}", fmt_text(g_barkDoc));
+      const String       doc    = fmt_write_scratch("Request a bark to be played.\n\nRequired capability: 'Bark'\n\n{}", fmt_text(g_barkDoc));
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -501,7 +501,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("renderable_param");
-      const String       doc    = fmt_write_scratch("Change or query a renderable parameter on the given entity.\n\n{}", fmt_text(g_renderableParamDoc));
+      const String       doc    = fmt_write_scratch("Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\n{}", fmt_text(g_renderableParamDoc));
       const ScriptMask   ret    = script_mask_bool | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -539,7 +539,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("vfx_param");
-      const String       doc    = fmt_write_scratch("Change or query a vfx parameter on the given entity.\n\n{}", fmt_text(g_vfxParamDoc));
+      const String       doc    = fmt_write_scratch("Change or query a vfx parameter on the given entity.\n\nRequired capability: 'Vfx'\n\n{}", fmt_text(g_vfxParamDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -586,7 +586,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("light_param");
-      const String       doc    = fmt_write_scratch("Change or query a light parameter on the given entity.\n\n{}", fmt_text(g_lightParamDoc));
+      const String       doc    = fmt_write_scratch("Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\n{}", fmt_text(g_lightParamDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -611,7 +611,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("sound_param");
-      const String       doc    = fmt_write_scratch("Change or query a sound parameter on the given entity.\n\n{}", fmt_text(g_soundParamDoc));
+      const String       doc    = fmt_write_scratch("Change or query a sound parameter on the given entity.\n\nRequired capability: 'Sound'\n\n{}", fmt_text(g_soundParamDoc));
       const ScriptMask   ret    = script_mask_num | script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -622,7 +622,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("anim_param");
-      const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\n{}", fmt_text(g_animParamDoc));
+      const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\n{}", fmt_text(g_animParamDoc));
       const ScriptMask   ret    = script_mask_any;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},

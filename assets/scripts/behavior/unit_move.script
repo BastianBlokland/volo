@@ -14,7 +14,9 @@ if (active(me, "Dead")) {
 
 if ($cmdStop) {
   nav_stop(me)
-  bark(me, "Confirm")
+  if (capable(me, "Bark")) {
+    bark(me, "Confirm")
+  }
   $cmdStop = null
   return
 }
@@ -28,7 +30,9 @@ if ($cmdMoveTarget) {
   } else {
     // Not yet navigating to requested target; start traveling.
     nav_travel(me, $cmdMoveTarget)
-    bark(me, "Confirm")
+    if (capable(me, "Bark")) {
+      bark(me, "Confirm")
+    }
   }
   return
 }

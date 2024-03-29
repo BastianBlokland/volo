@@ -107,7 +107,7 @@
     },
     {
       "name": "renderable_param",
-      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
+      "doc": "Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -197,7 +197,7 @@
     },
     {
       "name": "nav_stop",
-      "doc": "Instruct the given entity to stop traveling.",
+      "doc": "Instruct the given entity to stop traveling.\n\nRequired capability: 'NavTravel'",
       "sig": {
         "ret": "null",
         "args": [
@@ -235,7 +235,7 @@
     },
     {
       "name": "nav_travel",
-      "doc": "Instruct the given entity to travel to a target location or entity.",
+      "doc": "Instruct the given entity to travel to a target location or entity.\n\nRequired capability: 'NavTravel'",
       "sig": {
         "ret": "null",
         "args": [
@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`\n\n-`Sound`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -544,7 +544,7 @@
     },
     {
       "name": "sound_param",
-      "doc": "Change or query a sound parameter on the given entity.\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`",
+      "doc": "Change or query a sound parameter on the given entity.\n\nRequired capability: 'Sound'\n\nSupported parameters:\n\n-`Gain`\n\n-`Pitch`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -738,7 +738,7 @@
     },
     {
       "name": "light_param",
-      "doc": "Change or query a light parameter on the given entity.\n\nSupported parameters:\n\n-`Radiance`",
+      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Radiance`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -774,7 +774,7 @@
     },
     {
       "name": "attack",
-      "doc": "Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.",
+      "doc": "Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.\n\nRequired capability: 'Attack'",
       "sig": {
         "ret": "null",
         "args": [
@@ -788,7 +788,7 @@
     },
     {
       "name": "teleport",
-      "doc": "Teleport the given entity.",
+      "doc": "Teleport the given entity.\n\nRequired capability: 'Teleport'",
       "sig": {
         "ret": "null",
         "args": [
@@ -849,7 +849,7 @@
     },
     {
       "name": "bark",
-      "doc": "Request a bark to be played.\n\nSupported types:\n\n-`Death`\n\n-`Confirm`",
+      "doc": "Request a bark to be played.\n\nRequired capability: 'Bark'\n\nSupported types:\n\n-`Death`\n\n-`Confirm`",
       "sig": {
         "ret": "null",
         "args": [
@@ -942,7 +942,7 @@
     },
     {
       "name": "vfx_param",
-      "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`",
+      "doc": "Change or query a vfx parameter on the given entity.\n\nRequired capability: 'Vfx'\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -957,7 +957,7 @@
     },
     {
       "name": "anim_param",
-      "doc": "Change or query an animation parameter on the given entity.\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`",
+      "doc": "Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`",
       "sig": {
         "ret": "any",
         "args": [

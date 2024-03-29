@@ -34,7 +34,9 @@ if (!canMove && exists(target)) {
 // Confirm attacking the requested target if its valid.
 if (exists(target)) {
   if (target != $lastAttackTarget) {
-    bark(me, "Confirm")
+    if (capable(me, "Bark")) {
+      bark(me, "Confirm")
+    }
     $lastAttackTarget = target
   }
 } else {

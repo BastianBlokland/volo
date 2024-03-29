@@ -23,5 +23,7 @@ if (!$colGate) {
 var openSpeed  = 2.5
 var shouldOpen = $cfgGateOpen ?? false
 
-anim_param(me, "open", "Loop", false)
-anim_param(me, "open", "Speed", shouldOpen ? openSpeed : -openSpeed)
+if (capable(me, "Animation")) {
+  anim_param(me, "open", "Loop", false)
+  anim_param(me, "open", "Speed", shouldOpen ? openSpeed : -openSpeed)
+}
