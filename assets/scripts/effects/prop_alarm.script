@@ -24,8 +24,9 @@ var newBlinkOn = (round_nearest((time() * blinkFrequency)) % 2) == 1.0
 if (newBlinkOn != $alarmBlinkOn) {
 
   renderable_param(me, "Emissive", newBlinkOn ? 0.25 : 0.0)
-  light_param($lightAlarm, "Radiance", newBlinkOn ? lightRadiance : black)
-
+  if (capable($lightAlarm, "Light")) {
+    light_param($lightAlarm, "Radiance", newBlinkOn ? lightRadiance : black)
+  }
   if (newBlinkOn && $assetSndAlarm) {
     var soundPos      = position(me)
     var soundGain     = 0.05
