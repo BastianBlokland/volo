@@ -48,6 +48,23 @@
 #define scene_script_query_values_max 512
 #define scene_script_query_max 10
 
+typedef enum {
+  SceneScriptCapability_NavTravel,
+  SceneScriptCapability_Animation,
+  SceneScriptCapability_Attack,
+  SceneScriptCapability_Status,
+
+  SceneScriptCapability_Count
+} SceneScriptCapability;
+
+static const String g_sceneScriptCapabilityNames[] = {
+    string_static("NavTravel"),
+    string_static("Animation"),
+    string_static("Attack"),
+    string_static("Status"),
+};
+ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count, "Missing name");
+
 // clang-format off
 
 static ScriptEnum g_scriptEnumFaction,
@@ -99,10 +116,9 @@ static void eval_enum_init_nav_find() {
 }
 
 static void eval_enum_init_capability() {
-  script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Animation"), 1);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 2);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Status"), 3);
+  for (SceneScriptCapability cap = 0; cap != SceneScriptCapability_Count; ++cap) {
+    script_enum_push(&g_scriptEnumCapability, g_sceneScriptCapabilityNames[cap], cap);
+  }
 }
 
 static void eval_enum_init_activity() {
