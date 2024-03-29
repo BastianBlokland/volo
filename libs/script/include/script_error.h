@@ -18,6 +18,7 @@ typedef enum {
   ScriptError_QueryLimitExceeded,
   ScriptError_QueryInvalid,
   ScriptError_ReadonlyParam,
+  ScriptError_MissingCapability,
 
   ScriptErrorKind_Count,
 } ScriptErrorKind;
