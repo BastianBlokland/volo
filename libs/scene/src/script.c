@@ -460,6 +460,23 @@ typedef struct {
   Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
 
+static bool
+context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapability cap) {
+  switch (cap) {
+  case SceneScriptCapability_NavTravel:
+    return ecs_world_has_t(ctx->world, e, SceneNavAgentComp);
+  case SceneScriptCapability_Animation:
+    return ecs_world_has_t(ctx->world, e, SceneAnimationComp);
+  case SceneScriptCapability_Attack:
+    return ecs_world_has_t(ctx->world, e, SceneAttackComp);
+  case SceneScriptCapability_Status:
+    return ecs_world_has_t(ctx->world, e, SceneStatusComp);
+  case SceneScriptCapability_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static EvalQuery* context_query_alloc(EvalContext* ctx) {
   return ctx->usedQueries < scene_script_query_max ? &ctx->queries[ctx->usedQueries++] : null;
 }
@@ -941,17 +958,8 @@ static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptErr
   if (!e || !ecs_world_exists(ctx->world, e)) {
     return script_bool(false);
   }
-  switch (script_arg_enum(args, 1, &g_scriptEnumCapability, err)) {
-  case 0 /* NavTravel */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
-  case 1 /* Animation */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneAnimationComp));
-  case 2 /* Attack */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
-  case 3 /* Status */:
-    return script_bool(ecs_world_has_t(ctx->world, e, SceneStatusComp));
-  }
-  return script_null();
+  const SceneScriptCapability cap = script_arg_enum(args, 1, &g_scriptEnumCapability, err);
+  return script_bool(context_is_capable(ctx, e, cap));
 }
 
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
