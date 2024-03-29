@@ -487,6 +487,12 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     if (!scriptInstance) {
       continue;
     }
+    const bool  didPanic   = (scene_script_flags(scriptInstance) & SceneScriptFlags_DidPanic) != 0;
+    const usize debugCount = scene_script_debug_count(scriptInstance);
+    if (!didPanic && !debugCount) {
+      continue; // Early out when there was no panic and no debug data.
+    }
+
     const u32 scriptCount = scene_script_count(scriptInstance);
     for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
       diag_assert(slot < array_elems(assetComps));
@@ -510,8 +516,7 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
     }
 
     // Output traces.
-    const SceneScriptDebug* debugData  = scene_script_debug_data(scriptInstance);
-    const usize             debugCount = scene_script_debug_count(scriptInstance);
+    const SceneScriptDebug* debugData = scene_script_debug_data(scriptInstance);
     for (usize i = 0; i != debugCount; ++i) {
       if (debugData[i].type == SceneScriptDebugType_Trace) {
         const String                scriptId = asset_id(assetComps[debugData[i].slot]);
