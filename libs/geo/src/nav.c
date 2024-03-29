@@ -59,7 +59,7 @@ typedef enum {
 
 typedef struct {
   BitSet                   markedCells; // Marked cells already have their island updated.
-  GeoNavCell               queue[512];
+  GeoNavCell               queue[1024];
   u32                      queueStart;
   u32                      queueEnd;
   GeoNavIslandUpdaterFlags flags : 8;
