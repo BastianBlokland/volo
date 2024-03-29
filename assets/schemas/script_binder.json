@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -788,7 +788,7 @@
     },
     {
       "name": "teleport",
-      "doc": "Teleport the given entity.",
+      "doc": "Teleport the given entity.\n\nRequired capability: 'Teleport'",
       "sig": {
         "ret": "null",
         "args": [

@@ -53,6 +53,7 @@ typedef enum {
   SceneScriptCapability_Animation,
   SceneScriptCapability_Attack,
   SceneScriptCapability_Status,
+  SceneScriptCapability_Teleport,
 
   SceneScriptCapability_Count
 } SceneScriptCapability;
@@ -62,6 +63,7 @@ static const String g_sceneScriptCapabilityNames[] = {
     string_static("Animation"),
     string_static("Attack"),
     string_static("Status"),
+    string_static("Teleport"),
 };
 ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count, "Missing name");
 
@@ -474,6 +476,8 @@ context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapab
     return ecs_world_has_t(ctx->world, e, SceneAttackComp);
   case SceneScriptCapability_Status:
     return ecs_world_has_t(ctx->world, e, SceneStatusComp);
+  case SceneScriptCapability_Teleport:
+    return ecs_world_has_t(ctx->world, e, SceneTransformComp);
   case SceneScriptCapability_Count:
     break;
   }
@@ -1144,6 +1148,9 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, Scr
 static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Animation))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type = ScriptActionType_Teleport,
         .data_teleport =
