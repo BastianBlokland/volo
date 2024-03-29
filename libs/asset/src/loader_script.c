@@ -622,7 +622,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("anim_param");
-      const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\n{}", fmt_text(g_animParamDoc));
+      const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\n{}", fmt_text(g_animParamDoc));
       const ScriptMask   ret    = script_mask_any;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
