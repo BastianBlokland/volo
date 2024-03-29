@@ -197,7 +197,7 @@
     },
     {
       "name": "nav_stop",
-      "doc": "Instruct the given entity to stop traveling.",
+      "doc": "Instruct the given entity to stop traveling.\n\nRequired capability: 'NavTravel'",
       "sig": {
         "ret": "null",
         "args": [
@@ -774,7 +774,7 @@
     },
     {
       "name": "attack",
-      "doc": "Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.",
+      "doc": "Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.\n\nRequired capability: 'Attack'",
       "sig": {
         "ret": "null",
         "args": [

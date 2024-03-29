@@ -457,7 +457,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("attack");
-      const String       doc    = string_lit("Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.");
+      const String       doc    = string_lit("Instruct the given entity to attack another entity.\nNote: Changing targets can take some time if the entity is currently mid-attack.\n\nRequired capability: 'Attack'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},

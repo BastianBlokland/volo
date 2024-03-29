@@ -1271,6 +1271,9 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const ScriptMask  targetMask = script_mask_entity | script_mask_null;
   const EcsEntityId target     = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Attack))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type        = ScriptActionType_Attack,
         .data_attack = {.entity = entity, .target = target},
