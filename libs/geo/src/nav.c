@@ -1061,7 +1061,7 @@ static NavIslandUpdateResult nav_island_update_tick(GeoNavGrid* grid) {
         continue;
       }
       if (u->currentIsland == geo_nav_island_max) {
-        log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
+        log_w("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
         return NavIslandUpdate_Done;
       }
       const GeoNavCell cell = {.x = x, .y = u->currentRegionY};
