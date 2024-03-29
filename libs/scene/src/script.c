@@ -198,7 +198,7 @@ static void eval_enum_init_bark() {
   }
 }
 
-static void eval_enum_init_Health_stat() {
+static void eval_enum_init_health_stat() {
   for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
     script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
   }
@@ -918,9 +918,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -2009,7 +2009,7 @@ static void eval_binder_init() {
     eval_enum_init_query_option();
     eval_enum_init_status();
     eval_enum_init_bark();
-    eval_enum_init_Health_stat();
+    eval_enum_init_health_stat();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);
