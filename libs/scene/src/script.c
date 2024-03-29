@@ -1168,6 +1168,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
   const EcsEntityId entity     = script_arg_entity(args, 0, err);
   const ScriptMask  targetMask = script_mask_entity | script_mask_vec3;
   if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type = ScriptActionType_NavTravel,
         .data_navTravel =
@@ -1184,6 +1187,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
 static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type         = ScriptActionType_NavStop,
         .data_navStop = {.entity = entity},

@@ -386,7 +386,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_travel");
-      const String       doc    = string_lit("Instruct the given entity to travel to a target location or entity.");
+      const String       doc    = string_lit("Instruct the given entity to travel to a target location or entity.\n\nRequired capability: 'NavTravel'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},
@@ -396,7 +396,7 @@ static void asset_binder_init() {
     }
     {
       const String       name   = string_lit("nav_stop");
-      const String       doc    = string_lit("Instruct the given entity to stop traveling.");
+      const String       doc    = string_lit("Instruct the given entity to stop traveling.\n\nRequired capability: 'NavTravel'");
       const ScriptMask   ret    = script_mask_null;
       const ScriptSigArg args[] = {
           {string_lit("v"), script_mask_entity},

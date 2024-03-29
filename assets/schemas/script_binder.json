@@ -235,7 +235,7 @@
     },
     {
       "name": "nav_travel",
-      "doc": "Instruct the given entity to travel to a target location or entity.",
+      "doc": "Instruct the given entity to travel to a target location or entity.\n\nRequired capability: 'NavTravel'",
       "sig": {
         "ret": "null",
         "args": [
