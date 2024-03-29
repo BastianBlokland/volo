@@ -17,7 +17,7 @@ static const String g_panicKindStrs[] = {
     string_static("Query limit exceeded"),
     string_static("Query invalid"),
     string_static("Cannot change readonly parameter"),
-    string_static("Entity is missing a required capability"),
+    string_static("Required capability is missing"),
 };
 ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
