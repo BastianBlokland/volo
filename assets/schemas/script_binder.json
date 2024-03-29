@@ -107,7 +107,7 @@
     },
     {
       "name": "renderable_param",
-      "doc": "Change or query a renderable parameter on the given entity.\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
+      "doc": "Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
