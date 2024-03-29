@@ -24,6 +24,7 @@ struct sScriptBinder {
   Allocator*        alloc;
   ScriptBinderFlags flags;
   u16               count;
+  ScriptBinderHash  hash;
   ScriptBinderFunc  funcs[script_binder_max_funcs];
   StringHash        names[script_binder_max_funcs];
   String            docs[script_binder_max_funcs];
@@ -41,6 +42,14 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
   mem_swap(mem_var(binder->funcs[a]), mem_var(binder->funcs[b]));
   mem_swap(mem_var(binder->docs[a]), mem_var(binder->docs[b]));
   mem_swap(mem_var(binder->sigs[a]), mem_var(binder->sigs[b]));
+}
+
+static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
+  u32 funcNameHash = 42;
+  for (u32 i = 0; i != binder->count; ++i) {
+    funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
+  }
+  return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
 }
 
 static ScriptVal binder_func_fallback(void* ctx, const ScriptArgs args, ScriptError* err) {
@@ -93,6 +102,7 @@ void script_binder_finalize(ScriptBinder* binder) {
   // Compute the binding order (sorted on the name-hash).
   sort_index_quicksort(binder, 0, binder->count, binder_index_compare, binder_index_swap);
 
+  binder->hash = binder_hash_compute(binder);
   binder->flags |= ScriptBinderFlags_Finalized;
 }
 
@@ -103,13 +113,7 @@ u16 script_binder_count(const ScriptBinder* binder) {
 
 ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
-
-  u32 funcNameHash = 42;
-  for (u32 i = 0; i != binder->count; ++i) {
-    funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
-  }
-
-  return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
+  return binder->hash;
 }
 
 ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash nameHash) {
