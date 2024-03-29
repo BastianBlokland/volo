@@ -54,6 +54,7 @@ typedef enum {
   SceneScriptCapability_Attack,
   SceneScriptCapability_Status,
   SceneScriptCapability_Teleport,
+  SceneScriptCapability_Bark,
 
   SceneScriptCapability_Count
 } SceneScriptCapability;
@@ -64,6 +65,7 @@ static const String g_sceneScriptCapabilityNames[] = {
     string_static("Attack"),
     string_static("Status"),
     string_static("Teleport"),
+    string_static("Bark"),
 };
 ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count, "Missing name");
 
@@ -478,6 +480,8 @@ context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapab
     return ecs_world_has_t(ctx->world, e, SceneStatusComp);
   case SceneScriptCapability_Teleport:
     return ecs_world_has_t(ctx->world, e, SceneTransformComp);
+  case SceneScriptCapability_Bark:
+    return ecs_world_has_t(ctx->world, e, SceneBarkComp);
   case SceneScriptCapability_Count:
     break;
   }
@@ -1296,6 +1300,9 @@ static ScriptVal eval_bark(EvalContext* ctx, const ScriptArgs args, ScriptError*
   const EcsEntityId   entity = script_arg_entity(args, 0, err);
   const SceneBarkType type   = (SceneBarkType)script_arg_enum(args, 1, &g_scriptEnumBark, err);
   if (LIKELY(!script_error_valid(err))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Bark))) {
+      *err = script_error_arg(ScriptError_MissingCapability, 0);
+    }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type      = ScriptActionType_Bark,
         .data_bark = {.entity = entity, .type = type},

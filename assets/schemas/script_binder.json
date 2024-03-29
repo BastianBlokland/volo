@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -849,7 +849,7 @@
     },
     {
       "name": "bark",
-      "doc": "Request a bark to be played.\n\nSupported types:\n\n-`Death`\n\n-`Confirm`",
+      "doc": "Request a bark to be played.\n\nRequired capability: 'Bark'\n\nSupported types:\n\n-`Death`\n\n-`Confirm`",
       "sig": {
         "ret": "null",
         "args": [
