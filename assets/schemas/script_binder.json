@@ -488,7 +488,7 @@
     },
     {
       "name": "capable",
-      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`",
+      "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -942,7 +942,7 @@
     },
     {
       "name": "vfx_param",
-      "doc": "Change or query a vfx parameter on the given entity.\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`",
+      "doc": "Change or query a vfx parameter on the given entity.\n\nRequired capability: 'Vfx'\n\nSupported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [

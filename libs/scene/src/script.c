@@ -56,6 +56,7 @@ typedef enum {
   SceneScriptCapability_Teleport,
   SceneScriptCapability_Bark,
   SceneScriptCapability_Renderable,
+  SceneScriptCapability_Vfx,
 
   SceneScriptCapability_Count
 } SceneScriptCapability;
@@ -68,6 +69,7 @@ static const String g_sceneScriptCapabilityNames[] = {
     string_static("Teleport"),
     string_static("Bark"),
     string_static("Renderable"),
+    string_static("Vfx"),
 };
 ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count, "Missing name");
 
@@ -486,6 +488,9 @@ context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapab
     return ecs_world_has_t(ctx->world, e, SceneBarkComp);
   case SceneScriptCapability_Renderable:
     return ecs_world_has_t(ctx->world, e, SceneRenderableComp);
+  case SceneScriptCapability_Vfx:
+    return ecs_world_has_t(ctx->world, e, SceneVfxSystemComp) ||
+           ecs_world_has_t(ctx->world, e, SceneVfxDecalComp);
   case SceneScriptCapability_Count:
     break;
   }
@@ -1492,6 +1497,9 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
       }
     }
     return script_null();
+  }
+  if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Vfx))) {
+    *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
   *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
       .type = ScriptActionType_UpdateVfxParam,
