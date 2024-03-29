@@ -462,6 +462,9 @@ typedef struct {
 
 static bool
 context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapability cap) {
+  if (!ecs_world_exists(ctx->world, e)) {
+    return false;
+  }
   switch (cap) {
   case SceneScriptCapability_NavTravel:
     return ecs_world_has_t(ctx->world, e, SceneNavAgentComp);
@@ -954,12 +957,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 }
 
 static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
-  if (!e || !ecs_world_exists(ctx->world, e)) {
-    return script_bool(false);
-  }
+  const EcsEntityId           e   = script_arg_entity(args, 0, err);
   const SceneScriptCapability cap = script_arg_enum(args, 1, &g_scriptEnumCapability, err);
-  return script_bool(context_is_capable(ctx, e, cap));
+  return script_bool(e && context_is_capable(ctx, e, cap));
 }
 
 static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
