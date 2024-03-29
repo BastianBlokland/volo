@@ -73,21 +73,21 @@ spec(math) {
     check_eq_float(math_round_nearest_f64(1.0), 1.0, 1e-24);
     check_eq_float(math_round_nearest_f64(.0), 0.0, 1e-24);
     check_eq_float(math_round_nearest_f64(.6), 1.0, 1e-24);
-    check_eq_float(math_round_nearest_f64(.5), 1.0, 1e-24);
+    check_eq_float(math_round_nearest_f64(.5), 0.0, 1e-24);
     check_eq_float(math_round_nearest_f64(.499), 0.0, 1e-24);
     check_eq_float(math_round_nearest_f64(.51), 1.0, 1e-24);
     check_eq_float(math_round_nearest_f64(1.4), 1.0, 1e-24);
     check_eq_float(math_round_nearest_f64(1.5), 2.0, 1e-24);
     check_eq_float(math_round_nearest_f64(1.6), 2.0, 1e-24);
-    check_eq_float(math_round_nearest_f64(2.5), 3.0, 1e-24);
+    check_eq_float(math_round_nearest_f64(2.5), 2.0, 1e-24);
     check_eq_float(math_round_nearest_f64(2.6), 3.0, 1e-24);
     check_eq_float(math_round_nearest_f64(3.5), 4.0, 1e-24);
     check_eq_float(math_round_nearest_f64(-.1), 0.0, 1e-24);
     check_eq_float(math_round_nearest_f64(-.4), 0.0, 1e-24);
-    check_eq_float(math_round_nearest_f64(-.5), -1.0, 1e-24);
+    check_eq_float(math_round_nearest_f64(-.5), 0.0, 1e-24);
     check_eq_float(math_round_nearest_f64(-1.5), -2.0, 1e-24);
     check_eq_float(math_round_nearest_f64(-1.6), -2.0, 1e-24);
-    check_eq_float(math_round_nearest_f64(-2.5), -3.0, 1e-24);
+    check_eq_float(math_round_nearest_f64(-2.5), -2.0, 1e-24);
     check_eq_float(math_round_nearest_f64(-2.6), -3.0, 1e-24);
     check_eq_float(math_round_nearest_f64(-3.5), -4.0, 1e-24);
   }

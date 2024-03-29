@@ -10,13 +10,9 @@ float SYS_DECL  acosf(float);
 float SYS_DECL  asinf(float);
 float SYS_DECL  atan2f(float, float);
 float SYS_DECL  atanf(float);
-double SYS_DECL ceil(double);
-float SYS_DECL  ceilf(float);
 float SYS_DECL  cosf(float);
 double SYS_DECL cos(double);
 float SYS_DECL  expf(float);
-double SYS_DECL floor(double);
-float SYS_DECL  floorf(float);
 float SYS_DECL  fmodf(float, float);
 double SYS_DECL fmod(double, double);
 float SYS_DECL  logf(float);
@@ -29,8 +25,6 @@ double SYS_DECL sqrt(double);
 float SYS_DECL  sqrtf(float);
 float SYS_DECL  cbrtf(float);
 float SYS_DECL  tanf(float);
-double SYS_DECL round(double);
-float SYS_DECL  roundf(float);
 
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanForward64)
@@ -40,13 +34,9 @@ float SYS_DECL  roundf(float);
 #pragma intrinsic(asinf)
 #pragma intrinsic(atan2f)
 #pragma intrinsic(atanf)
-#pragma intrinsic(ceil)
-#pragma intrinsic(ceilf)
 #pragma intrinsic(cosf)
 #pragma intrinsic(cos)
 #pragma intrinsic(expf)
-#pragma intrinsic(floor)
-#pragma intrinsic(floorf)
 #pragma intrinsic(fmodf)
 #pragma intrinsic(fmod)
 #pragma intrinsic(logf)
@@ -72,12 +62,6 @@ float SYS_DECL  roundf(float);
 #define intrinsic_log10_f32 log10f
 #define intrinsic_pow_f32 powf
 #define intrinsic_pow_f64 pow
-#define intrinsic_round_down_f32 floorf
-#define intrinsic_round_down_f64 floor
-#define intrinsic_round_nearest_f32 roundf
-#define intrinsic_round_nearest_f64 round
-#define intrinsic_round_up_f32 ceilf
-#define intrinsic_round_up_f64 ceil
 #define intrinsic_sin_f32 sinf
 #define intrinsic_sin_f64 sin
 #define intrinsic_sqrt_f32 sqrtf
@@ -100,12 +84,6 @@ float SYS_DECL  roundf(float);
 #define intrinsic_log10_f32 __builtin_log10f
 #define intrinsic_pow_f32 __builtin_powf
 #define intrinsic_pow_f64 __builtin_pow
-#define intrinsic_round_down_f32 __builtin_floorf
-#define intrinsic_round_down_f64 __builtin_floor
-#define intrinsic_round_nearest_f32 __builtin_roundf
-#define intrinsic_round_nearest_f64 __builtin_round
-#define intrinsic_round_up_f32 __builtin_ceilf
-#define intrinsic_round_up_f64 __builtin_ceil
 #define intrinsic_sin_f32 __builtin_sinf
 #define intrinsic_sin_f64 __builtin_sin
 #define intrinsic_sqrt_f32 __builtin_sqrtf
@@ -114,6 +92,30 @@ float SYS_DECL  roundf(float);
 #define intrinsic_tan_f32 __builtin_tanf
 
 #endif
+
+MAYBE_UNUSED INLINE_HINT static f32 intrinsic_round_nearest_f32(const f32 v) {
+  return _mm_cvtss_f32(_mm_round_ps(_mm_set1_ps(v), _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+}
+
+MAYBE_UNUSED INLINE_HINT static f64 intrinsic_round_nearest_f64(const f64 v) {
+  return _mm_cvtsd_f64(_mm_round_pd(_mm_set1_pd(v), _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+}
+
+MAYBE_UNUSED INLINE_HINT static f32 intrinsic_round_down_f32(const f32 v) {
+  return _mm_cvtss_f32(_mm_round_ps(_mm_set1_ps(v), _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
+}
+
+MAYBE_UNUSED INLINE_HINT static f64 intrinsic_round_down_f64(const f64 v) {
+  return _mm_cvtsd_f64(_mm_round_pd(_mm_set1_pd(v), _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
+}
+
+MAYBE_UNUSED INLINE_HINT static f32 intrinsic_round_up_f32(const f32 v) {
+  return _mm_cvtss_f32(_mm_round_ps(_mm_set1_ps(v), _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
+}
+
+MAYBE_UNUSED INLINE_HINT static f64 intrinsic_round_up_f64(const f64 v) {
+  return _mm_cvtsd_f64(_mm_round_pd(_mm_set1_pd(v), _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
+}
 
 #define intrinsic_popcnt_32 _mm_popcnt_u32
 #define intrinsic_popcnt_64 _mm_popcnt_u64
