@@ -73,8 +73,8 @@ static GeoVector loco_separate(
   const GeoNavGrid*   ownGrid  = scene_nav_grid(navEnv, ownLayer);
   force = geo_vector_add(force, geo_nav_separate_from_blockers(ownGrid, pos, radius));
 
-  // Separate from nav occupants on all layers.
-  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
+  // Separate from nav occupants on our and bigger layers.
+  for (SceneNavLayer layer = ownLayer; layer != SceneNavLayer_Count; ++layer) {
     const GeoNavGrid* grid        = scene_nav_grid(navEnv, layer);
     const GeoVector occupantForce = geo_nav_separate_from_occupants(grid, id, pos, radius, weight);
     force                         = geo_vector_add(force, occupantForce);
