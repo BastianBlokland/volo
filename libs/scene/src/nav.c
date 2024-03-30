@@ -34,7 +34,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 0.5f
-#define path_arrive_threshold 1.2f
+#define path_arrive_threshold 0.6f
 #define path_avoid_occupied_cell_dist 4
 
 const String g_sceneNavLayerNames[] = {
@@ -558,7 +558,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
     const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
-    const f32       arriveDist      = loco->radius * path_arrive_threshold;
+    const f32       arriveDist      = g_sceneNavCellSize[agent->layer] * path_arrive_threshold;
     if (distToTargetSqr <= (arriveDist * arriveDist)) {
       goto Stop; // Arrived at destination.
     }
