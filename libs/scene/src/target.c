@@ -271,6 +271,10 @@ ecs_system_define(SceneTargetUpdateSys) {
     SceneTargetTraceComp*     trace       = ecs_view_write_t(itr, SceneTargetTraceComp);
     const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_None;
 
+    if (!finder->nextRefreshTime) {
+      finder->nextRefreshTime = target_next_refresh_time(time);
+    }
+
     if ((finder->config & SceneTargetConfig_Trace) && !trace) {
       target_trace_start(world, entity);
     } else if (trace && !(finder->config & SceneTargetConfig_Trace)) {

@@ -6,7 +6,6 @@
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
@@ -144,14 +143,12 @@ static void scene_skeleton_init_from_templ(
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     const bool isLowestLayer = i == tl->animCount - 1;
-    const f32  startTime     = rng_sample_range(g_rng, 0, tl->anims->duration);
     layers[i]                = (SceneAnimLayer){
-        .time     = startTime,
-        .duration = tl->anims[i].duration,
-        .speed    = 1.0f,
-        .weight   = isLowestLayer ? 1.0f : 0.0f,
-        .nameHash = tl->anims[i].nameHash,
-        .flags    = SceneAnimFlags_Loop,
+      .duration = tl->anims[i].duration,
+      .speed    = 1.0f,
+      .weight   = isLowestLayer ? 1.0f : 0.0f,
+      .nameHash = tl->anims[i].nameHash,
+      .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
