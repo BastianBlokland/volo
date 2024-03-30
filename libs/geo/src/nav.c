@@ -747,7 +747,6 @@ static u32 nav_region_occupants(
  */
 static GeoVector nav_separate_from_blockers(
     const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos, const f32 radius) {
-  static const f32 g_strength = 25.0f;
 
   GeoVector result = {0};
   for (u16 y = reg.min.y; y != reg.max.y; ++y) {
@@ -765,7 +764,7 @@ static GeoVector nav_separate_from_blockers(
       const f32       overlap    = radius - distToEdge;
       const GeoVector cellPos    = nav_cell_pos_no_y(grid, cell);
       const GeoVector sepDir     = geo_vector_norm(geo_vector_xz(geo_vector_sub(pos, cellPos)));
-      result = geo_vector_add(result, geo_vector_mul(sepDir, overlap * g_strength));
+      result                     = geo_vector_add(result, geo_vector_mul(sepDir, overlap));
     }
   }
   return result;
@@ -785,8 +784,6 @@ static GeoVector nav_separate_from_occupied(
     const f32          weight) {
   const GeoNavOccupant* occupants[(3 * 3) * geo_nav_occupants_per_cell];
   diag_assert((nav_region_size(region) * geo_nav_occupants_per_cell) <= array_elems(occupants));
-
-  static const f32 g_strength = 10.0f;
 
   const u32 occupantCount = nav_region_occupants(grid, region, occupants);
 
@@ -816,7 +813,7 @@ static GeoVector nav_separate_from_occupied(
 
     // NOTE: Times 0.5 because both occupants are expected to move.
     // NOTE: sepStrength will be negative to push away instead of towards.
-    const f32 sepStrength = (dist - sepDist) * 0.5f * relWeight * g_strength;
+    const f32 sepStrength = (dist - sepDist) * 0.5f * relWeight;
     result                = geo_vector_add(result, geo_vector_mul(sepDir, sepStrength));
   }
   result.y = 0; // Zero out any movement out of the grid's plane.
@@ -1601,10 +1598,8 @@ geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos, cons
   }
   if (nav_pred_blocked(grid, null, mapRes.cell)) {
     // Position is currently in a blocked cell; push it into the closest unblocked cell.
-    static const f32 g_unblockSepStrength = 25.0f;
     const GeoNavCell closestUnblocked = geo_nav_closest(grid, mapRes.cell, GeoNavCond_Unblocked);
-    const GeoVector  toUnblocked      = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
-    return geo_vector_mul(toUnblocked, g_unblockSepStrength);
+    return geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
