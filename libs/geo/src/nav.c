@@ -755,13 +755,13 @@ nav_separate_from_blockers(const GeoNavGrid* grid, const GeoNavRegion reg, const
 
   GeoVector result = {0};
   for (u16 y = reg.min.y; y != reg.max.y; ++y) {
-    for (u16 x = reg.min.x; x != reg.max.x; ++x) {
-      const GeoNavCell cell = {.x = x, .y = y};
-      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      if (!nav_pred_blocked(grid, null, cell)) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = reg.min.x, .y = y});
+    for (u16 x = reg.min.x; x != reg.max.x; ++x, ++cellIndex) {
+      if (grid->cellBlockerCount[cellIndex] == 0) {
         continue; // Cell not blocked.
       }
-      const f32 distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
+      const GeoNavCell cell          = {.x = x, .y = y};
+      const f32        distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
       if (distToEdgeSqr >= reqDistSqr) {
         continue; // Far enough away.
       }
