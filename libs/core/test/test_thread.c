@@ -83,30 +83,37 @@ static void test_cond_signal_unblocks_atleast_one(void* rawData) {
 }
 
 spec(thread) {
+  String         name;
+  ThreadPriority prio;
+
+  setup() {
+    name = string_lit("volo_test");
+    prio = ThreadPriority_Normal;
+  }
 
   it("assigns names to threads") {
-    ThreadHandle exec = thread_start(test_thread_has_name, null, string_lit("my_custom_name"));
+    const String customName = string_lit("my_custom_name");
+    ThreadHandle exec       = thread_start(test_thread_has_name, null, customName, prio);
     thread_join(exec);
   }
 
   it("can store and load integers atomically") {
     i64          value = 0;
-    ThreadHandle exec  = thread_start(test_atomic_store_value, &value, string_lit("volo_test"));
+    ThreadHandle exec  = thread_start(test_atomic_store_value, &value, name, prio);
     thread_join(exec);
     check_eq_int(thread_atomic_load_i64(&value), 1337);
   }
 
   it("can exchange integers atomically") {
     i64          value = 42;
-    ThreadHandle exec  = thread_start(test_atomic_exchange_value, &value, string_lit("volo_test"));
+    ThreadHandle exec  = thread_start(test_atomic_exchange_value, &value, name, prio);
     thread_join(exec);
     check_eq_int(thread_atomic_load_i64(&value), 1337);
   }
 
   it("can compare and exchange integers atomically") {
     i64          value = 42;
-    ThreadHandle exec =
-        thread_start(test_atomic_compare_exchange_value, &value, string_lit("volo_test"));
+    ThreadHandle exec  = thread_start(test_atomic_compare_exchange_value, &value, name, prio);
     for (i32 i = 0; i != 1000; ++i) {
       i64 expected = 1337;
       if (!thread_atomic_compare_exchange_i64(&value, &expected, 42)) {
@@ -119,7 +126,7 @@ spec(thread) {
 
   it("can add integers atomically") {
     i64          value = 0;
-    ThreadHandle exec  = thread_start(test_atomic_add_value, &value, string_lit("volo_test"));
+    ThreadHandle exec  = thread_start(test_atomic_add_value, &value, name, prio);
     for (i32 i = 0; i != 10000; ++i) {
       thread_atomic_add_i64(&value, 1);
     }
@@ -129,7 +136,7 @@ spec(thread) {
 
   it("can substract integers atomically") {
     i64          value = 20000;
-    ThreadHandle exec  = thread_start(test_atomic_sub_value, &value, string_lit("volo_test"));
+    ThreadHandle exec  = thread_start(test_atomic_sub_value, &value, name, prio);
     for (i32 i = 0; i != 10000; ++i) {
       thread_atomic_sub_i64(&value, 1);
     }
@@ -160,8 +167,7 @@ spec(thread) {
 
     thread_mutex_lock(mutex);
 
-    ThreadHandle exec =
-        thread_start(test_mutex_trylock_fails, (void*)mutex, string_lit("volo_test"));
+    ThreadHandle exec = thread_start(test_mutex_trylock_fails, (void*)mutex, name, prio);
     thread_join(exec);
 
     thread_mutex_unlock(mutex);
@@ -181,8 +187,7 @@ spec(thread) {
     data.mutex   = thread_mutex_create(g_alloc_scratch);
     data.cond    = thread_cond_create(g_alloc_scratch);
 
-    ThreadHandle exec =
-        thread_start(test_cond_signal_unblocks_atleast_one, &data, string_lit("volo_test"));
+    ThreadHandle exec = thread_start(test_cond_signal_unblocks_atleast_one, &data, name, prio);
 
     while (!data.started) {
       thread_yield();
@@ -211,8 +216,8 @@ spec(thread) {
 
     ThreadHandle threads[4];
     for (usize i = 0; i != array_elems(threads); ++i) {
-      threads[i] = thread_start(
-          test_cond_broadcast_unblocks_all, &data, fmt_write_scratch("volo_test_{}", fmt_int(i)));
+      const String nameI = fmt_write_scratch("volo_test_{}", fmt_int(i));
+      threads[i]         = thread_start(test_cond_broadcast_unblocks_all, &data, nameI, prio);
     }
 
     while (data.startedExecs < array_elems(threads)) {
