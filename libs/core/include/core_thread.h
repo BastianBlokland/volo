@@ -114,6 +114,7 @@ i32 thread_atomic_sub_i32(i32*, i32 value);
 i64 thread_atomic_sub_i64(i64*, i64 value);
 
 typedef enum {
+  ThreadPriority_Lowest,
   ThreadPriority_Low,
   ThreadPriority_Normal,
   ThreadPriority_High,

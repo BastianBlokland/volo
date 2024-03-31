@@ -21,8 +21,10 @@
  */
 static int thread_desired_nice(const ThreadPriority prio) {
   switch (prio) {
-  case ThreadPriority_Low:
+  case ThreadPriority_Lowest:
     // NOTE: Linux defines 19 as the absolute lowest priority.
+    return 10;
+  case ThreadPriority_Low:
     return 5;
   case ThreadPriority_Normal:
     return 0;
