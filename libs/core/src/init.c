@@ -5,11 +5,11 @@
 
 #include "init_internal.h"
 
-static bool              g_intialized;
+static bool              g_initalized;
 static THREAD_LOCAL bool g_initializedThread;
 
 void core_init() {
-  if (!g_intialized) {
+  if (!g_initalized) {
     alloc_init();
     float_init();
     thread_init();
@@ -24,18 +24,18 @@ void core_init() {
     rng_init_thread();
   }
 
-  if (!g_intialized) {
+  if (!g_initalized) {
     file_init();
     tty_init();
     path_init();
   }
 
-  g_intialized        = true;
+  g_initalized        = true;
   g_initializedThread = true;
 }
 
 void core_teardown() {
-  if (g_thread_tid == g_thread_main_tid && g_intialized) {
+  if (g_thread_tid == g_thread_main_tid && g_initalized) {
     stringtable_teardown();
     tty_teardown();
   }
@@ -43,9 +43,9 @@ void core_teardown() {
     alloc_teardown_thread();
     g_initializedThread = false;
   }
-  if (g_thread_tid == g_thread_main_tid && g_intialized) {
+  if (g_thread_tid == g_thread_main_tid && g_initalized) {
     thread_teardown();
     alloc_teardown();
-    g_intialized = false;
+    g_initalized = false;
   }
 }
