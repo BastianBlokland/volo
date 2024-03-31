@@ -825,21 +825,14 @@ static GeoVector nav_separate_from_occupied(
   return result;
 }
 
-static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
-#ifndef VOLO_FAST
-  const u32 index = nav_cell_index(grid, cell);
-  diag_assert_msg(grid->cellBlockerCount[index] != u8_max, "Cell blocked count exceeds max");
-#endif
-
-  ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
+INLINE_HINT static void nav_cell_block(GeoNavGrid* grid, const u32 cellIndex) {
+  diag_assert_msg(grid->cellBlockerCount[cellIndex] != u8_max, "Cell blocked count exceeds max");
+  ++grid->cellBlockerCount[cellIndex];
 }
 
-static bool nav_cell_unblock(GeoNavGrid* grid, const GeoNavCell cell) {
-  const u32 index = nav_cell_index(grid, cell);
-  diag_assert_msg(grid->cellBlockerCount[index], "Cell not currently blocked");
-
-  --grid->cellBlockerCount[index];
-  return grid->cellBlockerCount[index] == 0;
+INLINE_HINT static bool nav_cell_unblock(GeoNavGrid* grid, const u32 cellIndex) {
+  diag_assert_msg(grid->cellBlockerCount[cellIndex], "Cell not currently blocked");
+  return --grid->cellBlockerCount[cellIndex] == 0;
 }
 
 static u32 nav_blocker_count(GeoNavGrid* grid) {
@@ -867,9 +860,10 @@ static bool nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerI
 
   u32 indexInRegion = 0;
   for (u16 y = region.min.y; y != region.max.y; ++y) {
-    for (u16 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u16 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       if (nav_bit_test(blockedInRegion, indexInRegion)) {
-        anyBecameUnblocked |= nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
+        anyBecameUnblocked |= nav_cell_unblock(grid, cellIndex);
       }
       ++indexInRegion;
     }
@@ -1170,9 +1164,9 @@ void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
 
   // Updated blocked state.
   if (wasBlocked && !shouldBlock) {
-    nav_cell_unblock(grid, cell);
+    nav_cell_unblock(grid, cellIndex);
   } else if (!wasBlocked && shouldBlock) {
-    nav_cell_block(grid, cell);
+    nav_cell_block(grid, cellIndex);
   }
 }
 
@@ -1397,12 +1391,11 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
 
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
-      const GeoNavCell cell = {.x = x, .y = y};
-      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      const f32 cellY = grid->cellY[nav_cell_index(grid, cell)];
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u16 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
+      const f32 cellY = grid->cellY[cellIndex];
       if (box->max.y > cellY && box->min.y < (cellY + grid->cellHeight)) {
-        nav_cell_block(grid, cell);
+        nav_cell_block(grid, cellIndex);
         nav_bit_set(blockedInRegion, indexInRegion);
       }
       ++indexInRegion;
@@ -1435,11 +1428,12 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
 
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
-        nav_cell_block(grid, cell);
+        nav_cell_block(grid, cellIndex);
         nav_bit_set(blockedInRegion, indexInRegion);
       }
       ++indexInRegion;
@@ -1472,11 +1466,12 @@ geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* 
 
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_sphere_overlap_box(sphere, &cellBox)) {
-        nav_cell_block(grid, cell);
+        nav_cell_block(grid, cellIndex);
         nav_bit_set(blockedInRegion, indexInRegion);
       }
       ++indexInRegion;
