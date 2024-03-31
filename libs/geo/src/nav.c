@@ -195,8 +195,8 @@ INLINE_HINT static bool nav_cell_clamp_axis(const GeoNavGrid* grid, f32* value) 
   return false;
 }
 
-INLINE_HINT static GeoNavIsland nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return grid->cellIslands[nav_cell_index(grid, cell)];
+INLINE_HINT static GeoNavIsland nav_island(const GeoNavGrid* grid, const u32 cellIndex) {
+  return grid->cellIslands[cellIndex];
 }
 
 static Mem nav_occupancy_mem(GeoNavGrid* grid) {
@@ -915,7 +915,8 @@ static GeoNavCell nav_blocker_closest_reachable(
   const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
   const GeoNavRegion   region          = blocker->region;
   const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  const GeoNavIsland   fromIsland      = nav_island(grid, from);
+  const u32            fromCellIndex   = nav_cell_index(grid, from);
+  const GeoNavIsland   fromIsland      = nav_island(grid, fromCellIndex);
 
   GeoNavCell bestCell      = from;
   u16        bestCost      = u16_max;
@@ -1212,14 +1213,20 @@ GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
 
 GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_island(grid, cell);
+
+  const u32 cellIndex = nav_cell_index(grid, cell);
+
+  return nav_island(grid, cellIndex);
 }
 
 bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  return nav_island(grid, from) == nav_island(grid, to);
+  const u32 fromCellIndex = nav_cell_index(grid, from);
+  const u32 toCellIndex   = nav_cell_index(grid, to);
+
+  return nav_island(grid, fromCellIndex) == nav_island(grid, toCellIndex);
 }
 
 bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
@@ -1333,8 +1340,9 @@ geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const G
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  GeoNavWorkerState*  s          = nav_worker_state(grid);
-  const GeoNavIsland  fromIsland = nav_island(grid, from);
+  GeoNavWorkerState*  s             = nav_worker_state(grid);
+  const u32           fromCellIndex = nav_cell_index(grid, from);
+  const GeoNavIsland  fromIsland    = nav_island(grid, fromCellIndex);
   GeoNavCell          res[1];
   GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
   if (nav_find(grid, s, &fromIsland, to, nav_pred_reachable, container)) {
@@ -1352,10 +1360,12 @@ u32 geo_nav_path(
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
   const u32 fromCellIndex = nav_cell_index(grid, from);
+  const u32 toCellIndex   = nav_cell_index(grid, to);
+
   if (nav_pred_blocked(grid, null, fromCellIndex)) {
     return 0; // From cell is blocked; no path possible.
   }
-  if (nav_island(grid, from) != nav_island(grid, to)) {
+  if (nav_island(grid, fromCellIndex) != nav_island(grid, toCellIndex)) {
     return 0; // Cells are on different islands; no path possible.
   }
 
@@ -1515,7 +1525,8 @@ bool geo_nav_blocker_reachable(
   if (sentinel_check(blockerId)) {
     return false; // Blocker was never actually added; not reachable.
   }
-  const GeoNavIsland island = nav_island(grid, from);
+  const u32          fromCellIndex = nav_cell_index(grid, from);
+  const GeoNavIsland island        = nav_island(grid, fromCellIndex);
   if (island == geo_nav_island_blocked) {
     return false; // From cell is blocked; not reachable.
   }
@@ -1532,7 +1543,8 @@ GeoNavCell geo_nav_blocker_closest(
   if (sentinel_check(blockerId)) {
     return from; // Blocker was never actually added; not reachable.
   }
-  if (nav_island(grid, from) == geo_nav_island_blocked) {
+  const u32 fromCellIndex = nav_cell_index(grid, from);
+  if (nav_island(grid, fromCellIndex) == geo_nav_island_blocked) {
     return from; // Origin position is blocked.
   }
 
