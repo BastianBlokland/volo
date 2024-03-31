@@ -223,15 +223,15 @@ static u32 nav_cell_neighbors(
 }
 
 /**
- * Get all the occupants in the given cell.
+ * Get all the occupants in the given cell index.
  * Returns the amount of occupants written to the out array.
  */
 static u32 nav_cell_occupants(
     const GeoNavGrid*     grid,
-    const GeoNavCell      cell,
+    const u32             cellIndex,
     const GeoNavOccupant* out[PARAM_ARRAY_SIZE(geo_nav_occupants_per_cell)]) {
   u32       count = 0;
-  const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+  const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (!sentinel_check(grid->cellOccupancy[i])) {
       out[count++] = &grid->occupants[grid->cellOccupancy[i]];
@@ -240,8 +240,8 @@ static u32 nav_cell_occupants(
   return count;
 }
 
-static bool nav_cell_add_occupant(GeoNavGrid* grid, const GeoNavCell cell, const u16 occupantIdx) {
-  const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+static bool nav_cell_add_occupant(GeoNavGrid* grid, const u32 cellIndex, const u16 occupantIdx) {
+  const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (sentinel_check(grid->cellOccupancy[i])) {
       grid->cellOccupancy[i] = occupantIdx;
@@ -658,7 +658,7 @@ static bool
 nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
   (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, nav_cell_index(g, cell), occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
       return true;
@@ -670,7 +670,7 @@ nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const GeoNavC
 static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
   (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, nav_cell_index(g, cell), occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (occupants[i]->flags & GeoNavOccupantFlags_Moving) {
       return true;
@@ -684,11 +684,12 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell
   /**
    * Test if the cell is not blocked and has no stationary occupant.
    */
-  if (g->cellBlockerCount[nav_cell_index(g, cell)]) {
+  const u32 cellIndex = nav_cell_index(g, cell);
+  if (g->cellBlockerCount[cellIndex]) {
     return false;
   }
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cellIndex, occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
       return false;
@@ -732,9 +733,10 @@ static u32 nav_region_occupants(
     const GeoNavGrid* grid, const GeoNavRegion region, const GeoNavOccupant** out) {
   u32 count = 0;
   for (u16 y = region.min.y; y != region.max.y; ++y) {
-    for (u16 x = region.min.x; x != region.max.x; ++x) {
-      const GeoNavCell cell          = {.x = x, .y = y};
-      const u32        occupantCount = nav_cell_occupants(grid, cell, out);
+    u32       cellIndex    = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    const u32 cellIndexMax = cellIndex + (region.max.x - region.min.x);
+    for (; cellIndex != cellIndexMax; ++cellIndex) {
+      const u32 occupantCount = nav_cell_occupants(grid, cellIndex, out);
       count += occupantCount;
       out += occupantCount;
     }
@@ -1576,7 +1578,8 @@ void geo_nav_occupant_add(
       .flags  = flags,
       .pos    = {pos.x, pos.z},
   };
-  nav_cell_add_occupant(grid, mapRes.cell, occupantIndex);
+  const u32 cellIndex = nav_cell_index(grid, mapRes.cell);
+  nav_cell_add_occupant(grid, cellIndex, occupantIndex);
 }
 
 void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
