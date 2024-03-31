@@ -7,9 +7,10 @@
 #include <immintrin.h>
 
 typedef struct {
-  String        threadName;
-  ThreadRoutine userRoutine;
-  void*         userData;
+  String         threadName;
+  ThreadPriority threadPriority;
+  ThreadRoutine  userRoutine;
+  void*          userData;
 } ThreadRunData;
 
 static thread_pal_rettype SYS_DECL thread_runner(void* data) {
@@ -21,6 +22,11 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   // Initialize the thread name.
   g_thread_name = runData->threadName;
   thread_pal_set_name(g_thread_name);
+
+  // Set the thread priority.
+  if (runData->threadPriority != ThreadPriority_Normal) {
+    thread_pal_set_priority(runData->threadPriority); // NOTE: Can fail due to insufficient perms.
+  }
 
   // Invoke the user routine.
   runData->userRoutine(runData->userData);
@@ -93,15 +99,19 @@ i64 thread_atomic_sub_i64(i64* ptr, const i64 value) {
   return thread_pal_atomic_sub_i64(ptr, value);
 }
 
-ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) {
-  ThreadRunData* threadRunData = alloc_alloc_t(g_alloc_heap, ThreadRunData);
-  threadRunData->threadName    = string_dup(g_alloc_heap, threadName);
-  threadRunData->userRoutine   = routine;
-  threadRunData->userData      = data;
+ThreadHandle thread_start(
+    ThreadRoutine routine, void* data, const String threadName, const ThreadPriority prio) {
+  ThreadRunData* threadRunData  = alloc_alloc_t(g_alloc_heap, ThreadRunData);
+  threadRunData->threadName     = string_dup(g_alloc_heap, threadName);
+  threadRunData->threadPriority = prio;
+  threadRunData->userRoutine    = routine;
+  threadRunData->userData       = data;
   return thread_pal_start(thread_runner, threadRunData);
 }
 
-void thread_join(ThreadHandle thread) { thread_pal_join(thread); }
+bool thread_prioritize(const ThreadPriority prio) { return thread_pal_set_priority(prio); }
+
+void thread_join(const ThreadHandle thread) { thread_pal_join(thread); }
 
 void thread_yield() { thread_pal_yield(); }
 

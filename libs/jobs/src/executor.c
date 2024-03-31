@@ -199,7 +199,7 @@ static void executor_perform_work(WorkItem item) {
  * Thread routine for a worker.
  */
 static void executor_worker_thread(void* data) {
-  g_jobsWorkerId = (JobWorkerId)(usize)data;
+  g_jobsWorkerId = (JobWorkerId)(uptr)data;
   g_jobsIsWorker = true;
 
   WorkItem work = (WorkItem){0};
@@ -255,11 +255,21 @@ void executor_init() {
   // Setup worker info for the main-thread.
   g_jobsWorkerId = 0;
   g_jobsIsWorker = true;
+  thread_prioritize(ThreadPriority_High); // NOTE: Can fail due to insufficient perms.
 
   // Start threads for the other workers.
-  for (u16 i = 1; i != g_jobsWorkerCount; ++i) {
-    g_workerThreads[i] = thread_start(
-        executor_worker_thread, (void*)(usize)i, fmt_write_scratch("volo_exec_{}", fmt_int(i)));
+  for (JobWorkerId i = 1; i != g_jobsWorkerCount; ++i) {
+    ThreadPriority threadPrio;
+    if (i == g_affinityWorker) {
+      // The affinity worker gets higher priority as other workers might depend on work that only
+      // it can do.
+      threadPrio = ThreadPriority_Highest;
+    } else {
+      threadPrio = ThreadPriority_High;
+    }
+    void*        threadData = (void*)(uptr)i;
+    const String threadName = fmt_write_scratch("volo_exec_{}", fmt_int(i));
+    g_workerThreads[i] = thread_start(executor_worker_thread, threadData, threadName, threadPrio);
   }
 }
 
