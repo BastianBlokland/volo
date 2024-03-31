@@ -22,7 +22,11 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   // Initialize the thread name.
   g_thread_name = runData->threadName;
   thread_pal_set_name(g_thread_name);
-  thread_pal_set_priority(runData->threadPriority); // NOTE: Can fail due to insufficient perms.
+
+  // Set the thread priority.
+  if (runData->threadPriority != ThreadPriority_Normal) {
+    thread_pal_set_priority(runData->threadPriority); // NOTE: Can fail due to insufficient perms.
+  }
 
   // Invoke the user routine.
   runData->userRoutine(runData->userData);
