@@ -163,7 +163,7 @@
         {
           "$type": "AssetWeaponEffect_Damage",
           "originJoint": "RightHandMiddle1",
-          "delay": 0.55,
+          "delay": 0.375,
           "damage": 25,
           "radius": 1.25,
           "impactPrefab": "ImpactMelee"
@@ -179,14 +179,14 @@
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "RightHandMiddle1",
           "scale": 1,
-          "delay": 0.45,
+          "delay": 0.3,
           "duration": 1,
           "assetId": "vfx/game/melee_dust.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "RightHandMiddle1",
-          "delay": 0.4,
+          "delay": 0.35,
           "duration": 0.5,
           "assetId": "external/sound/swoosh-01.wav",
           "gainMin": 0.2, "gainMax": 0.3,
