@@ -34,7 +34,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 0.5f
-#define path_arrive_threshold 0.6f
+#define path_arrive_threshold 0.15f
 #define path_avoid_occupied_cell_dist 4
 
 const String g_sceneNavLayerNames[] = {
@@ -461,7 +461,12 @@ static SceneNavGoal
 nav_goal_pos(const GeoNavGrid* grid, const GeoNavCell fromCell, const GeoVector targetPos) {
   const GeoNavCell targetCell = geo_nav_at_position(grid, targetPos);
   if (geo_nav_reachable(grid, fromCell, targetCell)) {
-    return (SceneNavGoal){.cell = targetCell, .position = targetPos};
+    /**
+     * Because we navigate until the agent's center is at the position we need to make sure the
+     * target position is not too close to a blocker to reach.
+     */
+    const GeoVector offset = geo_nav_separate_from_blockers(grid, targetPos, 0.45f);
+    return (SceneNavGoal){.cell = targetCell, .position = geo_vector_add(targetPos, offset)};
   }
   const GeoNavCell reachableCell = geo_nav_closest_reachable(grid, fromCell, targetCell);
   const GeoVector  reachablePos  = geo_nav_position(grid, reachableCell);
@@ -558,8 +563,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
     const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
-    const f32       arriveDist      = g_sceneNavCellSize[agent->layer] * path_arrive_threshold;
-    if (distToTargetSqr <= (arriveDist * arriveDist)) {
+    if (distToTargetSqr <= (path_arrive_threshold * path_arrive_threshold)) {
       goto Stop; // Arrived at destination.
     }
 
