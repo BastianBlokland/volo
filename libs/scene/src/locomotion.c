@@ -42,7 +42,7 @@ static bool loco_is_facing(const SceneLocomotionComp* loco, const SceneTransform
   const GeoVector curDir     = geo_quat_rotate(trans->rotation, geo_forward);
   const GeoVector curDirFlat = geo_vector_norm(geo_vector_xz(curDir));
   const f32       dirDot     = geo_vector_dot(curDirFlat, loco->targetDir);
-  return math_max(0.0f, dirDot) >= loco_face_threshold;
+  return dirDot >= loco_face_threshold;
 }
 
 static f32 loco_rot_speed(const SceneLocomotionComp* loco, const EcsEntityId e, const f32 time) {
