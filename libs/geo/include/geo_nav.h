@@ -88,8 +88,7 @@ bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to
 bool geo_nav_check(const GeoNavGrid*, GeoNavCell, GeoNavCond);
 bool geo_nav_check_box_rotated(const GeoNavGrid*, const GeoBoxRotated*, GeoNavCond);
 bool geo_nav_check_sphere(const GeoNavGrid*, const GeoSphere*, GeoNavCond);
-bool geo_nav_check_line_flat(
-    const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius, GeoNavCond);
+bool geo_nav_check_channel(const GeoNavGrid*, GeoVector from, GeoVector to, GeoNavCond);
 
 GeoNavCell geo_nav_closest(const GeoNavGrid*, GeoNavCell, GeoNavCond);
 u32        geo_nav_closest_n(const GeoNavGrid*, GeoNavCell, GeoNavCond, GeoNavCellContainer);

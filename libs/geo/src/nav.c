@@ -22,6 +22,7 @@
 #define geo_nav_path_queue_size 1024
 #define geo_nav_path_iterations_max 10000
 #define geo_nav_path_chebyshev_heuristic true
+#define geo_nav_channel_radius_frac 0.4f
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
@@ -747,10 +748,7 @@ static u32 nav_region_occupants(
  */
 static GeoVector
 nav_separate_from_blockers(const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos) {
-  // NOTE: Not quite half a cell size to leave some room for inaccuracies.
-  static const f32 g_reqCellSizeFrac = 0.45f;
-
-  const f32 reqDist    = grid->cellSize * g_reqCellSizeFrac;
+  const f32 reqDist    = grid->cellSize * geo_nav_channel_radius_frac;
   const f32 reqDistSqr = reqDist * reqDist;
 
   GeoVector result = {0};
@@ -1266,12 +1264,8 @@ bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const
   return false;
 }
 
-bool geo_nav_check_line_flat(
-    const GeoNavGrid* g,
-    const GeoVector   from,
-    const GeoVector   to,
-    const f32         radius,
-    const GeoNavCond  cond) {
+bool geo_nav_check_channel(
+    const GeoNavGrid* g, const GeoVector from, const GeoVector to, const GeoNavCond cond) {
 
   ++nav_worker_state(g)->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
 
@@ -1284,12 +1278,13 @@ bool geo_nav_check_line_flat(
    * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
    * intersections too early at the corners.
    */
-  const f32 localExtent = 1.0f + radius * g->cellDensity;
+  const f32 localExtent = 1.0f + geo_nav_channel_radius_frac;
 
-  const GeoBox       bounds = geo_box_from_capsule(from, to, radius);
-  const GeoNavRegion region = nav_cell_map_box(g, &bounds);
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+  const f32          channelRadius = geo_nav_channel_radius_frac * g->cellSize;
+  const GeoBox       channelBounds = geo_box_from_capsule(from, to, channelRadius);
+  const GeoNavRegion channelRegion = nav_cell_map_box(g, &channelBounds);
+  for (u32 y = channelRegion.min.y; y != channelRegion.max.y; ++y) {
+    for (u32 x = channelRegion.min.x; x != channelRegion.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
       if (!nav_pred_condition(g, &cond, cell)) {
         continue; // Doesn't meet condition.

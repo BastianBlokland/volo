@@ -545,10 +545,6 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    if (UNLIKELY(loco->radius >= g_sceneNavCellSize[agent->layer])) {
-      log_e("Navigation agent too wide for its navigation layer");
-    }
-
     const GeoNavGrid* grid     = env->grids[agent->layer];
     const GeoNavCell  fromCell = geo_nav_at_position(grid, trans->position);
     SceneNavGoal      goal;
@@ -605,7 +601,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
       const GeoVector  pathPos      = geo_nav_position(grid, path->cells[i]);
       const GeoNavCond shortcutCond = nav_shortcut_block_cond(grid, fromCell, path->cells[i]);
-      if (!geo_nav_check_line_flat(grid, trans->position, pathPos, loco->radius, shortcutCond)) {
+      if (!geo_nav_check_channel(grid, trans->position, pathPos, shortcutCond)) {
         path->currentTargetIndex = i;
         nav_move_towards(grid, loco, &goal, path->cells[i]);
         goto Done;
