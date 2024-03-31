@@ -18,6 +18,22 @@ ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
  */
 static const u32 g_win32SchedulingInterval = 2;
 
+static int thread_desired_prio_value(const ThreadPriority prio) {
+  switch (prio) {
+  case ThreadPriority_Lowest:
+    return THREAD_PRIORITY_LOWEST;
+  case ThreadPriority_Low:
+    return THREAD_PRIORITY_BELOW_NORMAL;
+  case ThreadPriority_Normal:
+    return THREAD_PRIORITY_NORMAL;
+  case ThreadPriority_High:
+    return THREAD_PRIORITY_ABOVE_NORMAL;
+  case ThreadPriority_Highest:
+    return THREAD_PRIORITY_HIGHEST;
+  }
+  diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
+}
+
 void thread_pal_init() {
   if (timeBeginPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR) {
     diag_assert_fail("Failed to set win32 scheduling interval");
@@ -71,6 +87,15 @@ void thread_pal_set_name(const String str) {
   }
 }
 #endif // !defined(__MINGW32__)
+
+bool thread_pal_set_priority(const ThreadPriority prio) {
+  const int    prioValue = thread_desired_prio_value(prio);
+  const HANDLE curThread = GetCurrentThread();
+  if (UNLIKELY(SetThreadPriority(curThread, prioValue) == 0)) {
+    diag_crash_msg("SetThreadPriority() failed");
+  }
+  return true; // No elevated permissions requirements on windows.
+}
 
 i32 thread_pal_atomic_load_i32(i32* ptr) {
   return InterlockedCompareExchange((volatile LONG*)ptr, 0, 0);
