@@ -18,6 +18,7 @@ i64  thread_pal_pid(void);
 i64  thread_pal_tid(void);
 u16  thread_pal_core_count(void);
 void thread_pal_set_name(String);
+bool thread_pal_set_priority(ThreadPriority);
 
 i32 thread_pal_atomic_load_i32(i32*);
 i64 thread_pal_atomic_load_i64(i64*);

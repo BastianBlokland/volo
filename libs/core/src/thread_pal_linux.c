@@ -7,8 +7,33 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/resource.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+
+/**
+ * The nice value determines the priority of processes / threads. The higher the value, the lower
+ * the priority (the "nicer" the process is to other processes). The default nice value is 0.
+ *
+ * NOTE: Raising priority (negative nice values) usually requires elevated permissions.
+ *
+ * Docs: https://man7.org/linux/man-pages/man7/sched.7.html
+ */
+static int thread_desired_nice(const ThreadPriority prio) {
+  switch (prio) {
+  case ThreadPriority_Low:
+    // NOTE: Linux defines 19 as the absolute lowest priority.
+    return 5;
+  case ThreadPriority_Normal:
+    return 0;
+  case ThreadPriority_High:
+    return -5;
+  case ThreadPriority_Highest:
+    // NOTE: Linux defines -20 as the absolute highest priority.
+    return -10;
+  }
+  diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
+}
 
 void thread_pal_init() {}
 void thread_pal_teardown() {}
@@ -43,6 +68,31 @@ void thread_pal_set_name(const String str) {
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_setname_np() failed");
   }
+}
+
+bool thread_pal_set_priority(const ThreadPriority prio) {
+  /**
+   * The process is ran under the 'SCHED_OTHER' (sometimes called 'SCHED_NORMAL') time sharing
+   * scheduler which does not use a static scheduling priority (eg 'sched_priority') but instead
+   * uses the thread's nice value as a dynamic priority.
+   *
+   * NOTE: POSIX only defines nice values for processes (not for threads), but Linux does support
+   * per-thread nice values luckily.
+   *
+   * NOTE: Raising priority (negative nice values) usually requires elevated permissions.
+   *
+   * Docs: https://man7.org/linux/man-pages/man7/sched.7.html
+   */
+  const id_t tid  = (id_t)thread_pal_tid();
+  const int  nice = thread_desired_nice(prio);
+  const int  res  = setpriority(PRIO_PROCESS, tid, nice);
+  if (res != 0) {
+    if (errno == EACCES) {
+      return false; // Insufficient permissions.
+    }
+    diag_crash_msg("setpriority() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
+  }
+  return true;
 }
 
 i32 thread_pal_atomic_load_i32(i32* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
@@ -118,7 +168,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void
   return (ThreadHandle)handle;
 }
 
-void thread_pal_join(ThreadHandle thread) {
+void thread_pal_join(const ThreadHandle thread) {
   void*     retData;
   const int res = pthread_join((pthread_t)thread, &retData);
   if (UNLIKELY(res != 0)) {

@@ -101,7 +101,9 @@ ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) 
   return thread_pal_start(thread_runner, threadRunData);
 }
 
-void thread_join(ThreadHandle thread) { thread_pal_join(thread); }
+bool thread_prioritize(const ThreadPriority prio) { return thread_pal_set_priority(prio); }
+
+void thread_join(const ThreadHandle thread) { thread_pal_join(thread); }
 
 void thread_yield() { thread_pal_yield(); }
 

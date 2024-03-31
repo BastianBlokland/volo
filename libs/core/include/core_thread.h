@@ -113,6 +113,13 @@ i64 thread_atomic_add_i64(i64*, i64 value);
 i32 thread_atomic_sub_i32(i32*, i32 value);
 i64 thread_atomic_sub_i64(i64*, i64 value);
 
+typedef enum {
+  ThreadPriority_Low,
+  ThreadPriority_Normal,
+  ThreadPriority_High,
+  ThreadPriority_Highest,
+} ThreadPriority;
+
 /**
  * Start a new execution thread.
  * - 'data' is provided as an argument to the ThreadRoutine.
@@ -122,6 +129,13 @@ i64 thread_atomic_sub_i64(i64*, i64 value);
  * Pre-condition: threadName.size <= 15
  */
 ThreadHandle thread_start(ThreadRoutine, void* data, String threadName);
+
+/**
+ * Set the priority of the current thread.
+ * Returns true if successful otherwise false.
+ * NOTE: Can fail if the user has insufficent permissions.
+ */
+bool thread_prioritize(ThreadPriority);
 
 /**
  * Wait for the given thread to finish and clean up its resources.
