@@ -742,11 +742,16 @@ static u32 nav_region_occupants(
 }
 
 /**
- * Compute a force to move an occupant to be at least radius away from any blockers in the region.
+ * Compute a force that pushes away from any blockers in the region.
  * NOTE: Behavior is undefined if the position is fully inside a blocked cell.
  */
-static GeoVector nav_separate_from_blockers(
-    const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos, const f32 radius) {
+static GeoVector
+nav_separate_from_blockers(const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos) {
+  // NOTE: Not quite half a cell size to leave some room for inaccuracies.
+  static const f32 g_reqCellSizeFrac = 0.45f;
+
+  const f32 reqDist    = grid->cellSize * g_reqCellSizeFrac;
+  const f32 reqDistSqr = reqDist * reqDist;
 
   GeoVector result = {0};
   for (u16 y = reg.min.y; y != reg.max.y; ++y) {
@@ -757,11 +762,11 @@ static GeoVector nav_separate_from_blockers(
         continue; // Cell not blocked.
       }
       const f32 distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
-      if (distToEdgeSqr >= (radius * radius)) {
+      if (distToEdgeSqr >= reqDistSqr) {
         continue; // Far enough away.
       }
       const f32       distToEdge = intrinsic_sqrt_f32(distToEdgeSqr);
-      const f32       overlap    = radius - distToEdge;
+      const f32       overlap    = reqDist - distToEdge;
       const GeoVector cellPos    = nav_cell_pos_no_y(grid, cell);
       const GeoVector sepDir     = geo_vector_norm(geo_vector_xz(geo_vector_sub(pos, cellPos)));
       result                     = geo_vector_add(result, geo_vector_mul(sepDir, overlap));
@@ -1589,9 +1594,7 @@ void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
   grid->occupantCount = 0;
 }
 
-GeoVector
-geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos, const f32 radius) {
-  diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
+GeoVector geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos) {
   const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
@@ -1603,7 +1606,7 @@ geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos, cons
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
-  return nav_separate_from_blockers(grid, region, pos, radius);
+  return nav_separate_from_blockers(grid, region, pos);
 }
 
 GeoVector geo_nav_separate_from_occupants(

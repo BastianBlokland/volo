@@ -465,7 +465,7 @@ nav_goal_pos(const GeoNavGrid* grid, const GeoNavCell fromCell, const GeoVector 
      * Because we navigate until the agent's center is at the position we need to make sure the
      * target position is not too close to a blocker to reach.
      */
-    const GeoVector offset = geo_nav_separate_from_blockers(grid, targetPos, 0.45f);
+    const GeoVector offset = geo_nav_separate_from_blockers(grid, targetPos);
     return (SceneNavGoal){.cell = targetCell, .position = geo_vector_add(targetPos, offset)};
   }
   const GeoNavCell reachableCell = geo_nav_closest_reachable(grid, fromCell, targetCell);

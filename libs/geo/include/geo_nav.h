@@ -140,7 +140,7 @@ void geo_nav_occupant_remove_all(GeoNavGrid*);
 /**
  * Compute a force to separate from blockers.
  */
-GeoVector geo_nav_separate_from_blockers(const GeoNavGrid*, GeoVector pos, f32 radius);
+GeoVector geo_nav_separate_from_blockers(const GeoNavGrid*, GeoVector pos);
 
 /**
  * Compute a force to separate from occupants.
