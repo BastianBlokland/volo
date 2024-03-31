@@ -177,6 +177,12 @@ void thread_pal_join(const ThreadHandle thread) {
 }
 
 void thread_pal_yield() {
+  /**
+   * Because we are running under the normal time sharing scheduler ('SCHED_OTHER') the utility of
+   * this is questionable and we should probably revisit the usages of this api.
+   *
+   * Docs: https://man7.org/linux/man-pages/man2/sched_yield.2.html
+   */
   const int res = sched_yield();
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("sched_yield() failed: {}", fmt_int(res));
