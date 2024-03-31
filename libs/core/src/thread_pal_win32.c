@@ -35,13 +35,25 @@ static int thread_desired_prio_value(const ThreadPriority prio) {
 }
 
 void thread_pal_init() {
-  if (timeBeginPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR) {
+#ifdef VOLO_FAST
+  /**
+   * When running an optimized build we assume the user wants to give additional priority to the
+   * process. We might want to make this customizable in the future.
+   * NOTE: Do not raise the priority higher then this to avoid interfering with system functions.
+   */
+  const HANDLE curProcess = GetCurrentProcess();
+  if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
+    diag_crash_msg("SetPriorityClass() failed");
+  }
+#endif
+
+  if (UNLIKELY(timeBeginPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR)) {
     diag_assert_fail("Failed to set win32 scheduling interval");
   }
 }
 
 void thread_pal_teardown() {
-  if (timeEndPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR) {
+  if (UNLIKELY(timeEndPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR)) {
     diag_assert_fail("Failed to restore win32 scheduling interval");
   }
 }
