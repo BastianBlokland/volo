@@ -128,7 +128,7 @@ typedef enum {
  *
  * Pre-condition: threadName.size <= 15
  */
-ThreadHandle thread_start(ThreadRoutine, void* data, String threadName);
+ThreadHandle thread_start(ThreadRoutine, void* data, String threadName, ThreadPriority);
 
 /**
  * Set the priority of the current thread.
