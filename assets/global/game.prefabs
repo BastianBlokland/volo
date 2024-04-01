@@ -313,7 +313,7 @@
           "$type": "AssetPrefabTrait_Movement",
           "speed": 5.0,
           "rotationSpeed": 65,
-          "radius": 1.4,
+          "radius": 2.25,
           "weight": 1000.0,
           "moveAnimation": "move",
           "navLayer": "Large",
