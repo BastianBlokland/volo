@@ -284,29 +284,30 @@ typedef struct {
   GeoNavMapFlags flags;
 } GeoNavMapResult;
 
-INLINE_HINT static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos) {
-  GeoVector localPos = geo_vector_round_nearest(
-      geo_vector_mul(geo_vector_sub(pos, grid->cellOffset), grid->cellDensity));
+INLINE_HINT static GeoNavMapResult nav_cell_map_local(const GeoNavGrid* grid, GeoVector local) {
+  local = geo_vector_round_nearest(local);
 
   GeoNavMapFlags flags = 0;
-  if (UNLIKELY(nav_cell_clamp_axis(grid, &localPos.x))) {
+  if (UNLIKELY(nav_cell_clamp_axis(grid, &local.x))) {
     flags |= GeoNavMap_ClampedX;
   }
-  if (UNLIKELY(nav_cell_clamp_axis(grid, &localPos.z))) {
+  if (UNLIKELY(nav_cell_clamp_axis(grid, &local.z))) {
     flags |= GeoNavMap_ClampedY;
   }
   return (GeoNavMapResult){
-      .cell  = {.x = (u16)localPos.x, .y = (u16)localPos.z},
+      .cell  = {.x = (u16)local.x, .y = (u16)local.z},
       .flags = flags,
   };
 }
 
-static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) {
-  // Shrink by a tiny bit to avoid blockers that are touching a cell from immediately blocking it.
-  static const GeoVector g_overlapEpsilon = {.x = 1e-4f, .z = 1e-4f};
+INLINE_HINT static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos) {
+  const GeoVector local = geo_vector_mul(geo_vector_sub(pos, grid->cellOffset), grid->cellDensity);
+  return nav_cell_map_local(grid, local);
+}
 
-  const GeoNavMapResult resMin = nav_cell_map(grid, geo_vector_add(box->min, g_overlapEpsilon));
-  GeoNavMapResult       resMax = nav_cell_map(grid, geo_vector_sub(box->max, g_overlapEpsilon));
+static GeoNavRegion nav_cell_map_box_local(const GeoNavGrid* grid, const GeoBox* localBox) {
+  const GeoNavMapResult resMin = nav_cell_map_local(grid, localBox->min);
+  GeoNavMapResult       resMax = nav_cell_map_local(grid, localBox->max);
   if (LIKELY((resMin.flags & resMax.flags & GeoNavMap_ClampedX) == 0)) {
     ++resMax.cell.x; // +1 because max is exclusive.
   }
@@ -314,6 +315,18 @@ static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) 
     ++resMax.cell.y; // +1 because max is exclusive.
   }
   return (GeoNavRegion){.min = resMin.cell, .max = resMax.cell};
+}
+
+static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) {
+  // Shrink by a tiny bit to avoid blockers that are touching a cell from immediately blocking it.
+  static const GeoVector g_overlapEpsilon = {.x = -1e-4f, .z = -1e-4f};
+
+  GeoBox localBox;
+  localBox.min = geo_vector_mul(geo_vector_sub(box->min, grid->cellOffset), grid->cellDensity);
+  localBox.max = geo_vector_mul(geo_vector_sub(box->max, grid->cellOffset), grid->cellDensity);
+  localBox     = geo_box_dilate(&localBox, g_overlapEpsilon);
+
+  return nav_cell_map_box_local(grid, &localBox);
 }
 
 static GeoNavRegion nav_cell_grow(const GeoNavGrid* grid, const GeoNavCell cell, const u16 radius) {
@@ -1289,19 +1302,20 @@ bool geo_nav_check_channel(
   const GeoVector localTo   = geo_vector_mul(geo_vector_sub(to, g->cellOffset), g->cellDensity);
   const NavLine2D localLine = nav_line_create(localFrom, localTo);
 
+  const f32          chanRadius = geo_nav_channel_radius_frac;
+  const GeoBox       chanBounds = geo_box_from_capsule(localFrom, localTo, chanRadius);
+  const GeoNavRegion chanRegion = nav_cell_map_box_local(g, &chanBounds);
+
   /**
    * Crude (conservative) estimation of a Minkowski-sum.
    * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
    * intersections too early at the corners.
    */
-  const f32 localExtent = 1.0f + geo_nav_channel_radius_frac;
+  const f32 localExtent = 1.0f + chanRadius;
 
-  const f32          channelRadius = geo_nav_channel_radius_frac * g->cellSize;
-  const GeoBox       channelBounds = geo_box_from_capsule(from, to, channelRadius);
-  const GeoNavRegion channelRegion = nav_cell_map_box(g, &channelBounds);
-  for (u32 y = channelRegion.min.y; y != channelRegion.max.y; ++y) {
-    u32 cellIndex = nav_cell_index(g, (GeoNavCell){.x = channelRegion.min.x, .y = y});
-    for (u32 x = channelRegion.min.x; x != channelRegion.max.x; ++x, ++cellIndex) {
+  for (u32 y = chanRegion.min.y; y != chanRegion.max.y; ++y) {
+    u32 cellIndex = nav_cell_index(g, (GeoNavCell){.x = chanRegion.min.x, .y = y});
+    for (u32 x = chanRegion.min.x; x != chanRegion.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
       if (!nav_pred_condition(g, &cond, cellIndex)) {
         continue; // Doesn't meet condition.
