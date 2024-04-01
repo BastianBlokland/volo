@@ -1334,10 +1334,11 @@ static void inspector_vis_draw_locomotion(
   const GeoVector pos      = transform ? transform->position : geo_vector(0);
   const f32       scaleVal = scale ? scale->scale : 1.0f;
 
-  const f32 separationMag = math_clamp_f32(math_sqrt_f32(loco->lastSeparationMagSqr), 0, 1);
+  const f32      sepThreshold = loco->radius * 0.25f;
+  const f32      sepFrac      = math_min(math_sqrt_f32(loco->lastSepMagSqr) / sepThreshold, 1.0f);
+  const GeoColor sepColor     = geo_color_lerp(geo_color_white, geo_color_red, sepFrac);
 
-  const GeoColor circleColor = geo_color_lerp(geo_color_white, geo_color_red, separationMag);
-  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, circleColor);
+  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, sepColor);
 
   if (loco->flags & SceneLocomotion_Moving) {
     debug_line(shape, pos, loco->targetPos, geo_color_yellow);

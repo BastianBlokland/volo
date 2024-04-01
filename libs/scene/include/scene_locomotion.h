@@ -13,8 +13,8 @@ ecs_comp_extern_public(SceneLocomotionComp) {
   f32                  maxSpeed;         // Meter per second.
   f32                  rotationSpeedRad; // Radians per second.
   f32                  radius, weight;
-  StringHash           moveAnimation;        // Optional: 0 to disable.
-  f32                  lastSeparationMagSqr; // Squared magnitude of last frame's separation delta.
+  StringHash           moveAnimation; // Optional: 0 to disable.
+  f32                  lastSepMagSqr; // Squared magnitude of last frame's occupant separation.
   GeoVector            targetPos;
   GeoVector            targetDir;
 };
