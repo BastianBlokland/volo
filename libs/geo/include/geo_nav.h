@@ -58,6 +58,7 @@ void geo_nav_grid_destroy(GeoNavGrid*);
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
 f32          geo_nav_size(const GeoNavGrid*);
 f32          geo_nav_cell_size(const GeoNavGrid*);
+f32          geo_nav_channel_radius(const GeoNavGrid*);
 
 /**
  * Update cell y coordinates.

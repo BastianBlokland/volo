@@ -1153,6 +1153,10 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
 f32 geo_nav_size(const GeoNavGrid* grid) { return grid->size; }
 f32 geo_nav_cell_size(const GeoNavGrid* grid) { return grid->cellSize; }
 
+f32 geo_nav_channel_radius(const GeoNavGrid* grid) {
+  return grid->cellSize * geo_nav_channel_radius_frac;
+}
+
 void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
