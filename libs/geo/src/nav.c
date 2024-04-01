@@ -226,24 +226,6 @@ static u32 nav_cell_neighbors(
   return count;
 }
 
-/**
- * Get all the occupants in the given cell index.
- * Returns the amount of occupants written to the out array.
- */
-static u32 nav_cell_occupants(
-    const GeoNavGrid*     grid,
-    const u32             cellIndex,
-    const GeoNavOccupant* out[PARAM_ARRAY_SIZE(geo_nav_occupants_per_cell)]) {
-  u32       count = 0;
-  const u32 index = cellIndex * geo_nav_occupants_per_cell;
-  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
-    if (!sentinel_check(grid->cellOccupancy[i])) {
-      out[count++] = &grid->occupants[grid->cellOccupancy[i]];
-    }
-  }
-  return count;
-}
-
 static bool nav_cell_add_occupant(GeoNavGrid* grid, const u32 cellIndex, const u16 occupantIdx) {
   const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
@@ -766,19 +748,25 @@ static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const u32 c
  * Returns the amount of occupants written to the out array.
  * NOTE: Array size should be at least 'nav_region_size(region) * geo_nav_occupants_per_cell'.
  */
-static u32 nav_region_occupants(
-    const GeoNavGrid* grid, const GeoNavRegion region, const GeoNavOccupant** out) {
-  u32 count = 0;
-  for (u16 y = region.min.y; y != region.max.y; ++y) {
-    u32       cellIndex    = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
-    const u32 cellIndexMax = cellIndex + (region.max.x - region.min.x);
-    for (; cellIndex != cellIndexMax; ++cellIndex) {
-      const u32 occupantCount = nav_cell_occupants(grid, cellIndex, out);
-      count += occupantCount;
-      out += occupantCount;
-    }
+static u32
+nav_region_occupants(const GeoNavGrid* g, const GeoNavRegion region, const GeoNavOccupant** out) {
+  const u32 occupantsHorizontal = (region.max.x - region.min.x) * geo_nav_occupants_per_cell;
+  if (!occupantsHorizontal) {
+    return 0;
   }
-  return count;
+  const GeoNavOccupant** outStart = out;
+  for (u16 y = region.min.y; y != region.max.y; ++y) {
+    const u32  cellIndex    = nav_cell_index(g, (GeoNavCell){.x = region.min.x, .y = y});
+    const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
+    const u16* occupancyEnd = occupancyItr + occupantsHorizontal;
+    do {
+      const u16 occupantIndex = *occupancyItr;
+      if (!sentinel_check(occupantIndex)) {
+        *out++ = &g->occupants[occupantIndex];
+      }
+    } while (++occupancyItr != occupancyEnd);
+  }
+  return (u32)(out - outStart);
 }
 
 /**
@@ -1659,6 +1647,8 @@ GeoVector geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
+  diag_assert(nav_region_size(region) == (3 * 3));
+
   return nav_separate_from_blockers(grid, region, pos);
 }
 
@@ -1680,6 +1670,8 @@ GeoVector geo_nav_separate_from_occupants(
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
+  diag_assert(nav_region_size(region) == (3 * 3));
+
   return nav_separate_from_occupied(grid, region, userId, pos, radius, weight);
 }
 
