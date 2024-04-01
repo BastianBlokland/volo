@@ -135,36 +135,40 @@ INLINE_HINT static bool nav_bit_test(const BitSet bits, const u32 idx) {
 }
 
 typedef struct {
-  f32 pos[2];    // XZ position.
-  f32 dirInv[2]; // 1.0 / directionX, 1.0 / directionZ.
-  f32 dist;
+  f32 x, y;
+} NavVec2D;
+
+typedef struct {
+  NavVec2D pos;    // XZ position.
+  NavVec2D dirInv; // 1.0 / directionX, 1.0 / directionZ.
+  f32      dist;
 } NavLine2D;
 
 INLINE_HINT static NavLine2D nav_line_create(const GeoVector a, const GeoVector b) {
-  const f32 delta[2] = {b.x - a.x, b.z - a.z};
-  const f32 distSqr  = delta[0] * delta[0] + delta[1] * delta[1];
-  const f32 dist     = intrinsic_sqrt_f32(distSqr);
-  const f32 dir[2]   = {delta[0] / dist, delta[1] / dist};
+  const NavVec2D delta   = {b.x - a.x, b.z - a.z};
+  const f32      distSqr = delta.x * delta.x + delta.y * delta.y;
+  const f32      dist    = intrinsic_sqrt_f32(distSqr);
+  const NavVec2D dir     = {delta.x / dist, delta.y / dist};
   return (NavLine2D){
       .pos    = {a.x, a.z},
-      .dirInv = {1.0f / dir[0], 1.0f / dir[1]},
+      .dirInv = {1.0f / dir.x, 1.0f / dir.y},
       .dist   = dist,
   };
 }
 
 typedef struct {
-  f32 pos[2]; // XZ position.
-  f32 extent; // XZ extent.
+  NavVec2D pos;    // XZ position.
+  f32      extent; // XZ extent.
 } NavRect2D;
 
 INLINE_HINT static bool nav_line_intersect_rect(const NavLine2D* l, const NavRect2D* r) {
-  const f32 min[2] = {r->pos[0] - r->extent, r->pos[1] - r->extent};
-  const f32 max[2] = {r->pos[0] + r->extent, r->pos[1] + r->extent};
+  const NavVec2D min = {r->pos.x - r->extent, r->pos.y - r->extent};
+  const NavVec2D max = {r->pos.x + r->extent, r->pos.y + r->extent};
 
-  const f32 t1 = (min[0] - l->pos[0]) * l->dirInv[0];
-  const f32 t2 = (max[0] - l->pos[0]) * l->dirInv[0];
-  const f32 t3 = (min[1] - l->pos[1]) * l->dirInv[1];
-  const f32 t4 = (max[1] - l->pos[1]) * l->dirInv[1];
+  const f32 t1 = (min.x - l->pos.x) * l->dirInv.x;
+  const f32 t2 = (max.x - l->pos.x) * l->dirInv.x;
+  const f32 t3 = (min.y - l->pos.y) * l->dirInv.y;
+  const f32 t4 = (max.y - l->pos.y) * l->dirInv.y;
 
   const f32 tMin = math_max(math_min(t1, t2), math_min(t3, t4));
   const f32 tMax = math_min(math_max(t1, t2), math_max(t3, t4));
