@@ -42,7 +42,7 @@ static bool loco_is_facing(const SceneLocomotionComp* loco, const SceneTransform
   const GeoVector curDir     = geo_quat_rotate(trans->rotation, geo_forward);
   const GeoVector curDirFlat = geo_vector_norm(geo_vector_xz(curDir));
   const f32       dirDot     = geo_vector_dot(curDirFlat, loco->targetDir);
-  return math_max(0.0f, dirDot) >= loco_face_threshold;
+  return dirDot >= loco_face_threshold;
 }
 
 static f32 loco_rot_speed(const SceneLocomotionComp* loco, const EcsEntityId e, const f32 time) {
@@ -56,29 +56,38 @@ static f32 loco_rot_speed(const SceneLocomotionComp* loco, const EcsEntityId e, 
 }
 
 static GeoVector loco_separate(
-    const SceneNavEnvComp*     navEnv,
-    const EcsEntityId          entity,
-    const SceneLocomotionComp* loco,
-    const SceneNavAgentComp*   navAgent,
-    const GeoVector            pos,
-    const f32                  scale) {
-  const u64 id     = (u64)entity;
-  const f32 radius = scene_locomotion_radius(loco, scale);
-  const f32 weight = scene_locomotion_weight(loco, scale);
+    const SceneNavEnvComp*   navEnv,
+    const EcsEntityId        entity,
+    SceneLocomotionComp*     loco,
+    const SceneNavAgentComp* navAgent,
+    const GeoVector          pos,
+    const f32                scale) {
+  static const f32 g_sepStrengthBlocker  = 25.0f;
+  static const f32 g_sepStrengthOccupant = 10.0f;
+
+  const SceneNavLayer ownLayer = navAgent ? navAgent->layer : SceneNavLayer_Normal;
+  const GeoNavGrid*   ownGrid  = scene_nav_grid(navEnv, ownLayer);
 
   GeoVector force = {0};
 
   // Separate from blockers on our own layer.
-  const SceneNavLayer ownLayer = navAgent ? navAgent->layer : SceneNavLayer_Normal;
-  const GeoNavGrid*   ownGrid  = scene_nav_grid(navEnv, ownLayer);
-  force = geo_vector_add(force, geo_nav_separate_from_blockers(ownGrid, pos, radius));
+  const GeoVector blockerSep = geo_nav_separate_from_blockers(ownGrid, pos);
+  force = geo_vector_add(force, geo_vector_mul(blockerSep, g_sepStrengthBlocker));
 
-  // Separate from nav occupants on all layers.
-  for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
-    const GeoNavGrid* grid        = scene_nav_grid(navEnv, layer);
-    const GeoVector occupantForce = geo_nav_separate_from_occupants(grid, id, pos, radius, weight);
-    force                         = geo_vector_add(force, occupantForce);
+  // Separate from nav occupants on our and bigger layers.
+  const u64 id          = (u64)entity;
+  const f32 radius      = scene_locomotion_radius(loco, scale);
+  const f32 weight      = scene_locomotion_weight(loco, scale);
+  GeoVector occupantSep = {0};
+  for (SceneNavLayer layer = ownLayer; layer != SceneNavLayer_Count; ++layer) {
+    const GeoNavGrid* grid     = scene_nav_grid(navEnv, layer);
+    const GeoVector   layerSep = geo_nav_separate_from_occupants(grid, id, pos, radius, weight);
+    occupantSep                = geo_vector_add(occupantSep, layerSep);
   }
+  force = geo_vector_add(force, geo_vector_mul(occupantSep, g_sepStrengthOccupant));
+
+  // For debug purposes save the last occupant separation.
+  loco->lastSepMagSqr = geo_vector_mag_sqr(occupantSep);
 
   return force;
 }
@@ -170,7 +179,6 @@ ecs_system_define(SceneLocomotionMoveSys) {
        */
       const GeoVector force = loco_separate(navEnv, entity, loco, navAgent, trans->position, scale);
       posDelta              = geo_vector_add(posDelta, geo_vector_mul(force, dt));
-      loco->lastSeparationMagSqr = geo_vector_mag_sqr(force);
     }
 
     const f32 posDeltaMag = geo_vector_mag(posDelta);

@@ -240,7 +240,7 @@
             "scripts/behavior/unit_promotion.script"
           ],
           "knowledge": [
-            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.3 },
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.75 },
             { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true },
             { "$type": "AssetPrefabValue_Number", "$name": "cfgLosRadius", "$data": 0.2 }
           ]
@@ -313,7 +313,7 @@
           "$type": "AssetPrefabTrait_Movement",
           "speed": 5.0,
           "rotationSpeed": 65,
-          "radius": 1.4,
+          "radius": 2.25,
           "weight": 1000.0,
           "moveAnimation": "move",
           "navLayer": "Large",

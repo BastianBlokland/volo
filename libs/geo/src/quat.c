@@ -346,13 +346,8 @@ GeoQuat geo_quat_to_twist(const GeoQuat q, const GeoVector twistAxis) {
 #ifndef VOLO_FAST
   assert_normalized(twistAxis);
 #endif
-  static const f32 g_twistEpsilon = 1e-9f;
-
   const GeoVector qAxis = geo_vector(q.x, q.y, q.z);
-  if (geo_vector_mag_sqr(qAxis) < g_twistEpsilon) {
-    return geo_quat_angle_axis(math_pi_f32, twistAxis);
-  }
-  const GeoVector p = geo_vector_project(qAxis, twistAxis);
+  const GeoVector p     = geo_vector_project(qAxis, twistAxis);
   return geo_quat_norm_or_ident((GeoQuat){.x = p.x, .y = p.y, .z = p.z, .w = q.w});
 }
 

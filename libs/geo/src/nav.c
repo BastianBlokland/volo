@@ -22,13 +22,14 @@
 #define geo_nav_path_queue_size 1024
 #define geo_nav_path_iterations_max 10000
 #define geo_nav_path_chebyshev_heuristic true
+#define geo_nav_channel_radius_frac 0.4f
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
 ASSERT((geo_nav_blockers_max & (geo_nav_blockers_max - 1u)) == 0, "Has to be a pow2");
 ASSERT((geo_nav_blocker_max_cells & (geo_nav_blocker_max_cells - 1u)) == 0, "Has to be a pow2");
 
-typedef bool (*NavCellPredicate)(const GeoNavGrid*, const void* ctx, GeoNavCell);
+typedef bool (*NavCellPredicate)(const GeoNavGrid*, const void* ctx, u32 cellIndex);
 
 typedef struct {
   u64                 userId;
@@ -194,8 +195,8 @@ INLINE_HINT static bool nav_cell_clamp_axis(const GeoNavGrid* grid, f32* value) 
   return false;
 }
 
-INLINE_HINT static GeoNavIsland nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return grid->cellIslands[nav_cell_index(grid, cell)];
+INLINE_HINT static GeoNavIsland nav_island(const GeoNavGrid* grid, const u32 cellIndex) {
+  return grid->cellIslands[cellIndex];
 }
 
 static Mem nav_occupancy_mem(GeoNavGrid* grid) {
@@ -222,15 +223,15 @@ static u32 nav_cell_neighbors(
 }
 
 /**
- * Get all the occupants in the given cell.
+ * Get all the occupants in the given cell index.
  * Returns the amount of occupants written to the out array.
  */
 static u32 nav_cell_occupants(
     const GeoNavGrid*     grid,
-    const GeoNavCell      cell,
+    const u32             cellIndex,
     const GeoNavOccupant* out[PARAM_ARRAY_SIZE(geo_nav_occupants_per_cell)]) {
   u32       count = 0;
-  const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+  const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (!sentinel_check(grid->cellOccupancy[i])) {
       out[count++] = &grid->occupants[grid->cellOccupancy[i]];
@@ -239,8 +240,8 @@ static u32 nav_cell_occupants(
   return count;
 }
 
-static bool nav_cell_add_occupant(GeoNavGrid* grid, const GeoNavCell cell, const u16 occupantIdx) {
-  const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+static bool nav_cell_add_occupant(GeoNavGrid* grid, const u32 cellIndex, const u16 occupantIdx) {
+  const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (sentinel_check(grid->cellOccupancy[i])) {
       grid->cellOccupancy[i] = occupantIdx;
@@ -598,8 +599,9 @@ static u32 nav_find(
   while (queueStart != queueEnd) {
     ++s->stats[GeoNavStat_FindItrCells]; // Track total amount of find iterations.
 
-    const GeoNavCell cell = queue[queueStart++];
-    if (predicate(grid, ctx, cell)) {
+    const GeoNavCell cell      = queue[queueStart++];
+    const u32        cellIndex = nav_cell_index(grid, cell);
+    if (predicate(grid, ctx, cellIndex)) {
       out.cells[outCount++] = cell;
       if (outCount == out.capacity) {
         return outCount; // Filed the entire output.
@@ -632,19 +634,19 @@ static u32 nav_find(
   return outCount;
 }
 
-static bool nav_pred_blocked(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_blocked(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
-  return g->cellBlockerCount[nav_cell_index(g, cell)] != 0;
+  return g->cellBlockerCount[cellIndex] != 0;
 }
 
-static bool nav_pred_unblocked(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_unblocked(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
-  return g->cellBlockerCount[nav_cell_index(g, cell)] == 0;
+  return g->cellBlockerCount[cellIndex] == 0;
 }
 
-static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
-  const u32 index = nav_cell_index(g, cell) * geo_nav_occupants_per_cell;
+  const u32 index = cellIndex * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (!sentinel_check(g->cellOccupancy[i])) {
       return true;
@@ -654,10 +656,10 @@ static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const GeoNav
 }
 
 static bool
-nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cellIndex, occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
       return true;
@@ -666,10 +668,10 @@ nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const GeoNavC
   return false;
 }
 
-static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cellIndex, occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (occupants[i]->flags & GeoNavOccupantFlags_Moving) {
       return true;
@@ -678,16 +680,16 @@ static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const
   return false;
 }
 
-static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
   /**
    * Test if the cell is not blocked and has no stationary occupant.
    */
-  if (g->cellBlockerCount[nav_cell_index(g, cell)]) {
+  if (g->cellBlockerCount[cellIndex]) {
     return false;
   }
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cellIndex, occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
       return false;
@@ -696,30 +698,30 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell
   return true;
 }
 
-static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   const GeoNavCond* cond = ctx;
   switch (*cond) {
   case GeoNavCond_Blocked:
-    return nav_pred_blocked(g, null, cell);
+    return nav_pred_blocked(g, null, cellIndex);
   case GeoNavCond_Unblocked:
-    return nav_pred_unblocked(g, null, cell);
+    return nav_pred_unblocked(g, null, cellIndex);
   case GeoNavCond_Occupied:
-    return nav_pred_occupied(g, null, cell);
+    return nav_pred_occupied(g, null, cellIndex);
   case GeoNavCond_OccupiedStationary:
-    return nav_pred_occupied_stationary(g, null, cell);
+    return nav_pred_occupied_stationary(g, null, cellIndex);
   case GeoNavCond_OccupiedMoving:
-    return nav_pred_occupied_moving(g, null, cell);
+    return nav_pred_occupied_moving(g, null, cellIndex);
   case GeoNavCond_Free:
-    return nav_pred_free(g, null, cell);
+    return nav_pred_free(g, null, cellIndex);
   case GeoNavCond_NonFree:
-    return !nav_pred_free(g, null, cell);
+    return !nav_pred_free(g, null, cellIndex);
   }
   UNREACHABLE
 }
 
-static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   const GeoNavIsland* refIsland = ctx;
-  return g->cellIslands[nav_cell_index(g, cell)] == *refIsland;
+  return g->cellIslands[cellIndex] == *refIsland;
 }
 
 /**
@@ -731,9 +733,10 @@ static u32 nav_region_occupants(
     const GeoNavGrid* grid, const GeoNavRegion region, const GeoNavOccupant** out) {
   u32 count = 0;
   for (u16 y = region.min.y; y != region.max.y; ++y) {
-    for (u16 x = region.min.x; x != region.max.x; ++x) {
-      const GeoNavCell cell          = {.x = x, .y = y};
-      const u32        occupantCount = nav_cell_occupants(grid, cell, out);
+    u32       cellIndex    = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    const u32 cellIndexMax = cellIndex + (region.max.x - region.min.x);
+    for (; cellIndex != cellIndexMax; ++cellIndex) {
+      const u32 occupantCount = nav_cell_occupants(grid, cellIndex, out);
       count += occupantCount;
       out += occupantCount;
     }
@@ -742,37 +745,38 @@ static u32 nav_region_occupants(
 }
 
 /**
- * Compute a force to move an occupant to be at least radius away from any blockers in the region.
+ * Compute a vector that pushes away from any blockers in the region.
  * NOTE: Behavior is undefined if the position is fully inside a blocked cell.
  */
-static GeoVector nav_separate_from_blockers(
-    const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos, const f32 radius) {
-  static const f32 g_strength = 25.0f;
+static GeoVector
+nav_separate_from_blockers(const GeoNavGrid* grid, const GeoNavRegion reg, const GeoVector pos) {
+  const f32 reqDist    = grid->cellSize * geo_nav_channel_radius_frac;
+  const f32 reqDistSqr = reqDist * reqDist;
 
   GeoVector result = {0};
   for (u16 y = reg.min.y; y != reg.max.y; ++y) {
-    for (u16 x = reg.min.x; x != reg.max.x; ++x) {
-      const GeoNavCell cell = {.x = x, .y = y};
-      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      if (!nav_pred_blocked(grid, null, cell)) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = reg.min.x, .y = y});
+    for (u16 x = reg.min.x; x != reg.max.x; ++x, ++cellIndex) {
+      if (grid->cellBlockerCount[cellIndex] == 0) {
         continue; // Cell not blocked.
       }
-      const f32 distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
-      if (distToEdgeSqr >= (radius * radius)) {
+      const GeoNavCell cell          = {.x = x, .y = y};
+      const f32        distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
+      if (distToEdgeSqr >= reqDistSqr) {
         continue; // Far enough away.
       }
       const f32       distToEdge = intrinsic_sqrt_f32(distToEdgeSqr);
-      const f32       overlap    = radius - distToEdge;
+      const f32       overlap    = reqDist - distToEdge;
       const GeoVector cellPos    = nav_cell_pos_no_y(grid, cell);
       const GeoVector sepDir     = geo_vector_norm(geo_vector_xz(geo_vector_sub(pos, cellPos)));
-      result = geo_vector_add(result, geo_vector_mul(sepDir, overlap * g_strength));
+      result                     = geo_vector_add(result, geo_vector_mul(sepDir, overlap));
     }
   }
   return result;
 }
 
 /**
- * Compute a force to move an occupant to be at least radius away any other occupant.
+ * Compute a vector to move an occupant to be at least radius away any other occupant.
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  * Pre-condition: nav_region_size(region) <= 9.
  */
@@ -785,8 +789,6 @@ static GeoVector nav_separate_from_occupied(
     const f32          weight) {
   const GeoNavOccupant* occupants[(3 * 3) * geo_nav_occupants_per_cell];
   diag_assert((nav_region_size(region) * geo_nav_occupants_per_cell) <= array_elems(occupants));
-
-  static const f32 g_strength = 10.0f;
 
   const u32 occupantCount = nav_region_occupants(grid, region, occupants);
 
@@ -816,28 +818,21 @@ static GeoVector nav_separate_from_occupied(
 
     // NOTE: Times 0.5 because both occupants are expected to move.
     // NOTE: sepStrength will be negative to push away instead of towards.
-    const f32 sepStrength = (dist - sepDist) * 0.5f * relWeight * g_strength;
+    const f32 sepStrength = (dist - sepDist) * 0.5f * relWeight;
     result                = geo_vector_add(result, geo_vector_mul(sepDir, sepStrength));
   }
   result.y = 0; // Zero out any movement out of the grid's plane.
   return result;
 }
 
-static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
-#ifndef VOLO_FAST
-  const u32 index = nav_cell_index(grid, cell);
-  diag_assert_msg(grid->cellBlockerCount[index] != u8_max, "Cell blocked count exceeds max");
-#endif
-
-  ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
+INLINE_HINT static void nav_cell_block(GeoNavGrid* grid, const u32 cellIndex) {
+  diag_assert_msg(grid->cellBlockerCount[cellIndex] != u8_max, "Cell blocked count exceeds max");
+  ++grid->cellBlockerCount[cellIndex];
 }
 
-static bool nav_cell_unblock(GeoNavGrid* grid, const GeoNavCell cell) {
-  const u32 index = nav_cell_index(grid, cell);
-  diag_assert_msg(grid->cellBlockerCount[index], "Cell not currently blocked");
-
-  --grid->cellBlockerCount[index];
-  return grid->cellBlockerCount[index] == 0;
+INLINE_HINT static bool nav_cell_unblock(GeoNavGrid* grid, const u32 cellIndex) {
+  diag_assert_msg(grid->cellBlockerCount[cellIndex], "Cell not currently blocked");
+  return --grid->cellBlockerCount[cellIndex] == 0;
 }
 
 static u32 nav_blocker_count(GeoNavGrid* grid) {
@@ -865,9 +860,10 @@ static bool nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerI
 
   u32 indexInRegion = 0;
   for (u16 y = region.min.y; y != region.max.y; ++y) {
-    for (u16 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u16 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       if (nav_bit_test(blockedInRegion, indexInRegion)) {
-        anyBecameUnblocked |= nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
+        anyBecameUnblocked |= nav_cell_unblock(grid, cellIndex);
       }
       ++indexInRegion;
     }
@@ -919,7 +915,8 @@ static GeoNavCell nav_blocker_closest_reachable(
   const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
   const GeoNavRegion   region          = blocker->region;
   const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  const GeoNavIsland   fromIsland      = nav_island(grid, from);
+  const u32            fromCellIndex   = nav_cell_index(grid, from);
+  const GeoNavIsland   fromIsland      = nav_island(grid, fromCellIndex);
 
   GeoNavCell bestCell      = from;
   u16        bestCost      = u16_max;
@@ -1156,6 +1153,10 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
 f32 geo_nav_size(const GeoNavGrid* grid) { return grid->size; }
 f32 geo_nav_cell_size(const GeoNavGrid* grid) { return grid->cellSize; }
 
+f32 geo_nav_channel_radius(const GeoNavGrid* grid) {
+  return grid->cellSize * geo_nav_channel_radius_frac;
+}
+
 void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
@@ -1168,9 +1169,9 @@ void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
 
   // Updated blocked state.
   if (wasBlocked && !shouldBlock) {
-    nav_cell_unblock(grid, cell);
+    nav_cell_unblock(grid, cellIndex);
   } else if (!wasBlocked && shouldBlock) {
-    nav_cell_block(grid, cell);
+    nav_cell_block(grid, cellIndex);
   }
 }
 
@@ -1216,19 +1217,26 @@ GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
 
 GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_island(grid, cell);
+
+  const u32 cellIndex = nav_cell_index(grid, cell);
+
+  return nav_island(grid, cellIndex);
 }
 
 bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  return nav_island(grid, from) == nav_island(grid, to);
+  const u32 fromCellIndex = nav_cell_index(grid, from);
+  const u32 toCellIndex   = nav_cell_index(grid, to);
+
+  return nav_island(grid, fromCellIndex) == nav_island(grid, toCellIndex);
 }
 
 bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_pred_condition(grid, &cond, cell);
+  const u32 cellIndex = nav_cell_index(grid, cell);
+  return nav_pred_condition(grid, &cond, cellIndex);
 }
 
 bool geo_nav_check_box_rotated(
@@ -1236,9 +1244,10 @@ bool geo_nav_check_box_rotated(
   const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_condition(grid, &cond, cell)) {
+      if (!nav_pred_condition(grid, &cond, cellIndex)) {
         continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
@@ -1255,9 +1264,10 @@ bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const
   const GeoBox       bounds = geo_box_from_sphere(sphere->point, sphere->radius);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_condition(grid, &cond, cell)) {
+      if (!nav_pred_condition(grid, &cond, cellIndex)) {
         continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
@@ -1270,12 +1280,8 @@ bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const
   return false;
 }
 
-bool geo_nav_check_line_flat(
-    const GeoNavGrid* g,
-    const GeoVector   from,
-    const GeoVector   to,
-    const f32         radius,
-    const GeoNavCond  cond) {
+bool geo_nav_check_channel(
+    const GeoNavGrid* g, const GeoVector from, const GeoVector to, const GeoNavCond cond) {
 
   ++nav_worker_state(g)->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
 
@@ -1288,14 +1294,16 @@ bool geo_nav_check_line_flat(
    * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
    * intersections too early at the corners.
    */
-  const f32 localExtent = 1.0f + radius * g->cellDensity;
+  const f32 localExtent = 1.0f + geo_nav_channel_radius_frac;
 
-  const GeoBox       bounds = geo_box_from_capsule(from, to, radius);
-  const GeoNavRegion region = nav_cell_map_box(g, &bounds);
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+  const f32          channelRadius = geo_nav_channel_radius_frac * g->cellSize;
+  const GeoBox       channelBounds = geo_box_from_capsule(from, to, channelRadius);
+  const GeoNavRegion channelRegion = nav_cell_map_box(g, &channelBounds);
+  for (u32 y = channelRegion.min.y; y != channelRegion.max.y; ++y) {
+    u32 cellIndex = nav_cell_index(g, (GeoNavCell){.x = channelRegion.min.x, .y = y});
+    for (u32 x = channelRegion.min.x; x != channelRegion.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_condition(g, &cond, cell)) {
+      if (!nav_pred_condition(g, &cond, cellIndex)) {
         continue; // Doesn't meet condition.
       }
       const NavRect2D cellRect = {.pos = {(f32)cell.x, (f32)cell.y}, .extent = localExtent};
@@ -1336,8 +1344,9 @@ geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const G
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  GeoNavWorkerState*  s          = nav_worker_state(grid);
-  const GeoNavIsland  fromIsland = nav_island(grid, from);
+  GeoNavWorkerState*  s             = nav_worker_state(grid);
+  const u32           fromCellIndex = nav_cell_index(grid, from);
+  const GeoNavIsland  fromIsland    = nav_island(grid, fromCellIndex);
   GeoNavCell          res[1];
   GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
   if (nav_find(grid, s, &fromIsland, to, nav_pred_reachable, container)) {
@@ -1354,10 +1363,13 @@ u32 geo_nav_path(
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  if (nav_pred_blocked(grid, null, from)) {
+  const u32 fromCellIndex = nav_cell_index(grid, from);
+  const u32 toCellIndex   = nav_cell_index(grid, to);
+
+  if (nav_pred_blocked(grid, null, fromCellIndex)) {
     return 0; // From cell is blocked; no path possible.
   }
-  if (nav_island(grid, from) != nav_island(grid, to)) {
+  if (nav_island(grid, fromCellIndex) != nav_island(grid, toCellIndex)) {
     return 0; // Cells are on different islands; no path possible.
   }
 
@@ -1395,12 +1407,11 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
 
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
-      const GeoNavCell cell = {.x = x, .y = y};
-      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      const f32 cellY = grid->cellY[nav_cell_index(grid, cell)];
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u16 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
+      const f32 cellY = grid->cellY[cellIndex];
       if (box->max.y > cellY && box->min.y < (cellY + grid->cellHeight)) {
-        nav_cell_block(grid, cell);
+        nav_cell_block(grid, cellIndex);
         nav_bit_set(blockedInRegion, indexInRegion);
       }
       ++indexInRegion;
@@ -1433,11 +1444,12 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
 
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
-        nav_cell_block(grid, cell);
+        nav_cell_block(grid, cellIndex);
         nav_bit_set(blockedInRegion, indexInRegion);
       }
       ++indexInRegion;
@@ -1470,11 +1482,12 @@ geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* 
 
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_sphere_overlap_box(sphere, &cellBox)) {
-        nav_cell_block(grid, cell);
+        nav_cell_block(grid, cellIndex);
         nav_bit_set(blockedInRegion, indexInRegion);
       }
       ++indexInRegion;
@@ -1516,7 +1529,8 @@ bool geo_nav_blocker_reachable(
   if (sentinel_check(blockerId)) {
     return false; // Blocker was never actually added; not reachable.
   }
-  const GeoNavIsland island = nav_island(grid, from);
+  const u32          fromCellIndex = nav_cell_index(grid, from);
+  const GeoNavIsland island        = nav_island(grid, fromCellIndex);
   if (island == geo_nav_island_blocked) {
     return false; // From cell is blocked; not reachable.
   }
@@ -1533,7 +1547,8 @@ GeoNavCell geo_nav_blocker_closest(
   if (sentinel_check(blockerId)) {
     return from; // Blocker was never actually added; not reachable.
   }
-  if (nav_island(grid, from) == geo_nav_island_blocked) {
+  const u32 fromCellIndex = nav_cell_index(grid, from);
+  if (nav_island(grid, fromCellIndex) == geo_nav_island_blocked) {
     return from; // Origin position is blocked.
   }
 
@@ -1584,7 +1599,8 @@ void geo_nav_occupant_add(
       .flags  = flags,
       .pos    = {pos.x, pos.z},
   };
-  nav_cell_add_occupant(grid, mapRes.cell, occupantIndex);
+  const u32 cellIndex = nav_cell_index(grid, mapRes.cell);
+  nav_cell_add_occupant(grid, cellIndex, occupantIndex);
 }
 
 void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
@@ -1592,23 +1608,20 @@ void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
   grid->occupantCount = 0;
 }
 
-GeoVector
-geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos, const f32 radius) {
-  diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
+GeoVector geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector pos) {
   const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
   }
-  if (nav_pred_blocked(grid, null, mapRes.cell)) {
+  const u32 cellIndex = nav_cell_index(grid, mapRes.cell);
+  if (nav_pred_blocked(grid, null, cellIndex)) {
     // Position is currently in a blocked cell; push it into the closest unblocked cell.
-    static const f32 g_unblockSepStrength = 25.0f;
     const GeoNavCell closestUnblocked = geo_nav_closest(grid, mapRes.cell, GeoNavCond_Unblocked);
-    const GeoVector  toUnblocked      = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
-    return geo_vector_mul(toUnblocked, g_unblockSepStrength);
+    return geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
-  return nav_separate_from_blockers(grid, region, pos, radius);
+  return nav_separate_from_blockers(grid, region, pos);
 }
 
 GeoVector geo_nav_separate_from_occupants(
@@ -1623,7 +1636,8 @@ GeoVector geo_nav_separate_from_occupants(
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
   }
-  if (nav_pred_blocked(grid, null, mapRes.cell)) {
+  const u32 cellIndex = nav_cell_index(grid, mapRes.cell);
+  if (nav_pred_blocked(grid, null, cellIndex)) {
     return geo_vector(0); // Position on the blocked cell.
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.

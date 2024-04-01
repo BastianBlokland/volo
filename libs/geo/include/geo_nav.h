@@ -58,6 +58,7 @@ void geo_nav_grid_destroy(GeoNavGrid*);
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
 f32          geo_nav_size(const GeoNavGrid*);
 f32          geo_nav_cell_size(const GeoNavGrid*);
+f32          geo_nav_channel_radius(const GeoNavGrid*);
 
 /**
  * Update cell y coordinates.
@@ -88,8 +89,7 @@ bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to
 bool geo_nav_check(const GeoNavGrid*, GeoNavCell, GeoNavCond);
 bool geo_nav_check_box_rotated(const GeoNavGrid*, const GeoBoxRotated*, GeoNavCond);
 bool geo_nav_check_sphere(const GeoNavGrid*, const GeoSphere*, GeoNavCond);
-bool geo_nav_check_line_flat(
-    const GeoNavGrid*, GeoVector from, GeoVector to, f32 radius, GeoNavCond);
+bool geo_nav_check_channel(const GeoNavGrid*, GeoVector from, GeoVector to, GeoNavCond);
 
 GeoNavCell geo_nav_closest(const GeoNavGrid*, GeoNavCell, GeoNavCond);
 u32        geo_nav_closest_n(const GeoNavGrid*, GeoNavCell, GeoNavCond, GeoNavCellContainer);
@@ -140,7 +140,7 @@ void geo_nav_occupant_remove_all(GeoNavGrid*);
 /**
  * Compute a force to separate from blockers.
  */
-GeoVector geo_nav_separate_from_blockers(const GeoNavGrid*, GeoVector pos, f32 radius);
+GeoVector geo_nav_separate_from_blockers(const GeoNavGrid*, GeoVector pos);
 
 /**
  * Compute a force to separate from occupants.

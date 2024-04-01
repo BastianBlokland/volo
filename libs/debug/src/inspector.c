@@ -1334,10 +1334,11 @@ static void inspector_vis_draw_locomotion(
   const GeoVector pos      = transform ? transform->position : geo_vector(0);
   const f32       scaleVal = scale ? scale->scale : 1.0f;
 
-  const f32 separationMag = math_clamp_f32(math_sqrt_f32(loco->lastSeparationMagSqr), 0, 1);
+  const f32      sepThreshold = loco->radius * 0.25f;
+  const f32      sepFrac      = math_min(math_sqrt_f32(loco->lastSepMagSqr) / sepThreshold, 1.0f);
+  const GeoColor sepColor     = geo_color_lerp(geo_color_white, geo_color_red, sepFrac);
 
-  const GeoColor circleColor = geo_color_lerp(geo_color_white, geo_color_red, separationMag);
-  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, circleColor);
+  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, sepColor);
 
   if (loco->flags & SceneLocomotion_Moving) {
     debug_line(shape, pos, loco->targetPos, geo_color_yellow);
@@ -1416,10 +1417,11 @@ static void inspector_vis_draw_bounds_global(
 }
 
 static void inspector_vis_draw_navigation_path(
-    DebugShapeComp*          shape,
-    const SceneNavEnvComp*   nav,
-    const SceneNavAgentComp* agent,
-    const SceneNavPathComp*  path) {
+    DebugShapeComp*           shape,
+    const SceneNavEnvComp*    nav,
+    const SceneNavAgentComp*  agent,
+    const SceneNavPathComp*   path,
+    const SceneTransformComp* transform) {
   const GeoNavGrid* grid = scene_nav_grid(nav, path->layer);
   for (u32 i = 1; i < path->cellCount; ++i) {
     const GeoVector posA = geo_nav_position(grid, path->cells[i - 1]);
@@ -1428,6 +1430,9 @@ static void inspector_vis_draw_navigation_path(
   }
   if (agent->flags & SceneNavAgent_Traveling) {
     debug_sphere(shape, agent->targetPos, 0.1f, geo_color_blue, DebugShape_Overlay);
+
+    const f32 channelRadius = geo_nav_channel_radius(grid);
+    debug_circle(shape, transform->position, geo_quat_up_to_forward, channelRadius, geo_color_blue);
   }
 }
 
@@ -1645,7 +1650,7 @@ static void inspector_vis_draw_subject(
     }
   }
   if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
-    inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
+    inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp, transformComp);
   }
   if (lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
     inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
