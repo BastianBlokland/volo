@@ -169,7 +169,7 @@ typedef enum {
   GeoNavStat_FindCount,
   GeoNavStat_FindItrCells,
   GeoNavStat_FindItrEnqueues,
-  GeoNavStat_LineQueryCount,
+  GeoNavStat_ChannelQueries,
   GeoNavStat_BlockerReachableQueries,
   GeoNavStat_BlockerClosestQueries,
   GeoNavStat_GridDataSize,

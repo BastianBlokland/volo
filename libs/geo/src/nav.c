@@ -1283,7 +1283,7 @@ bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const
 bool geo_nav_check_channel(
     const GeoNavGrid* g, const GeoVector from, const GeoVector to, const GeoNavCond cond) {
 
-  ++nav_worker_state(g)->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
+  ++nav_worker_state(g)->stats[GeoNavStat_ChannelQueries]; // Track the amount of channel checks.
 
   const GeoVector localFrom = geo_vector_mul(geo_vector_sub(from, g->cellOffset), g->cellDensity);
   const GeoVector localTo   = geo_vector_mul(geo_vector_sub(to, g->cellOffset), g->cellDensity);
