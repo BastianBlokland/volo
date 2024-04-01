@@ -745,7 +745,7 @@ static u32 nav_region_occupants(
 }
 
 /**
- * Compute a force that pushes away from any blockers in the region.
+ * Compute a vector that pushes away from any blockers in the region.
  * NOTE: Behavior is undefined if the position is fully inside a blocked cell.
  */
 static GeoVector
@@ -776,7 +776,7 @@ nav_separate_from_blockers(const GeoNavGrid* grid, const GeoNavRegion reg, const
 }
 
 /**
- * Compute a force to move an occupant to be at least radius away any other occupant.
+ * Compute a vector to move an occupant to be at least radius away any other occupant.
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  * Pre-condition: nav_region_size(region) <= 9.
  */
