@@ -516,7 +516,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_PathItrCells]), fmt_int(navStats[GeoNavStat_PathItrEnqueues])));
     stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_FindCount])));
     stats_draw_val_entry(canvas, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_FindItrCells]), fmt_int(navStats[GeoNavStat_FindItrEnqueues])));
-    stats_draw_val_entry(canvas, string_lit("Line query count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_LineQueryCount])));
+    stats_draw_val_entry(canvas, string_lit("Channel queries"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_ChannelQueries])));
     stats_draw_val_entry(canvas, string_lit("Blocker reachable"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerReachableQueries])));
     stats_draw_val_entry(canvas, string_lit("Blocker closest"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerClosestQueries])));
   }
