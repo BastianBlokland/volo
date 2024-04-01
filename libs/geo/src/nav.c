@@ -226,14 +226,16 @@ static u32 nav_cell_neighbors(
   return count;
 }
 
-static bool nav_cell_add_occupant(GeoNavGrid* grid, const u32 cellIndex, const u16 occupantIdx) {
-  const u32 index = cellIndex * geo_nav_occupants_per_cell;
-  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
-    if (sentinel_check(grid->cellOccupancy[i])) {
-      grid->cellOccupancy[i] = occupantIdx;
+static bool nav_cell_add_occupant(GeoNavGrid* g, const u32 cellIndex, const u16 occupantIdx) {
+  u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
+  u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
+  do {
+    if (sentinel_check(*occupancyItr)) {
+      *occupancyItr = occupantIdx;
       return true;
     }
-  }
+  } while (++occupancyItr != occupancyEnd);
+
   return false; // Maximum occupants per cell reached.
 }
 
