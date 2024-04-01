@@ -661,11 +661,12 @@ static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const u32 ce
   (void)ctx;
   const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
   const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+  do {
     if (!sentinel_check(*occupancyItr)) {
       return true; // Occupant found.
     }
-  }
+  } while (++occupancyItr != occupancyEnd);
+
   return false;
 }
 
@@ -674,7 +675,7 @@ nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const u32 cel
   (void)ctx;
   const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
   const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+  do {
     const u16 occupantIndex = *occupancyItr;
     if (sentinel_check(occupantIndex)) {
       continue; // Cell occupant slot empty.
@@ -683,7 +684,8 @@ nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const u32 cel
       continue; // Cell occupant is moving.
     }
     return true; // Cell has a stationary occupant.
-  }
+  } while (++occupancyItr != occupancyEnd);
+
   return false;
 }
 
@@ -694,7 +696,7 @@ static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const
    */
   const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
   const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+  do {
     const u16 occupantIndex = *occupancyItr;
     if (sentinel_check(occupantIndex)) {
       continue; // Cell occupant slot empty.
@@ -702,7 +704,8 @@ static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const
     if (g->occupants[occupantIndex].flags & GeoNavOccupantFlags_Moving) {
       return true; // Cell has a moving occupant.
     }
-  }
+  } while (++occupancyItr != occupancyEnd);
+
   return false;
 }
 
@@ -716,7 +719,7 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIn
   }
   const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
   const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+  do {
     const u16 occupantIndex = *occupancyItr;
     if (sentinel_check(occupantIndex)) {
       continue; // Cell occupant slot empty.
@@ -725,7 +728,8 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIn
       continue; // Cell occupant is moving.
     }
     return false; // Cell has a stationary occupant.
-  }
+  } while (++occupancyItr != occupancyEnd);
+
   return true; // Cell is free.
 }
 
