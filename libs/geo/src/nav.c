@@ -683,11 +683,18 @@ nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const u32 cel
 
 static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
-  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cellIndex, occupants);
-  for (u32 i = 0; i != occupantCount; ++i) {
-    if (occupants[i]->flags & GeoNavOccupantFlags_Moving) {
-      return true;
+  /**
+   * Test if the cell has a moving occupant.
+   */
+  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
+  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
+  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+    const u16 occupantIndex = *occupancyItr;
+    if (sentinel_check(occupantIndex)) {
+      continue; // Cell occupant slot empty.
+    }
+    if (g->occupants[occupantIndex].flags & GeoNavOccupantFlags_Moving) {
+      return true; // Cell has a moving occupant.
     }
   }
   return false;
