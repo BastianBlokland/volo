@@ -659,10 +659,11 @@ static bool nav_pred_unblocked(const GeoNavGrid* g, const void* ctx, const u32 c
 
 static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
-  const u32 index = cellIndex * geo_nav_occupants_per_cell;
-  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
-    if (!sentinel_check(g->cellOccupancy[i])) {
-      return true;
+  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
+  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
+  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+    if (!sentinel_check(*occupancyItr)) {
+      return true; // Occupant found.
     }
   }
   return false;
