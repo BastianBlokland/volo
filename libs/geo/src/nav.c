@@ -364,18 +364,22 @@ static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
 #endif
 }
 
-static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
+static u16 nav_path_cost(const GeoNavGrid* g, const u32 cellIndex) {
   enum { NormalCost = 1, OccupiedStationaryCost = 10 };
-  const u32 index = cellIndex * geo_nav_occupants_per_cell;
-  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
-    if (sentinel_check(grid->cellOccupancy[i])) {
+
+  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
+  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
+  do {
+    const u16 occupantIdx = *occupancyItr;
+    if (sentinel_check(occupantIdx)) {
       continue; // Not occupied.
     }
-    if (grid->occupants[grid->cellOccupancy[i]].flags & GeoNavOccupantFlags_Moving) {
+    if (g->occupants[occupantIdx].flags & GeoNavOccupantFlags_Moving) {
       continue; // Occupant is moving.
     }
     return OccupiedStationaryCost; // Cell contains a non-moving occupant.
-  }
+  } while (++occupancyItr != occupancyEnd);
+
   return NormalCost;
 }
 
