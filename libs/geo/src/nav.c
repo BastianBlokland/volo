@@ -733,30 +733,28 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIn
   return true; // Cell is free.
 }
 
-static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
-  const GeoNavCond* cond = ctx;
-  switch (*cond) {
-  case GeoNavCond_Blocked:
-    return nav_pred_blocked(g, null, cellIndex);
-  case GeoNavCond_Unblocked:
-    return nav_pred_unblocked(g, null, cellIndex);
-  case GeoNavCond_Occupied:
-    return nav_pred_occupied(g, null, cellIndex);
-  case GeoNavCond_OccupiedStationary:
-    return nav_pred_occupied_stationary(g, null, cellIndex);
-  case GeoNavCond_OccupiedMoving:
-    return nav_pred_occupied_moving(g, null, cellIndex);
-  case GeoNavCond_Free:
-    return nav_pred_free(g, null, cellIndex);
-  case GeoNavCond_NonFree:
-    return !nav_pred_free(g, null, cellIndex);
-  }
-  UNREACHABLE
+static bool nav_pred_non_free(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
+  return !nav_pred_free(g, ctx, cellIndex);
 }
 
 static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   const GeoNavIsland* refIsland = ctx;
   return g->cellIslands[cellIndex] == *refIsland;
+}
+
+static const NavCellPredicate g_geoNavPredCond[] = {
+    [GeoNavCond_Blocked]            = nav_pred_blocked,
+    [GeoNavCond_Unblocked]          = nav_pred_unblocked,
+    [GeoNavCond_Occupied]           = nav_pred_occupied,
+    [GeoNavCond_OccupiedStationary] = nav_pred_occupied_stationary,
+    [GeoNavCond_OccupiedMoving]     = nav_pred_occupied_moving,
+    [GeoNavCond_Free]               = nav_pred_free,
+    [GeoNavCond_NonFree]            = nav_pred_non_free,
+};
+
+static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
+  const GeoNavCond* cond = ctx;
+  return g_geoNavPredCond[*cond](g, ctx, cellIndex);
 }
 
 /**
@@ -1271,7 +1269,7 @@ bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoN
 bool geo_nav_check(const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCond cond) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   const u32 cellIndex = nav_cell_index(grid, cell);
-  return nav_pred_condition(grid, &cond, cellIndex);
+  return g_geoNavPredCond[cond](grid, null, cellIndex);
 }
 
 bool geo_nav_check_box_rotated(
@@ -1282,7 +1280,7 @@ bool geo_nav_check_box_rotated(
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
     for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_condition(grid, &cond, cellIndex)) {
+      if (!g_geoNavPredCond[cond](grid, null, cellIndex)) {
         continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
@@ -1302,7 +1300,7 @@ bool geo_nav_check_sphere(const GeoNavGrid* grid, const GeoSphere* sphere, const
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
     for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_condition(grid, &cond, cellIndex)) {
+      if (!g_geoNavPredCond[cond](grid, null, cellIndex)) {
         continue; // Doesn't meet condition.
       }
       const GeoBox cellBox = nav_cell_box(grid, cell);
@@ -1339,7 +1337,7 @@ bool geo_nav_check_channel(
     u32 cellIndex = nav_cell_index(g, (GeoNavCell){.x = chanRegion.min.x, .y = y});
     for (u32 x = chanRegion.min.x; x != chanRegion.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell = {.x = x, .y = y};
-      if (!nav_pred_condition(g, &cond, cellIndex)) {
+      if (!g_geoNavPredCond[cond](g, null, cellIndex)) {
         continue; // Doesn't meet condition.
       }
       const NavRect2D cellRect = {.pos = {(f32)cell.x, (f32)cell.y}, .extent = localExtent};
