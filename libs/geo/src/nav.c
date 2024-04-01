@@ -699,16 +699,21 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIn
    * Test if the cell is not blocked and has no stationary occupant.
    */
   if (g->cellBlockerCount[cellIndex]) {
-    return false;
+    return false; // Cell blocked.
   }
-  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(g, cellIndex, occupants);
-  for (u32 i = 0; i != occupantCount; ++i) {
-    if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
-      return false;
+  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
+  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
+  for (; occupancyItr != occupancyEnd; ++occupancyItr) {
+    const u16 occupantIndex = *occupancyItr;
+    if (sentinel_check(occupantIndex)) {
+      continue; // Cell occupant slot empty.
     }
+    if (g->occupants[occupantIndex].flags & GeoNavOccupantFlags_Moving) {
+      continue; // Cell occupant is moving.
+    }
+    return false; // Cell has a stationary occupant.
   }
-  return true;
+  return true; // Cell is free.
 }
 
 static bool nav_pred_condition(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
