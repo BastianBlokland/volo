@@ -10,6 +10,7 @@
 #include "ui.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
+#define log_tracker_max_messages 1000
 #define log_tracker_max_message_size 64
 #define log_tracker_max_age time_seconds(10)
 
@@ -66,7 +67,7 @@ static void debug_log_sink_write(
       }
     }
 
-    if (!duplicate) {
+    if (!duplicate && LIKELY(debugSink->messages.size < log_tracker_max_messages)) {
       DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
       msg->timestamp       = timestamp;
       msg->lvl             = lvl;
