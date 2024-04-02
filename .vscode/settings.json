@@ -12,6 +12,7 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
+    "*.log": "jsonl",
     "*.arraytex": "json",
     "*.atlas": "json",
     "*.decal": "json",
