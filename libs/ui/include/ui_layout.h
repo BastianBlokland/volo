@@ -7,7 +7,7 @@ ecs_comp_extern(UiCanvasComp);
 
 /**
  * Push / Pop an element to / from the rectangle stack.
- * Usefull for local changes to the current rectangle with an easy way to restore the previous.
+ * Useful for local changes to the current rectangle with an easy way to restore the previous.
  */
 void ui_layout_push(UiCanvasComp*);
 void ui_layout_pop(UiCanvasComp*);

@@ -53,7 +53,7 @@ RngGaussPairF32 rng_sample_gauss_f32(Rng*);
 /**
  * Rng implementation using the xorwow algorithm.
  *
- * Uses a shift-register strategy, usefull for usecases where distribution and repetition period
+ * Uses a shift-register strategy, useful for use-cases where distribution and repetition period
  * are not critically important. Do not use this for anything security related.
  * Should be cleaned up using 'rng_destroy'.
  *

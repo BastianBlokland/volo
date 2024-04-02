@@ -54,7 +54,7 @@ AssetManagerComp* asset_manager_create_fs(EcsWorld*, AssetManagerFlags, String r
 /**
  * Create a asset-manager (on the global entity) that loads assets from a set of pre-loaded
  * in-memory sources.
- * For example usefull for unit-testing.
+ * For example useful for unit-testing.
  */
 AssetManagerComp* asset_manager_create_mem(
     EcsWorld*, AssetManagerFlags, const AssetMemRecord* records, usize recordCount);

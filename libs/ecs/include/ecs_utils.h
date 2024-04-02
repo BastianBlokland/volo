@@ -57,7 +57,7 @@ void* ecs_utils_write(EcsView*, EcsEntityId, EcsCompId);
  * Get a read-only pointer to an existing component or add a new component if the entity does not
  * have the requested component.
  *
- * Pre-condition: iterator has been intialized using ecs_view_walk() / ecs_view_jump().
+ * Pre-condition: iterator has been initalized using ecs_view_walk() / ecs_view_jump().
  * Pre-condition: view has 'Read' access to the given component type.
  */
 #define ecs_utils_read_or_add_t(_WORLD_, _ITR_, _TYPE_)                                            \

@@ -18,7 +18,7 @@
 #endif
 
 /**
- * Disable compiler optimizations. Usefull for debugging specific code in an otherwise optimized
+ * Disable compiler optimizations. Useful for debugging specific code in an otherwise optimized
  * translation unit.
  */
 #if defined(VOLO_CLANG)

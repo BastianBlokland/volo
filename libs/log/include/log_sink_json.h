@@ -8,7 +8,7 @@ typedef enum {
 
 /**
  * JsonSink - sink that outputs as structured json objects.
- * Especially usefull for processing the logs using external tools.
+ * Especially useful for processing the logs using external tools.
  *
  * For example to print the severity and the message for each log:
  * $ cat app.log | jq '{ level: .level,  msg: .message }'

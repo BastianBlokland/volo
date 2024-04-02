@@ -7,7 +7,7 @@
  * DOT (Graph Description Language) utilities.
  * More info: https://en.wikipedia.org/wiki/DOT_(graph_description_language)
  *
- * Usefull for visualizing the job graphs for debug purposes.
+ * Useful for visualizing the job graphs for debug purposes.
  * Can be easily converted to an svg image using the GraphViz package (or various other tools):
  * 'dot -Tsvg -O graph.dot'
  */
