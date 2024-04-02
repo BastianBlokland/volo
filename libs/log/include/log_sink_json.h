@@ -39,6 +39,7 @@ typedef enum {
  * Create a json log sink that outputs to the given file.
  * NOTE: Should be added to a logger using 'log_add_sink()'.
  * NOTE: Is automatically cleaned up when its parent logger is destroyed.
+ * NOTE: Multiple writes can happen in parallel; make sure the file supports atomic writes.
  */
 LogSink* log_sink_json(Allocator*, File*, LogMask, LogSinkJsonFlags);
 
