@@ -110,14 +110,15 @@ log_sink_json(Allocator* alloc, File* file, const LogMask mask, const LogSinkJso
   return (LogSink*)sink;
 }
 
-LogSink* log_sink_json_to_path(Allocator* alloc, const LogMask mask, String path) {
+LogSink* log_sink_json_to_path(Allocator* alloc, const LogMask mask, const String path) {
   File*      file;
   FileResult res;
   if ((res = file_create_dir_sync(path_parent(path))) != FileResult_Success) {
     diag_crash_msg("Failed to create parent directory: {}", fmt_text(file_result_str(res)));
   }
-  if ((res = file_create(alloc, path, FileMode_Create, FileAccess_Write, &file)) !=
-      FileResult_Success) {
+  const FileMode        mode   = FileMode_Create;
+  const FileAccessFlags access = FileAccess_Write;
+  if ((res = file_create(alloc, path, mode, access, &file)) != FileResult_Success) {
     diag_crash_msg("Failed to create log file: {}", fmt_text(file_result_str(res)));
   }
   return log_sink_json(alloc, file, mask, LogSinkJsonFlags_DestroyFile);
