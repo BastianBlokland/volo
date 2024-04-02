@@ -204,7 +204,7 @@ static void cli_parse_options(CliParseCtx* ctx) {
     }
 
     if (ctx->acceptFlags && string_eq(head, string_lit("-"))) {
-      // Single dash is ignored, usefull as a seperator for list arguments.
+      // Single dash is ignored, useful as a separator for list arguments.
       cli_parse_consume_arg(ctx);
       continue;
     }
@@ -324,9 +324,9 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);
   *invoc               = (CliInvocation){
-                    .alloc   = app->alloc,
-                    .errors  = ctx.errors,
-                    .options = ctx.options,
+      .alloc   = app->alloc,
+      .errors  = ctx.errors,
+      .options = ctx.options,
   };
   return invoc;
 }

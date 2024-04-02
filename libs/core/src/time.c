@@ -4,7 +4,7 @@
 #include "init_internal.h"
 #include "time_internal.h"
 
-static bool g_intialized;
+static bool g_initalized;
 
 static i32 time_days_since_epoch(const TimeReal time) {
   return time / (time_day / time_microsecond);
@@ -12,18 +12,18 @@ static i32 time_days_since_epoch(const TimeReal time) {
 
 void time_init() {
   time_pal_init();
-  g_intialized = true;
+  g_initalized = true;
 }
 
 TimeSteady time_steady_clock() {
-  diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
+  diag_assert_msg(g_initalized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_steady_clock();
 }
 
 TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to) { return to - from; }
 
 TimeReal time_real_clock() {
-  diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
+  diag_assert_msg(g_initalized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_real_clock();
 }
 
@@ -75,7 +75,7 @@ TimeReal time_date_to_real(const TimeDate date) {
 }
 
 TimeZone time_zone_current() {
-  diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
+  diag_assert_msg(g_initalized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_zone_current();
 }
 

@@ -15,7 +15,7 @@ ecs_comp_extern(UiCanvasComp);
 
 /**
  * Push / Pop an element to / from the style stack.
- * Usefull for local changes to the current style with an easy way to restore the previous.
+ * Useful for local changes to the current style with an easy way to restore the previous.
  */
 void ui_style_push(UiCanvasComp*);
 void ui_style_pop(UiCanvasComp*);
