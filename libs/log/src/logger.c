@@ -1,17 +1,17 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_dynarray.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "log_sink.h"
 
 #include "logger_internal.h"
 
-typedef LogSink* LogSinkPtr;
+#define log_sinks_max 6
 
 struct sLogger {
-  DynArray       sinks; // LogSink*[]
+  LogSink*       sinks[log_sinks_max];
+  u32            sinkCount;
   ThreadSpinLock sinksLock;
   Allocator*     alloc;
 };
@@ -28,12 +28,12 @@ static const String g_levelStrs[] = {
 ASSERT(array_elems(g_levelStrs) == LogLevel_Count, "Incorrect number of LogLevel strings");
 
 static void log_destroy_sinks(Logger* logger) {
-  dynarray_for_t(&logger->sinks, LogSinkPtr, sink) {
-    if ((*sink)->destroy) {
-      (*sink)->destroy(*sink);
+  for (u32 i = 0; i != logger->sinkCount; ++i) {
+    LogSink* sink = logger->sinks[i];
+    if (sink->destroy) {
+      sink->destroy(sink);
     }
   }
-  dynarray_destroy(&logger->sinks);
 }
 
 static String log_format_text_scratch(String str, const LogParam* params) {
@@ -58,17 +58,13 @@ bool log_mask_enabled(const LogMask mask, const LogLevel level) {
 void log_global_logger_init() {
   static Logger globalLogger = {0};
   g_logger                   = &globalLogger;
-  g_logger->sinks            = dynarray_create_t(g_alloc_heap, LogSink*, 2);
 }
 
 void log_global_logger_teardown() { log_destroy_sinks(g_logger); }
 
 Logger* log_create(Allocator* alloc) {
   Logger* res = alloc_alloc_t(alloc, Logger);
-  *res        = (Logger){
-      .sinks = dynarray_create_t(alloc, LogSink*, 2),
-      .alloc = alloc,
-  };
+  *res        = (Logger){.alloc = alloc};
   return res;
 }
 
@@ -85,7 +81,11 @@ void log_add_sink(Logger* logger, LogSink* sink) {
 
   thread_spinlock_lock(&logger->sinksLock);
 
-  *dynarray_push_t(&logger->sinks, LogSink*) = sink;
+  if (UNLIKELY(logger->sinkCount == log_sinks_max)) {
+    diag_crash_msg("Maximum logger sink count exceeded");
+  }
+
+  logger->sinks[logger->sinkCount++] = sink;
 
   thread_spinlock_unlock(&logger->sinksLock);
 }
@@ -97,11 +97,15 @@ void log_append(Logger* logger, LogLevel lvl, SourceLoc loc, String str, const L
   const String   message   = log_format_text_scratch(str, params);
   const TimeReal timestamp = time_real_clock();
 
-  thread_spinlock_lock(&logger->sinksLock);
+  /**
+   * Because sinks can only be added (not removed), we don't need to take the 'sinksLock' as the
+   * worst that will happen is that the new sink won't be included for this entry yet.
+   *
+   * NOTE: This does mean that its important to keep the sinks array inline and not a dynamic array
+   * that can be reallocated.
+   */
 
-  dynarray_for_t(&logger->sinks, LogSinkPtr, sink) {
-    (*sink)->write(*sink, lvl, loc, timestamp, message, params);
+  for (u32 i = 0; i != logger->sinkCount; ++i) {
+    logger->sinks[i]->write(logger->sinks[i], lvl, loc, timestamp, message, params);
   }
-
-  thread_spinlock_unlock(&logger->sinksLock);
 }
