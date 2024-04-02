@@ -13,6 +13,7 @@
     "*.h": "c",
     "*.c": "c",
     "*.log": "jsonl",
+    "*.mocha": "json",
     "*.arraytex": "json",
     "*.atlas": "json",
     "*.decal": "json",
