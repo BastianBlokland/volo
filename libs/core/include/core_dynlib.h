@@ -10,11 +10,6 @@ typedef struct sAllocator Allocator;
 typedef struct sDynLib DynLib;
 
 /**
- * Pointer to an exported symbol (function or variable) in a loaded dynamic-library.
- */
-typedef void* DynLibSymbol;
-
-/**
  * DynLib result-code.
  */
 typedef enum {
@@ -43,6 +38,12 @@ DynLibResult dynlib_load(Allocator*, String name, DynLib** out);
 void dynlib_destroy(DynLib*);
 
 /**
- * Lookup an exported symbol (function or variable) by name.
+ * Lookup the path of the given dynamic-library.
  */
-DynLibResult dynlib_symbol(const DynLib*, String name, DynLibSymbol* out);
+String dynlib_path(const DynLib*);
+
+/**
+ * Lookup an exported symbol (function or variable) by name.
+ * NOTE: Returns null if the symbol could not be found.
+ */
+void* dynlib_symbol(const DynLib*, String name);
