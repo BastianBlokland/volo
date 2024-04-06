@@ -1,7 +1,10 @@
 #include "diag_internal.h"
 
 #include <signal.h>
+#include <sys/syscall.h>
 #include <unistd.h>
+
+#define diag_crash_exit_code 1
 
 static bool g_debuggerPresent;
 
@@ -17,4 +20,8 @@ void diag_pal_break() {
   raise(SIGTRAP);
 }
 
-void diag_pal_crash() { _exit(1); }
+void diag_pal_crash() {
+  // NOTE: exit_group to terminate all threads in the process.
+  syscall(SYS_exit_group, diag_crash_exit_code);
+  UNREACHABLE
+}
