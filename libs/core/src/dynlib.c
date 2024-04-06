@@ -4,6 +4,7 @@
 
 static const String g_dynlibResultStrs[] = {
     string_static("DynLibSuccess"),
+    string_static("DynLibNameTooLong"),
     string_static("DynLibLibraryNotFound"),
     string_static("DynLibSymbolNotFound"),
     string_static("DynLibUnknownError"),
@@ -15,5 +16,3 @@ String dynlib_result_str(const DynLibResult result) {
   diag_assert(result < DynLibResult_Count);
   return g_dynlibResultStrs[result];
 }
-
-void dynlib_init() {}
