@@ -4,8 +4,9 @@
 
 static const String g_dynlibResultStrs[] = {
     string_static("DynLibSuccess"),
-    string_static("DynLibNameTooLong"),
+    string_static("DynLibLibraryNameTooLong"),
     string_static("DynLibLibraryNotFound"),
+    string_static("DynLibSymbolNameTooLong"),
     string_static("DynLibSymbolNotFound"),
     string_static("DynLibUnknownError"),
 };

@@ -19,8 +19,9 @@ typedef void* DynLibSymbol;
  */
 typedef enum {
   DynLibResult_Success = 0,
-  DynLibResult_NameTooLong,
+  DynLibResult_LibraryNameTooLong,
   DynLibResult_LibraryNotFound,
+  DynLibResult_SymbolNameTooLong,
   DynLibResult_SymbolNotFound,
   DynLibResult_UnknownError,
 
