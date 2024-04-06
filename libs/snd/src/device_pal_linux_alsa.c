@@ -1,5 +1,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "log_logger.h"
@@ -38,7 +39,9 @@ typedef enum {
 
 typedef struct sSndDevice {
   Allocator* alloc;
-  String     id;
+  DynLib*    asoundLib;
+
+  String id;
 
   SndDeviceState state : 8;
   SndDeviceFlags flags : 8;
@@ -266,7 +269,28 @@ static void snd_device_report_underrun(SndDevice* device) {
   }
 }
 
+static SndDevice* snd_device_create_error(Allocator* alloc) {
+  SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
+
+  *dev = (SndDevice){
+      .alloc = alloc,
+      .id    = string_maybe_dup(alloc, string_lit("<error>")),
+      .state = SndDeviceState_Error,
+  };
+
+  return dev;
+}
+
 SndDevice* snd_device_create(Allocator* alloc) {
+  DynLib*      asoundLib;
+  DynLibResult asoundRes = dynlib_load(alloc, string_lit("libasound.so"), &asoundLib);
+  if (asoundRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(asoundRes);
+    log_w("Failed to Alsa library ('libasound.so')", log_param("err", fmt_text(err)));
+    return snd_device_create_error(alloc);
+  }
+  log_i("Alsa library loaded", log_param("path", fmt_path(dynlib_path(asoundLib))));
+
   alsa_init();
 
   snd_pcm_t*    pcm       = alsa_pcm_open();
@@ -298,6 +322,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
                 .alloc     = alloc,
+                .asoundLib = asoundLib,
                 .id        = string_maybe_dup(alloc, id),
                 .pcm       = pcm,
                 .pcmConfig = pcmConfig,
@@ -307,6 +332,9 @@ SndDevice* snd_device_create(Allocator* alloc) {
 }
 
 void snd_device_destroy(SndDevice* dev) {
+  if (dev->asoundLib) {
+    dynlib_destroy(dev->asoundLib);
+  }
   if (dev->pcm) {
     snd_pcm_close(dev->pcm);
   }
