@@ -15,7 +15,6 @@ void core_init() {
     thread_init();
     time_init();
     stringtable_init();
-    dynlib_init();
   }
 
   if (!g_initializedThread) {
@@ -29,6 +28,7 @@ void core_init() {
     file_init();
     tty_init();
     path_init();
+    dynlib_init();
   }
 
   g_initalized        = true;
