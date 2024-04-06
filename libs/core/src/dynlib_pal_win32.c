@@ -71,20 +71,14 @@ void dynlib_destroy(DynLib* lib) {
 
 String dynlib_path(const DynLib* lib) { return lib->path; }
 
-DynLibResult dynlib_symbol(const DynLib* lib, const String name, DynLibSymbol* out) {
+DynLibSymbol dynlib_symbol(const DynLib* lib, const String name) {
   // Copy the name on the stack and null-terminate it.
   if (name.size >= dynlib_max_symbol_name) {
-    return DynLibResult_SymbolNameTooLong;
+    diag_crash_msg("Symbol name too long");
   }
   Mem nameBuffer = mem_stack(dynlib_max_symbol_name);
   mem_cpy(nameBuffer, name);
   *mem_at_u8(nameBuffer, name.size) = '\0';
 
-  FARPROC sym = GetProcAddress(lib->handle, nameBuffer.ptr);
-  if (!sym) {
-    return DynLibResult_SymbolNotFound;
-  }
-
-  *out = (DynLibSymbol)sym;
-  return DynLibResult_Success;
+  return (DynLibSymbol)GetProcAddress(lib->handle, nameBuffer.ptr);
 }

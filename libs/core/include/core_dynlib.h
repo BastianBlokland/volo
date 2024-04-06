@@ -21,8 +21,6 @@ typedef enum {
   DynLibResult_Success = 0,
   DynLibResult_LibraryNameTooLong,
   DynLibResult_LibraryNotFound,
-  DynLibResult_SymbolNameTooLong,
-  DynLibResult_SymbolNotFound,
   DynLibResult_UnknownError,
 
   DynLibResult_Count,
@@ -53,5 +51,6 @@ String dynlib_path(const DynLib*);
 
 /**
  * Lookup an exported symbol (function or variable) by name.
+ * NOTE: Returns null if the symbol could not be found.
  */
-DynLibResult dynlib_symbol(const DynLib*, String name, DynLibSymbol* out);
+DynLibSymbol dynlib_symbol(const DynLib*, String name);
