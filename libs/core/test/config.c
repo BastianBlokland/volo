@@ -16,6 +16,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, complex);
   register_spec(check, dynarray);
   register_spec(check, dynbitset);
+  register_spec(check, dynlib);
   register_spec(check, dynstring);
   register_spec(check, env);
   register_spec(check, file_iterator);
