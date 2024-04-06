@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_dynlib.h"
 
 #include <dlfcn.h>
@@ -10,6 +11,8 @@ struct sDynLib {
   void*      handle;
   Allocator* alloc;
 };
+
+static String dynlib_err_msg() { return string_from_null_term(dlerror()); }
 
 DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   // Copy the name on the stack and null-terminate it.
@@ -31,4 +34,11 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
       .alloc  = alloc,
   };
   return DynLibResult_Success;
+}
+
+void dynlib_destroy(DynLib* lib) {
+  if (UNLIKELY(dlclose(lib->handle) != 0)) {
+    diag_crash_msg("dlclose() failed: {}", fmt_text(dynlib_err_msg()));
+  }
+  alloc_free_t(lib->alloc, lib);
 }
