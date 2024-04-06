@@ -15,6 +15,7 @@ void core_init() {
     thread_init();
     time_init();
     stringtable_init();
+    dynlib_init();
   }
 
   if (!g_initializedThread) {

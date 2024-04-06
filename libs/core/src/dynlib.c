@@ -15,3 +15,5 @@ String dynlib_result_str(const DynLibResult result) {
   diag_assert(result < DynLibResult_Count);
   return g_dynlibResultStrs[result];
 }
+
+void dynlib_init() {}

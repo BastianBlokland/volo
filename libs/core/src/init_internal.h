@@ -13,6 +13,7 @@ void thread_init(void);
 void time_init(void);
 void tty_init(void);
 void stringtable_init(void);
+void dynlib_init(void);
 
 /**
  * Thread initialization routines.
