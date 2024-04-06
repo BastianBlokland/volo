@@ -12,6 +12,7 @@ ASSERT(false, "Unsupported platform");
 #endif
 
 void thread_pal_init(void);
+void thread_pal_init_late(void);
 void thread_pal_teardown(void);
 
 i64  thread_pal_pid(void);

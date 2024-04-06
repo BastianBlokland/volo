@@ -38,6 +38,7 @@ static int thread_desired_nice(const ThreadPriority prio) {
 }
 
 void thread_pal_init() {}
+void thread_pal_init_late() {}
 void thread_pal_teardown() {}
 
 i64 thread_pal_pid() { return syscall(SYS_getpid); }
