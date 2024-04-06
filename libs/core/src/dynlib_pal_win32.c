@@ -50,7 +50,7 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   Mem pathBufferMem = mem_stack(pathBufferSize);
   winutils_to_widestr(pathBufferMem, name);
 
-  HMODULE handle = LoadLibrary(pathBufferMem.ptr);
+  HMODULE handle = LoadLibraryEx(pathBufferMem.ptr, null, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
   if (!handle) {
     return DynLibResult_LibraryNotFound;
   }
