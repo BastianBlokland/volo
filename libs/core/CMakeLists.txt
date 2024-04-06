@@ -24,6 +24,7 @@ add_library(lib_core STATIC
   src/diag.c
   src/dynarray.c
   src/dynbitset.c
+  src/dynlib_pal.c
   src/dynlib.c
   src/dynstring.c
   src/env_pal.c
