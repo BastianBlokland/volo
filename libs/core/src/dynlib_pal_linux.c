@@ -7,7 +7,9 @@
 
 #define dynlib_max_symbol_name 128
 
-void dynlib_init() {}
+static bool g_dynlibInitialized;
+
+void dynlib_init() { g_dynlibInitialized = true; }
 
 struct sDynLib {
   void*      handle;
@@ -30,6 +32,9 @@ static String dynlib_path_query(void* handle, Allocator* alloc) {
 }
 
 DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
+  if (!g_dynlibInitialized) {
+    diag_crash_msg("DynLib library not initialized");
+  }
   // Copy the name on the stack and null-terminate it.
   if (name.size >= PATH_MAX) {
     return DynLibResult_LibraryNameTooLong;
