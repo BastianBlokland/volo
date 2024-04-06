@@ -12,7 +12,7 @@ typedef struct sDynLib DynLib;
 /**
  * Pointer to an exported symbol (function or variable) in a loaded dynamic-library.
  */
-typedef const void* DynLibSymbol;
+typedef void* DynLibSymbol;
 
 /**
  * DynLib result-code.
