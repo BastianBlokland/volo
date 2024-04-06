@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -105,11 +106,17 @@ static Mem process_null_term(const Mem buffer, const String str, char** out) {
 #define PIPE_FD_READ(_FDS_, _PIPE_) ((_FDS_)[ProcessPipe_##_PIPE_ * 2 + 0])
 #define PIPE_FD_WRITE(_FDS_, _PIPE_) ((_FDS_)[ProcessPipe_##_PIPE_ * 2 + 1])
 
+NORETURN static void process_child_abort(const ProcessExitCode code) {
+  // NOTE: Do not use the lib-c 'exit' as we do not want to fire lib-c 'atexit' functions.
+  syscall(SYS_exit, code);
+  UNREACHABLE
+}
+
 NORETURN static void process_child_exec(const ProcessStartInfo* info, const int pipeFds[]) {
   if (info->flags & ProcessFlags_NewGroup) {
     const pid_t newSession = setsid(); // Create a new session (with a new progress group).
     if (UNLIKELY(newSession == -1)) {
-      exit(ProcessExitCode_FailedToCreateProcessGroup);
+      process_child_abort(ProcessExitCode_FailedToCreateProcessGroup);
     }
   }
 
@@ -124,7 +131,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   dupFail |= info->flags & ProcessFlags_PipeStdOut && dup2(PIPE_FD_WRITE(pipeFds, StdOut), 1) == -1;
   dupFail |= info->flags & ProcessFlags_PipeStdErr && dup2(PIPE_FD_WRITE(pipeFds, StdErr), 2) == -1;
   if (UNLIKELY(dupFail)) {
-    exit(ProcessExitCode_FailedToSetupPipes);
+    process_child_abort(ProcessExitCode_FailedToSetupPipes);
   }
 
   /**
@@ -139,7 +146,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
     if (info->flags & ProcessPipe_StdErr) {
       diag_print_err("[process error] Out of memory");
     }
-    exit(ProcessExitCode_OutOfMemory);
+    process_child_abort(ProcessExitCode_OutOfMemory);
   }
 
   char* argv[process_args_max + 2]; // +1 for file and +1 null terminator.
@@ -158,23 +165,23 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
     if (info->flags & ProcessPipe_StdErr) {
       diag_print_err("[process error] Executable not found: {}\n", fmt_text(info->file));
     }
-    exit(ProcessExitCode_ExecutableNotFound);
+    process_child_abort(ProcessExitCode_ExecutableNotFound);
   case EACCES:
   case EINVAL:
     if (info->flags & ProcessPipe_StdErr) {
       diag_print_err("[process error] Invalid executable: {}\n", fmt_text(info->file));
     }
-    exit(ProcessExitCode_InvalidExecutable);
+    process_child_abort(ProcessExitCode_InvalidExecutable);
   case ENOMEM:
     if (info->flags & ProcessPipe_StdErr) {
       diag_print_err("[process error] Out of memory\n");
     }
-    exit(ProcessExitCode_OutOfMemory);
+    process_child_abort(ProcessExitCode_OutOfMemory);
   default:
     if (info->flags & ProcessPipe_StdErr) {
       diag_print_err("[process error] Unknown error while executing: {}\n", fmt_text(info->file));
     }
-    exit(ProcessExitCode_UnknownExecError);
+    process_child_abort(ProcessExitCode_UnknownExecError);
   }
 }
 

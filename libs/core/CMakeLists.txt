@@ -24,6 +24,8 @@ add_library(lib_core STATIC
   src/diag.c
   src/dynarray.c
   src/dynbitset.c
+  src/dynlib_pal.c
+  src/dynlib.c
   src/dynstring.c
   src/env_pal.c
   src/file_iterator_pal.c
@@ -63,11 +65,8 @@ add_library(lib_core STATIC
   )
 target_include_directories(lib_core PUBLIC include)
 if(${VOLO_PLATFORM} STREQUAL "linux")
-  # Link against the math library on linux.
-  target_link_libraries(lib_core PRIVATE m)
-elseif(${VOLO_PLATFORM} STREQUAL "win32")
-  # Link against 'winmm.lib' (Windows Multimedia API) for controlling the scheduling interval.
-  target_link_libraries(lib_core PRIVATE winmm.lib)
+  target_link_libraries(lib_core PRIVATE dl) # DynamicLinking library.
+  target_link_libraries(lib_core PRIVATE m) # Math library.
 endif()
 
 add_executable(test_lib_core
@@ -88,6 +87,7 @@ add_executable(test_lib_core
   test/test_dynarray.c
   test/test_dynbitset.c
   test/test_dynstring.c
+  test/test_dynlib.c
   test/test_env.c
   test/test_file_iterator.c
   test/test_file_monitor.c

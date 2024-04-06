@@ -28,6 +28,8 @@ void core_init() {
     file_init();
     tty_init();
     path_init();
+    dynlib_init();
+    thread_init_late();
   }
 
   g_initalized        = true;

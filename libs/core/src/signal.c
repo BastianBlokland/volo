@@ -13,12 +13,12 @@ void signal_intercept_enable() {
   }
 }
 
-bool signal_is_received(Signal sig) {
+bool signal_is_received(const Signal sig) {
   diag_assert_msg(g_signalInterceptActive, "Signal interception is not active");
   return signal_pal_is_received(sig);
 }
 
-void signal_reset(Signal sig) {
+void signal_reset(const Signal sig) {
   diag_assert_msg(g_signalInterceptActive, "Signal interception is not active");
   signal_pal_reset(sig);
 }

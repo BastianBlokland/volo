@@ -10,9 +10,11 @@ void file_init(void);
 void float_init(void);
 void path_init(void);
 void thread_init(void);
+void thread_init_late(void);
 void time_init(void);
 void tty_init(void);
 void stringtable_init(void);
+void dynlib_init(void);
 
 /**
  * Thread initialization routines.

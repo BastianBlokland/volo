@@ -1,12 +1,12 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_time.h"
 #include "core_winutils.h"
 
 #include "thread_internal.h"
 
 #include <Windows.h>
-#include <mmsystem.h> // Part of the Windows Multimedia API (winmm.lib).
 
 ASSERT(sizeof(LONG) == sizeof(i32), "Expected LONG to be 32 bit");
 ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
@@ -17,6 +17,10 @@ ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
  * time to wake threads when set too high.
  */
 static const u32 g_win32SchedulingInterval = 2;
+
+static DynLib* g_winMMLib;
+static UINT(SYS_DECL* g_winMMTimeBeginPeriod)(UINT period);
+static UINT(SYS_DECL* g_winMMTimeEndPeriod)(UINT period);
 
 static int thread_desired_prio_value(const ThreadPriority prio) {
   switch (prio) {
@@ -34,6 +38,13 @@ static int thread_desired_prio_value(const ThreadPriority prio) {
   diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
 }
 
+MAYBE_UNUSED static void thread_set_process_priority() {
+  const HANDLE curProcess = GetCurrentProcess();
+  if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
+    diag_crash_msg("SetPriorityClass() failed");
+  }
+}
+
 void thread_pal_init() {
 #ifdef VOLO_FAST
   /**
@@ -41,20 +52,29 @@ void thread_pal_init() {
    * process. We might want to make this customizable in the future.
    * NOTE: Do not raise the priority higher then this to avoid interfering with system functions.
    */
-  const HANDLE curProcess = GetCurrentProcess();
-  if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
-    diag_crash_msg("SetPriorityClass() failed");
-  }
+  thread_set_process_priority();
 #endif
+}
 
-  if (UNLIKELY(timeBeginPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR)) {
+void thread_pal_init_late() {
+  /**
+   * If 'Winmm.dll' (Windows Multimedia API) is available then configure the scheduling interval.
+   */
+  if (dynlib_load(g_alloc_persist, string_lit("Winmm.dll"), &g_winMMLib) == DynLibResult_Success) {
+    g_winMMTimeBeginPeriod = dynlib_symbol(g_winMMLib, string_lit("timeBeginPeriod"));
+    g_winMMTimeEndPeriod   = dynlib_symbol(g_winMMLib, string_lit("timeEndPeriod"));
+  }
+  if (g_winMMTimeBeginPeriod && g_winMMTimeBeginPeriod(g_win32SchedulingInterval)) {
     diag_assert_fail("Failed to set win32 scheduling interval");
   }
 }
 
 void thread_pal_teardown() {
-  if (UNLIKELY(timeEndPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR)) {
+  if (g_winMMTimeEndPeriod && g_winMMTimeEndPeriod(g_win32SchedulingInterval)) {
     diag_assert_fail("Failed to restore win32 scheduling interval");
+  }
+  if (g_winMMLib) {
+    dynlib_destroy(g_winMMLib);
   }
 }
 

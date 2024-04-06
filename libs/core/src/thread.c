@@ -54,6 +54,11 @@ void thread_init() {
   g_thread_main_tid   = thread_pal_tid();
   g_thread_name       = string_lit("volo_main");
   g_thread_core_count = thread_pal_core_count();
+}
+
+void thread_init_late() {
+  thread_pal_init_late();
+
   thread_pal_set_name(g_thread_name);
 }
 
