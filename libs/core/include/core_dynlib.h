@@ -14,6 +14,8 @@ typedef struct sDynLib DynLib;
  */
 typedef enum {
   DynLibResult_Success = 0,
+  DynLibResult_LibraryNotFound,
+  DynLibResult_SymbolNotFound,
   DynLibResult_UnknownError,
 
   DynLibResult_Count,
