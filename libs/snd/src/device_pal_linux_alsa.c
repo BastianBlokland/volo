@@ -41,33 +41,33 @@ typedef void (*AlsaErrorHandler)(
     const char* file, int line, const char* function, int err, const char* fmt, ...);
 
 typedef struct {
-  DynLib* handle;
+  DynLib* asound;
   // clang-format off
-  const char* (SYS_DECL* strError)                    (int errnum);
-  int         (SYS_DECL* libErrorSetHandler)          (AlsaErrorHandler);
-  int         (SYS_DECL* pcmOpen)                     (AlsaPcm**, const char* name, AlsaPcmStream, int mode);
-  int         (SYS_DECL* pcmClose)                    (AlsaPcm*);
-  AlsaPcmType (SYS_DECL* pcmType)                     (AlsaPcm*);
-  const char* (SYS_DECL* pcmTypeName)                 (AlsaPcmType);
-  int         (SYS_DECL* pcmPrepare)                  (AlsaPcm*);
-  AlsaSFrames (SYS_DECL* pcmAvailUpdate)              (AlsaPcm*);
-  AlsaSFrames (SYS_DECL* pcmWriteI)                   (AlsaPcm*, const void *buffer, AlsaUFrames size);
-  size_t      (SYS_DECL* pcmInfoSizeof)               (void);
-  int         (SYS_DECL* pcmInfo)                     (AlsaPcm*, AlsaPcmInfo*);
-  int         (SYS_DECL* pcmInfoGetCard)              (const AlsaPcmInfo*);
-  const char* (SYS_DECL* pcmInfoGetId)                (const AlsaPcmInfo*);
-  size_t      (SYS_DECL* pcmHwParamsSizeof)           (void);
-  int         (SYS_DECL* pcmHwParamsAny)              (AlsaPcm*, AlsaPcmHwParams*);
-  int         (SYS_DECL* pcmHwParams)                 (AlsaPcm*, AlsaPcmHwParams*);
-  int         (SYS_DECL* pcmHwParamsGetMinAlign)      (const AlsaPcmHwParams*, AlsaUFrames* val);
-  int         (SYS_DECL* pcmHwParamsGetBufferSize)    (const AlsaPcmHwParams*, AlsaUFrames* val);
-  int         (SYS_DECL* pcmHwParamsSetRateResample)  (AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
-  int         (SYS_DECL* pcmHwParamsSetAccess)        (AlsaPcm*, AlsaPcmHwParams*, AlsaPcmAccess val);
-  int         (SYS_DECL* pcmHwParamsSetFormat)        (AlsaPcm*, AlsaPcmHwParams*, AlsaPcmFormat val);
-  int         (SYS_DECL* pcmHwParamsSetChannels)      (AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
-  int         (SYS_DECL* pcmHwParamsSetRateNear)      (AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
-  int         (SYS_DECL* pcmHwParamsSetPeriodsNear)   (AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
-  int         (SYS_DECL* pcmHwParamsSetPeriodSizeNear)(AlsaPcm*, AlsaPcmHwParams*, AlsaUFrames* val, int* dir);
+  const char* (SYS_DECL* strerror)(int errnum);
+  int         (SYS_DECL* lib_error_set_handler)(AlsaErrorHandler);
+  int         (SYS_DECL* pcm_open)(AlsaPcm**, const char* name, AlsaPcmStream, int mode);
+  int         (SYS_DECL* pcm_close)(AlsaPcm*);
+  AlsaPcmType (SYS_DECL* pcm_type)(AlsaPcm*);
+  const char* (SYS_DECL* pcm_type_name)(AlsaPcmType);
+  int         (SYS_DECL* pcm_prepare)(AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcm_avail_update)(AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcm_writei)(AlsaPcm*, const void *buffer, AlsaUFrames size);
+  size_t      (SYS_DECL* pcm_info_sizeof)(void);
+  int         (SYS_DECL* pcm_info)(AlsaPcm*, AlsaPcmInfo*);
+  int         (SYS_DECL* pcm_info_get_card)(const AlsaPcmInfo*);
+  const char* (SYS_DECL* pcm_info_get_id)(const AlsaPcmInfo*);
+  size_t      (SYS_DECL* pcm_hw_params_sizeof)(void);
+  int         (SYS_DECL* pcm_hw_params_any)(AlsaPcm*, AlsaPcmHwParams*);
+  int         (SYS_DECL* pcm_hw_params)(AlsaPcm*, AlsaPcmHwParams*);
+  int         (SYS_DECL* pcm_hw_params_get_min_align)(const AlsaPcmHwParams*, AlsaUFrames* val);
+  int         (SYS_DECL* pcm_hw_params_get_buffer_size)(const AlsaPcmHwParams*, AlsaUFrames* val);
+  int         (SYS_DECL* pcm_hw_params_set_rate_resample)(AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
+  int         (SYS_DECL* pcm_hw_params_set_access)(AlsaPcm*, AlsaPcmHwParams*, AlsaPcmAccess val);
+  int         (SYS_DECL* pcm_hw_params_set_format)(AlsaPcm*, AlsaPcmHwParams*, AlsaPcmFormat val);
+  int         (SYS_DECL* pcm_hw_params_set_channels)(AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
+  int         (SYS_DECL* pcm_hw_params_set_rate_near)(AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
+  int         (SYS_DECL* pcm_hw_params_set_periods_near)(AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
+  int         (SYS_DECL* pcm_hw_params_set_period_size_near)(AlsaPcm*, AlsaPcmHwParams*, AlsaUFrames* val, int* dir);
   // clang-format on
 } AlsaLib;
 
@@ -83,7 +83,7 @@ typedef enum {
 
 typedef struct sSndDevice {
   Allocator* alloc;
-  DynLib*    asoundLib;
+  AlsaLib    alsa;
 
   String id;
 
@@ -143,6 +143,55 @@ static void alsa_error_handler(
       log_param("func", fmt_text(string_from_null_term(func))));
 
   va_end(arg);
+}
+
+static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libasound.so"), &lib->asound);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to Alsa library ('libasound.so')", log_param("err", fmt_text(err)));
+    return false;
+  }
+  log_i("Alsa library loaded", log_param("path", fmt_path(dynlib_path(lib->asound))));
+
+#define ALSA_LOAD_SYM(_NAME_)                                                                      \
+  do {                                                                                             \
+    const String symName = string_lit("snd_" #_NAME_);                                             \
+    lib->_NAME_          = dynlib_symbol(lib->asound, symName);                                    \
+    if (!lib->_NAME_) {                                                                            \
+      log_w("Alsa symbol '{}' missing", log_param("sym", fmt_text(symName)));                      \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  ALSA_LOAD_SYM(strerror);
+  ALSA_LOAD_SYM(lib_error_set_handler);
+  ALSA_LOAD_SYM(pcm_open);
+  ALSA_LOAD_SYM(pcm_close);
+  ALSA_LOAD_SYM(pcm_type);
+  ALSA_LOAD_SYM(pcm_type_name);
+  ALSA_LOAD_SYM(pcm_prepare);
+  ALSA_LOAD_SYM(pcm_avail_update);
+  ALSA_LOAD_SYM(pcm_writei);
+  ALSA_LOAD_SYM(pcm_info_sizeof);
+  ALSA_LOAD_SYM(pcm_info);
+  ALSA_LOAD_SYM(pcm_info_get_card);
+  ALSA_LOAD_SYM(pcm_info_get_id);
+  ALSA_LOAD_SYM(pcm_hw_params_sizeof);
+  ALSA_LOAD_SYM(pcm_hw_params_any);
+  ALSA_LOAD_SYM(pcm_hw_params);
+  ALSA_LOAD_SYM(pcm_hw_params_get_min_align);
+  ALSA_LOAD_SYM(pcm_hw_params_get_buffer_size);
+  ALSA_LOAD_SYM(pcm_hw_params_set_rate_resample);
+  ALSA_LOAD_SYM(pcm_hw_params_set_access);
+  ALSA_LOAD_SYM(pcm_hw_params_set_format);
+  ALSA_LOAD_SYM(pcm_hw_params_set_channels);
+  ALSA_LOAD_SYM(pcm_hw_params_set_rate_near);
+  ALSA_LOAD_SYM(pcm_hw_params_set_periods_near);
+  ALSA_LOAD_SYM(pcm_hw_params_set_period_size_near);
+
+#undef ALSA_LIB_SYM
+  return true;
 }
 
 static void alsa_init() {
@@ -317,6 +366,10 @@ SndDevice* snd_device_create(Allocator* alloc) {
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){.alloc = alloc, .state = SndDeviceState_Error};
 
+  if (!alsa_lib_init(&dev->alsa, alloc)) {
+    return dev; // Failed to initialize alsa library.
+  }
+
   alsa_init();
 
   dev->pcm = alsa_pcm_open();
@@ -347,8 +400,8 @@ SndDevice* snd_device_create(Allocator* alloc) {
 }
 
 void snd_device_destroy(SndDevice* dev) {
-  if (dev->asoundLib) {
-    dynlib_destroy(dev->asoundLib);
+  if (dev->alsa.asound) {
+    dynlib_destroy(dev->alsa.asound);
   }
   if (dev->pcm) {
     snd_pcm_close(dev->pcm);
