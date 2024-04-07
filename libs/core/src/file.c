@@ -37,6 +37,19 @@ String file_result_str(const FileResult result) {
 
 void file_init() { file_pal_init(); }
 
+FileResult file_create(
+    Allocator*            alloc,
+    const String          path,
+    const FileMode        mode,
+    const FileAccessFlags access,
+    File**                file) {
+  return file_pal_create(alloc, path, mode, access, file);
+}
+
+FileResult file_temp(Allocator* alloc, File** file) { return file_pal_temp(alloc, file); }
+
+void file_destroy(File* file) { file_pal_destroy(file); }
+
 FileResult file_write_to_path_sync(const String path, const String data) {
   File*      file = null;
   FileResult res;

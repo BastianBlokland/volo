@@ -82,7 +82,7 @@ static FileType file_type_from_attributes(const DWORD attributes) {
 }
 
 FileResult
-file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
+file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(path);
   if (sentinel_check(pathBufferSize)) {
@@ -144,7 +144,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   return FileResult_Success;
 }
 
-FileResult file_temp(Allocator* alloc, File** file) {
+FileResult file_pal_temp(Allocator* alloc, File** file) {
   // Use 'GetTempPath' and 'GetTempFileName' to generate a unique filename in a temporary directory.
   Mem         tempDirPath  = mem_stack((MAX_PATH + 1) * sizeof(wchar_t)); // +1 for null-terminator.
   const DWORD tempDirChars = GetTempPath(MAX_PATH, (wchar_t*)tempDirPath.ptr);
@@ -180,7 +180,7 @@ FileResult file_temp(Allocator* alloc, File** file) {
   return FileResult_Success;
 }
 
-void file_destroy(File* file) {
+void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
   if (file->mapping) {

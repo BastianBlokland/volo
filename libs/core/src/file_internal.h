@@ -16,7 +16,10 @@ struct sFile {
   Allocator*      alloc;
 };
 
-void file_pal_init(void);
+void       file_pal_init(void);
+FileResult file_pal_create(Allocator*, String path, FileMode, FileAccessFlags, File** file);
+FileResult file_pal_temp(Allocator*, File** file);
+void       file_pal_destroy(File*);
 
 /**
  * Synchonously create a single directory.
