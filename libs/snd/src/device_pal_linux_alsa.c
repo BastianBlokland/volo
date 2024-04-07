@@ -314,40 +314,35 @@ static void snd_device_report_underrun(SndDevice* device) {
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
+  SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
+  *dev           = (SndDevice){.alloc = alloc, .state = SndDeviceState_Error};
+
   alsa_init();
 
-  snd_pcm_t*    pcm       = alsa_pcm_open();
-  AlsaPcmConfig pcmConfig = {0};
-  if (pcm) {
-    pcmConfig = alsa_pcm_initialize(pcm);
+  dev->pcm = alsa_pcm_open();
+  if (dev->pcm) {
+    dev->pcmConfig = alsa_pcm_initialize(dev->pcm);
   }
 
-  String id = string_empty;
-  if (pcmConfig.valid) {
-    const snd_pcm_type_t  type = snd_pcm_type(pcm);
-    const snd_pcm_info_t* info = alsa_pcm_info_scratch(pcm);
+  if (dev->pcmConfig.valid) {
+    const snd_pcm_type_t  type = snd_pcm_type(dev->pcm);
+    const snd_pcm_info_t* info = alsa_pcm_info_scratch(dev->pcm);
     const i32             card = info ? snd_pcm_info_get_card(info) : -1;
-    id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_lit("<unknown>");
+    if (info) {
+      dev->id = string_maybe_dup(alloc, string_from_null_term(snd_pcm_info_get_id(info)));
+    }
+    dev->state = SndDeviceState_Idle;
 
     log_i(
         "Alsa sound device created",
-        log_param("id", fmt_text(id)),
+        log_param("id", fmt_text(dev->id)),
         log_param("card", fmt_int(card)),
         log_param("type", fmt_text(string_from_null_term(snd_pcm_type_name(type)))),
-        log_param("period-count", fmt_int(pcmConfig.periodCount)),
+        log_param("period-count", fmt_int(dev->pcmConfig.periodCount)),
         log_param("period-frames", fmt_int(snd_alsa_period_frames)),
         log_param("period-time", fmt_duration(snd_alsa_period_time)),
-        log_param("device-buffer", fmt_size(pcmConfig.bufferSize)));
+        log_param("device-buffer", fmt_size(dev->pcmConfig.bufferSize)));
   }
-
-  SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
-  *dev           = (SndDevice){
-      .alloc     = alloc,
-      .id        = string_maybe_dup(alloc, id),
-      .pcm       = pcm,
-      .pcmConfig = pcmConfig,
-      .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
-  };
   return dev;
 }
 
@@ -366,7 +361,7 @@ void snd_device_destroy(SndDevice* dev) {
 
 String snd_device_id(const SndDevice* dev) {
   if (string_is_empty(dev->id)) {
-    return string_lit("<error>");
+    return dev->state == SndDeviceState_Error ? string_lit("<error>") : string_lit("<unknown>");
   }
   return dev->id;
 }
