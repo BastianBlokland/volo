@@ -67,7 +67,7 @@ typedef struct {
   const char* (SYS_DECL* pcm_type_name)(AlsaPcmType);
   int         (SYS_DECL* pcm_prepare)(AlsaPcm*);
   AlsaSFrames (SYS_DECL* pcm_avail_update)(AlsaPcm*);
-  AlsaSFrames (SYS_DECL* pcm_writei)(AlsaPcm*, const void *buffer, AlsaUFrames size);
+  AlsaSFrames (SYS_DECL* pcm_writei)(AlsaPcm*, const void* buffer, AlsaUFrames size);
   size_t      (SYS_DECL* pcm_info_sizeof)(void);
   int         (SYS_DECL* pcm_info)(AlsaPcm*, AlsaPcmInfo*);
   int         (SYS_DECL* pcm_info_get_card)(const AlsaPcmInfo*);
@@ -99,8 +99,7 @@ typedef enum {
 typedef struct sSndDevice {
   Allocator* alloc;
   AlsaLib    alsa;
-
-  String id;
+  String     id;
 
   SndDeviceState state : 8;
   SndDeviceFlags flags : 8;
