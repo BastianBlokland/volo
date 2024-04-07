@@ -28,12 +28,29 @@
 ASSERT(bits_aligned(snd_mme_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
 ASSERT(snd_mme_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
-typedef UINT MmeResult;
+typedef UINT               MmeResult;
+typedef struct sMmeWaveOut MmeWaveOut;
+
+typedef struct {
+  WORD  formatTag;      // Format type.
+  WORD  channels;       // Number of channels (i.e. mono, stereo...).
+  DWORD samplesPerSec;  // Sample rate.
+  DWORD avgBytesPerSec; // For buffer estimation.
+  WORD  blockAlign;     // Block size of data.
+  WORD  bitsPerSample;  // Number of bits per sample of mono data .
+  WORD  size;           // Count in bytes of the size of extra information (after size).
+} MmeWaveFormat;
 
 typedef struct {
   DynLib* winmm;
   // clang-format off
   MmeResult (SYS_DECL* waveOutGetErrorTextW)(MmeResult, wchar_t* buffer, UINT bufferSize);
+  MmeResult (SYS_DECL* waveOutOpen)(MmeWaveOut**, UINT deviceId, const MmeWaveFormat*, uptr callback, uptr instance, DWORD flags);
+  MmeResult (SYS_DECL* waveOutClose)(MmeWaveOut*);
+  MmeResult (SYS_DECL* waveOutReset)(MmeWaveOut*);
+  MmeResult (SYS_DECL* waveOutPrepareHeader)(MmeWaveOut*, WAVEHDR*, UINT headerStructSize);
+  MmeResult (SYS_DECL* waveOutUnprepareHeader)(MmeWaveOut*, WAVEHDR*, UINT headerStructSize);
+  MmeResult (SYS_DECL* waveOutWrite)(MmeWaveOut*, WAVEHDR*, UINT headerStructSize);
   // clang-format on
 } MmeLib;
 
@@ -42,7 +59,7 @@ typedef struct sSndDevice {
   MmeLib     mme;
   String     id;
 
-  HWAVEOUT pcm;
+  MmeWaveOut* pcm;
 
   SndDeviceState state : 8;
   u8             activePeriod;
@@ -76,12 +93,18 @@ static bool mme_lib_init(MmeLib* lib, Allocator* alloc) {
   } while (false)
 
   MME_LOAD_SYM(waveOutGetErrorTextW);
+  MME_LOAD_SYM(waveOutOpen);
+  MME_LOAD_SYM(waveOutClose);
+  MME_LOAD_SYM(waveOutReset);
+  MME_LOAD_SYM(waveOutPrepareHeader);
+  MME_LOAD_SYM(waveOutUnprepareHeader);
+  MME_LOAD_SYM(waveOutWrite);
 
 #undef MME_LOAD_SYM
   return true;
 }
 
-static String mme_result_str_scratch(SndDevice* dev, const MMRESULT result) {
+static String mme_result_str_scratch(SndDevice* dev, const MmeResult result) {
   wchar_t buffer[MAXERRORLENGTH];
   if (dev->mme.waveOutGetErrorText(result, buffer, array_elems(buffer)) != MMSYSERR_NOERROR) {
     return string_lit("Unknown error occurred");
@@ -90,29 +113,29 @@ static String mme_result_str_scratch(SndDevice* dev, const MMRESULT result) {
 }
 
 static bool mme_pcm_open(SndDevice* dev) {
-  const WAVEFORMATEX format = {
-      .wFormatTag      = WAVE_FORMAT_PCM,
-      .nChannels       = SndChannel_Count,
-      .nSamplesPerSec  = snd_frame_rate,
-      .nAvgBytesPerSec = snd_frame_rate * SndChannel_Count * snd_frame_sample_depth / 8,
-      .nBlockAlign     = SndChannel_Count * snd_frame_sample_depth / 8,
-      .wBitsPerSample  = snd_frame_sample_depth,
+  const MmeWaveFormat format = {
+      .formatTag      = WAVE_FORMAT_PCM,
+      .channels       = SndChannel_Count,
+      .samplesPerSec  = snd_frame_rate,
+      .avgBytesPerSec = snd_frame_rate * SndChannel_Count * snd_frame_sample_depth / 8,
+      .blockAlign     = SndChannel_Count * snd_frame_sample_depth / 8,
+      .bitsPerSample  = snd_frame_sample_depth,
   };
-  const MMRESULT result = waveOutOpen(&dev->pcm, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
+  const MmeResult result = dev->mme.waveOutOpen(&dev->pcm, WAVE_MAPPER, &format, 0, 0, 0);
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed to open sound-device",
         log_param("err-code", fmt_int(result)),
         log_param("err", fmt_text(mme_result_str_scratch(dev, result))));
 
-    dev->pcm = INVALID_HANDLE_VALUE;
+    dev->pcm = null;
     return false;
   }
   return true;
 }
 
 static void mme_pcm_close(SndDevice* dev) {
-  const MMRESULT result = waveOutClose(dev->pcm);
+  const MmeResult result = dev->mme.waveOutClose(dev->pcm);
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed to close sound-device",
@@ -122,7 +145,7 @@ static void mme_pcm_close(SndDevice* dev) {
 }
 
 static void mme_pcm_reset(SndDevice* dev) {
-  const MMRESULT result = waveOutReset(dev->pcm);
+  const MmeResult result = dev->mme.waveOutReset(dev->pcm);
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed to reset sound-device",
@@ -132,7 +155,7 @@ static void mme_pcm_reset(SndDevice* dev) {
 }
 
 static bool mme_pcm_write(SndDevice* dev, WAVEHDR* periodHeader) {
-  const MMRESULT result = waveOutWrite(dev->pcm, periodHeader, sizeof(WAVEHDR));
+  const MmeResult result = dev->mme.waveOutWrite(dev->pcm, periodHeader, sizeof(WAVEHDR));
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed to write to sound-device",
@@ -145,8 +168,8 @@ static bool mme_pcm_write(SndDevice* dev, WAVEHDR* periodHeader) {
 
 static String mme_pcm_name_scratch(SndDevice* dev) {
   (void)dev; // TODO: Get the name of the specified device instead of hardcoding 'WAVE_MAPPER'.
-  WAVEOUTCAPS    capabilities;
-  const MMRESULT result = waveOutGetDevCaps(WAVE_MAPPER, &capabilities, sizeof(WAVEOUTCAPS));
+  WAVEOUTCAPS     capabilities;
+  const MmeResult result = waveOutGetDevCaps(WAVE_MAPPER, &capabilities, sizeof(WAVEOUTCAPS));
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed get capabilities of sound-device",
@@ -179,7 +202,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
     WAVEHDR* header        = &dev->periodHeaders[period];
     header->lpData         = (void*)&dev->periodBuffer[snd_mme_period_samples * period];
     header->dwBufferLength = snd_mme_period_samples * snd_frame_sample_depth / 8;
-    if (UNLIKELY(waveOutPrepareHeader(dev->pcm, header, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)) {
+    if (UNLIKELY(dev->mme.waveOutPrepareHeader(dev->pcm, header, sizeof(WAVEHDR)) != 0)) {
       dev->state = SndDeviceState_Error;
     }
     header->dwFlags |= WHDR_DONE; // Mark the period as ready for use.
@@ -216,13 +239,13 @@ static void snd_device_report_underrun(SndDevice* device) {
 }
 
 void snd_device_destroy(SndDevice* dev) {
-  if (dev->pcm != INVALID_HANDLE_VALUE) {
+  if (dev->pcm) {
     if (dev->state == SndDeviceState_Playing) {
       mme_pcm_reset(dev);
     }
     for (u32 period = 0; period != snd_mme_period_count; ++period) {
       WAVEHDR* periodHeader = &dev->periodHeaders[period];
-      waveOutUnprepareHeader(dev->pcm, periodHeader, sizeof(WAVEHDR));
+      dev->mme.waveOutUnprepareHeader(dev->pcm, periodHeader, sizeof(WAVEHDR));
     }
     mme_pcm_close(dev);
   }
