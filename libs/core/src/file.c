@@ -49,6 +49,12 @@ String file_result_str(const FileResult result) {
 
 void file_init() { file_pal_init(); }
 
+void file_teardown() {
+  if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
+    file_crash_with_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
+  }
+}
+
 FileResult file_create(
     Allocator*            alloc,
     const String          path,
