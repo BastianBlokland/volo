@@ -38,12 +38,7 @@ typedef enum {
  */
 #define trace_end(void) trace_event_end()
 
-/**
- * Register a new trace output sink.
- * NOTE: Sinks are automatically destroyed at trace teardown.
- */
-void trace_add_sink(TraceSink*);
-
+void trace_event_add_sink(TraceSink*);
 void trace_event_begin(String id, TraceColor);
 void trace_event_begin_msg(String id, TraceColor, String msg, const FormatArg* args);
 void trace_event_end(void);

@@ -1,3 +1,4 @@
+#pragma once
 #include "trace_event.h"
 
 struct sTraceSink {

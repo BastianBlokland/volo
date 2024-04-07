@@ -23,7 +23,7 @@ void trace_event_teardown(void) {
   }
 }
 
-void trace_add_sink(TraceSink* sink) {
+void trace_event_add_sink(TraceSink* sink) {
   diag_assert_msg(g_traceInitialized, "Trace system not initialized");
   diag_assert_msg(sink, "Invalid sink");
 
