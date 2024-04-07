@@ -13,7 +13,8 @@
 #include <stdio.h>
 
 /**
- * Alsa PCM playback sound device implementation.
+ * 'Advanced Linux Sound Architecture' (ALSA) PCM playback sound device (https://alsa-project.org/).
+ * For debian based systems: apt install libasound2
  *
  * Use a simple double-buffering strategy where we use (at least) two periods, one playing on the
  * device and one being recorded.

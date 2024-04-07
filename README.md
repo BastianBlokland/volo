@@ -17,7 +17,7 @@
 * Build-system: Tested with [`ninja`](https://ninja-build.org/manual.html), [`make`](https://www.gnu.org/software/make/), [`nmake`](https://docs.microsoft.com/en-us/cpp/build/reference/nmake-reference) and [`msbuild`](https://docs.microsoft.com/en-us/visualstudio/msbuild) (`Ninja` comes highly recommended).
 * [Vulkan SDK](https://vulkan.lunarg.com/).
 * (*Linux only*) [XCB](https://xcb.freedesktop.org/) (X protocol bindings) + various extensions.
-* (*Linux only*) [ASound](https://alsa-project.org) audio library for the Alsa architecture.
+* (*Optional*)(*Linux only*) [ASound](https://alsa-project.org) audio library for the Alsa architecture.
 
 ### Linux
 * Install a `c` compiler and build-system (debian: `apt install build-essential`).
@@ -25,8 +25,8 @@
 * Install the `Vulkan` sdk (source: https://vulkan.lunarg.com/sdk/home#linux).
 * Install `XCB` + `xkb`, `xkbcommon`, `xkbcommon-x11`, `xfixes`, `icccm`, `randr` and `cursor-util` extensions
   (debian: `apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev`).
-* Install `asound` (audio library for the Alsa architecture)
-  (debian: `apt install libasound2-dev libasound2`).
+* (*Optional*) Install `asound` (audio library for the Alsa architecture)
+  (debian: `apt install libasound2`).
 * Build and run: `ci/run-linux.sh` (or invoke `cmake` and your build-system manually).
 
 ### Windows
