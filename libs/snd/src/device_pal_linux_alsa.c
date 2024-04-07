@@ -194,20 +194,6 @@ static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
   return true;
 }
 
-static void alsa_init() {
-  static ThreadSpinLock g_initLock;
-  static bool           g_initialized;
-  if (LIKELY(g_initialized)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_initialized) {
-    snd_lib_error_set_handler(&alsa_error_handler);
-    g_initialized = true;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
-
 static snd_pcm_t* alsa_pcm_open() {
   snd_pcm_t* pcm = null;
   const i32  err = snd_pcm_open(&pcm, snd_alsa_device_name, SND_PCM_STREAM_PLAYBACK, 0);
@@ -369,8 +355,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
   if (!alsa_lib_init(&dev->alsa, alloc)) {
     return dev; // Failed to initialize alsa library.
   }
-
-  alsa_init();
+  dev->alsa.lib_error_set_handler(&alsa_error_handler);
 
   dev->pcm = alsa_pcm_open();
   if (dev->pcm) {
