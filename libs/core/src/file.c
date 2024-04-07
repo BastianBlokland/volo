@@ -3,9 +3,12 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_thread.h"
 
 #include "file_internal.h"
 #include "init_internal.h"
+
+static i64 g_fileCount;
 
 static const String g_fileResultStrs[] = {
     string_static("FileSuccess"),
@@ -87,3 +90,5 @@ FileResult file_create_dir_sync(String path) {
   // Create the directory itself.
   return file_pal_create_dir_single_sync(path);
 }
+
+u32 file_count() { return (u32)thread_atomic_load_i64(&g_fileCount); }
