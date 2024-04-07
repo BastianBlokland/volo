@@ -28,13 +28,27 @@
 ASSERT(bits_aligned(snd_alsa_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
 ASSERT(snd_alsa_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
+typedef enum {
+  AlsaPcmStream_Playback = 0,
+  AlsaPcmStream_Capture  = 1,
+} AlsaPcmStream;
+
+typedef enum {
+  AlsaPcmAccess_MmapInterleaved    = 0,
+  AlsaPcmAccess_MmapNonInterleaved = 1,
+  AlsaPcmAccess_MmapComplex        = 2,
+  AlsaPcmAccess_RwInterleaved      = 3,
+  AlsaPcmAccess_RwNonInterleaved   = 4,
+} AlsaPcmAccess;
+
+typedef enum {
+  AlsaPcmFormat_S16Le = 2, // Signed 16 bit little endian.
+} AlsaPcmFormat;
+
 typedef struct sAlsaPcm         AlsaPcm;
 typedef struct sAlsaPcmInfo     AlsaPcmInfo;
 typedef struct sAlsaPcmHwParams AlsaPcmHwParams;
-typedef enum eAlsaPcmStream     AlsaPcmStream;
-typedef enum eAlsaPcmType       AlsaPcmType;
-typedef enum eAlsaPcmAccess     AlsaPcmAccess;
-typedef enum eAlsaPcmFormat     AlsaPcmFormat;
+typedef int                     AlsaPcmType;
 typedef unsigned long           AlsaUFrames;
 typedef long                    AlsaSFrames;
 
@@ -90,7 +104,7 @@ typedef struct sSndDevice {
   SndDeviceState state : 8;
   SndDeviceFlags flags : 8;
 
-  snd_pcm_t*    pcm;
+  AlsaPcm*      pcm;
   AlsaPcmConfig pcmConfig;
 
   TimeSteady nextPeriodBeginTime;
@@ -224,7 +238,7 @@ static void alsa_error_handler_teardown(SndDevice* dev) {
 }
 
 static bool alsa_pcm_open(SndDevice* dev) {
-  const i32 err = snd_pcm_open(&dev->pcm, snd_alsa_device_name, SND_PCM_STREAM_PLAYBACK, 0);
+  const i32 err = dev->alsa.pcm_open(&dev->pcm, snd_alsa_device_name, AlsaPcmStream_Playback, 0);
   if (err < 0) {
     log_e(
         "Failed to open sound-device",
@@ -236,11 +250,11 @@ static bool alsa_pcm_open(SndDevice* dev) {
   return true;
 }
 
-static snd_pcm_info_t* alsa_pcm_info_scratch(SndDevice* dev) {
+static AlsaPcmInfo* alsa_pcm_info_scratch(SndDevice* dev) {
   diag_assert(dev->pcm);
 
-  snd_pcm_info_t* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
-  const i32       ret  = snd_pcm_info(dev->pcm, info);
+  AlsaPcmInfo* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
+  const i32    ret  = dev->alsa.pcm_info(dev->pcm, info);
   if (ret < 0) {
     const String errName = alsa_error_str(dev, ret);
     log_e("Failed to retrieve sound-device info", log_param("err", fmt_text(errName)));
@@ -250,30 +264,31 @@ static snd_pcm_info_t* alsa_pcm_info_scratch(SndDevice* dev) {
 }
 
 static bool alsa_pcm_configure(SndDevice* dev) {
-  diag_assert(dev->pcm);
+  AlsaPcm* pcm = dev->pcm;
+  diag_assert(pcm);
 
   i32 err = 0;
 
   // Configure the hardware parameters.
-  const usize          hwParamsSize = snd_pcm_hw_params_sizeof();
-  snd_pcm_hw_params_t* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
-  if ((err = snd_pcm_hw_params_any(dev->pcm, hwParams)) < 0) {
+  const usize      hwParamsSize = snd_pcm_hw_params_sizeof();
+  AlsaPcmHwParams* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
+  if ((err = dev->alsa.pcm_hw_params_any(pcm, hwParams)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_rate_resample(dev->pcm, hwParams, true)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_rate_resample(pcm, hwParams, true)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_access(dev->pcm, hwParams, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_access(pcm, hwParams, AlsaPcmAccess_RwInterleaved)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_format(dev->pcm, hwParams, SND_PCM_FORMAT_S16_LE)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_format(pcm, hwParams, AlsaPcmFormat_S16Le)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_channels(dev->pcm, hwParams, SndChannel_Count)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_channels(pcm, hwParams, SndChannel_Count)) < 0) {
     goto Err;
   }
   u32 frameRate = snd_frame_rate;
-  if ((err = snd_pcm_hw_params_set_rate_near(dev->pcm, hwParams, &frameRate, 0)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_rate_near(pcm, hwParams, &frameRate, 0)) < 0) {
     goto Err;
   }
   if (frameRate != snd_frame_rate) {
@@ -281,11 +296,11 @@ static bool alsa_pcm_configure(SndDevice* dev) {
     goto Err;
   }
   u32 periodCount = snd_alsa_period_desired_count;
-  if ((err = snd_pcm_hw_params_set_periods_near(dev->pcm, hwParams, &periodCount, 0)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_periods_near(pcm, hwParams, &periodCount, 0)) < 0) {
     goto Err;
   }
   snd_pcm_uframes_t periodSize = snd_alsa_period_frames;
-  if ((err = snd_pcm_hw_params_set_period_size_near(dev->pcm, hwParams, &periodSize, 0)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0)) < 0) {
     goto Err;
   }
   if (periodSize != snd_alsa_period_frames) {
@@ -294,17 +309,17 @@ static bool alsa_pcm_configure(SndDevice* dev) {
   }
 
   // Apply the hardware parameters.
-  if ((err = snd_pcm_hw_params(dev->pcm, hwParams)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params(pcm, hwParams)) < 0) {
     goto Err;
   }
 
   // Retrieve the config.
   snd_pcm_uframes_t bufferSize;
-  if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
     goto Err;
   }
   snd_pcm_uframes_t minTransferAlign;
-  if ((err = snd_pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
     goto Err;
   }
   if (minTransferAlign > (snd_frame_count_alignment * SndChannel_Count)) {
@@ -328,7 +343,7 @@ Err:;
 
 static bool alsa_pcm_prepare(SndDevice* dev) {
   i32 err;
-  if (UNLIKELY(err = snd_pcm_prepare(dev->pcm))) {
+  if (UNLIKELY(err = dev->alsa.pcm_prepare(dev->pcm))) {
     log_e(
         "Failed to prepare sound-device",
         log_param("err-code", fmt_int(err)),
@@ -339,7 +354,7 @@ static bool alsa_pcm_prepare(SndDevice* dev) {
 }
 
 static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
-  const snd_pcm_sframes_t avail = snd_pcm_avail_update(dev->pcm);
+  const snd_pcm_sframes_t avail = dev->alsa.pcm_avail_update(dev->pcm);
   if (UNLIKELY(avail < 0)) {
     const i32 err = (i32)avail;
     if (err == -EPIPE) {
@@ -356,7 +371,7 @@ static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
 
 static AlsaPcmWriteResult
 alsa_pcm_write(SndDevice* dev, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
-  const snd_pcm_sframes_t written = snd_pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
+  const snd_pcm_sframes_t written = dev->alsa.pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
   if (written < 0 || (snd_pcm_uframes_t)written != snd_alsa_period_frames) {
     const i32 err = (i32)written;
     if (err == -EPIPE) {
@@ -397,11 +412,11 @@ SndDevice* snd_device_create(Allocator* alloc) {
     return dev; // Failed to configure pcm device.
   }
 
-  const snd_pcm_type_t  type = snd_pcm_type(dev->pcm);
-  const snd_pcm_info_t* info = alsa_pcm_info_scratch(dev);
-  const i32             card = info ? snd_pcm_info_get_card(info) : -1;
+  const AlsaPcmType  type = dev->alsa.pcm_type(dev->pcm);
+  const AlsaPcmInfo* info = alsa_pcm_info_scratch(dev);
+  const i32          card = info ? dev->alsa.pcm_info_get_card(info) : -1;
   if (info) {
-    dev->id = string_maybe_dup(alloc, string_from_null_term(snd_pcm_info_get_id(info)));
+    dev->id = string_maybe_dup(alloc, string_from_null_term(dev->alsa.pcm_info_get_id(info)));
   }
   dev->state = SndDeviceState_Idle;
 
@@ -420,7 +435,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
 
 void snd_device_destroy(SndDevice* dev) {
   if (dev->pcm) {
-    snd_pcm_close(dev->pcm);
+    dev->alsa.pcm_close(dev->pcm);
   }
   alsa_error_handler_teardown(dev);
   if (dev->alsa.asound) {
