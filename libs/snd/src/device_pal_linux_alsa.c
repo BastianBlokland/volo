@@ -9,7 +9,7 @@
 #include "constants_internal.h"
 #include "device_internal.h"
 
-#include <alsa/asoundlib.h>
+#include <errno.h>
 #include <stdio.h>
 
 /**
@@ -253,7 +253,7 @@ static bool alsa_pcm_open(SndDevice* dev) {
 static AlsaPcmInfo* alsa_pcm_info_scratch(SndDevice* dev) {
   diag_assert(dev->pcm);
 
-  AlsaPcmInfo* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
+  AlsaPcmInfo* info = alloc_alloc(g_alloc_scratch, dev->alsa.pcm_info_sizeof(), sizeof(void*)).ptr;
   const i32    ret  = dev->alsa.pcm_info(dev->pcm, info);
   if (ret < 0) {
     const String errName = alsa_error_str(dev, ret);
@@ -270,7 +270,7 @@ static bool alsa_pcm_configure(SndDevice* dev) {
   i32 err = 0;
 
   // Configure the hardware parameters.
-  const usize      hwParamsSize = snd_pcm_hw_params_sizeof();
+  const usize      hwParamsSize = dev->alsa.pcm_hw_params_sizeof();
   AlsaPcmHwParams* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
   if ((err = dev->alsa.pcm_hw_params_any(pcm, hwParams)) < 0) {
     goto Err;
@@ -299,7 +299,7 @@ static bool alsa_pcm_configure(SndDevice* dev) {
   if ((err = dev->alsa.pcm_hw_params_set_periods_near(pcm, hwParams, &periodCount, 0)) < 0) {
     goto Err;
   }
-  snd_pcm_uframes_t periodSize = snd_alsa_period_frames;
+  AlsaUFrames periodSize = snd_alsa_period_frames;
   if ((err = dev->alsa.pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0)) < 0) {
     goto Err;
   }
@@ -314,11 +314,11 @@ static bool alsa_pcm_configure(SndDevice* dev) {
   }
 
   // Retrieve the config.
-  snd_pcm_uframes_t bufferSize;
+  AlsaUFrames bufferSize;
   if ((err = dev->alsa.pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
     goto Err;
   }
-  snd_pcm_uframes_t minTransferAlign;
+  AlsaUFrames minTransferAlign;
   if ((err = dev->alsa.pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
     goto Err;
   }
@@ -354,7 +354,7 @@ static bool alsa_pcm_prepare(SndDevice* dev) {
 }
 
 static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
-  const snd_pcm_sframes_t avail = dev->alsa.pcm_avail_update(dev->pcm);
+  const AlsaSFrames avail = dev->alsa.pcm_avail_update(dev->pcm);
   if (UNLIKELY(avail < 0)) {
     const i32 err = (i32)avail;
     if (err == -EPIPE) {
@@ -371,8 +371,8 @@ static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
 
 static AlsaPcmWriteResult
 alsa_pcm_write(SndDevice* dev, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
-  const snd_pcm_sframes_t written = dev->alsa.pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
-  if (written < 0 || (snd_pcm_uframes_t)written != snd_alsa_period_frames) {
+  const AlsaSFrames written = dev->alsa.pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
+  if (written < 0 || (AlsaUFrames)written != snd_alsa_period_frames) {
     const i32 err = (i32)written;
     if (err == -EPIPE) {
       return AlsaPcmWriteResult_Underrun;
@@ -424,7 +424,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
       "Alsa sound device created",
       log_param("id", fmt_text(dev->id)),
       log_param("card", fmt_int(card)),
-      log_param("type", fmt_text(string_from_null_term(snd_pcm_type_name(type)))),
+      log_param("type", fmt_text(string_from_null_term(dev->alsa.pcm_type_name(type)))),
       log_param("period-count", fmt_int(dev->pcmConfig.periodCount)),
       log_param("period-frames", fmt_int(snd_alsa_period_frames)),
       log_param("period-time", fmt_duration(snd_alsa_period_time)),
