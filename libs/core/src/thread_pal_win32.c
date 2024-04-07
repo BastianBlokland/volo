@@ -18,9 +18,12 @@ ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
  */
 static const u32 g_win32SchedulingInterval = 2;
 
-static DynLib* g_winMMLib;
-static UINT(SYS_DECL* g_winMMTimeBeginPeriod)(UINT period);
-static UINT(SYS_DECL* g_winMMTimeEndPeriod)(UINT period);
+static DynLib* g_libMM;
+static UINT(SYS_DECL* g_mmTimeBeginPeriod)(UINT period);
+static UINT(SYS_DECL* g_mmTimeEndPeriod)(UINT period);
+
+static DynLib* g_libKernel32;
+static HRESULT(SYS_DECL* g_setThreadDescription)(HANDLE thread, const wchar_t* description);
 
 static int thread_desired_prio_value(const ThreadPriority prio) {
   switch (prio) {
@@ -60,21 +63,30 @@ void thread_pal_init_late() {
   /**
    * If 'Winmm.dll' (Windows Multimedia API) is available then configure the scheduling interval.
    */
-  if (dynlib_load(g_alloc_persist, string_lit("Winmm.dll"), &g_winMMLib) == DynLibResult_Success) {
-    g_winMMTimeBeginPeriod = dynlib_symbol(g_winMMLib, string_lit("timeBeginPeriod"));
-    g_winMMTimeEndPeriod   = dynlib_symbol(g_winMMLib, string_lit("timeEndPeriod"));
+  if (dynlib_load(g_alloc_persist, string_lit("Winmm.dll"), &g_libMM) == 0) {
+    g_mmTimeBeginPeriod = dynlib_symbol(g_libMM, string_lit("timeBeginPeriod"));
+    g_mmTimeEndPeriod   = dynlib_symbol(g_libMM, string_lit("timeEndPeriod"));
   }
-  if (g_winMMTimeBeginPeriod && g_winMMTimeBeginPeriod(g_win32SchedulingInterval)) {
+  if (g_mmTimeBeginPeriod && g_mmTimeBeginPeriod(g_win32SchedulingInterval)) {
     diag_assert_fail("Failed to set win32 scheduling interval");
+  }
+  /**
+   * 'SetThreadDescription' was introduced in 'Windows 10, version 1607'; optionally load it.
+   */
+  if (dynlib_load(g_alloc_persist, string_lit("kernel32.dll"), &g_libKernel32) == 0) {
+    g_setThreadDescription = dynlib_symbol(g_libKernel32, string_lit("SetThreadDescription"));
   }
 }
 
 void thread_pal_teardown() {
-  if (g_winMMTimeEndPeriod && g_winMMTimeEndPeriod(g_win32SchedulingInterval)) {
+  if (g_mmTimeEndPeriod && g_mmTimeEndPeriod(g_win32SchedulingInterval)) {
     diag_assert_fail("Failed to restore win32 scheduling interval");
   }
-  if (g_winMMLib) {
-    dynlib_destroy(g_winMMLib);
+  if (g_libMM) {
+    dynlib_destroy(g_libMM);
+  }
+  if (g_libKernel32) {
+    dynlib_destroy(g_libKernel32);
   }
 }
 
@@ -87,18 +99,11 @@ u16 thread_pal_core_count() {
   return sysInfo.dwNumberOfProcessors;
 }
 
-#if defined(__MINGW32__)
 void thread_pal_set_name(const String str) {
-  /**
-   * Under MinGW (Minimalist GNU for Windows) (GNU gcc + GNU binutils port to windows), the
-   * 'SetThreadDescription' win32 api is current not supported. Seeing that 'thread_pal_set_name()'
-   * is a convenience api for use during debugging / profiling we can simply stub it out without
-   * affecting the program behavior.
-   */
-  (void)str;
-}
-#else
-void thread_pal_set_name(const String str) {
+  if (!g_setThreadDescription) {
+    return; // Thread descriptions are not supported on this windows installation.
+  }
+
   static const usize g_maxNameLen = 15;
   if (str.size > g_maxNameLen) {
     diag_assert_fail(
@@ -113,12 +118,11 @@ void thread_pal_set_name(const String str) {
   winutils_to_widestr(buffer, str);
 
   const HANDLE  curThread = GetCurrentThread();
-  const HRESULT res       = SetThreadDescription(curThread, buffer.ptr);
+  const HRESULT res       = g_setThreadDescription(curThread, buffer.ptr);
   if (UNLIKELY(!SUCCEEDED(res))) {
     diag_crash_msg("SetThreadDescription() failed");
   }
 }
-#endif // !defined(__MINGW32__)
 
 bool thread_pal_set_priority(const ThreadPriority prio) {
   const int    prioValue = thread_desired_prio_value(prio);
