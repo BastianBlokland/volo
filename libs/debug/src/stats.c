@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynlib.h"
+#include "core_file.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -70,7 +71,7 @@ ecs_comp_define(DebugStatsGlobalComp) {
   DynArray notifications; // DebugStatsNotification[].
 
   u64 allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
-  u32 dynlibCount;
+  u32 fileCount, dynlibCount;
   u32 globalStringCount;
 
   DebugStatPlot ecsFlushDurUs; // In microseconds.
@@ -482,7 +483,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
-    stats_draw_val_entry(canvas, string_lit("Handles"), fmt_write_scratch("dynlib: {}", fmt_int(statsGlobal->dynlibCount)));
+    stats_draw_val_entry(canvas, string_lit("Handles"), fmt_write_scratch("file: {<2} dynlib: {}", fmt_int(statsGlobal->fileCount), fmt_int(statsGlobal->dynlibCount)));
     stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
@@ -570,6 +571,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats
   const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
   debug_notify_prune_older(statsGlobal, oldestNotifToKeep);
 
+  statsGlobal->fileCount         = file_count();
   statsGlobal->dynlibCount       = dynlib_count();
   statsGlobal->globalStringCount = stringtable_count(g_stringtable);
 
