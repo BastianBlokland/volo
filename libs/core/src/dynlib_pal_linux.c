@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "core_path.h"
 
 #include <dlfcn.h>
 #include <limits.h>
@@ -19,16 +20,17 @@ struct sDynLib {
 
 static String dynlib_err_msg() { return string_from_null_term(dlerror()); }
 
-static String dynlib_path_query(void* handle, Allocator* alloc) {
-  char pathBuffer[PATH_MAX + 1]; /* +1 for null-terminator */
-  if (UNLIKELY(dlinfo(handle, RTLD_DI_ORIGIN, pathBuffer) != 0)) {
+static String dynlib_path_query(void* handle, const String name, Allocator* alloc) {
+  char dirBuffer[PATH_MAX + 1]; /* +1 for null-terminator */
+  if (UNLIKELY(dlinfo(handle, RTLD_DI_ORIGIN, dirBuffer) != 0)) {
     diag_crash_msg("dlinfo() failed: {}", fmt_text(dynlib_err_msg()));
   }
-  const String str = string_from_null_term(pathBuffer);
-  if (UNLIKELY(!str.size)) {
+  const String dir = string_from_null_term(dirBuffer);
+  if (UNLIKELY(!dir.size)) {
     diag_crash_msg("Unable to find path for dynlib");
   }
-  return string_dup(alloc, str);
+  const String path = path_build_scratch(dir, name);
+  return string_dup(alloc, path);
 }
 
 DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
@@ -51,7 +53,7 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   *out  = alloc_alloc_t(alloc, DynLib);
   **out = (DynLib){
       .handle = handle,
-      .path   = dynlib_path_query(handle, alloc),
+      .path   = dynlib_path_query(handle, name, alloc),
       .alloc  = alloc,
   };
   return DynLibResult_Success;

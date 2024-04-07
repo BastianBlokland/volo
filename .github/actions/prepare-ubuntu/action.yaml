@@ -20,11 +20,6 @@ runs:
           libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev \
           libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev
 
-    - name: install-asound
-      shell: bash
-      run: |
-        sudo apt install libasound2-dev libasound2
-
     - name: install-vulkan
       shell: bash
       run: |

@@ -1,5 +1,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "log_logger.h"
@@ -8,10 +9,13 @@
 #include "constants_internal.h"
 #include "device_internal.h"
 
-#include <alsa/asoundlib.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 /**
- * Alsa PCM playback sound device implementation.
+ * 'Advanced Linux Sound Architecture' (ALSA) PCM playback sound device (https://alsa-project.org/).
+ * For debian based systems: apt install libasound2
  *
  * Use a simple double-buffering strategy where we use (at least) two periods, one playing on the
  * device and one being recorded.
@@ -26,10 +30,67 @@
 ASSERT(bits_aligned(snd_alsa_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
 ASSERT(snd_alsa_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
+typedef enum {
+  AlsaPcmStream_Playback = 0,
+  AlsaPcmStream_Capture  = 1,
+} AlsaPcmStream;
+
+typedef enum {
+  AlsaPcmAccess_MmapInterleaved    = 0,
+  AlsaPcmAccess_MmapNonInterleaved = 1,
+  AlsaPcmAccess_MmapComplex        = 2,
+  AlsaPcmAccess_RwInterleaved      = 3,
+  AlsaPcmAccess_RwNonInterleaved   = 4,
+} AlsaPcmAccess;
+
+typedef enum {
+  AlsaPcmFormat_S16Le = 2, // Signed 16 bit little endian.
+} AlsaPcmFormat;
+
+typedef struct sAlsaPcm         AlsaPcm;
+typedef struct sAlsaPcmInfo     AlsaPcmInfo;
+typedef struct sAlsaPcmHwParams AlsaPcmHwParams;
+typedef int                     AlsaPcmType;
+typedef unsigned long           AlsaUFrames;
+typedef long                    AlsaSFrames;
+
+typedef void (*AlsaErrorHandler)(
+    const char* file, int line, const char* function, int err, const char* fmt, ...);
+
 typedef struct {
-  bool valid;
-  u32  periodCount;
-  u32  bufferSize;
+  DynLib* asound;
+  // clang-format off
+  const char* (SYS_DECL* strerror)(int errnum);
+  int         (SYS_DECL* lib_error_set_handler)(AlsaErrorHandler);
+  int         (SYS_DECL* pcm_open)(AlsaPcm**, const char* name, AlsaPcmStream, int mode);
+  int         (SYS_DECL* pcm_close)(AlsaPcm*);
+  AlsaPcmType (SYS_DECL* pcm_type)(AlsaPcm*);
+  const char* (SYS_DECL* pcm_type_name)(AlsaPcmType);
+  int         (SYS_DECL* pcm_prepare)(AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcm_avail_update)(AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcm_writei)(AlsaPcm*, const void* buffer, AlsaUFrames size);
+  size_t      (SYS_DECL* pcm_info_sizeof)(void);
+  int         (SYS_DECL* pcm_info)(AlsaPcm*, AlsaPcmInfo*);
+  int         (SYS_DECL* pcm_info_get_card)(const AlsaPcmInfo*);
+  const char* (SYS_DECL* pcm_info_get_id)(const AlsaPcmInfo*);
+  size_t      (SYS_DECL* pcm_hw_params_sizeof)(void);
+  int         (SYS_DECL* pcm_hw_params_any)(AlsaPcm*, AlsaPcmHwParams*);
+  int         (SYS_DECL* pcm_hw_params)(AlsaPcm*, AlsaPcmHwParams*);
+  int         (SYS_DECL* pcm_hw_params_get_min_align)(const AlsaPcmHwParams*, AlsaUFrames* val);
+  int         (SYS_DECL* pcm_hw_params_get_buffer_size)(const AlsaPcmHwParams*, AlsaUFrames* val);
+  int         (SYS_DECL* pcm_hw_params_set_rate_resample)(AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
+  int         (SYS_DECL* pcm_hw_params_set_access)(AlsaPcm*, AlsaPcmHwParams*, AlsaPcmAccess val);
+  int         (SYS_DECL* pcm_hw_params_set_format)(AlsaPcm*, AlsaPcmHwParams*, AlsaPcmFormat val);
+  int         (SYS_DECL* pcm_hw_params_set_channels)(AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
+  int         (SYS_DECL* pcm_hw_params_set_rate_near)(AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
+  int         (SYS_DECL* pcm_hw_params_set_periods_near)(AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
+  int         (SYS_DECL* pcm_hw_params_set_period_size_near)(AlsaPcm*, AlsaPcmHwParams*, AlsaUFrames* val, int* dir);
+  // clang-format on
+} AlsaLib;
+
+typedef struct {
+  u32 periodCount;
+  u32 bufferSize;
 } AlsaPcmConfig;
 
 typedef enum {
@@ -38,12 +99,13 @@ typedef enum {
 
 typedef struct sSndDevice {
   Allocator* alloc;
+  AlsaLib    alsa;
   String     id;
 
   SndDeviceState state : 8;
   SndDeviceFlags flags : 8;
 
-  snd_pcm_t*    pcm;
+  AlsaPcm*      pcm;
   AlsaPcmConfig pcmConfig;
 
   TimeSteady nextPeriodBeginTime;
@@ -75,10 +137,71 @@ typedef enum {
   AlsaPcmWriteResult_Error,
 } AlsaPcmWriteResult;
 
-static String alsa_error_str(const int err) { return string_from_null_term(snd_strerror(err)); }
+static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libasound.so"), &lib->asound);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to Alsa library ('libasound.so')", log_param("err", fmt_text(err)));
+    return false;
+  }
+  log_i("Alsa library loaded", log_param("path", fmt_path(dynlib_path(lib->asound))));
+
+#define ALSA_LOAD_SYM(_NAME_)                                                                      \
+  do {                                                                                             \
+    const String symName = string_lit("snd_" #_NAME_);                                             \
+    lib->_NAME_          = dynlib_symbol(lib->asound, symName);                                    \
+    if (!lib->_NAME_) {                                                                            \
+      log_w("Alsa symbol '{}' missing", log_param("sym", fmt_text(symName)));                      \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  ALSA_LOAD_SYM(strerror);
+  ALSA_LOAD_SYM(lib_error_set_handler);
+  ALSA_LOAD_SYM(pcm_open);
+  ALSA_LOAD_SYM(pcm_close);
+  ALSA_LOAD_SYM(pcm_type);
+  ALSA_LOAD_SYM(pcm_type_name);
+  ALSA_LOAD_SYM(pcm_prepare);
+  ALSA_LOAD_SYM(pcm_avail_update);
+  ALSA_LOAD_SYM(pcm_writei);
+  ALSA_LOAD_SYM(pcm_info_sizeof);
+  ALSA_LOAD_SYM(pcm_info);
+  ALSA_LOAD_SYM(pcm_info_get_card);
+  ALSA_LOAD_SYM(pcm_info_get_id);
+  ALSA_LOAD_SYM(pcm_hw_params_sizeof);
+  ALSA_LOAD_SYM(pcm_hw_params_any);
+  ALSA_LOAD_SYM(pcm_hw_params);
+  ALSA_LOAD_SYM(pcm_hw_params_get_min_align);
+  ALSA_LOAD_SYM(pcm_hw_params_get_buffer_size);
+  ALSA_LOAD_SYM(pcm_hw_params_set_rate_resample);
+  ALSA_LOAD_SYM(pcm_hw_params_set_access);
+  ALSA_LOAD_SYM(pcm_hw_params_set_format);
+  ALSA_LOAD_SYM(pcm_hw_params_set_channels);
+  ALSA_LOAD_SYM(pcm_hw_params_set_rate_near);
+  ALSA_LOAD_SYM(pcm_hw_params_set_periods_near);
+  ALSA_LOAD_SYM(pcm_hw_params_set_period_size_near);
+
+#undef ALSA_LIB_SYM
+  return true;
+}
+
+static String alsa_error_str(const SndDevice* dev, const int err) {
+  return string_from_null_term(dev->alsa.strerror(err));
+}
+
+static const SndDevice* g_sndErrorHandlerDev;
+static ThreadSpinLock   g_sndErrorHandlerLock;
 
 static void alsa_error_handler(
     const char* file, const i32 line, const char* func, const i32 err, const char* fmt, ...) {
+
+  String errName = string_lit("<unknown>");
+  thread_spinlock_lock(&g_sndErrorHandlerLock);
+  if (g_sndErrorHandlerDev) {
+    errName = alsa_error_str(g_sndErrorHandlerDev, err);
+  }
+  thread_spinlock_unlock(&g_sndErrorHandlerLock);
 
   va_list arg;
   va_start(arg, fmt);
@@ -90,7 +213,7 @@ static void alsa_error_handler(
   log_e(
       "Alsa error: {}",
       log_param("msg", fmt_text(msg)),
-      log_param("err", fmt_text(alsa_error_str(err))),
+      log_param("err", fmt_text(errName)),
       log_param("file", fmt_text(string_from_null_term(file))),
       log_param("line", fmt_int(line)),
       log_param("func", fmt_text(string_from_null_term(func))));
@@ -98,67 +221,75 @@ static void alsa_error_handler(
   va_end(arg);
 }
 
-static void alsa_init() {
-  static ThreadSpinLock g_initLock;
-  static bool           g_initialized;
-  if (LIKELY(g_initialized)) {
-    return;
+static void alsa_error_handler_init(SndDevice* dev) {
+  thread_spinlock_lock(&g_sndErrorHandlerLock);
+  dev->alsa.lib_error_set_handler(&alsa_error_handler);
+  if (!g_sndErrorHandlerDev) {
+    g_sndErrorHandlerDev = dev;
   }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_initialized) {
-    snd_lib_error_set_handler(&alsa_error_handler);
-    g_initialized = true;
-  }
-  thread_spinlock_unlock(&g_initLock);
+  thread_spinlock_unlock(&g_sndErrorHandlerLock);
 }
 
-static snd_pcm_t* alsa_pcm_open() {
-  snd_pcm_t* pcm = null;
-  const i32  err = snd_pcm_open(&pcm, snd_alsa_device_name, SND_PCM_STREAM_PLAYBACK, 0);
+static void alsa_error_handler_teardown(SndDevice* dev) {
+  thread_spinlock_lock(&g_sndErrorHandlerLock);
+  if (g_sndErrorHandlerDev == dev) {
+    g_sndErrorHandlerDev = null;
+  }
+  thread_spinlock_unlock(&g_sndErrorHandlerLock);
+}
+
+static bool alsa_pcm_open(SndDevice* dev) {
+  const i32 err = dev->alsa.pcm_open(&dev->pcm, snd_alsa_device_name, AlsaPcmStream_Playback, 0);
   if (err < 0) {
     log_e(
         "Failed to open sound-device",
         log_param("name", fmt_text(string_from_null_term(snd_alsa_device_name))),
         log_param("err-code", fmt_int(err)),
-        log_param("err", fmt_text(alsa_error_str(err))));
-    return null;
+        log_param("err", fmt_text(alsa_error_str(dev, err))));
+    return false;
   }
-  return pcm;
+  return true;
 }
 
-static snd_pcm_info_t* alsa_pcm_info_scratch(snd_pcm_t* pcm) {
-  snd_pcm_info_t* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
-  const i32       ret  = snd_pcm_info(pcm, info);
+static AlsaPcmInfo* alsa_pcm_info_scratch(SndDevice* dev) {
+  diag_assert(dev->pcm);
+
+  AlsaPcmInfo* info = alloc_alloc(g_alloc_scratch, dev->alsa.pcm_info_sizeof(), sizeof(void*)).ptr;
+  const i32    ret  = dev->alsa.pcm_info(dev->pcm, info);
   if (ret < 0) {
-    log_e("Failed to retrieve sound-device info", log_param("err", fmt_text(alsa_error_str(ret))));
+    const String errName = alsa_error_str(dev, ret);
+    log_e("Failed to retrieve sound-device info", log_param("err", fmt_text(errName)));
     return null;
   }
   return info;
 }
 
-static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
+static bool alsa_pcm_configure(SndDevice* dev) {
+  AlsaPcm* pcm = dev->pcm;
+  diag_assert(pcm);
+
   i32 err = 0;
 
   // Configure the hardware parameters.
-  const usize          hwParamsSize = snd_pcm_hw_params_sizeof();
-  snd_pcm_hw_params_t* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
-  if ((err = snd_pcm_hw_params_any(pcm, hwParams)) < 0) {
+  const usize      hwParamsSize = dev->alsa.pcm_hw_params_sizeof();
+  AlsaPcmHwParams* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
+  if ((err = dev->alsa.pcm_hw_params_any(pcm, hwParams)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, true)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_rate_resample(pcm, hwParams, true)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_access(pcm, hwParams, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_access(pcm, hwParams, AlsaPcmAccess_RwInterleaved)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_format(pcm, hwParams, SND_PCM_FORMAT_S16_LE)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_format(pcm, hwParams, AlsaPcmFormat_S16Le)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, SndChannel_Count)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_channels(pcm, hwParams, SndChannel_Count)) < 0) {
     goto Err;
   }
   u32 frameRate = snd_frame_rate;
-  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &frameRate, 0)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_rate_near(pcm, hwParams, &frameRate, 0)) < 0) {
     goto Err;
   }
   if (frameRate != snd_frame_rate) {
@@ -166,11 +297,11 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
     goto Err;
   }
   u32 periodCount = snd_alsa_period_desired_count;
-  if ((err = snd_pcm_hw_params_set_periods_near(pcm, hwParams, &periodCount, 0)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params_set_periods_near(pcm, hwParams, &periodCount, 0)) < 0) {
     goto Err;
   }
-  snd_pcm_uframes_t periodSize = snd_alsa_period_frames;
-  if ((err = snd_pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0)) < 0) {
+  AlsaUFrames periodSize = snd_alsa_period_frames;
+  if ((err = dev->alsa.pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0)) < 0) {
     goto Err;
   }
   if (periodSize != snd_alsa_period_frames) {
@@ -179,52 +310,52 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   }
 
   // Apply the hardware parameters.
-  if ((err = snd_pcm_hw_params(pcm, hwParams)) < 0) {
+  if ((err = dev->alsa.pcm_hw_params(pcm, hwParams)) < 0) {
     goto Err;
   }
 
   // Retrieve the config.
-  snd_pcm_uframes_t bufferSize;
-  if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
+  AlsaUFrames bufferSize;
+  if ((err = dev->alsa.pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
     goto Err;
   }
-  snd_pcm_uframes_t minTransferAlign;
-  if ((err = snd_pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
+  AlsaUFrames minTransferAlign;
+  if ((err = dev->alsa.pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
     goto Err;
   }
   if (minTransferAlign > (snd_frame_count_alignment * SndChannel_Count)) {
     log_e("Sound-device requires stronger frame alignment then we support");
     goto Err;
   }
-  return (AlsaPcmConfig){
-      .valid       = true,
+  dev->pcmConfig = (AlsaPcmConfig){
       .periodCount = periodCount,
       .bufferSize  = (u32)bufferSize,
   };
+  return true;
 
 Err:;
-  const String errName = err < 0 ? alsa_error_str(err) : string_lit("unkown");
+  const String errName = err < 0 ? alsa_error_str(dev, err) : string_lit("unkown");
   log_e(
       "Failed to setup sound-device",
       log_param("err-code", fmt_int(err)),
       log_param("err", fmt_text(errName)));
-  return (AlsaPcmConfig){0};
+  return false;
 }
 
-static bool alsa_pcm_prepare(snd_pcm_t* pcm) {
+static bool alsa_pcm_prepare(SndDevice* dev) {
   i32 err;
-  if (UNLIKELY(err = snd_pcm_prepare(pcm))) {
+  if (UNLIKELY(err = dev->alsa.pcm_prepare(dev->pcm))) {
     log_e(
         "Failed to prepare sound-device",
         log_param("err-code", fmt_int(err)),
-        log_param("err", fmt_text(alsa_error_str(err))));
+        log_param("err", fmt_text(alsa_error_str(dev, err))));
     return false;
   }
   return true; // Ready for playing.
 }
 
-static AlsaPcmStatus alsa_pcm_query(snd_pcm_t* pcm) {
-  const snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm);
+static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
+  const AlsaSFrames avail = dev->alsa.pcm_avail_update(dev->pcm);
   if (UNLIKELY(avail < 0)) {
     const i32 err = (i32)avail;
     if (err == -EPIPE) {
@@ -233,16 +364,16 @@ static AlsaPcmStatus alsa_pcm_query(snd_pcm_t* pcm) {
     log_e(
         "Failed to query sound-device",
         log_param("err-code", fmt_int(err)),
-        log_param("err", fmt_text(alsa_error_str((i32)avail))));
+        log_param("err", fmt_text(alsa_error_str(dev, (i32)avail))));
     return AlsaPcmStatus_Error;
   }
   return avail < snd_alsa_period_frames ? AlsaPcmStatus_Busy : AlsaPcmStatus_Ready;
 }
 
 static AlsaPcmWriteResult
-alsa_pcm_write(snd_pcm_t* pcm, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
-  const snd_pcm_sframes_t written = snd_pcm_writei(pcm, buf, snd_alsa_period_frames);
-  if (written < 0 || (snd_pcm_uframes_t)written != snd_alsa_period_frames) {
+alsa_pcm_write(SndDevice* dev, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
+  const AlsaSFrames written = dev->alsa.pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
+  if (written < 0 || (AlsaUFrames)written != snd_alsa_period_frames) {
     const i32 err = (i32)written;
     if (err == -EPIPE) {
       return AlsaPcmWriteResult_Underrun;
@@ -250,7 +381,7 @@ alsa_pcm_write(snd_pcm_t* pcm, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)
     log_e(
         "Failed to write to sound-device",
         log_param("err-code", fmt_int(err)),
-        log_param("err", fmt_text(alsa_error_str(err))));
+        log_param("err", fmt_text(alsa_error_str(dev, err))));
     return AlsaPcmWriteResult_Error;
   }
   return AlsaPcmWriteResult_Success;
@@ -267,48 +398,49 @@ static void snd_device_report_underrun(SndDevice* device) {
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
-  alsa_init();
-
-  snd_pcm_t*    pcm       = alsa_pcm_open();
-  AlsaPcmConfig pcmConfig = {0};
-  if (pcm) {
-    pcmConfig = alsa_pcm_initialize(pcm);
-  }
-
-  String id;
-  if (pcmConfig.valid) {
-    const snd_pcm_type_t  type = snd_pcm_type(pcm);
-    const snd_pcm_info_t* info = alsa_pcm_info_scratch(pcm);
-    const i32             card = info ? snd_pcm_info_get_card(info) : -1;
-    id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_lit("<unknown>");
-
-    log_i(
-        "Alsa sound device created",
-        log_param("id", fmt_text(id)),
-        log_param("card", fmt_int(card)),
-        log_param("type", fmt_text(string_from_null_term(snd_pcm_type_name(type)))),
-        log_param("period-count", fmt_int(pcmConfig.periodCount)),
-        log_param("period-frames", fmt_int(snd_alsa_period_frames)),
-        log_param("period-time", fmt_duration(snd_alsa_period_time)),
-        log_param("device-buffer", fmt_size(pcmConfig.bufferSize)));
-  } else {
-    id = string_lit("<error>");
-  }
-
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
-  *dev           = (SndDevice){
-                .alloc     = alloc,
-                .id        = string_maybe_dup(alloc, id),
-                .pcm       = pcm,
-                .pcmConfig = pcmConfig,
-                .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
-  };
+  *dev           = (SndDevice){.alloc = alloc, .state = SndDeviceState_Error};
+
+  if (!alsa_lib_init(&dev->alsa, alloc)) {
+    return dev; // Failed to initialize alsa library.
+  }
+  alsa_error_handler_init(dev);
+
+  if (!alsa_pcm_open(dev)) {
+    return dev; // Failed to open pcm device.
+  }
+  if (!alsa_pcm_configure(dev)) {
+    return dev; // Failed to configure pcm device.
+  }
+
+  const AlsaPcmType  type = dev->alsa.pcm_type(dev->pcm);
+  const AlsaPcmInfo* info = alsa_pcm_info_scratch(dev);
+  const i32          card = info ? dev->alsa.pcm_info_get_card(info) : -1;
+  if (info) {
+    dev->id = string_maybe_dup(alloc, string_from_null_term(dev->alsa.pcm_info_get_id(info)));
+  }
+  dev->state = SndDeviceState_Idle;
+
+  log_i(
+      "Alsa sound device created",
+      log_param("id", fmt_text(dev->id)),
+      log_param("card", fmt_int(card)),
+      log_param("type", fmt_text(string_from_null_term(dev->alsa.pcm_type_name(type)))),
+      log_param("period-count", fmt_int(dev->pcmConfig.periodCount)),
+      log_param("period-frames", fmt_int(snd_alsa_period_frames)),
+      log_param("period-time", fmt_duration(snd_alsa_period_time)),
+      log_param("device-buffer", fmt_size(dev->pcmConfig.bufferSize)));
+
   return dev;
 }
 
 void snd_device_destroy(SndDevice* dev) {
   if (dev->pcm) {
-    snd_pcm_close(dev->pcm);
+    dev->alsa.pcm_close(dev->pcm);
+  }
+  alsa_error_handler_teardown(dev);
+  if (dev->alsa.asound) {
+    dynlib_destroy(dev->alsa.asound);
   }
   string_maybe_free(dev->alloc, dev->id);
   alloc_free_t(dev->alloc, dev);
@@ -316,7 +448,12 @@ void snd_device_destroy(SndDevice* dev) {
   log_i("Alsa sound device destroyed");
 }
 
-String snd_device_id(const SndDevice* dev) { return dev->id; }
+String snd_device_id(const SndDevice* dev) {
+  if (string_is_empty(dev->id)) {
+    return dev->state == SndDeviceState_Error ? string_lit("<error>") : string_lit("<unknown>");
+  }
+  return dev->id;
+}
 
 String snd_device_backend(const SndDevice* dev) {
   (void)dev;
@@ -332,7 +469,7 @@ bool snd_device_begin(SndDevice* dev) {
 
 StartPlayingIfIdle:
   if (dev->state == SndDeviceState_Idle) {
-    if (alsa_pcm_prepare(dev->pcm)) {
+    if (alsa_pcm_prepare(dev)) {
       dev->nextPeriodBeginTime = time_steady_clock();
       dev->state               = SndDeviceState_Playing;
     } else {
@@ -345,7 +482,7 @@ StartPlayingIfIdle:
   }
 
   // Query the device-status to check if there's a period ready for rendering.
-  switch (alsa_pcm_query(dev->pcm)) {
+  switch (alsa_pcm_query(dev)) {
   case AlsaPcmStatus_Underrun:
     snd_device_report_underrun(dev);
     dev->state = SndDeviceState_Idle; // PCM ran out of samples in the buffer; Restart the playback.
@@ -374,7 +511,7 @@ SndDevicePeriod snd_device_period(SndDevice* dev) {
 void snd_device_end(SndDevice* dev) {
   diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
 
-  switch (alsa_pcm_write(dev->pcm, dev->periodRenderingBuffer)) {
+  switch (alsa_pcm_write(dev, dev->periodRenderingBuffer)) {
   case AlsaPcmWriteResult_Success:
     dev->nextPeriodBeginTime += snd_alsa_period_time;
     break;
