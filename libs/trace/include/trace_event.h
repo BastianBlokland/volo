@@ -1,6 +1,11 @@
 #pragma once
 #include "core_format.h"
 
+/**
+ * Output sink for trace events.
+ */
+typedef struct sTraceSink TraceSink;
+
 typedef enum {
   TraceColor_Default,
   TraceColor_White,
