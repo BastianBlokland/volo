@@ -5,7 +5,7 @@
 #include "dynlib_internal.h"
 
 static bool g_dynlibInitialized;
-static i64  g_dynlibActiveCount;
+static i64  g_dynlibLoaded;
 
 /**
  * Special crash-routine that does not allocate any memory.
@@ -25,8 +25,8 @@ void dynlib_init() {
 }
 
 void dynlib_teardown() {
-  if (UNLIKELY(thread_atomic_load_i64(&g_dynlibActiveCount) != 0)) {
-    dynlib_crash_with_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibActiveCount));
+  if (UNLIKELY(thread_atomic_load_i64(&g_dynlibLoaded) != 0)) {
+    dynlib_crash_with_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibLoaded));
   }
 }
 
@@ -50,14 +50,14 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   }
   const DynLibResult res = dynlib_pal_load(alloc, name, out);
   if (res == DynLibResult_Success) {
-    thread_atomic_add_i64(&g_dynlibActiveCount, 1);
+    thread_atomic_add_i64(&g_dynlibLoaded, 1);
   }
   return res;
 }
 
 void dynlib_destroy(DynLib* lib) {
   dynlib_pal_destroy(lib);
-  if (UNLIKELY(thread_atomic_sub_i64(&g_dynlibActiveCount, 1) <= 0)) {
+  if (UNLIKELY(thread_atomic_sub_i64(&g_dynlibLoaded, 1) <= 0)) {
     dynlib_crash_with_msg("dynlib: Double destroy of dynlib");
   }
 }
@@ -67,3 +67,5 @@ String dynlib_path(const DynLib* lib) { return dynlib_pal_path(lib); }
 DynLibSymbol dynlib_symbol(const DynLib* lib, const String name) {
   return dynlib_pal_symbol(lib, name);
 }
+
+u32 dynlib_count() { return (u32)thread_atomic_load_i64(&g_dynlibLoaded); }

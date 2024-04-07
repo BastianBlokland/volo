@@ -54,3 +54,8 @@ String dynlib_path(const DynLib*);
  * NOTE: Returns null if the symbol could not be found.
  */
 DynLibSymbol dynlib_symbol(const DynLib*, String name);
+
+/**
+ * Returns the amount of currently loaded libraries.
+ */
+u32 dynlib_count();
