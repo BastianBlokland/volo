@@ -2,6 +2,8 @@
 #include "core_thread.h"
 #include "trace_init.h"
 
+#include "event_internal.h"
+
 static bool g_initalized;
 
 void trace_init(void) {
@@ -10,7 +12,7 @@ void trace_init(void) {
   if (!g_initalized) {
     g_initalized = true;
 
-    // TODO: Add initialization logic.
+    trace_event_init();
   }
 }
 
@@ -20,6 +22,6 @@ void trace_teardown(void) {
   if (g_initalized) {
     g_initalized = false;
 
-    // TODO: Add teardown logic.
+    trace_event_teardown();
   }
 }
