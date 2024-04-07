@@ -9,7 +9,7 @@ static i64  g_dynlibCount;
 
 /**
  * Special crash-routine that does not allocate any memory.
- * Which is needed as dynlib teardown happens after the alloctors have been torn down.
+ * Which is needed as dynlib teardown happens after the allocators have been torn down.
  */
 #define dynlib_crash_with_msg(_MSG_, ...)                                                          \
   do {                                                                                             \
