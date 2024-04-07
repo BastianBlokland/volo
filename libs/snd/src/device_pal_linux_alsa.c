@@ -141,7 +141,7 @@ static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
   DynLibResult loadRes = dynlib_load(alloc, string_lit("libasound.so"), &lib->asound);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to Alsa library ('libasound.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load Alsa library ('libasound.so')", log_param("err", fmt_text(err)));
     return false;
   }
   log_i("Alsa library loaded", log_param("path", fmt_path(dynlib_path(lib->asound))));

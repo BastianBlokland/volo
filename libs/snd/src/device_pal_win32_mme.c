@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_winutils.h"
 #include "log_logger.h"
 #include "snd_channel.h"
@@ -27,10 +28,21 @@
 ASSERT(bits_aligned(snd_mme_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
 ASSERT(snd_mme_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
+typedef UINT MmeResult;
+
+typedef struct {
+  DynLib* winmm;
+  // clang-format off
+  MmeResult (SYS_DECL* waveOutGetErrorTextW)(MmeResult, wchar_t* buffer, UINT bufferSize);
+  // clang-format on
+} MmeLib;
+
 typedef struct sSndDevice {
   Allocator* alloc;
+  MmeLib     mme;
   String     id;
-  HWAVEOUT   pcm;
+
+  HWAVEOUT pcm;
 
   SndDeviceState state : 8;
   u8             activePeriod;
@@ -45,15 +57,39 @@ typedef struct sSndDevice {
   i16 periodBuffer[snd_mme_period_samples * snd_mme_period_count];
 } SndDevice;
 
-static String mme_result_str_scratch(const MMRESULT result) {
+static bool mme_lib_init(MmeLib* lib, Allocator* alloc) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("Winmm.dll"), &lib->winmm);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load Win32 MME library ('Winmm.dll')", log_param("err", fmt_text(err)));
+    return false;
+  }
+  log_i("MME library loaded", log_param("path", fmt_path(dynlib_path(lib->winmm))));
+
+#define MME_LOAD_SYM(_NAME_)                                                                       \
+  do {                                                                                             \
+    lib->_NAME_ = dynlib_symbol(lib->winmm, string_lit(#_NAME_));                                  \
+    if (!lib->_NAME_) {                                                                            \
+      log_w("MME symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));           \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  MME_LOAD_SYM(waveOutGetErrorTextW);
+
+#undef MME_LOAD_SYM
+  return true;
+}
+
+static String mme_result_str_scratch(SndDevice* dev, const MMRESULT result) {
   wchar_t buffer[MAXERRORLENGTH];
-  if (waveOutGetErrorText(result, buffer, array_elems(buffer)) != MMSYSERR_NOERROR) {
+  if (dev->mme.waveOutGetErrorText(result, buffer, array_elems(buffer)) != MMSYSERR_NOERROR) {
     return string_lit("Unknown error occurred");
   }
   return winutils_from_widestr_scratch(buffer, wcslen(buffer));
 }
 
-static HWAVEOUT mme_pcm_open() {
+static bool mme_pcm_open(SndDevice* dev) {
   const WAVEFORMATEX format = {
       .wFormatTag      = WAVE_FORMAT_PCM,
       .nChannels       = SndChannel_Count,
@@ -62,60 +98,60 @@ static HWAVEOUT mme_pcm_open() {
       .nBlockAlign     = SndChannel_Count * snd_frame_sample_depth / 8,
       .wBitsPerSample  = snd_frame_sample_depth,
   };
-  HWAVEOUT       device;
-  const MMRESULT result = waveOutOpen(&device, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
+  const MMRESULT result = waveOutOpen(&dev->pcm, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed to open sound-device",
         log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str_scratch(result))));
+        log_param("err", fmt_text(mme_result_str_scratch(dev, result))));
 
-    return INVALID_HANDLE_VALUE;
-  }
-  return device;
-}
-
-static void mme_pcm_close(HWAVEOUT pcm) {
-  const MMRESULT result = waveOutClose(pcm);
-  if (UNLIKELY(result != MMSYSERR_NOERROR)) {
-    log_e(
-        "Failed to close sound-device",
-        log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str_scratch(result))));
-  }
-}
-
-static void mme_pcm_reset(HWAVEOUT pcm) {
-  const MMRESULT result = waveOutReset(pcm);
-  if (UNLIKELY(result != MMSYSERR_NOERROR)) {
-    log_e(
-        "Failed to reset sound-device",
-        log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str_scratch(result))));
-  }
-}
-
-static bool mme_pcm_write(HWAVEOUT pcm, WAVEHDR* periodHeader) {
-  const MMRESULT result = waveOutWrite(pcm, periodHeader, sizeof(WAVEHDR));
-  if (UNLIKELY(result != MMSYSERR_NOERROR)) {
-    log_e(
-        "Failed to write to sound-device",
-        log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str_scratch(result))));
+    dev->pcm = INVALID_HANDLE_VALUE;
     return false;
   }
   return true;
 }
 
-static String mme_pcm_name_scratch(HWAVEOUT pcm) {
-  (void)pcm; // TODO: Get the name of the specified device instead of hardcoding 'WAVE_MAPPER'.
+static void mme_pcm_close(SndDevice* dev) {
+  const MMRESULT result = waveOutClose(dev->pcm);
+  if (UNLIKELY(result != MMSYSERR_NOERROR)) {
+    log_e(
+        "Failed to close sound-device",
+        log_param("err-code", fmt_int(result)),
+        log_param("err", fmt_text(mme_result_str_scratch(dev, result))));
+  }
+}
+
+static void mme_pcm_reset(SndDevice* dev) {
+  const MMRESULT result = waveOutReset(dev->pcm);
+  if (UNLIKELY(result != MMSYSERR_NOERROR)) {
+    log_e(
+        "Failed to reset sound-device",
+        log_param("err-code", fmt_int(result)),
+        log_param("err", fmt_text(mme_result_str_scratch(dev, result))));
+  }
+}
+
+static bool mme_pcm_write(SndDevice* dev, WAVEHDR* periodHeader) {
+  const MMRESULT result = waveOutWrite(dev->pcm, periodHeader, sizeof(WAVEHDR));
+  if (UNLIKELY(result != MMSYSERR_NOERROR)) {
+    log_e(
+        "Failed to write to sound-device",
+        log_param("err-code", fmt_int(result)),
+        log_param("err", fmt_text(mme_result_str_scratch(dev, result))));
+    return false;
+  }
+  return true;
+}
+
+static String mme_pcm_name_scratch(SndDevice* dev) {
+  (void)dev; // TODO: Get the name of the specified device instead of hardcoding 'WAVE_MAPPER'.
   WAVEOUTCAPS    capabilities;
   const MMRESULT result = waveOutGetDevCaps(WAVE_MAPPER, &capabilities, sizeof(WAVEOUTCAPS));
   if (UNLIKELY(result != MMSYSERR_NOERROR)) {
     log_e(
         "Failed get capabilities of sound-device",
         log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str_scratch(result))));
+        log_param("err", fmt_text(mme_result_str_scratch(dev, result))));
     return string_lit("<error>");
   }
   const usize pcmNameChars = wcslen(capabilities.szPname);
@@ -129,12 +165,13 @@ SndDevice* snd_device_create(Allocator* alloc) {
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev = (SndDevice){.alloc = alloc, .state = SndDeviceState_Error, .activePeriod = sentinel_u8};
 
-  dev->pcm = mme_pcm_open();
-  if (dev->pcm == INVALID_HANDLE_VALUE) {
+  if (!mme_lib_init(&dev->mme, alloc)) {
+    return dev; // Failed to initialize Win32 Multimedia library.
+  }
+  if (!mme_pcm_open(dev)) {
     return dev; // Failed to open pcm device.
   }
-
-  dev->id    = string_maybe_dup(alloc, mme_pcm_name_scratch(dev->pcm));
+  dev->id    = string_maybe_dup(alloc, mme_pcm_name_scratch(dev));
   dev->state = SndDeviceState_Idle;
 
   // Initialize the period buffers.
@@ -181,13 +218,16 @@ static void snd_device_report_underrun(SndDevice* device) {
 void snd_device_destroy(SndDevice* dev) {
   if (dev->pcm != INVALID_HANDLE_VALUE) {
     if (dev->state == SndDeviceState_Playing) {
-      mme_pcm_reset(dev->pcm);
+      mme_pcm_reset(dev);
     }
     for (u32 period = 0; period != snd_mme_period_count; ++period) {
       WAVEHDR* periodHeader = &dev->periodHeaders[period];
       waveOutUnprepareHeader(dev->pcm, periodHeader, sizeof(WAVEHDR));
     }
-    mme_pcm_close(dev->pcm);
+    mme_pcm_close(dev);
+  }
+  if (dev->mme.winmm) {
+    dynlib_destroy(dev->mme.winmm);
   }
   string_maybe_free(dev->alloc, dev->id);
   alloc_free_t(dev->alloc, dev);
@@ -255,7 +295,7 @@ SndDevicePeriod snd_device_period(SndDevice* dev) {
 void snd_device_end(SndDevice* dev) {
   diag_assert_msg(!sentinel_check(dev->activePeriod), "Device not currently rendering");
 
-  if (UNLIKELY(mme_pcm_write(dev->pcm, &dev->periodHeaders[dev->activePeriod]))) {
+  if (UNLIKELY(mme_pcm_write(dev, &dev->periodHeaders[dev->activePeriod]))) {
     dev->nextPeriodBeginTime += snd_mme_period_time;
 
     // Detect if we where too late in writing an additional period.
@@ -264,7 +304,7 @@ void snd_device_end(SndDevice* dev) {
       dev->state = SndDeviceState_Idle;
     }
   } else {
-    mme_pcm_reset(dev->pcm);
+    mme_pcm_reset(dev);
     dev->state = SndDeviceState_Error;
   }
   dev->activePeriod = sentinel_u8;
