@@ -313,27 +313,7 @@ static void snd_device_report_underrun(SndDevice* device) {
   }
 }
 
-static SndDevice* snd_device_create_error(Allocator* alloc) {
-  SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
-
-  *dev = (SndDevice){
-      .alloc = alloc,
-      .state = SndDeviceState_Error,
-  };
-
-  return dev;
-}
-
 SndDevice* snd_device_create(Allocator* alloc) {
-  DynLib*      asoundLib;
-  DynLibResult asoundRes = dynlib_load(alloc, string_lit("libasound.so"), &asoundLib);
-  if (asoundRes != DynLibResult_Success) {
-    const String err = dynlib_result_str(asoundRes);
-    log_w("Failed to Alsa library ('libasound.so')", log_param("err", fmt_text(err)));
-    return snd_device_create_error(alloc);
-  }
-  log_i("Alsa library loaded", log_param("path", fmt_path(dynlib_path(asoundLib))));
-
   alsa_init();
 
   snd_pcm_t*    pcm       = alsa_pcm_open();
@@ -363,7 +343,6 @@ SndDevice* snd_device_create(Allocator* alloc) {
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
       .alloc     = alloc,
-      .asoundLib = asoundLib,
       .id        = string_maybe_dup(alloc, id),
       .pcm       = pcm,
       .pcmConfig = pcmConfig,
