@@ -47,6 +47,7 @@ void core_teardown() {
   }
   if (g_thread_tid == g_thread_main_tid && g_initalized) {
     thread_teardown();
+    dynlib_teardown();
     alloc_teardown();
     g_initalized = false;
   }
