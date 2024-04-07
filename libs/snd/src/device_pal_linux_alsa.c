@@ -27,6 +27,50 @@
 ASSERT(bits_aligned(snd_alsa_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
 ASSERT(snd_alsa_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
+typedef struct sAlsaPcm         AlsaPcm;
+typedef struct sAlsaPcmInfo     AlsaPcmInfo;
+typedef struct sAlsaPcmHwParams AlsaPcmHwParams;
+typedef enum eAlsaPcmStream     AlsaPcmStream;
+typedef enum eAlsaPcmType       AlsaPcmType;
+typedef enum eAlsaPcmAccess     AlsaPcmAccess;
+typedef enum eAlsaPcmFormat     AlsaPcmFormat;
+typedef unsigned long           AlsaUFrames;
+typedef long                    AlsaSFrames;
+
+typedef void (*AlsaErrorHandler)(
+    const char* file, int line, const char* function, int err, const char* fmt, ...);
+
+typedef struct {
+  DynLib* handle;
+  // clang-format off
+  const char* (SYS_DECL* strError)                    (int errnum);
+  int         (SYS_DECL* libErrorSetHandler)          (AlsaErrorHandler);
+  int         (SYS_DECL* pcmOpen)                     (AlsaPcm**, const char* name, AlsaPcmStream, int mode);
+  int         (SYS_DECL* pcmClose)                    (AlsaPcm*);
+  AlsaPcmType (SYS_DECL* pcmType)                     (AlsaPcm*);
+  const char* (SYS_DECL* pcmTypeName)                 (AlsaPcmType);
+  int         (SYS_DECL* pcmPrepare)                  (AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcmAvailUpdate)              (AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcmWriteI)                   (AlsaPcm*, const void *buffer, AlsaUFrames size);
+  size_t      (SYS_DECL* pcmInfoSizeof)               (void);
+  int         (SYS_DECL* pcmInfo)                     (AlsaPcm*, AlsaPcmInfo*);
+  int         (SYS_DECL* pcmInfoGetCard)              (const AlsaPcmInfo*);
+  const char* (SYS_DECL* pcmInfoGetId)                (const AlsaPcmInfo*);
+  size_t      (SYS_DECL* pcmHwParamsSizeof)           (void);
+  int         (SYS_DECL* pcmHwParamsAny)              (AlsaPcm*, AlsaPcmHwParams*);
+  int         (SYS_DECL* pcmHwParams)                 (AlsaPcm*, AlsaPcmHwParams*);
+  int         (SYS_DECL* pcmHwParamsGetMinAlign)      (const AlsaPcmHwParams*, AlsaUFrames* val);
+  int         (SYS_DECL* pcmHwParamsGetBufferSize)    (const AlsaPcmHwParams*, AlsaUFrames* val);
+  int         (SYS_DECL* pcmHwParamsSetRateResample)  (AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
+  int         (SYS_DECL* pcmHwParamsSetAccess)        (AlsaPcm*, AlsaPcmHwParams*, AlsaPcmAccess val);
+  int         (SYS_DECL* pcmHwParamsSetFormat)        (AlsaPcm*, AlsaPcmHwParams*, AlsaPcmFormat val);
+  int         (SYS_DECL* pcmHwParamsSetChannels)      (AlsaPcm*, AlsaPcmHwParams*, unsigned int val);
+  int         (SYS_DECL* pcmHwParamsSetRateNear)      (AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
+  int         (SYS_DECL* pcmHwParamsSetPeriodsNear)   (AlsaPcm*, AlsaPcmHwParams*, unsigned int* val, int* dir);
+  int         (SYS_DECL* pcmHwParamsSetPeriodSizeNear)(AlsaPcm*, AlsaPcmHwParams*, AlsaUFrames* val, int* dir);
+  // clang-format on
+} AlsaLib;
+
 typedef struct {
   bool valid;
   u32  periodCount;
@@ -321,12 +365,12 @@ SndDevice* snd_device_create(Allocator* alloc) {
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
-                .alloc     = alloc,
-                .asoundLib = asoundLib,
-                .id        = string_maybe_dup(alloc, id),
-                .pcm       = pcm,
-                .pcmConfig = pcmConfig,
-                .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
+      .alloc     = alloc,
+      .asoundLib = asoundLib,
+      .id        = string_maybe_dup(alloc, id),
+      .pcm       = pcm,
+      .pcmConfig = pcmConfig,
+      .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
   };
   return dev;
 }
