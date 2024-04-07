@@ -7,11 +7,13 @@
 #include "ecs_world.h"
 #include "jobs_init.h"
 #include "log.h"
+#include "trace.h"
 
 void app_cli_configure(CliApp* app) { app_ecs_configure(app); }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   jobs_init();
+  trace_init();
 
   i32 exitCode = 0;
   if (!app_ecs_validate(app, invoc)) {
@@ -36,8 +38,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   ecs_world_flush(world); // Flush any entity / component additions made during the init.
 
+  u64 frameNumber = 0;
   do {
+    trace_begin_msg("app_frame", TraceColor_Default, "frame: {}", fmt_int(frameNumber));
+
     ecs_run_sync(runner);
+
+    trace_end();
+    ++frameNumber;
   } while (!app_ecs_should_quit(world));
 
   ecs_runner_destroy(runner);
@@ -47,6 +55,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_i("Application shutdown");
 
 Exit:
+  trace_teardown();
   jobs_teardown();
   return exitCode;
 }
