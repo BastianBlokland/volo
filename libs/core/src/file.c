@@ -10,6 +10,18 @@
 
 static i64 g_fileCount;
 
+/**
+ * Special crash-routine that does not allocate any memory.
+ * Which is needed as file teardown happens after the allocators have been torn down.
+ */
+#define file_crash_with_msg(_MSG_, ...)                                                            \
+  do {                                                                                             \
+    DynString buffer = dynstring_create_over(mem_stack(256));                                      \
+    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
+    diag_print_err_raw(dynstring_view(&buffer));                                                   \
+    diag_crash();                                                                                  \
+  } while (false)
+
 static const String g_fileResultStrs[] = {
     string_static("FileSuccess"),
     string_static("FileAlreadyExists"),
@@ -43,12 +55,27 @@ FileResult file_create(
     const FileMode        mode,
     const FileAccessFlags access,
     File**                file) {
-  return file_pal_create(alloc, path, mode, access, file);
+  const FileResult res = file_pal_create(alloc, path, mode, access, file);
+  if (res == FileResult_Success) {
+    thread_atomic_add_i64(&g_fileCount, 1);
+  }
+  return res;
 }
 
-FileResult file_temp(Allocator* alloc, File** file) { return file_pal_temp(alloc, file); }
+FileResult file_temp(Allocator* alloc, File** file) {
+  const FileResult res = file_pal_temp(alloc, file);
+  if (res == FileResult_Success) {
+    thread_atomic_add_i64(&g_fileCount, 1);
+  }
+  return res;
+}
 
-void file_destroy(File* file) { file_pal_destroy(file); }
+void file_destroy(File* file) {
+  file_pal_destroy(file);
+  if (UNLIKELY(thread_atomic_sub_i64(&g_fileCount, 1) <= 0)) {
+    file_crash_with_msg("file: Double destroy of File");
+  }
+}
 
 FileResult file_write_to_path_sync(const String path, const String data) {
   File*      file = null;
