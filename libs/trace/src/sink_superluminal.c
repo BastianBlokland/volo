@@ -54,10 +54,9 @@ static bool trace_sink_sl_init(TraceSinkSl* sink) {
 #if defined(VOLO_WIN32)
   DynLibResult loadRes = dynlib_load(sink->alloc, g_traceSlPathDefault, &sink->slLib);
   if (loadRes != DynLibResult_Success) {
-    const String err = dynlib_result_str(loadRes);
     log_d(
         "Failed to load Superluminal library",
-        log_param("err", fmt_text(err)),
+        log_param("err", fmt_text(dynlib_result_str(loadRes))),
         log_param("search-path", fmt_path(g_traceSlPathDefault)));
     return false;
   }
