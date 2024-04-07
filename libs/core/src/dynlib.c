@@ -1,6 +1,9 @@
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_dynlib.h"
+
+#include "dynlib_internal.h"
+
+void dynlib_init() { dynlib_pal_init(); }
 
 static const String g_dynlibResultStrs[] = {
     string_static("DynLibSuccess"),

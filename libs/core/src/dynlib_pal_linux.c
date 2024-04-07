@@ -1,7 +1,8 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "core_dynlib.h"
 #include "core_path.h"
+
+#include "dynlib_internal.h"
 
 #include <dlfcn.h>
 #include <limits.h>
@@ -10,7 +11,7 @@
 
 static bool g_dynlibInitialized;
 
-void dynlib_init() { g_dynlibInitialized = true; }
+void dynlib_pal_init() { g_dynlibInitialized = true; }
 
 struct sDynLib {
   void*      handle;

@@ -1,7 +1,8 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "core_dynlib.h"
 #include "core_winutils.h"
+
+#include "dynlib_internal.h"
 
 #include <windows.h>
 
@@ -9,7 +10,7 @@
 
 static bool g_dynlibInitialized;
 
-void dynlib_init() {
+void dynlib_pal_init() {
   /**
    * Disable Windows ui error popups that could be shown as a result of calling 'LoadLibrary'.
    */
