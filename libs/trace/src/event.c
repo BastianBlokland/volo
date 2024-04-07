@@ -47,6 +47,9 @@ void trace_begin(const String id, const TraceColor color) {
 
 void trace_begin_msg_raw(
     const String id, const TraceColor color, const String msg, const FormatArg* args) {
+  if (!g_traceSinkCount) {
+    return;
+  }
 
   DynString formatBuffer = dynstring_create_over(mem_stack(trace_message_max));
   format_write_formatted(&formatBuffer, msg, args);
