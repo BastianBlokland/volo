@@ -1,3 +1,4 @@
+#pragma once
 #include "log_logger.h"
 
 struct sLogSink {

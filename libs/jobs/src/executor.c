@@ -5,6 +5,7 @@
 #include "core_rng.h"
 #include "core_thread.h"
 #include "jobs_graph.h"
+#include "trace_event.h"
 
 #include "affinity_queue_internal.h"
 #include "executor_internal.h"
@@ -148,9 +149,13 @@ static void executor_perform_work(WorkItem item) {
   JobTask* jobTaskDef = dynarray_at_t(&item.job->graph->tasks, item.task, JobTask);
 
   // Invoke the user routine.
-  g_jobsIsWorking = true;
-  jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
-  g_jobsIsWorking = false;
+  trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
+  {
+    g_jobsIsWorking = true;
+    jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
+    g_jobsIsWorking = false;
+  }
+  trace_end();
 
   /**
    * Update the tasks that are depending on this work.
