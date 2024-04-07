@@ -34,7 +34,7 @@ static String dynlib_path_query(void* handle, const String name, Allocator* allo
   return string_dup(alloc, path);
 }
 
-DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
+DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) {
   if (!g_dynlibInitialized) {
     diag_crash_msg("DynLib library not initialized");
   }
@@ -60,7 +60,7 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   return DynLibResult_Success;
 }
 
-void dynlib_destroy(DynLib* lib) {
+void dynlib_pal_destroy(DynLib* lib) {
   if (UNLIKELY(dlclose(lib->handle) != 0)) {
     diag_crash_msg("dlclose() failed: {}", fmt_text(dynlib_err_msg()));
   }
@@ -68,9 +68,9 @@ void dynlib_destroy(DynLib* lib) {
   alloc_free_t(lib->alloc, lib);
 }
 
-String dynlib_path(const DynLib* lib) { return lib->path; }
+String dynlib_pal_path(const DynLib* lib) { return lib->path; }
 
-DynLibSymbol dynlib_symbol(const DynLib* lib, const String name) {
+DynLibSymbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   // Copy the name on the stack and null-terminate it.
   if (name.size >= dynlib_max_symbol_name) {
     diag_crash_msg("Symbol name too long");

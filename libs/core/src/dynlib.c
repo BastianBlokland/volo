@@ -18,3 +18,15 @@ String dynlib_result_str(const DynLibResult result) {
   diag_assert(result < DynLibResult_Count);
   return g_dynlibResultStrs[result];
 }
+
+DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
+  return dynlib_pal_load(alloc, name, out);
+}
+
+void dynlib_destroy(DynLib* lib) { dynlib_pal_destroy(lib); }
+
+String dynlib_path(const DynLib* lib) { return dynlib_pal_path(lib); }
+
+DynLibSymbol dynlib_symbol(const DynLib* lib, const String name) {
+  return dynlib_pal_symbol(lib, name);
+}
