@@ -318,7 +318,6 @@ static SndDevice* snd_device_create_error(Allocator* alloc) {
 
   *dev = (SndDevice){
       .alloc = alloc,
-      .id    = string_maybe_dup(alloc, string_lit("<error>")),
       .state = SndDeviceState_Error,
   };
 
@@ -343,7 +342,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
     pcmConfig = alsa_pcm_initialize(pcm);
   }
 
-  String id;
+  String id = string_empty;
   if (pcmConfig.valid) {
     const snd_pcm_type_t  type = snd_pcm_type(pcm);
     const snd_pcm_info_t* info = alsa_pcm_info_scratch(pcm);
@@ -359,8 +358,6 @@ SndDevice* snd_device_create(Allocator* alloc) {
         log_param("period-frames", fmt_int(snd_alsa_period_frames)),
         log_param("period-time", fmt_duration(snd_alsa_period_time)),
         log_param("device-buffer", fmt_size(pcmConfig.bufferSize)));
-  } else {
-    id = string_lit("<error>");
   }
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
@@ -388,7 +385,12 @@ void snd_device_destroy(SndDevice* dev) {
   log_i("Alsa sound device destroyed");
 }
 
-String snd_device_id(const SndDevice* dev) { return dev->id; }
+String snd_device_id(const SndDevice* dev) {
+  if (string_is_empty(dev->id)) {
+    return string_lit("<error>");
+  }
+  return dev->id;
+}
 
 String snd_device_backend(const SndDevice* dev) {
   (void)dev;
