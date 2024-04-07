@@ -10,6 +10,7 @@
 #include "device_internal.h"
 
 #include <alsa/asoundlib.h>
+#include <stdio.h>
 
 /**
  * Alsa PCM playback sound device implementation.
