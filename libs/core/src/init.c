@@ -8,7 +8,7 @@
 static bool              g_initalized;
 static THREAD_LOCAL bool g_initializedThread;
 
-void core_init() {
+void core_init(void) {
   if (!g_initalized) {
     alloc_init();
     float_init();
@@ -36,7 +36,7 @@ void core_init() {
   g_initializedThread = true;
 }
 
-void core_teardown() {
+void core_teardown(void) {
   if (g_thread_tid == g_thread_main_tid && g_initalized) {
     stringtable_teardown();
     tty_teardown();

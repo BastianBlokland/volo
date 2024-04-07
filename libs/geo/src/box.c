@@ -76,13 +76,13 @@ GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
 #endif
 }
 
-GeoBox geo_box_inverted2() {
+GeoBox geo_box_inverted2(void) {
   const GeoVector min = {f32_max, f32_max};
   const GeoVector max = {f32_min, f32_min};
   return (GeoBox){min, max};
 }
 
-GeoBox geo_box_inverted3() {
+GeoBox geo_box_inverted3(void) {
   const GeoVector min = {f32_max, f32_max, f32_max};
   const GeoVector max = {f32_min, f32_min, f32_min};
   return (GeoBox){min, max};

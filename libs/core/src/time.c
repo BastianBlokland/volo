@@ -10,19 +10,19 @@ static i32 time_days_since_epoch(const TimeReal time) {
   return time / (time_day / time_microsecond);
 }
 
-void time_init() {
+void time_init(void) {
   time_pal_init();
   g_initalized = true;
 }
 
-TimeSteady time_steady_clock() {
+TimeSteady time_steady_clock(void) {
   diag_assert_msg(g_initalized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_steady_clock();
 }
 
 TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to) { return to - from; }
 
-TimeReal time_real_clock() {
+TimeReal time_real_clock(void) {
   diag_assert_msg(g_initalized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_real_clock();
 }
@@ -74,7 +74,7 @@ TimeReal time_date_to_real(const TimeDate date) {
   return (i64)daysSinceEpoch * (time_day / time_microsecond);
 }
 
-TimeZone time_zone_current() {
+TimeZone time_zone_current(void) {
   diag_assert_msg(g_initalized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_zone_current();
 }

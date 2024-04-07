@@ -12,7 +12,7 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataLevelMeta;
 
-static void level_datareg_init() {
+static void level_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

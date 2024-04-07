@@ -46,7 +46,7 @@ typedef struct {
   u32                  seed;
 } ProcTexDef;
 
-static void proctex_datareg_init() {
+static void proctex_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

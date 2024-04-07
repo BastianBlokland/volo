@@ -10,8 +10,8 @@
 #include <termios.h>
 #include <unistd.h>
 
-void tty_pal_init() {}
-void tty_pal_teardown() {}
+void tty_pal_init(void) {}
+void tty_pal_teardown(void) {}
 
 bool tty_pal_isatty(File* file) { return isatty(file->handle); }
 

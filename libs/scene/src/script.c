@@ -99,7 +99,7 @@ static ScriptEnum g_scriptEnumFaction,
 
 // clang-format on
 
-static void eval_enum_init_faction() {
+static void eval_enum_init_faction(void) {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
@@ -107,7 +107,7 @@ static void eval_enum_init_faction() {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
 }
 
-static void eval_enum_init_clock() {
+static void eval_enum_init_clock(void) {
   script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
   script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
   script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
@@ -115,25 +115,25 @@ static void eval_enum_init_clock() {
   script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
 }
 
-static void eval_enum_init_nav_layer() {
+static void eval_enum_init_nav_layer(void) {
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
     script_enum_push(&g_scriptEnumNavLayer, g_sceneNavLayerNames[layer], layer);
   }
 }
 
-static void eval_enum_init_nav_find() {
+static void eval_enum_init_nav_find(void) {
   script_enum_push(&g_scriptEnumNavFind, string_lit("ClosestCell"), 0);
   script_enum_push(&g_scriptEnumNavFind, string_lit("UnblockedCell"), 1);
   script_enum_push(&g_scriptEnumNavFind, string_lit("FreeCell"), 2);
 }
 
-static void eval_enum_init_capability() {
+static void eval_enum_init_capability(void) {
   for (SceneScriptCapability cap = 0; cap != SceneScriptCapability_Count; ++cap) {
     script_enum_push(&g_scriptEnumCapability, g_sceneScriptCapabilityNames[cap], cap);
   }
 }
 
-static void eval_enum_init_activity() {
+static void eval_enum_init_activity(void) {
   script_enum_push(&g_scriptEnumActivity, string_lit("Dead"), 0);
   script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 1);
   script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 2);
@@ -143,32 +143,32 @@ static void eval_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 6);
 }
 
-static void eval_enum_init_target_exclude() {
+static void eval_enum_init_target_exclude(void) {
   script_enum_push(&g_scriptEnumTargetExclude, string_lit("Unreachable"), 0);
   script_enum_push(&g_scriptEnumTargetExclude, string_lit("Obscured"), 1);
 }
 
-static void eval_enum_init_renderable_param() {
+static void eval_enum_init_renderable_param(void) {
   script_enum_push(&g_scriptEnumRenderableParam, string_lit("Color"), 0);
   script_enum_push(&g_scriptEnumRenderableParam, string_lit("Alpha"), 1);
   script_enum_push(&g_scriptEnumRenderableParam, string_lit("Emissive"), 2);
 }
 
-static void eval_enum_init_vfx_param() {
+static void eval_enum_init_vfx_param(void) {
   script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
   script_enum_push(&g_scriptEnumVfxParam, string_lit("EmitMultiplier"), 1);
 }
 
-static void eval_enum_init_light_param() {
+static void eval_enum_init_light_param(void) {
   script_enum_push(&g_scriptEnumLightParam, string_lit("Radiance"), 0);
 }
 
-static void eval_enum_init_sound_param() {
+static void eval_enum_init_sound_param(void) {
   script_enum_push(&g_scriptEnumSoundParam, string_lit("Gain"), 0);
   script_enum_push(&g_scriptEnumSoundParam, string_lit("Pitch"), 1);
 }
 
-static void eval_enum_init_anim_param() {
+static void eval_enum_init_anim_param(void) {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("TimeNorm"), 1);
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
@@ -179,7 +179,7 @@ static void eval_enum_init_anim_param() {
   script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 7);
 }
 
-static void eval_enum_init_layer() {
+static void eval_enum_init_layer(void) {
   // clang-format off
   script_enum_push(&g_scriptEnumLayer, string_lit("Environment"),       SceneLayer_Environment);
   script_enum_push(&g_scriptEnumLayer, string_lit("Destructible"),      SceneLayer_Destructible);
@@ -193,24 +193,24 @@ static void eval_enum_init_layer() {
   // clang-format on
 }
 
-static void eval_enum_init_query_option() {
+static void eval_enum_init_query_option(void) {
   script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionSelf"), 1);
   script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionOther"), 2);
 }
 
-static void eval_enum_init_status() {
+static void eval_enum_init_status(void) {
   for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
     script_enum_push(&g_scriptEnumStatus, scene_status_name(type), type);
   }
 }
 
-static void eval_enum_init_bark() {
+static void eval_enum_init_bark(void) {
   for (SceneBarkType bark = 0; bark != SceneBarkType_Count; ++bark) {
     script_enum_push(&g_scriptEnumBark, scene_bark_name(bark), bark);
   }
 }
 
-static void eval_enum_init_health_stat() {
+static void eval_enum_init_health_stat(void) {
   for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
     script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
   }
@@ -964,9 +964,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -2052,7 +2052,7 @@ static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc 
   script_binder_declare(b, name, documentation, nullSig, (ScriptBinderFunc)f);
 }
 
-static void eval_binder_init() {
+static void eval_binder_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_scriptBinder)) {
     return;

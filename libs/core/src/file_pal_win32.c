@@ -19,7 +19,7 @@ File* g_file_stdin;
 File* g_file_stdout;
 File* g_file_stderr;
 
-void file_pal_init() {
+void file_pal_init(void) {
   static File stdIn = {0};
   stdIn.handle      = GetStdHandle(STD_INPUT_HANDLE);
   stdIn.access      = FileAccess_Read;
@@ -42,7 +42,7 @@ void file_pal_init() {
   }
 }
 
-static FileResult fileresult_from_lasterror() {
+static FileResult fileresult_from_lasterror(void) {
   switch (GetLastError()) {
   case ERROR_ACCESS_DENIED:
     return FileResult_NoAccess;

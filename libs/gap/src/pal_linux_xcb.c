@@ -1002,9 +1002,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc    = alloc,
-             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+      .alloc    = alloc,
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1251,8 +1251,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -1551,13 +1551,13 @@ u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->dpi;
 }
 
-TimeDuration gap_pal_doubleclick_interval() {
+TimeDuration gap_pal_doubleclick_interval(void) {
   /**
    * Unfortunately x11 does not expose the concept of the system's 'double click time'.
    */
   return time_milliseconds(500);
 }
 
-GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }
+GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcbCon; }

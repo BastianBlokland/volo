@@ -22,7 +22,7 @@ File* g_file_stdin  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_file_stdout = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_file_stderr = &(File){.handle = 2, .access = FileAccess_Write};
 
-static FileResult fileresult_from_errno() {
+static FileResult fileresult_from_errno(void) {
   switch (errno) {
   case EACCES:
   case EPERM:
@@ -50,7 +50,7 @@ static FileResult fileresult_from_errno() {
   return FileResult_UnknownError;
 }
 
-void file_pal_init() {}
+void file_pal_init(void) {}
 
 FileResult
 file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {

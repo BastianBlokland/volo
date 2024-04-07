@@ -216,7 +216,7 @@ static void pal_cursor_clip(const GapWindowId windowId) {
   }
 }
 
-static void pal_cursor_clip_release() {
+static void pal_cursor_clip_release(void) {
   if (UNLIKELY(!ClipCursor(null))) {
     pal_crash_with_win32_err(string_lit("ClipCursor"));
   }
@@ -699,10 +699,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -1120,11 +1120,11 @@ u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->dpi;
 }
 
-TimeDuration gap_pal_doubleclick_interval() {
+TimeDuration gap_pal_doubleclick_interval(void) {
   const UINT doubleClickMilliseconds = GetDoubleClickTime();
   return time_milliseconds(doubleClickMilliseconds);
 }
 
-GapNativeWm gap_pal_native_wm() { return GapNativeWm_Win32; }
+GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInstance; }

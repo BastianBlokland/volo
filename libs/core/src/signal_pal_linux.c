@@ -12,7 +12,7 @@ static void SYS_DECL signal_pal_interrupt_handler(const int signal) {
   (void)signal;
 }
 
-static void signal_pal_setup_interrupt_handler() {
+static void signal_pal_setup_interrupt_handler(void) {
   struct sigaction action = {
       .sa_handler = signal_pal_interrupt_handler,
       .sa_flags   = SA_RESTART,
@@ -25,7 +25,7 @@ static void signal_pal_setup_interrupt_handler() {
   }
 }
 
-void signal_pal_setup_handlers() { signal_pal_setup_interrupt_handler(); }
+void signal_pal_setup_handlers(void) { signal_pal_setup_interrupt_handler(); }
 
 bool signal_pal_is_received(const Signal sig) {
   return thread_atomic_load_i32(&g_signalStates[sig]);

@@ -105,7 +105,7 @@ typedef struct {
   } weapons;
 } AssetWeaponMapDef;
 
-static void weapon_datareg_init() {
+static void weapon_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

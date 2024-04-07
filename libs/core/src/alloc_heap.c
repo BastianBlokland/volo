@@ -59,7 +59,7 @@ static usize alloc_heap_max_size(Allocator* allocator) {
 
 static AllocatorHeap g_allocatorIntern;
 
-Allocator* alloc_heap_init() {
+Allocator* alloc_heap_init(void) {
   g_allocatorIntern = (AllocatorHeap){
       (Allocator){
           .alloc   = alloc_heap_alloc,
@@ -76,7 +76,7 @@ Allocator* alloc_heap_init() {
   return (Allocator*)&g_allocatorIntern;
 }
 
-void alloc_heap_teardown() {
+void alloc_heap_teardown(void) {
   for (usize i = 0; i != block_bucket_count; ++i) {
     Allocator* allocBlock = g_allocatorIntern.blockBuckets[i];
 
@@ -92,7 +92,7 @@ void alloc_heap_teardown() {
   }
 }
 
-u64 alloc_heap_allocated_blocks() {
+u64 alloc_heap_allocated_blocks(void) {
   u64 result = 0;
   for (usize i = 0; i != block_bucket_count; ++i) {
     Allocator* allocBlock = g_allocatorIntern.blockBuckets[i];
@@ -101,4 +101,4 @@ u64 alloc_heap_allocated_blocks() {
   return result;
 }
 
-u64 alloc_heap_counter() { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }
+u64 alloc_heap_counter(void) { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }

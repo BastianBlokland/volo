@@ -110,7 +110,7 @@ VfxWarpMatrix vfx_warp_matrix_invert(const VfxWarpMatrix* w) {
       }};
 }
 
-VfxWarpMatrix vfx_warp_matrix_ident() {
+VfxWarpMatrix vfx_warp_matrix_ident(void) {
   return (VfxWarpMatrix){
       .columns = {
           {1, 0, 0},

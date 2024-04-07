@@ -18,13 +18,13 @@ static BOOL SYS_DECL signal_pal_interrupt_handler(const DWORD dwCtrlType) {
   }
 }
 
-static void signal_pal_setup_interrupt_handler() {
+static void signal_pal_setup_interrupt_handler(void) {
   const BOOL success = SetConsoleCtrlHandler(signal_pal_interrupt_handler, true);
   diag_assert_msg(success, "SetConsoleCtrlHandler() failed");
   (void)success;
 }
 
-void signal_pal_setup_handlers() { signal_pal_setup_interrupt_handler(); }
+void signal_pal_setup_handlers(void) { signal_pal_setup_interrupt_handler(); }
 
 bool signal_pal_is_received(const Signal sig) {
   return thread_atomic_load_i32(&g_signal_states[sig]);

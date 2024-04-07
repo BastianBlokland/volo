@@ -37,7 +37,7 @@ typedef struct {
   } entries;
 } AtlasDef;
 
-static void atlas_datareg_init() {
+static void atlas_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

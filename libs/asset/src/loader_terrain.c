@@ -16,7 +16,7 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataMeta;
 
-static void terrain_datareg_init() {
+static void terrain_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

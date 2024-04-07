@@ -215,7 +215,7 @@ static struct {
     {string_static("selected"), &g_sceneSetSelected, SceneTags_Selected},
 };
 
-static void set_wellknown_tags_init_locked() {
+static void set_wellknown_tags_init_locked(void) {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
     const String name = g_setWellknownTagEntries[i].setName;
 #if scene_set_wellknown_names
@@ -226,7 +226,7 @@ static void set_wellknown_tags_init_locked() {
   }
 }
 
-static void set_wellknown_tags_init() {
+static void set_wellknown_tags_init(void) {
   static bool           g_init;
   static ThreadSpinLock g_initLock;
   if (UNLIKELY(!g_init)) {

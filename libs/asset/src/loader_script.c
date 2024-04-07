@@ -24,7 +24,7 @@ static void bind(
   script_binder_declare(binder, name, doc, sig, null);
 }
 
-static void asset_binder_init() {
+static void asset_binder_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_scriptBinder)) {
     return;

@@ -58,7 +58,7 @@ typedef struct {
   ProcMeshBounds* bounds;
 } ProcMeshDef;
 
-static void procmesh_datareg_init() {
+static void procmesh_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

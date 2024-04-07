@@ -63,7 +63,7 @@ typedef struct {
 /**
  * Stage is a place to build-up the pass state before beginning a render pass.
  */
-static RvkPassStage* rvk_pass_stage() {
+static RvkPassStage* rvk_pass_stage(void) {
   static THREAD_LOCAL RvkPassStage g_stage;
   return &g_stage;
 }
@@ -302,7 +302,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   return result;
 }
 
-static RvkDescMeta rvk_global_desc_meta() {
+static RvkDescMeta rvk_global_desc_meta(void) {
   RvkDescMeta meta;
   u16         globalBindingCount = 0;
   for (u16 globalDataIdx = 0; globalDataIdx != pass_global_data_max; ++globalDataIdx) {
@@ -437,7 +437,7 @@ static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta*
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
+    RvkPass*           pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,

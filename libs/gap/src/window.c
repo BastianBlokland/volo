@@ -386,7 +386,7 @@ TimeDuration gap_window_doubleclick_interval(const GapWindowComp* comp) {
   return gap_pal_doubleclick_interval();
 }
 
-GapNativeWm gap_native_wm() { return gap_pal_native_wm(); }
+GapNativeWm gap_native_wm(void) { return gap_pal_native_wm(); }
 
 uptr gap_native_window_handle(const GapWindowComp* comp) { return (uptr)comp->id; }
 

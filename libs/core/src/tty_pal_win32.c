@@ -94,7 +94,7 @@ static bool tty_pal_has_key_input(File* file) {
   return false; // No key events found.
 }
 
-void tty_pal_init() {
+void tty_pal_init(void) {
   tty_pal_override_input_mode(g_file_stdin, &g_consoleModeInputOverride);
   tty_pal_override_output_mode(g_file_stdout, &g_consoleModeOutputOverride);
   tty_pal_override_output_mode(g_file_stderr, &g_consoleModeErrorOverride);
@@ -107,7 +107,7 @@ void tty_pal_init() {
   SetConsoleOutputCP(CP_UTF8);
 }
 
-void tty_pal_teardown() {
+void tty_pal_teardown(void) {
   tty_pal_restore_mode(g_file_stdin, &g_consoleModeInputOverride);
   tty_pal_restore_mode(g_file_stdout, &g_consoleModeOutputOverride);
   tty_pal_restore_mode(g_file_stderr, &g_consoleModeErrorOverride);

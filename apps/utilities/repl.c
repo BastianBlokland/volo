@@ -420,7 +420,7 @@ static void repl_edit_render(const ReplEditor* editor) {
   dynstring_destroy(&buffer);
 }
 
-static void repl_edit_render_cleanup() {
+static void repl_edit_render_cleanup(void) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 

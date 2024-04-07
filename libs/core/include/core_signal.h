@@ -12,7 +12,7 @@ typedef enum eSignal {
  * Enable signal interception.
  * NOTE: This suppresses the default system signal handling.
  */
-void signal_intercept_enable();
+void signal_intercept_enable(void);
 
 /**
  * Check if the current process has received a signal.

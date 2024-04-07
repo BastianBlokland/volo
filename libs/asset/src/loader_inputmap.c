@@ -47,7 +47,7 @@ typedef struct {
   } actions;
 } AssetInputMapDef;
 
-static void inputmap_datareg_init() {
+static void inputmap_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

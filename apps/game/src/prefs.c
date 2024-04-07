@@ -22,7 +22,7 @@ ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number 
 static DataReg* g_dataReg;
 static DataMeta g_dataMeta;
 
-static void prefs_datareg_init() {
+static void prefs_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;
@@ -58,7 +58,7 @@ static void ecs_destruct_prefs_comp(void* data) {
   data_destroy(g_dataReg, g_alloc_heap, g_dataMeta, mem_create(comp, sizeof(GamePrefsComp)));
 }
 
-static String prefs_path_scratch() {
+static String prefs_path_scratch(void) {
   const String fileName = fmt_write_scratch("{}.prefs", fmt_text(path_stem(g_path_executable)));
   return path_build_scratch(path_parent(g_path_executable), fileName);
 }

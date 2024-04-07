@@ -20,13 +20,13 @@ static void alloc_verify_allocator(const Allocator* allocator) {
   }
 }
 
-void alloc_init() {
+void alloc_init(void) {
   g_alloc_page    = alloc_page_init();
   g_alloc_heap    = alloc_heap_init();
   g_alloc_persist = alloc_persist_init();
 }
 
-void alloc_teardown() {
+void alloc_teardown(void) {
   alloc_persist_teardown();
   alloc_heap_teardown();
 
@@ -36,9 +36,9 @@ void alloc_teardown() {
   }
 }
 
-void alloc_init_thread() { g_alloc_scratch = alloc_scratch_init(); }
+void alloc_init_thread(void) { g_alloc_scratch = alloc_scratch_init(); }
 
-void alloc_teardown_thread() {
+void alloc_teardown_thread(void) {
   alloc_scratch_teardown();
   g_alloc_scratch = null;
 }
@@ -93,7 +93,7 @@ void alloc_reset(Allocator* allocator) {
   allocator->reset(allocator);
 }
 
-AllocStats alloc_stats_query() {
+AllocStats alloc_stats_query(void) {
   return (AllocStats){
       .pageCount      = alloc_page_allocated_pages(),
       .pageTotal      = alloc_page_allocated_size(),

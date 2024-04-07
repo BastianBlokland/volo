@@ -55,12 +55,12 @@ bool log_mask_enabled(const LogMask mask, const LogLevel level) {
   return (mask & (1 << level)) != 0;
 }
 
-void log_global_logger_init() {
+void log_global_logger_init(void) {
   static Logger globalLogger = {0};
   g_logger                   = &globalLogger;
 }
 
-void log_global_logger_teardown() { log_destroy_sinks(g_logger); }
+void log_global_logger_teardown(void) { log_destroy_sinks(g_logger); }
 
 Logger* log_create(Allocator* alloc) {
   Logger* res = alloc_alloc_t(alloc, Logger);

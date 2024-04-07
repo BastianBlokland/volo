@@ -9,7 +9,7 @@
 
 #define dynlib_max_symbol_name 128
 
-void dynlib_pal_init() {}
+void dynlib_pal_init(void) {}
 
 struct sDynLib {
   void*      handle;
@@ -17,7 +17,7 @@ struct sDynLib {
   Allocator* alloc;
 };
 
-static String dynlib_err_msg() { return string_from_null_term(dlerror()); }
+static String dynlib_err_msg(void) { return string_from_null_term(dlerror()); }
 
 static String dynlib_path_query(void* handle, const String name, Allocator* alloc) {
   char dirBuffer[PATH_MAX + 1]; /* +1 for null-terminator */

@@ -32,7 +32,7 @@ static struct {
     {.setName = string_static("destructible"), .flags = AssetPrefabFlags_Destructible},
 };
 
-static void prefab_set_flags_init() {
+static void prefab_set_flags_init(void) {
   for (u32 i = 0; i != array_elems(g_prefabSetFlags); ++i) {
     g_prefabSetFlags[i].set = string_hash(g_prefabSetFlags[i].setName);
   }
@@ -271,7 +271,7 @@ typedef struct {
   } prefabs;
 } AssetPrefabMapDef;
 
-static void prefab_datareg_init() {
+static void prefab_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;
@@ -811,12 +811,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

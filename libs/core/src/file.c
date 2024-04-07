@@ -47,9 +47,9 @@ String file_result_str(const FileResult result) {
   return g_fileResultStrs[result];
 }
 
-void file_init() { file_pal_init(); }
+void file_init(void) { file_pal_init(); }
 
-void file_teardown() {
+void file_teardown(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
     file_crash_with_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
   }
@@ -137,4 +137,4 @@ FileResult file_create_dir_sync(String path) {
   return file_pal_create_dir_single_sync(path);
 }
 
-u32 file_count() { return (u32)thread_atomic_load_i64(&g_fileCount); }
+u32 file_count(void) { return (u32)thread_atomic_load_i64(&g_fileCount); }
