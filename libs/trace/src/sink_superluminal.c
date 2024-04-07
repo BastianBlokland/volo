@@ -76,6 +76,7 @@ static bool trace_sink_sl_init(TraceSinkSl* sink) {
   }
   return true;
 #else
+  (void)g_traceSlPathDefault;
   (void)sink;
   return false;
 #endif
