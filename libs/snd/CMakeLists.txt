@@ -17,10 +17,3 @@ add_library(lib_snd STATIC
 target_include_directories(lib_snd PUBLIC include)
 target_link_libraries(lib_snd PUBLIC lib_core lib_ecs)
 target_link_libraries(lib_snd PRIVATE lib_log lib_scene)
-
-if(${VOLO_PLATFORM} STREQUAL "win32")
-
-  # Link against 'winmm.lib' (Windows Multimedia API).
-  target_link_libraries(lib_snd PRIVATE winmm.lib)
-
-endif()
