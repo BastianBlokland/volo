@@ -126,43 +126,34 @@ static String mme_pcm_name_scratch(HWAVEOUT pcm) {
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
-  HWAVEOUT pcm = mme_pcm_open();
-
-  String id;
-  if (pcm != INVALID_HANDLE_VALUE) {
-    id = mme_pcm_name_scratch(pcm);
-
-    log_i(
-        "MME sound device created",
-        log_param("id", fmt_text(id)),
-        log_param("period-count", fmt_int(snd_mme_period_count)),
-        log_param("period-frames", fmt_int(snd_mme_period_frames)),
-        log_param("period-time", fmt_duration(snd_mme_period_time)));
-  } else {
-    id = string_lit("<error>");
-  }
-
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
-  *dev           = (SndDevice){
-      .alloc        = alloc,
-      .id           = string_maybe_dup(alloc, id),
-      .pcm          = pcm,
-      .state        = pcm == INVALID_HANDLE_VALUE ? SndDeviceState_Error : SndDeviceState_Idle,
-      .activePeriod = sentinel_u8,
-  };
+  *dev = (SndDevice){.alloc = alloc, .state = SndDeviceState_Error, .activePeriod = sentinel_u8};
 
-  if (pcm != INVALID_HANDLE_VALUE) {
-    // Initialize the period buffers.
-    for (u32 period = 0; period != snd_mme_period_count; ++period) {
-      WAVEHDR* periodHeader        = &dev->periodHeaders[period];
-      periodHeader->lpData         = (void*)&dev->periodBuffer[snd_mme_period_samples * period];
-      periodHeader->dwBufferLength = snd_mme_period_samples * snd_frame_sample_depth / 8;
-      if (UNLIKELY(waveOutPrepareHeader(pcm, periodHeader, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)) {
-        dev->state = SndDeviceState_Error;
-      }
-      periodHeader->dwFlags |= WHDR_DONE; // Mark the period as ready for use.
-    }
+  dev->pcm = mme_pcm_open();
+  if (dev->pcm == INVALID_HANDLE_VALUE) {
+    return dev; // Failed to open pcm device.
   }
+
+  dev->id    = string_maybe_dup(alloc, mme_pcm_name_scratch(dev->pcm));
+  dev->state = SndDeviceState_Idle;
+
+  // Initialize the period buffers.
+  for (u32 period = 0; period != snd_mme_period_count; ++period) {
+    WAVEHDR* header        = &dev->periodHeaders[period];
+    header->lpData         = (void*)&dev->periodBuffer[snd_mme_period_samples * period];
+    header->dwBufferLength = snd_mme_period_samples * snd_frame_sample_depth / 8;
+    if (UNLIKELY(waveOutPrepareHeader(dev->pcm, header, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)) {
+      dev->state = SndDeviceState_Error;
+    }
+    header->dwFlags |= WHDR_DONE; // Mark the period as ready for use.
+  }
+
+  log_i(
+      "MME sound device created",
+      log_param("id", fmt_text(dev->id)),
+      log_param("period-count", fmt_int(snd_mme_period_count)),
+      log_param("period-frames", fmt_int(snd_mme_period_frames)),
+      log_param("period-time", fmt_duration(snd_mme_period_time)));
 
   return dev;
 }
@@ -204,7 +195,12 @@ void snd_device_destroy(SndDevice* dev) {
   log_i("MME sound device destroyed");
 }
 
-String snd_device_id(const SndDevice* dev) { return dev->id; }
+String snd_device_id(const SndDevice* dev) {
+  if (string_is_empty(dev->id)) {
+    return dev->state == SndDeviceState_Error ? string_lit("<error>") : string_lit("<unknown>");
+  }
+  return dev->id;
+}
 
 String snd_device_backend(const SndDevice* dev) {
   (void)dev;
