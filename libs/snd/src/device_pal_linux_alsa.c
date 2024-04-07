@@ -10,6 +10,7 @@
 #include "device_internal.h"
 
 #include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 /**
