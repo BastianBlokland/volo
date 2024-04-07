@@ -3,7 +3,12 @@
 
 #include "dynlib_internal.h"
 
-void dynlib_init() { dynlib_pal_init(); }
+static bool g_dynlibInitialized;
+
+void dynlib_init() {
+  dynlib_pal_init();
+  g_dynlibInitialized = true;
+}
 
 static const String g_dynlibResultStrs[] = {
     string_static("DynLibSuccess"),
@@ -20,6 +25,9 @@ String dynlib_result_str(const DynLibResult result) {
 }
 
 DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
+  if (!g_dynlibInitialized) {
+    diag_crash_msg("DynLib library not initialized");
+  }
   return dynlib_pal_load(alloc, name, out);
 }
 

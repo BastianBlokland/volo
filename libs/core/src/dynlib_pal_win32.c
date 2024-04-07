@@ -8,15 +8,11 @@
 
 #define dynlib_max_symbol_name 128
 
-static bool g_dynlibInitialized;
-
 void dynlib_pal_init() {
   /**
    * Disable Windows ui error popups that could be shown as a result of calling 'LoadLibrary'.
    */
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
-
-  g_dynlibInitialized = true;
 }
 
 struct sDynLib {
@@ -40,9 +36,6 @@ static String dynlib_path_query(HMODULE handle, Allocator* alloc) {
 }
 
 DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) {
-  if (!g_dynlibInitialized) {
-    diag_crash_msg("DynLib library not initialized");
-  }
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(name);
   if (pathBufferSize >= MAX_PATH) {
