@@ -9,8 +9,9 @@ typedef struct sTraceSink TraceSink;
 typedef enum {
   TraceColor_Default,
   TraceColor_White,
-  TraceColor_Green,
   TraceColor_Red,
+  TraceColor_Green,
+  TraceColor_Blue,
 } TraceColor;
 
 /**
