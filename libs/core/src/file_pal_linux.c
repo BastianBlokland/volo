@@ -53,7 +53,7 @@ static FileResult fileresult_from_errno() {
 void file_pal_init() {}
 
 FileResult
-file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
+file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
     return FileResult_PathTooLong;
@@ -100,7 +100,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   return FileResult_Success;
 }
 
-FileResult file_temp(Allocator* alloc, File** file) {
+FileResult file_pal_temp(Allocator* alloc, File** file) {
   // Create a null terminated string on the stack that will be modifed by mkstemp to contain the
   // unique name.
   String nameTemplate = string_lit("volo_tmp_XXXXXX");
@@ -124,7 +124,7 @@ FileResult file_temp(Allocator* alloc, File** file) {
   return FileResult_Success;
 }
 
-void file_destroy(File* file) {
+void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
   if (file->mapping) {

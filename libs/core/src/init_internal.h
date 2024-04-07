@@ -33,6 +33,8 @@ void alloc_teardown(void);
 void thread_teardown(void);
 void tty_teardown(void);
 void stringtable_teardown(void);
+void dynlib_teardown(void);
+void file_teardown(void);
 
 /**
  * Thread teardown routines.

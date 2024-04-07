@@ -165,3 +165,8 @@ FileResult file_map(File*, String* output);
  * NOTE: Will also create the parent directory if its missing.
  */
 FileResult file_create_dir_sync(String path);
+
+/**
+ * Returns the amount of currently loaded files.
+ */
+u32 file_count();

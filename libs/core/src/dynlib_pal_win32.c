@@ -1,21 +1,18 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "core_dynlib.h"
 #include "core_winutils.h"
+
+#include "dynlib_internal.h"
 
 #include <windows.h>
 
 #define dynlib_max_symbol_name 128
 
-static bool g_dynlibInitialized;
-
-void dynlib_init() {
+void dynlib_pal_init() {
   /**
    * Disable Windows ui error popups that could be shown as a result of calling 'LoadLibrary'.
    */
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
-
-  g_dynlibInitialized = true;
 }
 
 struct sDynLib {
@@ -38,10 +35,7 @@ static String dynlib_path_query(HMODULE handle, Allocator* alloc) {
   return string_dup(alloc, str);
 }
 
-DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
-  if (!g_dynlibInitialized) {
-    diag_crash_msg("DynLib library not initialized");
-  }
+DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) {
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(name);
   if (pathBufferSize >= MAX_PATH) {
@@ -64,7 +58,7 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   return DynLibResult_Success;
 }
 
-void dynlib_destroy(DynLib* lib) {
+void dynlib_pal_destroy(DynLib* lib) {
   if (UNLIKELY(FreeLibrary(lib->handle) == 0)) {
     const DWORD err = GetLastError();
     diag_crash_msg(
@@ -76,9 +70,9 @@ void dynlib_destroy(DynLib* lib) {
   alloc_free_t(lib->alloc, lib);
 }
 
-String dynlib_path(const DynLib* lib) { return lib->path; }
+String dynlib_pal_path(const DynLib* lib) { return lib->path; }
 
-DynLibSymbol dynlib_symbol(const DynLib* lib, const String name) {
+DynLibSymbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   // Copy the name on the stack and null-terminate it.
   if (name.size >= dynlib_max_symbol_name) {
     diag_crash_msg("Symbol name too long");

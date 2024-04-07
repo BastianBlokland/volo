@@ -3,9 +3,24 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_thread.h"
 
 #include "file_internal.h"
 #include "init_internal.h"
+
+static i64 g_fileCount;
+
+/**
+ * Special crash-routine that does not allocate any memory.
+ * Which is needed as file teardown happens after the allocators have been torn down.
+ */
+#define file_crash_with_msg(_MSG_, ...)                                                            \
+  do {                                                                                             \
+    DynString buffer = dynstring_create_over(mem_stack(256));                                      \
+    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
+    diag_print_err_raw(dynstring_view(&buffer));                                                   \
+    diag_crash();                                                                                  \
+  } while (false)
 
 static const String g_fileResultStrs[] = {
     string_static("FileSuccess"),
@@ -33,6 +48,40 @@ String file_result_str(const FileResult result) {
 }
 
 void file_init() { file_pal_init(); }
+
+void file_teardown() {
+  if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
+    file_crash_with_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
+  }
+}
+
+FileResult file_create(
+    Allocator*            alloc,
+    const String          path,
+    const FileMode        mode,
+    const FileAccessFlags access,
+    File**                file) {
+  const FileResult res = file_pal_create(alloc, path, mode, access, file);
+  if (res == FileResult_Success) {
+    thread_atomic_add_i64(&g_fileCount, 1);
+  }
+  return res;
+}
+
+FileResult file_temp(Allocator* alloc, File** file) {
+  const FileResult res = file_pal_temp(alloc, file);
+  if (res == FileResult_Success) {
+    thread_atomic_add_i64(&g_fileCount, 1);
+  }
+  return res;
+}
+
+void file_destroy(File* file) {
+  file_pal_destroy(file);
+  if (UNLIKELY(thread_atomic_sub_i64(&g_fileCount, 1) <= 0)) {
+    file_crash_with_msg("file: Double destroy of File");
+  }
+}
 
 FileResult file_write_to_path_sync(const String path, const String data) {
   File*      file = null;
@@ -87,3 +136,5 @@ FileResult file_create_dir_sync(String path) {
   // Create the directory itself.
   return file_pal_create_dir_single_sync(path);
 }
+
+u32 file_count() { return (u32)thread_atomic_load_i64(&g_fileCount); }
