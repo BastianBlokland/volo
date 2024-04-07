@@ -23,12 +23,12 @@
 static const String g_traceSlPathDefault =
     string_static("C:/Program Files/Superluminal/Performance/API/dll/x64/PerformanceAPI.dll");
 
-// NOTE: This struct needs to match the 'PerformanceAPI_SuppressTailCallOptimization'.
+// NOTE: This struct needs to match 'PerformanceAPI_SuppressTailCallOptimization'.
 typedef struct {
   i64 suppressTailCall[3]; // Used to suppress tail-call optimization.
 } SuperluminalFunctionRet;
 
-// NOTE: This struct needs to match the 'PerformanceAPI_Functions'.
+// NOTE: This struct needs to match 'PerformanceAPI_Functions'.
 typedef struct {
   uptr setCurrentThreadName;
   uptr setCurrentThreadNameN;
