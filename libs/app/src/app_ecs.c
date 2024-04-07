@@ -24,11 +24,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, LogMask_All));
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
+  log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
+
 #if defined(VOLO_WIN32)
   trace_event_add_sink(trace_sink_superluminal(g_alloc_heap));
 #endif
-
-  log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
 
   // Enable custom signal handling, used for graceful shutdown on interrupt.
   signal_intercept_enable();
@@ -44,7 +44,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   u64 frameNumber = 0;
   do {
-    trace_begin_msg("app_frame", TraceColor_Default, "frame: {}", fmt_int(frameNumber));
+    trace_begin_msg("app_frame", TraceColor_Blue, "{}", fmt_int(frameNumber));
 
     ecs_run_sync(runner);
 
