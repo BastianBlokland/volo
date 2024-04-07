@@ -122,35 +122,6 @@ typedef enum {
   AlsaPcmWriteResult_Error,
 } AlsaPcmWriteResult;
 
-static String alsa_error_str(const SndDevice* dev, const int err) {
-  return string_from_null_term(dev->alsa.strerror(err));
-}
-
-static String alsa_error_str_global(const int err) {
-  return string_from_null_term(snd_strerror(err));
-}
-
-static void alsa_error_handler(
-    const char* file, const i32 line, const char* func, const i32 err, const char* fmt, ...) {
-
-  va_list arg;
-  va_start(arg, fmt);
-
-  char         msgBuf[128];
-  const i32    msgLength = vsnprintf(msgBuf, sizeof(msgBuf), fmt, arg);
-  const String msg       = {.ptr = msgBuf, .size = math_clamp_i32(msgLength, 0, sizeof(msgBuf))};
-
-  log_e(
-      "Alsa error: {}",
-      log_param("msg", fmt_text(msg)),
-      log_param("err", fmt_text(alsa_error_str_global(err))),
-      log_param("file", fmt_text(string_from_null_term(file))),
-      log_param("line", fmt_int(line)),
-      log_param("func", fmt_text(string_from_null_term(func))));
-
-  va_end(arg);
-}
-
 static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
   DynLibResult loadRes = dynlib_load(alloc, string_lit("libasound.so"), &lib->asound);
   if (loadRes != DynLibResult_Success) {
@@ -198,6 +169,58 @@ static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
 
 #undef ALSA_LIB_SYM
   return true;
+}
+
+static String alsa_error_str(const SndDevice* dev, const int err) {
+  return string_from_null_term(dev->alsa.strerror(err));
+}
+
+static const SndDevice* g_sndErrorHandlerDev;
+static ThreadSpinLock   g_sndErrorHandlerLock;
+
+static void alsa_error_handler(
+    const char* file, const i32 line, const char* func, const i32 err, const char* fmt, ...) {
+
+  String errName = string_lit("<unknown>");
+  thread_spinlock_lock(&g_sndErrorHandlerLock);
+  if (g_sndErrorHandlerDev) {
+    errName = alsa_error_str(g_sndErrorHandlerDev, err);
+  }
+  thread_spinlock_unlock(&g_sndErrorHandlerLock);
+
+  va_list arg;
+  va_start(arg, fmt);
+
+  char         msgBuf[128];
+  const i32    msgLength = vsnprintf(msgBuf, sizeof(msgBuf), fmt, arg);
+  const String msg       = {.ptr = msgBuf, .size = math_clamp_i32(msgLength, 0, sizeof(msgBuf))};
+
+  log_e(
+      "Alsa error: {}",
+      log_param("msg", fmt_text(msg)),
+      log_param("err", fmt_text(errName)),
+      log_param("file", fmt_text(string_from_null_term(file))),
+      log_param("line", fmt_int(line)),
+      log_param("func", fmt_text(string_from_null_term(func))));
+
+  va_end(arg);
+}
+
+static void alsa_error_handler_init(SndDevice* dev) {
+  thread_spinlock_lock(&g_sndErrorHandlerLock);
+  dev->alsa.lib_error_set_handler(&alsa_error_handler);
+  if (!g_sndErrorHandlerDev) {
+    g_sndErrorHandlerDev = dev;
+  }
+  thread_spinlock_unlock(&g_sndErrorHandlerLock);
+}
+
+static void alsa_error_handler_teardown(SndDevice* dev) {
+  thread_spinlock_lock(&g_sndErrorHandlerLock);
+  if (g_sndErrorHandlerDev == dev) {
+    g_sndErrorHandlerDev = null;
+  }
+  thread_spinlock_unlock(&g_sndErrorHandlerLock);
 }
 
 static bool alsa_pcm_open(SndDevice* dev) {
@@ -365,7 +388,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
   if (!alsa_lib_init(&dev->alsa, alloc)) {
     return dev; // Failed to initialize alsa library.
   }
-  dev->alsa.lib_error_set_handler(&alsa_error_handler);
+  alsa_error_handler_init(dev);
 
   if (!alsa_pcm_open(dev)) {
     return dev; // Failed to open pcm device.
@@ -396,11 +419,12 @@ SndDevice* snd_device_create(Allocator* alloc) {
 }
 
 void snd_device_destroy(SndDevice* dev) {
-  if (dev->alsa.asound) {
-    dynlib_destroy(dev->alsa.asound);
-  }
   if (dev->pcm) {
     snd_pcm_close(dev->pcm);
+  }
+  alsa_error_handler_teardown(dev);
+  if (dev->alsa.asound) {
+    dynlib_destroy(dev->alsa.asound);
   }
   string_maybe_free(dev->alloc, dev->id);
   alloc_free_t(dev->alloc, dev);
