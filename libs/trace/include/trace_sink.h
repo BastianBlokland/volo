@@ -2,7 +2,6 @@
 #include "trace_event.h"
 
 struct sTraceSink {
-
   /**
    * Called when a event begins / ends.
    * NOTE: Functions can be invoked from different threads in parallel.

@@ -30,19 +30,17 @@ typedef struct {
 
 // NOTE: This struct needs to match the 'PerformanceAPI_Functions'.
 typedef struct {
-  // clang-format off
-  uptr                              setCurrentThreadName;
-  uptr                              setCurrentThreadNameN;
-  uptr                              beginEvent;
-  void                   (SYS_DECL* beginEventN)(const char* id, u16 idLen, const char* data, u16 dataLen, u32 color);
-  uptr                              beginEventWide;
-  uptr                              beginEventWideN;
+  uptr setCurrentThreadName;
+  uptr setCurrentThreadNameN;
+  uptr beginEvent;
+  void(SYS_DECL* beginEventN)(const char* id, u16 idLen, const char* data, u16 dataLen, u32 color);
+  uptr beginEventWide;
+  uptr beginEventWideN;
   SuperluminalFunctionRet(SYS_DECL* endEvent)(void);
-  uptr                              registerFiber;
-  uptr                              unregisterFiber;
-  uptr                              beginFiberSwitch;
-  uptr                              endFiberSwitch;
-  // clang-format on
+  uptr registerFiber;
+  uptr unregisterFiber;
+  uptr beginFiberSwitch;
+  uptr endFiberSwitch;
 } SuperluminalFunctions;
 
 typedef struct {
