@@ -62,27 +62,27 @@ static usize alloc_page_max_size(Allocator* allocator) {
 
 static AllocatorPage g_allocatorIntern;
 
-Allocator* alloc_page_init() {
+Allocator* alloc_page_init(void) {
   const size_t pageSize = getpagesize();
   g_allocatorIntern     = (AllocatorPage){
-          .api =
-              {
-                  .alloc   = alloc_page_alloc,
-                  .free    = alloc_page_free,
-                  .maxSize = alloc_page_max_size,
-                  .reset   = null,
+      .api =
+          {
+              .alloc   = alloc_page_alloc,
+              .free    = alloc_page_free,
+              .maxSize = alloc_page_max_size,
+              .reset   = null,
           },
-          .pageSize = pageSize,
+      .pageSize = pageSize,
   };
   return (Allocator*)&g_allocatorIntern;
 }
 
-u32 alloc_page_allocated_pages() {
+u32 alloc_page_allocated_pages(void) {
   return (u32)thread_atomic_load_i64(&g_allocatorIntern.allocatedPages);
 }
 
-usize alloc_page_allocated_size() {
+usize alloc_page_allocated_size(void) {
   return alloc_page_allocated_pages() * g_allocatorIntern.pageSize;
 }
 
-u64 alloc_page_counter() { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }
+u64 alloc_page_counter(void) { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }

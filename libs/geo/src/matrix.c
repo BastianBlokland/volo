@@ -29,7 +29,7 @@ assert_orthonormal(const GeoVector right, const GeoVector up, const GeoVector fw
   assert_orthogonal(up, fwd);
 }
 
-GeoMatrix geo_matrix_ident() {
+GeoMatrix geo_matrix_ident(void) {
   /**
    * [ 1,  0,  0,  0 ]
    * [ 0,  1,  0,  0 ]

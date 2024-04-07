@@ -49,7 +49,7 @@ static i8 watch_compare_wd(const void* a, const void* b) {
   return compare_u32(field_ptr(a, FileWatch, wd), field_ptr(b, FileWatch, wd));
 }
 
-static FileMonitorResult result_from_errno() {
+static FileMonitorResult result_from_errno(void) {
   switch (errno) {
   case EACCES:
     return FileMonitorResult_NoAccess;

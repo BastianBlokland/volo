@@ -4,9 +4,9 @@
 
 #include <time.h>
 
-void time_pal_init() {}
+void time_pal_init(void) {}
 
-TimeSteady time_pal_steady_clock() {
+TimeSteady time_pal_steady_clock(void) {
   struct timespec ts;
   const int       res = clock_gettime(CLOCK_MONOTONIC, &ts);
   if (UNLIKELY(res != 0)) {
@@ -15,7 +15,7 @@ TimeSteady time_pal_steady_clock() {
   return ts.tv_sec * i64_lit(1000000000) + ts.tv_nsec;
 }
 
-TimeReal time_pal_real_clock() {
+TimeReal time_pal_real_clock(void) {
   struct timespec ts;
   const int       res = clock_gettime(CLOCK_REALTIME, &ts);
   if (UNLIKELY(res != 0)) {
@@ -24,7 +24,7 @@ TimeReal time_pal_real_clock() {
   return time_pal_native_to_real(ts);
 }
 
-TimeZone time_pal_zone_current() {
+TimeZone time_pal_zone_current(void) {
   const time_t utcSeconds            = time(null);
   const time_t localSeconds          = timegm(localtime(&utcSeconds));
   const time_t timezoneOffsetSeconds = localSeconds - utcSeconds;

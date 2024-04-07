@@ -55,7 +55,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
   return g_names[id];
 }
 
-RvkRepository* rvk_repository_create() {
+RvkRepository* rvk_repository_create(void) {
   RvkRepository* repo = alloc_alloc_t(g_alloc_heap, RvkRepository);
   *repo               = (RvkRepository){0};
   return repo;

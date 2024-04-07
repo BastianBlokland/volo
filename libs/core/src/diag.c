@@ -31,9 +31,9 @@ void diag_assert_report_fail(String msg, const SourceLoc sourceLoc) {
   }
 }
 
-void diag_break() { diag_pal_break(); }
+void diag_break(void) { diag_pal_break(); }
 
-void diag_crash() {
+void diag_crash(void) {
   diag_break();
   diag_pal_crash();
 }

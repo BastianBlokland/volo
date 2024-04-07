@@ -49,7 +49,7 @@ THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL bool        g_jobsIsWorking;
 
-static void executor_wake_workers() {
+static void executor_wake_workers(void) {
   thread_mutex_lock(g_mutex);
   thread_cond_broadcast(g_wakeCondition);
   thread_mutex_unlock(g_mutex);
@@ -66,7 +66,7 @@ static void executor_work_push(Job* job, const JobTaskId task) {
   }
 }
 
-static WorkItem executor_work_pop() {
+static WorkItem executor_work_pop(void) {
   if (UNLIKELY(g_jobsWorkerId == g_affinityWorker)) {
     /**
      * This worker is the assigned 'Affinity worker' and thus we need to serve the affinity-queue
@@ -80,7 +80,7 @@ static WorkItem executor_work_pop() {
   return workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
 }
 
-static WorkItem executor_work_steal() {
+static WorkItem executor_work_steal(void) {
   /**
    * Attempt to steal work from any other worker, starting from a random worker to reduce
    * contention.
@@ -100,7 +100,7 @@ static WorkItem executor_work_steal() {
   return (WorkItem){0};
 }
 
-static WorkItem executor_work_affinity_or_steal() {
+static WorkItem executor_work_affinity_or_steal(void) {
   /**
    * The 'Affinity Worker' is special as it can also receive work from other threads, so while
    * looking for work it also needs to check the affinity-queue.
@@ -115,7 +115,7 @@ static WorkItem executor_work_affinity_or_steal() {
   return executor_work_steal();
 }
 
-static WorkItem executor_work_steal_loop() {
+static WorkItem executor_work_steal_loop(void) {
   /**
    * Every time-slice attempt to steal work from any other worker, starting from a random worker to
    * reduce contention.
@@ -233,7 +233,7 @@ static void executor_worker_thread(void* data) {
   }
 }
 
-void executor_init() {
+void executor_init(void) {
   g_jobsWorkerCount = math_min(
       math_max(worker_min_count, g_thread_core_count - worker_reserved_core_count),
       worker_max_count);
@@ -273,7 +273,7 @@ void executor_init() {
   }
 }
 
-void executor_teardown() {
+void executor_teardown(void) {
   diag_assert_msg(
       g_thread_tid == g_thread_main_tid, "Only the main-thread can teardown the executor");
   diag_assert_msg(g_jobsWorkerId == 0, "Unexpected worker-id for the main-thread");
@@ -325,7 +325,7 @@ void executor_run(Job* job) {
   }
 }
 
-bool executor_help() {
+bool executor_help(void) {
   // Attempt get a work item from our own queues.
   WorkItem work = executor_work_pop();
   if (workitem_valid(work)) {

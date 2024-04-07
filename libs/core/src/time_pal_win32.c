@@ -7,7 +7,7 @@
 
 static i64 g_perfCounterFrequency;
 
-void time_pal_init() {
+void time_pal_init(void) {
   LARGE_INTEGER freq;
   if (LIKELY(QueryPerformanceFrequency(&freq))) {
     g_perfCounterFrequency = freq.QuadPart;
@@ -16,7 +16,7 @@ void time_pal_init() {
   }
 }
 
-TimeSteady time_pal_steady_clock() {
+TimeSteady time_pal_steady_clock(void) {
   LARGE_INTEGER prefTicks;
   const BOOL    res = QueryPerformanceCounter(&prefTicks);
   if (UNLIKELY(!res)) {
@@ -25,13 +25,13 @@ TimeSteady time_pal_steady_clock() {
   return ((prefTicks.QuadPart * i64_lit(1000000) / g_perfCounterFrequency)) * i64_lit(1000);
 }
 
-TimeReal time_pal_real_clock() {
+TimeReal time_pal_real_clock(void) {
   FILETIME fileTime;
   GetSystemTimePreciseAsFileTime(&fileTime);
   return time_pal_native_to_real(&fileTime);
 }
 
-TimeZone time_pal_zone_current() {
+TimeZone time_pal_zone_current(void) {
   TIME_ZONE_INFORMATION timeZoneInfo;
   const DWORD           retCode = GetTimeZoneInformation(&timeZoneInfo);
   switch (retCode) {

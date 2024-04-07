@@ -50,7 +50,7 @@ static usize alloc_persist_max_size(Allocator* allocator) {
 
 static AllocatorPersist g_allocatorIntern;
 
-Allocator* alloc_persist_init() {
+Allocator* alloc_persist_init(void) {
   g_allocatorIntern = (AllocatorPersist){
       (Allocator){
           .alloc   = alloc_persist_alloc,
@@ -64,13 +64,13 @@ Allocator* alloc_persist_init() {
   return (Allocator*)&g_allocatorIntern;
 }
 
-void alloc_persist_teardown() {
+void alloc_persist_teardown(void) {
   diag_assert(g_allocatorIntern.chunkedAlloc);
   alloc_chunked_destroy(g_allocatorIntern.chunkedAlloc);
   g_allocatorIntern = (AllocatorPersist){0};
 }
 
-u64 alloc_persist_counter() {
+u64 alloc_persist_counter(void) {
   alloc_persist_lock(&g_allocatorIntern);
   const u64 result = (u64)g_allocatorIntern.counter;
   alloc_persist_unlock(&g_allocatorIntern);

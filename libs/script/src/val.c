@@ -21,7 +21,7 @@ bool script_type_check(const ScriptVal value, const ScriptMask mask) {
   return val_type_check(value, mask);
 }
 
-ScriptVal script_null() { return val_null(); }
+ScriptVal script_null(void) { return val_null(); }
 ScriptVal script_num(const f64 value) { return val_num(value); }
 ScriptVal script_bool(const bool value) { return val_bool(value); }
 ScriptVal script_vec3(const GeoVector value) { return val_vec3(value); }
@@ -154,7 +154,7 @@ String script_val_type_str(const ScriptType type) {
 
 static StringHash g_valTypeHashes[ScriptType_Count];
 
-static void val_type_hashes_init() {
+static void val_type_hashes_init(void) {
   static bool           g_hashesInit;
   static ThreadSpinLock g_hashesInitLock;
   if (UNLIKELY(!g_hashesInit)) {
@@ -702,11 +702,11 @@ ScriptVal script_val_cos(const ScriptVal val) {
   return val_null();
 }
 
-ScriptVal script_val_random() { return val_num(rng_sample_f32(g_rng)); }
+ScriptVal script_val_random(void) { return val_num(rng_sample_f32(g_rng)); }
 
-ScriptVal script_val_random_sphere() { return val_vec3(geo_vector_rand_in_sphere3(g_rng)); }
+ScriptVal script_val_random_sphere(void) { return val_vec3(geo_vector_rand_in_sphere3(g_rng)); }
 
-ScriptVal script_val_random_circle_xz() {
+ScriptVal script_val_random_circle_xz(void) {
   const f32 r     = math_sqrt_f32(rng_sample_f32(g_rng));
   const f32 theta = rng_sample_f32(g_rng) * 2.0f * math_pi_f32;
   return val_vec3(geo_vector(r * math_cos_f32(theta), 0, r * math_sin_f32(theta)));

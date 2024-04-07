@@ -14,13 +14,13 @@ static void diag_sigtrap_handler(int signum) {
   g_debuggerPresent = false;
 }
 
-void diag_pal_break() {
+void diag_pal_break(void) {
   g_debuggerPresent = true;
   signal(SIGTRAP, diag_sigtrap_handler);
   raise(SIGTRAP);
 }
 
-void diag_pal_crash() {
+void diag_pal_crash(void) {
   // NOTE: exit_group to terminate all threads in the process.
   syscall(SYS_exit_group, diag_crash_exit_code);
   UNREACHABLE

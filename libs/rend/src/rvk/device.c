@@ -52,7 +52,7 @@ MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = true;
 MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
 #endif
 
-static VkApplicationInfo rvk_instance_app_info() {
+static VkApplicationInfo rvk_instance_app_info(void) {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
       .pApplicationName   = path_stem(g_path_executable).ptr,

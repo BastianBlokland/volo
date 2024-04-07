@@ -41,14 +41,14 @@ static int thread_desired_prio_value(const ThreadPriority prio) {
   diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
 }
 
-MAYBE_UNUSED static void thread_set_process_priority() {
+MAYBE_UNUSED static void thread_set_process_priority(void) {
   const HANDLE curProcess = GetCurrentProcess();
   if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
     diag_crash_msg("SetPriorityClass() failed");
   }
 }
 
-void thread_pal_init() {
+void thread_pal_init(void) {
 #ifdef VOLO_FAST
   /**
    * When running an optimized build we assume the user wants to give additional priority to the
@@ -59,7 +59,7 @@ void thread_pal_init() {
 #endif
 }
 
-void thread_pal_init_late() {
+void thread_pal_init_late(void) {
   /**
    * If 'Winmm.dll' (Windows Multimedia API) is available then configure the scheduling interval.
    */
@@ -78,7 +78,7 @@ void thread_pal_init_late() {
   }
 }
 
-void thread_pal_teardown() {
+void thread_pal_teardown(void) {
   if (g_mmTimeEndPeriod && g_mmTimeEndPeriod(g_win32SchedulingInterval)) {
     diag_assert_fail("Failed to restore win32 scheduling interval");
   }
@@ -90,10 +90,10 @@ void thread_pal_teardown() {
   }
 }
 
-i64 thread_pal_pid() { return GetCurrentProcessId(); }
-i64 thread_pal_tid() { return GetCurrentThreadId(); }
+i64 thread_pal_pid(void) { return GetCurrentProcessId(); }
+i64 thread_pal_tid(void) { return GetCurrentThreadId(); }
 
-u16 thread_pal_core_count() {
+u16 thread_pal_core_count(void) {
   SYSTEM_INFO sysInfo;
   GetSystemInfo(&sysInfo);
   return sysInfo.dwNumberOfProcessors;
@@ -236,7 +236,7 @@ void thread_pal_join(ThreadHandle thread) {
   }
 }
 
-void thread_pal_yield() { SwitchToThread(); }
+void thread_pal_yield(void) { SwitchToThread(); }
 
 void thread_pal_sleep(const TimeDuration duration) {
   /**

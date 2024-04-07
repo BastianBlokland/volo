@@ -103,7 +103,7 @@ static void debug_log_sink_prune_older(DebugLogSink* debugSink, const TimeReal t
   thread_spinlock_unlock(&debugSink->messagesLock);
 }
 
-DebugLogSink* debug_log_sink_create() {
+DebugLogSink* debug_log_sink_create(void) {
   DebugLogSink* sink = alloc_alloc_t(g_alloc_heap, DebugLogSink);
 
   *sink = (DebugLogSink){

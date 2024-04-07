@@ -8,7 +8,7 @@
 
 #define dynlib_max_symbol_name 128
 
-void dynlib_pal_init() {
+void dynlib_pal_init(void) {
   /**
    * Disable Windows ui error popups that could be shown as a result of calling 'LoadLibrary'.
    */

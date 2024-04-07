@@ -44,7 +44,7 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
   return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
-static void* ecs_archetype_chunk_create() {
+static void* ecs_archetype_chunk_create(void) {
   const usize align = 512; // Note: In practice the page allocator will align to the page size.
   return alloc_alloc(g_alloc_page, ecs_archetype_chunk_size, align).ptr;
 }

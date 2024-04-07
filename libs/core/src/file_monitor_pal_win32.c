@@ -116,7 +116,7 @@ static HANDLE monitor_open_root(const String rootPath) {
       null);
 }
 
-static HANDLE monitor_event_create() {
+static HANDLE monitor_event_create(void) {
   const HANDLE result = CreateEventEx(null, null, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
   if (UNLIKELY(!result)) {
     const DWORD err = GetLastError();

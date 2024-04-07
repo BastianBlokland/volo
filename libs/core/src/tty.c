@@ -7,8 +7,8 @@
 #include "init_internal.h"
 #include "tty_internal.h"
 
-void tty_init() { tty_pal_init(); }
-void tty_teardown() { tty_pal_teardown(); }
+void tty_init(void) { tty_pal_init(); }
+void tty_teardown(void) { tty_pal_teardown(); }
 
 bool tty_isatty(File* file) { return tty_pal_isatty(file); }
 u16  tty_width(File* file) { return tty_pal_width(file); }

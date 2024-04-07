@@ -98,7 +98,7 @@ typedef struct {
   } emitters;
 } VfxDef;
 
-static void vfx_datareg_init() {
+static void vfx_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

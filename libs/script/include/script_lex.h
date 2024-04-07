@@ -92,8 +92,8 @@ String script_lex_trim(String, ScriptLexFlags);
 /**
  * Retrieve global keyword list.
  */
-u32                     script_lex_keyword_count();
-const ScriptLexKeyword* script_lex_keyword_data();
+u32                     script_lex_keyword_count(void);
+const ScriptLexKeyword* script_lex_keyword_data(void);
 
 /**
  * Test if two tokens are equal.

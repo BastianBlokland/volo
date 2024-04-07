@@ -47,7 +47,7 @@ THREAD_LOCAL i64    g_thread_tid;
 THREAD_LOCAL String g_thread_name;
 u16                 g_thread_core_count;
 
-void thread_init() {
+void thread_init(void) {
   thread_pal_init();
 
   g_thread_pid        = thread_pal_pid();
@@ -56,15 +56,15 @@ void thread_init() {
   g_thread_core_count = thread_pal_core_count();
 }
 
-void thread_init_late() {
+void thread_init_late(void) {
   thread_pal_init_late();
 
   thread_pal_set_name(g_thread_name);
 }
 
-void thread_teardown() { thread_pal_teardown(); }
+void thread_teardown(void) { thread_pal_teardown(); }
 
-void thread_init_thread() { g_thread_tid = thread_pal_tid(); }
+void thread_init_thread(void) { g_thread_tid = thread_pal_tid(); }
 
 i32 thread_atomic_load_i32(i32* ptr) { return thread_pal_atomic_load_i32(ptr); }
 i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
@@ -118,7 +118,7 @@ bool thread_prioritize(const ThreadPriority prio) { return thread_pal_set_priori
 
 void thread_join(const ThreadHandle thread) { thread_pal_join(thread); }
 
-void thread_yield() { thread_pal_yield(); }
+void thread_yield(void) { thread_pal_yield(); }
 
 void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }
 

@@ -58,4 +58,4 @@ DynLibSymbol dynlib_symbol(const DynLib*, String name);
 /**
  * Returns the amount of currently loaded libraries.
  */
-u32 dynlib_count();
+u32 dynlib_count(void);

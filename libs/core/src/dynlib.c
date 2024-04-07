@@ -19,12 +19,12 @@ static i64  g_dynlibCount;
     diag_crash();                                                                                  \
   } while (false)
 
-void dynlib_init() {
+void dynlib_init(void) {
   dynlib_pal_init();
   g_dynlibInitialized = true;
 }
 
-void dynlib_teardown() {
+void dynlib_teardown(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_dynlibCount) != 0)) {
     dynlib_crash_with_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
   }
@@ -68,4 +68,4 @@ DynLibSymbol dynlib_symbol(const DynLib* lib, const String name) {
   return dynlib_pal_symbol(lib, name);
 }
 
-u32 dynlib_count() { return (u32)thread_atomic_load_i64(&g_dynlibCount); }
+u32 dynlib_count(void) { return (u32)thread_atomic_load_i64(&g_dynlibCount); }

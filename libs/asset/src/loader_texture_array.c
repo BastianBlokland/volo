@@ -53,7 +53,7 @@ typedef struct {
   } textures;
 } ArrayTexDef;
 
-static void arraytex_datareg_init() {
+static void arraytex_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

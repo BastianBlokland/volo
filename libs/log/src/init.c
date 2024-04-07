@@ -6,7 +6,7 @@
 
 static bool g_initalized;
 
-void log_init() {
+void log_init(void) {
   diag_assert(g_thread_tid == g_thread_main_tid);
 
   if (!g_initalized) {
@@ -16,7 +16,7 @@ void log_init() {
   }
 }
 
-void log_teardown() {
+void log_teardown(void) {
   diag_assert(g_thread_tid == g_thread_main_tid);
 
   if (g_initalized) {

@@ -38,7 +38,7 @@ MAYBE_UNUSED INLINE_HINT static bool val_type_check(const ScriptVal v, const Scr
   return (mask & (1 << val_type(v))) != 0;
 }
 
-MAYBE_UNUSED INLINE_HINT static ScriptVal val_null() {
+MAYBE_UNUSED INLINE_HINT static ScriptVal val_null(void) {
   ASSERT(ScriptType_Null == 0, "ScriptType_Null should be initializable using zero-init");
   return (ScriptVal){0};
 }

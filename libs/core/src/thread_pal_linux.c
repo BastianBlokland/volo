@@ -37,14 +37,14 @@ static int thread_desired_nice(const ThreadPriority prio) {
   diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
 }
 
-void thread_pal_init() {}
-void thread_pal_init_late() {}
-void thread_pal_teardown() {}
+void thread_pal_init(void) {}
+void thread_pal_init_late(void) {}
+void thread_pal_teardown(void) {}
 
-i64 thread_pal_pid() { return syscall(SYS_getpid); }
-i64 thread_pal_tid() { return syscall(SYS_gettid); }
+i64 thread_pal_pid(void) { return syscall(SYS_getpid); }
+i64 thread_pal_tid(void) { return syscall(SYS_gettid); }
 
-u16 thread_pal_core_count() {
+u16 thread_pal_core_count(void) {
   cpu_set_t cpuSet;
   CPU_ZERO(&cpuSet);
   const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
@@ -179,7 +179,7 @@ void thread_pal_join(const ThreadHandle thread) {
   }
 }
 
-void thread_pal_yield() {
+void thread_pal_yield(void) {
   /**
    * Because we are running under the normal time sharing scheduler ('SCHED_OTHER') the utility of
    * this is questionable and we should probably revisit the usages of this api.

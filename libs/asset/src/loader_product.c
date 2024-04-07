@@ -69,7 +69,7 @@ typedef struct {
   } sets;
 } AssetProductMapDef;
 
-static void product_datareg_init() {
+static void product_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

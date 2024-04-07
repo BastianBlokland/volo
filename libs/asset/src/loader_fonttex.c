@@ -54,7 +54,7 @@ typedef struct {
   } fonts;
 } FontTexDef;
 
-static void fonttex_datareg_init() {
+static void fonttex_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

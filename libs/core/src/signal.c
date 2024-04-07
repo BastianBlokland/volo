@@ -6,7 +6,7 @@
 
 static i32 g_signalInterceptActive;
 
-void signal_intercept_enable() {
+void signal_intercept_enable(void) {
   i32 expectedActive = false;
   if (thread_atomic_compare_exchange_i32(&g_signalInterceptActive, &expectedActive, true)) {
     signal_pal_setup_handlers();

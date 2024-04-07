@@ -34,8 +34,8 @@ struct sStringTable {
  * Global StringTable.
  */
 StringTable* g_stringtable;
-void         stringtable_init() { g_stringtable = stringtable_create(g_alloc_heap); }
-void         stringtable_teardown() { stringtable_destroy(g_stringtable); }
+void         stringtable_init(void) { g_stringtable = stringtable_create(g_alloc_heap); }
+void         stringtable_teardown(void) { stringtable_destroy(g_stringtable); }
 
 INLINE_HINT static u32 stringtable_should_grow(StringTable* table) {
   return table->slotCountUsed >= (u32)(table->slotCount * stringtable_slots_loadfactor);

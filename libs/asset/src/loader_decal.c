@@ -43,7 +43,7 @@ typedef struct {
   f32              fadeInTime, fadeOutTime;
 } DecalDef;
 
-static void decal_datareg_init() {
+static void decal_datareg_init(void) {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;

@@ -28,7 +28,7 @@ static ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("return"), .token = ScriptTokenKind_Return},
 };
 
-static void script_lex_keywords_init() {
+static void script_lex_keywords_init(void) {
   static bool           g_init;
   static ThreadSpinLock g_initLock;
   if (g_init) {
@@ -431,9 +431,9 @@ String script_lex_trim(String str, const ScriptLexFlags fl) {
   return string_empty;
 }
 
-u32 script_lex_keyword_count() { return (u32)array_elems(g_lexKeywords); }
+u32 script_lex_keyword_count(void) { return (u32)array_elems(g_lexKeywords); }
 
-const ScriptLexKeyword* script_lex_keyword_data() {
+const ScriptLexKeyword* script_lex_keyword_data(void) {
   script_lex_keywords_init();
   return g_lexKeywords;
 }

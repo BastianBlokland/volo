@@ -6,7 +6,7 @@
 
 static bool g_initalized;
 
-void jobs_init() {
+void jobs_init(void) {
   diag_assert(g_thread_tid == g_thread_main_tid);
 
   if (!g_initalized) {
@@ -17,7 +17,7 @@ void jobs_init() {
   }
 }
 
-void jobs_teardown() {
+void jobs_teardown(void) {
   diag_assert(g_thread_tid == g_thread_main_tid);
 
   if (g_initalized) {
