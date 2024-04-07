@@ -38,14 +38,14 @@ void trace_add_sink(TraceSink* sink) {
   thread_spinlock_unlock(&g_traceSinksLock);
 }
 
-void trace_begin(const String id, const TraceColor color) {
+void trace_event_begin(const String id, const TraceColor color) {
   // No need to take the 'g_traceSinksLock' lock as sinks can only be added, never removed.
   for (u32 i = 0; i != g_traceSinkCount; ++i) {
     g_traceSinks[i]->eventBegin(g_traceSinks[i], id, color, string_empty);
   }
 }
 
-void trace_begin_msg_raw(
+void trace_event_begin_msg(
     const String id, const TraceColor color, const String msg, const FormatArg* args) {
   if (!g_traceSinkCount) {
     return;
@@ -60,7 +60,7 @@ void trace_begin_msg_raw(
   }
 }
 
-void trace_end() {
+void trace_event_end() {
   // No need to take the 'g_traceSinksLock' lock as sinks can only be added, never removed.
   for (u32 i = 0; i != g_traceSinkCount; ++i) {
     g_traceSinks[i]->eventEnd(g_traceSinks[i]);
