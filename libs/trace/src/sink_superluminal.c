@@ -8,7 +8,7 @@
 #include "event_internal.h"
 
 /**
- * Log sink implementation that uses the Superluminal PerformanceAPI.
+ * Trace sink implementation that uses the Superluminal PerformanceAPI.
  * Documentation: https://www.superluminal.eu/docs/documentation.html#using_performance_api
  */
 
