@@ -42,12 +42,4 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
     xkbcommon
     )
 
-elseif(${VOLO_PLATFORM} STREQUAL "win32")
-
-  # Link against 'shcore.lib' for dpi awareness apis.
-  # NOTE: Exclude the gcc compiler because 'shcore.lib' is not available under MinGW at the moment.
-  if(NOT ${VOLO_COMPILER} STREQUAL "gcc")
-    target_link_libraries(lib_gap PRIVATE shcore.lib)
-  endif()
-
 endif()
