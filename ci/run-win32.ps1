@@ -13,6 +13,9 @@
 .PARAMETER Fast
   Default: Off
   Fast mode, disables various runtime validations.
+.PARAMETER Trace
+  Default: Off
+  Trace mode, enables runtime performance tracing.
 .PARAMETER Lto
   Default: Off
   Link time optimization.
@@ -26,6 +29,7 @@ param(
   [string]$BuildTarget = "run.game",
   [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
   [switch]$Fast,
+  [switch]$Trace,
   [switch]$Lto,
   [switch]$Sanitize
 )
@@ -75,6 +79,7 @@ function ExecuteGenerator(
     [string] $buildDirectory,
     [string] $buildSystem,
     [bool] $fast,
+    [bool] $trace,
     [bool] $lto,
     [bool] $sanitize) {
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
@@ -92,6 +97,7 @@ function ExecuteGenerator(
   & cmake.exe -B $buildDirectory `
     -G "$(GetGeneratorName $buildSystem)" `
     -DFAST="$(if($fast) { "On" } else { "Off" })" `
+    -DTRACE="$(if($trace) { "On" } else { "Off" })" `
     -DLTO="$(if($lto) { "On" } else { "Off" })" `
     -DSANITIZE="$(if($sanitize) { "On" } else { "Off" })"
 
@@ -129,7 +135,7 @@ function Execute() {
   SetupEnvironment
 
   Info "Configuring build directory '$BuildDirectory'"
-  ExecuteGenerator $BuildDirectory $BuildSystem $Fast $Lto $Sanitize
+  ExecuteGenerator $BuildDirectory $BuildSystem $Fast $Trace $Lto $Sanitize
 
   Info "Building target '$BuildTarget' using '$BuildSystem'"
   ExecuteBuild $BuildDirectory $BuildTarget

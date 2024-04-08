@@ -26,7 +26,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
 
-#if defined(VOLO_WIN32)
+#if defined(VOLO_TRACE) && defined(VOLO_WIN32)
   trace_event_add_sink(trace_sink_superluminal(g_alloc_heap));
 #endif
 
