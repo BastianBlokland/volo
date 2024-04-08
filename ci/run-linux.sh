@@ -62,11 +62,13 @@ build() {
   local buildTarget="${2}"
   local buildSystem="${3}"
   local fastMode="${4}"
-  local ltoMode="${5}"
-  local sanitizeMode="${6}"
+  local traceMode="${5}"
+  local ltoMode="${6}"
+  local sanitizeMode="${7}"
 
   verifyBuildSystemOption "${buildSystem}"
   verifyBoolOption "${fastMode}"
+  verifyBoolOption "${traceMode}"
   verifyBoolOption "${ltoMode}"
   verifyBoolOption "${sanitizeMode}"
 
@@ -85,6 +87,7 @@ build() {
   ( cd "$sourceDir"; cmake -B "${buildDir}" \
     -G "$(getGeneratorName "${buildSystem}")" \
     -DFAST="${fastMode}" \
+    -DTRACE="${traceMode}" \
     -DLTO="${ltoMode}" \
     -DSANITIZE="${sanitizeMode}" )
 
@@ -99,6 +102,7 @@ buildDir="build"
 buildTarget="run.game"
 buildSystem="ninja"
 fastMode="Off"
+traceMode="Off"
 ltoMode="Off"
 sanitizeMode="Off"
 
@@ -109,6 +113,7 @@ printUsage() {
   echo "-t,--target   Build target, default: '${buildTarget}'"
   echo "-s,--system   Build system, default: '${buildSystem}'"
   echo "--fast        Fast mode, disables various runtime validations, default: '${fastMode}'"
+  echo "--trace       Trace mode, enables runtime performance tracing, default: '${traceMode}'"
   echo "--lto         Link time optimization, default: '${ltoMode}'"
   echo "--sanitize    Santiser instrumentation, default: '${sanitizeMode}'"
 }
@@ -138,6 +143,10 @@ do
       fastMode="On"
       shift 1
       ;;
+    --trace)
+      traceMode="On"
+      shift 1
+      ;;
     --lto)
       ltoMode="On"
       shift 1
@@ -160,6 +169,7 @@ build \
   "${buildTarget}" \
   "${buildSystem}" \
   "${fastMode}" \
+  "${traceMode}" \
   "${ltoMode}" \
   "${sanitizeMode}"
 exit 0
