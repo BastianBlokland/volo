@@ -32,6 +32,10 @@ macro(set_generic_defines)
     message(STATUS "Enabling fast mode")
     add_definitions(-DVOLO_FAST)
   endif()
+  if(${TRACE})
+    message(STATUS "Enabling trace mode")
+    add_definitions(-DVOLO_TRACE)
+  endif()
 endmacro(set_generic_defines)
 
 #
