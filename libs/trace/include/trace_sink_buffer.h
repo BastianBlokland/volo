@@ -16,9 +16,9 @@ typedef struct {
   u8         color;     // TraceColor
   u8         msgLength;
   u8         msgData[49];
-} TraceSinkMemEvent;
+} TraceBufferEvent;
 
-ASSERT(sizeof(TraceSinkMemEvent) == 64, "Unexpected event size")
+ASSERT(sizeof(TraceBufferEvent) == 64, "Unexpected event size")
 
 /**
  * Create a in-memory trace output sink.
