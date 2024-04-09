@@ -6,7 +6,7 @@
 typedef i64 TimeSteady;
 
 /**
- * InMemorySink - sink that outputs events to in-memory buffers for later inspection / dumping.
+ * Buffered Sink - sink that outputs events to in-memory buffers for later inspection / dumping.
  */
 
 typedef struct {
@@ -24,4 +24,4 @@ ASSERT(sizeof(TraceBufferEvent) == 64, "Unexpected event size")
  * Create a in-memory trace output sink.
  * NOTE: Should be registered using 'trace_event_add_sink()'.
  */
-TraceSink* trace_sink_mem(Allocator*);
+TraceSink* trace_sink_buffer(Allocator*);
