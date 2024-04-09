@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <signal.h>
+#include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -67,10 +68,9 @@ void thread_pal_set_name(const String str) {
   mem_cpy(buffer, str);
   *mem_at_u8(buffer, str.size) = '\0';
 
-  const pthread_t curThread = pthread_self();
-  const int       res       = pthread_setname_np(curThread, buffer.ptr);
+  const int res = prctl(PR_SET_NAME, (unsigned long)buffer.ptr, 0UL, 0UL, 0UL);
   if (UNLIKELY(res != 0)) {
-    diag_crash_msg("pthread_setname_np() failed");
+    diag_crash_msg("prctl(PR_SET_NAME) failed");
   }
 }
 
