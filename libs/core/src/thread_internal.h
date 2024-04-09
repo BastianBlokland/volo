@@ -43,6 +43,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL*)(void*), void*);
 void         thread_pal_join(ThreadHandle);
 void         thread_pal_yield(void);
 void         thread_pal_sleep(TimeDuration);
+bool         thread_pal_exists(i64 tid);
 
 ThreadMutex thread_pal_mutex_create(Allocator*);
 void        thread_pal_mutex_destroy(ThreadMutex);

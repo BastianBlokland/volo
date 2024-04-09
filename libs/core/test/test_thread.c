@@ -11,6 +11,17 @@ static void test_thread_has_name(void* data) {
   }
 }
 
+static void test_thread_exists(void* data) {
+  if (!thread_exists(g_thread_tid)) {
+    diag_crash_msg("Test 'test_thread_exists' failed");
+  }
+  if (!thread_exists(g_thread_main_tid)) {
+    diag_crash_msg("Test 'test_thread_exists' failed");
+  }
+  i64* myTidRes = data;
+  thread_atomic_store_i64(myTidRes, g_thread_tid);
+}
+
 static void test_atomic_store_value(void* data) { thread_atomic_store_i64((i64*)data, 1337); }
 
 static void test_atomic_exchange_value(void* data) {
@@ -95,6 +106,24 @@ spec(thread) {
     const String customName = string_lit("my_custom_name");
     ThreadHandle exec       = thread_start(test_thread_has_name, null, customName, prio);
     thread_join(exec);
+  }
+
+  it("can check if a thread exists") {
+    check(thread_exists(g_thread_tid));      // Verify that our own thread exists.
+    check(thread_exists(g_thread_main_tid)); // Verify that the main thread exists.
+
+    // Start a new thread which will verify that it exists and write its tid.
+    i64          tid;
+    ThreadHandle exec = thread_start(test_thread_exists, &tid, name, prio);
+    thread_join(exec);
+
+    /**
+     *  NOTE: Turns out that even after joining the thread its still reported as existing by the
+     * Linux kernel, hacky fix is to add a yield to give the kernel time to cleanup.
+     */
+    thread_yield();
+
+    check(!thread_exists(thread_atomic_load_i64(&tid))); // Verify the thread doesn't exist anymore.
   }
 
   it("can store and load integers atomically") {

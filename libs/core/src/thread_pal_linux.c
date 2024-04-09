@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
+#include <signal.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -203,6 +204,16 @@ void thread_pal_sleep(const TimeDuration duration) {
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("nanosleep() failed: {}", fmt_int(res));
   }
+}
+
+bool thread_pal_exists(const i64 tid) {
+  const pid_t pid = (pid_t)syscall(SYS_getpid);
+  do {
+    if (tgkill(pid, (pid_t)tid, 0) == 0) {
+      return true; // Signal could be delivered.
+    }
+  } while (errno == EAGAIN);
+  return false; // Signal could not be delivered.
 }
 
 typedef struct {
