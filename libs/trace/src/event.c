@@ -5,7 +5,7 @@
 #include "event_internal.h"
 
 #define trace_sinks_max 4
-#define trace_message_max 256
+#define trace_message_max 64
 
 static bool           g_traceInitialized;
 static TraceSink*     g_traceSinks[trace_sinks_max];
