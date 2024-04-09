@@ -122,6 +122,8 @@ void thread_yield(void) { thread_pal_yield(); }
 
 void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }
 
+bool thread_exists(const i64 tid) { return thread_pal_exists(tid); }
+
 ThreadMutex thread_mutex_create(Allocator* alloc) { return thread_pal_mutex_create(alloc); }
 
 void thread_mutex_destroy(ThreadMutex mutex) { thread_pal_mutex_destroy(mutex); }

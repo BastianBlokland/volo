@@ -257,6 +257,16 @@ void thread_pal_sleep(const TimeDuration duration) {
   }
 }
 
+bool thread_pal_exists(const i64 tid) {
+  const HANDLE threadHandle = OpenThread(SYNCHRONIZE, false, (DWORD)tid);
+  if (threadHandle) {
+    const bool running = WaitForSingleObject(threadHandle, 0) == WAIT_TIMEOUT;
+    CloseHandle(threadHandle);
+    return running;
+  }
+  return false;
+}
+
 typedef struct {
   CRITICAL_SECTION impl;
   Allocator*       alloc;

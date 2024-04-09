@@ -155,6 +155,12 @@ void thread_yield(void);
 void thread_sleep(TimeDuration);
 
 /**
+ * Check if a thread exists with the given tid.
+ * NOTE: Thread-ids can be recycled by the kernel so a new thread might exist with the same tid.
+ */
+bool thread_exists(i64 tid);
+
+/**
  * Create a new mutex.
  * Should be cleaned up using 'thread_mutex_destroy()'.
  */
