@@ -7,7 +7,7 @@ message(STATUS "> library: trace")
 add_library(lib_trace STATIC
   src/event.c
   src/init.c
-  src/sink_buffer.c
+  src/sink_store.c
   src/sink_superluminal.c
   )
 target_include_directories(lib_trace PUBLIC include)

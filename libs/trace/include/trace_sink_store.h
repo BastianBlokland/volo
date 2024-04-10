@@ -6,7 +6,7 @@
 typedef i64 TimeSteady;
 
 /**
- * Buffered Sink - sink that outputs events to in-memory buffers for later inspection / dumping.
+ * Store Sink - sink that outputs events to in-memory buffers for later inspection / dumping.
  */
 
 typedef struct {
@@ -16,12 +16,12 @@ typedef struct {
   u8         color;     // TraceColor
   u8         msgLength;
   u8         msgData[49];
-} TraceBufferEvent;
+} TraceStoreEvent;
 
-ASSERT(sizeof(TraceBufferEvent) == 64, "Unexpected event size")
+ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
 
 /**
- * Create a in-memory trace output sink.
+ * Create a in-memory store trace output sink.
  * NOTE: Should be registered using 'trace_event_add_sink()'.
  */
-TraceSink* trace_sink_buffer(Allocator*);
+TraceSink* trace_sink_store(Allocator*);
