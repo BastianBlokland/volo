@@ -90,8 +90,10 @@ void thread_pal_teardown(void) {
   }
 }
 
-i64 thread_pal_pid(void) { return GetCurrentProcessId(); }
-i64 thread_pal_tid(void) { return GetCurrentThreadId(); }
+ASSERT(sizeof(ThreadId) >= sizeof(DWORD), "ThreadId type too small")
+
+ThreadId thread_pal_pid(void) { return (ThreadId)GetCurrentProcessId(); }
+ThreadId thread_pal_tid(void) { return (ThreadId)GetCurrentThreadId(); }
 
 u16 thread_pal_core_count(void) {
   SYSTEM_INFO sysInfo;
@@ -257,7 +259,7 @@ void thread_pal_sleep(const TimeDuration duration) {
   }
 }
 
-bool thread_pal_exists(const i64 tid) {
+bool thread_pal_exists(const ThreadId tid) {
   const HANDLE threadHandle = OpenThread(SYNCHRONIZE, false, (DWORD)tid);
   if (threadHandle) {
     const bool running = WaitForSingleObject(threadHandle, 0) == WAIT_TIMEOUT;

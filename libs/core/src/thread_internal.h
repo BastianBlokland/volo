@@ -15,11 +15,11 @@ void thread_pal_init(void);
 void thread_pal_init_late(void);
 void thread_pal_teardown(void);
 
-i64  thread_pal_pid(void);
-i64  thread_pal_tid(void);
-u16  thread_pal_core_count(void);
-void thread_pal_set_name(String);
-bool thread_pal_set_priority(ThreadPriority);
+ThreadId thread_pal_pid(void);
+ThreadId thread_pal_tid(void);
+u16      thread_pal_core_count(void);
+void     thread_pal_set_name(String);
+bool     thread_pal_set_priority(ThreadPriority);
 
 i32 thread_pal_atomic_load_i32(i32*);
 i64 thread_pal_atomic_load_i64(i64*);
@@ -43,7 +43,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL*)(void*), void*);
 void         thread_pal_join(ThreadHandle);
 void         thread_pal_yield(void);
 void         thread_pal_sleep(TimeDuration);
-bool         thread_pal_exists(i64 tid);
+bool         thread_pal_exists(ThreadId);
 
 ThreadMutex thread_pal_mutex_create(Allocator*);
 void        thread_pal_mutex_destroy(ThreadMutex);
