@@ -12,13 +12,19 @@ typedef i64 TimeSteady;
 typedef struct {
   TimeSteady timeStart; // Nano-seconds since the start of the process steady clock.
   u32        timeDur;   // Duration in nano-seconds (limits the max event dur to 4 seconds).
-  u8         id;        // Identifier label index.
+  u8         id;        // Identifier index.
   u8         color;     // TraceColor
   u8         msgLength;
   u8         msgData[49];
 } TraceStoreEvent;
 
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
+
+/**
+ * Lookup the string for the given id index
+ * Pre-condition: sink to be created by 'trace_sink_store'.
+ */
+String trace_sink_store_id(TraceSink*, u8 id);
 
 /**
  * Create a in-memory store trace output sink.

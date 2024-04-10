@@ -184,6 +184,17 @@ static void trace_sink_store_destroy(TraceSink* sink) {
   alloc_free_t(s->alloc, s);
 }
 
+MAYBE_UNUSED static bool trace_sink_is_store(TraceSink* sink) {
+  return sink->destroy == trace_sink_store_destroy;
+}
+
+String trace_sink_store_id(TraceSink* sink, const u8 id) {
+  diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
+  TraceSinkStore* s = (TraceSinkStore*)sink;
+  diag_assert(id < s->idCount);
+  return stringtable_lookup(g_stringtable, s->idHashes[id]);
+}
+
 TraceSink* trace_sink_store(Allocator* alloc) {
   TraceSinkStore* sink = alloc_alloc_t(alloc, TraceSinkStore);
 
