@@ -10,21 +10,27 @@ typedef struct sAllocator Allocator;
 typedef i64 TimeDuration;
 
 /**
+ * Unique identifier for a thread.
+ * NOTE: Thread-ids can be recycled by the kernel so a new thread might be created with the same id.
+ */
+typedef i32 ThreadId;
+
+/**
  * Process identifier (aka 'thread group id').
  * The same value for all threads.
  */
-extern i64 g_thread_pid;
+extern ThreadId g_thread_pid;
 
 /**
  * Thread identifier of the main thread.
  * NOTE: The thread that calls 'core_init()' is considered the main thread.
  */
-extern i64 g_thread_main_tid;
+extern ThreadId g_thread_main_tid;
 
 /**
  * Thread identifier of the current thread.
  */
-extern THREAD_LOCAL i64 g_thread_tid;
+extern THREAD_LOCAL ThreadId g_thread_tid;
 
 /**
  * Name of the current thread.
@@ -155,10 +161,9 @@ void thread_yield(void);
 void thread_sleep(TimeDuration);
 
 /**
- * Check if a thread exists with the given tid.
- * NOTE: Thread-ids can be recycled by the kernel so a new thread might exist with the same tid.
+ * Check if a thread exists with the given id.
  */
-bool thread_exists(i64 tid);
+bool thread_exists(ThreadId);
 
 /**
  * Create a new mutex.

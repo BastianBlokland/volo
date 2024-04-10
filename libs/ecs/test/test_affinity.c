@@ -6,7 +6,7 @@
 #include "ecs_runner.h"
 #include "ecs_world.h"
 
-ecs_comp_define(AffinityComp) { i64 tid; };
+ecs_comp_define(AffinityComp) { ThreadId tid; };
 
 ecs_view_define(Write) { ecs_access_write(AffinityComp); }
 
@@ -47,7 +47,7 @@ spec(affinity) {
     static const usize g_numTicks = 100;
 
     const EcsEntityId entity = ecs_world_entity_create(world);
-    ecs_world_add_t(world, entity, AffinityComp, .tid = sentinel_i64);
+    ecs_world_add_t(world, entity, AffinityComp, .tid = sentinel_i32);
     ecs_world_flush(world);
 
     for (usize i = 0; i != g_numTicks; ++i) {

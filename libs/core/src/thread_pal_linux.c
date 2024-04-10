@@ -43,8 +43,10 @@ void thread_pal_init(void) {}
 void thread_pal_init_late(void) {}
 void thread_pal_teardown(void) {}
 
-i64 thread_pal_pid(void) { return syscall(SYS_getpid); }
-i64 thread_pal_tid(void) { return syscall(SYS_gettid); }
+ASSERT(sizeof(ThreadId) >= sizeof(pid_t), "ThreadId type too small")
+
+ThreadId thread_pal_pid(void) { return (ThreadId)syscall(SYS_getpid); }
+ThreadId thread_pal_tid(void) { return (ThreadId)syscall(SYS_gettid); }
 
 u16 thread_pal_core_count(void) {
   cpu_set_t cpuSet;
@@ -206,7 +208,7 @@ void thread_pal_sleep(const TimeDuration duration) {
   }
 }
 
-bool thread_pal_exists(const i64 tid) {
+bool thread_pal_exists(const ThreadId tid) {
   const pid_t pid = (pid_t)syscall(SYS_getpid);
   do {
     if (tgkill(pid, (pid_t)tid, 0) == 0) {

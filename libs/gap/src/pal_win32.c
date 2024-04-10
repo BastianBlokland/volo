@@ -53,7 +53,7 @@ struct sGapPal {
 
   GapDpiLib   dpi;
   HINSTANCE   moduleInstance;
-  i64         owningThreadId;
+  ThreadId    owningThreadId;
   GapPalFlags flags;
 
   HCURSOR cursors[GapCursor_Count];

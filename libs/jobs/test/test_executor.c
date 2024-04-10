@@ -18,7 +18,7 @@ typedef struct {
 } TestExecutorSumData;
 
 typedef struct {
-  i64 tid;
+  ThreadId tid;
 } TestExecutorAffinityData;
 
 static void test_task_increment_counter(void* ctx) {
@@ -223,7 +223,7 @@ spec(executor) {
           jobGraph,
           string_lit("RequireAffinity"),
           test_task_require_affinity,
-          mem_struct(TestExecutorAffinityData, .tid = sentinel_i64),
+          mem_struct(TestExecutorAffinityData, .tid = sentinel_i32),
           task_flags | JobTaskFlags_ThreadAffinity);
     }
 
@@ -243,7 +243,7 @@ spec(executor) {
           jobGraph,
           string_lit("RequireAffinity"),
           test_task_require_affinity,
-          mem_struct(TestExecutorAffinityData, .tid = sentinel_i64),
+          mem_struct(TestExecutorAffinityData, .tid = sentinel_i32),
           task_flags | JobTaskFlags_ThreadAffinity);
       if (i) {
         jobs_graph_task_depend(jobGraph, (JobTaskId)(i - 1), (JobTaskId)i);

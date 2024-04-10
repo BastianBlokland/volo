@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
+#include "core_time.h"
 
 static void test_thread_has_name(void* data) {
   (void)data;
@@ -18,8 +19,8 @@ static void test_thread_exists(void* data) {
   if (!thread_exists(g_thread_main_tid)) {
     diag_crash_msg("Test 'test_thread_exists' failed");
   }
-  i64* myTidRes = data;
-  thread_atomic_store_i64(myTidRes, g_thread_tid);
+  ThreadId* myTidRes = data;
+  thread_atomic_store_i32(myTidRes, g_thread_tid);
 }
 
 static void test_atomic_store_value(void* data) { thread_atomic_store_i64((i64*)data, 1337); }
@@ -113,17 +114,17 @@ spec(thread) {
     check(thread_exists(g_thread_main_tid)); // Verify that the main thread exists.
 
     // Start a new thread which will verify that it exists and write its tid.
-    i64          tid;
+    ThreadId     tid;
     ThreadHandle exec = thread_start(test_thread_exists, &tid, name, prio);
     thread_join(exec);
 
     /**
      *  NOTE: Turns out that even after joining the thread its still reported as existing by the
-     * Linux kernel, hacky fix is to add a yield to give the kernel time to cleanup.
+     * Linux kernel, hacky fix is to add a delay.
      */
-    thread_yield();
+    thread_sleep(time_millisecond);
 
-    check(!thread_exists(thread_atomic_load_i64(&tid))); // Verify the thread doesn't exist anymore.
+    check(!thread_exists(thread_atomic_load_i32(&tid))); // Verify the thread doesn't exist anymore.
   }
 
   it("can store and load integers atomically") {

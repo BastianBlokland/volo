@@ -41,11 +41,11 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   return (thread_pal_rettype)0;
 }
 
-i64                 g_thread_pid;
-i64                 g_thread_main_tid;
-THREAD_LOCAL i64    g_thread_tid;
-THREAD_LOCAL String g_thread_name;
-u16                 g_thread_core_count;
+ThreadId              g_thread_pid;
+ThreadId              g_thread_main_tid;
+THREAD_LOCAL ThreadId g_thread_tid;
+THREAD_LOCAL String   g_thread_name;
+u16                   g_thread_core_count;
 
 void thread_init(void) {
   thread_pal_init();
@@ -122,7 +122,7 @@ void thread_yield(void) { thread_pal_yield(); }
 
 void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }
 
-bool thread_exists(const i64 tid) { return thread_pal_exists(tid); }
+bool thread_exists(const ThreadId tid) { return thread_pal_exists(tid); }
 
 ThreadMutex thread_mutex_create(Allocator* alloc) { return thread_pal_mutex_create(alloc); }
 
