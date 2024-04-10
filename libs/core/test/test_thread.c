@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
+#include "core_time.h"
 
 static void test_thread_has_name(void* data) {
   (void)data;
@@ -119,9 +120,9 @@ spec(thread) {
 
     /**
      *  NOTE: Turns out that even after joining the thread its still reported as existing by the
-     * Linux kernel, hacky fix is to add a yield to give the kernel time to cleanup.
+     * Linux kernel, hacky fix is to add a delay.
      */
-    thread_yield();
+    thread_sleep(time_millisecond);
 
     check(!thread_exists(thread_atomic_load_i32(&tid))); // Verify the thread doesn't exist anymore.
   }
