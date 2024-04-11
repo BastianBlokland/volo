@@ -108,8 +108,13 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
     if (!thread_exists(s->threadIds[i])) {
       s->threadIds[i] = tid;
       result          = s->threadBuffers[i];
+
       diag_assert(result->stackCount == 0);
-      *result = (TraceBuffer){.name = string_maybe_dup(s->alloc, g_thread_name)};
+      string_maybe_free(s->alloc, result->name);
+
+      result->name        = string_maybe_dup(s->alloc, g_thread_name);
+      result->eventCursor = 0;
+      mem_set(array_mem(result->events), 0);
       break;
     }
   }
@@ -119,8 +124,10 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
     if (UNLIKELY(s->threadCount == trace_store_max_threads)) {
       diag_crash_msg("trace: Maximum thread-count exceeded");
     }
-    result  = alloc_alloc_t(s->alloc, TraceBuffer);
-    *result = (TraceBuffer){.name = string_maybe_dup(s->alloc, g_thread_name)};
+    result              = alloc_alloc_t(s->alloc, TraceBuffer);
+    result->eventCursor = result->stackCount = 0;
+    result->name                             = string_maybe_dup(s->alloc, g_thread_name);
+    mem_set(array_mem(result->events), 0);
 
     s->threadIds[s->threadCount]     = tid;
     s->threadBuffers[s->threadCount] = result;
