@@ -5,8 +5,12 @@
 // Forward declare from 'core_time.h'.
 typedef i64 TimeSteady;
 
+// Forward declare from 'core_thread.h'.
+typedef i32 ThreadId;
+
 /**
  * Store Sink - sink that outputs events to in-memory buffers for later inspection / dumping.
+ * NOTE: Uses a ring-buffer per thread so events will get overwritten.
  */
 
 typedef struct {
@@ -19,6 +23,15 @@ typedef struct {
 } TraceStoreEvent;
 
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
+
+typedef void (*TraceStoreVisitor)(
+    TraceSink*, void* userCtx, ThreadId threadId, String threadName, const TraceStoreEvent*);
+
+/**
+ * Visit all the stored events.
+ * NOTE: Events are visited out of chronological order.
+ */
+void trace_sink_store_visit(TraceSink*, TraceStoreVisitor, void* userCtx);
 
 /**
  * Lookup the string for the given id index

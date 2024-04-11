@@ -195,6 +195,30 @@ MAYBE_UNUSED static bool trace_sink_is_store(TraceSink* sink) {
   return sink->destroy == trace_sink_store_destroy;
 }
 
+void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, void* userCtx) {
+  diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
+  TraceSinkStore* s = (TraceSinkStore*)sink;
+
+  // TODO: Figure how to handle thread-buffers being reused mid-iteration.
+  for (u32 bufferIdx = 0; bufferIdx != s->threadCount; ++bufferIdx) {
+    const ThreadId tid = s->threadIds[bufferIdx];
+    TraceBuffer*   b   = s->threadBuffers[bufferIdx];
+
+    /**
+     * Start reading as far away from the write-cursor as possible.
+     * NOTE: This means the events are visited out of chronological order.
+     */
+    const u32 eventCountHalf = trace_store_buffer_events / 2;
+    const u32 readCursor     = (b->eventCursor + eventCountHalf) & (trace_store_buffer_events - 1);
+
+    for (u32 i = 0; i != trace_store_buffer_events; ++i) {
+      const u32 eventIndex = (readCursor + i) & (trace_store_buffer_events - 1);
+      // TODO: Handle the event being changed right now.
+      visitor(sink, userCtx, tid, b->name, &b->events[eventIndex]);
+    }
+  }
+}
+
 String trace_sink_store_id(TraceSink* sink, const u8 id) {
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
   TraceSinkStore* s = (TraceSinkStore*)sink;
