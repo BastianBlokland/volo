@@ -14,6 +14,7 @@ typedef i32 ThreadId;
  */
 
 typedef struct {
+  ALIGNAS(64)           // Align to cacheline on x66.
   TimeSteady timeStart; // Nano-seconds since the start of the process steady clock.
   u32        timeDur;   // Duration in nano-seconds (limits the max event dur to 4 seconds).
   u8         id;        // Identifier index.
