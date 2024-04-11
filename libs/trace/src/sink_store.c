@@ -110,6 +110,10 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
   // Check if there's a thread that has exited, if so we can re-use its buffer.
   for (u32 i = 0; i != s->threadCount; ++i) {
     if (!thread_exists(s->threadIds[i])) {
+      /**
+       * TODO: The nested locks are not very elegant (and can stall all events while a potential
+       * slow visit is happening), at the moment we assume that starting / stopping threads is rare.
+       */
       thread_mutex_lock(s->threadBuffers[i]->resetLock);
       {
         s->threadIds[i] = tid;

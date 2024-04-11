@@ -33,6 +33,7 @@ typedef void (*TraceStoreVisitor)(
 /**
  * Visit all the stored events.
  * NOTE: Events are visited out of chronological order.
+ * NOTE: Make sure that the callback is fast as we can potentially stall events while visiting.
  */
 void trace_sink_store_visit(TraceSink*, TraceStoreVisitor, void* userCtx);
 
