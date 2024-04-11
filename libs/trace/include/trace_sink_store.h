@@ -1,6 +1,6 @@
 #pragma once
 #include "core_annotation.h"
-#include "trace_sink.h"
+#include "trace_tracer.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeSteady;

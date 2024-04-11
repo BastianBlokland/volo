@@ -5,7 +5,7 @@
 #include "core_rng.h"
 #include "core_thread.h"
 #include "jobs_graph.h"
-#include "trace_event.h"
+#include "trace_tracer.h"
 
 #include "affinity_queue_internal.h"
 #include "executor_internal.h"

@@ -2,9 +2,8 @@
 #include "core_diag.h"
 #include "core_dynlib.h"
 #include "log_logger.h"
+#include "trace_sink.h"
 #include "trace_sink_superluminal.h"
-
-#include "event_internal.h"
 
 /**
  * Trace sink implementation that uses the Superluminal PerformanceAPI.

@@ -2,7 +2,7 @@
 #include "core_thread.h"
 #include "trace_sink.h"
 
-#include "event_internal.h"
+#include "tracer_internal.h"
 
 #define trace_sinks_max 4
 #define trace_message_max 64
@@ -12,9 +12,9 @@ static TraceSink*     g_traceSinks[trace_sinks_max];
 static u32            g_traceSinkCount;
 static ThreadSpinLock g_traceSinksLock;
 
-void trace_event_init(void) { g_traceInitialized = true; }
+void trace_global_tracer_init(void) { g_traceInitialized = true; }
 
-void trace_event_teardown(void) {
+void trace_global_tracer_teardown(void) {
   // Destroy all the sinks.
   for (u32 i = 0; i != g_traceSinkCount; ++i) {
     if (g_traceSinks[i]->destroy) {
@@ -23,7 +23,7 @@ void trace_event_teardown(void) {
   }
 }
 
-void trace_event_add_sink(TraceSink* sink) {
+void trace_add_sink(TraceSink* sink) {
   diag_assert_msg(g_traceInitialized, "Trace system not initialized");
   diag_assert_msg(sink, "Invalid sink");
 
@@ -38,14 +38,14 @@ void trace_event_add_sink(TraceSink* sink) {
   thread_spinlock_unlock(&g_traceSinksLock);
 }
 
-void trace_event_begin(const String id, const TraceColor color) {
+void trace_tracer_begin(const String id, const TraceColor color) {
   // No need to take the 'g_traceSinksLock' lock as sinks can only be added, never removed.
   for (u32 i = 0; i != g_traceSinkCount; ++i) {
     g_traceSinks[i]->eventBegin(g_traceSinks[i], id, color, string_empty);
   }
 }
 
-void trace_event_begin_msg(
+void trace_tracer_begin_msg(
     const String id, const TraceColor color, const String msg, const FormatArg* args) {
   if (!g_traceSinkCount) {
     return;
@@ -60,7 +60,7 @@ void trace_event_begin_msg(
   }
 }
 
-void trace_event_end() {
+void trace_tracer_end() {
   // No need to take the 'g_traceSinksLock' lock as sinks can only be added, never removed.
   for (u32 i = 0; i != g_traceSinkCount; ++i) {
     g_traceSinks[i]->eventEnd(g_traceSinks[i]);

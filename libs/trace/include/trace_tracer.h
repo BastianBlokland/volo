@@ -21,7 +21,7 @@ typedef enum {
  * Pre-condition: id only consists of ascii characters.
  */
 #ifdef VOLO_TRACE
-#define trace_begin(_ID_, _COLOR_) trace_event_begin(string_lit(_ID_), (_COLOR_))
+#define trace_begin(_ID_, _COLOR_) trace_tracer_begin(string_lit(_ID_), (_COLOR_))
 #else
 #define trace_begin(_ID_, _COLOR_)
 #endif
@@ -36,7 +36,7 @@ typedef enum {
  */
 #ifdef VOLO_TRACE
 #define trace_begin_msg(_ID_, _COLOR_, _MSG_LIT_, ...)                                             \
-  trace_event_begin_msg(string_lit(_ID_), (_COLOR_), string_lit(_MSG_LIT_), fmt_args(__VA_ARGS__))
+  trace_tracer_begin_msg(string_lit(_ID_), (_COLOR_), string_lit(_MSG_LIT_), fmt_args(__VA_ARGS__))
 #else
 #define trace_begin_msg(_ID_, _COLOR_, _MSG_LIT_, ...)
 #endif
@@ -46,12 +46,12 @@ typedef enum {
  * NOTE: Must be matched with a 'trace_begin()' within the same function.
  */
 #ifdef VOLO_TRACE
-#define trace_end(void) trace_event_end()
+#define trace_end(void) trace_tracer_end()
 #else
 #define trace_end(void)
 #endif
 
-void trace_event_add_sink(TraceSink*);
-void trace_event_begin(String id, TraceColor);
-void trace_event_begin_msg(String id, TraceColor, String msg, const FormatArg* args);
-void trace_event_end(void);
+void trace_add_sink(TraceSink*);
+void trace_tracer_begin(String id, TraceColor);
+void trace_tracer_begin_msg(String id, TraceColor, String msg, const FormatArg* args);
+void trace_tracer_end(void);

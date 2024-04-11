@@ -5,9 +5,8 @@
 #include "core_stringtable.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "trace_sink.h"
 #include "trace_sink_store.h"
-
-#include "event_internal.h"
 
 /**
  * Trace sink implementation that stores events in in-memory buffers to be queried later.
