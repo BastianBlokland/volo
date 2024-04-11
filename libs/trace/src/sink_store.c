@@ -22,6 +22,8 @@ ASSERT(trace_store_max_ids < u8_max, "Trace id has to be representable by a u8")
 ASSERT((trace_store_buffer_events & (trace_store_buffer_events - 1u)) == 0, "Has to be a pow2");
 ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable with a u16")
 
+THREAD_LOCAL static bool g_traceStoreIsVisiting;
+
 typedef struct {
   String name;
 
@@ -162,6 +164,14 @@ static void trace_sink_store_event_begin(
   TraceSinkStore* s = (TraceSinkStore*)sink;
   TraceBuffer*    b = trace_buffer_register(s, g_thread_tid);
 
+  /**
+   * Check that the current thread is not visiting, this could cause a deadlock when trying to reuse
+   * a buffer that we are currently inspecting (holding the 'resetLock').
+   */
+  if (UNLIKELY(g_traceStoreIsVisiting)) {
+    diag_crash_msg("trace: Unable to begin a new event while visiting");
+  }
+
   // Initialize the event at the cursor.
   TraceStoreEvent* evt = &b->events[b->eventCursor];
   thread_spinlock_lock(&evt->lock);
@@ -218,6 +228,8 @@ void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, vo
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
   TraceSinkStore* s = (TraceSinkStore*)sink;
 
+  g_traceStoreIsVisiting = true;
+
   TraceStoreEvent evt;
 
   for (u32 bufferIdx = 0; bufferIdx != s->threadCount; ++bufferIdx) {
@@ -249,6 +261,8 @@ void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, vo
 
     thread_mutex_unlock(b->resetLock);
   }
+
+  g_traceStoreIsVisiting = false;
 }
 
 String trace_sink_store_id(TraceSink* sink, const u8 id) {
