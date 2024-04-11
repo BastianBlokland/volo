@@ -23,6 +23,8 @@ ASSERT((trace_store_buffer_events & (trace_store_buffer_events - 1u)) == 0, "Has
 ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable with a u16")
 
 typedef struct {
+  String name;
+
   u16 stackCount;
   u16 stack[trace_store_buffer_max_depth];
 
@@ -98,13 +100,16 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
   thread_mutex_lock(s->storeLock);
   TraceBuffer* result = null;
 
+  // NOTE: We access thread-local data from the thread so we need to be called from that thread.
+  diag_assert(tid == g_thread_tid);
+
   // Check if there's a thread that has exited, if so we can re-use its buffer.
   for (u32 i = 0; i != s->threadCount; ++i) {
     if (!thread_exists(s->threadIds[i])) {
-      s->threadIds[i]     = tid;
-      result              = s->threadBuffers[i];
-      result->eventCursor = 0;
+      s->threadIds[i] = tid;
+      result          = s->threadBuffers[i];
       diag_assert(result->stackCount == 0);
+      *result = (TraceBuffer){.name = string_maybe_dup(s->alloc, g_thread_name)};
       break;
     }
   }
@@ -114,8 +119,9 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
     if (UNLIKELY(s->threadCount == trace_store_max_threads)) {
       diag_crash_msg("trace: Maximum thread-count exceeded");
     }
-    result                           = alloc_alloc_t(s->alloc, TraceBuffer);
-    *result                          = (TraceBuffer){0};
+    result  = alloc_alloc_t(s->alloc, TraceBuffer);
+    *result = (TraceBuffer){.name = string_maybe_dup(s->alloc, g_thread_name)};
+
     s->threadIds[s->threadCount]     = tid;
     s->threadBuffers[s->threadCount] = result;
     ++s->threadCount;
@@ -178,6 +184,7 @@ static void trace_sink_store_destroy(TraceSink* sink) {
   TraceSinkStore* s = (TraceSinkStore*)sink;
   for (u32 i = 0; i != s->threadCount; ++i) {
     diag_assert(!s->threadBuffers[i]->stackCount);
+    string_maybe_free(s->alloc, s->threadBuffers[i]->name);
     alloc_free_t(s->alloc, s->threadBuffers[i]);
   }
   thread_mutex_destroy(s->storeLock);
