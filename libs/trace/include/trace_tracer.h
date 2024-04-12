@@ -6,6 +6,11 @@
  */
 typedef struct sTraceSink TraceSink;
 
+/**
+ * Tracer object.
+ */
+typedef struct sTracer Tracer;
+
 typedef enum {
   TraceColor_Default,
   TraceColor_White,
@@ -21,7 +26,7 @@ typedef enum {
  * Pre-condition: id only consists of ascii characters.
  */
 #ifdef VOLO_TRACE
-#define trace_begin(_ID_, _COLOR_) trace_tracer_begin(string_lit(_ID_), (_COLOR_))
+#define trace_begin(_ID_, _COLOR_) trace_event_begin(g_tracer, string_lit(_ID_), (_COLOR_))
 #else
 #define trace_begin(_ID_, _COLOR_)
 #endif
@@ -36,7 +41,8 @@ typedef enum {
  */
 #ifdef VOLO_TRACE
 #define trace_begin_msg(_ID_, _COLOR_, _MSG_LIT_, ...)                                             \
-  trace_tracer_begin_msg(string_lit(_ID_), (_COLOR_), string_lit(_MSG_LIT_), fmt_args(__VA_ARGS__))
+  trace_event_begin_msg(                                                                           \
+      g_tracer, string_lit(_ID_), (_COLOR_), string_lit(_MSG_LIT_), fmt_args(__VA_ARGS__))
 #else
 #define trace_begin_msg(_ID_, _COLOR_, _MSG_LIT_, ...)
 #endif
@@ -46,12 +52,33 @@ typedef enum {
  * NOTE: Must be matched with a 'trace_begin()' within the same function.
  */
 #ifdef VOLO_TRACE
-#define trace_end(void) trace_tracer_end()
+#define trace_end(void) trace_event_end(g_tracer)
 #else
 #define trace_end(void)
 #endif
 
-void trace_add_sink(TraceSink*);
-void trace_tracer_begin(String id, TraceColor);
-void trace_tracer_begin_msg(String id, TraceColor, String msg, const FormatArg* args);
-void trace_tracer_end(void);
+/**
+ * Global tracer.
+ */
+extern Tracer* g_tracer;
+
+/**
+ * Create a new tracer object.
+ * Should be destroyed using 'tracer_destroy'.
+ */
+Tracer* trace_create(Allocator*);
+
+/**
+ * Destroy a tracer object.
+ */
+void trace_destroy(Tracer*);
+
+/**
+ * Add a new sink to the specified tracer object.
+ * NOTE: Sinks are automatically destroyed when the tracer object is destroyed.
+ */
+void trace_add_sink(Tracer*, TraceSink*);
+
+void trace_event_begin(Tracer*, String id, TraceColor);
+void trace_event_begin_msg(Tracer*, String id, TraceColor, String msg, const FormatArg* args);
+void trace_event_end(Tracer*);

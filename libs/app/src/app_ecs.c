@@ -27,11 +27,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
 
 #if defined(VOLO_TRACE)
-  trace_add_sink(trace_sink_store(g_alloc_heap));
+  trace_add_sink(g_tracer, trace_sink_store(g_alloc_heap));
 #endif
 
 #if defined(VOLO_TRACE) && defined(VOLO_WIN32)
-  trace_add_sink(trace_sink_superluminal(g_alloc_heap));
+  trace_add_sink(g_tracer, trace_sink_superluminal(g_alloc_heap));
 #endif
 
   // Enable custom signal handling, used for graceful shutdown on interrupt.
