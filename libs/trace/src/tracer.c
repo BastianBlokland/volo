@@ -33,6 +33,13 @@ void trace_global_tracer_init(void) {
 
 void trace_global_tracer_teardown(void) { trace_destroy_sinks(g_tracer); }
 
+u32 trace_sink_count(const Tracer* tracer) { return tracer->sinkCount; }
+
+TraceSink* trace_sink(Tracer* tracer, const u32 index) {
+  diag_assert(index < tracer->sinkCount);
+  return tracer->sinks[index];
+}
+
 Tracer* trace_create(Allocator* alloc) {
   Tracer* res = alloc_alloc_t(alloc, Tracer);
   *res        = (Tracer){.alloc = alloc};

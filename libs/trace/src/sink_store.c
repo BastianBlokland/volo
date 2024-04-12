@@ -8,6 +8,8 @@
 #include "trace_sink.h"
 #include "trace_sink_store.h"
 
+#include "tracer_internal.h"
+
 /**
  * Trace sink implementation that stores events in in-memory buffers to be queried later.
  */
@@ -223,7 +225,7 @@ static void trace_sink_store_destroy(TraceSink* sink) {
   alloc_free_t(s->alloc, s);
 }
 
-MAYBE_UNUSED static bool trace_sink_is_store(TraceSink* sink) {
+static bool trace_sink_is_store(TraceSink* sink) {
   return sink->destroy == trace_sink_store_destroy;
 }
 
@@ -290,4 +292,15 @@ TraceSink* trace_sink_store(Allocator* alloc) {
   };
 
   return (TraceSink*)sink;
+}
+
+TraceSink* trace_sink_store_find(Tracer* tracer) {
+  const u32 sinkCount = trace_sink_count(tracer);
+  for (u32 i = 0; i != sinkCount; ++i) {
+    TraceSink* sink = trace_sink(tracer, i);
+    if (trace_sink_is_store(sink)) {
+      return sink;
+    }
+  }
+  return null;
 }

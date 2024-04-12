@@ -48,3 +48,10 @@ String trace_sink_store_id(TraceSink*, u8 id);
  * NOTE: Should be registered using 'trace_event_add_sink()'.
  */
 TraceSink* trace_sink_store(Allocator*);
+
+/**
+ * Find an existing store-sink that is registered to the given tracer.
+ * Returns null if no store-sink was found.
+ * NOTE: Pointer is valid until the tracer is destroyed.
+ */
+TraceSink* trace_sink_store_find(Tracer*);

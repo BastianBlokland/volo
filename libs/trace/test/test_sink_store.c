@@ -84,5 +84,10 @@ spec(sink_store) {
     check_eq_string(mem_create(entry->evt.msgData, entry->evt.msgLength), string_lit("message 42"));
   }
 
+  it("can find a registered store-sink") {
+    TraceSink* foundSink = trace_sink_store_find(tracer);
+    check_eq_int((uptr)foundSink, (uptr)storeSink);
+  }
+
   teardown() { trace_destroy(tracer); }
 }
