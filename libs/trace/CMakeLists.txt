@@ -16,6 +16,7 @@ target_link_libraries(lib_trace PRIVATE lib_log)
 
 add_executable(test_lib_trace
   test/config.c
+  test/test_sink_store.c
   test/test_tracer.c
   )
 target_link_libraries(test_lib_trace PRIVATE lib_app_check lib_trace)
