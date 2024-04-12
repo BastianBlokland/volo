@@ -28,7 +28,12 @@ typedef struct {
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
 
 typedef void (*TraceStoreVisitor)(
-    TraceSink*, void* userCtx, ThreadId threadId, String threadName, const TraceStoreEvent*);
+    TraceSink*,
+    void*    userCtx,
+    u32      bufferIdx,
+    ThreadId threadId,
+    String   threadName,
+    const TraceStoreEvent*);
 
 /**
  * Visit all the stored events.

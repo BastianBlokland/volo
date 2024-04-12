@@ -261,7 +261,7 @@ void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, vo
         continue; // Event is currently being recorded; skip it.
       }
 
-      visitor(sink, userCtx, tid, b->name, &evt);
+      visitor(sink, userCtx, bufferIdx, tid, b->name, &evt);
     }
 
     thread_mutex_unlock(b->resetLock);
