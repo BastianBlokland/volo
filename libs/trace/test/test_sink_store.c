@@ -62,5 +62,27 @@ spec(sink_store) {
     check_eq_string(entry->evtId, string_lit("testEvt"));
   }
 
+  it("records formatted events") {
+    trace_event_begin_msg(
+        tracer,
+        string_lit("testEvt"),
+        TraceColor_Blue,
+        string_lit("message {}"),
+        fmt_args(fmt_int(42)));
+    trace_event_end(tracer);
+
+    TestVisitorCtx ctx = {0};
+    trace_sink_store_visit(storeSink, trace_sink_store_test_visitor, &ctx);
+
+    check_eq_int(ctx.entryCount, 1);
+    TestVisitorEntry* entry = &ctx.entries[0];
+    check_eq_int(entry->threadId, g_thread_tid);
+    check_eq_string(entry->threadName, g_thread_name);
+    check(entry->evt.timeDur != 0);
+    check_eq_int(entry->evt.color, TraceColor_Blue);
+    check_eq_string(entry->evtId, string_lit("testEvt"));
+    check_eq_string(mem_create(entry->evt.msgData, entry->evt.msgLength), string_lit("message 42"));
+  }
+
   teardown() { trace_destroy(tracer); }
 }
