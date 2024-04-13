@@ -25,9 +25,9 @@ static void dump_eventtrace_init(DumpEventTraceCtx* ctx) {
   // Provide the process-name as a meta-data event.
   dynstring_append(ctx->out, string_lit("{\"name\":\"process_name\",\"ph\":\"M\",\"pid\":"));
   format_write_u64(ctx->out, ctx->pid, &format_opts_int());
-  dynstring_append(ctx->out, string_lit("\"args\":{\"name\":\""));
+  dynstring_append(ctx->out, string_lit(",\"args\":{\"name\":\""));
   dynstring_append(ctx->out, path_filename(g_path_executable));
-  dynstring_append(ctx->out, string_lit("\"}}"));
+  dynstring_append(ctx->out, string_lit("\"}},"));
 }
 
 static void dump_eventtrace_finalize(DumpEventTraceCtx* ctx) {
@@ -51,16 +51,16 @@ static void dump_eventtrace_color_write(DumpEventTraceCtx* ctx, const TraceColor
   case TraceColor_Default:
   case TraceColor_White:
     dynstring_append(ctx->out, string_lit("\"white\""));
-    break;
+    return;
   case TraceColor_Red:
     dynstring_append(ctx->out, string_lit("\"yellow\""));
-    break;
+    return;
   case TraceColor_Green:
     dynstring_append(ctx->out, string_lit("\"olive\""));
-    break;
+    return;
   case TraceColor_Blue:
     dynstring_append(ctx->out, string_lit("\"grey\""));
-    break;
+    return;
   }
   diag_crash();
 }
@@ -86,7 +86,7 @@ static void dump_eventtrace_visitor(
     format_write_u64(ctx->out, threadId, &format_opts_int());
     dynstring_append(ctx->out, string_lit(",\"args\":{\"name\":\""));
     dynstring_append(ctx->out, threadName);
-    dynstring_append(ctx->out, string_lit("\"}}"));
+    dynstring_append(ctx->out, string_lit("\"}},"));
 
     ctx->processedThreads |= u64_lit(1) << bufferIdx;
   }
