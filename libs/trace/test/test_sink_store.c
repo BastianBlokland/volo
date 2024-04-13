@@ -3,7 +3,6 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "trace.h"
-#include "trace_sink_store.h"
 
 #define test_visitor_max_entries 8
 
