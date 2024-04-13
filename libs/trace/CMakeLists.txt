@@ -5,6 +5,7 @@
 message(STATUS "> library: trace")
 
 add_library(lib_trace STATIC
+  src/dump_eventtrace.c
   src/init.c
   src/sink_store.c
   src/sink_superluminal.c
