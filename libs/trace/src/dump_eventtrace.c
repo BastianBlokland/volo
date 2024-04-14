@@ -143,3 +143,12 @@ bool trace_dump_eventtrace_to_path(TraceSink* storeSink, String path) {
 
   return res == FileResult_Success;
 }
+
+bool trace_dump_eventtrace_to_path_default(TraceSink* storeSink) {
+  const String pathScratch = path_build_scratch(
+      path_parent(g_path_executable),
+      string_lit("logs"),
+      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("eventtrace")));
+
+  return trace_dump_eventtrace_to_path(storeSink, pathScratch);
+}

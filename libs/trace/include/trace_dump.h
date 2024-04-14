@@ -19,3 +19,4 @@ typedef struct sDynArray DynString;
  */
 void trace_dump_eventtrace(TraceSink* storeSink, DynString* out);
 bool trace_dump_eventtrace_to_path(TraceSink* storeSink, String path);
+bool trace_dump_eventtrace_to_path_default(TraceSink* storeSink);
