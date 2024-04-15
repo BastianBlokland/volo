@@ -15,6 +15,10 @@ typedef struct sDynArray DynString;
  *
  * Spec: https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit
  *
+ * NOTE: The storeSink uses a ring-buffer per thread, meaning that threads with allot of activity
+ * will exhaust their ring-buffer faster then threads with little activity. The result of this is
+ * that the trail of the data might look odd as some threads will have data while others wont.
+ *
  * NOTE: 'storeSink' has to be created from the 'trace_sink_store()' api.
  */
 void trace_dump_eventtrace(TraceSink* storeSink, DynString* out);

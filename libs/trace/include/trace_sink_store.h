@@ -11,7 +11,10 @@ typedef i32 ThreadSpinLock;
 
 /**
  * Store Sink - sink that outputs events to in-memory buffers for later inspection / dumping.
- * NOTE: Uses a ring-buffer per thread so events will get overwritten.
+ *
+ * NOTE: Uses a ring-buffer per thread, meaning that threads with allot of activity will exhaust
+ * their ring-buffer faster then threads with little activity. The result of this is
+ * that the trail of the data might look odd as some threads will have data while others wont.
  */
 
 typedef struct {
