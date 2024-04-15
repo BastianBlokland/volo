@@ -244,7 +244,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
   }
 
   rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, null);
-  if (swapchain->imageCount >= swapchain_images_max) {
+  if (UNLIKELY(swapchain->imageCount > swapchain_images_max)) {
     diag_crash_msg("Vulkan surface uses more swapchain images then are supported");
   }
 
