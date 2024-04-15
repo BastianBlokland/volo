@@ -129,6 +129,7 @@ jobs:
         path: |
           build/**/logs/*.log
           build/**/logs/*.mocha
+          build/**/logs/*.eventtrace
 
     - name: report
       uses: dorny/test-reporter@v1
