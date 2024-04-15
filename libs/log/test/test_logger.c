@@ -24,7 +24,6 @@ static void log_sink_test_write(
     const LogParam* params) {
   SinkTest* testSink = (SinkTest*)sink;
 
-  (void)sink;
   (void)srcLoc;
   (void)timestamp;
   (void)params;
@@ -45,8 +44,8 @@ spec(logger) {
     startTime = time_real_clock();
     logger    = log_create(g_alloc_heap);
     sink      = (SinkTest){
-        .api      = (LogSink){.write = log_sink_test_write},
-        .messages = dynarray_create_t(g_alloc_heap, SinkTestMsg, 8),
+             .api      = (LogSink){.write = log_sink_test_write},
+             .messages = dynarray_create_t(g_alloc_heap, SinkTestMsg, 8),
     };
     log_add_sink(logger, (LogSink*)&sink);
   }

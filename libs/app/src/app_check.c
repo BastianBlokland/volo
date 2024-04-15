@@ -6,6 +6,7 @@
 #include "core_file.h"
 #include "jobs_init.h"
 #include "log.h"
+#include "trace.h"
 
 static CliId g_optOutputPassingTests, g_optHelp;
 
@@ -29,6 +30,7 @@ void app_cli_configure(CliApp* app) {
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   jobs_init();
+  trace_init();
 
   i32 exitCode = 0;
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
@@ -48,6 +50,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   check_destroy(check);
 
 Exit:
+  trace_teardown();
   jobs_teardown();
   return exitCode;
 }

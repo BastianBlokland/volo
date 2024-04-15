@@ -5,8 +5,6 @@
 #include "trace_sink.h"
 #include "trace_sink_superluminal.h"
 
-#include "event_internal.h"
-
 /**
  * Trace sink implementation that uses the Superluminal PerformanceAPI.
  * Documentation: https://www.superluminal.eu/docs/documentation.html#using_performance_api

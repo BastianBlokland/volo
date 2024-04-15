@@ -1,5 +1,5 @@
 #pragma once
-#include "trace_event.h"
+#include "trace_tracer.h"
 
 struct sTraceSink {
   /**
