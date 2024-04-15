@@ -4,6 +4,7 @@
 #include "core_path.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "log_logger.h"
 #include "trace_dump.h"
 #include "trace_sink_store.h"
 
@@ -151,7 +152,21 @@ bool trace_dump_eventtrace_to_path(TraceSink* storeSink, const String path) {
 
   dynstring_destroy(&dynString);
 
-  return res == FileResult_Success;
+  if (UNLIKELY(res != FileResult_Success)) {
+    log_e(
+        "Failed to dump eventtrace data",
+        log_param("error", fmt_text(file_result_str(res))),
+        log_param("path", fmt_path(pathCopy)),
+        log_param("size", fmt_size(dynString.size)));
+    return false;
+  }
+
+  log_i(
+      "Dumped eventtrace data",
+      log_param("path", fmt_path(pathCopy)),
+      log_param("size", fmt_size(dynString.size)));
+
+  return true;
 }
 
 bool trace_dump_eventtrace_to_path_default(TraceSink* storeSink) {
