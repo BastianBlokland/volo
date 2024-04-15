@@ -30,4 +30,4 @@ add_library(lib_debug STATIC
   )
 target_include_directories(lib_debug PUBLIC include)
 target_link_libraries(lib_debug PUBLIC lib_core lib_ecs lib_scene lib_log)
-target_link_libraries(lib_debug PRIVATE lib_gap lib_rend lib_input lib_ui lib_snd)
+target_link_libraries(lib_debug PRIVATE lib_gap lib_rend lib_input lib_ui lib_snd lib_trace)
