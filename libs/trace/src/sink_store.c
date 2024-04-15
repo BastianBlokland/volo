@@ -209,8 +209,14 @@ static void trace_sink_store_event_end(TraceSink* sink) {
   TraceStoreEvent* evt = &b->events[b->stack[--b->stackCount]];
   diag_assert_msg(!evt->timeDur, "trace: Event ended twice");
 
-  // Compute and set the event time.
-  evt->timeDur = (u32)time_steady_duration(evt->timeStart, time_steady_clock());
+  // Compute the event time.
+  const TimeDuration dur = time_steady_duration(evt->timeStart, time_steady_clock());
+
+  /**
+   * NOTE: If the platforms timer granularity is imprecise then the duration can actually be
+   * reported as 0 nano-seconds, to avoid this we make sure its always at least 1 ns.
+   */
+  evt->timeDur = math_max((u32)dur, 1);
 }
 
 static void trace_sink_store_destroy(TraceSink* sink) {
