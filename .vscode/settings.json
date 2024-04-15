@@ -14,6 +14,7 @@
     "*.c": "c",
     "*.log": "jsonl",
     "*.mocha": "json",
+    "*.eventtrace": "json",
     "*.arraytex": "json",
     "*.atlas": "json",
     "*.decal": "json",
