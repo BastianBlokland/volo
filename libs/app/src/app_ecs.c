@@ -48,7 +48,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   u64 frameNumber = 0;
   do {
-    trace_begin_msg("app_frame", TraceColor_Blue, "{}", fmt_int(frameNumber));
+    trace_begin_msg("app_frame", TraceColor_Blue, "frame-{}", fmt_int(frameNumber));
 
     ecs_run_sync(runner);
 
