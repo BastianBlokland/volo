@@ -132,12 +132,22 @@ void trace_dump_eventtrace(TraceSink* storeSink, DynString* out) {
   dump_eventtrace_finalize(&ctx);
 }
 
-bool trace_dump_eventtrace_to_path(TraceSink* storeSink, String path) {
+bool trace_dump_eventtrace_to_path(TraceSink* storeSink, const String path) {
+  if (UNLIKELY(!path.size || path.size > 1024)) {
+    diag_crash_msg("trace: dump path length invalid");
+  }
+  /**
+   * Copy the path to the stack before writing the events to avoid potential issues when the path
+   * was allocated in scratch memory and we use scratch memory during the writing.
+   */
+  const Mem pathCopy = mem_stack(path.size);
+  mem_cpy(pathCopy, path);
+
   DynString dynString = dynstring_create(g_alloc_heap, 128 * usize_kibibyte);
 
   trace_dump_eventtrace(storeSink, &dynString);
 
-  const FileResult res = file_write_to_path_sync(path, dynstring_view(&dynString));
+  const FileResult res = file_write_to_path_sync(pathCopy, dynstring_view(&dynString));
 
   dynstring_destroy(&dynString);
 
