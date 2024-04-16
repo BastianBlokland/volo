@@ -38,13 +38,13 @@ trace_options_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, TraceSi
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_next_row(canvas, &table);
 
-  if (ui_button(canvas, .label = string_lit("Dump"), .tooltip = g_tooltipTraceDump)) {
+  if (ui_button(canvas, .label = string_lit("Dump (eventtrace)"), .tooltip = g_tooltipTraceDump)) {
     trace_dump_eventtrace_to_path_default(sinkStore);
   }
 
