@@ -106,9 +106,34 @@ trace_panel_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, TraceSink
   if (sinkStore) {
     trace_options_draw(canvas, panelComp, sinkStore);
     ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-
-    // TODO: Draw content. NOTE: Do we want a container per thread??
     ui_layout_container_push(canvas, UiClip_None);
+
+    UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 100);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+    ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+    ui_table_draw_header(
+        canvas,
+        &table,
+        (const UiTableColumnName[]){
+            {string_lit("Thread"), string_lit("Name of the thread.")},
+            {string_lit("Events"), string_lit("Traced events on the thread.")},
+        });
+
+    ui_layout_container_push(canvas, UiClip_None);
+
+    array_for_t(panelComp->threads, DebugTraceData, thread) {
+      if (!thread->tid) {
+        continue; // Unused thread slot.
+      }
+      ui_table_next_row(canvas, &table);
+      ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+
+      const String threadName = mem_create(thread->nameBuffer, thread->nameLength);
+      ui_label(canvas, threadName, .selectable = true);
+    }
+
+    ui_layout_container_pop(canvas);
     ui_layout_container_pop(canvas);
   } else {
     ui_label(canvas, g_messageNoStoreSink, .align = UiAlign_MiddleCenter);
@@ -164,7 +189,7 @@ EcsEntityId
 debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugTracePanelComp* ecsPanel    = ecs_world_add_t(
-      world, panelEntity, DebugTracePanelComp, .panel = ui_panel(.size = ui_vector(800, 500)));
+      world, panelEntity, DebugTracePanelComp, .panel = ui_panel(.size = ui_vector(800, 490)));
 
   array_for_t(ecsPanel->threads, DebugTraceData, thread) {
     thread->events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 0);
