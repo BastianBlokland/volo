@@ -1,5 +1,8 @@
 #include "core_alloc.h"
+#include "core_array.h"
+#include "core_diag.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "debug_register.h"
 #include "debug_trace.h"
 #include "ecs_world.h"
@@ -14,22 +17,60 @@ static const String g_messageNoStoreSink  = string_static("No store trace-sink f
 
 // clang-format on
 
-ecs_comp_define(DebugTracePanelComp) {
-  UiPanel  panel;
-  bool     freeze;
+#define debug_trace_max_name_length 15
+#define debug_trace_max_threads 8
+
+typedef struct {
+  ThreadId tid;
+  u8       nameLength;
+  u8       nameBuffer[debug_trace_max_name_length];
   DynArray events; // TraceStoreEvent[]
+} DebugTraceData;
+
+ecs_comp_define(DebugTracePanelComp) {
+  UiPanel        panel;
+  bool           freeze;
+  DebugTraceData threads[debug_trace_max_threads];
 };
 
 static void ecs_destruct_trace_panel(void* data) {
   DebugTracePanelComp* comp = data;
-  dynarray_destroy(&comp->events);
+  array_for_t(comp->threads, DebugTraceData, thread) { dynarray_destroy(&thread->events); }
 }
 
-static void trace_event_query(DebugTracePanelComp* panelComp, TraceSink* sinkStore) {
-  if (sinkStore && !panelComp->freeze) {
-    dynarray_clear(&panelComp->events);
+static void trace_data_clear(DebugTracePanelComp* panelComp) {
+  array_for_t(panelComp->threads, DebugTraceData, thread) {
+    thread->tid        = 0;
+    thread->nameLength = 0;
+    dynarray_clear(&thread->events);
+  }
+}
 
-    (void)sinkStore;
+static void trace_data_visitor(
+    TraceSink*             sink,
+    void*                  userCtx,
+    const u32              bufferIdx,
+    const ThreadId         threadId,
+    const String           threadName,
+    const TraceStoreEvent* evt) {
+  (void)sink;
+  DebugTracePanelComp* panelComp = userCtx;
+  if (UNLIKELY(bufferIdx >= debug_trace_max_threads)) {
+    diag_crash_msg("debug: Trace threads exceeds maximum");
+  }
+  DebugTraceData* threadData = &panelComp->threads[bufferIdx];
+  if (!threadData->tid) {
+    threadData->tid        = threadId;
+    threadData->nameLength = (u8)math_min(threadName.size, debug_trace_max_name_length);
+    mem_cpy(array_mem(threadData->nameBuffer), mem_slice(threadName, 0, threadData->nameLength));
+  }
+  *dynarray_push_t(&threadData->events, TraceStoreEvent) = *evt;
+}
+
+static void trace_data_query(DebugTracePanelComp* panelComp, TraceSink* sinkStore) {
+  if (sinkStore && !panelComp->freeze) {
+    trace_data_clear(panelComp);
+    trace_sink_store_visit(sinkStore, trace_data_visitor, panelComp);
   }
 }
 
@@ -99,7 +140,7 @@ ecs_system_define(DebugTraceUpdatePanelSys) {
       continue;
     }
 
-    trace_event_query(panelComp, sinkStore);
+    trace_data_query(panelComp, sinkStore);
     trace_panel_draw(canvas, panelComp, sinkStore);
 
     if (ui_panel_closed(&panelComp->panel)) {
@@ -123,11 +164,11 @@ EcsEntityId
 debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugTracePanelComp* ecsPanel    = ecs_world_add_t(
-      world,
-      panelEntity,
-      DebugTracePanelComp,
-      .panel  = ui_panel(.size = ui_vector(800, 500)),
-      .events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 1024 * 4));
+      world, panelEntity, DebugTracePanelComp, .panel = ui_panel(.size = ui_vector(800, 500)));
+
+  array_for_t(ecsPanel->threads, DebugTraceData, thread) {
+    thread->events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 0);
+  }
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&ecsPanel->panel);
