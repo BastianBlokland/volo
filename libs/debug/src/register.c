@@ -22,4 +22,5 @@ void debug_register(EcsDef* def) {
   ecs_register_module(def, debug_stats_module);
   ecs_register_module(def, debug_text_module);
   ecs_register_module(def, debug_time_module);
+  ecs_register_module(def, debug_trace_module);
 }
