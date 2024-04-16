@@ -5,14 +5,12 @@
 #include "debug_register.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
-#include "trace.h"
 #include "ui.h"
 
 // clang-format off
 
 static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
-static const String g_tooltipTraceDump = string_static("Dump performance trace data to disk (in the 'logs' directory).");
 
 // clang-format on
 
@@ -626,7 +624,6 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -641,14 +638,6 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
-
-  TraceSink* traceSink = trace_sink_store_find(g_tracer);
-  if (traceSink) {
-    ui_table_next_column(canvas, &table);
-    if (ui_button(canvas, .label = string_lit("Dump"), .tooltip = g_tooltipTraceDump)) {
-      trace_dump_eventtrace_to_path_default(traceSink);
-    }
-  }
 
   ui_layout_pop(canvas);
 }
