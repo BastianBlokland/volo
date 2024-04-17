@@ -47,7 +47,7 @@ static void trace_data_clear(DebugTracePanelComp* panelComp) {
 }
 
 static void trace_data_visitor(
-    TraceSink*             sink,
+    const TraceSink*       sink,
     void*                  userCtx,
     const u32              bufferIdx,
     const ThreadId         threadId,
@@ -74,8 +74,8 @@ static void trace_data_query(DebugTracePanelComp* panelComp, TraceSink* sinkStor
   }
 }
 
-static void
-trace_options_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, TraceSink* sinkStore) {
+static void trace_options_draw(
+    UiCanvasComp* canvas, DebugTracePanelComp* panelComp, const TraceSink* sinkStore) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -97,8 +97,22 @@ trace_options_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, TraceSi
   ui_layout_pop(canvas);
 }
 
+static void trace_data_events_draw(
+    UiCanvasComp*         canvas,
+    DebugTracePanelComp*  panelComp,
+    const DebugTraceData* data,
+    const TraceSink*      sinkStore) {
+  ui_layout_container_push(canvas, UiClip_None);
+
+  (void)panelComp;
+  (void)data;
+  (void)sinkStore;
+
+  ui_layout_container_pop(canvas);
+}
+
 static void
-trace_panel_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, TraceSink* sinkStore) {
+trace_panel_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, const TraceSink* sinkStore) {
   const String title = fmt_write_scratch("{} Trace Panel", fmt_ui_shape(QueryStats));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -122,15 +136,16 @@ trace_panel_draw(UiCanvasComp* canvas, DebugTracePanelComp* panelComp, TraceSink
 
     ui_layout_container_push(canvas, UiClip_None);
 
-    array_for_t(panelComp->threads, DebugTraceData, thread) {
-      if (!thread->tid) {
+    array_for_t(panelComp->threads, DebugTraceData, data) {
+      if (!data->tid) {
         continue; // Unused thread slot.
       }
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
-      const String threadName = mem_create(thread->nameBuffer, thread->nameLength);
-      ui_label(canvas, threadName, .selectable = true);
+      ui_label(canvas, mem_create(data->nameBuffer, data->nameLength), .selectable = true);
+      ui_table_next_column(canvas, &table);
+      trace_data_events_draw(canvas, panelComp, data, sinkStore);
     }
 
     ui_layout_container_pop(canvas);
@@ -189,7 +204,7 @@ EcsEntityId
 debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugTracePanelComp* ecsPanel    = ecs_world_add_t(
-      world, panelEntity, DebugTracePanelComp, .panel = ui_panel(.size = ui_vector(800, 490)));
+      world, panelEntity, DebugTracePanelComp, .panel = ui_panel(.size = ui_vector(800, 500)));
 
   array_for_t(ecsPanel->threads, DebugTraceData, thread) {
     thread->events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 0);
