@@ -231,13 +231,13 @@ static void trace_sink_store_destroy(TraceSink* sink) {
   alloc_free_t(s->alloc, s);
 }
 
-static bool trace_sink_is_store(TraceSink* sink) {
+static bool trace_sink_is_store(const TraceSink* sink) {
   return sink->destroy == trace_sink_store_destroy;
 }
 
-void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, void* userCtx) {
+void trace_sink_store_visit(const TraceSink* sink, const TraceStoreVisitor visitor, void* userCtx) {
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
-  TraceSinkStore* s = (TraceSinkStore*)sink;
+  const TraceSinkStore* s = (const TraceSinkStore*)sink;
 
   g_traceStoreIsVisiting = true;
 
@@ -276,9 +276,9 @@ void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, vo
   g_traceStoreIsVisiting = false;
 }
 
-String trace_sink_store_id(TraceSink* sink, const u8 id) {
+String trace_sink_store_id(const TraceSink* sink, const u8 id) {
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
-  TraceSinkStore* s = (TraceSinkStore*)sink;
+  const TraceSinkStore* s = (const TraceSinkStore*)sink;
   diag_assert(id < s->idCount);
   return stringtable_lookup(g_stringtable, s->idHashes[id]);
 }

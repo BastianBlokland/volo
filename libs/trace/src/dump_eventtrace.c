@@ -67,7 +67,7 @@ static void dump_eventtrace_color_write(DumpEventTraceCtx* ctx, const TraceColor
 }
 
 static void dump_eventtrace_visitor(
-    TraceSink*             sink,
+    const TraceSink*       sink,
     void*                  userCtx,
     const u32              bufferIdx,
     const ThreadId         threadId,
@@ -122,7 +122,7 @@ static void dump_eventtrace_visitor(
   dynstring_append(ctx->out, string_lit("},"));
 }
 
-void trace_dump_eventtrace(TraceSink* storeSink, DynString* out) {
+void trace_dump_eventtrace(const TraceSink* storeSink, DynString* out) {
   DumpEventTraceCtx ctx = {
       .out = out,
       .pid = g_thread_pid,
@@ -133,7 +133,7 @@ void trace_dump_eventtrace(TraceSink* storeSink, DynString* out) {
   dump_eventtrace_finalize(&ctx);
 }
 
-bool trace_dump_eventtrace_to_path(TraceSink* storeSink, const String path) {
+bool trace_dump_eventtrace_to_path(const TraceSink* storeSink, const String path) {
   if (UNLIKELY(!path.size || path.size > 1024)) {
     diag_crash_msg("trace: dump path length invalid");
   }
@@ -169,7 +169,7 @@ bool trace_dump_eventtrace_to_path(TraceSink* storeSink, const String path) {
   return true;
 }
 
-bool trace_dump_eventtrace_to_path_default(TraceSink* storeSink) {
+bool trace_dump_eventtrace_to_path_default(const TraceSink* storeSink) {
   const String pathScratch = path_build_scratch(
       path_parent(g_path_executable),
       string_lit("logs"),

@@ -19,7 +19,7 @@ typedef struct {
 } TestVisitorCtx;
 
 static void trace_sink_store_test_visitor(
-    TraceSink*             sink,
+    const TraceSink*       sink,
     void*                  userCtx,
     const u32              bufferIdx,
     const ThreadId         threadId,

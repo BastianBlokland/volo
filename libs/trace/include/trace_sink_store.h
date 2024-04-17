@@ -31,7 +31,7 @@ typedef struct {
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
 
 typedef void (*TraceStoreVisitor)(
-    TraceSink*,
+    const TraceSink*,
     void*    userCtx,
     u32      bufferIdx,
     ThreadId threadId,
@@ -43,13 +43,13 @@ typedef void (*TraceStoreVisitor)(
  * NOTE: Events are visited out of chronological order.
  * NOTE: Make sure that the callback is fast as we can potentially stall events while visiting.
  */
-void trace_sink_store_visit(TraceSink*, TraceStoreVisitor, void* userCtx);
+void trace_sink_store_visit(const TraceSink*, TraceStoreVisitor, void* userCtx);
 
 /**
  * Lookup the string for the given id index
  * Pre-condition: sink to be created by 'trace_sink_store'.
  */
-String trace_sink_store_id(TraceSink*, u8 id);
+String trace_sink_store_id(const TraceSink*, u8 id);
 
 /**
  * Create a in-memory store trace output sink.
