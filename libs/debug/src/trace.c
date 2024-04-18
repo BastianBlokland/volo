@@ -31,7 +31,7 @@ ecs_comp_define(DebugTracePanelComp) {
   UiPanel        panel;
   bool           freeze;
   TimeSteady     timeHead;
-  TimeDuration   timeDuration;
+  TimeDuration   timeWindow;
   DebugTraceData threads[debug_trace_max_threads];
 };
 
@@ -55,8 +55,8 @@ static UiColor trace_event_color(const TraceColor col) {
   diag_crash_msg("Unsupported trace color");
 }
 
-static void trace_data_clear(DebugTracePanelComp* panelComp) {
-  array_for_t(panelComp->threads, DebugTraceData, thread) {
+static void trace_data_clear(DebugTracePanelComp* panel) {
+  array_for_t(panel->threads, DebugTraceData, thread) {
     thread->tid        = 0;
     thread->nameLength = 0;
     dynarray_clear(&thread->events);
@@ -71,11 +71,11 @@ static void trace_data_visitor(
     const String           threadName,
     const TraceStoreEvent* evt) {
   (void)sink;
-  DebugTracePanelComp* panelComp = userCtx;
+  DebugTracePanelComp* panel = userCtx;
   if (UNLIKELY(bufferIdx >= debug_trace_max_threads)) {
     diag_crash_msg("debug: Trace threads exceeds maximum");
   }
-  DebugTraceData* threadData = &panelComp->threads[bufferIdx];
+  DebugTraceData* threadData = &panel->threads[bufferIdx];
   if (!threadData->tid) {
     threadData->tid        = threadId;
     threadData->nameLength = (u8)math_min(threadName.size, debug_trace_max_name_length);
@@ -85,11 +85,12 @@ static void trace_data_visitor(
 }
 
 static void
-trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSink* sinkStore) {
+trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
@@ -100,23 +101,28 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceS
   }
 
   ui_table_next_column(c, &table);
+  const String timeLabel = fmt_write_scratch(
+      "Window: {}", fmt_duration(panel->timeWindow, .minDecDigits = 1, .maxDecDigits = 1));
+  ui_label(c, timeLabel);
+
+  ui_table_next_column(c, &table);
   ui_label(c, string_lit("Freeze:"));
   ui_table_next_column(c, &table);
-  ui_toggle(c, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+  ui_toggle(c, &panel->freeze, .tooltip = g_tooltipFreeze);
 
   ui_layout_pop(c);
 }
 
 static void trace_data_events_draw(
     UiCanvasComp*         c,
-    DebugTracePanelComp*  panelComp,
+    DebugTracePanelComp*  panel,
     const DebugTraceData* data,
     const TraceSink*      sinkStore) {
   (void)sinkStore;
 
   // NOTE: Timestamps are in nanoseconds.
-  const f64 timeLeft  = (f64)(panelComp->timeHead - panelComp->timeDuration);
-  const f64 timeRight = (f64)panelComp->timeHead;
+  const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
+  const f64 timeRight = (f64)panel->timeHead;
 
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_Rect);
@@ -146,12 +152,12 @@ static void trace_data_events_draw(
 }
 
 static void
-trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSink* sinkStore) {
+trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
   const String title = fmt_write_scratch("{} Trace Panel", fmt_ui_shape(QueryStats));
-  ui_panel_begin(c, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+  ui_panel_begin(c, &panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   if (sinkStore) {
-    trace_options_draw(c, panelComp, sinkStore);
+    trace_options_draw(c, panel, sinkStore);
     ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
     ui_layout_container_push(c, UiClip_None);
 
@@ -170,7 +176,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSin
 
     ui_layout_container_push(c, UiClip_None);
 
-    array_for_t(panelComp->threads, DebugTraceData, data) {
+    array_for_t(panel->threads, DebugTraceData, data) {
       if (!data->tid) {
         continue; // Unused thread slot.
       }
@@ -184,7 +190,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSin
       // NOTE: Counter the table padding so that events fill the whole cell horizontally.
       ui_layout_grow(
           c, UiAlign_MiddleCenter, ui_vector(g_tablePadding.x * 2, 0), UiBase_Absolute, Ui_X);
-      trace_data_events_draw(c, panelComp, data, sinkStore);
+      trace_data_events_draw(c, panel, data, sinkStore);
 
       ui_canvas_id_block_next(c); // End on an consistent id.
     }
@@ -195,7 +201,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSin
     ui_label(c, g_messageNoStoreSink, .align = UiAlign_MiddleCenter);
   }
 
-  ui_panel_end(c, &panelComp->panel);
+  ui_panel_end(c, &panel->panel);
 }
 
 ecs_view_define(PanelQueryView) {
@@ -211,17 +217,17 @@ ecs_system_define(DebugTracePanelQuerySys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelQueryView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugTracePanelComp* panelComp = ecs_view_write_t(itr, DebugTracePanelComp);
+    DebugTracePanelComp* panel = ecs_view_write_t(itr, DebugTracePanelComp);
 
-    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    const bool pinned = ui_panel_pinned(&panel->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
 
-    if (!panelComp->freeze) {
-      trace_data_clear(panelComp);
-      panelComp->timeHead = time_steady_clock();
-      trace_sink_store_visit(sinkStore, trace_data_visitor, panelComp);
+    if (!panel->freeze) {
+      trace_data_clear(panel);
+      panel->timeHead = time_steady_clock();
+      trace_sink_store_visit(sinkStore, trace_data_visitor, panel);
     }
   }
 }
@@ -237,19 +243,19 @@ ecs_system_define(DebugTracePanelDrawSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelDrawView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity    = ecs_view_entity(itr);
-    DebugTracePanelComp* panelComp = ecs_view_write_t(itr, DebugTracePanelComp);
-    UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId    entity = ecs_view_entity(itr);
+    DebugTracePanelComp* panel  = ecs_view_write_t(itr, DebugTracePanelComp);
+    UiCanvasComp*        canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    const bool pinned = ui_panel_pinned(&panel->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
 
-    trace_panel_draw(canvas, panelComp, sinkStore);
+    trace_panel_draw(canvas, panel, sinkStore);
 
-    if (ui_panel_closed(&panelComp->panel)) {
+    if (ui_panel_closed(&panel->panel)) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
@@ -277,9 +283,9 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       world,
       panelEntity,
       DebugTracePanelComp,
-      .panel        = ui_panel(.size = ui_vector(800, 500)),
-      .timeHead     = time_steady_clock(),
-      .timeDuration = time_milliseconds(50));
+      .panel      = ui_panel(.size = ui_vector(800, 500)),
+      .timeHead   = time_steady_clock(),
+      .timeWindow = time_milliseconds(50));
 
   array_for_t(tracePanel->threads, DebugTraceData, thread) {
     thread->events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 0);
