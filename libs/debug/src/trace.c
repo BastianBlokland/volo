@@ -90,7 +90,7 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
@@ -120,14 +120,23 @@ static void trace_data_events_draw(
     const TraceSink*      sinkStore) {
   (void)sinkStore;
 
-  // NOTE: Timestamps are in nanoseconds.
-  const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
-  const f64 timeRight = (f64)panel->timeHead;
-
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_Rect);
   ui_style_push(c);
   ui_style_outline(c, 1);
+
+  ui_canvas_id_block_next(c); // Start events on their own id-block.
+  ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable); // Invisible elem as scroll tgt.
+
+  if (ui_canvas_group_block_status(c) == UiStatus_Hovered) {
+    const f32 scrollSpeed = 2.5f;
+    panel->timeWindow -= (TimeDuration)time_milliseconds(ui_canvas_input_scroll(c).y * scrollSpeed);
+    panel->timeWindow = math_clamp_i64(panel->timeWindow, time_millisecond, time_milliseconds(250));
+  }
+
+  // NOTE: Timestamps are in nanoseconds.
+  const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
+  const f64 timeRight = (f64)panel->timeHead;
 
   dynarray_for_t(&data->events, TraceStoreEvent, evt) {
     const f64 fracLeft  = math_unlerp(timeLeft, timeRight, (f64)evt->timeStart);
@@ -191,9 +200,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
       ui_layout_grow(
           c, UiAlign_MiddleCenter, ui_vector(g_tablePadding.x * 2, 0), UiBase_Absolute, Ui_X);
       trace_data_events_draw(c, panel, data, sinkStore);
-
-      ui_canvas_id_block_next(c); // End on an consistent id.
     }
+    ui_canvas_id_block_next(c); // End on an consistent id.
 
     ui_layout_container_pop(c);
     ui_layout_container_pop(c);
@@ -285,7 +293,7 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       DebugTracePanelComp,
       .panel      = ui_panel(.size = ui_vector(800, 500)),
       .timeHead   = time_steady_clock(),
-      .timeWindow = time_milliseconds(50));
+      .timeWindow = time_milliseconds(100));
 
   array_for_t(tracePanel->threads, DebugTraceData, thread) {
     thread->events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 0);
