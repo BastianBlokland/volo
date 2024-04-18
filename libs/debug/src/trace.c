@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "debug_register.h"
@@ -126,7 +127,11 @@ static void trace_data_events_draw(
   ui_style_outline(c, 1);
 
   ui_canvas_id_block_next(c); // Start events on their own id-block.
-  ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable); // Invisible elem as scroll tgt.
+
+  // Draw an invisible elem as background scroll / pan target.
+  const UiFlags bgFlags = UiFlags_Interactable | UiFlags_TrackRect;
+  const UiId    bgId    = ui_canvas_draw_glyph(c, UiShape_Empty, 0, bgFlags);
+  const UiRect  bgRect  = ui_canvas_elem_rect(c, bgId);
 
   // Scroll and pan input.
   const UiStatus blockStatus = ui_canvas_group_block_status(c);
@@ -139,9 +144,9 @@ static void trace_data_events_draw(
     if (blockStatus >= UiStatus_Hovered) {
       ui_canvas_interact_type(c, UiInteractType_Move);
     }
-    if (blockStatus >= UiStatus_Pressed) {
-      const f32 panSpeed = 1.0f;
-      panel->timeHead -= (TimeDuration)time_milliseconds(ui_canvas_input_delta(c).x * panSpeed);
+    if (blockStatus >= UiStatus_Pressed && bgRect.width > f32_epsilon) {
+      const f64 inputFrac = ui_canvas_input_delta(c).x / bgRect.width;
+      panel->timeHead -= (TimeDuration)((f64)panel->timeWindow * inputFrac);
     }
   }
 
