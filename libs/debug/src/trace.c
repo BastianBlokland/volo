@@ -46,11 +46,11 @@ static UiColor trace_event_color(const TraceColor col) {
   case TraceColor_White:
     return ui_color(255, 255, 255, 178);
   case TraceColor_Red:
-    return ui_color(255, 0, 0, 178);
+    return ui_color(255, 16, 16, 178);
   case TraceColor_Green:
-    return ui_color(0, 128, 0, 178);
+    return ui_color(16, 128, 16, 178);
   case TraceColor_Blue:
-    return ui_color(0, 0, 255, 178);
+    return ui_color(16, 16, 255, 178);
   }
   diag_crash_msg("Unsupported trace color");
 }
