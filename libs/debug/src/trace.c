@@ -185,6 +185,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSin
       ui_layout_grow(
           c, UiAlign_MiddleCenter, ui_vector(g_tablePadding.x * 2, 0), UiBase_Absolute, Ui_X);
       trace_data_events_draw(c, panelComp, data, sinkStore);
+
+      ui_canvas_id_block_next(c); // End on an consistent id.
     }
 
     ui_layout_container_pop(c);
