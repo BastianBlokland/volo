@@ -140,8 +140,8 @@ static void trace_data_events_draw(
       continue; // Event outside of the visible region.
     }
 
-    const UiVector size = {.width = (f32)(fracRight - fracLeft), .height = 0.15f};
-    const UiVector pos  = {.x = (f32)fracLeft, .y = 1.0f - size.height};
+    const UiVector size = {.width = (f32)(fracRight - fracLeft), .height = 0.2f};
+    const UiVector pos  = {.x = (f32)fracLeft, .y = 1.0f - size.height * (evt->stackDepth + 1)};
 
     ui_style_color(c, trace_event_color(evt->color));
 
