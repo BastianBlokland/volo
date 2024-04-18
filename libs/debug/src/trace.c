@@ -155,7 +155,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSin
     ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
     ui_layout_container_push(c, UiClip_None);
 
-    UiTable table = ui_table(.spacing = ui_vector(0, 0), .rowHeight = 100);
+    static const UiVector g_tablePadding = {10, 5};
+    UiTable               table          = ui_table(.spacing = g_tablePadding, .rowHeight = 100);
     ui_table_add_column(&table, UiTableColumn_Fixed, 125);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -177,9 +178,12 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panelComp, const TraceSin
       ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
       const String threadName = mem_create(data->nameBuffer, data->nameLength);
-      ui_label(c, threadName, .align = UiAlign_MiddleCenter);
+      ui_label(c, threadName, .selectable = true);
 
       ui_table_next_column(c, &table);
+      // NOTE: Counter the table padding so that events fill the whole cell horizontally.
+      ui_layout_grow(
+          c, UiAlign_MiddleCenter, ui_vector(g_tablePadding.x * 2, 0), UiBase_Absolute, Ui_X);
       trace_data_events_draw(c, panelComp, data, sinkStore);
     }
 
