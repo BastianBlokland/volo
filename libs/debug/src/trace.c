@@ -128,10 +128,21 @@ static void trace_data_events_draw(
   ui_canvas_id_block_next(c); // Start events on their own id-block.
   ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable); // Invisible elem as scroll tgt.
 
-  if (ui_canvas_group_block_status(c) == UiStatus_Hovered) {
+  // Scroll and pan input.
+  const UiStatus blockStatus = ui_canvas_group_block_status(c);
+  if (blockStatus == UiStatus_Hovered) {
     const f32 scrollSpeed = 2.5f;
     panel->timeWindow -= (TimeDuration)time_milliseconds(ui_canvas_input_scroll(c).y * scrollSpeed);
     panel->timeWindow = math_clamp_i64(panel->timeWindow, time_millisecond, time_milliseconds(250));
+  }
+  if (panel->freeze) {
+    if (blockStatus >= UiStatus_Hovered) {
+      ui_canvas_interact_type(c, UiInteractType_Move);
+    }
+    if (blockStatus >= UiStatus_Pressed) {
+      const f32 panSpeed = 1.0f;
+      panel->timeHead -= (TimeDuration)time_milliseconds(ui_canvas_input_delta(c).x * panSpeed);
+    }
   }
 
   // NOTE: Timestamps are in nanoseconds.
