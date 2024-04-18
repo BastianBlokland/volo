@@ -181,11 +181,12 @@ static void trace_sink_store_event_begin(
   TraceStoreEvent* evt = &b->events[b->eventCursor];
   thread_spinlock_lock(&evt->lock);
   {
-    evt->timeDur   = 0;
-    evt->timeStart = time_steady_clock();
-    evt->id        = trace_id_register(s, id);
-    evt->color     = (u8)color;
-    evt->msgLength = (u8)math_min(msg.size, array_elems(evt->msgData));
+    evt->timeDur    = 0;
+    evt->timeStart  = time_steady_clock();
+    evt->id         = trace_id_register(s, id);
+    evt->stackDepth = b->stackCount;
+    evt->color      = (u8)color;
+    evt->msgLength  = (u8)math_min(msg.size, array_elems(evt->msgData));
     mem_cpy(array_mem(evt->msgData), mem_create(msg.ptr, evt->msgLength));
   }
   thread_spinlock_unlock(&evt->lock);

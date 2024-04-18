@@ -20,12 +20,13 @@ typedef i32 ThreadSpinLock;
 typedef struct {
   ALIGNAS(64) // Align to cacheline on x66.
   ThreadSpinLock lock;
-  u32            timeDur;   // Duration in nano-seconds (limits the max event dur to 4 seconds).
-  TimeSteady     timeStart; // Nano-seconds since the start of the process steady clock.
-  u8             id;        // Identifier index.
-  u8             color;     // TraceColor
+  u32            timeDur;    // Duration in nano-seconds (limits the max event dur to 4 seconds).
+  TimeSteady     timeStart;  // Nano-seconds since the start of the process steady clock.
+  u8             id;         // Identifier index.
+  u8             stackDepth; // Depth of the trace stack (amount of parent events).
+  u8             color;      // TraceColor
   u8             msgLength;
-  u8             msgData[45];
+  u8             msgData[44];
 } TraceStoreEvent;
 
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
