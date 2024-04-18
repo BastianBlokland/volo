@@ -114,6 +114,26 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
   ui_layout_pop(c);
 }
 
+static void trace_data_input_zoom(UiCanvasComp* c, DebugTracePanelComp* panel) {
+  const f64 zoomSpeed = 0.1;
+  const f64 zoomFrac  = 1.0 - ui_canvas_input_scroll(c).y * zoomSpeed;
+
+  const TimeDuration min = time_millisecond;
+  const TimeDuration max = time_milliseconds(250);
+  const TimeDuration new = math_clamp_i64((i64)((f64)panel->timeWindow * zoomFrac), min, max);
+
+  const TimeDuration diff = new - panel->timeWindow;
+  if (panel->freeze) {
+    panel->timeHead += diff / 2; // Zoom from the center when frozen.
+  }
+  panel->timeWindow = new;
+}
+
+static void trace_data_input_pan(UiCanvasComp* c, DebugTracePanelComp* panel, const UiRect bgRect) {
+  const f64 inputFrac = ui_canvas_input_delta(c).x / bgRect.width;
+  panel->timeHead -= (TimeDuration)((f64)panel->timeWindow * inputFrac);
+}
+
 static void trace_data_events_draw(
     UiCanvasComp*         c,
     DebugTracePanelComp*  panel,
@@ -128,25 +148,22 @@ static void trace_data_events_draw(
 
   ui_canvas_id_block_next(c); // Start events on their own id-block.
 
-  // Draw an invisible elem as background scroll / pan target.
+  // Draw an invisible elem as background zoom / pan target.
   const UiFlags bgFlags = UiFlags_Interactable | UiFlags_TrackRect;
   const UiId    bgId    = ui_canvas_draw_glyph(c, UiShape_Empty, 0, bgFlags);
   const UiRect  bgRect  = ui_canvas_elem_rect(c, bgId);
 
-  // Scroll and pan input.
+  // Zoom and pan input.
   const UiStatus blockStatus = ui_canvas_group_block_status(c);
   if (blockStatus == UiStatus_Hovered) {
-    const f32 scrollSpeed = 2.5f;
-    panel->timeWindow -= (TimeDuration)time_milliseconds(ui_canvas_input_scroll(c).y * scrollSpeed);
-    panel->timeWindow = math_clamp_i64(panel->timeWindow, time_millisecond, time_milliseconds(250));
+    trace_data_input_zoom(c, panel);
   }
   if (panel->freeze) {
     if (blockStatus >= UiStatus_Hovered) {
       ui_canvas_interact_type(c, UiInteractType_Move);
     }
     if (blockStatus >= UiStatus_Pressed && bgRect.width > f32_epsilon) {
-      const f64 inputFrac = ui_canvas_input_delta(c).x / bgRect.width;
-      panel->timeHead -= (TimeDuration)((f64)panel->timeWindow * inputFrac);
+      trace_data_input_pan(c, panel, bgRect);
     }
   }
 
