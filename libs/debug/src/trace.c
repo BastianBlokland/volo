@@ -148,7 +148,6 @@ static void trace_data_events_draw(
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_Rect);
   ui_style_push(c);
-  ui_style_outline(c, 1);
 
   ui_canvas_id_block_next(c); // Start events on their own id-block.
 
@@ -181,10 +180,14 @@ static void trace_data_events_draw(
 
     const UiVector size = {.width = (f32)(fracRight - fracLeft), .height = 0.2f};
     const UiVector pos  = {.x = (f32)fracLeft, .y = 1.0f - size.height * (evt->stackDepth + 1)};
-
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
-    ui_style_color(c, trace_event_color(evt->color));
-    ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+
+    const UiStatus evtStatus = ui_canvas_elem_status(c, ui_canvas_id_peek(c));
+    const bool     hovered   = evtStatus >= UiStatus_Hovered;
+
+    ui_style_outline(c, hovered ? 3 : 1);
+    ui_style_color_with_mult(c, trace_event_color(evt->color), hovered ? 2.0f : 1.0f);
+    ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_Interactable);
   }
 
   ui_style_pop(c);
