@@ -162,13 +162,8 @@ static void trace_data_events_draw(
   if (blockStatus == UiStatus_Hovered) {
     trace_data_input_zoom(c, panel, bgRect);
   }
-  if (panel->freeze) {
-    if (blockStatus >= UiStatus_Hovered) {
-      ui_canvas_interact_type(c, UiInteractType_Move);
-    }
-    if (blockStatus >= UiStatus_Pressed) {
-      trace_data_input_pan(c, panel, bgRect);
-    }
+  if (panel->freeze && blockStatus >= UiStatus_Pressed) {
+    trace_data_input_pan(c, panel, bgRect);
   }
 
   // NOTE: Timestamps are in nanoseconds.
