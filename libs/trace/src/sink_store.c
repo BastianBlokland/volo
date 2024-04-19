@@ -14,7 +14,7 @@
  * Trace sink implementation that stores events in in-memory buffers to be queried later.
  */
 
-#define trace_store_max_ids 16
+#define trace_store_max_ids 32
 #define trace_store_max_threads 8
 #define trace_store_buffer_events 1024
 #define trace_store_buffer_max_depth 8
