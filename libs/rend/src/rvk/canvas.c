@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "attach_internal.h"
 #include "canvas_internal.h"
@@ -244,6 +245,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 }
 
 void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
+  trace_begin("rend_wait_present", TraceColor_White);
+
   const u32 numBehind = 1;
   rvk_swapchain_wait_for_present(canvas->swapchain, numBehind);
+
+  trace_end();
 }

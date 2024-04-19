@@ -42,9 +42,7 @@ ecs_system_define(RendFrameLimiterSys) {
   }
 
   // Wait for the previous frame's image to be presented to the user.
-  trace_begin("limiter_present", TraceColor_White);
   rend_wait_for_present(world);
-  trace_end();
 
   if (!settingsGlobal->limiterFreq) {
     limiter->sleepDur = 0;
