@@ -9,7 +9,14 @@
 #include "log.h"
 #include "trace.h"
 
-void app_cli_configure(CliApp* app) { app_ecs_configure(app); }
+static CliId g_optTraceSl;
+
+void app_cli_configure(CliApp* app) {
+  app_ecs_configure(app);
+
+  g_optTraceSl = cli_register_flag(app, '\0', string_lit("trace-sl"), CliOptionFlags_None);
+  cli_register_desc(app, g_optTraceSl, string_lit("Enable the SuperLuminal trace sink."));
+}
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   jobs_init();
@@ -28,10 +35,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
 #if defined(VOLO_TRACE)
   trace_add_sink(g_tracer, trace_sink_store(g_alloc_heap));
-#endif
-
-#if defined(VOLO_TRACE) && defined(VOLO_WIN32)
-  trace_add_sink(g_tracer, trace_sink_superluminal(g_alloc_heap));
+  if (cli_parse_provided(invoc, g_optTraceSl)) {
+    trace_add_sink(g_tracer, trace_sink_superluminal(g_alloc_heap));
+  }
 #endif
 
   // Enable custom signal handling, used for graceful shutdown on interrupt.
