@@ -2,6 +2,7 @@
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "rend_settings.h"
+#include "trace_tracer.h"
 
 #include "limiter_internal.h"
 #include "painter_internal.h"
@@ -41,7 +42,9 @@ ecs_system_define(RendFrameLimiterSys) {
   }
 
   // Wait for the previous frame's image to be presented to the user.
+  trace_begin("limiter_present", TraceColor_White);
   rend_wait_for_present(world);
+  trace_end();
 
   if (!settingsGlobal->limiterFreq) {
     limiter->sleepDur = 0;
@@ -54,7 +57,10 @@ ecs_system_define(RendFrameLimiterSys) {
   limiter->sleepDur = targetDuration - elapsed;
   if (limiter->sleepDur > limiter->sleepOverhead) {
     limiter->sleepDur -= limiter->sleepOverhead;
+
+    trace_begin("limiter_sleep", TraceColor_White);
     thread_sleep(limiter->sleepDur);
+    trace_end();
 
     /**
      * Keep a moving average of the additional time a 'thread_sleep()' takes to avoid always waking
