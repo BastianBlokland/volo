@@ -175,6 +175,7 @@ static void trace_data_events_draw(
     const f64 fracRight = math_unlerp(timeLeft, timeRight, (f64)(evt->timeStart + evt->timeDur));
 
     if (fracRight <= 0.0 || fracLeft >= 1.0) {
+      ui_canvas_id_skip(c, 1);
       continue; // Event outside of the visible region.
     }
 
@@ -182,7 +183,6 @@ static void trace_data_events_draw(
     const UiVector pos  = {.x = (f32)fracLeft, .y = 1.0f - size.height * (evt->stackDepth + 1)};
 
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
-
     ui_style_color(c, trace_event_color(evt->color));
     ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
   }
