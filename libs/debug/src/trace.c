@@ -143,8 +143,6 @@ static void trace_data_events_draw(
     DebugTracePanelComp*  panel,
     const DebugTraceData* data,
     const TraceSink*      sinkStore) {
-  (void)sinkStore;
-
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_Rect);
   ui_style_push(c);
@@ -169,25 +167,48 @@ static void trace_data_events_draw(
   const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
   const f64 timeRight = (f64)panel->timeHead;
 
+  DynString tooltipBuffer = dynstring_create_over(mem_stack(256));
+
   dynarray_for_t(&data->events, TraceStoreEvent, evt) {
     const f64 fracLeft  = math_unlerp(timeLeft, timeRight, (f64)evt->timeStart);
     const f64 fracRight = math_unlerp(timeLeft, timeRight, (f64)(evt->timeStart + evt->timeDur));
 
     if (fracRight <= 0.0 || fracLeft >= 1.0) {
-      ui_canvas_id_skip(c, 1);
-      continue; // Event outside of the visible region.
+      ui_canvas_id_skip(c, 4); // 4: +1 for bar, +1 for label, +2 for tooltip.
+      continue;                // Event outside of the visible region.
     }
-
-    const UiVector size = {.width = (f32)(fracRight - fracLeft), .height = 0.2f};
-    const UiVector pos  = {.x = (f32)fracLeft, .y = 1.0f - size.height * (evt->stackDepth + 1)};
+    const f64      fracWidth = fracRight - fracLeft;
+    const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
+    const UiVector pos = {.x = (f32)fracLeft, .y = 1.0f - size.height * (evt->stackDepth + 1)};
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
-    const UiStatus evtStatus = ui_canvas_elem_status(c, ui_canvas_id_peek(c));
-    const bool     hovered   = evtStatus >= UiStatus_Hovered;
+    const UiId     barId      = ui_canvas_id_peek(c);
+    const UiStatus barStatus  = ui_canvas_elem_status(c, barId);
+    const bool     barHovered = barStatus >= UiStatus_Hovered;
 
-    ui_style_outline(c, hovered ? 3 : 1);
-    ui_style_color_with_mult(c, trace_event_color(evt->color), hovered ? 2.0f : 1.0f);
+    ui_style_outline(c, barHovered ? 3 : 1);
+    ui_style_color_with_mult(c, trace_event_color(evt->color), barHovered ? 2.0f : 1.0f);
     ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_Interactable);
+
+    const String id  = trace_sink_store_id(sinkStore, evt->id);
+    const String msg = mem_create(evt->msgData, evt->msgLength);
+    if (barHovered) {
+      dynstring_clear(&tooltipBuffer);
+      if (msg.size) {
+        fmt_write(&tooltipBuffer, "\a.bMessage\ar:\a>12{}\n", fmt_text(msg));
+      }
+      fmt_write(&tooltipBuffer, "\a.bId\ar:\a>12{}\n", fmt_text(id));
+      fmt_write(&tooltipBuffer, "\a.bDuration\ar:\a>12{}\n", fmt_duration(evt->timeDur));
+      ui_tooltip(c, barId, dynstring_view(&tooltipBuffer));
+    } else {
+      ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two events.
+    }
+
+    if (fracWidth * bgRect.width > 100.0f) {
+      ui_style_outline(c, 1);
+      ui_style_color(c, ui_color_white);
+      ui_canvas_draw_text(c, msg.size ? msg : id, 12, UiAlign_MiddleCenter, UiFlags_None);
+    }
   }
 
   ui_style_pop(c);
