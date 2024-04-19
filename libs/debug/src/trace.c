@@ -45,7 +45,7 @@ static UiColor trace_event_color(const TraceColor col) {
   switch (col) {
   case TraceColor_Default:
   case TraceColor_White:
-    return ui_color(255, 255, 255, 178);
+    return ui_color(178, 178, 178, 178);
   case TraceColor_Red:
     return ui_color(255, 16, 16, 178);
   case TraceColor_Green:
