@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
-#include "trace_tracer.h"
 
 #include "canvas_internal.h"
 #include "debug_internal.h"
@@ -196,15 +195,11 @@ void rvk_job_destroy(RvkJob* job) {
 }
 
 void rvk_job_wait_for_done(const RvkJob* job) {
-  trace_begin("rend_wait_job", TraceColor_White);
-
   const TimeSteady waitStart = time_steady_clock();
 
   rvk_call(vkWaitForFences, job->dev->vkDev, 1, &job->fenceJobDone, true, u64_max);
 
   ((RvkJob*)job)->waitForGpuDur += time_steady_duration(waitStart, time_steady_clock());
-
-  trace_end();
 }
 
 RvkCanvasStats rvk_job_stats(const RvkJob* job) {
