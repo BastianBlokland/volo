@@ -115,7 +115,7 @@ static const struct {
     {
         .name         = string_static("Trace"),
         .iconShape    = UiShape_QueryStats,
-        .detachedSize = {.x = 500, .y = 400},
+        .detachedSize = {.x = 800, .y = 500},
         .openFunc     = debug_trace_panel_open,
         .hotkeyName   = string_static("DebugPanelTrace"),
     },
