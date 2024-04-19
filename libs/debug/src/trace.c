@@ -204,7 +204,8 @@ static void trace_data_events_draw(
       ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two events.
     }
 
-    if (fracWidth * bgRect.width > 100.0f) {
+    static const f32 g_minWidthForLabel = 100.0f;
+    if (fracWidth * bgRect.width > g_minWidthForLabel) {
       ui_style_outline(c, 1);
       ui_style_color(c, ui_color_white);
       ui_canvas_draw_text(c, msg.size ? msg : id, 12, UiAlign_MiddleCenter, UiFlags_None);
