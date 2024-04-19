@@ -12,6 +12,7 @@
 #include "scene_camera.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "trace_tracer.h"
 
 #include "draw_internal.h"
 #include "fog_internal.h"
@@ -780,6 +781,7 @@ static bool rend_canvas_paint_3d(
   if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }
+  trace_begin("rend_paint_3d", TraceColor_Red);
 
   const GeoMatrix      camMat   = camTrans ? scene_transform_matrix(camTrans) : geo_matrix_ident();
   const GeoMatrix      projMat  = cam ? scene_camera_proj(cam, winAspect)
@@ -1082,6 +1084,7 @@ static bool rend_canvas_paint_3d(
   rvk_canvas_attach_release(painter->canvas, distBuffer);
 
   // Finish the frame.
+  trace_end();
   rvk_canvas_end(painter->canvas);
   return true;
 }
@@ -1102,6 +1105,8 @@ static bool rend_canvas_paint_2d(
   if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }
+  trace_begin("rend_paint_2d", TraceColor_Red);
+
   const RendView mainView = painter_view_2d_create(camEntity);
 
   RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
@@ -1116,6 +1121,7 @@ static bool rend_canvas_paint_2d(
     painter_flush(&ctx);
   }
 
+  trace_end();
   rvk_canvas_end(painter->canvas);
   return true;
 }

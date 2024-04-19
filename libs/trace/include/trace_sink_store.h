@@ -20,18 +20,19 @@ typedef i32 ThreadSpinLock;
 typedef struct {
   ALIGNAS(64) // Align to cacheline on x66.
   ThreadSpinLock lock;
-  u32            timeDur;   // Duration in nano-seconds (limits the max event dur to 4 seconds).
-  TimeSteady     timeStart; // Nano-seconds since the start of the process steady clock.
-  u8             id;        // Identifier index.
-  u8             color;     // TraceColor
+  u32            timeDur;    // Duration in nano-seconds (limits the max event dur to 4 seconds).
+  TimeSteady     timeStart;  // Nano-seconds since the start of the process steady clock.
+  u8             id;         // Identifier index.
+  u8             stackDepth; // Depth of the trace stack (amount of parent events).
+  u8             color;      // TraceColor
   u8             msgLength;
-  u8             msgData[45];
+  u8             msgData[44];
 } TraceStoreEvent;
 
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
 
 typedef void (*TraceStoreVisitor)(
-    TraceSink*,
+    const TraceSink*,
     void*    userCtx,
     u32      bufferIdx,
     ThreadId threadId,
@@ -43,13 +44,13 @@ typedef void (*TraceStoreVisitor)(
  * NOTE: Events are visited out of chronological order.
  * NOTE: Make sure that the callback is fast as we can potentially stall events while visiting.
  */
-void trace_sink_store_visit(TraceSink*, TraceStoreVisitor, void* userCtx);
+void trace_sink_store_visit(const TraceSink*, TraceStoreVisitor, void* userCtx);
 
 /**
  * Lookup the string for the given id index
  * Pre-condition: sink to be created by 'trace_sink_store'.
  */
-String trace_sink_store_id(TraceSink*, u8 id);
+String trace_sink_store_id(const TraceSink*, u8 id);
 
 /**
  * Create a in-memory store trace output sink.

@@ -21,6 +21,6 @@ typedef struct sDynArray DynString;
  *
  * NOTE: 'storeSink' has to be created from the 'trace_sink_store()' api.
  */
-void trace_dump_eventtrace(TraceSink* storeSink, DynString* out);
-bool trace_dump_eventtrace_to_path(TraceSink* storeSink, String path);
-bool trace_dump_eventtrace_to_path_default(TraceSink* storeSink);
+void trace_dump_eventtrace(const TraceSink* storeSink, DynString* out);
+bool trace_dump_eventtrace_to_path(const TraceSink* storeSink, String path);
+bool trace_dump_eventtrace_to_path_default(const TraceSink* storeSink);

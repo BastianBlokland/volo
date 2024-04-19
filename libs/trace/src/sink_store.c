@@ -14,7 +14,7 @@
  * Trace sink implementation that stores events in in-memory buffers to be queried later.
  */
 
-#define trace_store_max_ids 16
+#define trace_store_max_ids 32
 #define trace_store_max_threads 8
 #define trace_store_buffer_events 1024
 #define trace_store_buffer_max_depth 8
@@ -181,11 +181,12 @@ static void trace_sink_store_event_begin(
   TraceStoreEvent* evt = &b->events[b->eventCursor];
   thread_spinlock_lock(&evt->lock);
   {
-    evt->timeDur   = 0;
-    evt->timeStart = time_steady_clock();
-    evt->id        = trace_id_register(s, id);
-    evt->color     = (u8)color;
-    evt->msgLength = (u8)math_min(msg.size, array_elems(evt->msgData));
+    evt->timeDur    = 0;
+    evt->timeStart  = time_steady_clock();
+    evt->id         = trace_id_register(s, id);
+    evt->stackDepth = b->stackCount;
+    evt->color      = (u8)color;
+    evt->msgLength  = (u8)math_min(msg.size, array_elems(evt->msgData));
     mem_cpy(array_mem(evt->msgData), mem_create(msg.ptr, evt->msgLength));
   }
   thread_spinlock_unlock(&evt->lock);
@@ -231,13 +232,13 @@ static void trace_sink_store_destroy(TraceSink* sink) {
   alloc_free_t(s->alloc, s);
 }
 
-static bool trace_sink_is_store(TraceSink* sink) {
+static bool trace_sink_is_store(const TraceSink* sink) {
   return sink->destroy == trace_sink_store_destroy;
 }
 
-void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, void* userCtx) {
+void trace_sink_store_visit(const TraceSink* sink, const TraceStoreVisitor visitor, void* userCtx) {
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
-  TraceSinkStore* s = (TraceSinkStore*)sink;
+  const TraceSinkStore* s = (const TraceSinkStore*)sink;
 
   g_traceStoreIsVisiting = true;
 
@@ -276,9 +277,9 @@ void trace_sink_store_visit(TraceSink* sink, const TraceStoreVisitor visitor, vo
   g_traceStoreIsVisiting = false;
 }
 
-String trace_sink_store_id(TraceSink* sink, const u8 id) {
+String trace_sink_store_id(const TraceSink* sink, const u8 id) {
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
-  TraceSinkStore* s = (TraceSinkStore*)sink;
+  const TraceSinkStore* s = (const TraceSinkStore*)sink;
   diag_assert(id < s->idCount);
   return stringtable_lookup(g_stringtable, s->idHashes[id]);
 }

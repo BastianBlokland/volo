@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "attach_internal.h"
 #include "canvas_internal.h"
@@ -95,6 +96,11 @@ RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->re
 
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkJob* job = canvas->jobs[canvas->jobIdx];
+
+  trace_begin("rend_wait", TraceColor_White);
+  rvk_job_wait_for_done(job);
+  trace_end();
+
   return rvk_job_stats(job);
 }
 
@@ -115,13 +121,23 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   RvkJob* job = canvas->jobs[canvas->jobIdx];
 
-  const VkSemaphore availableSema = canvas->swapchainAvailable[canvas->jobIdx];
-  canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
+  trace_begin("rend_present_acquire", TraceColor_White);
+  {
+    const VkSemaphore availableSema = canvas->swapchainAvailable[canvas->jobIdx];
+    canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
+  }
+  trace_end();
+
   if (sentinel_check(canvas->swapchainIdx)) {
     return false;
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
+
+  trace_begin("rend_wait", TraceColor_White);
+  rvk_job_wait_for_done(job);
+  trace_end();
+
   rvk_job_begin(job);
   return true;
 }
@@ -229,11 +245,19 @@ void rvk_canvas_end(RvkCanvas* canvas) {
       canvas->attachmentsReleased[canvas->jobIdx], // Trigger the next job.
   };
 
-  const VkSemaphore swapchainSema = canvas->swapchainAvailable[canvas->jobIdx];
-  rvk_job_end(job, attachmentsReady, swapchainSema, endSignals, array_elems(endSignals));
+  trace_begin("rend_submit", TraceColor_White);
+  {
+    const VkSemaphore swapchainSema = canvas->swapchainAvailable[canvas->jobIdx];
+    rvk_job_end(job, attachmentsReady, swapchainSema, endSignals, array_elems(endSignals));
+  }
+  trace_end();
 
-  rvk_swapchain_enqueue_present(
-      canvas->swapchain, canvas->swapchainPresent[canvas->jobIdx], canvas->swapchainIdx);
+  trace_begin("rend_present_enqueue", TraceColor_White);
+  {
+    rvk_swapchain_enqueue_present(
+        canvas->swapchain, canvas->swapchainPresent[canvas->jobIdx], canvas->swapchainIdx);
+  }
+  trace_end();
 
   rvk_attach_pool_flush(canvas->attachPool);
 
@@ -244,6 +268,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 }
 
 void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
-  const u32 numBehind = 1;
-  rvk_swapchain_wait_for_present(canvas->swapchain, numBehind);
+  trace_begin("rend_present_wait", TraceColor_White);
+  {
+    const u32 numBehind = 1;
+    rvk_swapchain_wait_for_present(canvas->swapchain, numBehind);
+  }
+  trace_end();
 }

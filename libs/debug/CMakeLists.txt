@@ -26,6 +26,7 @@ add_library(lib_debug STATIC
   src/stats.c
   src/text.c
   src/time.c
+  src/trace.c
   src/widget.c
   )
 target_include_directories(lib_debug PUBLIC include)

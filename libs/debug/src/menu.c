@@ -18,6 +18,7 @@
 #include "debug_sound.h"
 #include "debug_stats.h"
 #include "debug_time.h"
+#include "debug_trace.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -112,11 +113,17 @@ static const struct {
         .hotkeyName   = string_static("DebugPanelEcs"),
     },
     {
+        .name         = string_static("Trace"),
+        .iconShape    = UiShape_QueryStats,
+        .detachedSize = {.x = 800, .y = 500},
+        .openFunc     = debug_trace_panel_open,
+        .hotkeyName   = string_static("DebugPanelTrace"),
+    },
+    {
         .name         = string_static("Camera"),
         .iconShape    = UiShape_PhotoCamera,
         .detachedSize = {.x = 500, .y = 400},
         .openFunc     = debug_camera_panel_open,
-        .hotkeyName   = string_static("DebugPanelCamera"),
     },
     {
         .name         = string_static("Grid"),

@@ -183,7 +183,7 @@
       ]
     },
     {
-      "name": "DebugPanelCamera",
+      "name": "DebugPanelTrace",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F10" }

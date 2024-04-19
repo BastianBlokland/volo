@@ -121,6 +121,7 @@ static void pal_cursors_init(GapPal* pal) {
   pal->cursors[GapCursor_Busy]       = LoadCursor(null, IDC_WAIT);
   pal->cursors[GapCursor_Crosshair]  = LoadCursor(null, IDC_CROSS);
   pal->cursors[GapCursor_ResizeDiag] = LoadCursor(null, IDC_SIZENWSE);
+  pal->cursors[GapCursor_Move]       = LoadCursor(null, IDC_SIZEALL);
 }
 
 static void pal_clear_volatile(GapPal* pal) {
