@@ -30,7 +30,6 @@ void app_cli_configure(CliApp* app) {
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   trace_init();
-  jobs_init();
 
   i32 exitCode = 0;
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
@@ -39,6 +38,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     cli_help_write_file(app, g_file_stdout);
     goto Exit;
   }
+
+  jobs_init();
 
   CheckDef* check = check_create(g_alloc_heap);
   app_check_configure(check);
