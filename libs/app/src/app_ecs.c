@@ -24,8 +24,8 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  jobs_init();
   trace_init();
+  jobs_init();
 
   i32 exitCode = 0;
   if (!app_ecs_validate(app, invoc)) {
@@ -76,7 +76,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_i("Application shutdown");
 
 Exit:
-  trace_teardown();
   jobs_teardown();
+  trace_teardown();
   return exitCode;
 }
