@@ -50,9 +50,15 @@ THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL bool        g_jobsIsWorking;
 
-static void executor_wake_workers(void) {
+static void executor_wake_worker_all(void) {
   thread_mutex_lock(g_mutex);
   thread_cond_broadcast(g_wakeCondition);
+  thread_mutex_unlock(g_mutex);
+}
+
+static void executor_wake_worker_single(void) {
+  thread_mutex_lock(g_mutex);
+  thread_cond_signal(g_wakeCondition);
   thread_mutex_unlock(g_mutex);
 }
 
@@ -194,18 +200,21 @@ static void executor_perform_work(WorkItem item) {
         tasksPushedAffinity += type == ExecutorPush_Affinity;
       }
     }
-    const bool isAffinityWorker = g_jobsWorkerId == g_affinityWorker;
-    const bool needHelp         = tasksPushed > 1 || (tasksPushedAffinity && !isAffinityWorker);
+    const bool requireAffinityWorker = tasksPushedAffinity && g_jobsWorkerId != g_affinityWorker;
+    const bool needHelp              = tasksPushed > 1 || requireAffinityWorker;
     if (needHelp && thread_atomic_load_i32(&g_sleepingWorkers)) {
-      executor_wake_workers();
+      if (tasksPushed > 2 || requireAffinityWorker) {
+        executor_wake_worker_all();
+      } else {
+        executor_wake_worker_single();
+      }
     }
-    return;
-  }
-
-  // Task has no children; decrement the job dependency counter.
-  if (thread_atomic_sub_i64(&item.job->dependencies, 1) == 1) {
-    // All dependencies for the job have been finished; Finish the job.
-    jobs_scheduler_finish(item.job);
+  } else {
+    // Task has no children; decrement the job dependency counter.
+    if (thread_atomic_sub_i64(&item.job->dependencies, 1) == 1) {
+      // All dependencies for the job have been finished; Finish the job.
+      jobs_scheduler_finish(item.job);
+    }
   }
 }
 
@@ -338,7 +347,7 @@ void executor_run(Job* job) {
   }
 
   if (thread_atomic_load_i32(&g_sleepingWorkers)) {
-    executor_wake_workers();
+    executor_wake_worker_all();
   }
 }
 
