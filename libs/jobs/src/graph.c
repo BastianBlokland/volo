@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_sentinel.h"
 #include "jobs_graph.h"
+#include "trace_tracer.h"
 
 #include "graph_internal.h"
 
@@ -366,7 +367,12 @@ usize jobs_graph_reduce_dependencies(JobGraph* graph) {
   return depsRemoved;
 }
 
-bool jobs_graph_validate(const JobGraph* graph) { return !jobs_graph_has_cycle(graph); }
+bool jobs_graph_validate(const JobGraph* graph) {
+  trace_begin("job_validate", TraceColor_Red);
+  const bool hasCycles = jobs_graph_has_cycle(graph);
+  trace_end();
+  return !hasCycles;
+}
 
 usize jobs_graph_task_count(const JobGraph* graph) { return graph->tasks.size; }
 
