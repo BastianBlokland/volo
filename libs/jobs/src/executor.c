@@ -231,7 +231,9 @@ static void executor_worker_thread(void* data) {
     work = executor_work_affinity_or_steal(); // One last attempt before sleeping.
     if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
       // We don't have any work to perform and we are not cancelled; sleep until woken.
+      trace_begin("job_sleep", TraceColor_Gray);
       thread_cond_wait(g_wakeCondition, g_mutex);
+      trace_end();
     }
     thread_atomic_sub_i32(&g_sleepingWorkers, 1);
     thread_mutex_unlock(g_mutex);
