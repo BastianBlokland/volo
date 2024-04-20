@@ -56,19 +56,25 @@ static void executor_wake_workers(void) {
   thread_mutex_unlock(g_mutex);
 }
 
-static void executor_work_push(Job* job, const JobTaskId task) {
+typedef enum {
+  ExecutorPush_Normal,
+  ExecutorPush_Affinity,
+} ExecutorPushType;
+
+static ExecutorPushType executor_work_push(Job* job, const JobTaskId task) {
   JobTask* jobTaskDef = dynarray_at_t(&job->graph->tasks, task, JobTask);
   if (UNLIKELY(jobTaskDef->flags & JobTaskFlags_ThreadAffinity)) {
     // Task requires to be run on the affinity worker; push it to the affinity queue.
     affqueue_push(&g_affinityQueue, job, task);
-  } else {
-    // Task can run on any thread; push it into our own queue.
-    workqueue_push(&g_workerQueues[g_jobsWorkerId], job, task);
+    return ExecutorPush_Affinity;
   }
+  // Task can run on any thread; push it into our own queue.
+  workqueue_push(&g_workerQueues[g_jobsWorkerId], job, task);
+  return ExecutorPush_Normal;
 }
 
 static WorkItem executor_work_pop(void) {
-  if (UNLIKELY(g_jobsWorkerId == g_affinityWorker)) {
+  if (g_jobsWorkerId == g_affinityWorker) {
     /**
      * This worker is the assigned 'Affinity worker' and thus we need to serve the affinity-queue
      * first before taking from our normal queue.
@@ -106,7 +112,7 @@ static WorkItem executor_work_affinity_or_steal(void) {
    * The 'Affinity Worker' is special as it can also receive work from other threads, so while
    * looking for work it also needs to check the affinity-queue.
    */
-  if (UNLIKELY(g_jobsWorkerId == g_affinityWorker)) {
+  if (g_jobsWorkerId == g_affinityWorker) {
     const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
     if (UNLIKELY(workitem_valid(affinityItem))) {
       return affinityItem;
@@ -178,16 +184,19 @@ static void executor_perform_work(WorkItem item) {
 
   // Update the tasks that are depending on this work.
   if (childCount) {
-    bool taskPushed = false;
+    u32 tasksPushed = 0, tasksPushedAffinity = 0;
     for (usize i = 0; i != childCount; ++i) {
       // Decrement the dependency counter for the child task.
       if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        executor_work_push(item.job, childTasks[i]);
-        taskPushed = true;
+        const ExecutorPushType type = executor_work_push(item.job, childTasks[i]);
+        tasksPushed += 1;
+        tasksPushedAffinity += type == ExecutorPush_Affinity;
       }
     }
-    if (taskPushed && thread_atomic_load_i32(&g_sleepingWorkers)) {
+    const bool isAffinityWorker = g_jobsWorkerId == g_affinityWorker;
+    const bool needHelp         = tasksPushed > 1 || (tasksPushedAffinity && !isAffinityWorker);
+    if (needHelp && thread_atomic_load_i32(&g_sleepingWorkers)) {
       executor_wake_workers();
     }
     return;
