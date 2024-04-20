@@ -13,6 +13,7 @@
 // clang-format off
 
 static const String g_tooltipFreeze       = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipRefresh      = string_static("Refresh the data set.");
 static const String g_tooltipTraceDump    = string_static("Dump performance trace data to disk (in the 'logs' directory).");
 static const String g_messageNoStoreSink  = string_static("No store trace-sink found.\nNote: Was the binary compiled with the 'TRACE' option?");
 
@@ -30,7 +31,7 @@ typedef struct {
 
 ecs_comp_define(DebugTracePanelComp) {
   UiPanel        panel;
-  bool           freeze;
+  bool           freeze, refresh;
   bool           hoverAny, panAny;
   TimeSteady     timeHead;
   TimeDuration   timeWindow;
@@ -92,9 +93,10 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 175);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 40);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_next_row(c, &table);
 
@@ -111,6 +113,15 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
   ui_label(c, string_lit("Freeze:"));
   ui_table_next_column(c, &table);
   ui_toggle(c, &panel->freeze, .tooltip = g_tooltipFreeze);
+
+  ui_table_next_column(c, &table);
+  if (ui_button(
+          c,
+          .label   = string_lit("Refresh"),
+          .tooltip = g_tooltipRefresh,
+          .flags   = panel->freeze ? UiWidget_Default : UiWidget_Disabled)) {
+    panel->refresh = true;
+  }
 
   ui_layout_pop(c);
 }
@@ -347,10 +358,11 @@ ecs_system_define(DebugTracePanelQuerySys) {
       continue; // No need to query data for hidden panels.
     }
 
-    if (!panel->freeze) {
+    if (!panel->freeze || panel->refresh) {
       trace_data_clear(panel);
       panel->timeHead = time_steady_clock();
       trace_sink_store_visit(sinkStore, trace_data_visitor, panel);
+      panel->refresh = false;
     }
   }
 }
