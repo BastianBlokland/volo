@@ -86,7 +86,7 @@ static void trace_data_visitor(
     threadData->nameLength = (u8)math_min(threadName.size, debug_trace_max_name_length);
     mem_cpy(array_mem(threadData->nameBuffer), mem_slice(threadName, 0, threadData->nameLength));
   }
-  *dynarray_push_t(&threadData->events, TraceStoreEvent) = *evt;
+  *((TraceStoreEvent*)dynarray_push(&threadData->events, 1).ptr) = *evt;
 }
 
 static void
@@ -230,8 +230,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
