@@ -15,7 +15,7 @@
 static const String g_tooltipFreeze       = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipRefresh      = string_static("Refresh the data set.");
 static const String g_tooltipTraceDump    = string_static("Dump performance trace data to disk (in the 'logs' directory).");
-static const String g_messageNoStoreSink  = string_static("No store trace-sink found.\nNote: Was the binary compiled with the 'TRACE' option?");
+static const String g_messageNoStoreSink  = string_static("No store trace-sink found.\nNote: Check if the binary was compiled with the 'TRACE' option and not explicitly disabled.");
 
 // clang-format on
 
@@ -228,8 +228,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-              .x = (f32)fracLeftClamped,
-              .y = 1.0f - size.height * (evt->stackDepth + 1),
+        .x = (f32)fracLeftClamped,
+        .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
