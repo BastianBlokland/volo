@@ -252,8 +252,9 @@ static void trace_data_events_draw(
     }
   }
 
-  if (panel->hoverAny) {
-    trace_data_ruler_draw(c, ui_canvas_input_pos(c).x, bgRect);
+  const f32 inputX = ui_canvas_input_pos(c).x;
+  if (panel->hoverAny && inputX > bgRect.x && inputX < (bgRect.x + bgRect.width)) {
+    trace_data_ruler_draw(c, inputX, bgRect);
   } else {
     ui_canvas_id_skip(c, 1);
   }
