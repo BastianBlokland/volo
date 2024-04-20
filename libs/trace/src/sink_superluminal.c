@@ -84,6 +84,8 @@ static u32 trace_sink_sl_color(const TraceColor color) {
   case TraceColor_Default:
   case TraceColor_White:
     return 0xFFFFFFFF;
+  case TraceColor_Gray:
+    return 0x909090FF;
   case TraceColor_Red:
     return 0xFF9090FF;
   case TraceColor_Green:

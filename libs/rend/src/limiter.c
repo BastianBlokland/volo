@@ -56,7 +56,7 @@ ecs_system_define(RendFrameLimiterSys) {
   if (limiter->sleepDur > limiter->sleepOverhead) {
     limiter->sleepDur -= limiter->sleepOverhead;
 
-    trace_begin("limiter_sleep", TraceColor_White);
+    trace_begin("limiter_sleep", TraceColor_Gray);
     thread_sleep(limiter->sleepDur);
     trace_end();
 
