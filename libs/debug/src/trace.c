@@ -119,7 +119,7 @@ static void trace_data_input_zoom(UiCanvasComp* c, DebugTracePanelComp* panel, c
   const f64 zoomSpeed = 0.1;
   const f64 zoomFrac  = 1.0 - ui_canvas_input_scroll(c).y * zoomSpeed;
 
-  const TimeDuration min = time_millisecond;
+  const TimeDuration min = time_microseconds(10);
   const TimeDuration max = time_milliseconds(250);
   const TimeDuration new = math_clamp_i64((i64)((f64)panel->timeWindow * zoomFrac), min, max);
 
