@@ -767,6 +767,12 @@ void ui_line_with_opts(
   const f32      mag      = magSqr > f32_epsilon ? math_sqrt_f32(magSqr) : 0;
   const f32      angleRad = magSqr > f32_epsilon ? -math_atan2_f32(delta.y, delta.x) : 0;
 
+  /**
+   * NOTE: The following logic has an issue when using a different base then 'Absolute' (for example
+   * 'Current' or 'Container') and the parent isn't square, as we always use the X axis of the
+   * parent for the scale of the line.
+   */
+
   ui_layout_push(canvas);
   ui_layout_set_pos(canvas, opts->base, center, opts->base);
   ui_layout_resize(canvas, UiAlign_MiddleCenter, ui_vector(mag, 0), opts->base, Ui_X);
