@@ -9,13 +9,18 @@
 #include "log.h"
 #include "trace.h"
 
-static CliId g_optTraceSl;
+MAYBE_UNUSED static CliId g_optTraceNoStore, g_optTraceSl;
 
 void app_cli_configure(CliApp* app) {
   app_ecs_configure(app);
 
-  g_optTraceSl = cli_register_flag(app, '\0', string_lit("trace-sl"), CliOptionFlags_None);
+#ifdef VOLO_TRACE
+  g_optTraceNoStore = cli_register_flag(app, '\0', string_lit("trace-no-store"), 0);
+  cli_register_desc(app, g_optTraceNoStore, string_lit("Disable the trace store sink."));
+
+  g_optTraceSl = cli_register_flag(app, '\0', string_lit("trace-sl"), 0);
   cli_register_desc(app, g_optTraceSl, string_lit("Enable the SuperLuminal trace sink."));
+#endif
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -33,8 +38,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
 
-#if defined(VOLO_TRACE)
-  trace_add_sink(g_tracer, trace_sink_store(g_alloc_heap));
+#ifdef VOLO_TRACE
+  if (!cli_parse_provided(invoc, g_optTraceNoStore)) {
+    trace_add_sink(g_tracer, trace_sink_store(g_alloc_heap));
+  }
   if (cli_parse_provided(invoc, g_optTraceSl)) {
     trace_add_sink(g_tracer, trace_sink_superluminal(g_alloc_heap));
   }
