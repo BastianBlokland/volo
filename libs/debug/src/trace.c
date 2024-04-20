@@ -31,7 +31,7 @@ typedef struct {
 ecs_comp_define(DebugTracePanelComp) {
   UiPanel        panel;
   bool           freeze;
-  bool           hoverAny;
+  bool           hoverAny, panAny;
   TimeSteady     timeHead;
   TimeDuration   timeWindow;
   DebugTraceData threads[debug_trace_max_threads];
@@ -139,6 +139,26 @@ static void trace_data_input_pan(UiCanvasComp* c, DebugTracePanelComp* panel, co
   }
 }
 
+static void trace_data_input_focus(DebugTracePanelComp* panel, const TraceStoreEvent* evt) {
+  panel->timeHead   = evt->timeStart + evt->timeDur;
+  panel->timeWindow = math_max(evt->timeDur, time_microseconds(10));
+}
+
+static void trace_data_tooltip_draw(
+    UiCanvasComp*          c,
+    const UiId             barId,
+    const TraceStoreEvent* evt,
+    const String           msg,
+    const String           id) {
+  DynString tooltipBuffer = dynstring_create_over(mem_stack(256));
+  if (msg.size) {
+    fmt_write(&tooltipBuffer, "\a.bMessage\ar:\a>12{}\n", fmt_text(msg));
+  }
+  fmt_write(&tooltipBuffer, "\a.bId\ar:\a>12{}\n", fmt_text(id));
+  fmt_write(&tooltipBuffer, "\a.bDuration\ar:\a>12{}\n", fmt_duration(evt->timeDur));
+  ui_tooltip(c, barId, dynstring_view(&tooltipBuffer));
+}
+
 static void trace_data_ruler_draw(UiCanvasComp* c, const f32 x, const UiRect bgRect) {
   ui_style_push(c);
   ui_style_color(c, ui_color(255, 255, 255, 128));
@@ -172,14 +192,16 @@ static void trace_data_events_draw(
     trace_data_input_zoom(c, panel, bgRect);
   }
   if (panel->freeze && blockStatus >= UiStatus_Pressed) {
-    trace_data_input_pan(c, panel, bgRect);
+    static const f32 g_panThreshold = 2.5f;
+    if (panel->panAny || math_abs(ui_canvas_input_delta(c).x) > g_panThreshold) {
+      panel->panAny = true;
+      trace_data_input_pan(c, panel, bgRect);
+    }
   }
 
   // NOTE: Timestamps are in nanoseconds.
   const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
   const f64 timeRight = (f64)panel->timeHead;
-
-  DynString tooltipBuffer = dynstring_create_over(mem_stack(256));
 
   dynarray_for_t(&data->events, TraceStoreEvent, evt) {
     const f64 fracLeft  = math_unlerp(timeLeft, timeRight, (f64)evt->timeStart);
@@ -195,8 +217,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
@@ -210,16 +232,14 @@ static void trace_data_events_draw(
 
     const String id  = trace_sink_store_id(sinkStore, evt->id);
     const String msg = mem_create(evt->msgData, evt->msgLength);
-    if (barHovered) {
-      dynstring_clear(&tooltipBuffer);
-      if (msg.size) {
-        fmt_write(&tooltipBuffer, "\a.bMessage\ar:\a>12{}\n", fmt_text(msg));
+    if (barHovered && panel->freeze) {
+      ui_canvas_interact_type(c, UiInteractType_Action);
+      if (!panel->panAny && barStatus == UiStatus_Activated) {
+        trace_data_input_focus(panel, evt);
       }
-      fmt_write(&tooltipBuffer, "\a.bId\ar:\a>12{}\n", fmt_text(id));
-      fmt_write(&tooltipBuffer, "\a.bDuration\ar:\a>12{}\n", fmt_duration(evt->timeDur));
-      ui_tooltip(c, barId, dynstring_view(&tooltipBuffer));
+      trace_data_tooltip_draw(c, barId, evt, msg, id);
     } else {
-      ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two events.
+      ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
     }
 
     static const f32 g_minWidthForLabel = 100.0f;
@@ -227,11 +247,15 @@ static void trace_data_events_draw(
       ui_style_outline(c, 1);
       ui_style_color(c, ui_color_white);
       ui_canvas_draw_text(c, msg.size ? msg : id, 12, UiAlign_MiddleCenter, UiFlags_None);
+    } else {
+      ui_canvas_id_skip(c, 1);
     }
   }
 
   if (panel->hoverAny) {
     trace_data_ruler_draw(c, ui_canvas_input_pos(c).x, bgRect);
+  } else {
+    ui_canvas_id_skip(c, 1);
   }
 
   ui_style_pop(c);
@@ -264,6 +288,10 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
 
     ui_layout_container_push(c, UiClip_None);
 
+    if (ui_canvas_status(c) < UiStatus_Pressed) {
+      panel->panAny = false;
+    }
+
     const UiId threadsBeginId = ui_canvas_id_peek(c);
 
     array_for_t(panel->threads, DebugTraceData, data) {
@@ -291,7 +319,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
     panel->hoverAny = ui_canvas_group_status(c, threadsBeginId, threadsEndId) == UiStatus_Hovered;
 
   } else {
-    panel->hoverAny = false;
+    panel->hoverAny = panel->panAny = false;
     ui_label(c, g_messageNoStoreSink, .align = UiAlign_MiddleCenter);
   }
 
@@ -344,7 +372,7 @@ ecs_system_define(DebugTracePanelDrawSys) {
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panel->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
-      panel->hoverAny = false;
+      panel->hoverAny = panel->panAny = false;
       continue;
     }
 
