@@ -31,6 +31,7 @@ typedef struct {
 ecs_comp_define(DebugTracePanelComp) {
   UiPanel        panel;
   bool           freeze;
+  bool           hoverAny;
   TimeSteady     timeHead;
   TimeDuration   timeWindow;
   DebugTraceData threads[debug_trace_max_threads];
@@ -138,6 +139,14 @@ static void trace_data_input_pan(UiCanvasComp* c, DebugTracePanelComp* panel, co
   }
 }
 
+static void trace_data_ruler_draw(UiCanvasComp* c, const f32 x) {
+  ui_style_push(c);
+  ui_style_color(c, ui_color(255, 255, 255, 128));
+  ui_style_outline(c, 0);
+  ui_line(c, ui_vector(x, 0.0f), ui_vector(x, 1.0f), .base = UiBase_Container, .width = 1.0f);
+  ui_style_pop(c);
+}
+
 static void trace_data_events_draw(
     UiCanvasComp*         c,
     DebugTracePanelComp*  panel,
@@ -157,6 +166,7 @@ static void trace_data_events_draw(
   // Zoom and pan input.
   const UiStatus blockStatus = ui_canvas_group_block_status(c);
   if (blockStatus == UiStatus_Hovered) {
+    panel->hoverAny = true;
     trace_data_input_zoom(c, panel, bgRect);
   }
   if (panel->freeze && blockStatus >= UiStatus_Pressed) {
@@ -212,6 +222,10 @@ static void trace_data_events_draw(
     }
   }
 
+  if (panel->hoverAny) {
+    trace_data_ruler_draw(c, (ui_canvas_input_pos(c).x - bgRect.x) / bgRect.width);
+  }
+
   ui_style_pop(c);
   ui_layout_container_pop(c);
   ui_layout_pop(c);
@@ -242,6 +256,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
 
     ui_layout_container_push(c, UiClip_None);
 
+    const UiId threadsBeginId = ui_canvas_id_peek(c);
+
     array_for_t(panel->threads, DebugTraceData, data) {
       if (!data->tid) {
         continue; // Unused thread slot.
@@ -262,7 +278,12 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
 
     ui_layout_container_pop(c);
     ui_layout_container_pop(c);
+
+    const UiId threadsEndId = ui_canvas_id_peek(c);
+    panel->hoverAny = ui_canvas_group_status(c, threadsBeginId, threadsEndId) == UiStatus_Hovered;
+
   } else {
+    panel->hoverAny = false;
     ui_label(c, g_messageNoStoreSink, .align = UiAlign_MiddleCenter);
   }
 
@@ -315,6 +336,7 @@ ecs_system_define(DebugTracePanelDrawSys) {
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panel->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+      panel->hoverAny = false;
       continue;
     }
 
