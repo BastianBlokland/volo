@@ -178,43 +178,19 @@ bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value
 }
 
 i32 thread_atomic_add_i32(i32* ptr, const i32 value) {
-  i32 current;
-  i32 add;
-  do {
-    current = *ptr;
-    add     = current + value;
-  } while (InterlockedCompareExchange((volatile LONG*)ptr, add, current) != current);
-  return current;
+  return (i32)InterlockedExchangeAdd((volatile LONG*)ptr, value);
 }
 
 i64 thread_atomic_add_i64(i64* ptr, const i64 value) {
-  i64 current;
-  i64 add;
-  do {
-    current = *ptr;
-    add     = current + value;
-  } while (InterlockedCompareExchange64((volatile LONG64*)ptr, add, current) != current);
-  return current;
+  return (i64)InterlockedExchangeAdd64((volatile LONG64*)ptr, value);
 }
 
 i32 thread_atomic_sub_i32(i32* ptr, const i32 value) {
-  i32 current;
-  i32 sub;
-  do {
-    current = *ptr;
-    sub     = current - value;
-  } while (InterlockedCompareExchange((volatile LONG*)ptr, sub, current) != current);
-  return current;
+  return (i32)InterlockedExchangeAdd((volatile LONG*)ptr, -value);
 }
 
 i64 thread_atomic_sub_i64(i64* ptr, i64 value) {
-  i64 current;
-  i64 sub;
-  do {
-    current = *ptr;
-    sub     = current - value;
-  } while (InterlockedCompareExchange64((volatile LONG64*)ptr, sub, current) != current);
-  return current;
+  return (i64)InterlockedExchangeAdd64((volatile LONG64*)ptr, -value);
 }
 
 ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void* data) {
