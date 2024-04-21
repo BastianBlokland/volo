@@ -396,7 +396,7 @@ void ecs_world_stats_sys_add(EcsWorld* world, const EcsSystemId id, const TimeDu
 void ecs_world_flush_internal(EcsWorld* world) {
   const TimeSteady startTime = time_steady_clock();
 
-  trace_begin_msg("ecs_flush", TraceColor_White, "FlushNewEntities");
+  trace_begin("ecs_flush_new", TraceColor_White);
   ecs_storage_flush_new_entities(&world->storage);
   trace_end();
 
@@ -406,7 +406,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
   /**
    * Finalize (invoke destructors) components that have been removed this frame.
    */
-  trace_begin_msg("ecs_flush", TraceColor_White, "FlushFinalize");
+  trace_begin("ecs_flush_finalize", TraceColor_White);
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
@@ -427,7 +427,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
   /**
    * Move entities to their new archetypes and apply the added components.
    */
-  trace_begin_msg("ecs_flush", TraceColor_White, "FlushMove");
+  trace_begin("ecs_flush_move", TraceColor_White);
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 

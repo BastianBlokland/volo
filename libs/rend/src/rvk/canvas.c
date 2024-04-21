@@ -97,7 +97,7 @@ RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->re
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkJob* job = canvas->jobs[canvas->jobIdx];
 
-  trace_begin("rend_wait", TraceColor_White);
+  trace_begin("rend_stats_wait", TraceColor_White);
   rvk_job_wait_for_done(job);
   trace_end();
 
@@ -134,7 +134,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   canvas->flags |= RvkCanvasFlags_Active;
 
-  trace_begin("rend_wait", TraceColor_White);
+  trace_begin("rend_begin_wait", TraceColor_White);
   rvk_job_wait_for_done(job);
   trace_end();
 
