@@ -1,6 +1,3 @@
-#include "core_annotation.h"
-#include "core_bits.h"
-#include "core_diag.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_thread.h"
@@ -70,7 +67,7 @@ typedef enum {
 } ExecutorPushType;
 
 static ExecutorPushType executor_work_push(Job* job, const JobTaskId task) {
-  JobTask* jobTaskDef = dynarray_at_t(&job->graph->tasks, task, JobTask);
+  const JobTask* jobTaskDef = job_graph_task_def(job->graph, task);
   if (UNLIKELY(jobTaskDef->flags & JobTaskFlags_ThreadAffinity)) {
     // Task requires to be run on the affinity worker; push it to the affinity queue.
     affqueue_push(&g_affinityQueue, job, task);
@@ -155,7 +152,7 @@ static WorkItem executor_work_steal_loop(void) {
 
 static void executor_perform_work(WorkItem item) {
   // Get the JobTask definition from the graph.
-  JobTask* jobTaskDef = dynarray_at_t(&item.job->graph->tasks, item.task, JobTask);
+  const JobTask* jobTaskDef = job_graph_task_def(item.job->graph, item.task);
 
   // Invoke the user routine.
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));

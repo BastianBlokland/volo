@@ -11,7 +11,7 @@ ASSERT((workqueue_max_items & (workqueue_max_items - 1u)) == 0, "Max size has to
 /**
  * Amount of items in the queue, only an indication as it can be raced by the mutating apis.
  */
-MAYBE_UNUSED static usize workqueue_size(const WorkQueue* wq) {
+MAYBE_UNUSED INLINE_HINT static usize workqueue_size(const WorkQueue* wq) {
   const i64 bottom = wq->bottom;
   const i64 top    = wq->top;
   return (usize)(bottom >= top ? bottom - top : 0);
