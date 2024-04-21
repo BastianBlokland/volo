@@ -66,44 +66,6 @@ void thread_teardown(void) { thread_pal_teardown(); }
 
 void thread_init_thread(void) { g_thread_tid = thread_pal_tid(); }
 
-i32 thread_atomic_load_i32(i32* ptr) { return thread_pal_atomic_load_i32(ptr); }
-i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
-
-void thread_atomic_store_i32(i32* ptr, const i32 value) { thread_pal_atomic_store_i32(ptr, value); }
-void thread_atomic_store_i64(i64* ptr, const i64 value) { thread_pal_atomic_store_i64(ptr, value); }
-
-i32 thread_atomic_exchange_i32(i32* ptr, const i32 value) {
-  return thread_pal_atomic_exchange_i32(ptr, value);
-}
-
-i64 thread_atomic_exchange_i64(i64* ptr, const i64 value) {
-  return thread_pal_atomic_exchange_i64(ptr, value);
-}
-
-bool thread_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
-  return thread_pal_atomic_compare_exchange_i32(ptr, expected, value);
-}
-
-bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
-  return thread_pal_atomic_compare_exchange_i64(ptr, expected, value);
-}
-
-i32 thread_atomic_add_i32(i32* ptr, const i32 value) {
-  return thread_pal_atomic_add_i32(ptr, value);
-}
-
-i64 thread_atomic_add_i64(i64* ptr, const i64 value) {
-  return thread_pal_atomic_add_i64(ptr, value);
-}
-
-i32 thread_atomic_sub_i32(i32* ptr, const i32 value) {
-  return thread_pal_atomic_sub_i32(ptr, value);
-}
-
-i64 thread_atomic_sub_i64(i64* ptr, const i64 value) {
-  return thread_pal_atomic_sub_i64(ptr, value);
-}
-
 ThreadHandle thread_start(
     ThreadRoutine routine, void* data, const String threadName, const ThreadPriority prio) {
   ThreadRunData* threadRunData  = alloc_alloc_t(g_alloc_heap, ThreadRunData);
