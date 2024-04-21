@@ -248,6 +248,7 @@ static void trace_data_events_draw(
     if (barHovered && panel->freeze) {
       ui_canvas_interact_type(c, UiInteractType_Action);
       if (!panel->panAny && barStatus == UiStatus_Activated) {
+        ui_canvas_sound(c, UiSoundType_Click);
         trace_data_input_focus(panel, evt);
       }
       trace_data_tooltip_draw(c, barId, evt, msg, id);
