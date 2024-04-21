@@ -258,11 +258,10 @@ static void executor_worker_thread(void* data) {
 }
 
 void executor_init(void) {
-  g_jobsWorkerCount = math_min(
-      math_max(worker_min_count, g_thread_core_count - worker_reserved_core_count),
-      worker_max_count);
-  g_mutex         = thread_mutex_create(g_alloc_heap);
-  g_wakeCondition = thread_cond_create(g_alloc_heap);
+  const u16 desiredWorkerCount = g_thread_core_count - worker_reserved_core_count;
+  g_jobsWorkerCount = math_min(math_max(desiredWorkerCount, worker_min_count), worker_max_count);
+  g_mutex           = thread_mutex_create(g_alloc_heap);
+  g_wakeCondition   = thread_cond_create(g_alloc_heap);
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
     g_workerQueues[i] = workqueue_create(g_alloc_heap);
