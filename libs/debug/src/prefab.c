@@ -20,6 +20,7 @@
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "trace_tracer.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -111,6 +112,8 @@ static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName
 }
 
 static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], const u32 maxCount) {
+  trace_begin("debug_prefab_counts", TraceColor_Red);
+
   mem_set(mem_from_to(out, out + math_min(maxCount, ctx->prefabMap->prefabCount)), 0);
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
@@ -123,6 +126,8 @@ static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], con
       ++out[prefabIndex];
     }
   }
+
+  trace_end();
 }
 
 static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
