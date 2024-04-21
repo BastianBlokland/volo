@@ -6,12 +6,30 @@
 
 #include <immintrin.h>
 
+#ifdef VOLO_MSVC
+#include <intrin.h>
+#endif
+
 typedef struct {
   String         threadName;
   ThreadPriority threadPriority;
   ThreadRoutine  userRoutine;
   void*          userData;
 } ThreadRunData;
+
+/**
+ * Issue a compiler fence, does not emit any instructions but prevents the compiler from reordering
+ * memory accesses.
+ */
+MAYBE_UNUSED INLINE_HINT static void thread_compiler_fence() {
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+  asm volatile("" : : : "memory");
+#elif defined(VOLO_MSVC)
+  _ReadWriteBarrier();
+#else
+  ASSERT(false, "Unsupported compiler");
+#endif
+}
 
 static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
@@ -70,6 +88,22 @@ void thread_atomic_fence(void) {
   // TODO: Experiment with issuing an instruction with a 'LOCK' prefix instead, this can potentially
   // be faster then the mfence instruction with the same semantics.
   _mm_mfence();
+}
+
+void thread_atomic_fence_acquire(void) {
+  /**
+   * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
+   * architecture with a weak memory model) it will need to emit instructions.
+   */
+  thread_compiler_fence();
+}
+
+void thread_atomic_fence_release(void) {
+  /**
+   * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
+   * architecture with a weak memory model) it will need to emit instructions.
+   */
+  thread_compiler_fence();
 }
 
 ThreadHandle thread_start(
