@@ -133,7 +133,7 @@ static void trace_data_input_zoom(UiCanvasComp* c, DebugTracePanelComp* panel, c
   const f64 zoomFrac  = 1.0 - ui_canvas_input_scroll(c).y * zoomSpeed;
 
   const TimeDuration min = time_microsecond;
-  const TimeDuration max = time_milliseconds(250);
+  const TimeDuration max = time_milliseconds(500);
   const TimeDuration new = math_clamp_i64((i64)((f64)panel->timeWindow * zoomFrac), min, max);
 
   const TimeDuration diff = new - panel->timeWindow;
@@ -230,8 +230,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
