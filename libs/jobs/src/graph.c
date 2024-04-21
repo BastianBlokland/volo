@@ -8,7 +8,7 @@
 
 #include "graph_internal.h"
 
-static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
+INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
 }
 
@@ -399,16 +399,22 @@ bool jobs_graph_task_has_parent(const JobGraph* graph, const JobTaskId task) {
 }
 
 bool jobs_graph_task_has_child(const JobGraph* graph, const JobTaskId task) {
-  const JobTaskLinkId childSetHead = *dynarray_at_t(&graph->childSetHeads, task, JobTaskLinkId);
+  diag_assert_msg(task < graph->childSetHeads.size, "Out of bounds job task");
+
+  const JobTaskLinkId childSetHead = dynarray_begin_t(&graph->childSetHeads, JobTaskLinkId)[task];
   return !sentinel_check(childSetHead);
 }
 
 usize jobs_graph_task_parent_count(const JobGraph* graph, const JobTaskId task) {
-  return *dynarray_at_t(&graph->parentCounts, task, u32);
+  diag_assert_msg(task < graph->parentCounts.size, "Out of bounds job task");
+
+  return dynarray_begin_t(&graph->parentCounts, u32)[task];
 }
 
 JobTaskChildItr jobs_graph_task_child_begin(const JobGraph* graph, const JobTaskId task) {
-  const JobTaskLinkId childSetHead = *dynarray_at_t(&graph->childSetHeads, task, JobTaskLinkId);
+  diag_assert_msg(task < graph->childSetHeads.size, "Out of bounds job task");
+
+  const JobTaskLinkId childSetHead = dynarray_begin_t(&graph->childSetHeads, JobTaskLinkId)[task];
   return jobs_graph_task_child_next(graph, (JobTaskChildItr){.next = childSetHead});
 }
 
