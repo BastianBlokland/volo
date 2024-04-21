@@ -38,7 +38,7 @@ ecs_system_define(SceneVelocityUpdateSys) {
   static const f32 g_avgWindow = 1.0f / 2.5f;
 
   EcsView* updateView = ecs_world_view_t(world, VelocityUpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(updateView, parCount, parIndex); ecs_view_walk(itr);) {
     SceneVelocityComp* veloComp = ecs_view_write_t(itr, SceneVelocityComp);
 
     const GeoVector pos      = ecs_view_read_t(itr, SceneTransformComp)->position;
@@ -68,6 +68,7 @@ ecs_module_init(scene_transform_module) {
   ecs_register_system(
       SceneVelocityUpdateSys, ecs_view_id(GlobalView), ecs_view_id(VelocityUpdateView));
 
+  ecs_parallel(SceneVelocityUpdateSys, 2);
   ecs_order(SceneVelocityUpdateSys, SceneOrder_VelocityUpdate);
 }
 
