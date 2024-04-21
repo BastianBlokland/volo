@@ -800,7 +800,7 @@ static bool rend_canvas_paint_3d(
   RvkImage*     geoDepth = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
   SceneTags     geoTagMask;
   {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintGeometry");
+    trace_begin("rend_paint_geo", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, geoPass, mainView);
     rvk_pass_stage_attach_color(geoPass, geoData0, 0);
     rvk_pass_stage_attach_color(geoPass, geoData1, 1);
@@ -819,7 +819,7 @@ static bool rend_canvas_paint_3d(
   // Decal pass.
   RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
   if (set->flags & RendFlags_Decals) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintDecals");
+    trace_begin("rend_paint_decals", TraceColor_White);
 
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
     RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
@@ -846,7 +846,7 @@ static bool rend_canvas_paint_3d(
                                 : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
   if (set->flags & (RendFlags_Fog | RendFlags_DebugFog)) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintFog");
+    trace_begin("rend_paint_fog", TraceColor_White);
     const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
     const GeoMatrix*     fogProj   = rend_fog_proj(fog);
     const SceneTagFilter fogFilter = {0};
@@ -866,7 +866,7 @@ static bool rend_canvas_paint_3d(
   // Fog-blur pass.
   RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPass_FogBlur);
   if (set->flags & (RendFlags_Fog | RendFlags_DebugFog) && set->fogBlurSteps) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintFogBlur");
+    trace_begin("rend_paint_fog_blur", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogBlurPass, mainView);
 
     struct {
@@ -899,7 +899,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*  shadowPass  = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (shadowsActive) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintShadows");
+    trace_begin("rend_paint_shadows", TraceColor_White);
     const GeoMatrix*     shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix*     shadProj   = rend_light_shadow_proj(light);
     const SceneTagFilter shadFilter = {
@@ -924,7 +924,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintAmbientOcclusion");
+    trace_begin("rend_paint_ao", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, aoPass, mainView);
     rvk_pass_stage_global_image(aoPass, geoData1, 0);
     rvk_pass_stage_global_image(aoPass, geoDepthRead, 1);
@@ -941,7 +941,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
   {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintForward");
+    trace_begin("rend_paint_forward", TraceColor_White);
     if (set->flags & RendFlags_DebugCamera && set->skyMode == RendSkyMode_None) {
       // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
       rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
@@ -993,7 +993,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPass_Distortion);
   RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintDistortion");
+    trace_begin("rend_paint_distortion", TraceColor_White);
     RvkImage* distDepth;
     if (distSize.data == geoSize.data) {
       distDepth = geoDepth;
@@ -1025,7 +1025,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintBloom");
+    trace_begin("rend_paint_bloom", TraceColor_White);
     RendPaintContext ctx  = painter_context(painter, set, setGlobal, time, bloomPass, mainView);
     RvkSize          size = geoSize;
     RvkImage*        images[6];
@@ -1071,7 +1071,7 @@ static bool rend_canvas_paint_3d(
   // Post pass.
   RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   {
-    trace_begin_msg("rend_paint", TraceColor_White, "PaintPost");
+    trace_begin("rend_paint_post", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
