@@ -26,15 +26,3 @@ void         thread_pal_join(ThreadHandle);
 void         thread_pal_yield(void);
 void         thread_pal_sleep(TimeDuration);
 bool         thread_pal_exists(ThreadId);
-
-ThreadMutex thread_pal_mutex_create(Allocator*);
-void        thread_pal_mutex_destroy(ThreadMutex);
-void        thread_pal_mutex_lock(ThreadMutex);
-bool        thread_pal_mutex_trylock(ThreadMutex);
-void        thread_pal_mutex_unlock(ThreadMutex);
-
-ThreadCondition thread_pal_cond_create(Allocator*);
-void            thread_pal_cond_destroy(ThreadCondition);
-void            thread_pal_cond_wait(ThreadCondition, ThreadMutex);
-void            thread_pal_cond_signal(ThreadCondition);
-void            thread_pal_cond_broadcast(ThreadCondition);
