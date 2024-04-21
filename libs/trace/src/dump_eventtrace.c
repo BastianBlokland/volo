@@ -53,6 +53,9 @@ static void dump_eventtrace_color_write(DumpEventTraceCtx* ctx, const TraceColor
   case TraceColor_White:
     dynstring_append(ctx->out, string_lit("\"white\""));
     return;
+  case TraceColor_Gray:
+    dynstring_append(ctx->out, string_lit("\"grey\""));
+    return;
   case TraceColor_Red:
     dynstring_append(ctx->out, string_lit("\"yellow\""));
     return;

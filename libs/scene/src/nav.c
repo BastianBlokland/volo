@@ -15,6 +15,7 @@
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "trace_tracer.h"
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
@@ -399,13 +400,27 @@ ecs_system_define(SceneNavInitSys) {
         .layer          = layer,
     };
 
+    trace_begin("nav_refresh_terrain", TraceColor_Red);
     nav_refresh_terrain(&ctx);
-    nav_refresh_blockers(&ctx, blockerView);
-    nav_refresh_paths(&ctx, pathView);
-    nav_refresh_occupants(&ctx, occupantView);
+    trace_end();
 
+    trace_begin("nav_refresh_blockers", TraceColor_Red);
+    nav_refresh_blockers(&ctx, blockerView);
+    trace_end();
+
+    trace_begin("nav_refresh_paths", TraceColor_Red);
+    nav_refresh_paths(&ctx, pathView);
+    trace_end();
+
+    trace_begin("nav_refresh_occupants", TraceColor_Red);
+    nav_refresh_occupants(&ctx, occupantView);
+    trace_end();
+
+    trace_begin("nav_refresh_islands", TraceColor_Red);
     const bool islandRefresh = (ctx.change & NavChange_IslandRefresh) != 0;
     geo_nav_island_update(ctx.grid, islandRefresh);
+    trace_end();
+
     env->grids[layer] = ctx.grid;
   }
   env->terrainVersion = scene_terrain_version(terrain);

@@ -1,3 +1,6 @@
+#include "core_annotation.h"
+#include "core_bits.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "jobs_graph.h"
 
@@ -17,10 +20,15 @@ typedef struct {
 } JobTaskLink;
 
 struct sJobGraph {
-  DynArray   tasks;         // JobTask[]
+  DynArray   tasks;         // JobTask[], NOTE: Stride is 64 not sizeof(JobTask).
   DynArray   parentCounts;  // u32[]
   DynArray   childSetHeads; // JobTaskLinkId[]
   DynArray   childLinks;    // JobTaskLink[]
   String     name;
   Allocator* alloc;
 };
+
+MAYBE_UNUSED static const JobTask* job_graph_task_def(const JobGraph* graph, const JobTaskId task) {
+  diag_assert(task < graph->tasks.size);
+  return (JobTask*)bits_ptr_offset(graph->tasks.data.ptr, 64 * task);
+}

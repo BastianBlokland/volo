@@ -43,7 +43,7 @@ add_library(lib_scene STATIC
   )
 target_include_directories(lib_scene PUBLIC include)
 target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
-target_link_libraries(lib_scene PRIVATE lib_log)
+target_link_libraries(lib_scene PRIVATE lib_log lib_trace)
 
 add_executable(test_lib_scene
   test/config.c

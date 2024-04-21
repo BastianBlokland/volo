@@ -40,6 +40,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
+#include "trace_tracer.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -1881,13 +1882,17 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
+    trace_begin("debug_vis_grid", TraceColor_Red);
     const GeoNavGrid* grid = scene_nav_grid(nav, set->visNavLayer);
     inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
+    trace_end();
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
+    trace_begin("debug_vis_icon", TraceColor_Red);
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_icon(world, text, itr);
     }
+    trace_end();
   }
   if (set->visFlags & (1 << DebugInspectorVis_Script)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {

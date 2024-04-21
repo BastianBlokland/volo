@@ -24,7 +24,6 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  jobs_init();
   trace_init();
 
   i32 exitCode = 0;
@@ -46,6 +45,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     trace_add_sink(g_tracer, trace_sink_superluminal(g_alloc_heap));
   }
 #endif
+
+  jobs_init();
 
   // Enable custom signal handling, used for graceful shutdown on interrupt.
   signal_intercept_enable();
@@ -76,7 +77,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_i("Application shutdown");
 
 Exit:
-  trace_teardown();
   jobs_teardown();
+  trace_teardown();
   return exitCode;
 }

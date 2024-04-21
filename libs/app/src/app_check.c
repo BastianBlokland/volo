@@ -29,7 +29,6 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  jobs_init();
   trace_init();
 
   i32 exitCode = 0;
@@ -39,6 +38,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     cli_help_write_file(app, g_file_stdout);
     goto Exit;
   }
+
+  jobs_init();
 
   CheckDef* check = check_create(g_alloc_heap);
   app_check_configure(check);
@@ -50,7 +51,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   check_destroy(check);
 
 Exit:
-  trace_teardown();
   jobs_teardown();
+  trace_teardown();
   return exitCode;
 }

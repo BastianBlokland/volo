@@ -48,6 +48,8 @@ static UiColor trace_event_color(const TraceColor col) {
   case TraceColor_Default:
   case TraceColor_White:
     return ui_color(178, 178, 178, 178);
+  case TraceColor_Gray:
+    return ui_color(64, 64, 64, 178);
   case TraceColor_Red:
     return ui_color(255, 16, 16, 178);
   case TraceColor_Green:
@@ -84,7 +86,7 @@ static void trace_data_visitor(
     threadData->nameLength = (u8)math_min(threadName.size, debug_trace_max_name_length);
     mem_cpy(array_mem(threadData->nameBuffer), mem_slice(threadName, 0, threadData->nameLength));
   }
-  *dynarray_push_t(&threadData->events, TraceStoreEvent) = *evt;
+  *((TraceStoreEvent*)dynarray_push(&threadData->events, 1).ptr) = *evt;
 }
 
 static void
@@ -131,7 +133,7 @@ static void trace_data_input_zoom(UiCanvasComp* c, DebugTracePanelComp* panel, c
   const f64 zoomFrac  = 1.0 - ui_canvas_input_scroll(c).y * zoomSpeed;
 
   const TimeDuration min = time_microsecond;
-  const TimeDuration max = time_milliseconds(250);
+  const TimeDuration max = time_milliseconds(500);
   const TimeDuration new = math_clamp_i64((i64)((f64)panel->timeWindow * zoomFrac), min, max);
 
   const TimeDuration diff = new - panel->timeWindow;
@@ -203,7 +205,7 @@ static void trace_data_events_draw(
     trace_data_input_zoom(c, panel, bgRect);
   }
   if (panel->freeze && blockStatus >= UiStatus_Pressed) {
-    static const f32 g_panThreshold = 2.5f;
+    static const f32 g_panThreshold = 1.5f;
     if (panel->panAny || math_abs(ui_canvas_input_delta(c).x) > g_panThreshold) {
       panel->panAny = true;
       trace_data_input_pan(c, panel, bgRect);
@@ -228,8 +230,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 

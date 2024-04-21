@@ -14,6 +14,7 @@ typedef struct sTracer Tracer;
 typedef enum {
   TraceColor_Default,
   TraceColor_White,
+  TraceColor_Gray,
   TraceColor_Red,
   TraceColor_Green,
   TraceColor_Blue,

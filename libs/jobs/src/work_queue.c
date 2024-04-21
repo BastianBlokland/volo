@@ -4,22 +4,14 @@
 
 #include "work_queue_internal.h"
 
-/**
- * The current implementation inserts way more memory barriers then are required (especially on
- * x86), reason is every atomic operation includes a general memory barrier at this time. This can
- * be greatly improved but requires carefull examination what barriers are required for each
- * platform.
- */
-
 #define item_wrap(_IDX_) ((_IDX_) & (workqueue_max_items - 1))
 
 ASSERT((workqueue_max_items & (workqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
 
 /**
- * Amount of items currently in the queue, only an indication as it can be raced by the mutating
- * apis.
+ * Amount of items in the queue, only an indication as it can be raced by the mutating apis.
  */
-MAYBE_UNUSED static usize workqueue_size(const WorkQueue* wq) {
+MAYBE_UNUSED INLINE_HINT static usize workqueue_size(const WorkQueue* wq) {
   const i64 bottom = wq->bottom;
   const i64 top    = wq->top;
   return (usize)(bottom >= top ? bottom - top : 0);

@@ -298,6 +298,12 @@ TraceSink* trace_sink_store(Allocator* alloc) {
       .storeLock = thread_mutex_create(alloc),
   };
 
+  /**
+   * Pre-register the calling thread.
+   * NOTE: This is a hack so the main thread has id 0, as it looks cleaner in output.
+   */
+  trace_buffer_add(sink, g_thread_tid);
+
   return (TraceSink*)sink;
 }
 
