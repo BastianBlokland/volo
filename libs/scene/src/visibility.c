@@ -166,7 +166,7 @@ ecs_module_init(scene_visibility_module) {
       ecs_register_view(VisibilityUpdateGlobalView),
       ecs_register_view(VisibilityEntityView));
 
-  ecs_parallel(SceneVisibilityUpdateSys, 4);
+  ecs_parallel(SceneVisibilityUpdateSys, 8);
 }
 
 SceneVisibilityFlags scene_visibility_flags(const SceneVisibilityEnvComp* env) {
