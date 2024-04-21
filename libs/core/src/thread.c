@@ -6,12 +6,30 @@
 
 #include <immintrin.h>
 
+#ifdef VOLO_MSVC
+#include <intrin.h>
+#endif
+
 typedef struct {
   String         threadName;
   ThreadPriority threadPriority;
   ThreadRoutine  userRoutine;
   void*          userData;
 } ThreadRunData;
+
+/**
+ * Issue a compiler fence, does not emit any instructions but prevents the compiler from reordering
+ * memory accesses.
+ */
+MAYBE_UNUSED INLINE_HINT static void thread_compiler_fence() {
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+  asm volatile("" : : : "memory");
+#elif defined(VOLO_MSVC)
+  _ReadWriteBarrier();
+#else
+  ASSERT(false, "Unsupported compiler");
+#endif
+}
 
 static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
@@ -66,42 +84,26 @@ void thread_teardown(void) { thread_pal_teardown(); }
 
 void thread_init_thread(void) { g_thread_tid = thread_pal_tid(); }
 
-i32 thread_atomic_load_i32(i32* ptr) { return thread_pal_atomic_load_i32(ptr); }
-i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
-
-void thread_atomic_store_i32(i32* ptr, const i32 value) { thread_pal_atomic_store_i32(ptr, value); }
-void thread_atomic_store_i64(i64* ptr, const i64 value) { thread_pal_atomic_store_i64(ptr, value); }
-
-i32 thread_atomic_exchange_i32(i32* ptr, const i32 value) {
-  return thread_pal_atomic_exchange_i32(ptr, value);
+void thread_atomic_fence(void) {
+  // TODO: Experiment with issuing an instruction with a 'LOCK' prefix instead, this can potentially
+  // be faster then the mfence instruction with the same semantics.
+  _mm_mfence();
 }
 
-i64 thread_atomic_exchange_i64(i64* ptr, const i64 value) {
-  return thread_pal_atomic_exchange_i64(ptr, value);
+void thread_atomic_fence_acquire(void) {
+  /**
+   * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
+   * architecture with a weak memory model) it will need to emit instructions.
+   */
+  thread_compiler_fence();
 }
 
-bool thread_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
-  return thread_pal_atomic_compare_exchange_i32(ptr, expected, value);
-}
-
-bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
-  return thread_pal_atomic_compare_exchange_i64(ptr, expected, value);
-}
-
-i32 thread_atomic_add_i32(i32* ptr, const i32 value) {
-  return thread_pal_atomic_add_i32(ptr, value);
-}
-
-i64 thread_atomic_add_i64(i64* ptr, const i64 value) {
-  return thread_pal_atomic_add_i64(ptr, value);
-}
-
-i32 thread_atomic_sub_i32(i32* ptr, const i32 value) {
-  return thread_pal_atomic_sub_i32(ptr, value);
-}
-
-i64 thread_atomic_sub_i64(i64* ptr, const i64 value) {
-  return thread_pal_atomic_sub_i64(ptr, value);
+void thread_atomic_fence_release(void) {
+  /**
+   * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
+   * architecture with a weak memory model) it will need to emit instructions.
+   */
+  thread_compiler_fence();
 }
 
 ThreadHandle thread_start(
@@ -123,28 +125,6 @@ void thread_yield(void) { thread_pal_yield(); }
 void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }
 
 bool thread_exists(const ThreadId tid) { return thread_pal_exists(tid); }
-
-ThreadMutex thread_mutex_create(Allocator* alloc) { return thread_pal_mutex_create(alloc); }
-
-void thread_mutex_destroy(ThreadMutex mutex) { thread_pal_mutex_destroy(mutex); }
-
-void thread_mutex_lock(ThreadMutex mutex) { thread_pal_mutex_lock(mutex); }
-
-bool thread_mutex_trylock(ThreadMutex mutex) { return thread_pal_mutex_trylock(mutex); }
-
-void thread_mutex_unlock(ThreadMutex mutex) { thread_pal_mutex_unlock(mutex); }
-
-ThreadCondition thread_cond_create(Allocator* alloc) { return thread_pal_cond_create(alloc); }
-
-void thread_cond_destroy(ThreadCondition cond) { thread_pal_cond_destroy(cond); }
-
-void thread_cond_wait(ThreadCondition cond, ThreadMutex mutex) {
-  thread_pal_cond_wait(cond, mutex);
-}
-
-void thread_cond_signal(ThreadCondition cond) { thread_pal_cond_signal(cond); }
-
-void thread_cond_broadcast(ThreadCondition cond) { thread_pal_cond_broadcast(cond); }
 
 void thread_spinlock_lock(ThreadSpinLock* lock) {
   /**

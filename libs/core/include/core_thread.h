@@ -119,6 +119,18 @@ i64 thread_atomic_add_i64(i64*, i64 value);
 i32 thread_atomic_sub_i32(i32*, i32 value);
 i64 thread_atomic_sub_i64(i64*, i64 value);
 
+/**
+ * Enforce a strong memory load / store order before and after this call.
+ */
+void thread_atomic_fence(void);
+
+/**
+ * Enforce a strong memory load / store order before before and after matching acquire / release
+ * pairs (or other atomic operations).
+ */
+void thread_atomic_fence_acquire(void);
+void thread_atomic_fence_release(void);
+
 typedef enum {
   ThreadPriority_Lowest,
   ThreadPriority_Low,

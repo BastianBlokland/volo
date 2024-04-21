@@ -101,48 +101,43 @@ bool thread_pal_set_priority(const ThreadPriority prio) {
   return true;
 }
 
-i32 thread_pal_atomic_load_i32(i32* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
-i64 thread_pal_atomic_load_i64(i64* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
+i32 thread_atomic_load_i32(i32* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
+i64 thread_atomic_load_i64(i64* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
 
-void thread_pal_atomic_store_i32(i32* ptr, i32 value) {
-  __atomic_store(ptr, &value, __ATOMIC_SEQ_CST);
-}
+void thread_atomic_store_i32(i32* ptr, i32 value) { __atomic_store(ptr, &value, __ATOMIC_SEQ_CST); }
+void thread_atomic_store_i64(i64* ptr, i64 value) { __atomic_store(ptr, &value, __ATOMIC_SEQ_CST); }
 
-void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
-  __atomic_store(ptr, &value, __ATOMIC_SEQ_CST);
-}
-
-i32 thread_pal_atomic_exchange_i32(i32* ptr, const i32 value) {
+i32 thread_atomic_exchange_i32(i32* ptr, const i32 value) {
   return __atomic_exchange_n(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_exchange_i64(i64* ptr, const i64 value) {
+i64 thread_atomic_exchange_i64(i64* ptr, const i64 value) {
   return __atomic_exchange_n(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-bool thread_pal_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
+bool thread_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
   return __atomic_compare_exchange_n(
       ptr, expected, value, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
-bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
+bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
   return __atomic_compare_exchange_n(
       ptr, expected, value, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
-i32 thread_pal_atomic_add_i32(i32* ptr, const i32 value) {
+i32 thread_atomic_add_i32(i32* ptr, const i32 value) {
   return __atomic_fetch_add(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_add_i64(i64* ptr, const i64 value) {
+i64 thread_atomic_add_i64(i64* ptr, const i64 value) {
   return __atomic_fetch_add(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-i32 thread_pal_atomic_sub_i32(i32* ptr, const i32 value) {
+i32 thread_atomic_sub_i32(i32* ptr, const i32 value) {
   return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_sub_i64(i64* ptr, const i64 value) {
+i64 thread_atomic_sub_i64(i64* ptr, const i64 value) {
   return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
 }
 
@@ -223,7 +218,7 @@ typedef struct {
   Allocator*      alloc;
 } ThreadMutexData;
 
-ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
+ThreadMutex thread_mutex_create(Allocator* alloc) {
   pthread_mutexattr_t attr;
   int                 res = pthread_mutexattr_init(&attr);
   if (UNLIKELY(res != 0)) {
@@ -256,7 +251,7 @@ ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
   return (ThreadMutex)data;
 }
 
-void thread_pal_mutex_destroy(ThreadMutex handle) {
+void thread_mutex_destroy(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_destroy(&data->impl);
@@ -266,7 +261,7 @@ void thread_pal_mutex_destroy(ThreadMutex handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_pal_mutex_lock(ThreadMutex handle) {
+void thread_mutex_lock(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_lock(&data->impl);
@@ -275,7 +270,7 @@ void thread_pal_mutex_lock(ThreadMutex handle) {
   }
 }
 
-bool thread_pal_mutex_trylock(ThreadMutex handle) {
+bool thread_mutex_trylock(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_trylock(&data->impl);
@@ -285,7 +280,7 @@ bool thread_pal_mutex_trylock(ThreadMutex handle) {
   return res == 0;
 }
 
-void thread_pal_mutex_unlock(ThreadMutex handle) {
+void thread_mutex_unlock(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_unlock(&data->impl);
@@ -299,7 +294,7 @@ typedef struct {
   Allocator*     alloc;
 } ThreadConditionData;
 
-ThreadCondition thread_pal_cond_create(Allocator* alloc) {
+ThreadCondition thread_cond_create(Allocator* alloc) {
   ThreadConditionData* data = alloc_alloc_t(alloc, ThreadConditionData);
   data->alloc               = alloc;
 
@@ -310,7 +305,7 @@ ThreadCondition thread_pal_cond_create(Allocator* alloc) {
   return (ThreadCondition)data;
 }
 
-void thread_pal_cond_destroy(ThreadCondition handle) {
+void thread_cond_destroy(ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   const int res = pthread_cond_destroy(&data->impl);
@@ -320,7 +315,7 @@ void thread_pal_cond_destroy(ThreadCondition handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
+void thread_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
@@ -330,7 +325,7 @@ void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   }
 }
 
-void thread_pal_cond_signal(ThreadCondition handle) {
+void thread_cond_signal(ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   const int res = pthread_cond_signal(&data->impl);
@@ -339,7 +334,7 @@ void thread_pal_cond_signal(ThreadCondition handle) {
   }
 }
 
-void thread_pal_cond_broadcast(ThreadCondition handle) {
+void thread_cond_broadcast(ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   const int res = pthread_cond_broadcast(&data->impl);

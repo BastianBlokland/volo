@@ -135,31 +135,31 @@ bool thread_pal_set_priority(const ThreadPriority prio) {
   return true; // No elevated permissions requirements on windows.
 }
 
-i32 thread_pal_atomic_load_i32(i32* ptr) {
+i32 thread_atomic_load_i32(i32* ptr) {
   return InterlockedCompareExchange((volatile LONG*)ptr, 0, 0);
 }
 
-i64 thread_pal_atomic_load_i64(i64* ptr) {
+i64 thread_atomic_load_i64(i64* ptr) {
   return InterlockedCompareExchange64((volatile LONG64*)ptr, 0, 0);
 }
 
-void thread_pal_atomic_store_i32(i32* ptr, const i32 value) {
+void thread_atomic_store_i32(i32* ptr, const i32 value) {
   InterlockedExchange((volatile LONG*)ptr, value);
 }
 
-void thread_pal_atomic_store_i64(i64* ptr, const i64 value) {
+void thread_atomic_store_i64(i64* ptr, const i64 value) {
   InterlockedExchange64((volatile LONG64*)ptr, value);
 }
 
-i32 thread_pal_atomic_exchange_i32(i32* ptr, const i32 value) {
+i32 thread_atomic_exchange_i32(i32* ptr, const i32 value) {
   return InterlockedExchange((volatile LONG*)ptr, value);
 }
 
-i64 thread_pal_atomic_exchange_i64(i64* ptr, const i64 value) {
+i64 thread_atomic_exchange_i64(i64* ptr, const i64 value) {
   return InterlockedExchange64((volatile LONG64*)ptr, value);
 }
 
-bool thread_pal_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
+bool thread_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
   const i32 read = (i32)InterlockedCompareExchange((volatile LONG*)ptr, value, *expected);
   if (read == *expected) {
     return true;
@@ -168,7 +168,7 @@ bool thread_pal_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 v
   return false;
 }
 
-bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
+bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
   const i64 read = (i64)InterlockedCompareExchange64((volatile LONG64*)ptr, value, *expected);
   if (read == *expected) {
     return true;
@@ -177,44 +177,20 @@ bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 v
   return false;
 }
 
-i32 thread_pal_atomic_add_i32(i32* ptr, const i32 value) {
-  i32 current;
-  i32 add;
-  do {
-    current = *ptr;
-    add     = current + value;
-  } while (InterlockedCompareExchange((volatile LONG*)ptr, add, current) != current);
-  return current;
+i32 thread_atomic_add_i32(i32* ptr, const i32 value) {
+  return (i32)InterlockedExchangeAdd((volatile LONG*)ptr, value);
 }
 
-i64 thread_pal_atomic_add_i64(i64* ptr, const i64 value) {
-  i64 current;
-  i64 add;
-  do {
-    current = *ptr;
-    add     = current + value;
-  } while (InterlockedCompareExchange64((volatile LONG64*)ptr, add, current) != current);
-  return current;
+i64 thread_atomic_add_i64(i64* ptr, const i64 value) {
+  return (i64)InterlockedExchangeAdd64((volatile LONG64*)ptr, value);
 }
 
-i32 thread_pal_atomic_sub_i32(i32* ptr, const i32 value) {
-  i32 current;
-  i32 sub;
-  do {
-    current = *ptr;
-    sub     = current - value;
-  } while (InterlockedCompareExchange((volatile LONG*)ptr, sub, current) != current);
-  return current;
+i32 thread_atomic_sub_i32(i32* ptr, const i32 value) {
+  return (i32)InterlockedExchangeAdd((volatile LONG*)ptr, -value);
 }
 
-i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
-  i64 current;
-  i64 sub;
-  do {
-    current = *ptr;
-    sub     = current - value;
-  } while (InterlockedCompareExchange64((volatile LONG64*)ptr, sub, current) != current);
-  return current;
+i64 thread_atomic_sub_i64(i64* ptr, i64 value) {
+  return (i64)InterlockedExchangeAdd64((volatile LONG64*)ptr, -value);
 }
 
 ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void* data) {
@@ -274,7 +250,7 @@ typedef struct {
   Allocator*       alloc;
 } ThreadMutexData;
 
-ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
+ThreadMutex thread_mutex_create(Allocator* alloc) {
   ThreadMutexData* data = alloc_alloc_t(alloc, ThreadMutexData);
   data->alloc           = alloc;
 
@@ -282,7 +258,7 @@ ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
   return (ThreadMutex)data;
 }
 
-void thread_pal_mutex_destroy(ThreadMutex handle) {
+void thread_mutex_destroy(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   DeleteCriticalSection(&data->impl);
@@ -290,19 +266,19 @@ void thread_pal_mutex_destroy(ThreadMutex handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_pal_mutex_lock(ThreadMutex handle) {
+void thread_mutex_lock(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   EnterCriticalSection(&data->impl);
 }
 
-bool thread_pal_mutex_trylock(ThreadMutex handle) {
+bool thread_mutex_trylock(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   return TryEnterCriticalSection(&data->impl);
 }
 
-void thread_pal_mutex_unlock(ThreadMutex handle) {
+void thread_mutex_unlock(ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   LeaveCriticalSection(&data->impl);
@@ -313,7 +289,7 @@ typedef struct {
   Allocator*         alloc;
 } ThreadConditionData;
 
-ThreadCondition thread_pal_cond_create(Allocator* alloc) {
+ThreadCondition thread_cond_create(Allocator* alloc) {
   ThreadConditionData* data = alloc_alloc_t(alloc, ThreadConditionData);
   data->alloc               = alloc;
 
@@ -321,7 +297,7 @@ ThreadCondition thread_pal_cond_create(Allocator* alloc) {
   return (ThreadMutex)data;
 }
 
-void thread_pal_cond_destroy(ThreadCondition handle) {
+void thread_cond_destroy(ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   // win32 'CONDITION_VARIABLE' objects do not need to be deleted.
@@ -329,7 +305,7 @@ void thread_pal_cond_destroy(ThreadCondition handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
+void thread_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
@@ -339,13 +315,13 @@ void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   }
 }
 
-void thread_pal_cond_signal(ThreadCondition handle) {
+void thread_cond_signal(ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   WakeConditionVariable(&data->impl);
 }
 
-void thread_pal_cond_broadcast(ThreadCondition handle) {
+void thread_cond_broadcast(ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   WakeAllConditionVariable(&data->impl);
