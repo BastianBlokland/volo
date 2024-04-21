@@ -4,13 +4,6 @@
 
 #include "work_queue_internal.h"
 
-/**
- * The current implementation inserts way more memory barriers then are required (especially on
- * x86), reason is every atomic operation includes a general memory barrier at this time. This can
- * be greatly improved but requires careful examination what barriers are required for each
- * platform.
- */
-
 #define item_wrap(_IDX_) ((_IDX_) & (workqueue_max_items - 1))
 
 ASSERT((workqueue_max_items & (workqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
