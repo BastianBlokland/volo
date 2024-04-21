@@ -4,6 +4,7 @@
 #include "core_time.h"
 #include "ecs_runner.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "buffer_internal.h"
 #include "def_internal.h"
@@ -199,13 +200,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   const usize sysCount = ecs_def_system_count(def);
   EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
   *world               = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
-      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+                    .def       = def,
+                    .finalizer = ecs_finalizer_create(alloc, def),
+                    .storage   = ecs_storage_create(alloc, def),
+                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+                    .buffer    = ecs_buffer_create(alloc, def),
+                    .alloc     = alloc,
+                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -395,7 +396,9 @@ void ecs_world_stats_sys_add(EcsWorld* world, const EcsSystemId id, const TimeDu
 void ecs_world_flush_internal(EcsWorld* world) {
   const TimeSteady startTime = time_steady_clock();
 
+  trace_begin_msg("ecs_flush", TraceColor_White, "FlushNewEntities");
   ecs_storage_flush_new_entities(&world->storage);
+  trace_end();
 
   BitSet      tmpMask     = ecs_comp_mask_stack(world->def);
   const usize bufferCount = ecs_buffer_count(&world->buffer);
@@ -403,6 +406,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
   /**
    * Finalize (invoke destructors) components that have been removed this frame.
    */
+  trace_begin_msg("ecs_flush", TraceColor_White, "FlushFinalize");
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
@@ -418,10 +422,12 @@ void ecs_world_flush_internal(EcsWorld* world) {
     ecs_storage_queue_finalize(&world->storage, &world->finalizer, entity, tmpMask);
   }
   ecs_finalizer_flush(&world->finalizer);
+  trace_end();
 
   /**
    * Move entities to their new archetypes and apply the added components.
    */
+  trace_begin_msg("ecs_flush", TraceColor_White, "FlushMove");
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
@@ -436,6 +442,8 @@ void ecs_world_flush_internal(EcsWorld* world) {
     ecs_storage_entity_move(&world->storage, entity, newArchetype);
     ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
+  trace_end();
+
   ecs_buffer_clear(&world->buffer);
 
   // Update stats.

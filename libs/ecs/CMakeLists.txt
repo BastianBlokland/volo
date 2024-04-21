@@ -22,7 +22,7 @@ add_library(lib_ecs STATIC
   )
 target_include_directories(lib_ecs PUBLIC include)
 target_link_libraries(lib_ecs PUBLIC lib_core)
-target_link_libraries(lib_ecs PRIVATE lib_jobs lib_log)
+target_link_libraries(lib_ecs PRIVATE lib_jobs lib_log lib_trace)
 
 add_executable(test_lib_ecs
   test/config.c
