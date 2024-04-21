@@ -119,6 +119,11 @@ i64 thread_atomic_add_i64(i64*, i64 value);
 i32 thread_atomic_sub_i32(i32*, i32 value);
 i64 thread_atomic_sub_i64(i64*, i64 value);
 
+/**
+ * Enforce a strong order between the load and store before and after this call.
+ */
+void thread_atomic_fence(void);
+
 typedef enum {
   ThreadPriority_Lowest,
   ThreadPriority_Low,
