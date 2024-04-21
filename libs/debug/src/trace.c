@@ -205,7 +205,7 @@ static void trace_data_events_draw(
     trace_data_input_zoom(c, panel, bgRect);
   }
   if (panel->freeze && blockStatus >= UiStatus_Pressed) {
-    static const f32 g_panThreshold = 2.5f;
+    static const f32 g_panThreshold = 1.5f;
     if (panel->panAny || math_abs(ui_canvas_input_delta(c).x) > g_panThreshold) {
       panel->panAny = true;
       trace_data_input_pan(c, panel, bgRect);
@@ -230,8 +230,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-              .x = (f32)fracLeftClamped,
-              .y = 1.0f - size.height * (evt->stackDepth + 1),
+        .x = (f32)fracLeftClamped,
+        .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
