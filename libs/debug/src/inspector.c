@@ -1882,13 +1882,13 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    trace_begin("debug_vis_grid", TraceColor_Red);
+    trace_begin_msg("debug_vis", TraceColor_Red, "DebugVisGrid");
     const GeoNavGrid* grid = scene_nav_grid(nav, set->visNavLayer);
     inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
     trace_end();
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
-    trace_begin("debug_vis_icon", TraceColor_Red);
+    trace_begin_msg("debug_vis", TraceColor_Red, "DebugVisIcon");
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_icon(world, text, itr);
     }

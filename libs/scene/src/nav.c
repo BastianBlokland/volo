@@ -400,23 +400,23 @@ ecs_system_define(SceneNavInitSys) {
         .layer          = layer,
     };
 
-    trace_begin("nav_refresh_terrain", TraceColor_Red);
+    trace_begin_msg("nav_refresh", TraceColor_Red, "NavRefreshTerrain");
     nav_refresh_terrain(&ctx);
     trace_end();
 
-    trace_begin("nav_refresh_blockers", TraceColor_Red);
+    trace_begin_msg("nav_refresh", TraceColor_Red, "NavRefreshBlockers");
     nav_refresh_blockers(&ctx, blockerView);
     trace_end();
 
-    trace_begin("nav_refresh_paths", TraceColor_Red);
+    trace_begin_msg("nav_refresh", TraceColor_Red, "NavRefreshPaths");
     nav_refresh_paths(&ctx, pathView);
     trace_end();
 
-    trace_begin("nav_refresh_occupants", TraceColor_Red);
+    trace_begin_msg("nav_refresh", TraceColor_Red, "NavRefreshOccupants");
     nav_refresh_occupants(&ctx, occupantView);
     trace_end();
 
-    trace_begin("nav_refresh_islands", TraceColor_Red);
+    trace_begin_msg("nav_refresh", TraceColor_Red, "NavRefreshIslands");
     const bool islandRefresh = (ctx.change & NavChange_IslandRefresh) != 0;
     geo_nav_island_update(ctx.grid, islandRefresh);
     trace_end();
