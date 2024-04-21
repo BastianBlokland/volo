@@ -3,6 +3,7 @@
 #include "core_dynarray.h"
 #include "core_thread.h"
 #include "jobs_scheduler.h"
+#include "trace_tracer.h"
 
 #include "executor_internal.h"
 #include "init_internal.h"
@@ -46,6 +47,8 @@ JobId jobs_scheduler_run(JobGraph* graph, Allocator* alloc) {
     return id; // Job has no roots tasks; nothing to do.
   }
 
+  trace_begin("job_start", TraceColor_White);
+
   Job* job = job_create(alloc, id, graph);
   thread_mutex_lock(g_jobMutex);
   *dynarray_push_t(&g_runningJobs, Job*) = job;
@@ -54,6 +57,8 @@ JobId jobs_scheduler_run(JobGraph* graph, Allocator* alloc) {
   // Note: We cannot touch the 'job' memory anymore after 'executor_run' returns, reason is the job
   // could actually finish while we are still inside this function.
   executor_run(job);
+
+  trace_end();
 
   return id;
 }
