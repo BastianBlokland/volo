@@ -131,7 +131,7 @@ static WorkItem executor_work_steal_loop(const JobWorkerId wId) {
   /**
    * Attempt to steal work from any other worker, try for some iterations before giving up.
    */
-  static const usize g_maxIterations = 5000;
+  static const usize g_maxIterations = 2500;
   for (usize itr = 0; itr != g_maxIterations; ++itr) {
 
     WorkItem stolenItem = executor_work_affinity_or_steal(wId);
