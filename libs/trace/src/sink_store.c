@@ -18,10 +18,15 @@
 #define trace_store_max_threads 8
 #define trace_store_buffer_events 1024
 #define trace_store_buffer_max_depth 8
+#define trace_store_simd_enable 1
 
 ASSERT(trace_store_max_ids < u8_max, "Trace id has to be representable by a u8")
 ASSERT((trace_store_buffer_events & (trace_store_buffer_events - 1u)) == 0, "Has to be a pow2");
 ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable with a u16")
+
+#if trace_store_simd_enable
+#include "core_simd.h"
+#endif
 
 static THREAD_LOCAL bool g_traceStoreIsVisiting;
 
@@ -43,8 +48,9 @@ typedef struct {
   Allocator*  alloc;
   ThreadMutex storeLock;
 
-  u32        idCount;
+  ALIGNAS(16)
   StringHash idHashes[trace_store_max_ids];
+  u32        idCount;
 
   u32          threadCount;
   ThreadId     threadIds[trace_store_max_threads];
@@ -53,12 +59,28 @@ typedef struct {
 } TraceSinkStore;
 
 static u8 trace_id_find(TraceSinkStore* s, const StringHash hash) {
+#if trace_store_simd_enable
+  ASSERT((trace_store_max_ids % 8) == 0, "Only multiple of 8 id counts are supported");
+
+  const SimdVec hashVec = simd_vec_broadcast_u32(hash);
+  for (u32 i = 0; i != trace_store_max_ids; i += 8) {
+    const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(s->idHashes + i), hashVec);
+    const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(s->idHashes + i + 4), hashVec);
+    const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
+
+    if (eqMask) {
+      return i + intrinsic_ctz_32(eqMask) / 2; // Div 2 due to 16 bit entries.
+    }
+  }
+  return sentinel_u8;
+#else
   for (u8 i = 0; i != s->idCount; ++i) {
     if (s->idHashes[i] == hash) {
       return i;
     }
   }
   return sentinel_u8;
+#endif
 }
 
 NO_INLINE_HINT static u8 trace_id_add(TraceSinkStore* s, const StringHash hash, const String str) {
