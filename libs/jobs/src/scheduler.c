@@ -94,6 +94,7 @@ void jobs_scheduler_wait_help(const JobId job) {
     }
 
     // No tasks more available but the job is not finished; yield our time-slice.
+    // TODO: Consider putting the thread to sleep if it couldn't help out in a while.
     thread_yield();
   }
 }
