@@ -13,6 +13,8 @@
 #include "scheduler_internal.h"
 #include "work_queue_internal.h"
 
+#include <immintrin.h>
+
 // Amounts of cores reserved for OS and other applications on the system.
 // Note: the main-thread is also a worker, so worker count of 1 won't start any additional threads.
 #define worker_reserved_core_count 1
@@ -130,18 +132,9 @@ static WorkItem executor_work_affinity_or_steal(void) {
 
 static WorkItem executor_work_steal_loop(void) {
   /**
-   * Every time-slice attempt to steal work from any other worker, starting from a random worker to
-   * reduce contention.
-   *
-   * There is allot of experimentation that could be done here:
-   * - Keeping track of the last victim we successfully stole from could reduce the amount of
-   *   iterations needed.
-   * - Spinning (perhaps using pause cpu intrinsics) instead of yielding (or some combo of both) to
-   *   reduce the context switching when there isn't any work for a very brief moment.
-   * - Fully random picking of workers to steal from (instead of linear with random offset) could
-   *   reduce contention.
+   * Attempt to steal work from any other worker, try for some iterations before giving up.
    */
-  static const usize g_maxIterations = 25;
+  static const usize g_maxIterations = 5000;
   for (usize itr = 0; itr != g_maxIterations; ++itr) {
 
     WorkItem stolenItem = executor_work_affinity_or_steal();
@@ -149,10 +142,14 @@ static WorkItem executor_work_steal_loop(void) {
       return stolenItem;
     }
 
-    // No work found this iteration; yield our timeslice.
-    thread_yield();
+    // No work found this iteration; spin or yield our timeslice.
+    if (itr % 100) {
+      _mm_pause();
+    } else {
+      thread_yield();
+    }
   }
-  // No work found after 'maxIterations' timeslices; time to go to sleep.
+  // No work found; time to go to sleep.
   return (WorkItem){0};
 }
 
