@@ -317,7 +317,9 @@ JobTaskId jobs_graph_add_task(
       .name    = string_dup(graph->alloc, name),
       .flags   = flags,
   };
-  mem_cpy(mem_consume(taskStorage, sizeof(JobTask)), ctx);
+  const Mem taskStorageCtx = mem_consume(taskStorage, sizeof(JobTask));
+  diag_assert(bits_aligned_ptr(taskStorageCtx.ptr, 16)); // We promise at least 16 byte alignment.
+  mem_cpy(taskStorageCtx, ctx);
 
   *dynarray_push_t(&graph->parentCounts, u32)            = 0;
   *dynarray_push_t(&graph->childSetHeads, JobTaskLinkId) = sentinel_u32;

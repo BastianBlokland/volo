@@ -9,10 +9,13 @@
 typedef u32 JobTaskLinkId;
 
 typedef struct {
+  ALIGNAS(16)
   JobTaskRoutine routine;
   String         name;
   JobTaskFlags   flags;
 } JobTask;
+
+ASSERT(sizeof(JobTask) == 32, "Unexpected JobTask size");
 
 typedef struct {
   JobTaskId     task;
