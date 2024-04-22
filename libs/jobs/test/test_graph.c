@@ -23,6 +23,35 @@ spec(graph) {
     check_eq_string(jobs_graph_task_name(graph, taskB), string_lit("TestTaskB"));
   }
 
+  it("can be copied") {
+    const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, mem_empty, task_flags);
+
+    // Setup B to depend on A.
+    jobs_graph_task_depend(graph, a, b);
+
+    JobGraph* graphCopy = jobs_graph_create(g_alloc_heap, string_lit("TestJob2"), 0);
+    jobs_graph_copy(graphCopy, graph);
+
+    // Graphs should have identical task counts.
+    check_eq_int(jobs_graph_task_count(graphCopy), jobs_graph_task_count(graph));
+    check_eq_int(jobs_graph_task_root_count(graphCopy), jobs_graph_task_root_count(graph));
+    check_eq_int(jobs_graph_task_leaf_count(graphCopy), jobs_graph_task_leaf_count(graph));
+
+    // B should have a parent and A should not.
+    check(jobs_graph_task_has_parent(graphCopy, b));
+    check(!jobs_graph_task_has_parent(graphCopy, a));
+
+    // A should have a child while B should not.
+    check(jobs_graph_task_has_child(graphCopy, a));
+    check(!jobs_graph_task_has_child(graphCopy, b));
+
+    check_eq_int(jobs_graph_task_child_begin(graphCopy, a).task, b);
+    check(sentinel_check(jobs_graph_task_child_begin(graphCopy, b).task));
+
+    jobs_graph_destroy(graphCopy);
+  }
+
   it("supports registering dependencies between tasks") {
     const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, mem_empty, task_flags);
     const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, mem_empty, task_flags);

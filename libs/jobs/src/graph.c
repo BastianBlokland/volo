@@ -302,6 +302,25 @@ void jobs_graph_clear(JobGraph* graph) {
   dynarray_clear(&graph->childLinks);
 }
 
+void jobs_graph_copy(JobGraph* dst, JobGraph* src) {
+  jobs_graph_clear(dst);
+
+  // Insert all the tasks from the src graph.
+  jobs_graph_for_task(src, srcTaskId) {
+    const JobTask* srcTask    = job_graph_task_def(src, srcTaskId);
+    const usize    srcCtxSize = 64 - sizeof(JobTask);
+    const Mem      srcCtx     = mem_create(bits_ptr_offset(srcTask, sizeof(JobTask)), srcCtxSize);
+    jobs_graph_add_task(dst, srcTask->name, srcTask->routine, srcCtx, srcTask->flags);
+  }
+
+  // Insert the dependencies from the src graph.
+  jobs_graph_for_task(src, srcTaskId) {
+    jobs_graph_for_task_child(src, srcTaskId, child) {
+      jobs_graph_task_depend(dst, srcTaskId, child.task);
+    }
+  }
+}
+
 JobTaskId jobs_graph_add_task(
     JobGraph*            graph,
     const String         name,

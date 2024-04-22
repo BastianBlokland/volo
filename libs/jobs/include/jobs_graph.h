@@ -78,6 +78,13 @@ void jobs_graph_destroy(JobGraph*);
 void jobs_graph_clear(JobGraph*);
 
 /**
+ * Copy the tasks and dependencies from the source graph into the destination graph.
+ * NOTE: The allocator and name are preserved from the original graph.
+ * Pre-condition: dst JobGraph is not running at the moment.
+ */
+void jobs_graph_copy(JobGraph* dst, JobGraph* src);
+
+/**
  * Add a new task to the graph.
  * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
  * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.
@@ -99,7 +106,7 @@ void jobs_graph_task_depend(JobGraph*, JobTaskId parent, JobTaskId child);
 
 /**
  * Remove a dependency between two tasks if it exists.
- * Returns if a dependency was found (and removed) between parent and child.
+ * Returns true if a dependency was found (and removed) between parent and child.
  *
  * Pre-condition: JobGraph is not running at the moment.
  * Pre-condition: parent != child.
