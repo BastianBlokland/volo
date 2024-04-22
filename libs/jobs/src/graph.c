@@ -6,6 +6,8 @@
 
 #include "graph_internal.h"
 
+#define jobs_graph_aux_chunk_size (4 * usize_kibibyte)
+
 INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
 }
@@ -265,37 +267,33 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
 
 JobGraph* jobs_graph_create(Allocator* alloc, const String name, const usize taskCapacity) {
   JobGraph* graph = alloc_alloc_t(alloc, JobGraph);
-  *graph          = (JobGraph){
+
+  *graph = (JobGraph){
       .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
       .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
       .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
       .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
       .name          = string_dup(alloc, name),
+      .allocTaskAux  = alloc_chunked_create(alloc, alloc_bump_create, jobs_graph_aux_chunk_size),
       .alloc         = alloc,
   };
+
   return graph;
 }
 
 void jobs_graph_destroy(JobGraph* graph) {
-  for (usize i = 0; i != graph->tasks.size; ++i) {
-    const JobTask* task = job_graph_task_def(graph, (JobTaskId)i);
-    string_free(graph->alloc, task->name);
-  }
   dynarray_destroy(&graph->tasks);
-
   dynarray_destroy(&graph->parentCounts);
   dynarray_destroy(&graph->childSetHeads);
   dynarray_destroy(&graph->childLinks);
 
   string_free(graph->alloc, graph->name);
+  alloc_chunked_destroy(graph->allocTaskAux);
   alloc_free_t(graph->alloc, graph);
 }
 
 void jobs_graph_clear(JobGraph* graph) {
-  for (usize i = 0; i != graph->tasks.size; ++i) {
-    const JobTask* task = job_graph_task_def(graph, (JobTaskId)i);
-    string_free(graph->alloc, task->name);
-  }
+  alloc_reset(graph->allocTaskAux); // Free all auxillary data (eg task names).
   dynarray_clear(&graph->tasks);
   dynarray_clear(&graph->parentCounts);
   dynarray_clear(&graph->childSetHeads);
@@ -333,7 +331,7 @@ JobTaskId jobs_graph_add_task(
   Mem taskStorage              = dynarray_push(&graph->tasks, 1);
   *((JobTask*)taskStorage.ptr) = (JobTask){
       .routine = routine,
-      .name    = string_dup(graph->alloc, name),
+      .name    = string_dup(graph->allocTaskAux, name),
       .flags   = flags,
   };
   const Mem taskStorageCtx = mem_consume(taskStorage, sizeof(JobTask));

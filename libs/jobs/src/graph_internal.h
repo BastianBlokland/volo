@@ -28,6 +28,7 @@ struct sJobGraph {
   DynArray   childSetHeads; // JobTaskLinkId[]
   DynArray   childLinks;    // JobTaskLink[]
   String     name;
+  Allocator* allocTaskAux; // (chunked) bump allocator for axillary data (eg task names).
   Allocator* alloc;
 };
 
