@@ -52,6 +52,7 @@ typedef struct {
 struct sEcsRunner {
   EcsWorld*          world;
   u32                flags;
+  u32                systemCount;
   RunnerSystemEntry* systems; // RunnerSystemEntry[systemCount].
   JobGraph*          graph;
   EcsTaskSet*        systemTaskSets;
@@ -197,7 +198,7 @@ static void graph_dump_dot(const EcsRunner* runner) {
 
 static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output) {
   const EcsDef* def = ecs_world_def(runner->world);
-  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
+  for (EcsSystemId sysId = 0; sysId != runner->systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
 
     output[sysId] = (RunnerSystemEntry){
@@ -209,11 +210,9 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
 }
 
 static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems) {
-  const EcsDef*    def         = ecs_world_def(runner->world);
-  const usize      systemCount = def->systems.size;
-  const EcsTaskSet flushTask   = graph_insert_flush(runner);
+  const EcsTaskSet flushTask = graph_insert_flush(runner);
 
-  for (RunnerSystemEntry* entry = systems; entry != systems + systemCount; ++entry) {
+  for (RunnerSystemEntry* entry = systems; entry != systems + runner->systemCount; ++entry) {
     const EcsTaskSet entryTasks       = graph_insert_system(runner, entry->id, entry->def);
     runner->systemTaskSets[entry->id] = entryTasks;
 
@@ -234,10 +233,11 @@ static void runner_sys_cpy(RunnerSystemEntry* dst, RunnerSystemEntry* src, const
   mem_cpy(mem_create(dst, memSize), mem_create(src, memSize));
 }
 
-static void runner_compute_graph(EcsRunner* runner, const u32 systemCount) {
-  const u32          taskCount = systemCount + graph_meta_task_count;
-  RunnerSystemEntry* sysTemp   = alloc_array_t(runner->alloc, RunnerSystemEntry, systemCount);
-  u32                bestSpan  = u32_max; // Lower is better.
+static void runner_compute_graph(EcsRunner* runner) {
+  const u32          systemCount = runner->systemCount;
+  const u32          taskCount   = systemCount + graph_meta_task_count;
+  RunnerSystemEntry* sysTemp     = alloc_array_t(runner->alloc, RunnerSystemEntry, systemCount);
+  u32                bestSpan    = u32_max; // Lower is better.
 
   const TimeSteady startTime = time_steady_clock();
   log_d("Ecs computing system-graph", log_param("iterations", fmt_int(graph_optimization_itrs)));
@@ -293,6 +293,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   *runner = (EcsRunner){
       .world          = world,
       .flags          = flags,
+      .systemCount    = systemCount,
       .systems        = alloc_array_t(alloc, RunnerSystemEntry, systemCount),
       .graph          = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
       .systemTaskSets = alloc_array_t(alloc, EcsTaskSet, systemCount),
@@ -300,7 +301,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   };
   runner_collect_systems(runner, runner->systems);
 
-  runner_compute_graph(runner, systemCount);
+  runner_compute_graph(runner);
 
   // Dump a 'Graph Description Language' aka GraphViz file of the graph to disk if requested.
   if (flags & EcsRunnerFlags_DumpGraphDot) {
@@ -317,9 +318,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
-  const EcsDef* def = ecs_world_def(runner->world);
-  alloc_free_array_t(runner->alloc, runner->systems, def->systems.size);
-  alloc_free_array_t(runner->alloc, runner->systemTaskSets, def->systems.size);
+  alloc_free_array_t(runner->alloc, runner->systems, runner->systemCount);
+  alloc_free_array_t(runner->alloc, runner->systemTaskSets, runner->systemCount);
   jobs_graph_destroy(runner->graph);
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
