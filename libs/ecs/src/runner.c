@@ -60,8 +60,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
