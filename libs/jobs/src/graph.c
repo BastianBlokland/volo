@@ -270,7 +270,7 @@ JobGraph* jobs_graph_create(Allocator* alloc, const String name, const u32 taskC
 
   *graph = (JobGraph){
       .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
-      .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
+      .parentCounts  = dynarray_create_t(alloc, u16, taskCapacity),
       .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
       .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
       .name          = string_dup(alloc, name),
@@ -342,7 +342,7 @@ JobTaskId jobs_graph_add_task(
   diag_assert(bits_aligned_ptr(taskStorageCtx.ptr, 16)); // We promise at least 16 byte alignment.
   mem_cpy(taskStorageCtx, ctx);
 
-  *dynarray_push_t(&graph->parentCounts, u32)            = 0;
+  *dynarray_push_t(&graph->parentCounts, u16)            = 0;
   *dynarray_push_t(&graph->childSetHeads, JobTaskLinkId) = sentinel_u16;
   return id;
 }
@@ -353,7 +353,7 @@ void jobs_graph_task_depend(JobGraph* graph, const JobTaskId parent, const JobTa
   diag_assert(child < graph->tasks.size);
 
   // Increment the parent count of the child.
-  ++dynarray_begin_t(&graph->parentCounts, u32)[child];
+  ++dynarray_begin_t(&graph->parentCounts, u16)[child];
 
   // Add the child to the 'childSet' of the parent.
   JobTaskLinkId* parentChildSetHead =
@@ -373,7 +373,7 @@ bool jobs_graph_task_undepend(JobGraph* graph, JobTaskId parent, JobTaskId child
   if (jobs_graph_remove_task_child_link(graph, child, parentChildSetHead)) {
 
     // Decrement the parent count of the child.
-    --dynarray_begin_t(&graph->parentCounts, u32)[child];
+    --dynarray_begin_t(&graph->parentCounts, u16)[child];
 
     return true;
   }
@@ -429,7 +429,7 @@ bool jobs_graph_task_has_child(const JobGraph* graph, const JobTaskId task) {
 u32 jobs_graph_task_parent_count(const JobGraph* graph, const JobTaskId task) {
   diag_assert_msg(task < graph->parentCounts.size, "Out of bounds job task");
 
-  return dynarray_begin_t(&graph->parentCounts, u32)[task];
+  return dynarray_begin_t(&graph->parentCounts, u16)[task];
 }
 
 JobTaskChildItr jobs_graph_task_child_begin(const JobGraph* graph, const JobTaskId task) {

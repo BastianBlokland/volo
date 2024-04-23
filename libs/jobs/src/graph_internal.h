@@ -24,7 +24,7 @@ typedef struct {
 
 struct sJobGraph {
   DynArray   tasks;         // JobTask[], NOTE: Stride is 64 not sizeof(JobTask).
-  DynArray   parentCounts;  // u32[]
+  DynArray   parentCounts;  // u16[]
   DynArray   childSetHeads; // JobTaskLinkId[]
   DynArray   childLinks;    // JobTaskLink[]
   String     name;
