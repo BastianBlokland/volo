@@ -36,7 +36,6 @@ typedef struct {
 
 typedef struct {
   EcsSystemId   id;
-  i32           order;
   EcsSystemDef* def;
 } RunnerSystemEntry;
 
@@ -62,8 +61,9 @@ THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
-  return compare_i32(
-      field_ptr(a, RunnerSystemEntry, order), field_ptr(b, RunnerSystemEntry, order));
+  const RunnerSystemEntry* entryA = a;
+  const RunnerSystemEntry* entryB = b;
+  return compare_i32(&entryA->def->order, &entryB->def->order);
 }
 
 /**
@@ -190,9 +190,8 @@ static void runner_system_collect(EcsRunner* runner) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
 
     runner->systems[sysId] = (RunnerSystemEntry){
-        .id    = sysId,
-        .order = sysDef->order,
-        .def   = sysDef,
+        .id  = sysId,
+        .def = sysDef,
     };
   }
 }
