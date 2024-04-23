@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_path.h"
 #include "core_rng.h"
@@ -22,11 +23,6 @@
  */
 #define graph_meta_task_count 1
 
-/**
- * Amount of iterations to use to find the 'optimal' system order (with shortest span).
- */
-#define graph_optimization_itrs 100
-
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
 } EcsRunnerPrivateFlags;
@@ -49,13 +45,18 @@ typedef struct {
   EcsSystemDef* def;
 } RunnerSystemEntry;
 
+typedef struct {
+  JobGraph*   graph;
+  EcsTaskSet* systemTasks;
+} RunnerPlan;
+
 struct sEcsRunner {
   EcsWorld*          world;
   u32                flags;
   u32                systemCount;
   RunnerSystemEntry* systems; // RunnerSystemEntry[systemCount].
-  JobGraph*          graph;
-  EcsTaskSet*        systemTaskSets;
+  RunnerPlan         plans[2];
+  u32                planIndex;
   Allocator*         alloc;
   Mem                jobMem;
 };
@@ -116,7 +117,8 @@ static void graph_system_task(void* context) {
   ecs_world_stats_sys_add(data->world, data->id, dur);
 }
 
-static EcsTaskSet graph_insert_flush(EcsRunner* runner, JobGraph* graph) {
+static EcsTaskSet graph_insert_flush(EcsRunner* runner, const u32 planIndex) {
+  const RunnerPlan* plan = &runner->plans[planIndex];
   /**
    * Insert a task to flush the world (applies entity layout modifications).
    *
@@ -125,7 +127,7 @@ static EcsTaskSet graph_insert_flush(EcsRunner* runner, JobGraph* graph) {
    * This is unfortunately hard to avoid with some of the win32 apis that use thread-local queues.
    */
   const JobTaskId taskId = jobs_graph_add_task(
-      graph,
+      plan->graph,
       string_lit("Flush"),
       graph_runner_flush_task,
       mem_struct(MetaTaskData, .runner = runner),
@@ -135,11 +137,16 @@ static EcsTaskSet graph_insert_flush(EcsRunner* runner, JobGraph* graph) {
 }
 
 static EcsTaskSet graph_insert_system(
-    EcsRunner* runner, JobGraph* graph, const EcsSystemId systemId, const EcsSystemDef* systemDef) {
+    EcsRunner*          runner,
+    const u32           planIndex,
+    const EcsSystemId   systemId,
+    const EcsSystemDef* systemDef) {
+  const RunnerPlan* plan = &runner->plans[planIndex];
+
   JobTaskId firstTaskId = 0;
   for (u16 parIndex = 0; parIndex != systemDef->parallelCount; ++parIndex) {
     const JobTaskId taskId = jobs_graph_add_task(
-        graph,
+        plan->graph,
         systemDef->name,
         graph_system_task,
         mem_struct(
@@ -181,27 +188,12 @@ static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const 
   return false;
 }
 
-static void graph_dump_dot(const JobGraph* graph) {
-  const String fileName =
-      fmt_write_scratch("{}_ecs_graph.dot", fmt_text(path_stem(g_path_executable)));
-
-  const String path =
-      path_build_scratch(path_parent(g_path_executable), string_lit("logs"), fileName);
-
-  const FileResult res = jobs_dot_dump_graph_to_path(path, graph);
-  if (res == FileResult_Success) {
-    log_i("Ecs system-graph dumped", log_param("path", fmt_path(path)));
-  } else {
-    log_e("Ecs system-graph dump failed", log_param("error", fmt_text(file_result_str(res))));
-  }
-}
-
-static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output) {
+static void runner_systems_collect(EcsRunner* runner) {
   const EcsDef* def = ecs_world_def(runner->world);
   for (EcsSystemId sysId = 0; sysId != runner->systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
 
-    output[sysId] = (RunnerSystemEntry){
+    runner->systems[sysId] = (RunnerSystemEntry){
         .id    = sysId,
         .order = sysDef->order,
         .def   = sysDef,
@@ -209,70 +201,36 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
   }
 }
 
-static void runner_populate_graph(EcsRunner* runner, JobGraph* graph, RunnerSystemEntry* systems) {
-  const EcsTaskSet flushTask = graph_insert_flush(runner, graph);
+static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex) {
+  const RunnerPlan*        plan     = &runner->plans[planIndex];
+  const RunnerSystemEntry* sysBegin = runner->systems;
+  const RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
 
-  for (RunnerSystemEntry* entry = systems; entry != systems + runner->systemCount; ++entry) {
-    const EcsTaskSet entryTasks       = graph_insert_system(runner, graph, entry->id, entry->def);
-    runner->systemTaskSets[entry->id] = entryTasks;
+  // Sort the systems to respect the ordering constrains.
+  sort_bubblesort_t(sysBegin, sysEnd, RunnerSystemEntry, compare_system_entry);
+
+  // Insert the systems into a job-graph.
+  jobs_graph_clear(plan->graph);
+  const EcsTaskSet flushTask = graph_insert_flush(runner, planIndex);
+  for (const RunnerSystemEntry* entry = sysBegin; entry != sysEnd; ++entry) {
+    const EcsTaskSet entryTasks  = graph_insert_system(runner, planIndex, entry->id, entry->def);
+    plan->systemTasks[entry->id] = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    graph_add_dep(graph, entryTasks, flushTask);
+    graph_add_dep(plan->graph, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
-    for (RunnerSystemEntry* earlierEntry = systems; earlierEntry != entry; ++earlierEntry) {
+    for (const RunnerSystemEntry* earlierEntry = sysBegin; earlierEntry != entry; ++earlierEntry) {
       if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
-        graph_add_dep(graph, runner->systemTaskSets[earlierEntry->id], entryTasks);
+        graph_add_dep(plan->graph, plan->systemTasks[earlierEntry->id], entryTasks);
       }
     }
   }
 }
 
-static void runner_compute_graph(EcsRunner* runner) {
-  const u32 systemCount = runner->systemCount;
-  const u32 taskCount   = systemCount + graph_meta_task_count;
-  u32       bestSpan    = u32_max; // Lower is better.
-
-  const TimeSteady startTime = time_steady_clock();
-  log_d("Ecs computing system-graph", log_param("iterations", fmt_int(graph_optimization_itrs)));
-
-  RunnerSystemEntry* sysBegin = runner->systems;
-  RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
-
-  /**
-   * Finding an 'optimal' system order (with shortest span) by brute force creating a random
-   * system orders and computing their span.
-   * TODO: Think of a clever analytical solution :-)
-   */
-  JobGraph* tmpGraph = jobs_graph_create(runner->alloc, string_lit("ecs_runner"), taskCount);
-  for (u32 i = 0; i != graph_optimization_itrs; ++i) {
-    // Compute a new system order by shuffling and then sorting to respect the constraints.
-    shuffle_fisheryates_t(g_rng, sysBegin, sysEnd, RunnerSystemEntry);
-    sort_bubblesort_t(sysBegin, sysEnd, RunnerSystemEntry, compare_system_entry);
-
-    // Fill the graph with tasks for each system.
-    jobs_graph_clear(tmpGraph);
-    runner_populate_graph(runner, tmpGraph, sysBegin);
-
-    // Check if the new order is better then our previous best.
-    const u32 span = jobs_graph_task_span(tmpGraph);
-    if (span < bestSpan) {
-      jobs_graph_copy(runner->graph, tmpGraph);
-      bestSpan = span;
-    }
-  }
-  jobs_graph_destroy(tmpGraph);
-
-  // Remove unecessary dependencies in the graph.
-  jobs_graph_reduce_dependencies(runner->graph);
-
-  const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
-  log_i(
-      "Ecs system-graph computed",
-      log_param("tasks", fmt_int(taskCount)),
-      log_param("task-span", fmt_int(bestSpan)),
-      log_param("parallelism", fmt_float((f32)taskCount / (f32)bestSpan)),
-      log_param("duration", fmt_duration(duration)));
+static void runner_plan_optimize(EcsRunner* runner, const u32 planIndex) {
+  const RunnerPlan* plan = &runner->plans[planIndex];
+  jobs_graph_reduce_dependencies(plan->graph);
 }
 
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
@@ -283,27 +241,26 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
   *runner = (EcsRunner){
-      .world          = world,
-      .flags          = flags,
-      .systemCount    = systemCount,
-      .systems        = alloc_array_t(alloc, RunnerSystemEntry, systemCount),
-      .graph          = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-      .systemTaskSets = alloc_array_t(alloc, EcsTaskSet, systemCount),
-      .alloc          = alloc,
+      .world       = world,
+      .flags       = flags,
+      .systemCount = systemCount,
+      .systems     = alloc_array_t(alloc, RunnerSystemEntry, systemCount),
+      .alloc       = alloc,
   };
-  runner_collect_systems(runner, runner->systems);
-
-  runner_compute_graph(runner);
-
-  // Dump a 'Graph Description Language' aka GraphViz file of the graph to disk if requested.
-  if (flags & EcsRunnerFlags_DumpGraphDot) {
-    graph_dump_dot(runner->graph);
+  array_for_t(runner->plans, RunnerPlan, plan) {
+    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
+    plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
   }
+
+  runner_systems_collect(runner);
+  runner_plan_formulate(runner, runner->planIndex);
+  runner_plan_optimize(runner, runner->planIndex);
 
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
-  const usize jobMemSize = jobs_scheduler_mem_size(runner->graph) + 64;
-  runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(runner->graph));
+  const JobGraph* graph      = runner->plans[runner->planIndex].graph;
+  const usize     jobMemSize = jobs_scheduler_mem_size(graph) + 64;
+  runner->jobMem             = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
   return runner;
 }
 
@@ -311,16 +268,22 @@ void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
   alloc_free_array_t(runner->alloc, runner->systems, runner->systemCount);
-  alloc_free_array_t(runner->alloc, runner->systemTaskSets, runner->systemCount);
-  jobs_graph_destroy(runner->graph);
+  array_for_t(runner->plans, RunnerPlan, plan) {
+    jobs_graph_destroy(plan->graph);
+    alloc_free_array_t(runner->alloc, plan->systemTasks, runner->systemCount);
+  }
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
 }
 
-const JobGraph* ecs_runner_graph(const EcsRunner* runner) { return runner->graph; }
+const JobGraph* ecs_runner_graph(const EcsRunner* runner) {
+  const RunnerPlan* activePlan = &runner->plans[runner->planIndex];
+  return activePlan->graph;
+}
 
 EcsTaskSet ecs_runner_task_set(const EcsRunner* runner, const EcsSystemId systemId) {
-  return runner->systemTaskSets[systemId];
+  const RunnerPlan* activePlan = &runner->plans[runner->planIndex];
+  return activePlan->systemTasks[systemId];
 }
 
 bool ecs_running(const EcsRunner* runner) {
@@ -333,7 +296,9 @@ JobId ecs_run_async(EcsRunner* runner) {
 
   runner->flags |= EcsRunnerPrivateFlags_Running;
   ecs_world_busy_set(runner->world);
-  return jobs_scheduler_run(runner->graph, jobAlloc);
+
+  const RunnerPlan* activePlan = &runner->plans[runner->planIndex];
+  return jobs_scheduler_run(activePlan->graph, jobAlloc);
 }
 
 void ecs_run_sync(EcsRunner* runner) {
