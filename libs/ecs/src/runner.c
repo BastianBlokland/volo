@@ -70,7 +70,7 @@ static i8 compare_system_entry(const void* a, const void* b) {
  * Add a dependency between the parent and child tasks. The child tasks are only allowed to start
  * once all parent tasks have finished.
  */
-static void graph_add_dep(JobGraph* graph, const EcsTaskSet parent, const EcsTaskSet child) {
+static void runner_add_dep(JobGraph* graph, const EcsTaskSet parent, const EcsTaskSet child) {
   for (JobTaskId parentTaskId = parent.begin; parentTaskId != parent.end; ++parentTaskId) {
     for (JobTaskId childTaskId = child.begin; childTaskId != child.end; ++childTaskId) {
       jobs_graph_task_depend(graph, parentTaskId, childTaskId);
@@ -78,7 +78,7 @@ static void graph_add_dep(JobGraph* graph, const EcsTaskSet parent, const EcsTas
   }
 }
 
-static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
+static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
   JobTaskFlags flags = JobTaskFlags_None;
   if (systemDef->flags & EcsSystemFlags_ThreadAffinity) {
     flags |= JobTaskFlags_ThreadAffinity;
@@ -86,7 +86,7 @@ static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
   return flags;
 }
 
-static void graph_runner_flush_task(void* context) {
+static void runner_task_flush(void* context) {
   const MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
 
@@ -94,7 +94,7 @@ static void graph_runner_flush_task(void* context) {
   ecs_world_busy_unset(data->runner->world);
 }
 
-static void graph_system_task(void* context) {
+static void runner_task_system(void* context) {
   const SystemTaskData* data = context;
 
   const TimeSteady startTime = time_steady_clock();
@@ -113,7 +113,7 @@ static void graph_system_task(void* context) {
   ecs_world_stats_sys_add(data->world, data->id, dur);
 }
 
-static EcsTaskSet graph_insert_flush(EcsRunner* runner, const u32 planIndex) {
+static EcsTaskSet runner_insert_flush(EcsRunner* runner, const u32 planIndex) {
   const RunnerPlan* plan = &runner->plans[planIndex];
   /**
    * Insert a task to flush the world (applies entity layout modifications).
@@ -125,14 +125,14 @@ static EcsTaskSet graph_insert_flush(EcsRunner* runner, const u32 planIndex) {
   const JobTaskId taskId = jobs_graph_add_task(
       plan->graph,
       string_lit("Flush"),
-      graph_runner_flush_task,
+      runner_task_flush,
       mem_struct(MetaTaskData, .runner = runner),
       JobTaskFlags_ThreadAffinity);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
 
-static EcsTaskSet graph_insert_system(
+static EcsTaskSet runner_insert_system(
     EcsRunner*          runner,
     const u32           planIndex,
     const EcsSystemId   systemId,
@@ -144,7 +144,7 @@ static EcsTaskSet graph_insert_system(
     const JobTaskId taskId = jobs_graph_add_task(
         plan->graph,
         systemDef->name,
-        graph_system_task,
+        runner_task_system,
         mem_struct(
             SystemTaskData,
             .id       = systemId,
@@ -153,7 +153,7 @@ static EcsTaskSet graph_insert_system(
             .runner   = runner,
             .world    = runner->world,
             .routine  = systemDef->routine),
-        graph_system_task_flags(systemDef));
+        runner_task_system_flags(systemDef));
 
     if (parIndex == 0) {
       firstTaskId = taskId;
@@ -162,7 +162,7 @@ static EcsTaskSet graph_insert_system(
   return (EcsTaskSet){.begin = firstTaskId, .end = firstTaskId + systemDef->parallelCount};
 }
 
-static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
+static bool runner_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
   if ((a->flags & EcsSystemFlags_Exclusive) || (b->flags & EcsSystemFlags_Exclusive)) {
     return true; // Exclusive systems conflict with any other system.
   }
@@ -184,7 +184,7 @@ static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const 
   return false;
 }
 
-static void runner_systems_collect(EcsRunner* runner) {
+static void runner_system_collect(EcsRunner* runner) {
   const EcsDef* def = ecs_world_def(runner->world);
   for (EcsSystemId sysId = 0; sysId != runner->systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
@@ -212,18 +212,18 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
 
   // Insert the systems into a job-graph.
   jobs_graph_clear(plan->graph);
-  const EcsTaskSet flushTask = graph_insert_flush(runner, planIndex);
+  const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
   for (RunnerSystemEntry* entry = sysBegin; entry != sysEnd; ++entry) {
-    const EcsTaskSet entryTasks  = graph_insert_system(runner, planIndex, entry->id, entry->def);
+    const EcsTaskSet entryTasks  = runner_insert_system(runner, planIndex, entry->id, entry->def);
     plan->systemTasks[entry->id] = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    graph_add_dep(plan->graph, entryTasks, flushTask);
+    runner_add_dep(plan->graph, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
     for (RunnerSystemEntry* earlierEntry = sysBegin; earlierEntry != entry; ++earlierEntry) {
-      if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
-        graph_add_dep(plan->graph, plan->systemTasks[earlierEntry->id], entryTasks);
+      if (runner_system_conflict(runner->world, entry->def, earlierEntry->def)) {
+        runner_add_dep(plan->graph, plan->systemTasks[earlierEntry->id], entryTasks);
       }
     }
   }
@@ -272,7 +272,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
     plan->cost        = u32_max;
   }
 
-  runner_systems_collect(runner);
+  runner_system_collect(runner);
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
   runner_plan_optimize(runner, runner->planIndex);
 
