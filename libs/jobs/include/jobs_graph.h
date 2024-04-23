@@ -10,7 +10,7 @@ typedef struct sAllocator Allocator;
  * NOTE: Are assigned starting from 0.
  * Iteration from 0 to 'jobs_graph_task_count()' is a valid way to lookup tasks.
  */
-typedef u32 JobTaskId;
+typedef u16 JobTaskId;
 
 typedef enum {
   JobTaskFlags_None = 0,
@@ -26,8 +26,8 @@ typedef enum {
  * Iterator for iterating task children.
  */
 typedef struct {
-  JobTaskId task; // 'sentinel_u32' indicates that no child was found.
-  u32       next;
+  JobTaskId task; // 'sentinel_u16' indicates that no child was found.
+  u16       next;
 } JobTaskChildItr;
 
 /**
@@ -63,7 +63,7 @@ typedef struct sJobGraph JobGraph;
  * required. Capacity of 0 is legal and will allocate memory when the first task is added.
  * Should be destroyed using 'jobgraph_destroy()'.
  */
-JobGraph* jobs_graph_create(Allocator*, String name, usize taskCapacity);
+JobGraph* jobs_graph_create(Allocator*, String name, u32 taskCapacity);
 
 /**
  * Destroy a JobGraph.
@@ -123,7 +123,7 @@ bool jobs_graph_task_undepend(JobGraph*, JobTaskId parent, JobTaskId child);
  *
  * Pre-condition: JobGraph is not running at the moment.
  */
-usize jobs_graph_reduce_dependencies(JobGraph*);
+u32 jobs_graph_reduce_dependencies(JobGraph*);
 
 /**
  * Validate the given JobGraph.
@@ -135,17 +135,17 @@ bool jobs_graph_validate(const JobGraph*);
 /**
  * Return the number of tasks registered to the given graph.
  */
-usize jobs_graph_task_count(const JobGraph*);
+u32 jobs_graph_task_count(const JobGraph*);
 
 /**
  * Return the number of root tasks registered to the given graph.
  */
-usize jobs_graph_task_root_count(const JobGraph*);
+u32 jobs_graph_task_root_count(const JobGraph*);
 
 /**
  * Return the number of leaf tasks registered to the given graph.
  */
-usize jobs_graph_task_leaf_count(const JobGraph*);
+u32 jobs_graph_task_leaf_count(const JobGraph*);
 
 /**
  * Retrieve the name of a graph.
@@ -170,17 +170,17 @@ bool jobs_graph_task_has_child(const JobGraph*, JobTaskId);
 /**
  * Count how many parents (dependencies) a job has.
  */
-usize jobs_graph_task_parent_count(const JobGraph*, JobTaskId);
+u32 jobs_graph_task_parent_count(const JobGraph*, JobTaskId);
 
 /**
  * Create an iterator for iterating over the children of the given task.
- * NOTE: Returns an interator with 'task' set to 'sentinel_u32' when the given task has no children.
+ * NOTE: Returns an interator with 'task' set to 'sentinel_u16' when the given task has no children.
  */
 JobTaskChildItr jobs_graph_task_child_begin(const JobGraph*, JobTaskId);
 
 /**
  * Advance the task child iterator.
- * NOTE: Returns an interator with 'task' set to 'sentinel_u32' when there is no next child.
+ * NOTE: Returns an interator with 'task' set to 'sentinel_u16' when there is no next child.
  */
 JobTaskChildItr jobs_graph_task_child_next(const JobGraph*, JobTaskChildItr);
 

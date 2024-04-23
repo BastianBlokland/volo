@@ -61,7 +61,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   // Discover all tests.
   DynArray specs    = dynarray_create_t(g_alloc_heap, CheckSpec, 64);
   bool     focus    = false;
-  usize    numTests = 0;
+  u32      numTests = 0;
   dynarray_for_t(&check->specs, CheckSpecDef, specDef) {
     CheckSpec spec = check_spec_create(g_alloc_heap, specDef);
     focus |= spec.focus;

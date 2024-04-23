@@ -9,7 +9,7 @@
 #define jobs_graph_aux_chunk_size (4 * usize_kibibyte)
 #define jobs_graph_max_tasks 25000
 
-ASSERT(jobs_graph_max_tasks < u32_max, "JobTasks have to be representable with 32 bits")
+ASSERT(jobs_graph_max_tasks < u16_max, "JobTasks have to be representable with 16 bits")
 
 INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
@@ -17,7 +17,7 @@ INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobT
 
 /**
  * Add a new task to the end of the linked list of task children that starts at 'linkHead'.
- * Pass a pointer to 'sentinel_u32' as 'linkHead' to create a new list.
+ * Pass a pointer to 'sentinel_u16' as 'linkHead' to create a new list.
  */
 static void jobs_graph_add_task_child_link(
     JobGraph* graph, const JobTaskId childTask, JobTaskLinkId* linkHead) {
@@ -26,7 +26,7 @@ static void jobs_graph_add_task_child_link(
   const JobTaskLinkId newLinkId                     = (JobTaskLinkId)graph->childLinks.size;
   *dynarray_push_t(&graph->childLinks, JobTaskLink) = (JobTaskLink){
       .task = childTask,
-      .next = sentinel_u32,
+      .next = sentinel_u16,
   };
 
   if (sentinel_check(*linkHead)) {
@@ -214,7 +214,7 @@ static void jobs_graph_topologically_insert(
 /**
  * Calculate the longest (aka 'critical') path through the graph.
  */
-static u32 jobs_graph_longestpath(const JobGraph* graph) {
+static u16 jobs_graph_longestpath(const JobGraph* graph) {
   /**
    * First flatten the graph into a topologically sorted set of tasks, then starting from the leaves
    * start summing all the distances.
@@ -238,22 +238,22 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
 
   /**
    * Keep a distance per task in the graph.
-   * Initialize to 'sentinel_u32' when the task has a parent or 1 when its a root task.
+   * Initialize to 'sentinel_u16' when the task has a parent or 1 when its a root task.
    */
 
-  u32* distances = mem_stack(sizeof(u32) * graph->tasks.size).ptr;
+  u16* distances = mem_stack(sizeof(u16) * graph->tasks.size).ptr;
   for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
-    distances[taskId] = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u32 : 1;
+    distances[taskId] = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u16 : 1;
   }
 
-  u32 maxDist = 1;
+  u16 maxDist = 1;
   for (usize i = sortedTasksCount; i-- != 0;) {
     const JobTaskId taskId      = sortedTasks[i];
-    const u32       currentDist = distances[taskId];
+    const u16       currentDist = distances[taskId];
 
     if (!sentinel_check(currentDist)) {
       jobs_graph_for_task_child(graph, taskId, child) {
-        u32* childDist = &distances[child.task];
+        u16* childDist = &distances[child.task];
         if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
           *childDist = currentDist + 1;
         }
@@ -265,7 +265,7 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
   return maxDist;
 }
 
-JobGraph* jobs_graph_create(Allocator* alloc, const String name, const usize taskCapacity) {
+JobGraph* jobs_graph_create(Allocator* alloc, const String name, const u32 taskCapacity) {
   JobGraph* graph = alloc_alloc_t(alloc, JobGraph);
 
   *graph = (JobGraph){
@@ -343,7 +343,7 @@ JobTaskId jobs_graph_add_task(
   mem_cpy(taskStorageCtx, ctx);
 
   *dynarray_push_t(&graph->parentCounts, u32)            = 0;
-  *dynarray_push_t(&graph->childSetHeads, JobTaskLinkId) = sentinel_u32;
+  *dynarray_push_t(&graph->childSetHeads, JobTaskLinkId) = sentinel_u16;
   return id;
 }
 
@@ -380,8 +380,8 @@ bool jobs_graph_task_undepend(JobGraph* graph, JobTaskId parent, JobTaskId child
   return false; // No dependency existed between parent and child.
 }
 
-usize jobs_graph_reduce_dependencies(JobGraph* graph) {
-  usize depsRemoved = 0;
+u32 jobs_graph_reduce_dependencies(JobGraph* graph) {
+  u32 depsRemoved = 0;
   jobs_graph_for_task(graph, taskId) {
     depsRemoved += jobs_graph_task_reduce_dependencies(graph, taskId);
   }
@@ -395,16 +395,16 @@ bool jobs_graph_validate(const JobGraph* graph) {
   return !hasCycles;
 }
 
-usize jobs_graph_task_count(const JobGraph* graph) { return graph->tasks.size; }
+u32 jobs_graph_task_count(const JobGraph* graph) { return (u32)graph->tasks.size; }
 
-usize jobs_graph_task_root_count(const JobGraph* graph) {
-  usize count = 0;
+u32 jobs_graph_task_root_count(const JobGraph* graph) {
+  u32 count = 0;
   jobs_graph_for_task(graph, taskId) { count += !jobs_graph_task_has_parent(graph, taskId); }
   return count;
 }
 
-usize jobs_graph_task_leaf_count(const JobGraph* graph) {
-  usize count = 0;
+u32 jobs_graph_task_leaf_count(const JobGraph* graph) {
+  u32 count = 0;
   jobs_graph_for_task(graph, taskId) { count += !jobs_graph_task_has_child(graph, taskId); }
   return count;
 }
@@ -426,7 +426,7 @@ bool jobs_graph_task_has_child(const JobGraph* graph, const JobTaskId task) {
   return !sentinel_check(childSetHead);
 }
 
-usize jobs_graph_task_parent_count(const JobGraph* graph, const JobTaskId task) {
+u32 jobs_graph_task_parent_count(const JobGraph* graph, const JobTaskId task) {
   diag_assert_msg(task < graph->parentCounts.size, "Out of bounds job task");
 
   return dynarray_begin_t(&graph->parentCounts, u32)[task];
@@ -441,7 +441,7 @@ JobTaskChildItr jobs_graph_task_child_begin(const JobGraph* graph, const JobTask
 
 JobTaskChildItr jobs_graph_task_child_next(const JobGraph* graph, const JobTaskChildItr itr) {
   if (sentinel_check(itr.next)) {
-    return (JobTaskChildItr){.task = sentinel_u32, .next = sentinel_u32};
+    return (JobTaskChildItr){.task = sentinel_u16, .next = sentinel_u16};
   }
   const JobTaskLink link = *jobs_graph_task_link(graph, itr.next);
   return (JobTaskChildItr){.task = link.task, .next = link.next};

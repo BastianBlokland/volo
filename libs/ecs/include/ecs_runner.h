@@ -16,7 +16,7 @@ typedef u64 JobId;
 
 // Forward declare from 'jobs_graph.h'.
 typedef struct sJobGraph JobGraph;
-typedef u32              JobTaskId;
+typedef u16              JobTaskId;
 
 typedef struct sEcsRunner EcsRunner;
 

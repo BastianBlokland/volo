@@ -6,7 +6,7 @@
 
 #define jobtask_max_user_data (usize)(64 - sizeof(JobTask))
 
-typedef u32 JobTaskLinkId;
+typedef u16 JobTaskLinkId;
 
 typedef struct {
   ALIGNAS(16)
