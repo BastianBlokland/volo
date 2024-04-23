@@ -57,7 +57,7 @@ static void jobs_graph_add_task_child_link(
  * Returns if the task existed in the linked-list (and thus was removed).
  *
  * NOTE: Does not free up space in the 'childLinks' array as that would require updating the
- * indices of all registred dependencies.
+ * indices of all registered dependencies.
  */
 static bool jobs_graph_remove_task_child_link(
     JobGraph* graph, const JobTaskId childTask, JobTaskLinkId* linkHead) {
@@ -93,13 +93,13 @@ static bool jobs_graph_remove_task_child_link(
  * More info: https://en.wikipedia.org/wiki/Transitive_reduction
  * Returns the amount of removed dependencies.
  */
-static usize jobs_graph_task_transitive_reduce(
+static u32 jobs_graph_task_transitive_reduce(
     JobGraph* graph, const JobTaskId rootTask, const JobTaskId task, BitSet processed) {
   /**
    * Current implementation uses recursion to go down the branches, meaning its not stack safe for
    * very long task chains.
    */
-  usize depsRemoved = 0;
+  u32 depsRemoved = 0;
   if (bitset_test(processed, task)) {
     return depsRemoved; // Already processed.
   }
@@ -121,12 +121,11 @@ static usize jobs_graph_task_transitive_reduce(
  * Returns the amount of removed dependencies.
  * Note is relatively expensive as it follows all dependencies in a 'depth-first' manner.
  */
-static usize jobs_graph_task_reduce_dependencies(JobGraph* graph, const JobTaskId task) {
-  // Using scratch memory here limits us to 65536 tasks (with the current scratch budgets).
-  BitSet processed = alloc_alloc(g_alloc_scratch, bits_to_bytes(graph->tasks.size) + 1, 1);
+static u32 jobs_graph_task_reduce_dependencies(JobGraph* graph, const JobTaskId task) {
+  BitSet processed = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
   mem_set(processed, 0);
 
-  usize depsRemoved = 0;
+  u32 depsRemoved = 0;
   jobs_graph_for_task_child(graph, task, child) {
     depsRemoved += jobs_graph_task_transitive_reduce(graph, task, child.task, processed);
   }
@@ -163,9 +162,8 @@ static bool jobs_graph_has_cycle(const JobGraph* graph) {
    * very long task chains.
    */
 
-  // Using scratch memory here limits us to 65536 tasks (with the current scratch budgets).
-  BitSet processed  = alloc_alloc(g_alloc_scratch, bits_to_bytes(graph->tasks.size) + 1, 1);
-  BitSet processing = alloc_alloc(g_alloc_scratch, bits_to_bytes(graph->tasks.size) + 1, 1);
+  BitSet processed  = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
+  BitSet processing = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
 
   mem_set(processed, 0);
   mem_set(processing, 0);
@@ -247,7 +245,7 @@ static u16 jobs_graph_longestpath(const JobGraph* graph) {
   }
 
   u16 maxDist = 1;
-  for (usize i = sortedTasksCount; i-- != 0;) {
+  for (u32 i = sortedTasksCount; i-- != 0;) {
     const JobTaskId taskId      = sortedTasks[i];
     const u16       currentDist = distances[taskId];
 
