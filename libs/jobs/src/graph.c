@@ -7,6 +7,9 @@
 #include "graph_internal.h"
 
 #define jobs_graph_aux_chunk_size (4 * usize_kibibyte)
+#define jobs_graph_max_tasks 25000
+
+ASSERT(jobs_graph_max_tasks < u32_max, "JobTasks have to be representable with 32 bits")
 
 INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
@@ -179,13 +182,18 @@ static bool jobs_graph_has_cycle(const JobGraph* graph) {
 }
 
 /**
- * Insert the task (and all its children) in a topologically sorted fashion in the output array.
- * This has the effect to 'Flattening' the graph to a linear sequence that satisfies the dependency
+ * Insert the task (and all its (grand-)children) topologically sorted in the output array.
+ * This has the effect to 'flattening' the graph to a linear sequence that satisfies the dependency
  * constraints.
  * More info: https://en.wikipedia.org/wiki/Topological_sorting
+ * NOTE: 'sortedTasks' array needs to be big enough to contain all (grand-)child tasks.
  */
 static void jobs_graph_topologically_insert(
-    const JobGraph* graph, const JobTaskId task, BitSet processed, DynArray* sortedIndices) {
+    const JobGraph* graph,
+    const JobTaskId task,
+    BitSet          processed,
+    JobTaskId*      sortedTasks,
+    u32*            sortedTaskCount) {
   /**
    * Do a 'Depth First Search' to insert the task and its children.
    *
@@ -198,14 +206,13 @@ static void jobs_graph_topologically_insert(
     if (bitset_test(processed, child.task)) {
       continue; // Already processed.
     }
-    jobs_graph_topologically_insert(graph, child.task, processed, sortedIndices);
+    jobs_graph_topologically_insert(graph, child.task, processed, sortedTasks, sortedTaskCount);
   }
-
-  *dynarray_push_t(sortedIndices, JobTaskId) = task;
+  sortedTasks[(*sortedTaskCount)++] = task;
 }
 
 /**
- * Calculate the longest (aka 'Critical') graph the graph.
+ * Calculate the longest (aka 'critical') path through the graph.
  */
 static u32 jobs_graph_longestpath(const JobGraph* graph) {
   /**
@@ -215,20 +222,18 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
    * http://www.mathcs.emory.edu/~cheung/Courses/171/Syllabus/11-Graph/Docs/longest-path-in-dag.pdf
    */
 
-  // Using scratch memory here limits us to 65536 tasks (with the current scratch budgets).
-  BitSet processed = alloc_alloc(g_alloc_scratch, bits_to_bytes(graph->tasks.size) + 1, 1);
+  BitSet processed = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
   mem_set(processed, 0);
 
-  // Note: Using heap memory here is unfortunate, but under current scratch budgets we would only
-  // support 2048 tasks. In the future we can reconsider those budgets.
-  DynArray sortedTasks = dynarray_create_t(g_alloc_heap, JobTaskId, graph->tasks.size);
+  JobTaskId* sortedTasks      = mem_stack(sizeof(JobTaskId) * graph->tasks.size).ptr;
+  u32        sortedTasksCount = 0;
 
   // Created a topologically sorted set of tasks.
   jobs_graph_for_task(graph, taskId) {
     if (bitset_test(processed, taskId)) {
       continue; // Already processed.
     }
-    jobs_graph_topologically_insert(graph, taskId, processed, &sortedTasks);
+    jobs_graph_topologically_insert(graph, taskId, processed, sortedTasks, &sortedTasksCount);
   }
 
   /**
@@ -236,22 +241,19 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
    * Initialize to 'sentinel_u32' when the task has a parent or 1 when its a root task.
    */
 
-  // Note: Unfortunate heap memory usage, but current scratch memory budgets would be too limiting.
-  DynArray distances = dynarray_create_t(g_alloc_heap, u32, graph->tasks.size);
-  dynarray_resize(&distances, graph->tasks.size);
+  u32* distances = mem_stack(sizeof(u32) * graph->tasks.size).ptr;
   for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
-    u32* dist = &dynarray_begin_t(&distances, u32)[taskId];
-    *dist     = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u32 : 1;
+    distances[taskId] = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u32 : 1;
   }
 
   u32 maxDist = 1;
-  for (usize i = sortedTasks.size; i-- != 0;) {
-    const JobTaskId taskId      = dynarray_begin_t(&sortedTasks, JobTaskId)[i];
-    const u32       currentDist = dynarray_begin_t(&distances, u32)[taskId];
+  for (usize i = sortedTasksCount; i-- != 0;) {
+    const JobTaskId taskId      = sortedTasks[i];
+    const u32       currentDist = distances[taskId];
 
     if (!sentinel_check(currentDist)) {
       jobs_graph_for_task_child(graph, taskId, child) {
-        u32* childDist = &dynarray_begin_t(&distances, u32)[child.task];
+        u32* childDist = &distances[child.task];
         if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
           *childDist = currentDist + 1;
         }
@@ -260,8 +262,6 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
     }
   }
 
-  dynarray_destroy(&sortedTasks);
-  dynarray_destroy(&distances);
   return maxDist;
 }
 
@@ -327,6 +327,10 @@ JobTaskId jobs_graph_add_task(
     const JobTaskFlags   flags) {
   // NOTE: Api promises sequential task-ids for sequential calls to jobs_graph_add_task.
   const JobTaskId id = (JobTaskId)graph->tasks.size;
+
+  if (UNLIKELY(id == jobs_graph_max_tasks)) {
+    diag_crash_msg("Maximum job graph task count exceeded");
+  }
 
   Mem taskStorage              = dynarray_push(&graph->tasks, 1);
   *((JobTask*)taskStorage.ptr) = (JobTask){
