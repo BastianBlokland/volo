@@ -24,7 +24,7 @@ typedef enum {
 
 typedef struct {
   EcsRunner* runner;
-} MetaTaskData;
+} RunnerTaskMeta;
 
 typedef struct {
   EcsSystemId      id;
@@ -32,7 +32,7 @@ typedef struct {
   const EcsRunner* runner;
   EcsWorld*        world;
   EcsSystemRoutine routine;
-} SystemTaskData;
+} RunnerTaskSystem;
 
 typedef struct {
   EcsSystemId   id;
@@ -87,7 +87,7 @@ static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
 }
 
 static void runner_task_flush(void* context) {
-  const MetaTaskData* data = context;
+  const RunnerTaskMeta* data = context;
   ecs_world_flush_internal(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
@@ -95,7 +95,7 @@ static void runner_task_flush(void* context) {
 }
 
 static void runner_task_system(void* context) {
-  const SystemTaskData* data = context;
+  const RunnerTaskSystem* data = context;
 
   const TimeSteady startTime = time_steady_clock();
 
@@ -126,7 +126,7 @@ static EcsTaskSet runner_insert_flush(EcsRunner* runner, const u32 planIndex) {
       plan->graph,
       string_lit("Flush"),
       runner_task_flush,
-      mem_struct(MetaTaskData, .runner = runner),
+      mem_struct(RunnerTaskMeta, .runner = runner),
       JobTaskFlags_ThreadAffinity);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
@@ -146,7 +146,7 @@ static EcsTaskSet runner_insert_system(
         systemDef->name,
         runner_task_system,
         mem_struct(
-            SystemTaskData,
+            RunnerTaskSystem,
             .id       = systemId,
             .parCount = systemDef->parallelCount,
             .parIndex = parIndex,
