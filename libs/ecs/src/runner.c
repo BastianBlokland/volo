@@ -237,6 +237,21 @@ static void runner_plan_optimize(EcsRunner* runner, const u32 planIndex) {
   jobs_graph_reduce_dependencies(plan->graph);
 }
 
+/**
+ * Find the plan with the lowest cost.
+ */
+static u32 runner_plan_best(EcsRunner* runner) {
+  u32 bestPlan = sentinel_u32;
+  u32 bestCost = u32_max;
+  for (u32 i = 0; i != array_elems(runner->plans); ++i) {
+    if (runner->plans[i].cost < bestCost) {
+      bestPlan = i;
+      bestCost = runner->plans[i].cost;
+    }
+  }
+  return bestPlan;
+}
+
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
   const EcsDef* def         = ecs_world_def(world);
   const u32     systemCount = (u32)def->systems.size;
@@ -254,6 +269,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   array_for_t(runner->plans, RunnerPlan, plan) {
     plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
     plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
+    plan->cost        = u32_max;
   }
 
   runner_systems_collect(runner);
@@ -301,8 +317,11 @@ JobId ecs_run_async(EcsRunner* runner) {
   runner->flags |= EcsRunnerPrivateFlags_Running;
   ecs_world_busy_set(runner->world);
 
-  const RunnerPlan* activePlan = &runner->plans[runner->planIndex];
-  return jobs_scheduler_run(activePlan->graph, jobAlloc);
+  // Pick the plan to schedule.
+  runner->planIndex = runner_plan_best(runner);
+
+  // Schedule the plan.
+  return jobs_scheduler_run(runner->plans[runner->planIndex].graph, jobAlloc);
 }
 
 void ecs_run_sync(EcsRunner* runner) {
