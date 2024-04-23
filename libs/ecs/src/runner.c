@@ -1,19 +1,14 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_path.h"
 #include "core_rng.h"
 #include "core_shuffle.h"
 #include "core_sort.h"
 #include "core_time.h"
 #include "ecs_runner.h"
-#include "jobs_dot.h"
-#include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
-#include "log_logger.h"
 
-#include "def_internal.h"
 #include "view_internal.h"
 #include "world_internal.h"
 
@@ -201,10 +196,15 @@ static void runner_systems_collect(EcsRunner* runner) {
   }
 }
 
-static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex) {
+static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
   const RunnerPlan*        plan     = &runner->plans[planIndex];
   const RunnerSystemEntry* sysBegin = runner->systems;
   const RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
+
+  // Optimally start with a random system order.
+  if (shuffle) {
+    shuffle_fisheryates_t(g_rng, sysBegin, sysEnd, RunnerSystemEntry);
+  }
 
   // Sort the systems to respect the ordering constrains.
   sort_bubblesort_t(sysBegin, sysEnd, RunnerSystemEntry, compare_system_entry);
@@ -253,7 +253,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   }
 
   runner_systems_collect(runner);
-  runner_plan_formulate(runner, runner->planIndex);
+  runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
   runner_plan_optimize(runner, runner->planIndex);
 
   // Allocate the runtime memory required to run the graph (reused for every run).
