@@ -43,6 +43,7 @@ typedef struct {
 typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks;
+  u32         cost;
 } RunnerPlan;
 
 struct sEcsRunner {
@@ -197,9 +198,9 @@ static void runner_systems_collect(EcsRunner* runner) {
 }
 
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
-  const RunnerPlan*        plan     = &runner->plans[planIndex];
-  const RunnerSystemEntry* sysBegin = runner->systems;
-  const RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
+  RunnerSystemEntry* sysBegin = runner->systems;
+  RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
+  RunnerPlan*        plan     = &runner->plans[planIndex];
 
   // Optimally start with a random system order.
   if (shuffle) {
@@ -212,7 +213,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   // Insert the systems into a job-graph.
   jobs_graph_clear(plan->graph);
   const EcsTaskSet flushTask = graph_insert_flush(runner, planIndex);
-  for (const RunnerSystemEntry* entry = sysBegin; entry != sysEnd; ++entry) {
+  for (RunnerSystemEntry* entry = sysBegin; entry != sysEnd; ++entry) {
     const EcsTaskSet entryTasks  = graph_insert_system(runner, planIndex, entry->id, entry->def);
     plan->systemTasks[entry->id] = entryTasks;
 
@@ -220,12 +221,15 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
     graph_add_dep(plan->graph, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
-    for (const RunnerSystemEntry* earlierEntry = sysBegin; earlierEntry != entry; ++earlierEntry) {
+    for (RunnerSystemEntry* earlierEntry = sysBegin; earlierEntry != entry; ++earlierEntry) {
       if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
         graph_add_dep(plan->graph, plan->systemTasks[earlierEntry->id], entryTasks);
       }
     }
   }
+
+  // Compute the plan cost (longest path through the graph).
+  plan->cost = jobs_graph_task_span(plan->graph);
 }
 
 static void runner_plan_optimize(EcsRunner* runner, const u32 planIndex) {
