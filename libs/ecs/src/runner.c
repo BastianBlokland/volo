@@ -45,8 +45,8 @@ typedef struct {
 struct sEcsRunner {
   EcsWorld*  world;
   u32        flags;
-  RunnerPlan plans[2];
   u32        planIndex;
+  RunnerPlan plans[2];
   Allocator* alloc;
   Mem        jobMem;
 };
