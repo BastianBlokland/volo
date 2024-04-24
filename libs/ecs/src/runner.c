@@ -181,10 +181,9 @@ static bool runner_system_conflict(EcsWorld* world, const EcsSystemDef* a, const
   return false;
 }
 
-static void runner_system_collect(EcsRunner* runner) {
-  const EcsDef* def = ecs_world_def(runner->world);
-  for (EcsSystemId sysId = 0; sysId != runner->systemCount; ++sysId) {
-    runner->systems[sysId] = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
+  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
+    out[sysId] = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
   }
 }
 
@@ -266,7 +265,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
     plan->cost        = u32_max;
   }
 
-  runner_system_collect(runner);
+  runner_system_collect(def, runner->systems);
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
   runner_plan_optimize(runner, runner->planIndex);
 
