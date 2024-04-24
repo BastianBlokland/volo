@@ -45,7 +45,6 @@ typedef struct {
 struct sEcsRunner {
   EcsWorld*  world;
   u32        flags;
-  u32        systemCount;
   RunnerPlan plans[2];
   u32        planIndex;
   Allocator* alloc;
@@ -191,7 +190,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   RunnerPlan*   plan = &runner->plans[planIndex];
 
   // Find all the registered systems.
-  const u32        systemCount = runner->systemCount;
+  const u32        systemCount = ecs_def_system_count(def);
   EcsSystemDefPtr* systems     = mem_stack(sizeof(EcsSystemDefPtr) * systemCount).ptr;
   runner_system_collect(def, systems);
 
@@ -253,13 +252,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   const u32     taskCount   = systemCount + graph_meta_task_count;
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
+  *runner           = (EcsRunner){.world = world, .flags = flags, .alloc = alloc};
 
-  *runner = (EcsRunner){
-      .world       = world,
-      .flags       = flags,
-      .systemCount = systemCount,
-      .alloc       = alloc,
-  };
   array_for_t(runner->plans, RunnerPlan, plan) {
     plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
     plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
@@ -280,9 +274,12 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
+  const EcsDef* def         = ecs_world_def(runner->world);
+  const u32     systemCount = ecs_def_system_count(def);
+
   array_for_t(runner->plans, RunnerPlan, plan) {
     jobs_graph_destroy(plan->graph);
-    alloc_free_array_t(runner->alloc, plan->systemTasks, runner->systemCount);
+    alloc_free_array_t(runner->alloc, plan->systemTasks, systemCount);
   }
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
