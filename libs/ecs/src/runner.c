@@ -53,16 +53,16 @@ struct sEcsRunner {
   Mem        jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
 static void runner_plan_finalize(EcsRunner*, const u32 planIndex);
 
 static i8 compare_system_entry(const void* a, const void* b) {
-  const EcsSystemDefPtr* entryA = a;
-  const EcsSystemDefPtr* entryB = b;
+  const EcsSystemDef** entryA = a;
+  const EcsSystemDef** entryB = b;
   return compare_i32(&(*entryA)->order, &(*entryB)->order);
 }
 

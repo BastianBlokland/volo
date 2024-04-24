@@ -65,7 +65,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   dynarray_for_t(&check->specs, CheckSpecDef, specDef) {
     CheckSpec spec = check_spec_create(g_alloc_heap, specDef);
     focus |= spec.focus;
-    numTests += spec.tests.size;
+    numTests += (u32)spec.tests.size;
     *dynarray_push_t(&specs, CheckSpec) = spec;
   }
 
