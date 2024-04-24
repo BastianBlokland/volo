@@ -8,15 +8,17 @@
 #include "ecs_runner.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
+#include "trace_tracer.h"
 
 #include "view_internal.h"
 #include "world_internal.h"
 
 /**
  * Meta systems:
+ * - Replan (attempt to compute a more efficient execution plan).
  * - Flush (applies entity layout modifications).
  */
-#define graph_meta_task_count 1
+#define graph_meta_task_count 2
 
 typedef EcsSystemDef* EcsSystemDefPtr;
 
@@ -39,7 +41,7 @@ typedef struct {
 typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks;
-  u32         cost;
+  u32         estimatedCost;
 } RunnerPlan;
 
 struct sEcsRunner {
@@ -54,6 +56,9 @@ struct sEcsRunner {
 THREAD_LOCAL bool        g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
+
+static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
+static void runner_plan_finalize(EcsRunner*, const u32 planIndex);
 
 static i8 compare_system_entry(const void* a, const void* b) {
   const EcsSystemDefPtr* entryA = a;
@@ -81,6 +86,26 @@ static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
   return flags;
 }
 
+static void runner_task_replan(void* context) {
+  const RunnerTaskMeta* data   = context;
+  EcsRunner*            runner = data->runner;
+
+  const u32 planIndexActive = runner->planIndex;
+  const u32 planIndexIdle   = planIndexActive ^ 1;
+
+  /**
+   * Re-formulate the idle plan.
+   * Currently we always start from a fully random order (by shuffling the systems), then build
+   * the plan, estimate the cost and determine if its better then the current plan.
+   */
+  runner_plan_formulate(runner, planIndexIdle, true /* shuffle */);
+
+  // If the plan is better then the active plan then finalize it.
+  if (runner->plans[planIndexIdle].estimatedCost < runner->plans[planIndexActive].estimatedCost) {
+    runner_plan_finalize(runner, planIndexIdle);
+  }
+}
+
 static void runner_task_flush(void* context) {
   const RunnerTaskMeta* data = context;
   ecs_world_flush_internal(data->runner->world);
@@ -106,6 +131,21 @@ static void runner_task_system(void* context) {
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
   ecs_world_stats_sys_add(data->world, data->id, dur);
+}
+
+static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
+  const RunnerPlan* plan = &runner->plans[planIndex];
+  /**
+   * Insert a task to attempt to compute a more efficient execution plan.
+   */
+  const JobTaskId taskId = jobs_graph_add_task(
+      plan->graph,
+      string_lit("Replan"),
+      runner_task_replan,
+      mem_struct(RunnerTaskMeta, .runner = runner),
+      JobTaskFlags_None);
+
+  return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
 
 static EcsTaskSet runner_insert_flush(EcsRunner* runner, const u32 planIndex) {
@@ -189,58 +229,79 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   const EcsDef* def  = ecs_world_def(runner->world);
   RunnerPlan*   plan = &runner->plans[planIndex];
 
-  // Find all the registered systems.
   const u32        systemCount = ecs_def_system_count(def);
   EcsSystemDefPtr* systems     = mem_stack(sizeof(EcsSystemDefPtr) * systemCount).ptr;
-  runner_system_collect(def, systems);
 
-  // Optionally shuffle them.
-  if (shuffle) {
-    shuffle_fisheryates_t(g_rng, systems, systems + systemCount, EcsSystemDefPtr);
+  trace_begin("ecs_plan_collect", TraceColor_Blue);
+  {
+    // Find all the registered systems.
+    runner_system_collect(def, systems);
+
+    // Optionally shuffle them.
+    if (shuffle) {
+      shuffle_fisheryates_t(g_rng, systems, systems + systemCount, EcsSystemDefPtr);
+    }
+
+    // Sort the systems to respect the ordering constrains.
+    sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
+
+    // Insert the systems into the job-graph.
   }
+  trace_end();
 
-  // Sort the systems to respect the ordering constrains.
-  sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
+  trace_begin("ecs_plan_build", TraceColor_Blue);
+  {
+    jobs_graph_clear(plan->graph);
 
-  // Insert the systems into the job-graph.
-  jobs_graph_clear(plan->graph);
-  const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
-  for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
-    const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
-    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
-    plan->systemTasks[sysId]     = entryTasks;
+    // Insert meta tasks.
+    runner_insert_replan(runner, planIndex); // NOTE: Replanning has no dependencies.
+    const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
 
-    // Insert a flush dependency (so flush only happens when all systems are done).
-    runner_add_dep(plan->graph, entryTasks, flushTask);
+    // Insert system tasks.
+    for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
+      const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
+      const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
+      plan->systemTasks[sysId]     = entryTasks;
 
-    // Insert required dependencies on the earlier systems.
-    for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
-      const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
-      if (runner_system_conflict(runner->world, *sysDef, *earlierSysDef)) {
-        runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
+      // Insert a flush dependency (so flush only happens when all systems are done).
+      runner_add_dep(plan->graph, entryTasks, flushTask);
+
+      // Insert required dependencies on the earlier systems.
+      for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
+        const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
+        if (runner_system_conflict(runner->world, *sysDef, *earlierSysDef)) {
+          runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
+        }
       }
     }
   }
+  trace_end();
 
-  // Compute the plan cost (longest path through the graph).
-  plan->cost = jobs_graph_task_span(plan->graph);
+  trace_begin("ecs_plan_estimate", TraceColor_Blue);
+  {
+    // Compute the plan cost (longest path through the graph).
+    plan->estimatedCost = jobs_graph_task_span(plan->graph);
+  }
+  trace_end();
 }
 
-static void runner_plan_optimize(EcsRunner* runner, const u32 planIndex) {
-  const RunnerPlan* plan = &runner->plans[planIndex];
-  jobs_graph_reduce_dependencies(plan->graph);
+static void runner_plan_finalize(EcsRunner* runner, const u32 planIndex) {
+  trace_begin("ecs_plan_finalize", TraceColor_Blue);
+  {
+    const RunnerPlan* plan = &runner->plans[planIndex];
+    jobs_graph_reduce_dependencies(plan->graph);
+  }
+  trace_end();
 }
 
 /**
  * Find the plan with the lowest cost.
  */
 static u32 runner_plan_best(EcsRunner* runner) {
-  u32 bestPlan = sentinel_u32;
-  u32 bestCost = u32_max;
+  u32 bestPlan = runner->planIndex;
   for (u32 i = 0; i != array_elems(runner->plans); ++i) {
-    if (runner->plans[i].cost < bestCost) {
+    if (runner->plans[i].estimatedCost < runner->plans[runner->planIndex].estimatedCost) {
       bestPlan = i;
-      bestCost = runner->plans[i].cost;
     }
   }
   return bestPlan;
@@ -255,13 +316,13 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   *runner           = (EcsRunner){.world = world, .flags = flags, .alloc = alloc};
 
   array_for_t(runner->plans, RunnerPlan, plan) {
-    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
-    plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
-    plan->cost        = u32_max;
+    plan->graph         = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
+    plan->systemTasks   = alloc_array_t(alloc, EcsTaskSet, systemCount);
+    plan->estimatedCost = u32_max;
   }
 
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
-  runner_plan_optimize(runner, runner->planIndex);
+  runner_plan_finalize(runner, runner->planIndex);
 
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
