@@ -43,14 +43,13 @@ typedef struct {
 } RunnerPlan;
 
 struct sEcsRunner {
-  EcsWorld*        world;
-  u32              flags;
-  u32              systemCount;
-  EcsSystemDefPtr* systems; // EcsSystemDefPtr[systemCount].
-  RunnerPlan       plans[2];
-  u32              planIndex;
-  Allocator*       alloc;
-  Mem              jobMem;
+  EcsWorld*  world;
+  u32        flags;
+  u32        systemCount;
+  RunnerPlan plans[2];
+  u32        planIndex;
+  Allocator* alloc;
+  Mem        jobMem;
 };
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
@@ -188,23 +187,26 @@ static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
 }
 
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
-  const EcsDef*    def      = ecs_world_def(runner->world);
-  EcsSystemDefPtr* sysBegin = runner->systems;
-  EcsSystemDefPtr* sysEnd   = runner->systems + runner->systemCount;
-  RunnerPlan*      plan     = &runner->plans[planIndex];
+  const EcsDef* def  = ecs_world_def(runner->world);
+  RunnerPlan*   plan = &runner->plans[planIndex];
 
-  // Optionally start with a random system order.
+  // Find all the registered systems.
+  const u32        systemCount = runner->systemCount;
+  EcsSystemDefPtr* systems     = mem_stack(sizeof(EcsSystemDefPtr) * systemCount).ptr;
+  runner_system_collect(def, systems);
+
+  // Optionally shuffle them.
   if (shuffle) {
-    shuffle_fisheryates_t(g_rng, sysBegin, sysEnd, EcsSystemDefPtr);
+    shuffle_fisheryates_t(g_rng, systems, systems + systemCount, EcsSystemDefPtr);
   }
 
   // Sort the systems to respect the ordering constrains.
-  sort_bubblesort_t(sysBegin, sysEnd, EcsSystemDefPtr, compare_system_entry);
+  sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
 
-  // Insert the systems into a job-graph.
+  // Insert the systems into the job-graph.
   jobs_graph_clear(plan->graph);
   const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
-  for (EcsSystemDefPtr* sysDef = sysBegin; sysDef != sysEnd; ++sysDef) {
+  for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
     const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
     const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
     plan->systemTasks[sysId]     = entryTasks;
@@ -213,7 +215,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
     runner_add_dep(plan->graph, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
-    for (EcsSystemDefPtr* earlierSysDef = sysBegin; earlierSysDef != sysDef; ++earlierSysDef) {
+    for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
       const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
       if (runner_system_conflict(runner->world, *sysDef, *earlierSysDef)) {
         runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
@@ -256,7 +258,6 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
       .world       = world,
       .flags       = flags,
       .systemCount = systemCount,
-      .systems     = alloc_array_t(alloc, EcsSystemDefPtr, systemCount),
       .alloc       = alloc,
   };
   array_for_t(runner->plans, RunnerPlan, plan) {
@@ -265,7 +266,6 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
     plan->cost        = u32_max;
   }
 
-  runner_system_collect(def, runner->systems);
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
   runner_plan_optimize(runner, runner->planIndex);
 
@@ -280,7 +280,6 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
-  alloc_free_array_t(runner->alloc, runner->systems, runner->systemCount);
   array_for_t(runner->plans, RunnerPlan, plan) {
     jobs_graph_destroy(plan->graph);
     alloc_free_array_t(runner->alloc, plan->systemTasks, runner->systemCount);
