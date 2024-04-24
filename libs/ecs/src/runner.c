@@ -35,7 +35,6 @@ typedef struct {
 } RunnerTaskSystem;
 
 typedef struct {
-  EcsSystemId   id;
   EcsSystemDef* def;
 } RunnerSystemEntry;
 
@@ -56,8 +55,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
@@ -189,19 +188,17 @@ static void runner_system_collect(EcsRunner* runner) {
   for (EcsSystemId sysId = 0; sysId != runner->systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
 
-    runner->systems[sysId] = (RunnerSystemEntry){
-        .id  = sysId,
-        .def = sysDef,
-    };
+    runner->systems[sysId] = (RunnerSystemEntry){.def = sysDef};
   }
 }
 
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
+  const EcsDef*      def      = ecs_world_def(runner->world);
   RunnerSystemEntry* sysBegin = runner->systems;
   RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
   RunnerPlan*        plan     = &runner->plans[planIndex];
 
-  // Optimally start with a random system order.
+  // Optionally start with a random system order.
   if (shuffle) {
     shuffle_fisheryates_t(g_rng, sysBegin, sysEnd, RunnerSystemEntry);
   }
@@ -213,16 +210,18 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   jobs_graph_clear(plan->graph);
   const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
   for (RunnerSystemEntry* entry = sysBegin; entry != sysEnd; ++entry) {
-    const EcsTaskSet entryTasks  = runner_insert_system(runner, planIndex, entry->id, entry->def);
-    plan->systemTasks[entry->id] = entryTasks;
+    const EcsSystemId sysId      = ecs_def_system_id(def, entry->def);
+    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, entry->def);
+    plan->systemTasks[sysId]     = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
     runner_add_dep(plan->graph, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
     for (RunnerSystemEntry* earlierEntry = sysBegin; earlierEntry != entry; ++earlierEntry) {
+      const EcsSystemId earlierSysId = ecs_def_system_id(def, earlierEntry->def);
       if (runner_system_conflict(runner->world, entry->def, earlierEntry->def)) {
-        runner_add_dep(plan->graph, plan->systemTasks[earlierEntry->id], entryTasks);
+        runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
       }
     }
   }
