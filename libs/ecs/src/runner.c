@@ -18,6 +18,8 @@
  */
 #define graph_meta_task_count 1
 
+typedef EcsSystemDef* EcsSystemDefPtr;
+
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
 } EcsRunnerPrivateFlags;
@@ -35,24 +37,20 @@ typedef struct {
 } RunnerTaskSystem;
 
 typedef struct {
-  EcsSystemDef* def;
-} RunnerSystemEntry;
-
-typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks;
   u32         cost;
 } RunnerPlan;
 
 struct sEcsRunner {
-  EcsWorld*          world;
-  u32                flags;
-  u32                systemCount;
-  RunnerSystemEntry* systems; // RunnerSystemEntry[systemCount].
-  RunnerPlan         plans[2];
-  u32                planIndex;
-  Allocator*         alloc;
-  Mem                jobMem;
+  EcsWorld*        world;
+  u32              flags;
+  u32              systemCount;
+  EcsSystemDefPtr* systems; // EcsSystemDefPtr[systemCount].
+  RunnerPlan       plans[2];
+  u32              planIndex;
+  Allocator*       alloc;
+  Mem              jobMem;
 };
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
@@ -60,9 +58,9 @@ THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
-  const RunnerSystemEntry* entryA = a;
-  const RunnerSystemEntry* entryB = b;
-  return compare_i32(&entryA->def->order, &entryB->def->order);
+  const EcsSystemDefPtr* entryA = a;
+  const EcsSystemDefPtr* entryB = b;
+  return compare_i32(&(*entryA)->order, &(*entryB)->order);
 }
 
 /**
@@ -186,41 +184,39 @@ static bool runner_system_conflict(EcsWorld* world, const EcsSystemDef* a, const
 static void runner_system_collect(EcsRunner* runner) {
   const EcsDef* def = ecs_world_def(runner->world);
   for (EcsSystemId sysId = 0; sysId != runner->systemCount; ++sysId) {
-    EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
-
-    runner->systems[sysId] = (RunnerSystemEntry){.def = sysDef};
+    runner->systems[sysId] = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
   }
 }
 
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
-  const EcsDef*      def      = ecs_world_def(runner->world);
-  RunnerSystemEntry* sysBegin = runner->systems;
-  RunnerSystemEntry* sysEnd   = runner->systems + runner->systemCount;
-  RunnerPlan*        plan     = &runner->plans[planIndex];
+  const EcsDef*    def      = ecs_world_def(runner->world);
+  EcsSystemDefPtr* sysBegin = runner->systems;
+  EcsSystemDefPtr* sysEnd   = runner->systems + runner->systemCount;
+  RunnerPlan*      plan     = &runner->plans[planIndex];
 
   // Optionally start with a random system order.
   if (shuffle) {
-    shuffle_fisheryates_t(g_rng, sysBegin, sysEnd, RunnerSystemEntry);
+    shuffle_fisheryates_t(g_rng, sysBegin, sysEnd, EcsSystemDefPtr);
   }
 
   // Sort the systems to respect the ordering constrains.
-  sort_bubblesort_t(sysBegin, sysEnd, RunnerSystemEntry, compare_system_entry);
+  sort_bubblesort_t(sysBegin, sysEnd, EcsSystemDefPtr, compare_system_entry);
 
   // Insert the systems into a job-graph.
   jobs_graph_clear(plan->graph);
   const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
-  for (RunnerSystemEntry* entry = sysBegin; entry != sysEnd; ++entry) {
-    const EcsSystemId sysId      = ecs_def_system_id(def, entry->def);
-    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, entry->def);
+  for (EcsSystemDefPtr* sysDef = sysBegin; sysDef != sysEnd; ++sysDef) {
+    const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
+    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
     plan->systemTasks[sysId]     = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
     runner_add_dep(plan->graph, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
-    for (RunnerSystemEntry* earlierEntry = sysBegin; earlierEntry != entry; ++earlierEntry) {
-      const EcsSystemId earlierSysId = ecs_def_system_id(def, earlierEntry->def);
-      if (runner_system_conflict(runner->world, entry->def, earlierEntry->def)) {
+    for (EcsSystemDefPtr* earlierSysDef = sysBegin; earlierSysDef != sysDef; ++earlierSysDef) {
+      const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
+      if (runner_system_conflict(runner->world, *sysDef, *earlierSysDef)) {
         runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
       }
     }
@@ -261,7 +257,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
       .world       = world,
       .flags       = flags,
       .systemCount = systemCount,
-      .systems     = alloc_array_t(alloc, RunnerSystemEntry, systemCount),
+      .systems     = alloc_array_t(alloc, EcsSystemDefPtr, systemCount),
       .alloc       = alloc,
   };
   array_for_t(runner->plans, RunnerPlan, plan) {
