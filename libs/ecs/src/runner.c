@@ -9,6 +9,7 @@
 #include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
+#include "log_logger.h"
 #include "trace_tracer.h"
 
 #include "view_internal.h"
@@ -291,12 +292,16 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
 }
 
 static void runner_plan_finalize(EcsRunner* runner, const u32 planIndex) {
+  const RunnerPlan* plan = &runner->plans[planIndex];
+
   trace_begin("ecs_plan_finalize", TraceColor_Blue);
-  {
-    const RunnerPlan* plan = &runner->plans[planIndex];
-    jobs_graph_reduce_dependencies(plan->graph);
-  }
+  jobs_graph_reduce_dependencies(plan->graph);
   trace_end();
+
+  log_d(
+      "Ecs runner plan finalized",
+      log_param("tasks", fmt_int(jobs_graph_task_count(plan->graph))),
+      log_param("estimated-cost", fmt_int(plan->estimatedCost)));
 }
 
 /**
