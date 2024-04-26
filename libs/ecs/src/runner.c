@@ -6,6 +6,7 @@
 #include "core_sort.h"
 #include "core_time.h"
 #include "ecs_runner.h"
+#include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 #include "trace_tracer.h"
@@ -89,6 +90,10 @@ static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
 static void runner_task_replan(void* context) {
   const RunnerTaskMeta* data   = context;
   EcsRunner*            runner = data->runner;
+
+  if (g_jobsWorkerCount == 1) {
+    return; // Replanning (to improve parallelism) only makes sense if we have multiple workers.
+  }
 
   const u32 planIndexActive = runner->planIndex;
   const u32 planIndexIdle   = planIndexActive ^ 1;
