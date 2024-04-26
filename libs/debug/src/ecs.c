@@ -1,16 +1,20 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_format.h"
+#include "core_path.h"
 #include "debug_ecs.h"
 #include "debug_register.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
+#include "jobs_dot.h"
+#include "log_logger.h"
 #include "ui.h"
 
 // clang-format off
 
-static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
-static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipFilter    = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipFreeze    = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipDumpGraph = string_static("Dump the current task graph as a dot file.");
 
 // clang-format on
 
@@ -206,6 +210,23 @@ static i8 sys_compare_info_duration(const void* a, const void* b) {
 static i8 sys_compare_info_order(const void* a, const void* b) {
   return compare_i32(
       field_ptr(a, DebugEcsSysInfo, definedOrder), field_ptr(b, DebugEcsSysInfo, definedOrder));
+}
+
+static void ecs_dump_graph(const JobGraph* graph) {
+  const String pathScratch = path_build_scratch(
+      path_parent(g_path_executable),
+      string_lit("logs"),
+      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("dot")));
+
+  const FileResult res = jobs_dot_dump_graph_to_path(pathScratch, graph);
+  if (res == FileResult_Success) {
+    log_i("Dumped ecs graph", log_param("path", fmt_path(pathScratch)));
+  } else {
+    log_e(
+        "Failed to dump ecs graph",
+        log_param("error", fmt_text(file_result_str(res))),
+        log_param("path", fmt_path(pathScratch)));
+  }
 }
 
 static bool ecs_panel_filter(DebugEcsPanelComp* panelComp, const String name) {
@@ -621,9 +642,10 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 120);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -638,6 +660,11 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("Dump graph"), .tooltip = g_tooltipDumpGraph)) {
+    const JobGraph* currentGraph = ecs_runner_graph(g_ecsRunningRunner);
+    ecs_dump_graph(currentGraph);
+  }
 
   ui_layout_pop(canvas);
 }
