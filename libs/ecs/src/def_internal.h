@@ -62,3 +62,7 @@ void ecs_def_freeze(EcsDef*);
  * Re-allow further modifications to this definition.
  */
 void ecs_def_unfreeze(EcsDef*);
+
+MAYBE_UNUSED static EcsSystemId ecs_def_system_id(const EcsDef* def, const EcsSystemDef* sysDef) {
+  return (EcsSystemId)(sysDef - dynarray_begin_t(&def->systems, EcsSystemDef));
+}

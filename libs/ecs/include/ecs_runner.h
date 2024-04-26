@@ -16,7 +16,7 @@ typedef u64 JobId;
 
 // Forward declare from 'jobs_graph.h'.
 typedef struct sJobGraph JobGraph;
-typedef u32              JobTaskId;
+typedef u16              JobTaskId;
 
 typedef struct sEcsRunner EcsRunner;
 
@@ -25,8 +25,8 @@ typedef struct {
 } EcsTaskSet;
 
 typedef enum {
-  EcsRunnerFlags_None         = 0,
-  EcsRunnerFlags_DumpGraphDot = 1 << 0,
+  EcsRunnerFlags_None   = 0,
+  EcsRunnerFlags_Replan = 1 << 0, // Automatically compute new plans when running.
 
   EcsRunnerFlags_Count = 1,
 } EcsRunnerFlags;

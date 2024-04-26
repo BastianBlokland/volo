@@ -173,7 +173,7 @@ static void executor_perform_work(const JobWorkerId wId, WorkItem item) {
    */
 
   JobTaskId childTasks[job_max_task_children];
-  usize     childCount = 0;
+  u32       childCount = 0;
   jobs_graph_for_task_child(item.job->graph, item.task, child) {
     diag_assert_msg(
         childCount < job_max_task_children,
@@ -326,7 +326,7 @@ void executor_run(Job* job) {
   diag_assert_msg(g_jobsWorkerCount, "Job system has to be initialized jobs_init() first.");
 
   const JobWorkerId wId           = g_jobsWorkerId;
-  const usize       rootTaskCount = jobs_graph_task_root_count(job->graph);
+  const u32         rootTaskCount = jobs_graph_task_root_count(job->graph);
 
   /**
    * Push work items for all root tasks in the job.
@@ -336,7 +336,7 @@ void executor_run(Job* job) {
    */
 
   JobTaskId taskId = 0;
-  for (usize pushedRootTaskCount = 0; pushedRootTaskCount != rootTaskCount; ++taskId) {
+  for (u32 pushedRootTaskCount = 0; pushedRootTaskCount != rootTaskCount; ++taskId) {
     if (jobs_graph_task_has_parent(job->graph, taskId)) {
       continue; // Not a root task.
     }

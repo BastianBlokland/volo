@@ -6,13 +6,16 @@
 
 #define jobtask_max_user_data (usize)(64 - sizeof(JobTask))
 
-typedef u32 JobTaskLinkId;
+typedef u16 JobTaskLinkId;
 
 typedef struct {
+  ALIGNAS(16)
   JobTaskRoutine routine;
   String         name;
   JobTaskFlags   flags;
 } JobTask;
+
+ASSERT(sizeof(JobTask) == 32, "Unexpected JobTask size");
 
 typedef struct {
   JobTaskId     task;
@@ -21,10 +24,11 @@ typedef struct {
 
 struct sJobGraph {
   DynArray   tasks;         // JobTask[], NOTE: Stride is 64 not sizeof(JobTask).
-  DynArray   parentCounts;  // u32[]
+  DynArray   parentCounts;  // u16[]
   DynArray   childSetHeads; // JobTaskLinkId[]
   DynArray   childLinks;    // JobTaskLink[]
   String     name;
+  Allocator* allocTaskAux; // (chunked) bump allocator for axillary data (eg task names).
   Allocator* alloc;
 };
 
