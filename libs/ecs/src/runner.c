@@ -95,6 +95,9 @@ static void runner_task_replan(void* context) {
   if (g_jobsWorkerCount == 1) {
     return; // Replanning (to improve parallelism) only makes sense if we have multiple workers.
   }
+  if (!(runner->flags & EcsRunnerFlags_Replan)) {
+    return; // Replan not enabled.
+  }
 
   const u32 planIndexActive = runner->planIndex;
   const u32 planIndexIdle   = planIndexActive ^ 1;

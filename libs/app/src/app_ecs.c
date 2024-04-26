@@ -9,10 +9,14 @@
 #include "log.h"
 #include "trace.h"
 
+static CliId              g_optNoEcsReplan;
 MAYBE_UNUSED static CliId g_optTraceNoStore, g_optTraceSl;
 
 void app_cli_configure(CliApp* app) {
   app_ecs_configure(app);
+
+  g_optNoEcsReplan = cli_register_flag(app, '\0', string_lit("no-ecs-replan"), 0);
+  cli_register_desc(app, g_optNoEcsReplan, string_lit("Disable ecs replanning."));
 
 #ifdef VOLO_TRACE
   g_optTraceNoStore = cli_register_flag(app, '\0', string_lit("trace-no-store"), 0);
@@ -51,11 +55,16 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   // Enable custom signal handling, used for graceful shutdown on interrupt.
   signal_intercept_enable();
 
+  EcsRunnerFlags runnerFlags = EcsRunnerFlags_Replan;
+  if (cli_parse_provided(invoc, g_optNoEcsReplan)) {
+    runnerFlags &= ~EcsRunnerFlags_Replan;
+  }
+
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   app_ecs_register(def, invoc);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
-  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
+  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, runnerFlags);
   app_ecs_init(world, invoc);
 
   ecs_world_flush(world); // Flush any entity / component additions made during the init.
