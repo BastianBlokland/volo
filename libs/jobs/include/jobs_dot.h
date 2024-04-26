@@ -27,3 +27,4 @@ FileResult jobs_dot_dump_graph(File*, const JobGraph*);
  * path.
  */
 FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph*);
+FileResult jobs_dot_dump_graph_to_path_default(const JobGraph*);
