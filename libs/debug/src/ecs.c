@@ -7,6 +7,7 @@
 #include "ecs_runner.h"
 #include "ecs_world.h"
 #include "jobs_dot.h"
+#include "jobs_executor.h"
 #include "log_logger.h"
 #include "ui.h"
 
@@ -708,6 +709,8 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
   const u32 numSystems = (u32)panelComp->systems.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numSystems));
 
+  const bool hasMultipleWorkers = g_jobsWorkerCount > 1;
+
   ui_canvas_id_block_next(canvas); // Start the list of systems on its own id block.
   dynarray_for_t(&panelComp->systems, DebugEcsSysInfo, sysInfo) {
     ui_table_next_row(canvas, &table);
@@ -726,7 +729,11 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
         fmt_write_scratch("{}", fmt_int(sysInfo->viewCount)),
         .tooltip = sys_views_tooltip_scratch(ecsDef, sysInfo));
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->parallelCount)));
+    if (hasMultipleWorkers) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->parallelCount)));
+    } else {
+      ui_label(canvas, string_lit("N/A"));
+    }
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_duration(sysInfo->duration)));
   }
