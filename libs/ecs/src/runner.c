@@ -53,6 +53,7 @@ struct sEcsRunner {
   u32        flags;
   u32        planIndex;
   RunnerPlan plans[2];
+  u32*       taskCosts;      // Average time in nanoseconds for each task. u32[taskCount].
   BitSet     conflictMatrix; // Triangular matrix of system conflicts. bit[systemId, systemId].
   Mem        jobMem;
 };
@@ -407,11 +408,13 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
   runner_plan_finalize(runner, runner->planIndex);
 
+  const JobGraph* graph = runner->plans[runner->planIndex].graph;
+  runner->taskCosts     = alloc_array_t(alloc, u32, jobs_graph_task_count(graph));
+
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
-  const JobGraph* graph      = runner->plans[runner->planIndex].graph;
-  const usize     jobMemSize = jobs_scheduler_mem_size(graph) + 64;
-  runner->jobMem             = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
+  const usize jobMemSize = jobs_scheduler_mem_size(graph) + 64;
+  runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
   return runner;
 }
 
@@ -420,6 +423,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
   const EcsDef* def         = ecs_world_def(runner->world);
   const u32     systemCount = ecs_def_system_count(def);
+  const u32     taskCount   = jobs_graph_task_count(runner->plans[0].graph);
 
   array_for_t(runner->plans, RunnerPlan, plan) {
     jobs_graph_destroy(plan->graph);
@@ -428,6 +432,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
   if (mem_valid(runner->conflictMatrix)) {
     alloc_free(runner->alloc, runner->conflictMatrix);
   }
+  alloc_free_array_t(runner->alloc, runner->taskCosts, taskCount);
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
 }
