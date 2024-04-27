@@ -6,7 +6,7 @@
  * Fired once when the job library is initialized.
  */
 void scheduler_init(void);
-void executor_init(void);
+void executor_init(const JobsConfig*);
 
 /**
  * Global teardown routines.

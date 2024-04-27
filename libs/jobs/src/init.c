@@ -6,14 +6,14 @@
 
 static bool g_initalized;
 
-void jobs_init(void) {
+void jobs_init(const JobsConfig* cfg) {
   diag_assert(g_thread_tid == g_thread_main_tid);
 
   if (!g_initalized) {
     g_initalized = true;
 
     scheduler_init();
-    executor_init();
+    executor_init(cfg);
   }
 }
 

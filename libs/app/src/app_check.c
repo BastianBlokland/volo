@@ -8,7 +8,7 @@
 #include "log.h"
 #include "trace.h"
 
-static CliId g_optOutputPassingTests, g_optHelp;
+static CliId g_optOutputPassingTests, g_optJobWorkers, g_optHelp;
 
 static CheckRunFlags app_check_runflags(const CliInvocation* invoc) {
   CheckRunFlags flags = CheckRunFlags_None;
@@ -19,11 +19,13 @@ static CheckRunFlags app_check_runflags(const CliInvocation* invoc) {
 }
 
 void app_cli_configure(CliApp* app) {
-  g_optOutputPassingTests =
-      cli_register_flag(app, 'o', string_lit("output-passing"), CliOptionFlags_None);
+  g_optOutputPassingTests = cli_register_flag(app, 'o', string_lit("output-passing"), 0);
   cli_register_desc(app, g_optOutputPassingTests, string_lit("Display passing tests."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optJobWorkers = cli_register_flag(app, '\0', string_lit("workers"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
+
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), 0);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusion(app, g_optHelp, g_optOutputPassingTests);
 }
@@ -39,7 +41,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     goto Exit;
   }
 
-  jobs_init();
+  const JobsConfig jobsConfig = {
+      .workerCount = (u16)cli_read_u64(invoc, g_optJobWorkers, 0),
+  };
+  jobs_init(&jobsConfig);
 
   CheckDef* check = check_create(g_alloc_heap);
   app_check_configure(check);
