@@ -36,6 +36,12 @@ typedef struct {
 typedef void (*JobTaskRoutine)(void* context);
 
 /**
+ * Routine to estimate the cost of a single task.
+ * NOTE: Units of the cost are up to caller (could be used as nanoseconds for example).
+ */
+typedef u64 (*JobsCostEstimator)(const void* userCtx, JobTaskId);
+
+/**
  * JobGraph data structure.
  * Contains all tasks and dependencies between them.
  * Can be scheduled one or multiple times on the job system.
@@ -186,6 +192,6 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph*, JobTaskChildItr);
 
 /**
  * Calculate the job span (longest serial path through the graph).
- * aka 'Critical-Path Length' / 'Computational Depth'.
  */
-u32 jobs_graph_task_span(const JobGraph*);
+u64 jobs_graph_task_span(const JobGraph*);
+u64 jobs_graph_task_span_cost(const JobGraph*, JobsCostEstimator, const void* userCtx);

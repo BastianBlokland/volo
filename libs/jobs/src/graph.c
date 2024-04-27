@@ -11,6 +11,12 @@
 
 ASSERT(jobs_graph_max_tasks < u16_max, "JobTasks have to be representable with 16 bits")
 
+static u64 jobs_task_cost_estimator_one(const void* userCtx, const JobTaskId taskId) {
+  (void)userCtx;
+  (void)taskId;
+  return 1;
+}
+
 INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
 }
@@ -212,14 +218,14 @@ static void jobs_graph_topologically_insert(
 /**
  * Calculate the longest (aka 'critical') path through the graph.
  */
-static u16 jobs_graph_longestpath(const JobGraph* graph) {
+static u64 jobs_graph_longestpath(
+    const JobGraph* graph, const JobsCostEstimator costEstimator, const void* userCtx) {
   /**
    * First flatten the graph into a topologically sorted set of tasks, then starting from the leaves
-   * start summing all the distances.
+   * start summing all the costs.
    * More Info:
    * http://www.mathcs.emory.edu/~cheung/Courses/171/Syllabus/11-Graph/Docs/longest-path-in-dag.pdf
    */
-
   BitSet processed = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
   mem_set(processed, 0);
 
@@ -235,32 +241,38 @@ static u16 jobs_graph_longestpath(const JobGraph* graph) {
   }
 
   /**
-   * Keep a distance per task in the graph.
-   * Initialize to 'sentinel_u16' when the task has a parent or 1 when its a root task.
+   * Keep a cost per task in the graph.
+   * Initialize to 'sentinel_u64' when the task has a parent or its cost when its a root task.
    */
 
-  u16* distances = mem_stack(sizeof(u16) * graph->tasks.size).ptr;
+  u64* costs = mem_stack(sizeof(u64) * graph->tasks.size).ptr;
   for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
-    distances[taskId] = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u16 : 1;
+    if (jobs_graph_task_has_parent(graph, taskId)) {
+      costs[taskId] = sentinel_u64;
+    } else {
+      costs[taskId] = costEstimator(userCtx, taskId);
+    }
   }
 
-  u16 maxDist = 1;
+  u64 maxCost = 0;
   for (u32 i = sortedTasksCount; i-- != 0;) {
     const JobTaskId taskId      = sortedTasks[i];
-    const u16       currentDist = distances[taskId];
+    const u64       currentCost = costs[taskId];
 
-    if (!sentinel_check(currentDist)) {
+    if (!sentinel_check(currentCost)) {
+      maxCost = math_max(maxCost, currentCost);
       jobs_graph_for_task_child(graph, taskId, child) {
-        u16* childDist = &distances[child.task];
-        if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
-          *childDist = currentDist + 1;
+        const u64 childSelfCost = costEstimator(userCtx, child.task);
+        u64*      childCost     = &costs[child.task];
+        if (sentinel_check(*childCost) || *childCost < (currentCost + childSelfCost)) {
+          *childCost = currentCost + childSelfCost;
         }
-        maxDist = math_max(maxDist, *childDist);
+        maxCost = math_max(maxCost, *childCost);
       }
     }
   }
 
-  return maxDist;
+  return maxCost;
 }
 
 JobGraph* jobs_graph_create(Allocator* alloc, const String name, const u32 taskCapacity) {
@@ -445,4 +457,11 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph* graph, const JobTaskC
   return (JobTaskChildItr){.task = link.task, .next = link.next};
 }
 
-u32 jobs_graph_task_span(const JobGraph* graph) { return jobs_graph_longestpath(graph); }
+u64 jobs_graph_task_span(const JobGraph* graph) {
+  return jobs_graph_longestpath(graph, jobs_task_cost_estimator_one, null);
+}
+
+u64 jobs_graph_task_span_cost(
+    const JobGraph* graph, const JobsCostEstimator estimator, const void* userCtx) {
+  return jobs_graph_longestpath(graph, estimator, userCtx);
+}

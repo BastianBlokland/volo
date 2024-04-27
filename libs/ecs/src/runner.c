@@ -44,7 +44,7 @@ typedef struct {
 typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks;
-  u32         estimatedCost;
+  u64         estimatedCost;
 } RunnerPlan;
 
 struct sEcsRunner {
@@ -58,8 +58,8 @@ struct sEcsRunner {
   Mem        jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
