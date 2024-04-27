@@ -18,7 +18,7 @@
 #define worker_max_count 4
 
 // Maximum amount of root tasks in a job.
-#define job_max_root_tasks 512
+#define job_max_root_tasks 1024
 
 // Maximum amount of tasks that can depend on a single task.
 #define job_max_task_children 512
