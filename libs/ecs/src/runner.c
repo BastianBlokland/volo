@@ -412,7 +412,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   array_for_t(runner->plans, RunnerPlan, plan) {
     plan->graph         = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
     plan->systemTasks   = alloc_array_t(alloc, EcsTaskSet, systemCount);
-    plan->estimatedCost = u32_max;
+    plan->estimatedCost = u64_max;
   }
 
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
