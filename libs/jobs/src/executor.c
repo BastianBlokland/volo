@@ -50,6 +50,7 @@ u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL bool        g_jobsIsWorking;
+THREAD_LOCAL JobTaskId   g_jobsTaskId;
 
 static void executor_wake_worker_all(void) {
   thread_mutex_lock(g_mutex);
@@ -135,13 +136,14 @@ static WorkItem executor_work_steal_loop(const JobWorkerId wId) {
   return (WorkItem){0};
 }
 
-static void executor_perform_work(const JobWorkerId wId, WorkItem item) {
+static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
   // Get the JobTask definition from the graph.
   const JobTask* jobTaskDef = job_graph_task_def(item.job->graph, item.task);
 
   // Invoke the user routine.
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
   {
+    g_jobsTaskId    = item.task;
     g_jobsIsWorking = true;
     jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
     g_jobsIsWorking = false;
