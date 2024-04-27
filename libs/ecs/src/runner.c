@@ -408,8 +408,12 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
   runner_plan_finalize(runner, runner->planIndex);
 
-  const JobGraph* graph = runner->plans[runner->planIndex].graph;
-  runner->taskCosts     = alloc_array_t(alloc, u32, jobs_graph_task_count(graph));
+  const JobGraph* graph          = runner->plans[runner->planIndex].graph;
+  const u32       graphTaskCount = jobs_graph_task_count(graph);
+
+  // Allocate storage for tracking task cost (runtime duration).
+  runner->taskCosts = alloc_array_t(alloc, u32, graphTaskCount);
+  mem_set(mem_create(runner->taskCosts, sizeof(u32) * graphTaskCount), 0);
 
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
