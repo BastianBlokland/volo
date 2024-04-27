@@ -102,7 +102,9 @@ bool thread_pal_set_priority(const ThreadPriority prio) {
 }
 
 i32 thread_atomic_load_i32(i32* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
+u32 thread_atomic_load_u32(u32* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
 i64 thread_atomic_load_i64(i64* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
+u64 thread_atomic_load_u64(u64* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
 
 void thread_atomic_store_i32(i32* ptr, i32 value) { __atomic_store(ptr, &value, __ATOMIC_SEQ_CST); }
 void thread_atomic_store_u32(u32* ptr, u32 value) { __atomic_store(ptr, &value, __ATOMIC_SEQ_CST); }

@@ -78,7 +78,9 @@ typedef i32 ThreadSpinLock;
  * This includes a general memory barrier.
  */
 i32 thread_atomic_load_i32(i32*);
+u32 thread_atomic_load_u32(u32*);
 i64 thread_atomic_load_i64(i64*);
+u64 thread_atomic_load_u64(u64*);
 
 /**
  * Atomically stores the value at the given pointer.
