@@ -70,7 +70,7 @@ static WorkItem executor_work_pop(const JobWorkerId wId) {
      * first before taking from our normal queue.
      */
     const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
-    if (UNLIKELY(workitem_valid(affinityItem))) {
+    if (workitem_valid(affinityItem)) {
       return affinityItem;
     }
   }
@@ -104,7 +104,7 @@ static WorkItem executor_work_affinity_or_steal(const JobWorkerId wId) {
    */
   if (wId == g_affinityWorker) {
     const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
-    if (UNLIKELY(workitem_valid(affinityItem))) {
+    if (workitem_valid(affinityItem)) {
       return affinityItem;
     }
   }
