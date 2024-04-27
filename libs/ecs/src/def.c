@@ -142,7 +142,7 @@ u32 ecs_def_system_parallel(const EcsDef* def, const EcsSystemId id) {
   return ecs_def_system(def, id)->parallelCount;
 }
 
-u32 ecs_def_system_flags(const EcsDef* def, const EcsSystemId id) {
+EcsSystemFlags ecs_def_system_flags(const EcsDef* def, const EcsSystemId id) {
   return ecs_def_system(def, id)->flags;
 }
 
