@@ -209,8 +209,10 @@ static i8 sys_compare_info_duration(const void* a, const void* b) {
 }
 
 static i8 sys_compare_info_order(const void* a, const void* b) {
-  return compare_i32(
-      field_ptr(a, DebugEcsSysInfo, definedOrder), field_ptr(b, DebugEcsSysInfo, definedOrder));
+  const DebugEcsSysInfo* infoA = a;
+  const DebugEcsSysInfo* infoB = b;
+  const i8               comp  = compare_i32(&infoA->definedOrder, &infoB->definedOrder);
+  return comp ? comp : compare_u32(&infoA->id, &infoB->id);
 }
 
 static void ecs_dump_graph(const JobGraph* graph) {
