@@ -142,6 +142,11 @@ static void runner_task_system(void* context) {
   g_ecsRunningRunner   = null;
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+
+  const u32 cost = dur > u32_max ? u32_max : (u32)dur;
+  // TODO: Reduce the false sharing of cache-lines on the costs.
+  thread_atomic_store_u32(&data->runner->taskCosts[g_jobsTaskId], cost);
+
   ecs_world_stats_sys_add(data->world, data->id, dur);
 }
 
