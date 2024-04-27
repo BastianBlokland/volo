@@ -2,6 +2,7 @@
 #include "core_rng.h"
 #include "core_thread.h"
 #include "jobs_graph.h"
+#include "jobs_init.h"
 #include "trace_tracer.h"
 
 #include "affinity_queue_internal.h"
@@ -12,9 +13,7 @@
 
 #include <immintrin.h>
 
-// Amounts of cores reserved for OS and other applications on the system.
 // Note: the main-thread is also a worker, so worker count of 1 won't start any additional threads.
-#define worker_reserved_core_count 1
 #define worker_min_count 1
 #define worker_max_count 4
 
@@ -257,9 +256,22 @@ static void executor_worker_thread(void* data) {
   }
 }
 
-void executor_init(void) {
-  const u16 desiredWorkerCount = g_thread_core_count - worker_reserved_core_count;
-  g_jobsWorkerCount = math_min(math_max(desiredWorkerCount, worker_min_count), worker_max_count);
+static u16 executor_worker_count_desired(const JobsConfig* cfg) {
+  if (cfg->workerCount) {
+    return cfg->workerCount;
+  }
+  // Amounts of cores reserved for OS and other applications on the system.
+  const u16 reservedCoreCount = 1;
+  return g_thread_core_count - reservedCoreCount;
+}
+
+static u16 executor_worker_count(const JobsConfig* cfg) {
+  const u16 desiredCount = executor_worker_count_desired(cfg);
+  return math_min(math_max(desiredCount, worker_min_count), worker_max_count);
+}
+
+void executor_init(const JobsConfig* cfg) {
+  g_jobsWorkerCount = executor_worker_count(cfg);
   g_mutex           = thread_mutex_create(g_alloc_heap);
   g_wakeCondition   = thread_cond_create(g_alloc_heap);
 

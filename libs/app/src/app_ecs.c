@@ -9,11 +9,15 @@
 #include "log.h"
 #include "trace.h"
 
+static CliId              g_optJobWorkers;
 static CliId              g_optNoEcsReplan;
 MAYBE_UNUSED static CliId g_optTraceNoStore, g_optTraceSl;
 
 void app_cli_configure(CliApp* app) {
   app_ecs_configure(app);
+
+  g_optJobWorkers = cli_register_flag(app, '\0', string_lit("workers"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
 
   g_optNoEcsReplan = cli_register_flag(app, '\0', string_lit("no-ecs-replan"), 0);
   cli_register_desc(app, g_optNoEcsReplan, string_lit("Disable ecs replanning."));
@@ -50,7 +54,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 #endif
 
-  jobs_init();
+  const JobsConfig jobsConfig = {
+      .workerCount = (u16)cli_read_u64(invoc, g_optJobWorkers, 0),
+  };
+  jobs_init(&jobsConfig);
 
   // Enable custom signal handling, used for graceful shutdown on interrupt.
   signal_intercept_enable();
