@@ -446,7 +446,3 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph* graph, const JobTaskC
 }
 
 u32 jobs_graph_task_span(const JobGraph* graph) { return jobs_graph_longestpath(graph); }
-
-f32 jobs_graph_task_parallelism(const JobGraph* graph) {
-  return (f32)jobs_graph_task_count(graph) / (f32)jobs_graph_task_span(graph);
-}

@@ -189,10 +189,3 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph*, JobTaskChildItr);
  * aka 'Critical-Path Length' / 'Computational Depth'.
  */
 u32 jobs_graph_task_span(const JobGraph*);
-
-/**
- * Maximum theoretical speedup when using an infinite number of processors.
- * Defined as jobs_graph_task_count() / jobs_graph_task_span(). Each task is considered equal in
- * this calculation.
- */
-f32 jobs_graph_task_parallelism(const JobGraph*);
