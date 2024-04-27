@@ -42,13 +42,14 @@ typedef struct {
 } DebugEcsArchetypeInfo;
 
 typedef struct {
-  String       name;
-  EcsViewId*   views;
-  EcsSystemId  id;
-  u32          viewCount;
-  i32          definedOrder; // Configured ordering constraint.
-  u16          parallelCount;
-  TimeDuration duration;
+  String         name;
+  EcsViewId*     views;
+  EcsSystemId    id;
+  u32            viewCount;
+  i32            definedOrder; // Configured ordering constraint.
+  u16            parallelCount;
+  EcsSystemFlags flags : 16;
+  TimeDuration   duration;
 } DebugEcsSysInfo;
 
 typedef enum {
@@ -605,6 +606,7 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
           .views         = ecs_def_system_views(def, id).values,
           .viewCount     = (u32)ecs_def_system_views(def, id).count,
           .parallelCount = ecs_def_system_parallel(def, id),
+          .flags         = ecs_def_system_flags(def, id),
           .duration      = stats.sysStats[id].avgTotalDur,
       };
     }
@@ -682,6 +684,16 @@ static String sys_views_tooltip_scratch(const EcsDef* ecsDef, const DebugEcsSysI
   return dynstring_view(&str);
 }
 
+static UiColor sys_defined_order_color(const DebugEcsSysInfo* sysInfo) {
+  if (sysInfo->flags & EcsSystemFlags_ThreadAffinity) {
+    return ui_color_teal;
+  }
+  if (sysInfo->flags & EcsSystemFlags_Exclusive) {
+    return ui_color_orange;
+  }
+  return ui_color_white;
+}
+
 static void
 sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
   sys_options_draw(canvas, panelComp);
@@ -721,21 +733,29 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
     ui_canvas_id_block_index(canvas, sysInfo->id * 10); // Set a stable id based on the comp id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->id)));
+
     ui_table_next_column(canvas, &table);
     ui_label(canvas, sysInfo->name, .selectable = true);
+
     ui_table_next_column(canvas, &table);
+    ui_style_push(canvas);
+    ui_style_color(canvas, sys_defined_order_color(sysInfo));
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->definedOrder)));
+    ui_style_pop(canvas);
+
     ui_table_next_column(canvas, &table);
     ui_label(
         canvas,
         fmt_write_scratch("{}", fmt_int(sysInfo->viewCount)),
         .tooltip = sys_views_tooltip_scratch(ecsDef, sysInfo));
+
     ui_table_next_column(canvas, &table);
     if (hasMultipleWorkers) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->parallelCount)));
     } else {
       ui_label(canvas, string_lit("N/A"));
     }
+
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_duration(sysInfo->duration)));
   }

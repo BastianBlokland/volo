@@ -53,11 +53,11 @@ MAYBE_UNUSED static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, co
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
-             .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
-             .components = dynarray_create_t(alloc, EcsCompDef, 128),
-             .views      = dynarray_create_t(alloc, EcsViewDef, 128),
-             .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
-             .alloc      = alloc,
+      .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
+      .components = dynarray_create_t(alloc, EcsCompDef, 128),
+      .views      = dynarray_create_t(alloc, EcsViewDef, 128),
+      .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
+      .alloc      = alloc,
   };
   return def;
 }
@@ -140,6 +140,10 @@ i32 ecs_def_system_order(const EcsDef* def, const EcsSystemId id) {
 
 u32 ecs_def_system_parallel(const EcsDef* def, const EcsSystemId id) {
   return ecs_def_system(def, id)->parallelCount;
+}
+
+u32 ecs_def_system_flags(const EcsDef* def, const EcsSystemId id) {
+  return ecs_def_system(def, id)->flags;
 }
 
 EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) {
