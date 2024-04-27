@@ -42,11 +42,11 @@ typedef struct {
 } DebugEcsArchetypeInfo;
 
 typedef struct {
-  EcsSystemId  id;
   String       name;
-  i32          definedOrder; // Configured ordering constraint.
   EcsViewId*   views;
+  EcsSystemId  id;
   u32          viewCount;
+  i32          definedOrder; // Configured ordering constraint.
   u16          parallelCount;
   TimeDuration duration;
 } DebugEcsSysInfo;
