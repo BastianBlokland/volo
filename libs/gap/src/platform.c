@@ -32,11 +32,10 @@ ecs_module_init(gap_platform_module) {
 
   ecs_register_view(GapPlatformView);
 
-  /**
-   * NOTE: Create the system with thread-affinity as some platforms use thread-local event-queues so
-   * we need to serve them from the same thread every time.
-   */
-  ecs_register_system_with_flags(
-      GapPlatformUpdateSys, EcsSystemFlags_ThreadAffinity, ecs_view_id(GapPlatformView));
+  EcsSystemFlags sysFlags = 0;
+  if (gap_pal_require_thread_affinity()) {
+    sysFlags |= EcsSystemFlags_ThreadAffinity;
+  }
+  ecs_register_system_with_flags(GapPlatformUpdateSys, sysFlags, ecs_view_id(GapPlatformView));
   ecs_order(GapPlatformUpdateSys, GapOrder_PlatformUpdate);
 }

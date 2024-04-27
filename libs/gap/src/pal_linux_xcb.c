@@ -1559,6 +1559,13 @@ TimeDuration gap_pal_doubleclick_interval(void) {
   return time_milliseconds(500);
 }
 
+bool gap_pal_require_thread_affinity(void) {
+  /**
+   * There is no thread-affinity required for xcb, meaning we can call it from different threads.
+   */
+  return false;
+}
+
 GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcbCon; }
