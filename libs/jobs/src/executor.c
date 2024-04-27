@@ -63,23 +63,6 @@ static void executor_wake_worker_single(void) {
   thread_mutex_unlock(g_mutex);
 }
 
-typedef enum {
-  ExecutorPush_Normal,
-  ExecutorPush_Affinity,
-} ExecutorPushType;
-
-static ExecutorPushType executor_work_push(const JobWorkerId wId, Job* job, const JobTaskId task) {
-  const JobTask* jobTaskDef = job_graph_task_def(job->graph, task);
-  if (UNLIKELY(jobTaskDef->flags & JobTaskFlags_ThreadAffinity)) {
-    // Task requires to be run on the affinity worker; push it to the affinity queue.
-    affqueue_push(&g_affinityQueue, job, task);
-    return ExecutorPush_Affinity;
-  }
-  // Task can run on any thread; push it into our own queue.
-  workqueue_push(&g_workerQueues[wId], job, task);
-  return ExecutorPush_Normal;
-}
-
 static WorkItem executor_work_pop(const JobWorkerId wId) {
   if (wId == g_affinityWorker) {
     /**
@@ -187,13 +170,18 @@ static void executor_perform_work(const JobWorkerId wId, WorkItem item) {
   // Update the tasks that are depending on this work.
   if (childCount) {
     u32 tasksPushed = 0, tasksPushedAffinity = 0;
-    for (usize i = 0; i != childCount; ++i) {
+    for (u32 i = 0; i != childCount; ++i) {
       // Decrement the dependency counter for the child task.
       if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        const ExecutorPushType type = executor_work_push(wId, item.job, childTasks[i]);
-        tasksPushed += 1;
-        tasksPushedAffinity += type == ExecutorPush_Affinity;
+        const JobTask* childTaskDef = job_graph_task_def(item.job->graph, childTasks[i]);
+        if (childTaskDef->flags & JobTaskFlags_ThreadAffinity) {
+          affqueue_push(&g_affinityQueue, item.job, childTasks[i]);
+          ++tasksPushedAffinity;
+        } else {
+          workqueue_push(&g_workerQueues[wId], item.job, childTasks[i]);
+        }
+        ++tasksPushed;
       }
     }
     const bool requireAffinityWorker = tasksPushedAffinity && wId != g_affinityWorker;
