@@ -127,9 +127,9 @@ static void runner_task_flush(void* context) {
 }
 
 static void runner_task_system(void* context) {
-  const RunnerTaskSystem* data = context;
-
-  const TimeSteady startTime = time_steady_clock();
+  const RunnerTaskSystem* data      = context;
+  const JobTaskId         taskId    = g_jobsTaskId;
+  const TimeSteady        startTime = time_steady_clock();
 
   g_ecsRunningSystem   = true;
   g_ecsRunningSystemId = data->id;
@@ -142,12 +142,17 @@ static void runner_task_system(void* context) {
   g_ecsRunningRunner   = null;
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-
-  const u32 cost = dur > u32_max ? u32_max : (u32)dur;
-  // TODO: Reduce the false sharing of cache-lines on the costs.
-  thread_atomic_store_u32(&data->runner->taskCosts[g_jobsTaskId], cost);
-
   ecs_world_stats_sys_add(data->world, data->id, dur);
+
+  /**
+   * Track the average cost (runtime duration) of the task.
+   * TODO: Reduce the false sharing of cache-lines on the costs.
+   */
+  static const f64 g_invCostAvgWindow = 1.0 / 15.0;
+  const u32        costNew            = dur > u32_max ? u32_max : (u32)dur;
+  u32              costAvg            = thread_atomic_load_u32(&data->runner->taskCosts[taskId]);
+  costAvg += (u32)((costNew - costAvg) * g_invCostAvgWindow);
+  thread_atomic_store_u32(&data->runner->taskCosts[g_jobsTaskId], costAvg);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
