@@ -17,6 +17,9 @@
 #define worker_min_count 1
 #define worker_max_count 4
 
+// Maximum amount of root tasks in a job.
+#define job_max_root_tasks 512
+
 // Maximum amount of tasks that can depend on a single task.
 #define job_max_task_children 512
 
@@ -337,23 +340,44 @@ void executor_run(Job* job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
   diag_assert_msg(g_jobsWorkerCount, "Job system has to be initialized jobs_init() first.");
 
-  const JobWorkerId wId           = g_jobsWorkerId;
-  const u32         rootTaskCount = jobs_graph_task_root_count(job->graph);
-
   /**
-   * Push work items for all root tasks in the job.
+   * Collect all the root tasks in the job.
    *
-   * NOTE: Its important that we don't touch the job memory after pushing the last root-task. Reason
-   * is that another executor could actually finish the job while we are still inside this function.
+   * NOTE: Makes a copy of the task-ids on the stack before starting the tasks. The reason is that
+   * as soon as we start the last root-task it can actually finish the entire job while we are still
+   * in this function. And thus accessing the job memory is unsafe after starting the last task.
    */
+  JobTaskId tasksNormal[job_max_root_tasks];
+  JobTaskId tasksAffinity[job_max_root_tasks];
+  u32       tasksNormalCount = 0, tasksAffinityCount = 0;
 
-  JobTaskId taskId = 0;
-  for (u32 pushedRootTaskCount = 0; pushedRootTaskCount != rootTaskCount; ++taskId) {
-    if (jobs_graph_task_has_parent(job->graph, taskId)) {
+  jobs_graph_for_task(job->graph, task) {
+    if (jobs_graph_task_has_parent(job->graph, task)) {
       continue; // Not a root task.
     }
-    executor_work_push(wId, job, taskId);
-    ++pushedRootTaskCount;
+
+    diag_assert_msg(
+        tasksNormalCount < job_max_root_tasks && tasksAffinityCount < job_max_root_tasks,
+        "Job has too root tasks (max: {})",
+        fmt_int(job_max_root_tasks));
+
+    const JobTask* taskDef = job_graph_task_def(job->graph, task);
+    if (taskDef->flags & JobTaskFlags_ThreadAffinity) {
+      tasksAffinity[tasksAffinityCount++] = task;
+    } else {
+      tasksNormal[tasksNormalCount++] = task;
+    }
+  }
+
+  // Start all affinity root tasks.
+  for (u32 i = 0; i != tasksAffinityCount; ++i) {
+    affqueue_push(&g_affinityQueue, job, tasksAffinity[i]);
+  }
+
+  // Start all normal root tasks.
+  const JobWorkerId wId = g_jobsWorkerId;
+  for (u32 i = 0; i != tasksNormalCount; ++i) {
+    workqueue_push(&g_workerQueues[wId], job, tasksNormal[i]);
   }
 
   if (thread_atomic_load_i32(&g_sleepingWorkers)) {
