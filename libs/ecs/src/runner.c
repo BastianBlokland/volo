@@ -183,8 +183,13 @@ static EcsTaskSet runner_insert_system(
     const EcsSystemDef* systemDef) {
   const RunnerPlan* plan = &runner->plans[planIndex];
 
+  u16 parallelCount = systemDef->parallelCount;
+  if (g_jobsWorkerCount == 1) {
+    parallelCount = 1; // Parallel systems only makes sense if we have multiple workers.
+  }
+
   JobTaskId firstTaskId = 0;
-  for (u16 parIndex = 0; parIndex != systemDef->parallelCount; ++parIndex) {
+  for (u16 parIndex = 0; parIndex != parallelCount; ++parIndex) {
     const JobTaskId taskId = jobs_graph_add_task(
         plan->graph,
         systemDef->name,
@@ -192,7 +197,7 @@ static EcsTaskSet runner_insert_system(
         mem_struct(
             RunnerTaskSystem,
             .id       = systemId,
-            .parCount = systemDef->parallelCount,
+            .parCount = parallelCount,
             .parIndex = parIndex,
             .runner   = runner,
             .world    = runner->world,
@@ -203,7 +208,7 @@ static EcsTaskSet runner_insert_system(
       firstTaskId = taskId;
     }
   }
-  return (EcsTaskSet){.begin = firstTaskId, .end = firstTaskId + systemDef->parallelCount};
+  return (EcsTaskSet){.begin = firstTaskId, .end = firstTaskId + parallelCount};
 }
 
 static bool runner_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
