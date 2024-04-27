@@ -1126,6 +1126,14 @@ TimeDuration gap_pal_doubleclick_interval(void) {
   return time_milliseconds(doubleClickMilliseconds);
 }
 
+bool gap_pal_require_thread_affinity(void) {
+  /**
+   * Win32 uses a thread-local event queue so we need to make sure the apis are always called from
+   * the same thread.
+   */
+  return true;
+}
+
 GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInstance; }

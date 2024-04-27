@@ -104,6 +104,13 @@ i32 ecs_def_system_order(const EcsDef*, EcsSystemId);
  */
 u32 ecs_def_system_parallel(const EcsDef*, EcsSystemId);
 
+/**
+ * Retrieve the configured system flags.
+ *
+ * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
+ */
+EcsSystemFlags ecs_def_system_flags(const EcsDef*, EcsSystemId);
+
 typedef struct {
   EcsViewId* values;
   usize      count;
