@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "core_shuffle.h"
 #include "core_sort.h"
@@ -47,16 +48,17 @@ typedef struct {
 } RunnerPlan;
 
 struct sEcsRunner {
+  Allocator* alloc;
   EcsWorld*  world;
   u32        flags;
   u32        planIndex;
   RunnerPlan plans[2];
-  Allocator* alloc;
+  BitSet     conflictMatrix; // Triangular matrix of system conflicts. bit[systemId, systemId].
   Mem        jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
@@ -211,7 +213,7 @@ static EcsTaskSet runner_insert_system(
   return (EcsTaskSet){.begin = firstTaskId, .end = firstTaskId + parallelCount};
 }
 
-static bool runner_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
+static bool runner_conflict_compute(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
   if ((a->flags & EcsSystemFlags_Exclusive) || (b->flags & EcsSystemFlags_Exclusive)) {
     return true; // Exclusive systems conflict with any other system.
   }
@@ -231,6 +233,61 @@ static bool runner_system_conflict(EcsWorld* world, const EcsSystemDef* a, const
     }
   }
   return false;
+}
+
+static BitSet runner_conflict_matrix_create(EcsWorld* world, Allocator* alloc) {
+  /**
+   * Construct a strictly triangular matrix of system conflict bits. This allows for fast querying
+   * if two systems conflict.
+   *
+   * Example matrix (with system a, b, c, d, e):
+   *   a b c d e
+   * a - - - - -
+   * b 0 - - - -
+   * c 0 1 - - -
+   * d 1 0 1 - -
+   * e 0 1 0 0 -
+   *
+   * This encodes the following conflicts:
+   *  a <-> d
+   *  b <-> c
+   *  b <-> e
+   *  c <-> d
+   */
+  const EcsDef* def         = ecs_world_def(world);
+  const u32     systemCount = ecs_def_system_count(def);
+  if (systemCount < 2) {
+    return mem_empty; // No conflicts are possible with less then two systems.
+  }
+
+  const u32    bitCount = systemCount * (systemCount - 1) / 2; // Strict triangular matrix entries.
+  const BitSet matrix   = alloc_alloc(alloc, bits_to_bytes(bitCount) + 1, 1);
+  bitset_clear_all(matrix);
+
+  u32 bitIndex = 0;
+  for (EcsSystemId sysA = 0; sysA != systemCount; ++sysA) {
+    const EcsSystemDef* sysADef = dynarray_at_t(&def->systems, sysA, EcsSystemDef);
+    for (EcsSystemId sysB = 0; sysB != sysA; ++sysB, ++bitIndex) {
+      diag_assert(bitIndex < bitCount);
+
+      const EcsSystemDef* sysBDef = dynarray_at_t(&def->systems, sysB, EcsSystemDef);
+      if (runner_conflict_compute(world, sysADef, sysBDef)) {
+        bitset_set(matrix, bitIndex);
+      }
+    }
+  }
+
+  return matrix;
+}
+
+static bool runner_conflict_query(const BitSet conflictMatrix, EcsSystemId a, EcsSystemId b) {
+  if (a < b) {
+    const EcsSystemId tmp = a;
+    a                     = b;
+    b                     = tmp;
+  }
+  const u32 bitIndex = (a * (a - 1) / 2) + b; // Strict triangular matrix.
+  return bitset_test(conflictMatrix, bitIndex);
 }
 
 static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
@@ -283,7 +340,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
       // Insert required dependencies on the earlier systems.
       for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
         const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
-        if (runner_system_conflict(runner->world, *sysDef, *earlierSysDef)) {
+        if (runner_conflict_query(runner->conflictMatrix, sysId, earlierSysId)) {
           runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
         }
       }
@@ -331,7 +388,13 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   const u32     taskCount   = systemCount + graph_meta_task_count;
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
-  *runner           = (EcsRunner){.world = world, .flags = flags, .alloc = alloc};
+
+  *runner = (EcsRunner){
+      .alloc          = alloc,
+      .world          = world,
+      .flags          = flags,
+      .conflictMatrix = runner_conflict_matrix_create(world, alloc),
+  };
 
   array_for_t(runner->plans, RunnerPlan, plan) {
     plan->graph         = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
@@ -359,6 +422,9 @@ void ecs_runner_destroy(EcsRunner* runner) {
   array_for_t(runner->plans, RunnerPlan, plan) {
     jobs_graph_destroy(plan->graph);
     alloc_free_array_t(runner->alloc, plan->systemTasks, systemCount);
+  }
+  if (mem_valid(runner->conflictMatrix)) {
+    alloc_free(runner->alloc, runner->conflictMatrix);
   }
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
