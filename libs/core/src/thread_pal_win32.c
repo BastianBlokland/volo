@@ -147,8 +147,16 @@ void thread_atomic_store_i32(i32* ptr, const i32 value) {
   InterlockedExchange((volatile LONG*)ptr, value);
 }
 
+void thread_atomic_store_u32(u32* ptr, const u32 value) {
+  InterlockedExchange((volatile LONG*)ptr, (LONG)value);
+}
+
 void thread_atomic_store_i64(i64* ptr, const i64 value) {
   InterlockedExchange64((volatile LONG64*)ptr, value);
+}
+
+void thread_atomic_store_u64(u64* ptr, const u64 value) {
+  InterlockedExchange64((volatile LONG64*)ptr, (LONG64)value);
 }
 
 i32 thread_atomic_exchange_i32(i32* ptr, const i32 value) {

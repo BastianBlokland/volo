@@ -85,7 +85,9 @@ i64 thread_atomic_load_i64(i64*);
  * This includes a general memory barrier.
  */
 void thread_atomic_store_i32(i32*, i32 value);
+void thread_atomic_store_u32(u32*, u32 value);
 void thread_atomic_store_i64(i64*, i64 value);
+void thread_atomic_store_u64(u64*, u64 value);
 
 /**
  * Atomically stores the value at the given pointer and returns the old value.
