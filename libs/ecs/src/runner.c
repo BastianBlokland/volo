@@ -385,7 +385,9 @@ static u32 runner_plan_best(EcsRunner* runner) {
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
   const EcsDef* def         = ecs_world_def(world);
   const u32     systemCount = (u32)def->systems.size;
-  const u32     taskCount   = systemCount + graph_meta_task_count;
+
+  const u32 expectedParallelism = 2;
+  const u32 expectedTaskCount   = (systemCount * expectedParallelism) + graph_meta_task_count;
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
@@ -397,7 +399,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   };
 
   array_for_t(runner->plans, RunnerPlan, plan) {
-    plan->graph         = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
+    plan->graph         = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
     plan->systemTasks   = alloc_array_t(alloc, EcsTaskSet, systemCount);
     plan->estimatedCost = u32_max;
   }
