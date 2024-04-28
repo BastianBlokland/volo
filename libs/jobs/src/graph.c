@@ -11,6 +11,18 @@
 
 ASSERT(jobs_graph_max_tasks < u16_max, "JobTasks have to be representable with 16 bits")
 
+INLINE_HINT static void jobs_bit_set(const BitSet bits, const u32 idx) {
+  *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
+}
+
+INLINE_HINT static void jobs_bit_clear(const BitSet bits, const u32 idx) {
+  *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
+}
+
+INLINE_HINT static bool jobs_bit_test(const BitSet bits, const u32 idx) {
+  return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
+}
+
 static u64 jobs_task_cost_estimator_one(const void* userCtx, const JobTaskId taskId) {
   (void)userCtx;
   (void)taskId;
@@ -106,7 +118,7 @@ static u32 jobs_graph_task_transitive_reduce(
    * very long task chains.
    */
   u32 depsRemoved = 0;
-  if (bitset_test(processed, task)) {
+  if (jobs_bit_test(processed, task)) {
     return depsRemoved; // Already processed.
   }
   jobs_graph_for_task_child(graph, task, child) {
@@ -118,7 +130,7 @@ static u32 jobs_graph_task_transitive_reduce(
     // Recurse in a 'depth-first' manner.
     depsRemoved += jobs_graph_task_transitive_reduce(graph, rootTask, child.task, processed);
   }
-  bitset_set(processed, task); // Mark the task as processed.
+  jobs_bit_set(processed, task); // Mark the task as processed.
   return depsRemoved;
 }
 
@@ -140,13 +152,13 @@ static u32 jobs_graph_task_reduce_dependencies(JobGraph* graph, const JobTaskId 
 
 static bool jobs_graph_has_task_cycle(
     const JobGraph* graph, const JobTaskId task, BitSet processed, BitSet processing) {
-  if (bitset_test(processed, task)) {
+  if (jobs_bit_test(processed, task)) {
     return false; // Already processed; no cycle.
   }
-  if (bitset_test(processing, task)) {
+  if (jobs_bit_test(processing, task)) {
     return true; // Currently processing this task; cycle.
   }
-  bitset_set(processing, task); // Mark the task as currently being processed.
+  jobs_bit_set(processing, task); // Mark the task as currently being processed.
 
   jobs_graph_for_task_child(graph, task, child) {
     if (jobs_graph_has_task_cycle(graph, child.task, processed, processing)) {
@@ -154,8 +166,8 @@ static bool jobs_graph_has_task_cycle(
     }
   }
 
-  bitset_clear(processing, task);
-  bitset_set(processed, task);
+  jobs_bit_clear(processing, task);
+  jobs_bit_set(processed, task);
   return false;
 }
 
@@ -175,7 +187,7 @@ static bool jobs_graph_has_cycle(const JobGraph* graph) {
   mem_set(processing, 0);
 
   jobs_graph_for_task(graph, taskId) {
-    if (bitset_test(processed, taskId)) {
+    if (jobs_bit_test(processed, taskId)) {
       continue; // Already processed.
     }
     if (jobs_graph_has_task_cycle(graph, taskId, processed, processing)) {
@@ -204,10 +216,10 @@ static void jobs_graph_topologically_insert(
    * Current implementation uses recursion to go down the branches, meaning its not stack safe for
    * very long task chains.
    */
-  bitset_set(processed, task); // Mark the task as processed.
+  jobs_bit_set(processed, task); // Mark the task as processed.
 
   jobs_graph_for_task_child(graph, task, child) {
-    if (bitset_test(processed, child.task)) {
+    if (jobs_bit_test(processed, child.task)) {
       continue; // Already processed.
     }
     jobs_graph_topologically_insert(graph, child.task, processed, sortedTasks, sortedTaskCount);
@@ -234,7 +246,7 @@ static u64 jobs_graph_longestpath(
 
   // Created a topologically sorted set of tasks.
   jobs_graph_for_task(graph, taskId) {
-    if (bitset_test(processed, taskId)) {
+    if (jobs_bit_test(processed, taskId)) {
       continue; // Already processed.
     }
     jobs_graph_topologically_insert(graph, taskId, processed, sortedTasks, &sortedTasksCount);
