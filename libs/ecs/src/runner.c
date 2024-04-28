@@ -56,13 +56,12 @@ struct sEcsRunner {
   Mem        jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static u32  runner_plan_pick(EcsRunner*);
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
-static void runner_plan_finalize(EcsRunner*, const u32 planIndex);
 
 static i8 compare_system_entry(const void* a, const void* b) {
   const EcsSystemDef* const* entryA = a;
@@ -111,9 +110,8 @@ static void runner_task_replan(void* context) {
    */
   runner_plan_formulate(runner, planIndexIdle, true /* shuffle */);
 
-  // If the plan is better then the active plan then finalize it and set it as the next plan.
+  // If the plan is better then set it as the next plan.
   if (runner_plan_pick(runner) == planIndexIdle) {
-    runner_plan_finalize(runner, planIndexIdle);
     runner->planIndexNext = planIndexIdle;
   }
 }
@@ -350,56 +348,52 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   EcsSystemDefPtr* systems     = mem_stack(sizeof(EcsSystemDefPtr) * systemCount).ptr;
 
   trace_begin("ecs_plan_collect", TraceColor_Blue);
-  {
-    // Find all the registered systems.
-    runner_system_collect(def, systems);
 
-    // Optionally shuffle them.
-    if (shuffle) {
-      shuffle_fisheryates_t(g_rng, systems, systems + systemCount, EcsSystemDefPtr);
-    }
+  // Find all the registered systems.
+  runner_system_collect(def, systems);
 
-    // Sort the systems to respect the ordering constrains.
-    sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
-
-    // Insert the systems into the job-graph.
+  // Optionally shuffle them.
+  if (shuffle) {
+    shuffle_fisheryates_t(g_rng, systems, systems + systemCount, EcsSystemDefPtr);
   }
+
+  // Sort the systems to respect the ordering constrains.
+  sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
+
+  // Insert the systems into the job-graph.
+
   trace_end();
-
   trace_begin("ecs_plan_build", TraceColor_Blue);
-  {
-    jobs_graph_clear(plan->graph);
 
-    // Insert meta tasks.
-    runner_insert_replan(runner, planIndex); // NOTE: Replanning has no dependencies.
-    const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
+  jobs_graph_clear(plan->graph);
 
-    // Insert system tasks.
-    for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
-      const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
-      const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
-      plan->systemTasks[sysId]     = entryTasks;
+  // Insert meta tasks.
+  runner_insert_replan(runner, planIndex); // NOTE: Replanning has no dependencies.
+  const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
 
-      // Insert a flush dependency (so flush only happens when all systems are done).
-      runner_add_dep(plan->graph, entryTasks, flushTask);
+  // Insert system tasks.
+  for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
+    const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
+    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
+    plan->systemTasks[sysId]     = entryTasks;
 
-      // Insert required dependencies on the earlier systems.
-      for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
-        const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
-        if (runner_conflict_query(runner->conflictMatrix, sysId, earlierSysId)) {
-          runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
-        }
+    // Insert a flush dependency (so flush only happens when all systems are done).
+    runner_add_dep(plan->graph, entryTasks, flushTask);
+
+    // Insert required dependencies on the earlier systems.
+    for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
+      const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
+      if (runner_conflict_query(runner->conflictMatrix, sysId, earlierSysId)) {
+        runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
       }
     }
   }
+
   trace_end();
-}
-
-static void runner_plan_finalize(EcsRunner* runner, const u32 planIndex) {
-  const RunnerPlan* plan = &runner->plans[planIndex];
-
   trace_begin("ecs_plan_finalize", TraceColor_Blue);
+
   jobs_graph_reduce_dependencies(plan->graph);
+
   trace_end();
 }
 
@@ -425,7 +419,6 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   }
 
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
-  runner_plan_finalize(runner, runner->planIndex);
 
   const JobGraph* graph          = runner->plans[runner->planIndex].graph;
   const u32       graphTaskCount = jobs_graph_task_count(graph);
