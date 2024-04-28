@@ -398,7 +398,6 @@ spec(graph) {
 
     check(jobs_graph_validate(graph));
     check_eq_int(jobs_graph_task_span(graph), 9);
-    check_eq_float(jobs_graph_task_parallelism(graph), 2.0f, 1e-6f);
     check_eq_int(jobs_graph_task_root_count(graph), 1);
     check_eq_int(jobs_graph_task_leaf_count(graph), 1);
   }

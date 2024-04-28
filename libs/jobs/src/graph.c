@@ -11,6 +11,24 @@
 
 ASSERT(jobs_graph_max_tasks < u16_max, "JobTasks have to be representable with 16 bits")
 
+INLINE_HINT static void jobs_bit_set(const BitSet bits, const u32 idx) {
+  *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
+}
+
+INLINE_HINT static void jobs_bit_clear(const BitSet bits, const u32 idx) {
+  *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
+}
+
+INLINE_HINT static bool jobs_bit_test(const BitSet bits, const u32 idx) {
+  return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
+}
+
+static u64 jobs_task_cost_estimator_one(const void* userCtx, const JobTaskId taskId) {
+  (void)userCtx;
+  (void)taskId;
+  return 1;
+}
+
 INLINE_HINT static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
 }
@@ -100,7 +118,7 @@ static u32 jobs_graph_task_transitive_reduce(
    * very long task chains.
    */
   u32 depsRemoved = 0;
-  if (bitset_test(processed, task)) {
+  if (jobs_bit_test(processed, task)) {
     return depsRemoved; // Already processed.
   }
   jobs_graph_for_task_child(graph, task, child) {
@@ -112,7 +130,7 @@ static u32 jobs_graph_task_transitive_reduce(
     // Recurse in a 'depth-first' manner.
     depsRemoved += jobs_graph_task_transitive_reduce(graph, rootTask, child.task, processed);
   }
-  bitset_set(processed, task); // Mark the task as processed.
+  jobs_bit_set(processed, task); // Mark the task as processed.
   return depsRemoved;
 }
 
@@ -134,13 +152,13 @@ static u32 jobs_graph_task_reduce_dependencies(JobGraph* graph, const JobTaskId 
 
 static bool jobs_graph_has_task_cycle(
     const JobGraph* graph, const JobTaskId task, BitSet processed, BitSet processing) {
-  if (bitset_test(processed, task)) {
+  if (jobs_bit_test(processed, task)) {
     return false; // Already processed; no cycle.
   }
-  if (bitset_test(processing, task)) {
+  if (jobs_bit_test(processing, task)) {
     return true; // Currently processing this task; cycle.
   }
-  bitset_set(processing, task); // Mark the task as currently being processed.
+  jobs_bit_set(processing, task); // Mark the task as currently being processed.
 
   jobs_graph_for_task_child(graph, task, child) {
     if (jobs_graph_has_task_cycle(graph, child.task, processed, processing)) {
@@ -148,8 +166,8 @@ static bool jobs_graph_has_task_cycle(
     }
   }
 
-  bitset_clear(processing, task);
-  bitset_set(processed, task);
+  jobs_bit_clear(processing, task);
+  jobs_bit_set(processed, task);
   return false;
 }
 
@@ -169,7 +187,7 @@ static bool jobs_graph_has_cycle(const JobGraph* graph) {
   mem_set(processing, 0);
 
   jobs_graph_for_task(graph, taskId) {
-    if (bitset_test(processed, taskId)) {
+    if (jobs_bit_test(processed, taskId)) {
       continue; // Already processed.
     }
     if (jobs_graph_has_task_cycle(graph, taskId, processed, processing)) {
@@ -198,10 +216,10 @@ static void jobs_graph_topologically_insert(
    * Current implementation uses recursion to go down the branches, meaning its not stack safe for
    * very long task chains.
    */
-  bitset_set(processed, task); // Mark the task as processed.
+  jobs_bit_set(processed, task); // Mark the task as processed.
 
   jobs_graph_for_task_child(graph, task, child) {
-    if (bitset_test(processed, child.task)) {
+    if (jobs_bit_test(processed, child.task)) {
       continue; // Already processed.
     }
     jobs_graph_topologically_insert(graph, child.task, processed, sortedTasks, sortedTaskCount);
@@ -212,14 +230,14 @@ static void jobs_graph_topologically_insert(
 /**
  * Calculate the longest (aka 'critical') path through the graph.
  */
-static u16 jobs_graph_longestpath(const JobGraph* graph) {
+static u64 jobs_graph_longestpath(
+    const JobGraph* graph, const JobsCostEstimator costEstimator, const void* userCtx) {
   /**
    * First flatten the graph into a topologically sorted set of tasks, then starting from the leaves
-   * start summing all the distances.
+   * start summing all the costs.
    * More Info:
    * http://www.mathcs.emory.edu/~cheung/Courses/171/Syllabus/11-Graph/Docs/longest-path-in-dag.pdf
    */
-
   BitSet processed = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
   mem_set(processed, 0);
 
@@ -228,39 +246,45 @@ static u16 jobs_graph_longestpath(const JobGraph* graph) {
 
   // Created a topologically sorted set of tasks.
   jobs_graph_for_task(graph, taskId) {
-    if (bitset_test(processed, taskId)) {
+    if (jobs_bit_test(processed, taskId)) {
       continue; // Already processed.
     }
     jobs_graph_topologically_insert(graph, taskId, processed, sortedTasks, &sortedTasksCount);
   }
 
   /**
-   * Keep a distance per task in the graph.
-   * Initialize to 'sentinel_u16' when the task has a parent or 1 when its a root task.
+   * Keep a cost per task in the graph.
+   * Initialize to 'sentinel_u64' when the task has a parent or its cost when its a root task.
    */
 
-  u16* distances = mem_stack(sizeof(u16) * graph->tasks.size).ptr;
+  u64* costs = mem_stack(sizeof(u64) * graph->tasks.size).ptr;
   for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
-    distances[taskId] = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u16 : 1;
+    if (jobs_graph_task_has_parent(graph, taskId)) {
+      costs[taskId] = sentinel_u64;
+    } else {
+      costs[taskId] = costEstimator(userCtx, taskId);
+    }
   }
 
-  u16 maxDist = 1;
+  u64 maxCost = 0;
   for (u32 i = sortedTasksCount; i-- != 0;) {
     const JobTaskId taskId      = sortedTasks[i];
-    const u16       currentDist = distances[taskId];
+    const u64       currentCost = costs[taskId];
 
-    if (!sentinel_check(currentDist)) {
+    if (!sentinel_check(currentCost)) {
+      maxCost = math_max(maxCost, currentCost);
       jobs_graph_for_task_child(graph, taskId, child) {
-        u16* childDist = &distances[child.task];
-        if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
-          *childDist = currentDist + 1;
+        const u64 childSelfCost = costEstimator(userCtx, child.task);
+        u64*      childCost     = &costs[child.task];
+        if (sentinel_check(*childCost) || *childCost < (currentCost + childSelfCost)) {
+          *childCost = currentCost + childSelfCost;
         }
-        maxDist = math_max(maxDist, *childDist);
+        maxCost = math_max(maxCost, *childCost);
       }
     }
   }
 
-  return maxDist;
+  return maxCost;
 }
 
 JobGraph* jobs_graph_create(Allocator* alloc, const String name, const u32 taskCapacity) {
@@ -445,8 +469,11 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph* graph, const JobTaskC
   return (JobTaskChildItr){.task = link.task, .next = link.next};
 }
 
-u32 jobs_graph_task_span(const JobGraph* graph) { return jobs_graph_longestpath(graph); }
+u64 jobs_graph_task_span(const JobGraph* graph) {
+  return jobs_graph_longestpath(graph, jobs_task_cost_estimator_one, null);
+}
 
-f32 jobs_graph_task_parallelism(const JobGraph* graph) {
-  return (f32)jobs_graph_task_count(graph) / (f32)jobs_graph_task_span(graph);
+u64 jobs_graph_task_span_cost(
+    const JobGraph* graph, const JobsCostEstimator estimator, const void* userCtx) {
+  return jobs_graph_longestpath(graph, estimator, userCtx);
 }

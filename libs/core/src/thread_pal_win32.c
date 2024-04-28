@@ -139,16 +139,32 @@ i32 thread_atomic_load_i32(i32* ptr) {
   return InterlockedCompareExchange((volatile LONG*)ptr, 0, 0);
 }
 
+u32 thread_atomic_load_u32(u32* ptr) {
+  return (u32)InterlockedCompareExchange((volatile LONG*)ptr, 0, 0);
+}
+
 i64 thread_atomic_load_i64(i64* ptr) {
   return InterlockedCompareExchange64((volatile LONG64*)ptr, 0, 0);
+}
+
+u64 thread_atomic_load_u64(u64* ptr) {
+  return (u64)InterlockedCompareExchange64((volatile LONG64*)ptr, 0, 0);
 }
 
 void thread_atomic_store_i32(i32* ptr, const i32 value) {
   InterlockedExchange((volatile LONG*)ptr, value);
 }
 
+void thread_atomic_store_u32(u32* ptr, const u32 value) {
+  InterlockedExchange((volatile LONG*)ptr, (LONG)value);
+}
+
 void thread_atomic_store_i64(i64* ptr, const i64 value) {
   InterlockedExchange64((volatile LONG64*)ptr, value);
+}
+
+void thread_atomic_store_u64(u64* ptr, const u64 value) {
+  InterlockedExchange64((volatile LONG64*)ptr, (LONG64)value);
 }
 
 i32 thread_atomic_exchange_i32(i32* ptr, const i32 value) {
