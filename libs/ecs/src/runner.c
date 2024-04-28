@@ -10,7 +10,6 @@
 #include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
-#include "log_logger.h"
 #include "trace_tracer.h"
 
 #include "view_internal.h"
@@ -44,16 +43,15 @@ typedef struct {
 typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks;
-  u64         estimatedCost;
 } RunnerPlan;
 
 struct sEcsRunner {
   Allocator* alloc;
   EcsWorld*  world;
   u32        flags;
-  u32        planIndex;
+  u32        planIndex, planIndexNext;
   RunnerPlan plans[2];
-  u32*       taskCosts;      // Average time in nanoseconds for each task. u32[taskCount].
+  i32*       taskCosts;      // Average time in nanoseconds for each task. i32[taskCount].
   BitSet     conflictMatrix; // Triangular matrix of system conflicts. bit[systemId, systemId].
   Mem        jobMem;
 };
@@ -62,6 +60,7 @@ THREAD_LOCAL bool        g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
+static u32  runner_plan_pick(EcsRunner*);
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
 static void runner_plan_finalize(EcsRunner*, const u32 planIndex);
 
@@ -112,9 +111,10 @@ static void runner_task_replan(void* context) {
    */
   runner_plan_formulate(runner, planIndexIdle, true /* shuffle */);
 
-  // If the plan is better then the active plan then finalize it.
-  if (runner->plans[planIndexIdle].estimatedCost < runner->plans[planIndexActive].estimatedCost) {
+  // If the plan is better then the active plan then finalize it and set it as the next plan.
+  if (runner_plan_pick(runner) == planIndexIdle) {
     runner_plan_finalize(runner, planIndexIdle);
+    runner->planIndexNext = planIndexIdle;
   }
 }
 
@@ -149,10 +149,14 @@ static void runner_task_system(void* context) {
    * TODO: Reduce the false sharing of cache-lines on the costs.
    */
   static const f64 g_invCostAvgWindow = 1.0 / 15.0;
-  const u32        costNew            = dur > u32_max ? u32_max : math_max((u32)dur, 1);
-  u32              costAvg            = thread_atomic_load_u32(&data->runner->taskCosts[taskId]);
-  costAvg += (u32)((costNew - costAvg) * g_invCostAvgWindow);
-  thread_atomic_store_u32(&data->runner->taskCosts[g_jobsTaskId], costAvg);
+  const i32        costNew            = dur > i32_max ? i32_max : math_max((i32)dur, 1);
+  i32              costAvg            = thread_atomic_load_i32(&data->runner->taskCosts[taskId]);
+  if (costAvg) {
+    costAvg += (i32)((costNew - costAvg) * g_invCostAvgWindow);
+  } else {
+    costAvg = costNew;
+  }
+  thread_atomic_store_i32(&data->runner->taskCosts[g_jobsTaskId], costAvg);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
@@ -307,6 +311,37 @@ static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
   }
 }
 
+static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) {
+  const EcsRunner* runner = (const EcsRunner*)userCtx;
+  if (!runner->taskCosts) {
+    return 1; // No costs known yet.
+  }
+  // Use the average runtime duration as a cost estimation.
+  return (u64)thread_atomic_load_i32(&runner->taskCosts[task]);
+}
+
+static u32 runner_plan_pick(EcsRunner* runner) {
+  u32 bestIndex = 0;
+  u64 bestCost  = u64_max;
+
+  trace_begin("ecs_plan_pick", TraceColor_Blue);
+
+  for (u32 i = 0; i != array_elems(runner->plans); ++i) {
+    const RunnerPlan* plan = &runner->plans[i];
+
+    // Compute the plan cost (longest path through the graph).
+    // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
+    const u64 cost = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, runner);
+    if (cost < bestCost) {
+      bestIndex = i;
+      bestCost  = cost;
+    }
+  }
+
+  trace_end();
+  return bestIndex;
+}
+
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
   const EcsDef* def  = ecs_world_def(runner->world);
   RunnerPlan*   plan = &runner->plans[planIndex];
@@ -358,13 +393,6 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
     }
   }
   trace_end();
-
-  trace_begin("ecs_plan_estimate", TraceColor_Blue);
-  {
-    // Compute the plan cost (longest path through the graph).
-    plan->estimatedCost = jobs_graph_task_span(plan->graph);
-  }
-  trace_end();
 }
 
 static void runner_plan_finalize(EcsRunner* runner, const u32 planIndex) {
@@ -373,24 +401,6 @@ static void runner_plan_finalize(EcsRunner* runner, const u32 planIndex) {
   trace_begin("ecs_plan_finalize", TraceColor_Blue);
   jobs_graph_reduce_dependencies(plan->graph);
   trace_end();
-
-  log_d(
-      "Ecs runner plan finalized",
-      log_param("tasks", fmt_int(jobs_graph_task_count(plan->graph))),
-      log_param("estimated-cost", fmt_int(plan->estimatedCost)));
-}
-
-/**
- * Find the plan with the lowest cost.
- */
-static u32 runner_plan_best(EcsRunner* runner) {
-  u32 bestPlan = runner->planIndex;
-  for (u32 i = 0; i != array_elems(runner->plans); ++i) {
-    if (runner->plans[i].estimatedCost < runner->plans[runner->planIndex].estimatedCost) {
-      bestPlan = i;
-    }
-  }
-  return bestPlan;
 }
 
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
@@ -410,9 +420,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   };
 
   array_for_t(runner->plans, RunnerPlan, plan) {
-    plan->graph         = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
-    plan->systemTasks   = alloc_array_t(alloc, EcsTaskSet, systemCount);
-    plan->estimatedCost = u64_max;
+    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
+    plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
   }
 
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
@@ -422,8 +431,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   const u32       graphTaskCount = jobs_graph_task_count(graph);
 
   // Allocate storage for tracking task cost (runtime duration).
-  runner->taskCosts = alloc_array_t(alloc, u32, graphTaskCount);
-  mem_set(mem_create(runner->taskCosts, sizeof(u32) * graphTaskCount), 0);
+  runner->taskCosts = alloc_array_t(alloc, i32, graphTaskCount);
+  mem_set(mem_create(runner->taskCosts, sizeof(i32) * graphTaskCount), 0);
 
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
@@ -472,10 +481,7 @@ JobId ecs_run_async(EcsRunner* runner) {
   runner->flags |= EcsRunnerPrivateFlags_Running;
   ecs_world_busy_set(runner->world);
 
-  // Pick the plan to schedule.
-  runner->planIndex = runner_plan_best(runner);
-
-  // Schedule the plan.
+  runner->planIndex = runner->planIndexNext;
   return jobs_scheduler_run(runner->plans[runner->planIndex].graph, jobAlloc);
 }
 
