@@ -149,7 +149,7 @@ static void runner_task_system(void* context) {
    * TODO: Reduce the false sharing of cache-lines on the costs.
    */
   static const f64 g_invCostAvgWindow = 1.0 / 15.0;
-  const u32        costNew            = dur > u32_max ? u32_max : (u32)dur;
+  const u32        costNew            = dur > u32_max ? u32_max : math_max((u32)dur, 1);
   u32              costAvg            = thread_atomic_load_u32(&data->runner->taskCosts[taskId]);
   costAvg += (u32)((costNew - costAvg) * g_invCostAvgWindow);
   thread_atomic_store_u32(&data->runner->taskCosts[g_jobsTaskId], costAvg);
