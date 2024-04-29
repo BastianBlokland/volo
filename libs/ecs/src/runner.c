@@ -22,6 +22,8 @@
  */
 #define graph_meta_task_count 2
 
+static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
+
 typedef EcsSystemDef* EcsSystemDefPtr;
 
 typedef enum {
@@ -59,6 +61,7 @@ struct sEcsRunner {
   i32*               taskCosts;      // Average time in nanoseconds for each task. i32[taskCount].
   BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
   RunnerSystemStats* stats;          // RunnerSystemStats[systemCount].
+  u32                replanDurAvg, flushDurAvg;
   Mem                jobMem;
 };
 
@@ -73,6 +76,16 @@ static i8 compare_system_entry(const void* a, const void* b) {
   const EcsSystemDef* const* entryA = a;
   const EcsSystemDef* const* entryB = b;
   return compare_i32(&(*entryA)->order, &(*entryB)->order);
+}
+
+static void runner_avg_f64(f64* value, const f64 new) {
+  *value += (new - *value) * g_runnerInvAvgWindow;
+}
+
+static void runner_avg_dur_to_u32(u32* value, const TimeDuration new) {
+  f64 floatVal = (f64)*value;
+  runner_avg_f64(&floatVal, (f64) new);
+  *value = floatVal >= u32_max ? u32_max : (u32)floatVal;
 }
 
 /**
@@ -106,8 +119,9 @@ static void runner_task_replan(void* context) {
     return; // Replan not enabled.
   }
 
-  const u32 planIndexActive = runner->planIndex;
-  const u32 planIndexIdle   = planIndexActive ^ 1;
+  const TimeSteady startTime       = time_steady_clock();
+  const u32        planIndexActive = runner->planIndex;
+  const u32        planIndexIdle   = planIndexActive ^ 1;
 
   /**
    * Re-formulate the idle plan.
@@ -120,6 +134,9 @@ static void runner_task_replan(void* context) {
   if (runner_plan_pick(runner) == planIndexIdle) {
     runner->planIndexNext = planIndexIdle;
   }
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  runner_avg_dur_to_u32(&runner->replanDurAvg, dur);
 }
 
 static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
@@ -128,27 +145,30 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
 
   const u32 systemCount = ecs_def_system_count(def);
   for (EcsSystemId sys = 0; sys != systemCount; ++sys) {
-    const EcsTaskSet   tasks = plan->systemTasks[sys];
-    RunnerSystemStats* stats = &runner->stats[sys];
+    const EcsTaskSet tasks = plan->systemTasks[sys];
 
     TimeDuration totalDur = 0;
     for (JobTaskId task = tasks.begin; task != tasks.end; ++task) {
       totalDur += (TimeDuration)runner->taskCosts[task];
     }
 
-    static const f64 g_invAvgWindow = 1.0 / 15.0;
-    stats->totalDurAvg += (u32)((totalDur - (TimeDuration)stats->totalDurAvg) * g_invAvgWindow);
+    runner_avg_dur_to_u32(&runner->stats[sys].totalDurAvg, totalDur);
   }
 }
 
 static void runner_task_flush(void* context) {
-  const RunnerTaskMeta* data = context;
+  const RunnerTaskMeta* data      = context;
+  const TimeSteady      startTime = time_steady_clock();
+
   ecs_world_flush_internal(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
   ecs_world_busy_unset(data->runner->world);
 
   runner_task_flush_stats(data->runner, data->runner->planIndex);
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  runner_avg_dur_to_u32(&data->runner->flushDurAvg, dur);
 }
 
 static void runner_task_system(void* context) {
