@@ -129,6 +129,18 @@ spec(runner) {
     check_eq_int(ecs_view_read_t(itr, RunnerCompA)->f1, 174652);
   }
 
+  it("it can execute without any systems") {
+    EcsDef*    emptyDef    = ecs_def_create(g_alloc_heap);
+    EcsWorld*  emptyWorld  = ecs_world_create(g_alloc_heap, emptyDef);
+    EcsRunner* emptyRunner = ecs_runner_create(g_alloc_heap, emptyWorld, EcsRunnerFlags_None);
+
+    ecs_run_sync(emptyRunner);
+
+    ecs_runner_destroy(emptyRunner);
+    ecs_world_destroy(emptyWorld);
+    ecs_def_destroy(emptyDef);
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);

@@ -431,7 +431,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   array_for_t(runner->plans, RunnerPlan, plan) {
     plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
-    plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
+    plan->systemTasks = systemCount ? alloc_array_t(alloc, EcsTaskSet, systemCount) : null;
   }
 
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
@@ -459,7 +459,9 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
   array_for_t(runner->plans, RunnerPlan, plan) {
     jobs_graph_destroy(plan->graph);
-    alloc_free_array_t(runner->alloc, plan->systemTasks, systemCount);
+    if (plan->systemTasks) {
+      alloc_free_array_t(runner->alloc, plan->systemTasks, systemCount);
+    }
   }
   if (mem_valid(runner->conflictMatrix)) {
     alloc_free(runner->alloc, runner->conflictMatrix);
