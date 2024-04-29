@@ -62,8 +62,8 @@ struct sEcsRunner {
   u32                flags;
   u32                planIndex, planIndexNext;
   RunnerPlan         plans[2];
-  BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
-  RunnerSystemStats* sysStats;       // RunnerSystemStats[systemCount].
+  BitSet             sysConflicts; // Triangular matrix of sys conflicts. bit[systemId, systemId].
+  RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
   TimeDuration       replanDurLast, replanDurAvg;
   TimeDuration       flushDurLast, flushDurAvg;
   Mem                jobMem;
@@ -435,7 +435,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
     // Insert required dependencies on the earlier systems.
     for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
       const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
-      if (runner_conflict_query(runner->conflictMatrix, sysId, earlierSysId)) {
+      if (runner_conflict_query(runner->sysConflicts, sysId, earlierSysId)) {
         runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
       }
     }
@@ -459,10 +459,10 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
   *runner = (EcsRunner){
-      .alloc          = alloc,
-      .world          = world,
-      .flags          = flags,
-      .conflictMatrix = runner_conflict_matrix_create(world, alloc),
+      .alloc        = alloc,
+      .world        = world,
+      .flags        = flags,
+      .sysConflicts = runner_conflict_matrix_create(world, alloc),
   };
 
   if (systemCount) {
@@ -497,8 +497,8 @@ void ecs_runner_destroy(EcsRunner* runner) {
       alloc_free_array_t(runner->alloc, plan->systemTasks, systemCount);
     }
   }
-  if (mem_valid(runner->conflictMatrix)) {
-    alloc_free(runner->alloc, runner->conflictMatrix);
+  if (mem_valid(runner->sysConflicts)) {
+    alloc_free(runner->alloc, runner->sysConflicts);
   }
   if (runner->sysStats) {
     alloc_free_array_t(runner->alloc, runner->sysStats, systemCount);
