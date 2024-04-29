@@ -7,6 +7,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_stats.h"
+#include "ecs_runner.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "geo_query.h"
@@ -425,7 +426,8 @@ static void debug_stats_draw_interface(
     const RendStatsComp*           rendStats,
     const AllocStats*              allocStats,
     const EcsDef*                  ecsDef,
-    const EcsWorldStats*           ecsStats,
+    const EcsWorldStats*           ecsWorldStats,
+    const EcsRunnerStats*          ecsRunnerStats,
     const SceneCollisionStatsComp* colStats,
     const SceneNavEnvComp*         navEnv,
     const UiStatsComp*             uiStats) {
@@ -493,11 +495,12 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Systems"), fmt_write_scratch("{}", fmt_int(ecs_def_system_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Modules"), fmt_write_scratch("{}", fmt_int(ecs_def_module_count(ecsDef))));
-    stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
-    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
-    stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsStats->archetypeTotalSize), fmt_int(ecsStats->archetypeTotalChunks)));
-    stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsStats->lastFlushDur), fmt_duration(maxFlushTime)));
-    stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
+    stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->entityCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsWorldStats->archetypeCount), fmt_int(ecsWorldStats->archetypeEmptyCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsWorldStats->archetypeTotalSize), fmt_int(ecsWorldStats->archetypeTotalChunks)));
+    stats_draw_val_entry(canvas, string_lit("Replans"), fmt_write_scratch("{}", fmt_int(ecsRunnerStats->replanCounter)));
+    stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsRunnerStats->flushDurLast), fmt_duration(maxFlushTime)));
+    stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->lastFlushEntities)));
   }
   if(stats_draw_section(canvas, string_lit("Collision"))) {
     stats_draw_val_entry(canvas, string_lit("Prim spheres"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimSphereCount])));
@@ -566,7 +569,7 @@ static void debug_stats_update(
 }
 
 static void
-debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats* ecsStats) {
+debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsRunnerStats* ecsRunnerStats) {
 
   const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
   debug_notify_prune_older(statsGlobal, oldestNotifToKeep);
@@ -576,7 +579,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats
   statsGlobal->globalStringCount = stringtable_count(g_stringtable);
 
   debug_plot_add(
-      &statsGlobal->ecsFlushDurUs, (f32)(ecsStats->lastFlushDur / (f64)time_microsecond));
+      &statsGlobal->ecsFlushDurUs, (f32)(ecsRunnerStats->flushDurLast / (f64)time_microsecond));
 }
 
 ecs_view_define(GlobalView) {
@@ -630,9 +633,10 @@ ecs_system_define(DebugStatsUpdateSys) {
   const SceneNavEnvComp*         navEnv      = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const RendSettingsGlobalComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
 
-  const AllocStats    allocStats = alloc_stats_query();
-  const EcsWorldStats ecsStats   = ecs_world_stats_query(world);
-  debug_stats_global_update(statsGlobal, &ecsStats);
+  const AllocStats     allocStats     = alloc_stats_query();
+  const EcsWorldStats  ecsWorldStats  = ecs_world_stats_query(world);
+  const EcsRunnerStats ecsRunnerStats = ecs_runner_stats_query(g_ecsRunningRunner);
+  debug_stats_global_update(statsGlobal, &ecsRunnerStats);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
 
@@ -665,7 +669,8 @@ ecs_system_define(DebugStatsUpdateSys) {
           rendStats,
           &allocStats,
           ecsDef,
-          &ecsStats,
+          &ecsWorldStats,
+          &ecsRunnerStats,
           colStats,
           navEnv,
           uiStats);

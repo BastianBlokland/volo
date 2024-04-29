@@ -32,7 +32,7 @@ struct sJobGraph {
   Allocator* alloc;
 };
 
-MAYBE_UNUSED static const JobTask* job_graph_task_def(const JobGraph* graph, const JobTaskId task) {
-  diag_assert(task < graph->tasks.size);
-  return (JobTask*)bits_ptr_offset(graph->tasks.data.ptr, 64 * task);
+MAYBE_UNUSED static const JobTask* jobs_graph_task_def(const JobGraph* graph, const JobTaskId t) {
+  diag_assert(t < graph->tasks.size);
+  return (JobTask*)bits_ptr_offset(graph->tasks.data.ptr, 64 * t);
 }

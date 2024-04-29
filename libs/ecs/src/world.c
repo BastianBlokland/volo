@@ -35,8 +35,6 @@ struct sEcsWorld {
 
   TimeDuration lastFlushDur;
   u32          lastFlushEntities;
-
-  EcsWorldSysStats* sysStats;
 };
 
 static usize
@@ -155,19 +153,6 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
   bitset_or(out, ecs_buffer_entity_added(buffer, idx));
 }
 
-/**
- * Integrate system stats that accumulated during the frame.
- */
-static void ecs_world_stats_sys_flush(EcsWorld* world) {
-  static const f64 g_invAvgWindow = 1.0 / 15.0;
-
-  for (EcsSystemId sysId = 0; sysId != world->def->systems.size; ++sysId) {
-    EcsWorldSysStats* s = &world->sysStats[sysId];
-    s->avgTotalDur += (TimeDuration)((s->lastTotalDur - s->avgTotalDur) * g_invAvgWindow);
-    s->lastTotalDur = 0;
-  }
-}
-
 static void ecs_world_validate_sys_parallel(const EcsWorld* world, const EcsSystemDef* sysDef) {
   MAYBE_UNUSED u32 writeViews = 0;
   dynarray_for_t(&sysDef->viewIds, EcsViewId, viewId) {
@@ -197,16 +182,14 @@ static void ecs_world_validate(const EcsWorld* world) {
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
-  const usize sysCount = ecs_def_system_count(def);
-  EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
-  *world               = (EcsWorld){
-                    .def       = def,
-                    .finalizer = ecs_finalizer_create(alloc, def),
-                    .storage   = ecs_storage_create(alloc, def),
-                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-                    .buffer    = ecs_buffer_create(alloc, def),
-                    .alloc     = alloc,
-                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+  EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
+  *world          = (EcsWorld){
+      .def       = def,
+      .finalizer = ecs_finalizer_create(alloc, def),
+      .storage   = ecs_storage_create(alloc, def),
+      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+      .buffer    = ecs_buffer_create(alloc, def),
+      .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -244,10 +227,6 @@ void ecs_world_destroy(EcsWorld* world) {
 
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
   dynarray_destroy(&world->views);
-
-  if (world->sysStats) {
-    alloc_free_array_t(world->alloc, world->sysStats, ecs_def_system_count(world->def));
-  }
 
   log_d("Ecs world destroyed");
 
@@ -389,12 +368,7 @@ void ecs_world_busy_unset(EcsWorld* world) {
   world->flags &= ~EcsWorldFlags_Busy;
 }
 
-void ecs_world_stats_sys_add(EcsWorld* world, const EcsSystemId id, const TimeDuration dur) {
-  thread_atomic_add_i64(&world->sysStats[id].lastTotalDur, dur);
-}
-
 void ecs_world_flush_internal(EcsWorld* world) {
-  const TimeSteady startTime = time_steady_clock();
 
   trace_begin("ecs_flush_new", TraceColor_White);
   ecs_storage_flush_new_entities(&world->storage);
@@ -447,8 +421,6 @@ void ecs_world_flush_internal(EcsWorld* world) {
   ecs_buffer_clear(&world->buffer);
 
   // Update stats.
-  ecs_world_stats_sys_flush(world);
-  world->lastFlushDur      = time_steady_duration(startTime, time_steady_clock());
   world->lastFlushEntities = (u32)bufferCount;
 }
 
@@ -459,9 +431,7 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
       .archetypeEmptyCount  = ecs_storage_archetype_count_empty(&world->storage),
       .archetypeTotalSize   = (u32)ecs_storage_archetype_total_size(&world->storage),
       .archetypeTotalChunks = (u32)ecs_storage_archetype_total_chunks(&world->storage),
-      .lastFlushDur         = world->lastFlushDur,
       .lastFlushEntities    = world->lastFlushEntities,
-      .sysStats             = world->sysStats,
   };
 }
 

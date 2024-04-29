@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_thread.h"
@@ -49,8 +50,8 @@ static AffQueue    g_affinityQueue;
 u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
-THREAD_LOCAL bool        g_jobsIsWorking;
 THREAD_LOCAL JobTaskId   g_jobsTaskId;
+THREAD_LOCAL Job*        g_jobsCurrent;
 
 static void executor_wake_worker_all(void) {
   thread_mutex_lock(g_mutex);
@@ -138,15 +139,16 @@ static WorkItem executor_work_steal_loop(const JobWorkerId wId) {
 
 static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
   // Get the JobTask definition from the graph.
-  const JobTask* jobTaskDef = job_graph_task_def(item.job->graph, item.task);
+  const JobTask* jobTaskDef = jobs_graph_task_def(item.job->graph, item.task);
 
   // Invoke the user routine.
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
   {
-    g_jobsTaskId    = item.task;
-    g_jobsIsWorking = true;
-    jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
-    g_jobsIsWorking = false;
+    const void* userCtx = bits_ptr_offset(jobTaskDef, sizeof(JobTask));
+    g_jobsTaskId        = item.task;
+    g_jobsCurrent       = item.job;
+    jobTaskDef->routine(userCtx);
+    g_jobsCurrent = null;
   }
   trace_end();
 
@@ -176,7 +178,7 @@ static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
       // Decrement the dependency counter for the child task.
       if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        const JobTask* childTaskDef = job_graph_task_def(item.job->graph, childTasks[i]);
+        const JobTask* childTaskDef = jobs_graph_task_def(item.job->graph, childTasks[i]);
         if (childTaskDef->flags & JobTaskFlags_ThreadAffinity) {
           affqueue_push(&g_affinityQueue, item.job, childTasks[i]);
           ++tasksPushedAffinity;
@@ -351,7 +353,7 @@ void executor_run(Job* job) {
         "Job has too root tasks (max: {})",
         fmt_int(job_max_root_tasks));
 
-    const JobTask* taskDef = job_graph_task_def(job->graph, task);
+    const JobTask* taskDef = jobs_graph_task_def(job->graph, task);
     if (taskDef->flags & JobTaskFlags_ThreadAffinity) {
       tasksAffinity[tasksAffinityCount++] = task;
     } else {
@@ -393,4 +395,12 @@ bool executor_help(void) {
   }
 
   return false;
+}
+
+bool jobs_is_working(void) { return g_jobsCurrent != null; }
+
+Mem jobs_scratchpad(const JobTaskId task) {
+  diag_assert_msg(g_jobsCurrent, "No active job");
+  diag_assert(task < jobs_graph_task_count(g_jobsCurrent->graph));
+  return array_mem(g_jobsCurrent->taskData[task].scratchpad);
 }

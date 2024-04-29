@@ -205,8 +205,10 @@ static i8 sys_compare_info_name(const void* a, const void* b) {
 }
 
 static i8 sys_compare_info_duration(const void* a, const void* b) {
-  return compare_u64_reverse(
-      field_ptr(a, DebugEcsSysInfo, duration), field_ptr(b, DebugEcsSysInfo, duration));
+  const DebugEcsSysInfo* infoA = a;
+  const DebugEcsSysInfo* infoB = b;
+  const i8               comp  = compare_u64_reverse(&infoA->duration, &infoB->duration);
+  return comp ? comp : compare_u32(&infoA->id, &infoB->id);
 }
 
 static i8 sys_compare_info_order(const void* a, const void* b) {
@@ -593,8 +595,10 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
 static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   if (!panelComp->freeze) {
     dynarray_clear(&panelComp->systems);
-    const EcsWorldStats stats = ecs_world_stats_query(world);
-    const EcsDef*       def   = ecs_world_def(world);
+
+    const EcsRunner* runner = g_ecsRunningRunner;
+    const EcsDef*    def    = ecs_world_def(world);
+
     for (EcsSystemId id = 0; id != ecs_def_system_count(def); ++id) {
       if (!ecs_panel_filter(panelComp, ecs_def_system_name(def, id))) {
         continue;
@@ -607,7 +611,7 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
           .viewCount     = (u32)ecs_def_system_views(def, id).count,
           .parallelCount = ecs_def_system_parallel(def, id),
           .flags         = ecs_def_system_flags(def, id),
-          .duration      = stats.sysStats[id].avgTotalDur,
+          .duration      = ecs_runner_duration_avg(runner, id),
       };
     }
   }

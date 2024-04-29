@@ -32,8 +32,9 @@ typedef struct {
 
 /**
  * Routine to invoke to run the task.
+ * 'context' is a pointer to the memory that was given when adding the task to the graph.
  */
-typedef void (*JobTaskRoutine)(void* context);
+typedef void (*JobTaskRoutine)(const void* context);
 
 /**
  * Routine to estimate the cost of a single task.
@@ -162,6 +163,11 @@ String jobs_graph_name(const JobGraph*);
  * Retrieve the name of a task in the graph.
  */
 String jobs_graph_task_name(const JobGraph*, JobTaskId);
+
+/**
+ * Retrieve the user context associated with the given task.
+ */
+Mem jobs_graph_task_ctx(const JobGraph*, JobTaskId);
 
 /**
  * Check if the task has a parent dependency.

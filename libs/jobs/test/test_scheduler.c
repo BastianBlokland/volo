@@ -4,7 +4,7 @@
 
 #define task_flags JobTaskFlags_None
 
-static void test_task_nop(void* ctx) { (void)ctx; }
+static void test_task_nop(MAYBE_UNUSED const void* ctx) {}
 
 spec(scheduler) {
 
