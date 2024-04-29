@@ -145,8 +145,8 @@ static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
   {
     const void* userCtx = bits_ptr_offset(jobTaskDef, sizeof(JobTask));
-    g_jobsCurrent       = item.job;
     g_jobsTaskId        = item.task;
+    g_jobsCurrent       = item.job;
     jobTaskDef->routine(userCtx);
     g_jobsCurrent = null;
   }
