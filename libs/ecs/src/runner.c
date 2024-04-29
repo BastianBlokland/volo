@@ -31,7 +31,7 @@ typedef enum {
 } EcsRunnerPrivateFlags;
 
 typedef struct {
-  u32 dur; // In nano-seconds (limits the max dur to 4 seconds).
+  TimeDuration dur;
 } TaskScratchpad;
 
 typedef struct {
@@ -53,7 +53,7 @@ typedef struct {
 } RunnerPlan;
 
 typedef struct {
-  u32 totalDurAvg; // In nano-seconds (limits the max dur to 4 seconds).
+  TimeDuration totalDurAvg;
 } RunnerSystemStats;
 
 struct sEcsRunner {
@@ -64,7 +64,7 @@ struct sEcsRunner {
   RunnerPlan         plans[2];
   BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
   RunnerSystemStats* stats;          // RunnerSystemStats[systemCount].
-  u32                replanDurAvg, flushDurAvg;
+  TimeDuration       replanDurAvg, flushDurAvg;
   Mem                jobMem;
 };
 
@@ -81,22 +81,8 @@ static i8 compare_system_entry(const void* a, const void* b) {
   return compare_i32(&(*entryA)->order, &(*entryB)->order);
 }
 
-static void runner_avg_f64(f64* value, const f64 new) {
-  *value += (new - *value) * g_runnerInvAvgWindow;
-}
-
-static void runner_avg_dur_to_u32(u32* value, const TimeDuration new) {
-  f64 floatVal = (f64)*value;
-  runner_avg_f64(&floatVal, (f64) new);
-  *value = floatVal >= u32_max ? u32_max : (u32)floatVal;
-}
-
-static u32 runner_dur_to_u32(const TimeDuration dur) {
-  /**
-   * NOTE: If the platforms timer granularity is imprecise then the duration can actually be
-   * reported as 0 nano-seconds, to avoid this we make sure its always at least 1 ns.
-   */
-  return dur >= u32_max ? u32_max : math_max((u32)dur, 1);
+static void runner_avg_dur(TimeDuration* value, const TimeDuration new) {
+  *value += (TimeDuration)((new - *value) * g_runnerInvAvgWindow);
 }
 
 static bool runner_taskset_contains(const EcsTaskSet set, const JobTaskId task) {
@@ -151,7 +137,7 @@ static void runner_task_replan(const void* ctx) {
   }
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner_avg_dur_to_u32(&runner->replanDurAvg, dur);
+  runner_avg_dur(&runner->replanDurAvg, math_max(dur, 1));
 }
 
 static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
@@ -165,10 +151,10 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
     TimeDuration totalDur = 0;
     for (JobTaskId task = tasks.begin; task != tasks.end; ++task) {
       TaskScratchpad* taskScratchpad = jobs_scratchpad(task).ptr;
-      totalDur += (TimeDuration)taskScratchpad->dur;
+      totalDur += taskScratchpad->dur;
     }
 
-    runner_avg_dur_to_u32(&runner->stats[sys].totalDurAvg, totalDur);
+    runner_avg_dur(&runner->stats[sys].totalDurAvg, totalDur);
   }
 }
 
@@ -184,7 +170,7 @@ static void runner_task_flush(const void* ctx) {
   runner_task_flush_stats(ctxMeta->runner, ctxMeta->runner->planIndex);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner_avg_dur_to_u32(&ctxMeta->runner->flushDurAvg, dur);
+  runner_avg_dur(&ctxMeta->runner->flushDurAvg, math_max(dur, 1));
 }
 
 static void runner_task_system(const void* context) {
@@ -203,7 +189,7 @@ static void runner_task_system(const void* context) {
   g_ecsRunningRunner   = null;
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  scratchpad->dur        = runner_dur_to_u32(dur);
+  scratchpad->dur        = math_max(dur, 1);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
@@ -376,8 +362,8 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
   }
   // Task is not one of the meta tasks; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
-  const u32                sysTotalDurAvg = ctx->runner->stats[sysTaskCtx->id].totalDurAvg;
-  return (u64)sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
+  const TimeDuration       sysTotalDurAvg = ctx->runner->stats[sysTaskCtx->id].totalDurAvg;
+  return sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
 }
 
 static u32 runner_plan_pick(EcsRunner* runner) {
