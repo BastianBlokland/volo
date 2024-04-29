@@ -88,6 +88,10 @@ static void runner_avg_dur_to_u32(u32* value, const TimeDuration new) {
   *value = floatVal >= u32_max ? u32_max : (u32)floatVal;
 }
 
+static bool runner_taskset_contains(const EcsTaskSet set, const JobTaskId task) {
+  return task >= set.begin && task < set.end;
+}
+
 /**
  * Add a dependency between the parent and child tasks. The child tasks are only allowed to start
  * once all parent tasks have finished.
@@ -342,13 +346,26 @@ static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
   }
 }
 
+typedef struct {
+  EcsRunner* runner;
+  u32        planIndex;
+} RunnerEstimateContext;
+
 static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) {
-  const EcsRunner* runner = (const EcsRunner*)userCtx;
-  if (!runner->taskCosts) {
-    return 1; // No costs known yet.
+  const RunnerEstimateContext* ctx  = (const RunnerEstimateContext*)userCtx;
+  const EcsDef*                def  = ecs_world_def(ctx->runner->world);
+  const RunnerPlan*            plan = &ctx->runner->plans[ctx->planIndex];
+
+  if (runner_taskset_contains(plan->replanTasks, task)) {
+    return ctx->runner->replanDurAvg;
   }
-  // Use the average runtime duration as a cost estimation.
-  return (u64)thread_atomic_load_i32(&runner->taskCosts[task]);
+  if (runner_taskset_contains(plan->flushTasks, task)) {
+    return ctx->runner->flushDurAvg;
+  }
+  // Task is not one of the meta tasks; assume its a system.
+  const RunnerTaskSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
+  const u32               sysTotalDurAvg = ctx->runner->stats[sysTaskCtx->id].totalDurAvg;
+  return (u64)sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
 }
 
 static u32 runner_plan_pick(EcsRunner* runner) {
@@ -362,7 +379,8 @@ static u32 runner_plan_pick(EcsRunner* runner) {
 
     // Compute the plan cost (longest path through the graph).
     // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
-    const u64 cost = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, runner);
+    const RunnerEstimateContext ctx = {.runner = runner, .planIndex = i};
+    const u64 cost = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
     if (cost < bestCost) {
       bestIndex = i;
       bestCost  = cost;
