@@ -63,7 +63,7 @@ struct sEcsRunner {
   u32                planIndex, planIndexNext;
   RunnerPlan         plans[2];
   BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
-  RunnerSystemStats* stats;          // RunnerSystemStats[systemCount].
+  RunnerSystemStats* sysStats;       // RunnerSystemStats[systemCount].
   TimeDuration       replanDurLast, replanDurAvg;
   TimeDuration       flushDurLast, flushDurAvg;
   Mem                jobMem;
@@ -156,7 +156,7 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
       totalDur += taskScratchpad->dur;
     }
 
-    runner_avg_dur(&runner->stats[sys].totalDurAvg, totalDur);
+    runner_avg_dur(&runner->sysStats[sys].totalDurAvg, totalDur);
   }
 }
 
@@ -366,7 +366,7 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
   }
   // Task is not one of the meta tasks; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
-  const TimeDuration       sysTotalDurAvg = ctx->runner->stats[sysTaskCtx->id].totalDurAvg;
+  const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
   return sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
 }
 
@@ -466,8 +466,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   };
 
   if (systemCount) {
-    runner->stats = alloc_array_t(alloc, RunnerSystemStats, systemCount);
-    mem_set(mem_create(runner->stats, sizeof(RunnerSystemStats) * systemCount), 0);
+    runner->sysStats = alloc_array_t(alloc, RunnerSystemStats, systemCount);
+    mem_set(mem_create(runner->sysStats, sizeof(RunnerSystemStats) * systemCount), 0);
   }
 
   array_for_t(runner->plans, RunnerPlan, plan) {
@@ -500,8 +500,8 @@ void ecs_runner_destroy(EcsRunner* runner) {
   if (mem_valid(runner->conflictMatrix)) {
     alloc_free(runner->alloc, runner->conflictMatrix);
   }
-  if (runner->stats) {
-    alloc_free_array_t(runner->alloc, runner->stats, systemCount);
+  if (runner->sysStats) {
+    alloc_free_array_t(runner->alloc, runner->sysStats, systemCount);
   }
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
@@ -518,7 +518,7 @@ EcsTaskSet ecs_runner_task_set(const EcsRunner* runner, const EcsSystemId system
 }
 
 TimeDuration ecs_runner_duration_avg(const EcsRunner* runner, const EcsSystemId systemId) {
-  return runner->stats[systemId].totalDurAvg;
+  return runner->sysStats[systemId].totalDurAvg;
 }
 
 bool ecs_running(const EcsRunner* runner) {
