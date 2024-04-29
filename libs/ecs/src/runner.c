@@ -66,6 +66,7 @@ struct sEcsRunner {
   RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
   TimeDuration       replanDurLast, replanDurAvg;
   TimeDuration       flushDurLast, flushDurAvg;
+  u64                planCounter;
   Mem                jobMem;
 };
 
@@ -135,6 +136,7 @@ static void runner_task_replan(const void* ctx) {
   // If the plan is better then set it as the next plan.
   if (runner_plan_pick(runner) == planIndexIdle) {
     runner->planIndexNext = planIndexIdle;
+    ++runner->planCounter;
   }
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
