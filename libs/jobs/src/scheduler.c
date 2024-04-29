@@ -72,7 +72,7 @@ bool jobs_scheduler_is_finished(const JobId job) {
 }
 
 void jobs_scheduler_wait(const JobId job) {
-  diag_assert_msg(!g_jobsIsWorking, "Waiting for a job to finish is not allowed inside a task");
+  diag_assert_msg(!jobs_is_working(), "Waiting for a job to finish is not allowed inside a task");
 
   thread_mutex_lock(g_jobMutex);
   while (!jobs_scheduler_is_finished_locked(job)) {

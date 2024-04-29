@@ -30,19 +30,19 @@ extern THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 extern THREAD_LOCAL bool g_jobsIsWorker;
 
 /**
- * True if the current thread is currently performing work for the job system.
- */
-extern THREAD_LOCAL bool g_jobsIsWorking;
-
-/**
  * Id of the currently executing task.
- * NOTE: Only valid if 'g_jobsIsWorking' is true.
+ * NOTE: Only valid if 'jobs_is_working()' is true.
  */
 extern THREAD_LOCAL JobTaskId g_jobsTaskId;
 
 /**
+ * True if the current thread is currently performing work for the job system.
+ */
+bool jobs_is_working(void);
+
+/**
  * Retrieve the scratchpad for the given task in the current job.
  * NOTE: Memory is guaranteed to be at least 32 bytes and 16 byte aligned.
- * Pre-condition: g_jobsIsWorking == true
+ * Pre-condition: jobs_is_working() == true
  */
-Mem jobs_executor_scratchpad(JobTaskId);
+Mem jobs_scratchpad(JobTaskId);
