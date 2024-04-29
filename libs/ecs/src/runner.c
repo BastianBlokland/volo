@@ -32,7 +32,7 @@ typedef enum {
 
 typedef struct {
   EcsRunner* runner;
-} RunnerTaskMeta;
+} TaskContextMeta;
 
 typedef struct {
   EcsSystemId      id;
@@ -40,7 +40,7 @@ typedef struct {
   const EcsRunner* runner;
   EcsWorld*        world;
   EcsSystemRoutine routine;
-} RunnerTaskSystem;
+} TaskContextSystem;
 
 typedef struct {
   JobGraph*   graph;
@@ -65,8 +65,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static u32  runner_plan_pick(EcsRunner*);
@@ -112,9 +112,9 @@ static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
   return flags;
 }
 
-static void runner_task_replan(const void* context) {
-  const RunnerTaskMeta* data   = context;
-  EcsRunner*            runner = data->runner;
+static void runner_task_replan(const void* ctx) {
+  const TaskContextMeta* ctxMeta = ctx;
+  EcsRunner*             runner  = ctxMeta->runner;
 
   if (g_jobsWorkerCount == 1) {
     return; // Replanning (to improve parallelism) only makes sense if we have multiple workers.
@@ -160,30 +160,30 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
   }
 }
 
-static void runner_task_flush(const void* context) {
-  const RunnerTaskMeta* data      = context;
-  const TimeSteady      startTime = time_steady_clock();
+static void runner_task_flush(const void* ctx) {
+  const TaskContextMeta* ctxMeta   = ctx;
+  const TimeSteady       startTime = time_steady_clock();
 
-  ecs_world_flush_internal(data->runner->world);
+  ecs_world_flush_internal(ctxMeta->runner->world);
 
-  data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
-  ecs_world_busy_unset(data->runner->world);
+  ctxMeta->runner->flags &= ~EcsRunnerPrivateFlags_Running;
+  ecs_world_busy_unset(ctxMeta->runner->world);
 
-  runner_task_flush_stats(data->runner, data->runner->planIndex);
+  runner_task_flush_stats(ctxMeta->runner, ctxMeta->runner->planIndex);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner_avg_dur_to_u32(&data->runner->flushDurAvg, dur);
+  runner_avg_dur_to_u32(&ctxMeta->runner->flushDurAvg, dur);
 }
 
 static void runner_task_system(const void* context) {
-  const RunnerTaskSystem* data      = context;
-  const TimeSteady        startTime = time_steady_clock();
+  const TaskContextSystem* ctxSys    = context;
+  const TimeSteady         startTime = time_steady_clock();
 
   g_ecsRunningSystem   = true;
-  g_ecsRunningSystemId = data->id;
-  g_ecsRunningRunner   = data->runner;
+  g_ecsRunningSystemId = ctxSys->id;
+  g_ecsRunningRunner   = ctxSys->runner;
 
-  data->routine(data->world, data->parCount, data->parIndex);
+  ctxSys->routine(ctxSys->world, ctxSys->parCount, ctxSys->parIndex);
 
   g_ecsRunningSystem   = false;
   g_ecsRunningSystemId = sentinel_u16;
@@ -191,7 +191,7 @@ static void runner_task_system(const void* context) {
 
   const TimeDuration dur  = time_steady_duration(startTime, time_steady_clock());
   const i32          cost = dur > i32_max ? i32_max : math_max((i32)dur, 1);
-  thread_atomic_store_i32(&data->runner->taskCosts[g_jobsTaskId], cost);
+  thread_atomic_store_i32(&ctxSys->runner->taskCosts[g_jobsTaskId], cost);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
@@ -203,7 +203,7 @@ static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
       plan->graph,
       string_lit("Replan"),
       runner_task_replan,
-      mem_struct(RunnerTaskMeta, .runner = runner),
+      mem_struct(TaskContextMeta, .runner = runner),
       JobTaskFlags_None);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
@@ -222,7 +222,7 @@ static EcsTaskSet runner_insert_flush(EcsRunner* runner, const u32 planIndex) {
       plan->graph,
       string_lit("Flush"),
       runner_task_flush,
-      mem_struct(RunnerTaskMeta, .runner = runner),
+      mem_struct(TaskContextMeta, .runner = runner),
       JobTaskFlags_ThreadAffinity);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
@@ -247,7 +247,7 @@ static EcsTaskSet runner_insert_system(
         systemDef->name,
         runner_task_system,
         mem_struct(
-            RunnerTaskSystem,
+            TaskContextSystem,
             .id       = systemId,
             .parCount = parallelCount,
             .parIndex = parIndex,
@@ -363,8 +363,8 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
     return ctx->runner->flushDurAvg;
   }
   // Task is not one of the meta tasks; assume its a system.
-  const RunnerTaskSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
-  const u32               sysTotalDurAvg = ctx->runner->stats[sysTaskCtx->id].totalDurAvg;
+  const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
+  const u32                sysTotalDurAvg = ctx->runner->stats[sysTaskCtx->id].totalDurAvg;
   return (u64)sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
 }
 
