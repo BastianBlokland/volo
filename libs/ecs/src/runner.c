@@ -45,19 +45,24 @@ typedef struct {
   EcsTaskSet* systemTasks;
 } RunnerPlan;
 
+typedef struct {
+  u32 totalDurAvg; // In nano-seconds (limits the max dur to 4 seconds).
+} RunnerSystemStats;
+
 struct sEcsRunner {
-  Allocator* alloc;
-  EcsWorld*  world;
-  u32        flags;
-  u32        planIndex, planIndexNext;
-  RunnerPlan plans[2];
-  i32*       taskCosts;      // Average time in nanoseconds for each task. i32[taskCount].
-  BitSet     conflictMatrix; // Triangular matrix of system conflicts. bit[systemId, systemId].
-  Mem        jobMem;
+  Allocator*         alloc;
+  EcsWorld*          world;
+  u32                flags;
+  u32                planIndex, planIndexNext;
+  RunnerPlan         plans[2];
+  i32*               taskCosts;      // Average time in nanoseconds for each task. i32[taskCount].
+  BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
+  RunnerSystemStats* stats;          // RunnerSystemStats[systemCount].
+  Mem                jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static u32  runner_plan_pick(EcsRunner*);
@@ -116,17 +121,37 @@ static void runner_task_replan(void* context) {
   }
 }
 
+static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
+  const EcsDef*     def  = ecs_world_def(runner->world);
+  const RunnerPlan* plan = &runner->plans[planIndex];
+
+  const u32 systemCount = ecs_def_system_count(def);
+  for (EcsSystemId sys = 0; sys != systemCount; ++sys) {
+    const EcsTaskSet   sysTasks = plan->systemTasks[sys];
+    RunnerSystemStats* sysStats = &runner->stats[sys];
+
+    TimeDuration totalDur = 0;
+    for (JobTaskId task = sysTasks.begin; task != sysTasks.end; ++task) {
+      totalDur += (TimeDuration)runner->taskCosts[task];
+    }
+
+    static const f64 g_invAvgWindow = 1.0 / 15.0;
+    sysStats->totalDurAvg += (TimeDuration)((totalDur - sysStats->totalDurAvg) * g_invAvgWindow);
+  }
+}
+
 static void runner_task_flush(void* context) {
   const RunnerTaskMeta* data = context;
   ecs_world_flush_internal(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
   ecs_world_busy_unset(data->runner->world);
+
+  runner_task_flush_stats(data->runner, data->runner->planIndex);
 }
 
 static void runner_task_system(void* context) {
   const RunnerTaskSystem* data      = context;
-  const JobTaskId         taskId    = g_jobsTaskId;
   const TimeSteady        startTime = time_steady_clock();
 
   g_ecsRunningSystem   = true;
@@ -142,19 +167,8 @@ static void runner_task_system(void* context) {
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
   ecs_world_stats_sys_add(data->world, data->id, dur);
 
-  /**
-   * Track the average cost (runtime duration) of the task.
-   * TODO: Reduce the false sharing of cache-lines on the costs.
-   */
-  static const f64 g_invCostAvgWindow = 1.0 / 15.0;
-  const i32        costNew            = dur > i32_max ? i32_max : math_max((i32)dur, 1);
-  i32              costAvg            = thread_atomic_load_i32(&data->runner->taskCosts[taskId]);
-  if (costAvg) {
-    costAvg += (i32)((costNew - costAvg) * g_invCostAvgWindow);
-  } else {
-    costAvg = costNew;
-  }
-  thread_atomic_store_i32(&data->runner->taskCosts[g_jobsTaskId], costAvg);
+  const i32 cost = dur > i32_max ? i32_max : math_max((i32)dur, 1);
+  thread_atomic_store_i32(&data->runner->taskCosts[g_jobsTaskId], cost);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
@@ -360,11 +374,10 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   // Sort the systems to respect the ordering constrains.
   sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
 
-  // Insert the systems into the job-graph.
-
   trace_end();
   trace_begin("ecs_plan_build", TraceColor_Blue);
 
+  // Insert the systems into the job-graph.
   jobs_graph_clear(plan->graph);
 
   // Insert meta tasks.
@@ -413,6 +426,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
       .conflictMatrix = runner_conflict_matrix_create(world, alloc),
   };
 
+  if (systemCount) {
+    runner->stats = alloc_array_t(alloc, RunnerSystemStats, systemCount);
+    mem_set(mem_create(runner->stats, sizeof(RunnerSystemStats) * systemCount), 0);
+  }
+
   array_for_t(runner->plans, RunnerPlan, plan) {
     plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
     plan->systemTasks = alloc_array_t(alloc, EcsTaskSet, systemCount);
@@ -448,6 +466,9 @@ void ecs_runner_destroy(EcsRunner* runner) {
   if (mem_valid(runner->conflictMatrix)) {
     alloc_free(runner->alloc, runner->conflictMatrix);
   }
+  if (runner->stats) {
+    alloc_free_array_t(runner->alloc, runner->stats, systemCount);
+  }
   alloc_free_array_t(runner->alloc, runner->taskCosts, taskCount);
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
@@ -461,6 +482,10 @@ const JobGraph* ecs_runner_graph(const EcsRunner* runner) {
 EcsTaskSet ecs_runner_task_set(const EcsRunner* runner, const EcsSystemId systemId) {
   const RunnerPlan* activePlan = &runner->plans[runner->planIndex];
   return activePlan->systemTasks[systemId];
+}
+
+TimeDuration ecs_runner_duration_avg(const EcsRunner* runner, const EcsSystemId systemId) {
+  return runner->stats[systemId].totalDurAvg;
 }
 
 bool ecs_running(const EcsRunner* runner) {

@@ -5,6 +5,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 // Forward declare from 'ecs_world.h'.
 typedef struct sEcsWorld EcsWorld;
 
@@ -57,6 +60,7 @@ void ecs_runner_destroy(EcsRunner*);
  */
 const JobGraph* ecs_runner_graph(const EcsRunner*);
 EcsTaskSet      ecs_runner_task_set(const EcsRunner*, EcsSystemId);
+TimeDuration    ecs_runner_duration_avg(const EcsRunner*, EcsSystemId);
 
 /**
  * Check if the given runner is currently running.
