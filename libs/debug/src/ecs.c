@@ -205,8 +205,10 @@ static i8 sys_compare_info_name(const void* a, const void* b) {
 }
 
 static i8 sys_compare_info_duration(const void* a, const void* b) {
-  return compare_u64_reverse(
-      field_ptr(a, DebugEcsSysInfo, duration), field_ptr(b, DebugEcsSysInfo, duration));
+  const DebugEcsSysInfo* infoA = a;
+  const DebugEcsSysInfo* infoB = b;
+  const i8               comp  = compare_u64_reverse(&infoA->duration, &infoB->duration);
+  return comp ? comp : compare_u32(&infoA->id, &infoB->id);
 }
 
 static i8 sys_compare_info_order(const void* a, const void* b) {
