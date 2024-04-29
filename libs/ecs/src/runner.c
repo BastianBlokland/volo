@@ -64,7 +64,8 @@ struct sEcsRunner {
   RunnerPlan         plans[2];
   BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
   RunnerSystemStats* stats;          // RunnerSystemStats[systemCount].
-  TimeDuration       replanDurAvg, flushDurAvg;
+  TimeDuration       replanDurLast, replanDurAvg;
+  TimeDuration       flushDurLast, flushDurAvg;
   Mem                jobMem;
 };
 
@@ -137,7 +138,8 @@ static void runner_task_replan(const void* ctx) {
   }
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner_avg_dur(&runner->replanDurAvg, math_max(dur, 1));
+  runner->replanDurLast  = math_max(dur, 1);
+  runner_avg_dur(&runner->replanDurAvg, runner->replanDurLast);
 }
 
 static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
@@ -160,17 +162,19 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
 
 static void runner_task_flush(const void* ctx) {
   const TaskContextMeta* ctxMeta   = ctx;
+  EcsRunner*             runner    = ctxMeta->runner;
   const TimeSteady       startTime = time_steady_clock();
 
-  ecs_world_flush_internal(ctxMeta->runner->world);
+  ecs_world_flush_internal(runner->world);
 
-  ctxMeta->runner->flags &= ~EcsRunnerPrivateFlags_Running;
-  ecs_world_busy_unset(ctxMeta->runner->world);
+  runner->flags &= ~EcsRunnerPrivateFlags_Running;
+  ecs_world_busy_unset(runner->world);
 
-  runner_task_flush_stats(ctxMeta->runner, ctxMeta->runner->planIndex);
+  runner_task_flush_stats(runner, runner->planIndex);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner_avg_dur(&ctxMeta->runner->flushDurAvg, math_max(dur, 1));
+  runner->flushDurLast   = math_max(dur, 1);
+  runner_avg_dur(&runner->flushDurAvg, runner->flushDurLast);
 }
 
 static void runner_task_system(const void* context) {
