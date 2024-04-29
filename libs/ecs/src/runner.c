@@ -112,7 +112,7 @@ static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
   return flags;
 }
 
-static void runner_task_replan(void* context) {
+static void runner_task_replan(const void* context) {
   const RunnerTaskMeta* data   = context;
   EcsRunner*            runner = data->runner;
 
@@ -160,7 +160,7 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
   }
 }
 
-static void runner_task_flush(void* context) {
+static void runner_task_flush(const void* context) {
   const RunnerTaskMeta* data      = context;
   const TimeSteady      startTime = time_steady_clock();
 
@@ -175,7 +175,7 @@ static void runner_task_flush(void* context) {
   runner_avg_dur_to_u32(&data->runner->flushDurAvg, dur);
 }
 
-static void runner_task_system(void* context) {
+static void runner_task_system(const void* context) {
   const RunnerTaskSystem* data      = context;
   const TimeSteady        startTime = time_steady_clock();
 

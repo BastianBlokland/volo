@@ -143,9 +143,11 @@ static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
   // Invoke the user routine.
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
   {
+    const void* userCtx = bits_ptr_offset(jobTaskDef, sizeof(JobTask));
+
     g_jobsTaskId    = item.task;
     g_jobsIsWorking = true;
-    jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
+    jobTaskDef->routine(userCtx);
     g_jobsIsWorking = false;
   }
   trace_end();

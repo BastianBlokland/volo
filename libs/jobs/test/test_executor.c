@@ -21,33 +21,37 @@ typedef struct {
   ThreadId tid;
 } TestExecutorAffinityData;
 
-static void test_task_increment_counter(void* ctx) {
-  TestExecutorCounterData* data = ctx;
+static void test_task_increment_counter(const void* ctx) {
+  const TestExecutorCounterData* data = ctx;
   ++*data->counter;
 }
 
-static void test_task_decrement_counter(void* ctx) {
-  TestExecutorCounterData* data = ctx;
+static void test_task_decrement_counter(const void* ctx) {
+  const TestExecutorCounterData* data = ctx;
   --*data->counter;
 }
 
-static void test_task_counter_to_42(void* ctx) {
-  TestExecutorCounterData* data = ctx;
-  *data->counter                = 42;
+static void test_task_counter_to_42(const void* ctx) {
+  const TestExecutorCounterData* data = ctx;
+  *data->counter                      = 42;
 }
 
-static void test_task_increment_counter_atomic(void* ctx) {
-  TestExecutorCounterData* data = ctx;
+static void test_task_increment_counter_atomic(const void* ctx) {
+  const TestExecutorCounterData* data = ctx;
   thread_atomic_add_i64(data->counter, 1);
 }
 
-static void test_task_sum(void* ctx) {
-  TestExecutorSumData* data = ctx;
+static void test_task_sum(const void* ctx) {
+  const TestExecutorSumData* data = ctx;
   data->values[data->idxA] += data->values[data->idxB];
 }
 
-static void test_task_require_affinity(void* ctx) {
-  TestExecutorAffinityData* data = ctx;
+static void test_task_require_affinity(const void* ctx) {
+  /**
+   * HACK: This test modifies the context data in the graph, this works in practice but violates the
+   * scheduler contract (multiple runs of the same graph would behave differently).
+   */
+  TestExecutorAffinityData* data = (TestExecutorAffinityData*)ctx;
   if (sentinel_check(data->tid)) {
     data->tid = g_thread_tid;
     return;

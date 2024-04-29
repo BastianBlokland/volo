@@ -32,8 +32,9 @@ typedef struct {
 
 /**
  * Routine to invoke to run the task.
+ * 'context' is a pointer to the memory that was given when adding the task to the graph.
  */
-typedef void (*JobTaskRoutine)(void* context);
+typedef void (*JobTaskRoutine)(const void* context);
 
 /**
  * Routine to estimate the cost of a single task.

@@ -9,7 +9,7 @@ usize job_mem_req_size(const JobGraph* graph) {
 
 usize job_mem_req_align(const JobGraph* graph) {
   (void)graph;
-  return job_size;
+  return alignof(Job);
 }
 
 Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {

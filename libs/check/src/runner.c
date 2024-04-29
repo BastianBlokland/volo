@@ -26,8 +26,8 @@ typedef struct {
   CheckRunContext* ctx;
 } CheckTaskData;
 
-static void check_test_task(void* context) {
-  CheckTaskData* data = context;
+static void check_test_task(const void* context) {
+  const CheckTaskData* data = context;
 
   // Execute the test.
   CheckResult*          result = check_exec_test(g_alloc_heap, data->spec, data->test->id);
