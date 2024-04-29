@@ -42,7 +42,8 @@ typedef struct {
 
 typedef struct {
   JobGraph*   graph;
-  EcsTaskSet* systemTasks;
+  EcsTaskSet* systemTasks; // EcsTaskSet[systemCount].
+  EcsTaskSet  replanTasks, flushTasks;
 } RunnerPlan;
 
 typedef struct {
@@ -379,8 +380,8 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   jobs_graph_clear(plan->graph);
 
   // Insert meta tasks.
-  runner_insert_replan(runner, planIndex); // NOTE: Replanning has no dependencies.
-  const EcsTaskSet flushTask = runner_insert_flush(runner, planIndex);
+  plan->replanTasks = runner_insert_replan(runner, planIndex);
+  plan->flushTasks  = runner_insert_flush(runner, planIndex);
 
   // Insert system tasks.
   for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
@@ -389,7 +390,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
     plan->systemTasks[sysId]     = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    runner_add_dep(plan->graph, entryTasks, flushTask);
+    runner_add_dep(plan->graph, entryTasks, plan->flushTasks);
 
     // Insert required dependencies on the earlier systems.
     for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
