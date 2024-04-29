@@ -42,7 +42,6 @@ typedef struct {
   EcsSystemId      id;
   u16              parCount, parIndex;
   const EcsRunner* runner;
-  EcsWorld*        world;
   EcsSystemRoutine routine;
 } TaskContextSystem;
 
@@ -169,10 +168,10 @@ static void runner_task_flush(const void* ctx) {
 
   ecs_world_flush_internal(runner->world);
 
+  runner_task_flush_stats(runner, runner->planIndex);
+
   runner->flags &= ~EcsRunnerPrivateFlags_Running;
   ecs_world_busy_unset(runner->world);
-
-  runner_task_flush_stats(runner, runner->planIndex);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
   runner->flushDurLast   = math_max(dur, 1);
@@ -188,7 +187,7 @@ static void runner_task_system(const void* context) {
   g_ecsRunningSystemId = ctxSys->id;
   g_ecsRunningRunner   = ctxSys->runner;
 
-  ctxSys->routine(ctxSys->world, ctxSys->parCount, ctxSys->parIndex);
+  ctxSys->routine(ctxSys->runner->world, ctxSys->parCount, ctxSys->parIndex);
 
   g_ecsRunningSystem   = false;
   g_ecsRunningSystemId = sentinel_u16;
@@ -256,7 +255,6 @@ static EcsTaskSet runner_insert_system(
             .parCount = parallelCount,
             .parIndex = parIndex,
             .runner   = runner,
-            .world    = runner->world,
             .routine  = systemDef->routine),
         runner_task_system_flags(systemDef));
 
