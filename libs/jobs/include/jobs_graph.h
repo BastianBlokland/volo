@@ -164,6 +164,11 @@ String jobs_graph_name(const JobGraph*);
 String jobs_graph_task_name(const JobGraph*, JobTaskId);
 
 /**
+ * Retrieve the user context associated with the given task.
+ */
+Mem jobs_graph_task_ctx(const JobGraph*, JobTaskId);
+
+/**
  * Check if the task has a parent dependency.
  */
 bool jobs_graph_task_has_parent(const JobGraph*, JobTaskId);

@@ -327,7 +327,7 @@ void jobs_graph_copy(JobGraph* dst, JobGraph* src) {
 
   // Insert all the tasks from the src graph.
   jobs_graph_for_task(src, srcTaskId) {
-    const JobTask* srcTask    = job_graph_task_def(src, srcTaskId);
+    const JobTask* srcTask    = jobs_graph_task_def(src, srcTaskId);
     const usize    srcCtxSize = 64 - sizeof(JobTask);
     const Mem      srcCtx     = mem_create(bits_ptr_offset(srcTask, sizeof(JobTask)), srcCtxSize);
     jobs_graph_add_task(dst, srcTask->name, srcTask->routine, srcCtx, srcTask->flags);
@@ -345,7 +345,7 @@ JobTaskId jobs_graph_add_task(
     JobGraph*            graph,
     const String         name,
     const JobTaskRoutine routine,
-    Mem                  ctx,
+    const Mem            ctx,
     const JobTaskFlags   flags) {
   // NOTE: Api promises sequential task-ids for sequential calls to jobs_graph_add_task.
   const JobTaskId id = (JobTaskId)graph->tasks.size;
@@ -434,7 +434,13 @@ u32 jobs_graph_task_leaf_count(const JobGraph* graph) {
 String jobs_graph_name(const JobGraph* graph) { return graph->name; }
 
 String jobs_graph_task_name(const JobGraph* graph, JobTaskId id) {
-  return job_graph_task_def(graph, id)->name;
+  return jobs_graph_task_def(graph, id)->name;
+}
+
+Mem jobs_graph_task_ctx(const JobGraph* graph, JobTaskId id) {
+  diag_assert(id < graph->tasks.size);
+  void* ctx = bits_ptr_offset(graph->tasks.data.ptr, 64 * id + sizeof(JobTask));
+  return mem_create(ctx, 64 - sizeof(JobTask));
 }
 
 bool jobs_graph_task_has_parent(const JobGraph* graph, const JobTaskId task) {

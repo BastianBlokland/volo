@@ -138,7 +138,7 @@ static WorkItem executor_work_steal_loop(const JobWorkerId wId) {
 
 static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
   // Get the JobTask definition from the graph.
-  const JobTask* jobTaskDef = job_graph_task_def(item.job->graph, item.task);
+  const JobTask* jobTaskDef = jobs_graph_task_def(item.job->graph, item.task);
 
   // Invoke the user routine.
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
@@ -176,7 +176,7 @@ static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
       // Decrement the dependency counter for the child task.
       if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        const JobTask* childTaskDef = job_graph_task_def(item.job->graph, childTasks[i]);
+        const JobTask* childTaskDef = jobs_graph_task_def(item.job->graph, childTasks[i]);
         if (childTaskDef->flags & JobTaskFlags_ThreadAffinity) {
           affqueue_push(&g_affinityQueue, item.job, childTasks[i]);
           ++tasksPushedAffinity;
@@ -351,7 +351,7 @@ void executor_run(Job* job) {
         "Job has too root tasks (max: {})",
         fmt_int(job_max_root_tasks));
 
-    const JobTask* taskDef = job_graph_task_def(job->graph, task);
+    const JobTask* taskDef = jobs_graph_task_def(job->graph, task);
     if (taskDef->flags & JobTaskFlags_ThreadAffinity) {
       tasksAffinity[tasksAffinityCount++] = task;
     } else {
