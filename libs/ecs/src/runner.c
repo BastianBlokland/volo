@@ -31,6 +31,10 @@ typedef enum {
 } EcsRunnerPrivateFlags;
 
 typedef struct {
+  u32 dur; // In nano-seconds (limits the max dur to 4 seconds).
+} TaskScratchpad;
+
+typedef struct {
   EcsRunner* runner;
 } TaskContextMeta;
 
@@ -58,7 +62,6 @@ struct sEcsRunner {
   u32                flags;
   u32                planIndex, planIndexNext;
   RunnerPlan         plans[2];
-  i32*               taskCosts;      // Average time in nanoseconds for each task. i32[taskCount].
   BitSet             conflictMatrix; // Triangular matrix of sys conflicts. bit[systemId, systemId].
   RunnerSystemStats* stats;          // RunnerSystemStats[systemCount].
   u32                replanDurAvg, flushDurAvg;
@@ -86,6 +89,14 @@ static void runner_avg_dur_to_u32(u32* value, const TimeDuration new) {
   f64 floatVal = (f64)*value;
   runner_avg_f64(&floatVal, (f64) new);
   *value = floatVal >= u32_max ? u32_max : (u32)floatVal;
+}
+
+static u32 runner_dur_to_u32(const TimeDuration dur) {
+  /**
+   * NOTE: If the platforms timer granularity is imprecise then the duration can actually be
+   * reported as 0 nano-seconds, to avoid this we make sure its always at least 1 ns.
+   */
+  return dur >= u32_max ? u32_max : math_max((u32)dur, 1);
 }
 
 static bool runner_taskset_contains(const EcsTaskSet set, const JobTaskId task) {
@@ -153,7 +164,8 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
 
     TimeDuration totalDur = 0;
     for (JobTaskId task = tasks.begin; task != tasks.end; ++task) {
-      totalDur += (TimeDuration)runner->taskCosts[task];
+      TaskScratchpad* taskScratchpad = jobs_scratchpad(task).ptr;
+      totalDur += (TimeDuration)taskScratchpad->dur;
     }
 
     runner_avg_dur_to_u32(&runner->stats[sys].totalDurAvg, totalDur);
@@ -176,8 +188,9 @@ static void runner_task_flush(const void* ctx) {
 }
 
 static void runner_task_system(const void* context) {
-  const TaskContextSystem* ctxSys    = context;
-  const TimeSteady         startTime = time_steady_clock();
+  const TaskContextSystem* ctxSys     = context;
+  TaskScratchpad*          scratchpad = jobs_scratchpad(g_jobsTaskId).ptr;
+  const TimeSteady         startTime  = time_steady_clock();
 
   g_ecsRunningSystem   = true;
   g_ecsRunningSystemId = ctxSys->id;
@@ -189,9 +202,8 @@ static void runner_task_system(const void* context) {
   g_ecsRunningSystemId = sentinel_u16;
   g_ecsRunningRunner   = null;
 
-  const TimeDuration dur  = time_steady_duration(startTime, time_steady_clock());
-  const i32          cost = dur > i32_max ? i32_max : math_max((i32)dur, 1);
-  thread_atomic_store_i32(&ctxSys->runner->taskCosts[g_jobsTaskId], cost);
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  scratchpad->dur        = runner_dur_to_u32(dur);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
@@ -475,17 +487,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   runner_plan_formulate(runner, runner->planIndex, false /* shuffle */);
 
-  const JobGraph* graph          = runner->plans[runner->planIndex].graph;
-  const u32       graphTaskCount = jobs_graph_task_count(graph);
-
-  // Allocate storage for tracking task cost (runtime duration).
-  runner->taskCosts = alloc_array_t(alloc, i32, graphTaskCount);
-  mem_set(mem_create(runner->taskCosts, sizeof(i32) * graphTaskCount), 0);
-
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
-  const usize jobMemSize = jobs_scheduler_mem_size(graph) + 64;
-  runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
+  const JobGraph* graph      = runner->plans[runner->planIndex].graph;
+  const usize     jobMemSize = jobs_scheduler_mem_size(graph) + 64;
+  runner->jobMem             = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
   return runner;
 }
 
@@ -494,7 +500,6 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
   const EcsDef* def         = ecs_world_def(runner->world);
   const u32     systemCount = ecs_def_system_count(def);
-  const u32     taskCount   = jobs_graph_task_count(runner->plans[0].graph);
 
   array_for_t(runner->plans, RunnerPlan, plan) {
     jobs_graph_destroy(plan->graph);
@@ -508,7 +513,6 @@ void ecs_runner_destroy(EcsRunner* runner) {
   if (runner->stats) {
     alloc_free_array_t(runner->alloc, runner->stats, systemCount);
   }
-  alloc_free_array_t(runner->alloc, runner->taskCosts, taskCount);
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
 }
