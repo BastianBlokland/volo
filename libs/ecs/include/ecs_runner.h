@@ -58,7 +58,7 @@ void ecs_runner_destroy(EcsRunner*);
 typedef struct {
   TimeDuration replanDurLast, replanDurAvg;
   TimeDuration flushDurLast, flushDurAvg;
-  u64          planCounter;
+  u64          replanCounter;
 } EcsRunnerStats;
 
 /**

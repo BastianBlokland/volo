@@ -369,7 +369,6 @@ void ecs_world_busy_unset(EcsWorld* world) {
 }
 
 void ecs_world_flush_internal(EcsWorld* world) {
-  const TimeSteady startTime = time_steady_clock();
 
   trace_begin("ecs_flush_new", TraceColor_White);
   ecs_storage_flush_new_entities(&world->storage);
@@ -422,7 +421,6 @@ void ecs_world_flush_internal(EcsWorld* world) {
   ecs_buffer_clear(&world->buffer);
 
   // Update stats.
-  world->lastFlushDur      = time_steady_duration(startTime, time_steady_clock());
   world->lastFlushEntities = (u32)bufferCount;
 }
 
@@ -433,7 +431,6 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
       .archetypeEmptyCount  = ecs_storage_archetype_count_empty(&world->storage),
       .archetypeTotalSize   = (u32)ecs_storage_archetype_total_size(&world->storage),
       .archetypeTotalChunks = (u32)ecs_storage_archetype_total_chunks(&world->storage),
-      .lastFlushDur         = world->lastFlushDur,
       .lastFlushEntities    = world->lastFlushEntities,
   };
 }

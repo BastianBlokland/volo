@@ -11,9 +11,6 @@ typedef struct sEcsDef EcsDef;
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 // Forward declare from 'core_bitset.h'
 typedef Mem BitSet;
 
@@ -149,11 +146,10 @@ BitSet ecs_world_component_mask(const EcsWorld* world, EcsArchetypeId);
 void ecs_world_flush(EcsWorld*);
 
 typedef struct {
-  u32          entityCount; // Amount of entities that exist in the world.
-  u32          archetypeCount, archetypeEmptyCount;
-  u32          archetypeTotalSize, archetypeTotalChunks;
-  TimeDuration lastFlushDur;
-  u32          lastFlushEntities;
+  u32 entityCount; // Amount of entities that exist in the world.
+  u32 archetypeCount, archetypeEmptyCount;
+  u32 archetypeTotalSize, archetypeTotalChunks;
+  u32 lastFlushEntities;
 } EcsWorldStats;
 
 /**

@@ -515,7 +515,7 @@ EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
       .replanDurAvg  = runner->replanDurAvg,
       .flushDurLast  = runner->flushDurLast,
       .flushDurAvg   = runner->flushDurAvg,
-      .planCounter   = runner->planCounter,
+      .replanCounter = runner->planCounter,
   };
 }
 
