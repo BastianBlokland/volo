@@ -509,6 +509,16 @@ void ecs_runner_destroy(EcsRunner* runner) {
   alloc_free_t(runner->alloc, runner);
 }
 
+EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
+  return (EcsRunnerStats){
+      .replanDurLast = runner->replanDurLast,
+      .replanDurAvg  = runner->replanDurAvg,
+      .flushDurLast  = runner->flushDurLast,
+      .flushDurAvg   = runner->flushDurAvg,
+      .planCounter   = runner->planCounter,
+  };
+}
+
 const JobGraph* ecs_runner_graph(const EcsRunner* runner) {
   const RunnerPlan* activePlan = &runner->plans[runner->planIndex];
   return activePlan->graph;

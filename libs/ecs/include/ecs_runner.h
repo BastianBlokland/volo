@@ -55,9 +55,16 @@ EcsRunner* ecs_runner_create(Allocator*, EcsWorld*, EcsRunnerFlags flags);
  */
 void ecs_runner_destroy(EcsRunner*);
 
+typedef struct {
+  TimeDuration replanDurLast, replanDurAvg;
+  TimeDuration flushDurLast, flushDurAvg;
+  u64          planCounter;
+} EcsRunnerStats;
+
 /**
- * Get the JobGraph created by this runner for debugging purposes.
+ * Query statistics for the given runner.
  */
+EcsRunnerStats  ecs_runner_stats_query(const EcsRunner*);
 const JobGraph* ecs_runner_graph(const EcsRunner*);
 EcsTaskSet      ecs_runner_task_set(const EcsRunner*, EcsSystemId);
 TimeDuration    ecs_runner_duration_avg(const EcsRunner*, EcsSystemId);
