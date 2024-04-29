@@ -149,18 +149,11 @@ BitSet ecs_world_component_mask(const EcsWorld* world, EcsArchetypeId);
 void ecs_world_flush(EcsWorld*);
 
 typedef struct {
-  ALIGNAS(64) // Align to 64 bytes to avoid false-sharing of cachelines.
-  TimeDuration lastTotalDur;
-  TimeDuration avgTotalDur;
-} EcsWorldSysStats;
-
-typedef struct {
-  u32                     entityCount; // Amount of entities that exist in the world.
-  u32                     archetypeCount, archetypeEmptyCount;
-  u32                     archetypeTotalSize, archetypeTotalChunks;
-  TimeDuration            lastFlushDur;
-  u32                     lastFlushEntities;
-  const EcsWorldSysStats* sysStats; // NOT a copy; values are continuously updated.
+  u32          entityCount; // Amount of entities that exist in the world.
+  u32          archetypeCount, archetypeEmptyCount;
+  u32          archetypeTotalSize, archetypeTotalChunks;
+  TimeDuration lastFlushDur;
+  u32          lastFlushEntities;
 } EcsWorldStats;
 
 /**

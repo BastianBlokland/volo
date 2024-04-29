@@ -164,10 +164,8 @@ static void runner_task_system(void* context) {
   g_ecsRunningSystemId = sentinel_u16;
   g_ecsRunningRunner   = null;
 
-  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  ecs_world_stats_sys_add(data->world, data->id, dur);
-
-  const i32 cost = dur > i32_max ? i32_max : math_max((i32)dur, 1);
+  const TimeDuration dur  = time_steady_duration(startTime, time_steady_clock());
+  const i32          cost = dur > i32_max ? i32_max : math_max((i32)dur, 1);
   thread_atomic_store_i32(&data->runner->taskCosts[g_jobsTaskId], cost);
 }
 
