@@ -128,16 +128,16 @@ static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
 
   const u32 systemCount = ecs_def_system_count(def);
   for (EcsSystemId sys = 0; sys != systemCount; ++sys) {
-    const EcsTaskSet   sysTasks = plan->systemTasks[sys];
-    RunnerSystemStats* sysStats = &runner->stats[sys];
+    const EcsTaskSet   tasks = plan->systemTasks[sys];
+    RunnerSystemStats* stats = &runner->stats[sys];
 
     TimeDuration totalDur = 0;
-    for (JobTaskId task = sysTasks.begin; task != sysTasks.end; ++task) {
+    for (JobTaskId task = tasks.begin; task != tasks.end; ++task) {
       totalDur += (TimeDuration)runner->taskCosts[task];
     }
 
     static const f64 g_invAvgWindow = 1.0 / 15.0;
-    sysStats->totalDurAvg += (TimeDuration)((totalDur - sysStats->totalDurAvg) * g_invAvgWindow);
+    stats->totalDurAvg += (u32)((totalDur - (TimeDuration)stats->totalDurAvg) * g_invAvgWindow);
   }
 }
 
