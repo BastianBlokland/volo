@@ -1,6 +1,6 @@
 #pragma once
 #include "core_annotation.h"
-#include "core_types.h"
+#include "core_memory.h"
 
 // Forward declare from 'jobs_graph.h'.
 typedef u16 JobTaskId;
@@ -39,3 +39,10 @@ extern THREAD_LOCAL bool g_jobsIsWorking;
  * NOTE: Only valid if 'g_jobsIsWorking' is true.
  */
 extern THREAD_LOCAL JobTaskId g_jobsTaskId;
+
+/**
+ * Retrieve the scratchpad for the given task in the current job.
+ * NOTE: Memory is guaranteed to be at least 32 bytes and 16 byte aligned.
+ * Pre-condition: g_jobsIsWorking == true
+ */
+Mem jobs_executor_scratchpad(JobTaskId);

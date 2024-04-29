@@ -12,6 +12,7 @@ typedef u64 JobId;
  */
 typedef struct {
   ALIGNAS(job_align) i64 dependencies; // Remaining dependencies (parent tasks).
+  ALIGNAS(16) u8 scratchpad[32];       // For users to use as a per-task temporary memory.
 } JobTaskData;
 
 ASSERT(sizeof(JobTaskData) == job_align, "Invalid JobTaskData size");

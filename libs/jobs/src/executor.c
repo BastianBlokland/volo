@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_thread.h"
@@ -51,6 +52,7 @@ THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL bool        g_jobsIsWorking;
 THREAD_LOCAL JobTaskId   g_jobsTaskId;
+THREAD_LOCAL Job*        g_jobsCurrent;
 
 static void executor_wake_worker_all(void) {
   thread_mutex_lock(g_mutex);
@@ -144,11 +146,12 @@ static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
   trace_begin_msg("job_task", TraceColor_Green, "{}", fmt_text(jobTaskDef->name));
   {
     const void* userCtx = bits_ptr_offset(jobTaskDef, sizeof(JobTask));
-
-    g_jobsTaskId    = item.task;
-    g_jobsIsWorking = true;
+    g_jobsCurrent       = item.job;
+    g_jobsTaskId        = item.task;
+    g_jobsIsWorking     = true;
     jobTaskDef->routine(userCtx);
     g_jobsIsWorking = false;
+    g_jobsCurrent   = null;
   }
   trace_end();
 
@@ -395,4 +398,10 @@ bool executor_help(void) {
   }
 
   return false;
+}
+
+Mem jobs_executor_scratchpad(const JobTaskId task) {
+  diag_assert_msg(g_jobsCurrent, "No active job");
+  diag_assert(task < jobs_graph_task_count(g_jobsCurrent->graph));
+  return array_mem(g_jobsCurrent->taskData[task].scratchpad);
 }
