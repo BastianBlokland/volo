@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_math.h"
 #include "core_sentinel.h"
 #include "jobs_graph.h"
@@ -108,44 +109,62 @@ static bool jobs_graph_remove_task_child_link(
 
 /**
  * Remove dependencies that are already inherited from a parent.
+ * Returns the amount of removed dependencies.
  * More info: https://en.wikipedia.org/wiki/Transitive_reduction
- * Returns the amount of removed dependencies.
  */
-static u32 jobs_graph_task_transitive_reduce(
-    JobGraph* graph, const JobTaskId rootTask, const JobTaskId task, BitSet processed) {
-  /**
-   * Current implementation uses recursion to go down the branches, meaning its not stack safe for
-   * very long task chains.
-   */
-  u32 depsRemoved = 0;
-  if (jobs_bit_test(processed, task)) {
-    return depsRemoved; // Already processed.
-  }
-  jobs_graph_for_task_child(graph, task, child) {
-    // Dependency from 'child' to 'root' can be removed as we already inherited that dependency
-    // through 'task'.
-    if (jobs_graph_task_undepend(graph, rootTask, child.task)) {
-      ++depsRemoved;
-    }
-    // Recurse in a 'depth-first' manner.
-    depsRemoved += jobs_graph_task_transitive_reduce(graph, rootTask, child.task, processed);
-  }
-  jobs_bit_set(processed, task); // Mark the task as processed.
-  return depsRemoved;
-}
-
-/**
- * Remove dependencies that are already inherited from a parent.
- * Returns the amount of removed dependencies.
- * Note is relatively expensive as it follows all dependencies in a 'depth-first' manner.
- */
-static u32 jobs_graph_task_reduce_dependencies(JobGraph* graph, const JobTaskId task) {
+static u32 jobs_graph_task_transitive_reduce(JobGraph* graph, const JobTaskId root) {
   BitSet processed = mem_stack(bits_to_bytes(graph->tasks.size) + 1);
   mem_set(processed, 0);
 
+  typedef struct {
+    JobTaskId       task;
+    JobTaskChildItr childItr;
+  } QueueEntry;
+
+  QueueEntry queue[128];
+  u32        queueCount = 0;
+
+  // Push the direct children into the queue.
+  jobs_graph_for_task_child(graph, root, child) {
+    if (UNLIKELY(queueCount == array_elems(queue))) {
+      diag_crash_msg("Queue exhausted while reducing graph dependencies");
+    }
+    queue[queueCount++] = (QueueEntry){
+        .task     = child.task,
+        .childItr = jobs_graph_task_child_begin(graph, child.task),
+    };
+  }
+
+  if (!queueCount) {
+    return 0;
+  }
+
+  // Recurse in a 'depth-first' manner and remove the dependencies on root.
   u32 depsRemoved = 0;
-  jobs_graph_for_task_child(graph, task, child) {
-    depsRemoved += jobs_graph_task_transitive_reduce(graph, task, child.task, processed);
+  for (;;) {
+    QueueEntry* head = &queue[queueCount - 1];
+    if (sentinel_check(head->childItr.task)) {
+      // Finished iterating the children in 'head'; mark the task as processed and pop it.
+      jobs_bit_set(processed, head->task);
+      if (--queueCount == 0) {
+        break;
+      }
+    } else {
+      // Dependency from child to root can be removed as we already inherited that dependency.
+      if (jobs_graph_task_undepend(graph, root, head->childItr.task)) {
+        ++depsRemoved;
+      }
+      if (!jobs_bit_test(processed, head->childItr.task)) {
+        if (UNLIKELY(queueCount == array_elems(queue))) {
+          diag_crash_msg("Queue exhausted while reducing graph dependencies");
+        }
+        queue[queueCount++] = (QueueEntry){
+            .task     = head->childItr.task,
+            .childItr = jobs_graph_task_child_begin(graph, head->childItr.task),
+        };
+      }
+      head->childItr = jobs_graph_task_child_next(graph, head->childItr);
+    }
   }
   return depsRemoved;
 }
@@ -405,7 +424,7 @@ bool jobs_graph_task_undepend(JobGraph* graph, JobTaskId parent, JobTaskId child
 u32 jobs_graph_reduce_dependencies(JobGraph* graph) {
   u32 depsRemoved = 0;
   jobs_graph_for_task(graph, taskId) {
-    depsRemoved += jobs_graph_task_reduce_dependencies(graph, taskId);
+    depsRemoved += jobs_graph_task_transitive_reduce(graph, taskId);
   }
   return depsRemoved;
 }
