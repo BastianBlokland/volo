@@ -63,6 +63,7 @@ struct sEcsRunner {
   Allocator*         alloc;
   EcsWorld*          world;
   u32                flags;
+  u32                taskCount;
   u32                planIndex, planIndexNext;
   RunnerPlan         plans[2];
   BitSet             sysConflicts; // Triangular matrix of sys conflicts. bit[systemId, systemId].
@@ -476,7 +477,6 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
   const EcsDef* def         = ecs_world_def(world);
   const u32     systemCount = (u32)def->systems.size;
-  const u32     taskCount   = runner_task_count_total(def);
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
@@ -484,6 +484,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
       .alloc        = alloc,
       .world        = world,
       .flags        = flags,
+      .taskCount    = runner_task_count_total(def),
       .sysConflicts = runner_conflict_matrix_create(world, alloc),
   };
 
@@ -493,7 +494,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   }
 
   array_for_t(runner->plans, RunnerPlan, plan) {
-    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
+    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), runner->taskCount);
     plan->systemTasks = systemCount ? alloc_array_t(alloc, EcsTaskSet, systemCount) : null;
   }
 
@@ -502,7 +503,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
   const JobGraph* graph = runner->plans[runner->planIndex].graph;
-  diag_assert(jobs_graph_task_count(graph) == taskCount);
+  diag_assert(jobs_graph_task_count(graph) == runner->taskCount);
   const usize jobMemSize = jobs_scheduler_mem_size(graph) + 64;
   runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
 
