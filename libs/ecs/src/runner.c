@@ -24,7 +24,7 @@
 
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
-typedef EcsSystemDef* EcsSystemDefPtr;
+typedef const EcsSystemDef* EcsSystemDefPtr;
 
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
@@ -88,6 +88,24 @@ static void runner_avg_dur(TimeDuration* value, const TimeDuration new) {
 
 static bool runner_taskset_contains(const EcsTaskSet set, const JobTaskId task) {
   return task >= set.begin && task < set.end;
+}
+
+static u32 runner_task_count_system(const EcsSystemDef* sysDef) {
+  if (g_jobsWorkerCount == 1) {
+    return 1; // Parallel systems only makes sense if we have multiple workers.
+  }
+  return sysDef->parallelCount;
+}
+
+static u32 runner_task_count_total(const EcsDef* def) {
+  const EcsSystemDef* sysDefsBegin = dynarray_begin_t(&def->systems, EcsSystemDef);
+  const EcsSystemDef* sysDefsEnd   = dynarray_end_t(&def->systems, EcsSystemDef);
+
+  u32 taskCount = graph_meta_task_count;
+  for (const EcsSystemDef* sysDef = sysDefsBegin; sysDef != sysDefsEnd; ++sysDef) {
+    taskCount += runner_task_count_system(sysDef);
+  }
+  return taskCount;
 }
 
 /**
@@ -238,10 +256,7 @@ static EcsTaskSet runner_insert_system(
     const EcsSystemDef* systemDef) {
   const RunnerPlan* plan = &runner->plans[planIndex];
 
-  u16 parallelCount = systemDef->parallelCount;
-  if (g_jobsWorkerCount == 1) {
-    parallelCount = 1; // Parallel systems only makes sense if we have multiple workers.
-  }
+  const u32 parallelCount = runner_task_count_system(systemDef);
 
   JobTaskId firstTaskId = 0;
   for (u16 parIndex = 0; parIndex != parallelCount; ++parIndex) {
@@ -252,7 +267,7 @@ static EcsTaskSet runner_insert_system(
         mem_struct(
             TaskContextSystem,
             .id       = systemId,
-            .parCount = parallelCount,
+            .parCount = (u16)parallelCount,
             .parIndex = parIndex,
             .runner   = runner,
             .routine  = systemDef->routine),
@@ -343,8 +358,10 @@ static bool runner_conflict_query(const BitSet conflictMatrix, EcsSystemId a, Ec
 }
 
 static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
+  const EcsSystemDef* sysDefsBegin = dynarray_begin_t(&def->systems, EcsSystemDef);
+
   for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
-    out[sysId] = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+    out[sysId] = &sysDefsBegin[sysId];
   }
 }
 
@@ -452,9 +469,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
   const EcsDef* def         = ecs_world_def(world);
   const u32     systemCount = (u32)def->systems.size;
-
-  const u32 expectedParallelism = 2;
-  const u32 expectedTaskCount   = (systemCount * expectedParallelism) + graph_meta_task_count;
+  const u32     taskCount   = runner_task_count_total(def);
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
@@ -471,7 +486,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   }
 
   array_for_t(runner->plans, RunnerPlan, plan) {
-    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
+    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount);
     plan->systemTasks = systemCount ? alloc_array_t(alloc, EcsTaskSet, systemCount) : null;
   }
 
@@ -479,9 +494,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
-  const JobGraph* graph      = runner->plans[runner->planIndex].graph;
-  const usize     jobMemSize = jobs_scheduler_mem_size(graph) + 64;
-  runner->jobMem             = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
+  const JobGraph* graph = runner->plans[runner->planIndex].graph;
+  diag_assert(jobs_graph_task_count(graph) == taskCount);
+  const usize jobMemSize = jobs_scheduler_mem_size(graph) + 64;
+  runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
+
   return runner;
 }
 
