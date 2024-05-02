@@ -15,16 +15,16 @@
 #include "view_internal.h"
 #include "world_internal.h"
 
-/**
- * Meta systems:
- * - Replan (attempt to compute a more efficient execution plan).
- * - Flush (applies entity layout modifications).
- */
-#define graph_meta_task_count 2
-
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
 typedef const EcsSystemDef* EcsSystemDefPtr;
+
+typedef enum {
+  EcsRunnerMetaTask_Replan, // Attempt to compute a more efficient execution plan.
+  EcsRunnerMetaTask_Flush,  // Applies entity layout modifications.
+
+  EcsRunnerMetaTask_Count
+} EcsRunnerMetaTask;
 
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
@@ -48,12 +48,16 @@ typedef struct {
 typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks; // EcsTaskSet[systemCount].
-  EcsTaskSet  replanTasks, flushTasks;
+  JobTaskId   metaTasks[EcsRunnerMetaTask_Count];
 } RunnerPlan;
 
 typedef struct {
   TimeDuration totalDurAvg;
 } RunnerSystemStats;
+
+typedef struct {
+  TimeDuration durLast, durAvg;
+} RunnerMetaStats;
 
 struct sEcsRunner {
   Allocator*         alloc;
@@ -63,8 +67,7 @@ struct sEcsRunner {
   RunnerPlan         plans[2];
   BitSet             sysConflicts; // Triangular matrix of sys conflicts. bit[systemId, systemId].
   RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
-  TimeDuration       replanDurLast, replanDurAvg;
-  TimeDuration       flushDurLast, flushDurAvg;
+  RunnerMetaStats    metaStats[EcsRunnerMetaTask_Count];
   u64                planCounter;
   Mem                jobMem;
 };
@@ -86,10 +89,6 @@ static void runner_avg_dur(TimeDuration* value, const TimeDuration new) {
   *value += (TimeDuration)((new - *value) * g_runnerInvAvgWindow);
 }
 
-static bool runner_taskset_contains(const EcsTaskSet set, const JobTaskId task) {
-  return task >= set.begin && task < set.end;
-}
-
 static u32 runner_task_count_system(const EcsSystemDef* sysDef) {
   if (g_jobsWorkerCount == 1) {
     return 1; // Parallel systems only makes sense if we have multiple workers.
@@ -101,7 +100,7 @@ static u32 runner_task_count_total(const EcsDef* def) {
   const EcsSystemDef* sysDefsBegin = dynarray_begin_t(&def->systems, EcsSystemDef);
   const EcsSystemDef* sysDefsEnd   = dynarray_end_t(&def->systems, EcsSystemDef);
 
-  u32 taskCount = graph_meta_task_count;
+  u32 taskCount = EcsRunnerMetaTask_Count;
   for (const EcsSystemDef* sysDef = sysDefsBegin; sysDef != sysDefsEnd; ++sysDef) {
     taskCount += runner_task_count_system(sysDef);
   }
@@ -120,12 +119,23 @@ static void runner_add_dep(JobGraph* graph, const EcsTaskSet parent, const EcsTa
   }
 }
 
+static void runner_add_dep_single(JobGraph* graph, const EcsTaskSet parent, const JobTaskId child) {
+  for (JobTaskId parentTaskId = parent.begin; parentTaskId != parent.end; ++parentTaskId) {
+    jobs_graph_task_depend(graph, parentTaskId, child);
+  }
+}
+
 static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
   JobTaskFlags flags = JobTaskFlags_None;
   if (systemDef->flags & EcsSystemFlags_ThreadAffinity) {
     flags |= JobTaskFlags_ThreadAffinity;
   }
   return flags;
+}
+
+static void runner_meta_stats_update(RunnerMetaStats* stats, const TimeDuration dur) {
+  stats->durLast = math_max(dur, 1);
+  runner_avg_dur(&stats->durAvg, stats->durLast);
 }
 
 static void runner_task_replan(const void* ctx) {
@@ -157,8 +167,7 @@ static void runner_task_replan(const void* ctx) {
   }
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner->replanDurLast  = math_max(dur, 1);
-  runner_avg_dur(&runner->replanDurAvg, runner->replanDurLast);
+  runner_meta_stats_update(&runner->metaStats[EcsRunnerMetaTask_Replan], dur);
 }
 
 static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
@@ -192,8 +201,7 @@ static void runner_task_flush(const void* ctx) {
   ecs_world_busy_unset(runner->world);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner->flushDurLast   = math_max(dur, 1);
-  runner_avg_dur(&runner->flushDurAvg, runner->flushDurLast);
+  runner_meta_stats_update(&runner->metaStats[EcsRunnerMetaTask_Flush], dur);
 }
 
 static void runner_task_system(const void* context) {
@@ -375,13 +383,12 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
   const EcsDef*                def  = ecs_world_def(ctx->runner->world);
   const RunnerPlan*            plan = &ctx->runner->plans[ctx->planIndex];
 
-  if (runner_taskset_contains(plan->replanTasks, task)) {
-    return ctx->runner->replanDurAvg;
+  for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
+    if (task == plan->metaTasks[meta]) {
+      return ctx->runner->metaStats[task].durAvg;
+    }
   }
-  if (runner_taskset_contains(plan->flushTasks, task)) {
-    return ctx->runner->flushDurAvg;
-  }
-  // Task is not one of the meta tasks; assume its a system.
+  // Task is not a meta tasks; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
   const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
   return sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
@@ -437,8 +444,8 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   jobs_graph_clear(plan->graph);
 
   // Insert meta tasks.
-  plan->replanTasks = runner_insert_replan(runner, planIndex);
-  plan->flushTasks  = runner_insert_flush(runner, planIndex);
+  plan->metaTasks[EcsRunnerMetaTask_Replan] = runner_insert_replan(runner, planIndex).begin;
+  plan->metaTasks[EcsRunnerMetaTask_Flush]  = runner_insert_flush(runner, planIndex).begin;
 
   // Insert system tasks.
   for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
@@ -447,7 +454,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
     plan->systemTasks[sysId]     = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    runner_add_dep(plan->graph, entryTasks, plan->flushTasks);
+    runner_add_dep_single(plan->graph, entryTasks, plan->metaTasks[EcsRunnerMetaTask_Flush]);
 
     // Insert required dependencies on the earlier systems.
     for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
@@ -526,10 +533,8 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
 EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
   return (EcsRunnerStats){
-      .replanDurLast = runner->replanDurLast,
-      .replanDurAvg  = runner->replanDurAvg,
-      .flushDurLast  = runner->flushDurLast,
-      .flushDurAvg   = runner->flushDurAvg,
+      .flushDurLast  = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
+      .flushDurAvg   = runner->metaStats[EcsRunnerMetaTask_Flush].durAvg,
       .replanCounter = runner->planCounter,
   };
 }
