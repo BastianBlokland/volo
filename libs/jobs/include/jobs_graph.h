@@ -20,6 +20,12 @@ typedef enum {
    * NOTE: Incurs an additional scheduling overhead.
    */
   JobTaskFlags_ThreadAffinity = 1 << 0,
+
+  /**
+   * Do not create an owning copy of the task name.
+   * NOTE: Care must be taken that the name has a longer lifetime then the graph.
+   */
+  JobTaskFlags_BorrowName = 1 << 1,
 } JobTaskFlags;
 
 /**

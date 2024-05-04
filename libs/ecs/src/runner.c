@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_file.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_shuffle.h"
@@ -15,16 +16,19 @@
 #include "view_internal.h"
 #include "world_internal.h"
 
-/**
- * Meta systems:
- * - Replan (attempt to compute a more efficient execution plan).
- * - Flush (applies entity layout modifications).
- */
-#define graph_meta_task_count 2
+// #define VOLO_ECS_RUNNER_VERBOSE
+// #define VOLO_ECS_RUNNER_VALIDATION
 
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
-typedef EcsSystemDef* EcsSystemDefPtr;
+typedef const EcsSystemDef* EcsSystemDefPtr;
+
+typedef enum {
+  EcsRunnerMetaTask_Replan, // Attempt to compute a more efficient execution plan.
+  EcsRunnerMetaTask_Flush,  // Applies entity layout modifications.
+
+  EcsRunnerMetaTask_Count
+} EcsRunnerMetaTask;
 
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
@@ -48,23 +52,27 @@ typedef struct {
 typedef struct {
   JobGraph*   graph;
   EcsTaskSet* systemTasks; // EcsTaskSet[systemCount].
-  EcsTaskSet  replanTasks, flushTasks;
+  JobTaskId   metaTasks[EcsRunnerMetaTask_Count];
 } RunnerPlan;
 
 typedef struct {
   TimeDuration totalDurAvg;
 } RunnerSystemStats;
 
+typedef struct {
+  TimeDuration durLast, durAvg;
+} RunnerMetaStats;
+
 struct sEcsRunner {
   Allocator*         alloc;
   EcsWorld*          world;
   u32                flags;
+  u32                taskCount;
   u32                planIndex, planIndexNext;
   RunnerPlan         plans[2];
-  BitSet             sysConflicts; // Triangular matrix of sys conflicts. bit[systemId, systemId].
+  BitSet             sysConflicts; // bit[systemId, systemId], triangular matrix of sys conflicts.
   RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
-  TimeDuration       replanDurLast, replanDurAvg;
-  TimeDuration       flushDurLast, flushDurAvg;
+  RunnerMetaStats    metaStats[EcsRunnerMetaTask_Count];
   u64                planCounter;
   Mem                jobMem;
 };
@@ -86,28 +94,35 @@ static void runner_avg_dur(TimeDuration* value, const TimeDuration new) {
   *value += (TimeDuration)((new - *value) * g_runnerInvAvgWindow);
 }
 
-static bool runner_taskset_contains(const EcsTaskSet set, const JobTaskId task) {
-  return task >= set.begin && task < set.end;
+static u32 runner_task_count_system(const EcsSystemDef* sysDef) {
+  if (g_jobsWorkerCount == 1) {
+    return 1; // Parallel systems only makes sense if we have multiple workers.
+  }
+  return sysDef->parallelCount;
 }
 
-/**
- * Add a dependency between the parent and child tasks. The child tasks are only allowed to start
- * once all parent tasks have finished.
- */
-static void runner_add_dep(JobGraph* graph, const EcsTaskSet parent, const EcsTaskSet child) {
-  for (JobTaskId parentTaskId = parent.begin; parentTaskId != parent.end; ++parentTaskId) {
-    for (JobTaskId childTaskId = child.begin; childTaskId != child.end; ++childTaskId) {
-      jobs_graph_task_depend(graph, parentTaskId, childTaskId);
-    }
+static u32 runner_task_count_total(const EcsDef* def) {
+  const EcsSystemDef* sysDefsBegin = dynarray_begin_t(&def->systems, EcsSystemDef);
+  const EcsSystemDef* sysDefsEnd   = dynarray_end_t(&def->systems, EcsSystemDef);
+
+  u32 taskCount = EcsRunnerMetaTask_Count;
+  for (const EcsSystemDef* sysDef = sysDefsBegin; sysDef != sysDefsEnd; ++sysDef) {
+    taskCount += runner_task_count_system(sysDef);
   }
+  return taskCount;
 }
 
 static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
-  JobTaskFlags flags = JobTaskFlags_None;
+  JobTaskFlags flags = JobTaskFlags_BorrowName;
   if (systemDef->flags & EcsSystemFlags_ThreadAffinity) {
     flags |= JobTaskFlags_ThreadAffinity;
   }
   return flags;
+}
+
+static void runner_meta_stats_update(RunnerMetaStats* stats, const TimeDuration dur) {
+  stats->durLast = math_max(dur, 1);
+  runner_avg_dur(&stats->durAvg, stats->durLast);
 }
 
 static void runner_task_replan(const void* ctx) {
@@ -139,8 +154,7 @@ static void runner_task_replan(const void* ctx) {
   }
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner->replanDurLast  = math_max(dur, 1);
-  runner_avg_dur(&runner->replanDurAvg, runner->replanDurLast);
+  runner_meta_stats_update(&runner->metaStats[EcsRunnerMetaTask_Replan], dur);
 }
 
 static void runner_task_flush_stats(EcsRunner* runner, const u32 planIndex) {
@@ -174,8 +188,7 @@ static void runner_task_flush(const void* ctx) {
   ecs_world_busy_unset(runner->world);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  runner->flushDurLast   = math_max(dur, 1);
-  runner_avg_dur(&runner->flushDurAvg, runner->flushDurLast);
+  runner_meta_stats_update(&runner->metaStats[EcsRunnerMetaTask_Flush], dur);
 }
 
 static void runner_task_system(const void* context) {
@@ -207,7 +220,7 @@ static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
       string_lit("Replan"),
       runner_task_replan,
       mem_struct(TaskContextMeta, .runner = runner),
-      JobTaskFlags_None);
+      JobTaskFlags_BorrowName);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
@@ -226,7 +239,7 @@ static EcsTaskSet runner_insert_flush(EcsRunner* runner, const u32 planIndex) {
       string_lit("Flush"),
       runner_task_flush,
       mem_struct(TaskContextMeta, .runner = runner),
-      JobTaskFlags_ThreadAffinity);
+      JobTaskFlags_BorrowName | JobTaskFlags_ThreadAffinity);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
@@ -238,10 +251,7 @@ static EcsTaskSet runner_insert_system(
     const EcsSystemDef* systemDef) {
   const RunnerPlan* plan = &runner->plans[planIndex];
 
-  u16 parallelCount = systemDef->parallelCount;
-  if (g_jobsWorkerCount == 1) {
-    parallelCount = 1; // Parallel systems only makes sense if we have multiple workers.
-  }
+  const u32 parallelCount = runner_task_count_system(systemDef);
 
   JobTaskId firstTaskId = 0;
   for (u16 parIndex = 0; parIndex != parallelCount; ++parIndex) {
@@ -252,7 +262,7 @@ static EcsTaskSet runner_insert_system(
         mem_struct(
             TaskContextSystem,
             .id       = systemId,
-            .parCount = parallelCount,
+            .parCount = (u16)parallelCount,
             .parIndex = parIndex,
             .runner   = runner,
             .routine  = systemDef->routine),
@@ -338,13 +348,196 @@ static bool runner_conflict_query(const BitSet conflictMatrix, EcsSystemId a, Ec
     a                     = b;
     b                     = tmp;
   }
-  const u32 bitIndex = (a * (a - 1) / 2) + b; // Strict triangular matrix.
-  return bitset_test(conflictMatrix, bitIndex);
+  const u32 bitIndex  = (a * (a - 1) / 2) + b; // Strict triangular matrix.
+  const u32 byteIndex = bits_to_bytes(bitIndex);
+  const u8  byteMask  = 1u << bit_in_byte(bitIndex);
+  return (*mem_at_u8(conflictMatrix, byteIndex) & byteMask) != 0;
+}
+
+/**
+ * Dependency square matrix.
+ * Each row is a task and the columns represent the dependents (aka children).
+ * NOTE: Diagonal is unused as tasks cannot depend on themselves.
+ *
+ * Example matrix (with tasks a, b, c, d, e):
+ *   a b c d e
+ * a 0 0 0 0 0
+ * b 1 0 1 0 1
+ * c 1 0 0 0 0
+ * d 1 1 0 0 0
+ * e 1 0 0 0 0
+ *
+ * This encodes the following dependencies:
+ * - a depends on b, c, d, e.
+ * - b depends on d.
+ * - c and e depend on b.
+ */
+typedef struct {
+  u64* chunks;       // u64[count * chunkStride], square dependency matrix.
+  u32  strideBits;   // Aligned to 64.
+  u32  strideChunks; // strideBits / 64
+  u32  count;        // Task count (size in bits of a single dimension of the matrix).
+} RunnerDepMatrix;
+
+static void runner_dep_clear(RunnerDepMatrix* dep) {
+  mem_set(mem_create(dep->chunks, dep->count * dep->strideChunks * sizeof(u64)), 0);
+}
+
+static bool runner_dep_test(RunnerDepMatrix* dep, const JobTaskId parent, const JobTaskId child) {
+  const u64 chunk = dep->chunks[parent * dep->strideChunks + bits_to_dwords(child)];
+  const u64 mask  = u64_lit(1) << bit_in_dword(child);
+  return (chunk & mask) != 0;
+}
+
+/**
+ * Add dependency. The child task is only allowed to start once the parent task has finished.
+ */
+static void runner_dep_add(RunnerDepMatrix* dep, const JobTaskId parent, const JobTaskId child) {
+  const u64 mask = u64_lit(1) << bit_in_dword(child);
+  dep->chunks[parent * dep->strideChunks + bits_to_dwords(child)] |= mask;
+}
+
+/**
+ * Add dependency. The child task is only allowed to start once all parent tasks have finished.
+ */
+static void
+runner_dep_add_to_many(RunnerDepMatrix* dep, const EcsTaskSet parents, const JobTaskId child) {
+  for (JobTaskId parent = parents.begin; parent != parents.end; ++parent) {
+    runner_dep_add(dep, parent, child);
+  }
+}
+
+/**
+ * Add dependency. The children tasks are only allowed to start once all parent tasks have finished.
+ */
+static void
+runner_dep_add_many(RunnerDepMatrix* dep, const EcsTaskSet parents, const EcsTaskSet children) {
+  for (JobTaskId parent = parents.begin; parent != parents.end; ++parent) {
+    for (JobTaskId child = children.begin; child != children.end; ++child) {
+      runner_dep_add(dep, parent, child);
+    }
+  }
+}
+
+/**
+ * Dump the dependency matrix to stdout.
+ * Vertical axis contains the tasks and horizontal axis their dependent tasks.
+ */
+MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* graph) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, 64 * usize_kibibyte, 1);
+  DynString buffer     = dynstring_create_over(scratchMem);
+
+  u16 longestName = 0;
+  for (JobTaskId task = 0; task != dep->count; ++task) {
+    longestName = math_max(longestName, (u16)jobs_graph_task_name(graph, task).size);
+  }
+
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    const String name = jobs_graph_task_name(graph, parent);
+    fmt_write(&buffer, "{}{} ", fmt_text(name), fmt_padding(longestName - (u16)name.size));
+    for (JobTaskId child = 0; child != dep->count; ++child) {
+      if (runner_dep_test(dep, parent, child)) {
+        dynstring_append_char(&buffer, '1');
+      } else {
+        dynstring_append_char(&buffer, '0');
+      }
+    }
+    dynstring_append_char(&buffer, '\n');
+  }
+  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+}
+
+/**
+ * Expand inherited dependencies (transitive closure).
+ * https://en.wikipedia.org/wiki/Transitive_closure
+ */
+NO_INLINE_HINT static void runner_dep_expand(RunnerDepMatrix* dep) {
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    u64* parentBegin = dep->chunks + dep->strideChunks * parent;
+    u64* parentEnd   = parentBegin + dep->strideChunks;
+
+    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    for (JobTaskId child = 0; child != dep->strideBits;) {
+      const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
+      if (childChunk) {
+        child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
+
+        // Mark children of child to be also children of parent, reason is that if child cannot
+        // start yet it means that dependencies of child cannot start yet either.
+        u64* childItr = dep->chunks + dep->strideChunks * child;
+        NO_VECTORIZE_HINT
+        for (u64* parentItr = parentBegin; parentItr != parentEnd; ++parentItr, ++childItr) {
+          *parentItr |= *childItr;
+        }
+
+        ++child; // Jump to the next child.
+      } else {
+        child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
+      }
+    }
+  }
+}
+
+/**
+ * Remove inherited dependencies (transitive reduction).
+ * https://en.wikipedia.org/wiki/Transitive_reduction
+ */
+NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    u64* parentBegin = dep->chunks + dep->strideChunks * parent;
+    u64* parentEnd   = parentBegin + dep->strideChunks;
+
+    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    for (JobTaskId child = 0; child != dep->strideBits;) {
+      const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
+      if (childChunk) {
+        child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
+
+        // Remove children of child as dependencies of parent, reason is that they are already
+        // inherited through child.
+        u64* childItr = dep->chunks + dep->strideChunks * child;
+        NO_VECTORIZE_HINT
+        for (u64* parentItr = parentBegin; parentItr != parentEnd; ++parentItr, ++childItr) {
+          *parentItr &= ~*childItr;
+        }
+
+        ++child; // Jump to the next child.
+      } else {
+        child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
+      }
+    }
+  }
+}
+
+/**
+ * Setup the parent-child relationships in graph based on the dependency matrix.
+ */
+NO_INLINE_HINT static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
+
+    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    for (JobTaskId child = 0; child != dep->strideBits;) {
+      const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
+      if (childChunk) {
+        child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
+
+        // Insert the dependency into the graph.
+        jobs_graph_task_depend(graph, parent, child);
+
+        ++child; // Jump to the next child.
+      } else {
+        child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
+      }
+    }
+  }
 }
 
 static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
+  const EcsSystemDef* sysDefsBegin = dynarray_begin_t(&def->systems, EcsSystemDef);
+
   for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
-    out[sysId] = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+    out[sysId] = &sysDefsBegin[sysId];
   }
 }
 
@@ -355,19 +548,17 @@ typedef struct {
 
 static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) {
   const RunnerEstimateContext* ctx  = (const RunnerEstimateContext*)userCtx;
-  const EcsDef*                def  = ecs_world_def(ctx->runner->world);
   const RunnerPlan*            plan = &ctx->runner->plans[ctx->planIndex];
 
-  if (runner_taskset_contains(plan->replanTasks, task)) {
-    return ctx->runner->replanDurAvg;
+  for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
+    if (task == plan->metaTasks[meta]) {
+      return ctx->runner->metaStats[task].durAvg;
+    }
   }
-  if (runner_taskset_contains(plan->flushTasks, task)) {
-    return ctx->runner->flushDurAvg;
-  }
-  // Task is not one of the meta tasks; assume its a system.
+  // Task is not a meta task; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
   const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
-  return sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
+  return sysTotalDurAvg / sysTaskCtx->parCount;
 }
 
 static u32 runner_plan_pick(EcsRunner* runner) {
@@ -419,24 +610,39 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   // Insert the systems into the job-graph.
   jobs_graph_clear(plan->graph);
 
+  /**
+   * Build up a dependency matrix and later insert the dependencies in the graph.
+   * Reason is its easier to optimize the transitive reduction step in matrix form as it is to
+   * optimize the 'jobs_graph_reduce_dependencies()' graph utility.
+   */
+  const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
+  const u32       depStrideChunks = bits_to_dwords(depStrideBits);
+  RunnerDepMatrix depMatrix       = {
+            .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+            .strideBits   = depStrideBits,
+            .strideChunks = depStrideChunks,
+            .count        = runner->taskCount,
+  };
+  runner_dep_clear(&depMatrix);
+
   // Insert meta tasks.
-  plan->replanTasks = runner_insert_replan(runner, planIndex);
-  plan->flushTasks  = runner_insert_flush(runner, planIndex);
+  plan->metaTasks[EcsRunnerMetaTask_Replan] = runner_insert_replan(runner, planIndex).begin;
+  plan->metaTasks[EcsRunnerMetaTask_Flush]  = runner_insert_flush(runner, planIndex).begin;
 
   // Insert system tasks.
   for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
-    const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
-    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
-    plan->systemTasks[sysId]     = entryTasks;
+    const EcsSystemId sysId    = ecs_def_system_id(def, *sysDef);
+    const EcsTaskSet  sysTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
+    plan->systemTasks[sysId]   = sysTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    runner_add_dep(plan->graph, entryTasks, plan->flushTasks);
+    runner_dep_add_to_many(&depMatrix, sysTasks, plan->metaTasks[EcsRunnerMetaTask_Flush]);
 
     // Insert required dependencies on the earlier systems.
     for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
       const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
       if (runner_conflict_query(runner->sysConflicts, sysId, earlierSysId)) {
-        runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
+        runner_dep_add_many(&depMatrix, plan->systemTasks[earlierSysId], sysTasks);
       }
     }
   }
@@ -444,7 +650,19 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   trace_end();
   trace_begin("ecs_plan_finalize", TraceColor_Blue);
 
-  jobs_graph_reduce_dependencies(plan->graph);
+  // Transitively reduce the matrix and insert the dependencies into the graph.
+  runner_dep_expand(&depMatrix);
+  runner_dep_reduce(&depMatrix);
+  runner_dep_apply(&depMatrix, plan->graph);
+
+#if defined(VOLO_ECS_RUNNER_VERBOSE)
+  runner_dep_dump(&depMatrix, plan->graph);
+#endif
+
+#if defined(VOLO_ECS_RUNNER_VALIDATION)
+  diag_assert(jobs_graph_validate(plan->graph));
+  diag_assert(jobs_graph_reduce_dependencies(plan->graph) == 0); // Test for redundant dependencies.
+#endif
 
   trace_end();
 }
@@ -453,15 +671,13 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   const EcsDef* def         = ecs_world_def(world);
   const u32     systemCount = (u32)def->systems.size;
 
-  const u32 expectedParallelism = 2;
-  const u32 expectedTaskCount   = (systemCount * expectedParallelism) + graph_meta_task_count;
-
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
   *runner = (EcsRunner){
       .alloc        = alloc,
       .world        = world,
       .flags        = flags,
+      .taskCount    = runner_task_count_total(def),
       .sysConflicts = runner_conflict_matrix_create(world, alloc),
   };
 
@@ -471,7 +687,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   }
 
   array_for_t(runner->plans, RunnerPlan, plan) {
-    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), expectedTaskCount);
+    plan->graph       = jobs_graph_create(alloc, string_lit("ecs_runner"), runner->taskCount);
     plan->systemTasks = systemCount ? alloc_array_t(alloc, EcsTaskSet, systemCount) : null;
   }
 
@@ -479,9 +695,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   // Allocate the runtime memory required to run the graph (reused for every run).
   // NOTE: +64 for bump allocator overhead.
-  const JobGraph* graph      = runner->plans[runner->planIndex].graph;
-  const usize     jobMemSize = jobs_scheduler_mem_size(graph) + 64;
-  runner->jobMem             = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
+  const JobGraph* graph = runner->plans[runner->planIndex].graph;
+  diag_assert(jobs_graph_task_count(graph) == runner->taskCount);
+  const usize jobMemSize = jobs_scheduler_mem_size(graph) + 64;
+  runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(graph));
+
   return runner;
 }
 
@@ -509,10 +727,8 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
 EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
   return (EcsRunnerStats){
-      .replanDurLast = runner->replanDurLast,
-      .replanDurAvg  = runner->replanDurAvg,
-      .flushDurLast  = runner->flushDurLast,
-      .flushDurAvg   = runner->flushDurAvg,
+      .flushDurLast  = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
+      .flushDurAvg   = runner->metaStats[EcsRunnerMetaTask_Flush].durAvg,
       .replanCounter = runner->planCounter,
   };
 }

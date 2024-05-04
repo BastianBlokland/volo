@@ -56,7 +56,6 @@ EcsRunner* ecs_runner_create(Allocator*, EcsWorld*, EcsRunnerFlags flags);
 void ecs_runner_destroy(EcsRunner*);
 
 typedef struct {
-  TimeDuration replanDurLast, replanDurAvg;
   TimeDuration flushDurLast, flushDurAvg;
   u64          replanCounter;
 } EcsRunnerStats;
