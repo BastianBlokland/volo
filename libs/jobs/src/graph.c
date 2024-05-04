@@ -376,7 +376,7 @@ JobTaskId jobs_graph_add_task(
   Mem taskStorage              = dynarray_push(&graph->tasks, 1);
   *((JobTask*)taskStorage.ptr) = (JobTask){
       .routine = routine,
-      .name    = string_dup(graph->allocTaskAux, name),
+      .name    = flags & JobTaskFlags_BorrowName ? name : string_dup(graph->allocTaskAux, name),
       .flags   = flags,
   };
   const Mem taskStorageCtx = mem_consume(taskStorage, sizeof(JobTask));
