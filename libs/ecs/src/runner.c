@@ -77,8 +77,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static u32  runner_plan_pick(EcsRunner*);
@@ -113,7 +113,7 @@ static u32 runner_task_count_total(const EcsDef* def) {
 }
 
 static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
-  JobTaskFlags flags = JobTaskFlags_None;
+  JobTaskFlags flags = JobTaskFlags_BorrowName;
   if (systemDef->flags & EcsSystemFlags_ThreadAffinity) {
     flags |= JobTaskFlags_ThreadAffinity;
   }
@@ -220,7 +220,7 @@ static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
       string_lit("Replan"),
       runner_task_replan,
       mem_struct(TaskContextMeta, .runner = runner),
-      JobTaskFlags_None);
+      JobTaskFlags_BorrowName);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
@@ -239,7 +239,7 @@ static EcsTaskSet runner_insert_flush(EcsRunner* runner, const u32 planIndex) {
       string_lit("Flush"),
       runner_task_flush,
       mem_struct(TaskContextMeta, .runner = runner),
-      JobTaskFlags_ThreadAffinity);
+      JobTaskFlags_BorrowName | JobTaskFlags_ThreadAffinity);
 
   return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
@@ -615,10 +615,10 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
   const u32       depStrideChunks = bits_to_dwords(depStrideBits);
   RunnerDepMatrix depMatrix       = {
-      .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
-      .strideBits   = depStrideBits,
-      .strideChunks = depStrideChunks,
-      .count        = runner->taskCount,
+            .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+            .strideBits   = depStrideBits,
+            .strideChunks = depStrideChunks,
+            .count        = runner->taskCount,
   };
   runner_dep_clear(&depMatrix);
 
