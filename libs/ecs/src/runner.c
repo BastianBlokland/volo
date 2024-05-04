@@ -348,8 +348,10 @@ static bool runner_conflict_query(const BitSet conflictMatrix, EcsSystemId a, Ec
     a                     = b;
     b                     = tmp;
   }
-  const u32 bitIndex = (a * (a - 1) / 2) + b; // Strict triangular matrix.
-  return bitset_test(conflictMatrix, bitIndex);
+  const u32 bitIndex  = (a * (a - 1) / 2) + b; // Strict triangular matrix.
+  const u32 byteIndex = bits_to_bytes(bitIndex);
+  const u8  byteMask  = 1u << bit_in_byte(bitIndex);
+  return (*mem_at_u8(conflictMatrix, byteIndex) & byteMask) != 0;
 }
 
 /**
