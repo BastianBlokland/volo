@@ -21,7 +21,7 @@ typedef void (*EcsCompDestructor)(void*);
 typedef void (*EcsCompCombinator)(void*, void*);
 
 typedef struct {
-  String            name;
+  String            name; // Has to be persistently allocated.
   usize             size, align;
   EcsCompDestructor destructor;
   i32               destructOrder; // Respected per-entity mid-frame and globally on shutdown.
@@ -29,7 +29,7 @@ typedef struct {
 } EcsCompConfig;
 
 typedef struct {
-  String      name;
+  String      name; // Has to be persistently allocated.
   EcsViewInit initRoutine;
 } EcsViewConfig;
 
@@ -62,7 +62,7 @@ typedef enum {
 } EcsViewFlags;
 
 typedef struct {
-  String           name;
+  String           name; // Has to be persistently allocated.
   EcsSystemRoutine routine;
   EcsSystemFlags   flags;
   const EcsViewId* views;
