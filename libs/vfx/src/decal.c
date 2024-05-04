@@ -11,8 +11,6 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
-#include "rend_fog.h"
-#include "rend_instance.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
 #include "scene_tag.h"
@@ -124,16 +122,8 @@ ecs_view_define(GlobalView) {
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 
 ecs_view_define(DecalDrawView) {
-  ecs_access_with(VfxDrawDecalComp);
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
   ecs_access_write(RendDrawComp);
-
-  /**
-   * Mark the draws as explicitly exclusive with other types of draws.
-   * This allows the scheduler to run the draw filling in parallel with other draw filling.
-   */
-  ecs_access_without(VfxDrawParticleComp);
-  ecs_access_without(RendInstanceDrawComp);
-  ecs_access_without(RendFogDrawComp);
 }
 
 ecs_view_define(DecalAnyView) {
@@ -526,22 +516,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-      .pos              = pos,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->decalFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+       .pos              = pos,
+       .rot              = rot,
+       .width            = inst->width * scale,
+       .height           = inst->height * scale,
+       .thickness        = inst->thickness,
+       .flags            = inst->decalFlags,
+       .excludeTags      = inst->excludeTags,
+       .atlasColorIndex  = inst->atlasColorIndex,
+       .atlasNormalIndex = inst->atlasNormalIndex,
+       .alphaBegin       = alpha,
+       .alphaEnd         = alpha,
+       .roughness        = inst->roughness,
+       .texOffsetY       = 0.0f,
+       .texScaleY        = 1.0f,
+       .warpScale        = {1.0f, 1.0f},
+       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);

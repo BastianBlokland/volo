@@ -8,9 +8,6 @@
 
 ecs_comp_define(VfxDrawManagerComp) { EcsEntityId drawEntities[VfxDrawType_Count]; };
 
-ecs_comp_define(VfxDrawDecalComp);
-ecs_comp_define(VfxDrawParticleComp);
-
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
     [VfxDrawType_Decal]              = string_static("graphics/vfx/decal.graphic"),
     [VfxDrawType_DecalDebug]         = string_static("graphics/vfx/decal_debug.graphic"),
@@ -27,18 +24,10 @@ static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
 };
 // clang-format on
 
-static const EcsCompId* g_vfxDrawTags[VfxDrawType_Count] = {
-    [VfxDrawType_Decal]              = &ecs_comp_id(VfxDrawDecalComp),
-    [VfxDrawType_DecalDebug]         = &ecs_comp_id(VfxDrawDecalComp),
-    [VfxDrawType_ParticleForward]    = &ecs_comp_id(VfxDrawParticleComp),
-    [VfxDrawType_ParticleDistortion] = &ecs_comp_id(VfxDrawParticleComp),
-};
-
 static EcsEntityId
 vfx_draw_create(EcsWorld* world, AssetManagerComp* assets, const VfxDrawType type) {
   const EcsEntityId entity = asset_lookup(world, assets, g_vfxDrawGraphics[type]);
-  ecs_world_add(world, entity, *g_vfxDrawTags[type], mem_empty);
-  RendDrawComp* draw = rend_draw_create(world, entity, g_vfxDrawFlags[type]);
+  RendDrawComp*     draw   = rend_draw_create(world, entity, g_vfxDrawFlags[type]);
   rend_draw_set_resource(draw, RendDrawResource_Graphic, entity); // Graphic is on the same entity.
   return entity;
 }
@@ -63,8 +52,6 @@ ecs_system_define(VfxDrawManagerInitSys) {
 
 ecs_module_init(vfx_draw_module) {
   ecs_register_comp(VfxDrawManagerComp);
-  ecs_register_comp_empty(VfxDrawDecalComp);
-  ecs_register_comp_empty(VfxDrawParticleComp);
 
   ecs_register_system(VfxDrawManagerInitSys, ecs_register_view(InitGlobalView));
 }

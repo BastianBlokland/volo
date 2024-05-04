@@ -100,8 +100,13 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(AssetManagerComp);
 }
+
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
+ecs_view_define(DrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+  ecs_access_write(RendDrawComp);
+}
 
 ecs_view_define(CameraView) {
   ecs_access_read(GapWindowComp);
