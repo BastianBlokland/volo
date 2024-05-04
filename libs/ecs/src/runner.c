@@ -606,7 +606,8 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   }
 
   // Sort the systems to respect the ordering constrains.
-  sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
+  // TODO: Consider using a stable sorting algorithm to preserve more randomness from the shuffle.
+  sort_quicksort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
 
   trace_end();
   trace_begin("ecs_plan_build", TraceColor_Blue);
