@@ -26,7 +26,6 @@ typedef enum {
    * NOTE: Care must be taken that the name has a longer lifetime then the graph.
    */
   JobTaskFlags_BorrowName = 1 << 1,
-
 } JobTaskFlags;
 
 /**
