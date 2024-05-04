@@ -12,6 +12,7 @@
 #include <Windows.h>
 
 #define monitor_event_size (sizeof(FILE_NOTIFY_INFORMATION) + MAX_PATH)
+#define monitor_path_chunk_size (16 * usize_kibibyte)
 
 /**
  * Minimal interval between reporting changes on the same file.
@@ -34,6 +35,7 @@ typedef struct {
 
 struct sFileMonitor {
   Allocator*       alloc;
+  Allocator*       allocPath; // (chunked) bump allocator for paths.
   ThreadMutex      mutex;
   FileMonitorFlags flags;
   String           rootPath;
@@ -138,7 +140,7 @@ static FileMonitorResult monitor_watch_locked(
     return FileMonitorResult_AlreadyWatching;
   }
   const FileWatch watch = {
-      .path     = string_dup(monitor->alloc, path),
+      .path     = string_dup(monitor->allocPath, path),
       .fileId   = fileId,
       .userData = userData,
   };
@@ -269,14 +271,15 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
 
   *monitor = (FileMonitor){
-      .alloc                 = alloc,
-      .mutex                 = thread_mutex_create(alloc),
-      .flags                 = flags,
-      .watches               = dynarray_create_t(alloc, FileWatch, 64),
-      .rootPath              = string_dup(alloc, rootPathAbs),
-      .rootHandle            = monitor_open_root(rootPathAbs),
+      .alloc      = alloc,
+      .allocPath  = alloc_chunked_create(g_alloc_page, alloc_bump_create, monitor_path_chunk_size),
+      .mutex      = thread_mutex_create(alloc),
+      .flags      = flags,
+      .watches    = dynarray_create_t(alloc, FileWatch, 64),
+      .rootHandle = monitor_open_root(rootPathAbs),
       .rootOverlapped.hEvent = monitor_event_create(),
   };
+  monitor->rootPath = string_dup(monitor->allocPath, rootPathAbs),
 
   if (monitor->rootHandle != INVALID_HANDLE_VALUE) {
     monitor_read_begin_locked(monitor);
@@ -286,12 +289,11 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
 }
 
 void file_monitor_destroy(FileMonitor* monitor) {
-  dynarray_for_t(&monitor->watches, FileWatch, watch) { string_free(monitor->alloc, watch->path); }
   if (monitor->rootHandle != INVALID_HANDLE_VALUE) {
     CloseHandle(monitor->rootHandle);
   }
   CloseHandle(monitor->rootOverlapped.hEvent);
-  string_free(monitor->alloc, monitor->rootPath);
+  alloc_chunked_destroy(monitor->allocPath);
   dynarray_destroy(&monitor->watches);
   thread_mutex_destroy(monitor->mutex);
 
