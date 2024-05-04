@@ -559,7 +559,7 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
   // Task is not a meta tasks; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
   const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
-  return sysTotalDurAvg / ecs_def_system_parallel(def, sysTaskCtx->id);
+  return sysTotalDurAvg / sysTaskCtx->parCount;
 }
 
 static u32 runner_plan_pick(EcsRunner* runner) {
