@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_file.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_shuffle.h"
@@ -14,6 +15,9 @@
 
 #include "view_internal.h"
 #include "world_internal.h"
+
+// #define VOLO_ECS_RUNNER_VERBOSE
+// #define VOLO_ECS_RUNNER_VALIDATION
 
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
@@ -66,15 +70,15 @@ struct sEcsRunner {
   u32                taskCount;
   u32                planIndex, planIndexNext;
   RunnerPlan         plans[2];
-  BitSet             sysConflicts; // Triangular matrix of sys conflicts. bit[systemId, systemId].
+  BitSet             sysConflicts; // bit[systemId, systemId], triangular matrix of sys conflicts.
   RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
   RunnerMetaStats    metaStats[EcsRunnerMetaTask_Count];
   u64                planCounter;
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static u32  runner_plan_pick(EcsRunner*);
@@ -106,24 +110,6 @@ static u32 runner_task_count_total(const EcsDef* def) {
     taskCount += runner_task_count_system(sysDef);
   }
   return taskCount;
-}
-
-/**
- * Add a dependency between the parent and child tasks. The child tasks are only allowed to start
- * once all parent tasks have finished.
- */
-static void runner_add_dep(JobGraph* graph, const EcsTaskSet parent, const EcsTaskSet child) {
-  for (JobTaskId parentTaskId = parent.begin; parentTaskId != parent.end; ++parentTaskId) {
-    for (JobTaskId childTaskId = child.begin; childTaskId != child.end; ++childTaskId) {
-      jobs_graph_task_depend(graph, parentTaskId, childTaskId);
-    }
-  }
-}
-
-static void runner_add_dep_single(JobGraph* graph, const EcsTaskSet parent, const JobTaskId child) {
-  for (JobTaskId parentTaskId = parent.begin; parentTaskId != parent.end; ++parentTaskId) {
-    jobs_graph_task_depend(graph, parentTaskId, child);
-  }
 }
 
 static JobTaskFlags runner_task_system_flags(const EcsSystemDef* systemDef) {
@@ -366,6 +352,183 @@ static bool runner_conflict_query(const BitSet conflictMatrix, EcsSystemId a, Ec
   return bitset_test(conflictMatrix, bitIndex);
 }
 
+/**
+ * Dependency square matrix.
+ * Each row is a task and the columns represent the dependents (aka children).
+ * NOTE: Diagonal is unused as tasks cannot depend on themselves.
+ *
+ * Example matrix (with tasks a, b, c, d, e):
+ *   a b c d e
+ * a 0 0 0 0 0
+ * b 1 0 1 0 1
+ * c 1 0 0 0 0
+ * d 1 1 0 0 0
+ * e 1 0 0 0 0
+ *
+ * This encodes the following dependencies:
+ * - a depends on b, c, d, e.
+ * - b depends on d.
+ * - c and e depend on b.
+ */
+typedef struct {
+  u64* chunks;       // u64[count * chunkStride], square dependency matrix.
+  u32  strideBits;   // Aligned to 64.
+  u32  strideChunks; // strideBits / 64
+  u32  count;        // Task count (size in bits of a single dimension of the matrix).
+} RunnerDepMatrix;
+
+static void runner_dep_clear(RunnerDepMatrix* dep) {
+  mem_set(mem_create(dep->chunks, dep->count * dep->strideChunks * sizeof(u64)), 0);
+}
+
+static bool runner_dep_test(RunnerDepMatrix* dep, const JobTaskId parent, const JobTaskId child) {
+  const u64 chunk = dep->chunks[parent * dep->strideChunks + bits_to_dwords(child)];
+  const u64 mask  = u64_lit(1) << bit_in_dword(child);
+  return (chunk & mask) != 0;
+}
+
+/**
+ * Add dependency. The child task is only allowed to start once the parent task has finished.
+ */
+static void runner_dep_add(RunnerDepMatrix* dep, const JobTaskId parent, const JobTaskId child) {
+  const u64 mask = u64_lit(1) << bit_in_dword(child);
+  dep->chunks[parent * dep->strideChunks + bits_to_dwords(child)] |= mask;
+}
+
+/**
+ * Add dependency. The child task is only allowed to start once all parent tasks have finished.
+ */
+static void
+runner_dep_add_to_many(RunnerDepMatrix* dep, const EcsTaskSet parents, const JobTaskId child) {
+  for (JobTaskId parent = parents.begin; parent != parents.end; ++parent) {
+    runner_dep_add(dep, parent, child);
+  }
+}
+
+/**
+ * Add dependency. The children tasks are only allowed to start once all parent tasks have finished.
+ */
+static void
+runner_dep_add_many(RunnerDepMatrix* dep, const EcsTaskSet parents, const EcsTaskSet children) {
+  for (JobTaskId parent = parents.begin; parent != parents.end; ++parent) {
+    for (JobTaskId child = children.begin; child != children.end; ++child) {
+      runner_dep_add(dep, parent, child);
+    }
+  }
+}
+
+/**
+ * Dump the dependency matrix to stdout.
+ * Vertical axis contains the tasks and horizontal axis their dependent tasks.
+ */
+MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* graph) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, 64 * usize_kibibyte, 1);
+  DynString buffer     = dynstring_create_over(scratchMem);
+
+  u16 longestName = 0;
+  for (JobTaskId task = 0; task != dep->count; ++task) {
+    longestName = math_max(longestName, (u16)jobs_graph_task_name(graph, task).size);
+  }
+
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    const String name = jobs_graph_task_name(graph, parent);
+    fmt_write(&buffer, "{}{} ", fmt_text(name), fmt_padding(longestName - (u16)name.size));
+    for (JobTaskId child = 0; child != dep->count; ++child) {
+      if (runner_dep_test(dep, parent, child)) {
+        dynstring_append_char(&buffer, '1');
+      } else {
+        dynstring_append_char(&buffer, '0');
+      }
+    }
+    dynstring_append_char(&buffer, '\n');
+  }
+  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+}
+
+/**
+ * Expand inherited dependencies (transitive closure).
+ * https://en.wikipedia.org/wiki/Transitive_closure
+ */
+static void runner_dep_expand(RunnerDepMatrix* dep) {
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    u64* parentBegin = dep->chunks + dep->strideChunks * parent;
+    u64* parentEnd   = parentBegin + dep->strideChunks;
+
+    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    for (JobTaskId child = 0; child != dep->strideBits;) {
+      const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
+      if (childChunk) {
+        child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
+
+        // Mark children of child to be also children of parent, reason is that if child cannot
+        // start yet it means that dependencies of child cannot start yet either.
+        u64* childItr = dep->chunks + dep->strideChunks * child;
+        for (u64* parentItr = parentBegin; parentItr != parentEnd; ++parentItr, ++childItr) {
+          *parentItr |= *childItr;
+        }
+
+        ++child; // Jump to the next child.
+      } else {
+        child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
+      }
+    }
+  }
+}
+
+/**
+ * Remove inherited dependencies (transitive reduction).
+ * https://en.wikipedia.org/wiki/Transitive_reduction
+ */
+static void runner_dep_reduce(RunnerDepMatrix* dep) {
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    u64* parentBegin = dep->chunks + dep->strideChunks * parent;
+    u64* parentEnd   = parentBegin + dep->strideChunks;
+
+    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    for (JobTaskId child = 0; child != dep->strideBits;) {
+      const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
+      if (childChunk) {
+        child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
+
+        // Remove children of child as dependencies of parent, reason is that they are already
+        // inherited through child.
+        u64* childItr = dep->chunks + dep->strideChunks * child;
+        for (u64* parentItr = parentBegin; parentItr != parentEnd; ++parentItr, ++childItr) {
+          *parentItr &= ~*childItr;
+        }
+
+        ++child; // Jump to the next child.
+      } else {
+        child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
+      }
+    }
+  }
+}
+
+/**
+ * Setup the parent-child relationships in graph based on the dependency matrix.
+ */
+static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
+  for (JobTaskId parent = 0; parent != dep->count; ++parent) {
+    const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
+
+    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    for (JobTaskId child = 0; child != dep->strideBits;) {
+      const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
+      if (childChunk) {
+        child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
+
+        // Insert the dependency into the graph.
+        jobs_graph_task_depend(graph, parent, child);
+
+        ++child; // Jump to the next child.
+      } else {
+        child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
+      }
+    }
+  }
+}
+
 static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
   const EcsSystemDef* sysDefsBegin = dynarray_begin_t(&def->systems, EcsSystemDef);
 
@@ -444,24 +607,39 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   // Insert the systems into the job-graph.
   jobs_graph_clear(plan->graph);
 
+  /**
+   * Build up a dependency matrix and later insert the dependencies in the graph.
+   * Reason is its easier to optimize the transitive reduction step in matrix form as it is to
+   * optimize the 'jobs_graph_reduce_dependencies()' graph utility.
+   */
+  const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
+  const u32       depStrideChunks = bits_to_dwords(depStrideBits);
+  RunnerDepMatrix depMatrix       = {
+      .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+      .strideBits   = depStrideBits,
+      .strideChunks = depStrideChunks,
+      .count        = runner->taskCount,
+  };
+  runner_dep_clear(&depMatrix);
+
   // Insert meta tasks.
   plan->metaTasks[EcsRunnerMetaTask_Replan] = runner_insert_replan(runner, planIndex).begin;
   plan->metaTasks[EcsRunnerMetaTask_Flush]  = runner_insert_flush(runner, planIndex).begin;
 
   // Insert system tasks.
   for (EcsSystemDefPtr* sysDef = systems; sysDef != systems + systemCount; ++sysDef) {
-    const EcsSystemId sysId      = ecs_def_system_id(def, *sysDef);
-    const EcsTaskSet  entryTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
-    plan->systemTasks[sysId]     = entryTasks;
+    const EcsSystemId sysId    = ecs_def_system_id(def, *sysDef);
+    const EcsTaskSet  sysTasks = runner_insert_system(runner, planIndex, sysId, *sysDef);
+    plan->systemTasks[sysId]   = sysTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    runner_add_dep_single(plan->graph, entryTasks, plan->metaTasks[EcsRunnerMetaTask_Flush]);
+    runner_dep_add_to_many(&depMatrix, sysTasks, plan->metaTasks[EcsRunnerMetaTask_Flush]);
 
     // Insert required dependencies on the earlier systems.
     for (EcsSystemDefPtr* earlierSysDef = systems; earlierSysDef != sysDef; ++earlierSysDef) {
       const EcsSystemId earlierSysId = ecs_def_system_id(def, *earlierSysDef);
       if (runner_conflict_query(runner->sysConflicts, sysId, earlierSysId)) {
-        runner_add_dep(plan->graph, plan->systemTasks[earlierSysId], entryTasks);
+        runner_dep_add_many(&depMatrix, plan->systemTasks[earlierSysId], sysTasks);
       }
     }
   }
@@ -469,7 +647,19 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   trace_end();
   trace_begin("ecs_plan_finalize", TraceColor_Blue);
 
-  jobs_graph_reduce_dependencies(plan->graph);
+  // Transitively reduce the matrix and insert the dependencies into the graph.
+  runner_dep_expand(&depMatrix);
+  runner_dep_reduce(&depMatrix);
+  runner_dep_apply(&depMatrix, plan->graph);
+
+#if defined(VOLO_ECS_RUNNER_VERBOSE)
+  runner_dep_dump(&depMatrix, plan->graph);
+#endif
+
+#if defined(VOLO_ECS_RUNNER_VALIDATION)
+  diag_assert(jobs_graph_validate(plan->graph));
+  diag_assert(jobs_graph_reduce_dependencies(plan->graph) == 0); // Test for redundant dependencies.
+#endif
 
   trace_end();
 }
