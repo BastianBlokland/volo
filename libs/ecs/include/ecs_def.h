@@ -24,6 +24,7 @@ void ecs_def_destroy(EcsDef*);
 
 /**
  * Register a module to a 'EcsDef' definition.
+ * NOTE: Name has to be persistently allocated.
  *
  * Pre-condition: No other module with the same name has been registered.
  */

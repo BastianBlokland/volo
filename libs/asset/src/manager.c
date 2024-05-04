@@ -14,6 +14,7 @@
 
 #define asset_max_loads_per_task 3
 #define asset_num_load_tasks 3
+#define asset_id_chunk_size (16 * usize_kibibyte)
 
 /**
  * Amount of frames to delay unloading of assets.
@@ -37,6 +38,7 @@ typedef enum {
 
 ecs_comp_define(AssetManagerComp) {
   AssetRepo*        repo;
+  Allocator*        idAlloc; // (chunked) bump allocator for asset ids.
   AssetManagerFlags flags;
   DynArray          lookup; // AssetEntry[], kept sorted on the idHash.
 };
@@ -73,12 +75,8 @@ ecs_comp_define(AssetDependencyComp) {
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
   asset_repo_destroy(comp->repo);
+  alloc_chunked_destroy(comp->idAlloc);
   dynarray_destroy(&comp->lookup);
-}
-
-static void ecs_destruct_asset_comp(void* data) {
-  AssetComp* comp = data;
-  string_free(g_alloc_heap, comp->id);
 }
 
 static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
@@ -132,16 +130,17 @@ asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManag
       world,
       ecs_world_global(world),
       AssetManagerComp,
-      .repo   = repo,
-      .flags  = flags,
-      .lookup = dynarray_create_t(g_alloc_heap, AssetEntry, 128));
+      .repo    = repo,
+      .idAlloc = alloc_chunked_create(g_alloc_page, alloc_bump_create, asset_id_chunk_size),
+      .flags   = flags,
+      .lookup  = dynarray_create_t(g_alloc_heap, AssetEntry, 128));
 }
 
-static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
+static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, const String id) {
   diag_assert_msg(!string_is_empty(id), "Empty asset-id is invalid");
 
   const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, entity, AssetComp, .id = string_dup(g_alloc_heap, id));
+  ecs_world_add_t(world, entity, AssetComp, .id = string_dup(idAlloc, id));
   return entity;
 }
 
@@ -367,7 +366,7 @@ ecs_system_define(AssetPollChangedSys) {
 
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp);
-  ecs_register_comp(AssetComp, .destructor = ecs_destruct_asset_comp);
+  ecs_register_comp(AssetComp);
   ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp_empty(AssetChangedComp);
@@ -421,7 +420,7 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
 
   if (entry->idHash != tgt.idHash) {
     entry->idHash = tgt.idHash;
-    entry->asset  = asset_entity_create(world, id);
+    entry->asset  = asset_entity_create(world, manager->idAlloc, id);
   }
   return entry->asset;
 }

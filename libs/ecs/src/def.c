@@ -53,11 +53,11 @@ MAYBE_UNUSED static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, co
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
-             .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
-             .components = dynarray_create_t(alloc, EcsCompDef, 128),
-             .views      = dynarray_create_t(alloc, EcsViewDef, 128),
-             .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
-             .alloc      = alloc,
+      .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
+      .components = dynarray_create_t(alloc, EcsCompDef, 128),
+      .views      = dynarray_create_t(alloc, EcsViewDef, 128),
+      .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
+      .alloc      = alloc,
   };
   return def;
 }

@@ -12,6 +12,7 @@
 
 #define monitor_inotifyMask IN_CLOSE_WRITE
 #define monitor_event_size (sizeof(struct inotify_event) + NAME_MAX + 1)
+#define monitor_path_chunk_size (16 * usize_kibibyte)
 
 // Internal flags.
 enum {
@@ -26,6 +27,7 @@ typedef struct {
 
 struct sFileMonitor {
   Allocator*       alloc;
+  Allocator*       allocPath; // (chunked) bump allocator for paths.
   ThreadMutex      mutex;
   FileMonitorFlags flags;
   int              fd;
@@ -86,7 +88,7 @@ static FileMonitorResult file_watch_register_locked(
 #endif
   const FileWatch watch = {
       .wd       = wd,
-      .path     = string_dup(monitor->alloc, path),
+      .path     = string_dup(monitor->allocPath, path),
       .userData = userData,
   };
   *dynarray_insert_sorted_t(&monitor->watches, FileWatch, watch_compare_wd, &watch) = watch;
@@ -152,13 +154,14 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
 
   *monitor = (FileMonitor){
-      .alloc    = alloc,
-      .mutex    = thread_mutex_create(alloc),
-      .flags    = flags,
-      .fd       = fd,
-      .rootPath = string_dup(alloc, rootPathAbs),
-      .watches  = dynarray_create_t(alloc, FileWatch, 64),
+      .alloc     = alloc,
+      .allocPath = alloc_chunked_create(g_alloc_page, alloc_bump_create, monitor_path_chunk_size),
+      .mutex     = thread_mutex_create(alloc),
+      .flags     = flags,
+      .fd        = fd,
+      .watches   = dynarray_create_t(alloc, FileWatch, 64),
   };
+  monitor->rootPath = string_dup(monitor->allocPath, rootPathAbs);
 
   return monitor;
 }
@@ -166,10 +169,8 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
 void file_monitor_destroy(FileMonitor* monitor) {
   close(monitor->fd);
 
-  string_free(monitor->alloc, monitor->rootPath);
-  dynarray_for_t(&monitor->watches, FileWatch, watch) { string_free(monitor->alloc, watch->path); }
+  alloc_chunked_destroy(monitor->allocPath);
   dynarray_destroy(&monitor->watches);
-
   thread_mutex_destroy(monitor->mutex);
   alloc_free_t(monitor->alloc, monitor);
 }
