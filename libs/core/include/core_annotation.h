@@ -90,6 +90,15 @@ ASSERT(false, "Unsupported compiler");
 #endif
 
 /**
+ * Hint to the compiler to not attempt to auto-vectorize the following loop.
+ */
+#if defined(VOLO_MSVC)
+#define NO_VECTORIZE_HINT __pragma(loop(no_vector))
+#else
+#define NO_VECTORIZE_HINT
+#endif
+
+/**
  * Mark a variable as having thread storage duration.
  * Which means it is created when the thread starts and cleaned up when the thread ends.
  */
