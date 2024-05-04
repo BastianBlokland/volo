@@ -15,7 +15,7 @@ i8 ecs_compare_system(const void* a, const void* b) { return compare_u16(a, b); 
 EcsModuleDef ecs_module_create(
     EcsDef* def, const EcsModuleId id, const String name, const EcsModuleInit initRoutine) {
   EcsModuleDef module = {
-      .name         = string_dup(def->alloc, name),
+      .name         = name, // Name is always persistently allocated, no need to copy.
       .componentIds = dynarray_create_t(def->alloc, EcsCompId, 8),
       .viewIds      = dynarray_create_t(def->alloc, EcsViewId, 8),
       .systemIds    = dynarray_create_t(def->alloc, EcsSystemId, 8),
@@ -26,7 +26,7 @@ EcsModuleDef ecs_module_create(
 }
 
 void ecs_module_destroy(EcsDef* def, EcsModuleDef* module) {
-  string_free(def->alloc, module->name);
+  (void)def;
   dynarray_destroy(&module->componentIds);
   dynarray_destroy(&module->viewIds);
   dynarray_destroy(&module->systemIds);
