@@ -555,7 +555,7 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
       return ctx->runner->metaStats[task].durAvg;
     }
   }
-  // Task is not a meta tasks; assume its a system.
+  // Task is not a meta task; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
   const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
   return sysTotalDurAvg / sysTaskCtx->parCount;
