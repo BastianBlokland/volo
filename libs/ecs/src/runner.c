@@ -75,6 +75,7 @@ struct sEcsRunner {
   RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
   RunnerMetaStats    metaStats[EcsRunnerMetaTask_Count];
   u64                planCounter;
+  TimeDuration       planEstSpan; // Estimated duration of the longest span through the graph.
   Mem                jobMem;
 };
 
@@ -559,30 +560,31 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
 
 static void runner_plan_pick(EcsRunner* runner) {
   u32 bestIndex = 0;
-  u64 bestCost  = u64_max;
+  u64 bestSpan  = u64_max;
 
   trace_begin("ecs_plan_pick", TraceColor_Blue);
 
   for (u32 i = 0; i != array_elems(runner->plans); ++i) {
     const RunnerPlan* plan = &runner->plans[i];
 
-    // Compute the plan cost (longest path through the graph).
+    // Estimate the plan cost (longest path through the graph).
     // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
     const RunnerEstimateContext ctx = {.runner = runner, .planIndex = i};
-    const u64 cost = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
-    if (cost < bestCost) {
+    const u64 span = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
+    if (span < bestSpan) {
       bestIndex = i;
-      bestCost  = cost;
+      bestSpan  = span;
     }
   }
 
   trace_end();
 
+  runner->planEstSpan = (TimeDuration)bestSpan;
   if (bestIndex != runner->planIndex) {
     runner->planIndexNext = bestIndex;
     ++runner->planCounter;
 
-    log_d("Ecs new plan picked", log_param("cost", fmt_duration(bestCost)));
+    log_d("Ecs new plan picked", log_param("est-span", fmt_duration(bestSpan)));
   }
 }
 
@@ -729,9 +731,10 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
 EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
   return (EcsRunnerStats){
-      .flushDurLast  = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
-      .flushDurAvg   = runner->metaStats[EcsRunnerMetaTask_Flush].durAvg,
-      .replanCounter = runner->planCounter,
+      .flushDurLast = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
+      .flushDurAvg  = runner->metaStats[EcsRunnerMetaTask_Flush].durAvg,
+      .planCounter  = runner->planCounter,
+      .planEstSpan  = runner->planEstSpan,
   };
 }
 

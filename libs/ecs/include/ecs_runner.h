@@ -57,7 +57,8 @@ void ecs_runner_destroy(EcsRunner*);
 
 typedef struct {
   TimeDuration flushDurLast, flushDurAvg;
-  u64          replanCounter;
+  u64          planCounter;
+  TimeDuration planEstSpan; // Estimated duration of the longest span through the graph.
 } EcsRunnerStats;
 
 /**
