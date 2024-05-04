@@ -2,6 +2,7 @@
 #include "ecs_def.h"
 
 enum {
+  UiOrder_Input  = -900,
   UiOrder_Render = 800,
 };
 
