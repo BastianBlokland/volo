@@ -93,12 +93,16 @@ static void ecs_destruct_light(void* data) {
   dynarray_destroy(&comp->entries);
 }
 
+ecs_view_define(GlobalInitView) {
+  ecs_access_without(RendLightRendererComp);
+  ecs_access_write(AssetManagerComp);
+}
+
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_write(RendLightComp);
-  ecs_access_maybe_write(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneTerrainComp);
-  ecs_access_write(AssetManagerComp);
+  ecs_access_write(RendLightComp);
+  ecs_access_write(RendLightRendererComp);
 }
 
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
@@ -164,6 +168,17 @@ static void rend_light_renderer_create(EcsWorld* world, AssetManagerComp* assets
   }
 }
 
+ecs_system_define(RendLightInitSys) {
+  EcsView*     globalInitView = ecs_world_view_t(world, GlobalInitView);
+  EcsIterator* globalInitItr  = ecs_view_maybe_at(globalInitView, ecs_world_global(world));
+  if (globalInitItr) {
+    AssetManagerComp* assets = ecs_view_write_t(globalInitItr, AssetManagerComp);
+
+    rend_light_renderer_create(world, assets);
+    rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.
+  }
+}
+
 INLINE_HINT static void rend_light_add(RendLightComp* comp, const RendLight light) {
   *((RendLight*)dynarray_push(&comp->entries, 1).ptr) = light;
 }
@@ -188,9 +203,6 @@ ecs_system_define(RendLightPushSys) {
     return; // Global dependencies not yet available.
   }
   RendLightComp* light = ecs_view_write_t(globalItr, RendLightComp);
-  if (!light) {
-    return; // Global light component not created yet.
-  }
 
   // Push all point-lights.
   EcsView* pointLights = ecs_world_view_t(world, LightPointInstView);
@@ -339,15 +351,9 @@ ecs_system_define(RendLightRenderSys) {
     return; // Global dependencies not yet available.
   }
 
-  AssetManagerComp*             assets   = ecs_view_write_t(globalItr, AssetManagerComp);
   RendLightRendererComp*        renderer = ecs_view_write_t(globalItr, RendLightRendererComp);
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   const SceneTerrainComp*       terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
-  if (!renderer) {
-    rend_light_renderer_create(world, assets);
-    rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.
-    return;
-  }
 
   const bool               debugLight = (settings->flags & RendGlobalFlags_DebugLight) != 0;
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
@@ -474,12 +480,15 @@ ecs_module_init(rend_light_module) {
   ecs_register_comp(RendLightComp, .destructor = ecs_destruct_light);
 
   ecs_register_view(GlobalView);
+  ecs_register_view(GlobalInitView);
   ecs_register_view(LightView);
   ecs_register_view(DrawView);
   ecs_register_view(CameraView);
   ecs_register_view(LightPointInstView);
   ecs_register_view(LightDirInstView);
   ecs_register_view(LightAmbientInstView);
+
+  ecs_register_system(RendLightInitSys, ecs_view_id(GlobalInitView));
 
   ecs_register_system(
       RendLightPushSys,
