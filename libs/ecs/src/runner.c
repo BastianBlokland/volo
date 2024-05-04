@@ -451,7 +451,7 @@ MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* g
  * Expand inherited dependencies (transitive closure).
  * https://en.wikipedia.org/wiki/Transitive_closure
  */
-static void runner_dep_expand(RunnerDepMatrix* dep) {
+NO_INLINE_HINT static void runner_dep_expand(RunnerDepMatrix* dep) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     u64* parentBegin = dep->chunks + dep->strideChunks * parent;
     u64* parentEnd   = parentBegin + dep->strideChunks;
@@ -465,6 +465,7 @@ static void runner_dep_expand(RunnerDepMatrix* dep) {
         // Mark children of child to be also children of parent, reason is that if child cannot
         // start yet it means that dependencies of child cannot start yet either.
         u64* childItr = dep->chunks + dep->strideChunks * child;
+        NO_VECTORIZE_HINT
         for (u64* parentItr = parentBegin; parentItr != parentEnd; ++parentItr, ++childItr) {
           *parentItr |= *childItr;
         }
@@ -481,7 +482,7 @@ static void runner_dep_expand(RunnerDepMatrix* dep) {
  * Remove inherited dependencies (transitive reduction).
  * https://en.wikipedia.org/wiki/Transitive_reduction
  */
-static void runner_dep_reduce(RunnerDepMatrix* dep) {
+NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     u64* parentBegin = dep->chunks + dep->strideChunks * parent;
     u64* parentEnd   = parentBegin + dep->strideChunks;
@@ -495,6 +496,7 @@ static void runner_dep_reduce(RunnerDepMatrix* dep) {
         // Remove children of child as dependencies of parent, reason is that they are already
         // inherited through child.
         u64* childItr = dep->chunks + dep->strideChunks * child;
+        NO_VECTORIZE_HINT
         for (u64* parentItr = parentBegin; parentItr != parentEnd; ++parentItr, ++childItr) {
           *parentItr &= ~*childItr;
         }
@@ -510,7 +512,7 @@ static void runner_dep_reduce(RunnerDepMatrix* dep) {
 /**
  * Setup the parent-child relationships in graph based on the dependency matrix.
  */
-static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
+NO_INLINE_HINT static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
 
