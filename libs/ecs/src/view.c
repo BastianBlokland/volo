@@ -13,7 +13,7 @@ MAYBE_UNUSED static bool ecs_iterator_is_stepped(EcsIterator* iterator) {
   return iterator->chunksToSkip || !sentinel_check(iterator->chunksLimitRemaining);
 }
 
-static bool ecs_view_matches(const EcsView* view, BitSet mask) {
+static bool ecs_view_matches(const EcsView* view, const BitSet mask) {
   return ecs_comp_mask_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
@@ -99,6 +99,7 @@ FLATTEN_HINT EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
 
 FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
+  diag_assert_msg(!(view->flags & EcsViewFlags_Exclusive), "Exclusive iterators cannot walk");
 
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
     return null;
@@ -121,6 +122,8 @@ FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
 FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
+  // TODO: Validate that multiple exclusive iterators do not jump to the same entity.
+
   EcsView* view = itr->context;
 
   diag_assert_msg(
@@ -135,6 +138,8 @@ FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId enti
 
 FLATTEN_HINT EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
+
+  // TODO: Validate that multiple exclusive iterators do not jump to the same entity.
 
   EcsView* view = itr->context;
   if (!ecs_view_contains(view, entity)) {
@@ -234,6 +239,10 @@ BitSet ecs_view_mask(const EcsView* view, const EcsViewMaskType type) {
 }
 
 bool ecs_view_conflict(const EcsView* a, const EcsView* b) {
+  if (a->flags & EcsViewFlags_Exclusive && b->flags & EcsViewFlags_Exclusive) {
+    return false; // Exclusive views cannot conflict.
+  }
+
   /**
    * Check if 'A' conflicts with 'B'.
    * Meaning 'A' reads a component that 'B' writes or writes a component that the 'B' reads.
