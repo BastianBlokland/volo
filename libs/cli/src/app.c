@@ -6,6 +6,7 @@
 #include "app_internal.h"
 
 #define cli_app_option_name_max_len 64
+#define cli_app_aux_chunk_size (4 * usize_kibibyte)
 
 CliApp* cli_app_create(Allocator* alloc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
@@ -14,25 +15,13 @@ CliApp* cli_app_create(Allocator* alloc) {
       .options    = dynarray_create_t(alloc, CliOption, 16),
       .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
       .alloc      = alloc,
+      .allocAux   = alloc_chunked_create(alloc, alloc_bump_create, cli_app_aux_chunk_size),
   };
   return app;
 }
 
 void cli_app_destroy(CliApp* app) {
-  string_maybe_free(app->alloc, app->desc);
-
-  dynarray_for_t(&app->options, CliOption, opt) {
-    string_maybe_free(app->alloc, opt->desc);
-    switch (opt->type) {
-    case CliOptionType_Flag:
-      string_free(app->alloc, opt->dataFlag.name);
-      break;
-    case CliOptionType_Arg:
-      string_free(app->alloc, opt->dataArg.name);
-      break;
-    }
-  }
-
+  alloc_chunked_destroy(app->allocAux);
   dynarray_destroy(&app->options);
   dynarray_destroy(&app->exclusions);
 
@@ -41,7 +30,7 @@ void cli_app_destroy(CliApp* app) {
 
 void cli_app_register_desc(CliApp* app, const String desc) {
   diag_assert_msg(string_is_empty(app->desc), "Application already has a description registered");
-  app->desc = string_maybe_dup(app->alloc, desc);
+  app->desc = string_maybe_dup(app->allocAux, desc);
 }
 
 CliId cli_register_flag(
@@ -71,7 +60,7 @@ CliId cli_register_flag(
       .desc     = string_empty,
       .dataFlag = {
           .character = character,
-          .name      = string_dup(app->alloc, name),
+          .name      = string_dup(app->allocAux, name),
       }};
   return id;
 }
@@ -95,7 +84,7 @@ CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flag
       .desc    = string_empty,
       .dataArg = {
           .position = position,
-          .name     = string_dup(app->alloc, name),
+          .name     = string_dup(app->allocAux, name),
       }};
   return id;
 }
@@ -144,10 +133,7 @@ void cli_register_desc(CliApp* app, const CliId id, String desc) {
       "Option '{}' already has a description registered",
       fmt_text(cli_option_name(app, id)));
 
-  if (opt->desc.ptr) {
-    string_free(app->alloc, opt->desc);
-  }
-  opt->desc = string_dup(app->alloc, desc);
+  opt->desc = string_dup(app->allocAux, desc);
 }
 
 void cli_register_desc_choice(

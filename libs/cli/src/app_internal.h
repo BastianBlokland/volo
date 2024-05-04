@@ -38,6 +38,7 @@ struct sCliApp {
   DynArray   options;    // CliOption[]
   DynArray   exclusions; // CliExclusion[]
   Allocator* alloc;
+  Allocator* allocAux; // (chunked) bump allocator for axillary data (eg option names).
 };
 
 CliOption* cli_option(const CliApp*, CliId);
