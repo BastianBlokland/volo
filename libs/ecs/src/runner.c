@@ -548,7 +548,6 @@ typedef struct {
 
 static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) {
   const RunnerEstimateContext* ctx  = (const RunnerEstimateContext*)userCtx;
-  const EcsDef*                def  = ecs_world_def(ctx->runner->world);
   const RunnerPlan*            plan = &ctx->runner->plans[ctx->planIndex];
 
   for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
