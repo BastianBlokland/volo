@@ -3,6 +3,7 @@
 #include "ecs_def.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
+#include "jobs_executor.h"
 #include "jobs_graph.h"
 
 ecs_comp_define(GraphCompA) { u32 f1; };
@@ -139,7 +140,11 @@ spec(graph) {
     const EcsTaskSet sys6Tasks     = ecs_runner_task_set(runner, ecs_system_id(GraphSys6));
     const u32        sys6TaskCount = sys6Tasks.end - sys6Tasks.begin;
 
-    check_eq_int(sys6TaskCount, 4);
+    if (g_jobsWorkerCount > 1) {
+      check_eq_int(sys6TaskCount, 4);
+    } else {
+      check_eq_int(sys6TaskCount, 1); // When running single-threaded only 1 task is created.
+    }
   }
 
   teardown() {

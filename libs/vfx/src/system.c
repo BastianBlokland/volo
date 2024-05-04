@@ -11,8 +11,6 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "rend_fog.h"
-#include "rend_instance.h"
 #include "rend_light.h"
 #include "scene_lifetime.h"
 #include "scene_tag.h"
@@ -74,16 +72,8 @@ static void ecs_combine_system_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(ParticleDrawView) {
-  ecs_access_with(VfxDrawParticleComp);
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
   ecs_access_write(RendDrawComp);
-
-  /**
-   * Mark the draws as explicitly exclusive with other types of draws.
-   * This allows the scheduler to run the draw filling in parallel with other draw filling.
-   */
-  ecs_access_without(VfxDrawDecalComp);
-  ecs_access_without(RendInstanceDrawComp);
-  ecs_access_without(RendFogDrawComp);
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }

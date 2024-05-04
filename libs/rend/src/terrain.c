@@ -92,7 +92,10 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneTerrainComp);
 }
 
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(DrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+  ecs_access_write(RendDrawComp);
+}
 
 ecs_system_define(RendTerrainCreateDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);

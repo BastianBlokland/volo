@@ -73,7 +73,10 @@ ecs_view_define(GridCreateView) {
 ecs_view_define(GridReadView) { ecs_access_read(DebugGridComp); }
 ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
 ecs_view_define(DrawGlobalView) { ecs_access_read(SceneTerrainComp); }
-ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(DrawWriteView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+  ecs_access_write(RendDrawComp);
+}
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 
 ecs_view_define(UpdateGlobalView) {

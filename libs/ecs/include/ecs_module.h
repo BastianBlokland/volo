@@ -53,11 +53,18 @@ typedef enum {
   EcsViewFlags_None = 0,
 
   /**
+   * Indicates at this view is only used to jump to entities that are exclusively managed by this
+   * system. This disallows walking and two exclusive views cannot jump to the same entity, which
+   * allows two systems with exclusive views that would otherwise conflict to run in parallel.
+   */
+  EcsViewFlags_Exclusive = 1 << 0,
+
+  /**
    * Allow parallel systems to construct random-write iterators over this view.
    * By default the Ecs will disallow this because its unsafe, only disable this if you can
    * guarantee the access is synchronized through some external mechanism.
    */
-  EcsViewFlags_AllowParallelRandomWrite = 1 << 0,
+  EcsViewFlags_AllowParallelRandomWrite = 1 << 1,
 
 } EcsViewFlags;
 

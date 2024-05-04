@@ -9,8 +9,6 @@
 #include "debug_shape.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
-#include "rend_fog.h"
-#include "rend_instance.h"
 
 typedef enum {
   DebugShapeType_Box,
@@ -151,14 +149,8 @@ ecs_view_define(ShapeRendererView) { ecs_access_write(DebugShapeRendererComp); }
 ecs_view_define(ShapeView) { ecs_access_write(DebugShapeComp); }
 
 ecs_view_define(DrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
   ecs_access_write(RendDrawComp);
-
-  /**
-   * Mark the shape draws as explicitly exclusive with scene renderable instance draws. This
-   * allows the scheduler to run the shape draw filling and the instance draw filling in parallel.
-   */
-  ecs_access_without(RendInstanceDrawComp);
-  ecs_access_without(RendFogDrawComp);
 }
 
 static AssetManagerComp* debug_asset_manager(EcsWorld* world) {

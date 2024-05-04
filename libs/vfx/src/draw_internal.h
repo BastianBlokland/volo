@@ -13,11 +13,4 @@ typedef enum {
 
 ecs_comp_extern(VfxDrawManagerComp);
 
-/**
- * Tag components for different draw types.
- * Can be used to constrain different systems to allow parallel draw creation.
- */
-ecs_comp_extern(VfxDrawDecalComp);
-ecs_comp_extern(VfxDrawParticleComp);
-
 EcsEntityId vfx_draw_entity(const VfxDrawManagerComp*, VfxDrawType);

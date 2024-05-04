@@ -334,7 +334,11 @@ ecs_view_define(WindowView) {
   ecs_access_maybe_write(UiStatsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
+ecs_view_define(DrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+  ecs_access_write(RendDrawComp);
+}
 
 static const AssetFontTexComp*
 ui_atlas_font_get(EcsWorld* world, const UiGlobalResourcesComp* globalRes) {

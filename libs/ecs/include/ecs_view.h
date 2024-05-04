@@ -64,6 +64,8 @@ EcsIterator* ecs_view_itr_reset(EcsIterator*); // Cannot be used with stepped it
 /**
  * Advance the iterator to the next entity in the view.
  * NOTE: On success it will return the same the iterator pointer, otherwise null.
+ *
+ * Pre-condition: View is not an exclusive view.
  */
 EcsIterator* ecs_view_walk(EcsIterator*);
 

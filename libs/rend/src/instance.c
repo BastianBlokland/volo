@@ -86,9 +86,10 @@ ecs_view_define(RenderableView) {
 }
 
 ecs_view_define(DrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+
   ecs_access_write(RendDrawComp);
   ecs_access_maybe_read(SceneSkeletonTemplComp);
-  ecs_access_with(RendInstanceDrawComp);
 }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
@@ -127,14 +128,13 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       tags |= SceneTags_Transparent;
     }
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendInstanceDrawComp))) {
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       if (++createdDraws > rend_instance_max_draw_create_per_task) {
         continue; // Limit the amount of new draws to create per frame.
       }
       const RendDrawFlags flags = isSkinned ? RendDrawFlags_StandardGeometry | RendDrawFlags_Skinned
                                             : RendDrawFlags_StandardGeometry;
-      ecs_world_add_empty_t(world, renderable->graphic, RendInstanceDrawComp);
-      RendDrawComp* draw = rend_draw_create(world, renderable->graphic, flags);
+      RendDrawComp*       draw  = rend_draw_create(world, renderable->graphic, flags);
       rend_draw_set_resource(draw, RendDrawResource_Graphic, renderable->graphic);
       continue;
     }
@@ -176,8 +176,6 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 }
 
 ecs_module_init(rend_instance_module) {
-  ecs_register_comp_empty(RendInstanceDrawComp);
-
   ecs_register_view(GlobalView);
   ecs_register_view(RenderableView);
   ecs_register_view(DrawView);
