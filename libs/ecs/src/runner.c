@@ -11,6 +11,7 @@
 #include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
+#include "log_logger.h"
 #include "trace_tracer.h"
 
 #include "view_internal.h"
@@ -81,7 +82,7 @@ THREAD_LOCAL bool             g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
-static u32  runner_plan_pick(EcsRunner*);
+static void runner_plan_pick(EcsRunner*);
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
 
 static i8 compare_system_entry(const void* a, const void* b) {
@@ -146,12 +147,7 @@ static void runner_task_replan(const void* ctx) {
    * the plan, estimate the cost and determine if its better then the current plan.
    */
   runner_plan_formulate(runner, planIndexIdle, true /* shuffle */);
-
-  // If the plan is better then set it as the next plan.
-  if (runner_plan_pick(runner) == planIndexIdle) {
-    runner->planIndexNext = planIndexIdle;
-    ++runner->planCounter;
-  }
+  runner_plan_pick(runner);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
   runner_meta_stats_update(&runner->metaStats[EcsRunnerMetaTask_Replan], dur);
@@ -561,7 +557,7 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
   return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
 }
 
-static u32 runner_plan_pick(EcsRunner* runner) {
+static void runner_plan_pick(EcsRunner* runner) {
   u32 bestIndex = 0;
   u64 bestCost  = u64_max;
 
@@ -581,7 +577,13 @@ static u32 runner_plan_pick(EcsRunner* runner) {
   }
 
   trace_end();
-  return bestIndex;
+
+  if (bestIndex != runner->planIndex) {
+    runner->planIndexNext = bestIndex;
+    ++runner->planCounter;
+
+    log_d("Ecs new plan picked", log_param("cost", fmt_duration(bestCost)));
+  }
 }
 
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
