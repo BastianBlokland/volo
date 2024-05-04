@@ -1230,7 +1230,7 @@ ecs_module_init(debug_rend_module) {
       ecs_view_id(GlobalView));
 
   // NOTE: Update the panel before clearing the draws so we can inspect the last frame's draw.
-  ASSERT(DebugOrder_RendUpdate < RendOrder_DrawClear, "Invalid update order");
+  ASSERT((u32)DebugOrder_RendUpdate < (u32)RendOrder_DrawClear, "Invalid update order");
   ecs_order(DebugRendUpdatePanelSys, DebugOrder_RendUpdate);
 }
 
