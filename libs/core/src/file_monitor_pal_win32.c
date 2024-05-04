@@ -279,7 +279,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
       .rootHandle = monitor_open_root(rootPathAbs),
       .rootOverlapped.hEvent = monitor_event_create(),
   };
-  monitor->rootPath = string_dup(monitor->allocPath, rootPathAbs),
+  monitor->rootPath = string_dup(monitor->allocPath, rootPathAbs);
 
   if (monitor->rootHandle != INVALID_HANDLE_VALUE) {
     monitor_read_begin_locked(monitor);
