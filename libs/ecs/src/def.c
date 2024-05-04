@@ -53,11 +53,11 @@ MAYBE_UNUSED static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, co
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
-      .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
-      .components = dynarray_create_t(alloc, EcsCompDef, 128),
-      .views      = dynarray_create_t(alloc, EcsViewDef, 128),
-      .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
-      .alloc      = alloc,
+             .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
+             .components = dynarray_create_t(alloc, EcsCompDef, 128),
+             .views      = dynarray_create_t(alloc, EcsViewDef, 128),
+             .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
+             .alloc      = alloc,
   };
   return def;
 }
@@ -66,18 +66,11 @@ void ecs_def_destroy(EcsDef* def) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to destroy a frozen definition");
 
   dynarray_for_t(&def->modules, EcsModuleDef, module) { ecs_module_destroy(def, module); }
+  dynarray_for_t(&def->systems, EcsSystemDef, system) { dynarray_destroy(&system->viewIds); }
+
   dynarray_destroy(&def->modules);
-
-  dynarray_for_t(&def->components, EcsCompDef, comp) { string_free(def->alloc, comp->name); }
   dynarray_destroy(&def->components);
-
-  dynarray_for_t(&def->views, EcsViewDef, view) { string_free(def->alloc, view->name); }
   dynarray_destroy(&def->views);
-
-  dynarray_for_t(&def->systems, EcsSystemDef, system) {
-    string_free(def->alloc, system->name);
-    dynarray_destroy(&system->viewIds);
-  }
   dynarray_destroy(&def->systems);
 
   alloc_free_t(def->alloc, def);
@@ -184,7 +177,7 @@ EcsCompId ecs_def_register_comp(EcsDef* def, const EcsModuleId modId, const EcsC
   EcsCompId id                                   = (EcsCompId)def->components.size;
   *dynarray_push_t(&def->components, EcsCompDef) = (EcsCompDef){
       .moduleId      = modId,
-      .name          = string_dup(def->alloc, cfg->name),
+      .name          = cfg->name, // Name is always persistently allocated, no need to copy.
       .size          = cfg->size,
       .align         = cfg->align,
       .destructor    = cfg->destructor,
@@ -200,7 +193,7 @@ EcsViewId ecs_def_register_view(EcsDef* def, const EcsModuleId modId, const EcsV
   const EcsViewId id                        = (EcsViewId)def->views.size;
   *dynarray_push_t(&def->views, EcsViewDef) = (EcsViewDef){
       .moduleId    = modId,
-      .name        = string_dup(def->alloc, cfg->name),
+      .name        = cfg->name, // Name is always persistently allocated, no need to copy.
       .initRoutine = cfg->initRoutine,
   };
   return id;
@@ -215,7 +208,7 @@ ecs_def_register_system(EcsDef* def, const EcsModuleId modId, const EcsSystemCon
 
   *systemDef = (EcsSystemDef){
       .moduleId      = modId,
-      .name          = string_dup(def->alloc, cfg->name),
+      .name          = cfg->name, // Name is always persistently allocated, no need to copy.
       .routine       = cfg->routine,
       .flags         = cfg->flags,
       .parallelCount = 1,

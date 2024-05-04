@@ -1653,7 +1653,7 @@ GeoVector geo_nav_separate_from_blockers(const GeoNavGrid* grid, const GeoVector
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
-  diag_assert(nav_region_size(region) == (3 * 3));
+  diag_assert(nav_region_size(region) <= (3 * 3));
 
   return nav_separate_from_blockers(grid, region, pos);
 }
@@ -1676,7 +1676,7 @@ GeoVector geo_nav_separate_from_occupants(
   }
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
-  diag_assert(nav_region_size(region) == (3 * 3));
+  diag_assert(nav_region_size(region) <= (3 * 3));
 
   return nav_separate_from_occupied(grid, region, userId, pos, radius, weight);
 }

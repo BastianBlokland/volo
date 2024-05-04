@@ -11,6 +11,7 @@
 #include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
+#include "log_logger.h"
 #include "trace_tracer.h"
 
 #include "view_internal.h"
@@ -74,6 +75,7 @@ struct sEcsRunner {
   RunnerSystemStats* sysStats;     // RunnerSystemStats[systemCount].
   RunnerMetaStats    metaStats[EcsRunnerMetaTask_Count];
   u64                planCounter;
+  TimeDuration       planEstSpan; // Estimated duration of the longest span through the graph.
   Mem                jobMem;
 };
 
@@ -81,7 +83,7 @@ THREAD_LOCAL bool             g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
-static u32  runner_plan_pick(EcsRunner*);
+static void runner_plan_pick(EcsRunner*);
 static void runner_plan_formulate(EcsRunner*, const u32 planIndex, const bool shuffle);
 
 static i8 compare_system_entry(const void* a, const void* b) {
@@ -146,12 +148,7 @@ static void runner_task_replan(const void* ctx) {
    * the plan, estimate the cost and determine if its better then the current plan.
    */
   runner_plan_formulate(runner, planIndexIdle, true /* shuffle */);
-
-  // If the plan is better then set it as the next plan.
-  if (runner_plan_pick(runner) == planIndexIdle) {
-    runner->planIndexNext = planIndexIdle;
-    ++runner->planCounter;
-  }
+  runner_plan_pick(runner);
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
   runner_meta_stats_update(&runner->metaStats[EcsRunnerMetaTask_Replan], dur);
@@ -552,36 +549,43 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
 
   for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
     if (task == plan->metaTasks[meta]) {
-      return ctx->runner->metaStats[task].durAvg;
+      return math_max(ctx->runner->metaStats[task].durAvg, 1);
     }
   }
   // Task is not a meta task; assume its a system.
   const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
   const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
-  return sysTotalDurAvg / sysTaskCtx->parCount;
+  return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
 }
 
-static u32 runner_plan_pick(EcsRunner* runner) {
+static void runner_plan_pick(EcsRunner* runner) {
   u32 bestIndex = 0;
-  u64 bestCost  = u64_max;
+  u64 bestSpan  = u64_max;
 
   trace_begin("ecs_plan_pick", TraceColor_Blue);
 
   for (u32 i = 0; i != array_elems(runner->plans); ++i) {
     const RunnerPlan* plan = &runner->plans[i];
 
-    // Compute the plan cost (longest path through the graph).
+    // Estimate the plan cost (longest path through the graph).
     // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
     const RunnerEstimateContext ctx = {.runner = runner, .planIndex = i};
-    const u64 cost = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
-    if (cost < bestCost) {
+    const u64 span = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
+    if (span < bestSpan) {
       bestIndex = i;
-      bestCost  = cost;
+      bestSpan  = span;
     }
   }
 
   trace_end();
-  return bestIndex;
+
+  runner->planEstSpan = (TimeDuration)bestSpan;
+  if (bestIndex != runner->planIndex) {
+    runner->planIndexNext = bestIndex;
+    ++runner->planCounter;
+
+    log_d("Ecs new plan picked", log_param("est-span", fmt_duration(bestSpan)));
+  }
 }
 
 static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const bool shuffle) {
@@ -602,7 +606,8 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   }
 
   // Sort the systems to respect the ordering constrains.
-  sort_bubblesort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
+  // TODO: Consider using a stable sorting algorithm to preserve more randomness from the shuffle.
+  sort_quicksort_t(systems, systems + systemCount, EcsSystemDefPtr, compare_system_entry);
 
   trace_end();
   trace_begin("ecs_plan_build", TraceColor_Blue);
@@ -727,9 +732,10 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
 EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
   return (EcsRunnerStats){
-      .flushDurLast  = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
-      .flushDurAvg   = runner->metaStats[EcsRunnerMetaTask_Flush].durAvg,
-      .replanCounter = runner->planCounter,
+      .flushDurLast = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
+      .flushDurAvg  = runner->metaStats[EcsRunnerMetaTask_Flush].durAvg,
+      .planCounter  = runner->planCounter,
+      .planEstSpan  = runner->planEstSpan,
   };
 }
 

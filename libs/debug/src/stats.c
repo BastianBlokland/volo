@@ -498,7 +498,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->entityCount)));
     stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsWorldStats->archetypeCount), fmt_int(ecsWorldStats->archetypeEmptyCount)));
     stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsWorldStats->archetypeTotalSize), fmt_int(ecsWorldStats->archetypeTotalChunks)));
-    stats_draw_val_entry(canvas, string_lit("Replans"), fmt_write_scratch("{}", fmt_int(ecsRunnerStats->replanCounter)));
+    stats_draw_val_entry(canvas, string_lit("Plan"), fmt_write_scratch("{<8} est:    {}", fmt_int(ecsRunnerStats->planCounter), fmt_duration(ecsRunnerStats->planEstSpan)));
     stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsRunnerStats->flushDurLast), fmt_duration(maxFlushTime)));
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->lastFlushEntities)));
   }

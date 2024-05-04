@@ -282,6 +282,7 @@ static u64 jobs_graph_longestpath(
       costs[taskId] = sentinel_u64;
     } else {
       costs[taskId] = costEstimator(userCtx, taskId);
+      diag_assert_msg(costs[taskId], "Task cost cannot be zero");
     }
   }
 
@@ -294,7 +295,9 @@ static u64 jobs_graph_longestpath(
       maxCost = math_max(maxCost, currentCost);
       jobs_graph_for_task_child(graph, taskId, child) {
         const u64 childSelfCost = costEstimator(userCtx, child.task);
-        u64*      childCost     = &costs[child.task];
+        diag_assert_msg(childSelfCost, "Task cost cannot be zero");
+
+        u64* childCost = &costs[child.task];
         if (sentinel_check(*childCost) || *childCost < (currentCost + childSelfCost)) {
           *childCost = currentCost + childSelfCost;
         }

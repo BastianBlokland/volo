@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "debug_register.h"
 #include "debug_rend.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -1229,7 +1230,8 @@ ecs_module_init(debug_rend_module) {
       ecs_view_id(GlobalView));
 
   // NOTE: Update the panel before clearing the draws so we can inspect the last frame's draw.
-  ecs_order(DebugRendUpdatePanelSys, RendOrder_DrawClear - 1);
+  ASSERT((u32)DebugOrder_RendUpdate < (u32)RendOrder_DrawClear, "Invalid update order");
+  ecs_order(DebugRendUpdatePanelSys, DebugOrder_RendUpdate);
 }
 
 EcsEntityId

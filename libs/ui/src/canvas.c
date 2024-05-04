@@ -522,13 +522,13 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-        .settings      = settings,
-        .atlasFont     = atlasFont,
-        .atlasImage    = atlasImage,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+         .settings      = settings,
+         .atlasFont     = atlasFont,
+         .atlasImage    = atlasImage,
+         .renderer      = renderer,
+         .draw          = draw,
+         .clipRects[0]  = {.size = canvasSize},
+         .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -681,7 +681,7 @@ ecs_module_init(ui_canvas_module) {
 
   ecs_register_system(UiSoundSys, ecs_view_id(SoundGlobalView), ecs_view_id(CanvasView));
 
-  ecs_order(UiCanvasInputSys, GapOrder_WindowUpdate + 1);
+  ecs_order(UiCanvasInputSys, UiOrder_Input);
   ecs_order(UiRenderSys, UiOrder_Render);
   ecs_order(UiSoundSys, UiOrder_Render);
 }
@@ -774,7 +774,7 @@ UiStatus ui_canvas_group_block_status(const UiCanvasComp* comp) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
