@@ -36,6 +36,7 @@ MAYBE_UNUSED static void ecs_view_validate_random_write(const EcsView* view, con
 
 #ifndef VOLO_FAST
 static void ecs_view_exclusive_entity_track(EcsView* v, const EcsEntityId e) {
+  // NOTE: Exclusive views always conflict with themselves so mutating the view is safe here.
   *(EcsEntityId*)dynarray_find_or_insert_sorted(&v->exclusiveEntities, ecs_compare_entity, &e) = e;
 }
 #endif
