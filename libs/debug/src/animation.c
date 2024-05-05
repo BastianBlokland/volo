@@ -399,6 +399,8 @@ static DebugAnimationSettingsComp* anim_settings_get_or_create(EcsWorld* world) 
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugAnimationPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugAnimationPanelComp);
   ecs_access_write(UiCanvasComp);

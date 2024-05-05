@@ -42,6 +42,8 @@ ecs_comp_define(DebugCameraPanelComp) {
 };
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugCameraPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugCameraPanelComp);
   ecs_access_write(UiCanvasComp);

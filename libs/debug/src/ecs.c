@@ -802,6 +802,8 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugEcsPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugEcsPanelComp);
   ecs_access_write(UiCanvasComp);

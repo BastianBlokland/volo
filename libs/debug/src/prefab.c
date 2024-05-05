@@ -10,6 +10,7 @@
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_stats.h"
+#include "ecs_module.h"
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene_camera.h"
@@ -565,6 +566,8 @@ ecs_view_define(PanelUpdateGlobalView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugPrefabPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugPrefabPanelComp);
   ecs_access_write(UiCanvasComp);
