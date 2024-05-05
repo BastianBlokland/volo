@@ -221,7 +221,7 @@ ecs_view_define(SubjectView) {
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
 
 ecs_view_define(CameraView) {
-  ecs_access_read(GapWindowComp);
+  ecs_access_read(GapWindowAspectComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
 }
@@ -1701,18 +1701,12 @@ static GeoNavRegion inspector_nav_visible_region(const GeoNavGrid* grid, EcsView
   bool         resultValid = false;
 
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
-    const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
-    const SceneCameraComp*    cam   = ecs_view_read_t(itr, SceneCameraComp);
-    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
-
-    const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
-    if (!winSize.width || !winSize.height) {
-      continue; // Window is zero sized; has no visible nav region.
-    }
-    const f32 winAspect = (f32)winSize.width / (f32)winSize.height;
+    const GapWindowAspectComp* winAspect = ecs_view_read_t(itr, GapWindowAspectComp);
+    const SceneCameraComp*     cam       = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp*  trans     = ecs_view_read_t(itr, SceneTransformComp);
 
     for (u32 i = 0; i != array_elems(g_screenCorners); ++i) {
-      const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect, g_screenCorners[i]);
+      const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect->frac, g_screenCorners[i]);
       f32             rayT = geo_plane_intersect_ray(&g_groundPlane, &ray);
       const GeoVector pos  = geo_ray_position(&ray, rayT < f32_epsilon ? 1e4f : rayT);
       result               = inspector_nav_encapsulate(result, geo_nav_at_position(grid, pos));

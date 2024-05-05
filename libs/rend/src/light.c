@@ -113,7 +113,7 @@ ecs_view_define(DrawView) {
 }
 
 ecs_view_define(CameraView) {
-  ecs_access_read(GapWindowComp);
+  ecs_access_read(GapWindowAspectComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_maybe_read(SceneTransformComp);
 }
@@ -299,25 +299,16 @@ static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
   return geo_box_dilate(&box, geo_vector(step * 0.5f, step * 0.5f, step * 0.5f));
 }
 
-static f32 rend_win_aspect(const GapWindowComp* win) {
-  const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
-  if (!winSize.width || !winSize.height) {
-    return 1.0f;
-  }
-  return (f32)winSize.width / (f32)winSize.height;
-}
-
 static GeoMatrix rend_light_dir_shadow_proj(
-    const SceneTerrainComp*   terrain,
-    const GapWindowComp*      win,
-    const SceneCameraComp*    cam,
-    const SceneTransformComp* camTrans,
-    const GeoMatrix*          lightViewMatrix) {
+    const SceneTerrainComp*    terrain,
+    const GapWindowAspectComp* winAspect,
+    const SceneCameraComp*     cam,
+    const SceneTransformComp*  camTrans,
+    const GeoMatrix*           lightViewMatrix) {
   // Compute the world-space camera frustum corners.
   GeoVector       frustum[8];
-  f32             winAspect = rend_win_aspect(win);
   const GeoVector winCamMin = geo_vector(0, 0), winCamMax = geo_vector(1, 1);
-  scene_camera_frustum_corners(cam, camTrans, winAspect, winCamMin, winCamMax, frustum);
+  scene_camera_frustum_corners(cam, camTrans, winAspect->frac, winCamMin, winCamMax, frustum);
 
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
@@ -369,9 +360,9 @@ ecs_system_define(RendLightRenderSys) {
   /**
    * TODO: Support multiple camera's (requires multiple draws for directional lights with shadows).
    */
-  const GapWindowComp*      win      = ecs_view_read_t(camItr, GapWindowComp);
-  const SceneCameraComp*    cam      = ecs_view_read_t(camItr, SceneCameraComp);
-  const SceneTransformComp* camTrans = ecs_view_read_t(camItr, SceneTransformComp);
+  const GapWindowAspectComp* winAspect = ecs_view_read_t(camItr, GapWindowAspectComp);
+  const SceneCameraComp*     cam       = ecs_view_read_t(camItr, SceneCameraComp);
+  const SceneTransformComp*  camTrans  = ecs_view_read_t(camItr, SceneTransformComp);
 
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
   EcsIterator* drawItr  = ecs_view_itr(drawView);
@@ -425,7 +416,7 @@ ecs_system_define(RendLightRenderSys) {
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = transMat;
           renderer->shadowProjMatrix =
-              rend_light_dir_shadow_proj(terrain, win, cam, camTrans, &viewMat);
+              rend_light_dir_shadow_proj(terrain, winAspect, cam, camTrans, &viewMat);
 
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {

@@ -233,6 +233,7 @@ ecs_view_define(GlobalDrawView) {
 
 ecs_view_define(DrawView) {
   ecs_access_read(GapWindowComp);
+  ecs_access_read(GapWindowAspectComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_maybe_write(SceneTransformComp);
 }
@@ -325,16 +326,16 @@ ecs_system_define(DebugCameraDrawSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawView);
 
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    const SceneCameraComp* cam   = ecs_view_read_t(itr, SceneCameraComp);
-    const GapWindowComp*   win   = ecs_view_read_t(itr, GapWindowComp);
-    SceneTransformComp*    trans = ecs_view_write_t(itr, SceneTransformComp);
+    const SceneCameraComp*     cam       = ecs_view_read_t(itr, SceneCameraComp);
+    const GapWindowComp*       win       = ecs_view_read_t(itr, GapWindowComp);
+    const GapWindowAspectComp* winAspect = ecs_view_read_t(itr, GapWindowAspectComp);
+    SceneTransformComp*        trans     = ecs_view_write_t(itr, SceneTransformComp);
 
     const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
     if (!winSize.width || !winSize.height) {
       continue; // Zero sized window (eg minimized).
     }
     const GapVector cursorPos = gap_window_param(win, GapParam_CursorPos);
-    const f32       aspect    = (f32)winSize.width / (f32)winSize.height;
     const GeoVector inputPos  = {cursorPos.x / (f32)winSize.x, cursorPos.y / (f32)winSize.y};
 
     if (trans && cam->flags & SceneCameraFlags_DebugGizmoTranslation) {
@@ -346,11 +347,11 @@ ecs_system_define(DebugCameraDrawSys) {
       debug_gizmo_rotation(gizmo, gizmoId, trans->position, &trans->rotation);
     }
     if (cam->flags & SceneCameraFlags_DebugFrustum) {
-      debug_camera_draw_frustum(shape, cam, trans, aspect);
+      debug_camera_draw_frustum(shape, cam, trans, winAspect->frac);
     }
     if (cam->flags & SceneCameraFlags_DebugInputRay) {
       debug_camera_draw_input_ray(
-          shape, text, terrain, collisionEnv, nameView, cam, trans, aspect, inputPos);
+          shape, text, terrain, collisionEnv, nameView, cam, trans, winAspect->frac, inputPos);
     }
   }
 }
