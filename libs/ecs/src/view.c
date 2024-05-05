@@ -108,6 +108,7 @@ FLATTEN_HINT EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
 FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
 
+Next:
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
     return null;
   }
@@ -128,7 +129,7 @@ FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   }
 
   ++itr->archetypeIdx;
-  return ecs_view_walk(itr);
+  goto Next;
 }
 
 FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
