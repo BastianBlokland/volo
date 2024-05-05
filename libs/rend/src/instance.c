@@ -77,11 +77,12 @@ ecs_view_define(GlobalView) { ecs_access_read(SceneVisibilityEnvComp); }
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneBoundsComp);
-  ecs_access_read(SceneSkeletonComp);
+  ecs_access_with(SceneSkeletonLoadedComp); // Wait until the skeleton is available (if applicable).
 
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneSkeletonComp);
   ecs_access_maybe_read(SceneVisibilityComp);
 }
 
@@ -121,7 +122,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(itr, SceneSkeletonComp);
-    const bool                isSkinned     = skeletonComp->jointCount != 0;
+    const bool                isSkinned     = skeletonComp != null;
 
     SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
     if (renderable->color.a < 1.0f) {
