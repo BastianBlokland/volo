@@ -19,6 +19,7 @@
 
 ecs_comp_define_public(SceneSkeletonComp);
 ecs_comp_define_public(SceneAnimationComp);
+ecs_comp_define(SceneSkeletonLoadedComp);
 
 typedef enum {
   SkeletonTemplState_Start,
@@ -66,9 +67,7 @@ ecs_comp_define(SceneSkeletonTemplLoadedComp);
 
 static void ecs_destruct_skeleton_comp(void* data) {
   SceneSkeletonComp* sk = data;
-  if (sk->jointCount) {
-    alloc_free_array_t(g_alloc_heap, sk->jointTransforms, sk->jointCount);
-  }
+  alloc_free_array_t(g_alloc_heap, sk->jointTransforms, sk->jointCount);
 }
 
 static void ecs_destruct_animation_comp(void* data) {
@@ -105,7 +104,7 @@ ecs_view_define(TemplLoadView) {
 
 ecs_view_define(SkeletonInitView) {
   ecs_access_read(SceneRenderableComp);
-  ecs_access_without(SceneSkeletonComp);
+  ecs_access_without(SceneSkeletonLoadedComp);
 }
 
 ecs_view_define(MeshView) {
@@ -115,14 +114,9 @@ ecs_view_define(MeshView) {
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
-static void scene_skeleton_init_empty(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_t(world, entity, SceneSkeletonComp);
-}
-
-static void scene_skeleton_init_from_templ(
-    EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplComp* tl) {
+static void
+scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplComp* tl) {
   if (!tl->jointCount) {
-    scene_skeleton_init_empty(world, entity);
     return;
   }
 
@@ -143,12 +137,13 @@ static void scene_skeleton_init_from_templ(
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     const bool isLowestLayer = i == tl->animCount - 1;
-    layers[i]                = (SceneAnimLayer){
-      .duration = tl->anims[i].duration,
-      .speed    = 1.0f,
-      .weight   = isLowestLayer ? 1.0f : 0.0f,
-      .nameHash = tl->anims[i].nameHash,
-      .flags    = SceneAnimFlags_Loop,
+
+    layers[i] = (SceneAnimLayer){
+        .duration = tl->anims[i].duration,
+        .speed    = 1.0f,
+        .weight   = isLowestLayer ? 1.0f : 0.0f,
+        .nameHash = tl->anims[i].nameHash,
+        .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
@@ -170,14 +165,15 @@ ecs_system_define(SceneSkeletonInitSys) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const EcsEntityId          graphic    = renderable->graphic;
     if (UNLIKELY(!graphic || !scene_graphic_asset_valid(world, graphic))) {
-      scene_skeleton_init_empty(world, entity);
+      ecs_world_add_empty_t(world, entity, SceneSkeletonLoadedComp);
       continue;
     }
 
     if (ecs_view_maybe_jump(templItr, graphic)) {
       const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
       if (tl->state == SkeletonTemplState_FinishedSuccess) {
-        scene_skeleton_init_from_templ(world, entity, tl);
+        scene_skeleton_init(world, entity, tl);
+        ecs_world_add_empty_t(world, entity, SceneSkeletonLoadedComp);
       }
       continue;
     }
@@ -477,8 +473,9 @@ static f32 anim_time_wrap(f32 time, const f32 duration) {
 
 ecs_view_define(UpdateView) {
   ecs_access_read(SceneRenderableComp);
-  ecs_access_write(SceneSkeletonComp);
+  ecs_access_with(SceneSkeletonLoadedComp);
   ecs_access_write(SceneAnimationComp);
+  ecs_access_write(SceneSkeletonComp);
 }
 
 ecs_system_define(SceneSkeletonUpdateSys) {
@@ -506,10 +503,12 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, SceneSkeletonTemplLoadedComp))) {
       // Template has been removed; reset the skeleton and animation.
+      ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonLoadedComp);
       ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonComp);
       ecs_world_remove_t(world, ecs_view_entity(itr), SceneAnimationComp);
       continue;
     }
+    diag_assert(sk->jointCount); // Skeleton needs atleast one joint.
 
     ecs_view_jump(templItr, renderable->graphic);
     const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
@@ -567,6 +566,7 @@ ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
 ecs_module_init(scene_skeleton_module) {
   ecs_register_comp(SceneSkeletonComp, .destructor = ecs_destruct_skeleton_comp);
   ecs_register_comp(SceneAnimationComp, .destructor = ecs_destruct_animation_comp);
+  ecs_register_comp_empty(SceneSkeletonLoadedComp);
   ecs_register_comp(
       SceneSkeletonTemplComp,
       .combinator = ecs_combine_skeleton_templ,

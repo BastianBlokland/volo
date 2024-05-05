@@ -135,5 +135,4 @@ ecs_module_init(rend_fog_module) {
 }
 
 const GeoMatrix* rend_fog_trans(const RendFogComp* fog) { return &fog->transMatrix; }
-
 const GeoMatrix* rend_fog_proj(const RendFogComp* fog) { return &fog->projMatrix; }

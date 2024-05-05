@@ -12,7 +12,8 @@ typedef struct {
   u8 jointBits[scene_skeleton_joints_max / 8 + 1];
 } SceneSkeletonMask;
 
-ecs_comp_extern(SceneSkeletonTemplComp);
+ecs_comp_extern(SceneSkeletonTemplComp);  // Skeleton template, present on graphic entities.
+ecs_comp_extern(SceneSkeletonLoadedComp); // Indicates that the skeleton was loaded (if applicable).
 
 ecs_comp_extern_public(SceneSkeletonComp) {
   GeoMatrix* jointTransforms;
