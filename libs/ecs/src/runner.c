@@ -19,6 +19,7 @@
 
 // #define VOLO_ECS_RUNNER_VERBOSE
 // #define VOLO_ECS_RUNNER_VALIDATION
+// #define VOLO_ECS_RUNNER_STRESS
 
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
@@ -559,8 +560,8 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
 }
 
 static void runner_plan_pick(EcsRunner* runner) {
-  u32 bestIndex = 0;
-  u64 bestSpan  = u64_max;
+  u32 bestIndex = sentinel_u32;
+  u64 bestSpan;
 
   trace_begin("ecs_plan_pick", TraceColor_Blue);
 
@@ -571,7 +572,14 @@ static void runner_plan_pick(EcsRunner* runner) {
     // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
     const RunnerEstimateContext ctx = {.runner = runner, .planIndex = i};
     const u64 span = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
-    if (span < bestSpan) {
+    diag_assert(span < i64_max); // We store TimeDuration's as signed.
+
+#ifdef VOLO_ECS_RUNNER_STRESS
+    const bool better = rng_sample_f32(g_rng) >= 0.5f;
+#else
+    const bool better = span < bestSpan;
+#endif
+    if (sentinel_check(bestIndex) || better) {
       bestIndex = i;
       bestSpan  = span;
     }
