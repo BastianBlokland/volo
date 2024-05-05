@@ -157,14 +157,16 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
 static void ecs_world_validate_exclusive_entities(EcsWorld* world) {
   DynArray totalEntities = dynarray_create_t(g_alloc_scratch, EcsEntityId, 512);
   dynarray_for_t(&world->views, EcsView, view) {
-    dynarray_for_t(&view->exclusiveEntities, EcsEntityId, entity) {
-      if (dynarray_search_binary(&totalEntities, ecs_compare_entity, entity)) {
+    dynarray_for_t(&view->exclusiveEntities, EcsEntityId, e) {
+      if (dynarray_search_binary(&totalEntities, ecs_compare_entity, e)) {
         diag_crash_msg(
-            "Multiple views (last: '{}') access the same exclusive entity ('{}')",
+            "Multiple views (last: '{}') access the same exclusive entity ('{}'), "
+            "total exclusive: {}",
             fmt_text(view->viewDef->name),
-            fmt_int(*entity, .base = 16));
+            fmt_int(*e, .base = 16),
+            fmt_int(totalEntities.size));
       }
-      dynarray_insert_sorted_t(&totalEntities, EcsEntityId, ecs_compare_entity, entity);
+      *dynarray_insert_sorted_t(&totalEntities, EcsEntityId, ecs_compare_entity, e) = *e;
     }
     dynarray_clear(&view->exclusiveEntities);
   }
