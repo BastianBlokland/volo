@@ -34,6 +34,12 @@ MAYBE_UNUSED static void ecs_view_validate_random_write(const EcsView* view, con
       fmt_text(view->viewDef->name));
 }
 
+#ifndef VOLO_FAST
+static void ecs_view_exclusive_entity_track(EcsView* v, const EcsEntityId e) {
+  *(EcsEntityId*)dynarray_find_or_insert_sorted(&v->exclusiveEntities, ecs_compare_entity, &e) = e;
+}
+#endif
+
 u16 ecs_view_comp_count(const EcsView* view) { return view->compCount; }
 
 FLATTEN_HINT bool ecs_view_contains(const EcsView* view, const EcsEntityId entity) {
@@ -123,9 +129,12 @@ FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
 FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
-  // TODO: Validate that multiple exclusive iterators do not jump to the same entity.
-
   EcsView* view = itr->context;
+#ifndef VOLO_FAST
+  if (view->flags & EcsViewFlags_Exclusive) {
+    ecs_view_exclusive_entity_track(view, entity);
+  }
+#endif
 
   diag_assert_msg(
       ecs_view_contains(view, entity),
@@ -140,9 +149,13 @@ FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId enti
 FLATTEN_HINT EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
-  // TODO: Validate that multiple exclusive iterators do not jump to the same entity.
-
   EcsView* view = itr->context;
+#ifndef VOLO_FAST
+  if (view->flags & EcsViewFlags_Exclusive) {
+    ecs_view_exclusive_entity_track(view, entity);
+  }
+#endif
+
   if (!ecs_view_contains(view, entity)) {
     return null;
   }
@@ -212,6 +225,9 @@ EcsView ecs_view_create(
       .storage    = storage,
       .masks      = masksMem,
       .archetypes = dynarray_create_t(alloc, EcsArchetypeId, 128),
+#ifndef VOLO_FAST
+      .exclusiveEntities = dynarray_create_t(alloc, EcsEntityId, 0),
+#endif
   };
 
   EcsViewBuilder viewBuilder = {
@@ -232,6 +248,9 @@ EcsView ecs_view_create(
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
   alloc_free(alloc, mem_create(view->masks.ptr, ecs_comp_mask_size(def) * 4));
   dynarray_destroy(&view->archetypes);
+#ifndef VOLO_FAST
+  dynarray_destroy(&view->exclusiveEntities);
+#endif
 }
 
 BitSet ecs_view_mask(const EcsView* view, const EcsViewMaskType type) {
@@ -277,4 +296,10 @@ bool ecs_view_maybe_track(EcsView* view, const EcsArchetypeId id, const BitSet m
     return true;
   }
   return false;
+}
+
+void ecs_view_flush(MAYBE_UNUSED EcsView* view) {
+#ifndef VOLO_FAST
+  dynarray_clear(&view->exclusiveEntities);
+#endif
 }

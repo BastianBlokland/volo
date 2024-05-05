@@ -184,12 +184,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
+               .def       = def,
+               .finalizer = ecs_finalizer_create(alloc, def),
+               .storage   = ecs_storage_create(alloc, def),
+               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+               .buffer    = ecs_buffer_create(alloc, def),
+               .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -419,6 +419,10 @@ void ecs_world_flush_internal(EcsWorld* world) {
   trace_end();
 
   ecs_buffer_clear(&world->buffer);
+
+  trace_begin("ecs_flush_views", TraceColor_White);
+  dynarray_for_t(&world->views, EcsView, view) { ecs_view_flush(view); }
+  trace_end();
 
   // Update stats.
   world->lastFlushEntities = (u32)bufferCount;
