@@ -22,7 +22,7 @@
 #define job_max_root_tasks 1024
 
 // Maximum amount of tasks that can depend on a single task.
-#define job_max_task_children 512
+#define job_max_task_children 128
 
 typedef enum {
   ExecMode_Running,
@@ -51,7 +51,7 @@ u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL JobTaskId   g_jobsTaskId;
-THREAD_LOCAL Job*        g_jobsCurrent;
+THREAD_LOCAL Job* g_jobsCurrent;
 
 static void executor_wake_worker_all(void) {
   thread_mutex_lock(g_mutex);

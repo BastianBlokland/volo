@@ -80,8 +80,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static void runner_plan_pick(EcsRunner*);
@@ -206,6 +206,34 @@ static void runner_task_system(const void* context) {
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
   scratchpad->dur        = math_max(dur, 1);
+}
+
+typedef struct {
+  EcsRunner*        runner;
+  const RunnerPlan* plan;
+} RunnerEstimateContext;
+
+/**
+ * Estimate the cost (in nano-seconds) of a task based on the previously recorded average runtime.
+ * NOTE: Returns 1 if no stats are known for this task.
+ */
+static u64 runner_estimate_task(const RunnerEstimateContext* ctx, const JobTaskId task) {
+  for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
+    if (task == ctx->plan->metaTasks[meta]) {
+      return math_max(ctx->runner->metaStats[task].durAvg, 1);
+    }
+  }
+  // Task is not a meta task; assume its a system.
+  const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(ctx->plan->graph, task).ptr;
+  const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
+  return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
+}
+
+/**
+ * Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
+ */
+static u64 runner_estimate_plan(const RunnerEstimateContext* ctx) {
+  return jobs_graph_task_span_cost(ctx->plan->graph, (JobsCostEstimator)runner_estimate_task, ctx);
 }
 
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
@@ -449,7 +477,7 @@ MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* g
  * Expand inherited dependencies (transitive closure).
  * https://en.wikipedia.org/wiki/Transitive_closure
  */
-NO_INLINE_HINT static void runner_dep_expand(RunnerDepMatrix* dep) {
+static void runner_dep_expand(RunnerDepMatrix* dep) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     u64* parentBegin = dep->chunks + dep->strideChunks * parent;
     u64* parentEnd   = parentBegin + dep->strideChunks;
@@ -480,7 +508,7 @@ NO_INLINE_HINT static void runner_dep_expand(RunnerDepMatrix* dep) {
  * Remove inherited dependencies (transitive reduction).
  * https://en.wikipedia.org/wiki/Transitive_reduction
  */
-NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
+static void runner_dep_reduce(RunnerDepMatrix* dep) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     u64* parentBegin = dep->chunks + dep->strideChunks * parent;
     u64* parentEnd   = parentBegin + dep->strideChunks;
@@ -508,25 +536,72 @@ NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
 }
 
 /**
+ * Queue of tasks sorted by cost (highest first).
+ * Executing the highest cost tasks first reduces the chance for bubbles in parallel scheduling.
+ */
+typedef struct {
+  u32       count;
+  JobTaskId tasks[128];
+  u64       costs[128];
+} RunnerTaskQueue;
+
+static void runner_queue_clear(RunnerTaskQueue* q) { q->count = 0; }
+
+static void
+runner_queue_insert(RunnerTaskQueue* q, const RunnerEstimateContext* estCtx, const JobTaskId task) {
+  diag_assert_msg(q->count < array_elems(q->tasks), "Task queue exhausted");
+
+  const u64 cost = runner_estimate_task(estCtx, task);
+
+  u32 i = 0;
+  // Find the first task that is cheaper then the new task.
+  for (; i != q->count && cost <= q->costs[i]; ++i)
+    ;
+  // If its not the last entry in the queue; move the cheaper tasks over by one.
+  if (i != q->count) {
+    JobTaskId* taskItr = &q->tasks[i];
+    JobTaskId* taskEnd = &q->tasks[q->count];
+    mem_move(mem_from_to(taskItr + 1, taskEnd + 1), mem_from_to(taskItr, taskEnd));
+
+    u64* costItr = &q->costs[i];
+    u64* costEnd = &q->costs[q->count];
+    mem_move(mem_from_to(costItr + 1, costEnd + 1), mem_from_to(costItr, costEnd));
+  }
+  // Add it to the queue.
+  q->tasks[i] = task;
+  q->costs[i] = cost;
+  ++q->count;
+}
+
+/**
  * Setup the parent-child relationships in graph based on the dependency matrix.
  */
-NO_INLINE_HINT static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
+static void runner_dep_apply(RunnerDepMatrix* dep, EcsRunner* runner, RunnerPlan* plan) {
+  RunnerTaskQueue taskQueue;
+
+  const RunnerEstimateContext estCtx = {.runner = runner, .plan = plan};
+
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
 
-    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    runner_queue_clear(&taskQueue);
+
+    // Collect all children, includes a fast path to skip empty regions 64 bits at a time.
     for (JobTaskId child = 0; child != dep->strideBits;) {
       const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
       if (childChunk) {
         child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
-
-        // Insert the dependency into the graph.
-        jobs_graph_task_depend(graph, parent, child);
-
+        runner_queue_insert(&taskQueue, &estCtx, child);
         ++child; // Jump to the next child.
       } else {
         child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
       }
+    }
+
+    // Insert the dependents into the graph.
+    // Add the highest cost child first to avoid bubbles in the parallel scheduling.
+    for (u32 i = 0; i != taskQueue.count; ++i) {
+      jobs_graph_task_depend(plan->graph, parent, taskQueue.tasks[i]);
     }
   }
 }
@@ -539,26 +614,6 @@ static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
   }
 }
 
-typedef struct {
-  EcsRunner* runner;
-  u32        planIndex;
-} RunnerEstimateContext;
-
-static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) {
-  const RunnerEstimateContext* ctx  = (const RunnerEstimateContext*)userCtx;
-  const RunnerPlan*            plan = &ctx->runner->plans[ctx->planIndex];
-
-  for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
-    if (task == plan->metaTasks[meta]) {
-      return math_max(ctx->runner->metaStats[task].durAvg, 1);
-    }
-  }
-  // Task is not a meta task; assume its a system.
-  const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
-  const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
-  return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
-}
-
 static void runner_plan_pick(EcsRunner* runner) {
   u32 bestIndex = sentinel_u32;
   u64 bestSpan  = 0;
@@ -566,12 +621,8 @@ static void runner_plan_pick(EcsRunner* runner) {
   trace_begin("ecs_plan_pick", TraceColor_Blue);
 
   for (u32 i = 0; i != array_elems(runner->plans); ++i) {
-    const RunnerPlan* plan = &runner->plans[i];
-
-    // Estimate the plan cost (longest path through the graph).
-    // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
-    const RunnerEstimateContext ctx = {.runner = runner, .planIndex = i};
-    const u64 span = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
+    const RunnerEstimateContext ctx  = {.runner = runner, .plan = &runner->plans[i]};
+    const u64                   span = runner_estimate_plan(&ctx);
     diag_assert(span < i64_max); // We store TimeDuration's as signed.
 
 #ifdef VOLO_ECS_RUNNER_STRESS
@@ -631,10 +682,10 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
   const u32       depStrideChunks = bits_to_dwords(depStrideBits);
   RunnerDepMatrix depMatrix       = {
-            .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
-            .strideBits   = depStrideBits,
-            .strideChunks = depStrideChunks,
-            .count        = runner->taskCount,
+      .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+      .strideBits   = depStrideBits,
+      .strideChunks = depStrideChunks,
+      .count        = runner->taskCount,
   };
   runner_dep_clear(&depMatrix);
 
@@ -666,7 +717,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   // Transitively reduce the matrix and insert the dependencies into the graph.
   runner_dep_expand(&depMatrix);
   runner_dep_reduce(&depMatrix);
-  runner_dep_apply(&depMatrix, plan->graph);
+  runner_dep_apply(&depMatrix, runner, plan);
 
 #if defined(VOLO_ECS_RUNNER_VERBOSE)
   runner_dep_dump(&depMatrix, plan->graph);
