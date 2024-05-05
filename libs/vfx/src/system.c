@@ -72,7 +72,7 @@ static void ecs_combine_system_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(ParticleDrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+  ecs_view_flags(EcsViewFlags_Exclusive); // This is the only module accessing particle draws.
   ecs_access_write(RendDrawComp);
 }
 

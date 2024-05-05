@@ -20,6 +20,9 @@ struct sEcsView {
   EcsStorage*       storage;
   Mem               masks;
   DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
+#ifndef VOLO_FAST
+  DynArray exclusiveEntities; // EcsEntityId[] (NOTE: kept sorted).
+#endif
 };
 
 EcsView ecs_view_create(Allocator*, EcsStorage*, const EcsDef*, const EcsViewDef*);

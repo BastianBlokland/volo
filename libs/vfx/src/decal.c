@@ -122,7 +122,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 
 ecs_view_define(DecalDrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+  ecs_view_flags(EcsViewFlags_Exclusive); // This is the only module accessing decal draws.
   ecs_access_write(RendDrawComp);
 }
 
