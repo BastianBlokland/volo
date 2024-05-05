@@ -164,6 +164,8 @@ ecs_view_define(GlobalPanelUpdateView) {
 }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugInspectorPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugInspectorPanelComp);
   ecs_access_write(UiCanvasComp);

@@ -91,6 +91,8 @@ static i8 compare_asset_info_status(const void* a, const void* b) {
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugAssetPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugAssetPanelComp);
   ecs_access_write(UiCanvasComp);

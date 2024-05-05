@@ -107,8 +107,8 @@ FLATTEN_HINT EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
 
 FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
-  diag_assert_msg(!(view->flags & EcsViewFlags_Exclusive), "Exclusive iterators cannot walk");
 
+Next:
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
     return null;
   }
@@ -116,6 +116,11 @@ FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   const u16            archIdx = itr->archetypeIdx;
   const EcsArchetypeId id      = *(dynarray_begin_t(&view->archetypes, EcsArchetypeId) + archIdx);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
+#ifndef VOLO_FAST
+    if (UNLIKELY(view->flags & EcsViewFlags_Exclusive)) {
+      ecs_view_exclusive_entity_track(view, *itr->entity);
+    }
+#endif
     return itr;
   }
 
@@ -124,7 +129,7 @@ FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   }
 
   ++itr->archetypeIdx;
-  return ecs_view_walk(itr);
+  goto Next;
 }
 
 FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {

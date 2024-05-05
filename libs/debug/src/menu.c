@@ -174,6 +174,8 @@ ecs_view_define(GlobalView) {
   ecs_access_write(DebugStatsGlobalComp);
 }
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugMenuComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugMenuComp);
   ecs_access_write(UiCanvasComp);

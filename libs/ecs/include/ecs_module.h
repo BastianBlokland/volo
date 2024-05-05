@@ -53,9 +53,9 @@ typedef enum {
   EcsViewFlags_None = 0,
 
   /**
-   * Indicates at this view is only used to jump to entities that are exclusively managed by this
-   * system. This disallows walking and two exclusive views cannot jump to the same entity, which
-   * allows two systems with exclusive views that would otherwise conflict to run in parallel.
+   * Indicates at this view is only used to access entities that are exclusively managed by this
+   * view. Multiple exclusive views are not allowed to access the same entity, which allows two
+   * systems with exclusive views that would otherwise conflict to run in parallel.
    */
   EcsViewFlags_Exclusive = 1 << 0,
 

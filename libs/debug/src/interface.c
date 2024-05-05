@@ -51,6 +51,8 @@ ecs_comp_define(DebugInterfacePanelComp) {
 ecs_view_define(GlobalView) { ecs_access_write(UiSettingsGlobalComp); }
 
 ecs_view_define(PanelUpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugInterfacePanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugInterfacePanelComp);
   ecs_access_write(UiCanvasComp);
