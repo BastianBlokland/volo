@@ -21,6 +21,8 @@
 // #define VOLO_ECS_RUNNER_VALIDATION
 // #define VOLO_ECS_RUNNER_STRESS
 
+#define ecs_runner_max_task_children 128
+
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
 typedef const EcsSystemDef* EcsSystemDefPtr;
@@ -80,8 +82,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static void runner_plan_pick(EcsRunner*);
@@ -511,22 +513,29 @@ NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
  * Setup the parent-child relationships in graph based on the dependency matrix.
  */
 NO_INLINE_HINT static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
+  JobTaskId children[ecs_runner_max_task_children];
+  u32       childCount;
+
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
 
-    // Iterate all the set children, includes a fast path to skip empty regions 64 bits at a time.
+    // Collect all children, includes a fast path to skip empty regions 64 bits at a time.
+    childCount = 0;
     for (JobTaskId child = 0; child != dep->strideBits;) {
       const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
       if (childChunk) {
         child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
-
-        // Insert the dependency into the graph.
-        jobs_graph_task_depend(graph, parent, child);
-
+        diag_assert_msg(childCount < ecs_runner_max_task_children, "Task has too many children");
+        children[childCount++] = child;
         ++child; // Jump to the next child.
       } else {
         child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
       }
+    }
+
+    // Insert the dependencies into the graph.
+    for (u32 i = 0; i != childCount; ++i) {
+      jobs_graph_task_depend(graph, parent, children[i]);
     }
   }
 }
@@ -631,10 +640,10 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
   const u32       depStrideChunks = bits_to_dwords(depStrideBits);
   RunnerDepMatrix depMatrix       = {
-            .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
-            .strideBits   = depStrideBits,
-            .strideChunks = depStrideChunks,
-            .count        = runner->taskCount,
+      .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+      .strideBits   = depStrideBits,
+      .strideChunks = depStrideChunks,
+      .count        = runner->taskCount,
   };
   runner_dep_clear(&depMatrix);
 
