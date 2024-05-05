@@ -65,6 +65,7 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
 
 EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u16 steps, const u16 index) {
   diag_assert_msg(steps, "Stepped iterator needs at least 1 step");
+  diag_assert_msg(!(view->flags & EcsViewFlags_Exclusive), "Stepped iterators cannot be exclusive");
   diag_assert_msg(
       index < steps,
       "Index {} is invalid for stepped iterator with {} steps",
