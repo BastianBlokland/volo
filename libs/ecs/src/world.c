@@ -153,8 +153,26 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
   bitset_or(out, ecs_buffer_entity_added(buffer, idx));
 }
 
+#ifndef VOLO_FAST
+static void ecs_world_validate_exclusive_entities(EcsWorld* world) {
+  DynArray totalEntities = dynarray_create_t(g_alloc_scratch, EcsEntityId, 512);
+  dynarray_for_t(&world->views, EcsView, view) {
+    dynarray_for_t(&view->exclusiveEntities, EcsEntityId, entity) {
+      if (dynarray_search_binary(&totalEntities, ecs_compare_entity, entity)) {
+        diag_crash_msg(
+            "Multiple views (last: '{}') access the same exclusive entity ('{}')",
+            fmt_text(view->viewDef->name),
+            fmt_int(*entity, .base = 16));
+      }
+      dynarray_insert_sorted_t(&totalEntities, EcsEntityId, ecs_compare_entity, entity);
+    }
+    dynarray_clear(&view->exclusiveEntities);
+  }
+  dynarray_destroy(&totalEntities);
+}
+
 static void ecs_world_validate_sys_parallel(const EcsWorld* world, const EcsSystemDef* sysDef) {
-  MAYBE_UNUSED u32 writeViews = 0;
+  u32 writeViews = 0;
   dynarray_for_t(&sysDef->viewIds, EcsViewId, viewId) {
     diag_assert_msg(*viewId < world->views.size, "Invalid view-id: {}", fmt_int(*viewId));
     const EcsView* view               = dynarray_at_t(&world->views, *viewId, EcsView);
@@ -171,13 +189,14 @@ static void ecs_world_validate_sys_parallel(const EcsWorld* world, const EcsSyst
       fmt_int(writeViews));
 }
 
-static void ecs_world_validate(const EcsWorld* world) {
+static void ecs_world_validate_init(const EcsWorld* world) {
   dynarray_for_t(&world->def->systems, EcsSystemDef, sysDef) {
     if (sysDef->parallelCount > 1) {
       ecs_world_validate_sys_parallel(world, sysDef);
     }
   }
 }
+#endif
 
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
@@ -198,7 +217,9 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
         ecs_view_create(alloc, &world->storage, def, viewDef);
   }
 
-  ecs_world_validate(world);
+#ifndef VOLO_FAST
+  ecs_world_validate_init(world);
+#endif
 
   log_d(
       "Ecs world created",
@@ -420,9 +441,11 @@ void ecs_world_flush_internal(EcsWorld* world) {
 
   ecs_buffer_clear(&world->buffer);
 
-  trace_begin("ecs_flush_views", TraceColor_White);
-  dynarray_for_t(&world->views, EcsView, view) { ecs_view_flush(view); }
+#ifndef VOLO_FAST
+  trace_begin("ecs_flush_validate", TraceColor_White);
+  ecs_world_validate_exclusive_entities(world);
   trace_end();
+#endif
 
   // Update stats.
   world->lastFlushEntities = (u32)bufferCount;

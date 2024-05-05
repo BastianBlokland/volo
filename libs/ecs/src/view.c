@@ -297,9 +297,3 @@ bool ecs_view_maybe_track(EcsView* view, const EcsArchetypeId id, const BitSet m
   }
   return false;
 }
-
-void ecs_view_flush(MAYBE_UNUSED EcsView* view) {
-#ifndef VOLO_FAST
-  dynarray_clear(&view->exclusiveEntities);
-#endif
-}
