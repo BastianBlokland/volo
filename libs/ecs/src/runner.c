@@ -540,8 +540,9 @@ static void runner_dep_reduce(RunnerDepMatrix* dep) {
  * Executing the highest cost tasks first reduces the chance for bubbles in parallel scheduling.
  */
 typedef struct {
-  JobTaskId tasks[128];
   u32       count;
+  JobTaskId tasks[128];
+  u64       costs[128];
 } RunnerTaskQueue;
 
 static void runner_queue_clear(RunnerTaskQueue* q) { q->count = 0; }
@@ -554,16 +555,21 @@ runner_queue_insert(RunnerTaskQueue* q, const RunnerEstimateContext* estCtx, con
 
   u32 i = 0;
   // Find the first task that is cheaper then the new task.
-  for (; i != q->count && cost <= runner_estimate_task(estCtx, q->tasks[i]); ++i)
+  for (; i != q->count && cost <= q->costs[i]; ++i)
     ;
   // If its not the last entry in the queue; move the cheaper tasks over by one.
   if (i != q->count) {
     JobTaskId* taskItr = &q->tasks[i];
     JobTaskId* taskEnd = &q->tasks[q->count];
     mem_move(mem_from_to(taskItr + 1, taskEnd + 1), mem_from_to(taskItr, taskEnd));
+
+    u64* costItr = &q->costs[i];
+    u64* costEnd = &q->costs[q->count];
+    mem_move(mem_from_to(costItr + 1, costEnd + 1), mem_from_to(costItr, costEnd));
   }
   // Add it to the queue.
   q->tasks[i] = task;
+  q->costs[i] = cost;
   ++q->count;
 }
 
@@ -571,8 +577,9 @@ runner_queue_insert(RunnerTaskQueue* q, const RunnerEstimateContext* estCtx, con
  * Setup the parent-child relationships in graph based on the dependency matrix.
  */
 static void runner_dep_apply(RunnerDepMatrix* dep, EcsRunner* runner, RunnerPlan* plan) {
+  RunnerTaskQueue taskQueue;
+
   const RunnerEstimateContext estCtx = {.runner = runner, .plan = plan};
-  RunnerTaskQueue             taskQueue;
 
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
