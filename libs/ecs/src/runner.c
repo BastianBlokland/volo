@@ -561,7 +561,7 @@ static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) 
 
 static void runner_plan_pick(EcsRunner* runner) {
   u32 bestIndex = sentinel_u32;
-  u64 bestSpan;
+  u64 bestSpan  = 0;
 
   trace_begin("ecs_plan_pick", TraceColor_Blue);
 
