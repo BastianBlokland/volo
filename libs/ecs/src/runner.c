@@ -21,8 +21,6 @@
 // #define VOLO_ECS_RUNNER_VALIDATION
 // #define VOLO_ECS_RUNNER_STRESS
 
-#define ecs_runner_max_task_children 128
-
 static const f64 g_runnerInvAvgWindow = 1.0 / 15.0;
 
 typedef const EcsSystemDef* EcsSystemDefPtr;
@@ -479,7 +477,7 @@ MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* g
  * Expand inherited dependencies (transitive closure).
  * https://en.wikipedia.org/wiki/Transitive_closure
  */
-NO_INLINE_HINT static void runner_dep_expand(RunnerDepMatrix* dep) {
+static void runner_dep_expand(RunnerDepMatrix* dep) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     u64* parentBegin = dep->chunks + dep->strideChunks * parent;
     u64* parentEnd   = parentBegin + dep->strideChunks;
@@ -510,7 +508,7 @@ NO_INLINE_HINT static void runner_dep_expand(RunnerDepMatrix* dep) {
  * Remove inherited dependencies (transitive reduction).
  * https://en.wikipedia.org/wiki/Transitive_reduction
  */
-NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
+static void runner_dep_reduce(RunnerDepMatrix* dep) {
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     u64* parentBegin = dep->chunks + dep->strideChunks * parent;
     u64* parentEnd   = parentBegin + dep->strideChunks;
@@ -538,32 +536,65 @@ NO_INLINE_HINT static void runner_dep_reduce(RunnerDepMatrix* dep) {
 }
 
 /**
+ * Queue of tasks sorted by cost (highest first).
+ * Executing the highest cost tasks first reduces the chance for bubbles in parallel scheduling.
+ */
+typedef struct {
+  JobTaskId tasks[128];
+  u32       count;
+} RunnerTaskQueue;
+
+static void runner_queue_clear(RunnerTaskQueue* q) { q->count = 0; }
+
+static void
+runner_queue_insert(RunnerTaskQueue* q, const RunnerEstimateContext* estCtx, const JobTaskId task) {
+  diag_assert_msg(q->count < array_elems(q->tasks), "Task queue exhausted");
+
+  const u64 cost = runner_estimate_task(estCtx, task);
+
+  u32 i = 0;
+  // Find the first task that is cheaper then the new task.
+  for (; i != q->count && cost <= runner_estimate_task(estCtx, q->tasks[i]); ++i)
+    ;
+  // If its not the last entry in the queue; move the cheaper tasks over by one.
+  if (i != q->count) {
+    JobTaskId* taskItr = &q->tasks[i];
+    JobTaskId* taskEnd = &q->tasks[q->count];
+    mem_move(mem_from_to(taskItr + 1, taskEnd + 1), mem_from_to(taskItr, taskEnd));
+  }
+  // Add it to the queue.
+  q->tasks[i] = task;
+  ++q->count;
+}
+
+/**
  * Setup the parent-child relationships in graph based on the dependency matrix.
  */
-NO_INLINE_HINT static void runner_dep_apply(RunnerDepMatrix* dep, JobGraph* graph) {
-  JobTaskId children[ecs_runner_max_task_children];
-  u32       childCount;
+static void runner_dep_apply(RunnerDepMatrix* dep, EcsRunner* runner, RunnerPlan* plan) {
+  const RunnerEstimateContext estCtx = {.runner = runner, .plan = plan};
+  RunnerTaskQueue             taskQueue;
 
   for (JobTaskId parent = 0; parent != dep->count; ++parent) {
     const u64* restrict parentBegin = dep->chunks + dep->strideChunks * parent;
 
+    runner_queue_clear(&taskQueue);
+
     // Collect all children, includes a fast path to skip empty regions 64 bits at a time.
-    childCount = 0;
     for (JobTaskId child = 0; child != dep->strideBits;) {
       const u64 childChunk = parentBegin[bits_to_dwords(child)] >> bit_in_dword(child);
       if (childChunk) {
         child += intrinsic_ctz_64(childChunk); // Find the next child in the 64 bit chunk.
-        diag_assert_msg(childCount < ecs_runner_max_task_children, "Task has too many children");
-        children[childCount++] = child;
+        runner_queue_insert(&taskQueue, &estCtx, child);
         ++child; // Jump to the next child.
       } else {
         child += 64 - bit_in_dword(child); // Jump to the next 64 bit aligned child.
       }
     }
 
-    // Insert the dependencies into the graph.
-    for (u32 i = 0; i != childCount; ++i) {
-      jobs_graph_task_depend(graph, parent, children[i]);
+    // Insert the dependents into the graph.
+    // Add the highest cost child first to avoid bubbles in the parallel scheduling.
+    for (u32 i = 0; i != taskQueue.count; ++i) {
+      jobs_graph_task_depend(plan->graph, parent, taskQueue.tasks[i]);
     }
   }
 }
@@ -679,7 +710,7 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   // Transitively reduce the matrix and insert the dependencies into the graph.
   runner_dep_expand(&depMatrix);
   runner_dep_reduce(&depMatrix);
-  runner_dep_apply(&depMatrix, plan->graph);
+  runner_dep_apply(&depMatrix, runner, plan);
 
 #if defined(VOLO_ECS_RUNNER_VERBOSE)
   runner_dep_dump(&depMatrix, plan->graph);
