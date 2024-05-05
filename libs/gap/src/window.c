@@ -102,7 +102,7 @@ static void window_update(
     // Set the window-size to match the created window as additional constraints are applied.
     const GapVector createdWinSize   = gap_pal_window_param(pal, win->id, GapParam_WindowSize);
     win->params[GapParam_WindowSize] = createdWinSize;
-    winAspect->frac                  = window_aspect(createdWinSize);
+    winAspect->ratio                 = window_aspect(createdWinSize);
 
     if (win->mode == GapWindowMode_Fullscreen) {
       win->params[GapParam_WindowSizePreFullscreen] = createdWinSize;
@@ -165,7 +165,7 @@ static void window_update(
     win->params[GapParam_WindowSize] = size;
     win->params[GapParam_CursorPos]  = gap_pal_window_param(pal, win->id, GapParam_CursorPos);
     win->events |= GapWindowEvents_Resized;
-    winAspect->frac = window_aspect(size);
+    winAspect->ratio = window_aspect(size);
   }
   if (palFlags & GapPalWindowFlags_CursorMoved) {
     const GapVector oldPos          = win->params[GapParam_CursorPos];
@@ -304,7 +304,7 @@ EcsEntityId gap_window_create(
     gap_window_title_set(comp, title);
   }
 
-  ecs_world_add_t(world, windowEntity, GapWindowAspectComp, .frac = window_aspect(size));
+  ecs_world_add_t(world, windowEntity, GapWindowAspectComp, .ratio = window_aspect(size));
 
   return windowEntity;
 }

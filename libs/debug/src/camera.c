@@ -347,11 +347,11 @@ ecs_system_define(DebugCameraDrawSys) {
       debug_gizmo_rotation(gizmo, gizmoId, trans->position, &trans->rotation);
     }
     if (cam->flags & SceneCameraFlags_DebugFrustum) {
-      debug_camera_draw_frustum(shape, cam, trans, winAspect->frac);
+      debug_camera_draw_frustum(shape, cam, trans, winAspect->ratio);
     }
     if (cam->flags & SceneCameraFlags_DebugInputRay) {
       debug_camera_draw_input_ray(
-          shape, text, terrain, collisionEnv, nameView, cam, trans, winAspect->frac, inputPos);
+          shape, text, terrain, collisionEnv, nameView, cam, trans, winAspect->ratio, inputPos);
     }
   }
 }

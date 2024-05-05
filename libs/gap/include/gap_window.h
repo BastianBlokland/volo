@@ -50,7 +50,7 @@ typedef enum {
  * Ecs component for a window.
  */
 ecs_comp_extern(GapWindowComp);
-ecs_comp_extern_public(GapWindowAspectComp) { f32 frac; /* width / height */ };
+ecs_comp_extern_public(GapWindowAspectComp) { f32 ratio; /* width / height */ };
 
 /**
  * Create a new window with the given size.

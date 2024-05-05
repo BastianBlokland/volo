@@ -308,7 +308,7 @@ static GeoMatrix rend_light_dir_shadow_proj(
   // Compute the world-space camera frustum corners.
   GeoVector       frustum[8];
   const GeoVector winCamMin = geo_vector(0, 0), winCamMax = geo_vector(1, 1);
-  scene_camera_frustum_corners(cam, camTrans, winAspect->frac, winCamMin, winCamMax, frustum);
+  scene_camera_frustum_corners(cam, camTrans, winAspect->ratio, winCamMin, winCamMax, frustum);
 
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);

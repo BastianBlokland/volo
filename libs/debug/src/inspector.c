@@ -1706,7 +1706,7 @@ static GeoNavRegion inspector_nav_visible_region(const GeoNavGrid* grid, EcsView
     const SceneTransformComp*  trans     = ecs_view_read_t(itr, SceneTransformComp);
 
     for (u32 i = 0; i != array_elems(g_screenCorners); ++i) {
-      const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect->frac, g_screenCorners[i]);
+      const GeoRay    ray  = scene_camera_ray(cam, trans, winAspect->ratio, g_screenCorners[i]);
       f32             rayT = geo_plane_intersect_ray(&g_groundPlane, &ray);
       const GeoVector pos  = geo_ray_position(&ray, rayT < f32_epsilon ? 1e4f : rayT);
       result               = inspector_nav_encapsulate(result, geo_nav_at_position(grid, pos));
