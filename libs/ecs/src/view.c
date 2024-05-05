@@ -259,8 +259,17 @@ BitSet ecs_view_mask(const EcsView* view, const EcsViewMaskType type) {
 }
 
 bool ecs_view_conflict(const EcsView* a, const EcsView* b) {
-  if (a->flags & EcsViewFlags_Exclusive && b->flags & EcsViewFlags_Exclusive) {
-    return false; // Exclusive views cannot conflict.
+  if (a->flags & EcsViewFlags_Exclusive) {
+    if (a == b) {
+      /**
+       * Exclusive views always conflict with themselves at the moment, there is no fundamental
+       * reason for this but it makes it much easier to validate exclusive access.
+       */
+      return true;
+    }
+    if (b->flags & EcsViewFlags_Exclusive) {
+      return false; // Both vies are exclusive; they cannot conflict.
+    }
   }
 
   /**
