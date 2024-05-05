@@ -4,5 +4,6 @@
     { "shaderId": "shaders/fog_vision.frag.spv" }
   ],
   "meshId": "meshes/sphere.procmesh",
-  "depth": "AlwaysNoWrite"
+  "depth": "AlwaysNoWrite",
+  "depthClamp": true
 }
