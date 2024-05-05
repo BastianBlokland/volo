@@ -210,6 +210,34 @@ static void runner_task_system(const void* context) {
   scratchpad->dur        = math_max(dur, 1);
 }
 
+typedef struct {
+  EcsRunner*        runner;
+  const RunnerPlan* plan;
+} RunnerEstimateContext;
+
+/**
+ * Estimate the cost (in nano-seconds) of a task based on the previously recorded average runtime.
+ * NOTE: Returns 1 if no stats are known for this task.
+ */
+static u64 runner_estimate_task(const RunnerEstimateContext* ctx, const JobTaskId task) {
+  for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
+    if (task == ctx->plan->metaTasks[meta]) {
+      return math_max(ctx->runner->metaStats[task].durAvg, 1);
+    }
+  }
+  // Task is not a meta task; assume its a system.
+  const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(ctx->plan->graph, task).ptr;
+  const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
+  return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
+}
+
+/**
+ * Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
+ */
+static u64 runner_estimate_plan(const RunnerEstimateContext* ctx) {
+  return jobs_graph_task_span_cost(ctx->plan->graph, (JobsCostEstimator)runner_estimate_task, ctx);
+}
+
 static EcsTaskSet runner_insert_replan(EcsRunner* runner, const u32 planIndex) {
   const RunnerPlan* plan = &runner->plans[planIndex];
   /**
@@ -548,26 +576,6 @@ static void runner_system_collect(const EcsDef* def, EcsSystemDefPtr out[]) {
   }
 }
 
-typedef struct {
-  EcsRunner* runner;
-  u32        planIndex;
-} RunnerEstimateContext;
-
-static u64 runner_plan_cost_estimate(const void* userCtx, const JobTaskId task) {
-  const RunnerEstimateContext* ctx  = (const RunnerEstimateContext*)userCtx;
-  const RunnerPlan*            plan = &ctx->runner->plans[ctx->planIndex];
-
-  for (EcsRunnerMetaTask meta = 0; meta != EcsRunnerMetaTask_Count; ++meta) {
-    if (task == plan->metaTasks[meta]) {
-      return math_max(ctx->runner->metaStats[task].durAvg, 1);
-    }
-  }
-  // Task is not a meta task; assume its a system.
-  const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(plan->graph, task).ptr;
-  const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
-  return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
-}
-
 static void runner_plan_pick(EcsRunner* runner) {
   u32 bestIndex = sentinel_u32;
   u64 bestSpan  = 0;
@@ -575,12 +583,8 @@ static void runner_plan_pick(EcsRunner* runner) {
   trace_begin("ecs_plan_pick", TraceColor_Blue);
 
   for (u32 i = 0; i != array_elems(runner->plans); ++i) {
-    const RunnerPlan* plan = &runner->plans[i];
-
-    // Estimate the plan cost (longest path through the graph).
-    // Estimation of the theoretical shortest runtime in nano-seconds (given infinite parallelism).
-    const RunnerEstimateContext ctx = {.runner = runner, .planIndex = i};
-    const u64 span = jobs_graph_task_span_cost(plan->graph, runner_plan_cost_estimate, &ctx);
+    const RunnerEstimateContext ctx  = {.runner = runner, .plan = &runner->plans[i]};
+    const u64                   span = runner_estimate_plan(&ctx);
     diag_assert(span < i64_max); // We store TimeDuration's as signed.
 
 #ifdef VOLO_ECS_RUNNER_STRESS
