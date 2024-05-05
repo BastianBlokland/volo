@@ -50,9 +50,9 @@ if (!target) {
   isAutoTarget = true
 }
 
-if (isAutoTarget && !attackWhileMoving && active(me, "Traveling")) {
+if (isAutoTarget && !attackWhileMoving && $cmdMoveTarget) {
   attack(me, null)
-  return // Cannot attack while moving; early out.
+  return // We are moving to respond to a command (and cannot attack while moving); early out.
 }
 
 if (!target || active(target, "Dead")) {
