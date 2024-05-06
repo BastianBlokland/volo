@@ -6,7 +6,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
@@ -71,7 +71,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rocket.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -136,7 +136,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_flame.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
