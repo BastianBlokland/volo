@@ -31,10 +31,12 @@ static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
 
 static EcsEntityId
 vfx_draw_create(EcsWorld* world, AssetManagerComp* assets, const VfxDrawType type) {
-  const EcsEntityId entity = asset_lookup(world, assets, g_vfxDrawGraphics[type]);
-  RendDrawComp*     draw   = rend_draw_create(world, entity, g_vfxDrawFlags[type]);
-  rend_draw_set_resource(draw, RendDrawResource_Graphic, entity); // Graphic is on the same entity.
-  return entity;
+  const EcsEntityId drawEntity  = ecs_world_entity_create(world);
+  const EcsEntityId assetEntity = asset_lookup(world, assets, g_vfxDrawGraphics[type]);
+
+  RendDrawComp* draw = rend_draw_create(world, drawEntity, g_vfxDrawFlags[type]);
+  rend_draw_set_resource(draw, RendDrawResource_Graphic, assetEntity);
+  return drawEntity;
 }
 
 ecs_view_define(InitGlobalView) {
