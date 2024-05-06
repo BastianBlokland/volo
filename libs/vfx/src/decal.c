@@ -121,8 +121,6 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 
-ecs_view_define(DecalDrawView) { ecs_access_write(RendDrawComp); }
-
 ecs_view_define(DecalAnyView) {
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_with(VfxDecalAnyComp);
@@ -386,9 +384,9 @@ static void vfx_decal_draw_init(
 }
 
 static RendDrawComp*
-vfx_draw_get(EcsWorld* world, const VfxDrawManagerComp* drawManager, const VfxDrawType type) {
+vfx_draw_get(EcsView* view, const VfxDrawManagerComp* drawManager, const VfxDrawType type) {
   const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
-  return ecs_utils_write_t(world, DecalDrawView, drawEntity, RendDrawComp);
+  return ecs_view_write_t(ecs_view_at(view, drawEntity), RendDrawComp);
 }
 
 typedef struct {
@@ -470,7 +468,12 @@ static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f
   return 1.0f;
 }
 
-ecs_view_define(UpdateSingleView) {
+ecs_view_define(SingleDrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the single-decal draw entities.
+  ecs_access_write(RendDrawComp);
+}
+
+ecs_view_define(SingleUpdateView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
@@ -555,19 +558,25 @@ ecs_system_define(VfxDecalSingleUpdateSys) {
   const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
-  RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_DecalSingle);
-  RendDrawComp* drawDebug  = vfx_draw_get(world, drawManager, VfxDrawType_DecalSingleDebug);
+  EcsView*      drawView   = ecs_world_view_t(world, SingleDrawView);
+  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalSingle);
+  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalSingleDebug);
 
   vfx_decal_draw_init(drawNormal, atlasColor, atlasNormal);
   vfx_decal_draw_init(drawDebug, atlasColor, atlasNormal);
 
-  EcsView* singleView = ecs_world_view_t(world, UpdateSingleView);
+  EcsView* singleView = ecs_world_view_t(world, SingleUpdateView);
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
     vfx_decal_single_update(timeComp, terrainComp, visEnv, drawNormal, drawDebug, itr);
   }
 }
 
-ecs_view_define(UpdateTrailView) {
+ecs_view_define(TrailDrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the trail-decal draw entities.
+  ecs_access_write(RendDrawComp);
+}
+
+ecs_view_define(TrailUpdateView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
@@ -893,13 +902,14 @@ ecs_system_define(VfxDecalTrailUpdateSys) {
   const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
-  RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_DecalTrail);
-  RendDrawComp* drawDebug  = vfx_draw_get(world, drawManager, VfxDrawType_DecalTrailDebug);
+  EcsView*      drawView   = ecs_world_view_t(world, TrailDrawView);
+  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalTrail);
+  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalTrailDebug);
 
   vfx_decal_draw_init(drawNormal, atlasColor, atlasNormal);
   vfx_decal_draw_init(drawDebug, atlasColor, atlasNormal);
 
-  EcsView* trailView = ecs_world_view_t(world, UpdateTrailView);
+  EcsView* trailView = ecs_world_view_t(world, TrailUpdateView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
     vfx_decal_trail_update(timeComp, terrainComp, visEnv, drawNormal, drawDebug, itr);
   }
@@ -913,7 +923,6 @@ ecs_module_init(vfx_decal_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(AtlasView);
-  ecs_register_view(DecalDrawView);
   ecs_register_view(DecalAnyView);
 
   ecs_register_system(VfxDecalLoadSys, ecs_register_view(LoadView), ecs_view_id(DecalAnyView));
@@ -929,15 +938,15 @@ ecs_module_init(vfx_decal_module) {
 
   ecs_register_system(
       VfxDecalSingleUpdateSys,
-      ecs_register_view(UpdateSingleView),
-      ecs_view_id(DecalDrawView),
+      ecs_register_view(SingleUpdateView),
+      ecs_register_view(SingleDrawView),
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
 
   ecs_register_system(
       VfxDecalTrailUpdateSys,
-      ecs_register_view(UpdateTrailView),
-      ecs_view_id(DecalDrawView),
+      ecs_register_view(TrailUpdateView),
+      ecs_register_view(TrailDrawView),
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
 
