@@ -28,7 +28,7 @@ ecs_system_define(SceneAttachmentSys) {
   EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, TargetGraphicView));
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(updateView, parCount, parIndex); ecs_view_walk(itr);) {
     SceneAttachmentComp* attach = ecs_view_write_t(itr, SceneAttachmentComp);
     SceneTransformComp*  trans  = ecs_view_write_t(itr, SceneTransformComp);
 
@@ -89,6 +89,7 @@ ecs_module_init(scene_attachment_module) {
       ecs_view_id(TargetView),
       ecs_view_id(TargetGraphicView));
 
+  ecs_parallel(SceneAttachmentSys, 2);
   ecs_order(SceneAttachmentSys, SceneOrder_AttachmentUpdate);
 }
 
