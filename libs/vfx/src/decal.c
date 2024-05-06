@@ -13,7 +13,6 @@
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
-#include "scene_tag.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -831,19 +830,13 @@ static void vfx_decal_trail_update(
     const GeoVector tangentBegin = vfx_trail_segment_tangent_avg(seg, segPrev);
     const GeoVector tangentEnd   = vfx_trail_segment_tangent_avg(seg, segNext);
 
-    /**
-     * Compute a warp (3x3 transformation matrix) to deform our rectangle decals so that they will
-     * seamlessly connect.
-     * NOTE: Only works when resulting quad is convex, if not then there will be visible gaps or
-     * overlaps.
-     */
-
     const GeoVector localTangentBegin = geo_quat_rotate(rotInv, tangentBegin);
     const GeoVector localTangentEnd   = geo_quat_rotate(rotInv, tangentEnd);
 
     const VfxWarpVec warpTangentBegin = {localTangentBegin.x, localTangentBegin.y * segAspectInv};
     const VfxWarpVec warpTangentEnd   = {localTangentEnd.x, localTangentEnd.y * segAspectInv};
 
+    // Warp the corners to deform our rectangle decals so that they will seamlessly connect.
     const VfxWarpVec corners[4] = {
         vfx_warp_vec_add((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
         vfx_warp_vec_sub((VfxWarpVec){0.5f, 0.0f}, vfx_warp_vec_mul(warpTangentBegin, 0.5f)),
