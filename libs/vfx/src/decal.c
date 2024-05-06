@@ -516,22 +516,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-       .pos              = pos,
-       .rot              = rot,
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->decalFlags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alphaBegin       = alpha,
-       .alphaEnd         = alpha,
-       .roughness        = inst->roughness,
-       .texOffsetY       = 0.0f,
-       .texScaleY        = 1.0f,
-       .warpScale        = {1.0f, 1.0f},
-       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+      .pos              = pos,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->decalFlags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alphaBegin       = alpha,
+      .alphaEnd         = alpha,
+      .roughness        = inst->roughness,
+      .texOffsetY       = 0.0f,
+      .texScaleY        = 1.0f,
+      .warpScale        = {1.0f, 1.0f},
+      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -866,8 +866,8 @@ ecs_system_define(VfxDecalUpdateSys) {
   const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
-  RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_Decal);
-  RendDrawComp* drawDebug  = vfx_draw_get(world, drawManager, VfxDrawType_DecalDebug);
+  RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_DecalSingle);
+  RendDrawComp* drawDebug  = vfx_draw_get(world, drawManager, VfxDrawType_DecalSingleDebug);
 
   vfx_decal_draw_init(drawNormal, atlasColor, atlasNormal);
   vfx_decal_draw_init(drawDebug, atlasColor, atlasNormal);

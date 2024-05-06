@@ -8,17 +8,22 @@
 
 ecs_comp_define(VfxDrawManagerComp) { EcsEntityId drawEntities[VfxDrawType_Count]; };
 
+// NOTE: Single and Trail decals are split so both can be filled in parallel.
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
-    [VfxDrawType_Decal]              = string_static("graphics/vfx/decal.graphic"),
-    [VfxDrawType_DecalDebug]         = string_static("graphics/vfx/decal_debug.graphic"),
+    [VfxDrawType_DecalSingle]        = string_static("graphics/vfx/decal.graphic"),
+    [VfxDrawType_DecalSingleDebug]   = string_static("graphics/vfx/decal_debug.graphic"),
+    [VfxDrawType_DecalTrail]         = string_static("graphics/vfx/decal.graphic"),
+    [VfxDrawType_DecalTrailDebug]    = string_static("graphics/vfx/decal_debug.graphic"),
     [VfxDrawType_ParticleForward]    = string_static("graphics/vfx/particle_forward.graphic"),
     [VfxDrawType_ParticleDistortion] = string_static("graphics/vfx/particle_distortion.graphic"),
 };
 
 // clang-format off
 static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
-    [VfxDrawType_Decal]              = RendDrawFlags_Decal | RendDrawFlags_Preload,
-    [VfxDrawType_DecalDebug]         = RendDrawFlags_SortBackToFront,
+    [VfxDrawType_DecalSingle]        = RendDrawFlags_Decal | RendDrawFlags_Preload,
+    [VfxDrawType_DecalSingleDebug]   = RendDrawFlags_SortBackToFront,
+    [VfxDrawType_DecalTrail]         = RendDrawFlags_Decal | RendDrawFlags_Preload,
+    [VfxDrawType_DecalTrailDebug]    = RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleForward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleDistortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };
