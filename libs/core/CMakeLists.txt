@@ -53,6 +53,8 @@ add_library(lib_core STATIC
   src/sort.c
   src/string.c
   src/stringtable.c
+  src/symbol_pal.c
+  src/symbol.c
   src/thread_pal.c
   src/thread.c
   src/time_pal.c
