@@ -9,6 +9,7 @@
 #include "symbol_internal.h"
 
 #define dwarf_cmd_read 0
+#define dwarf_tag_subprogram 0x2e
 
 typedef struct sDwarf       Dwarf;
 typedef struct sDwarfCu     DwarfCu;
@@ -40,8 +41,8 @@ typedef struct {
   int         (SYS_DECL* dwarf_end)(Dwarf*);
   DwarfDie*   (SYS_DECL* dwarf_addrdie)(Dwarf*, uptr addr, DwarfDie* result);
   int         (SYS_DECL* dwarf_getscopes)(DwarfDie* cuDie, uptr addr, DwarfDie** scopes);
-  const char* (SYS_DECL* dwarf_diename)(DwarfDie*);
   int         (SYS_DECL* dwarf_tag)(DwarfDie*);
+  const char* (SYS_DECL* dwarf_diename)(DwarfDie*);
   // clang-format on
 } SymbolResolver;
 
@@ -51,6 +52,12 @@ typedef struct {
 
 static SymbolResolver* g_symbolResolver;
 static ThreadMutex     g_symbolResolverMutex;
+
+/**
+ * Addresses of where the executable is mapped in memory, is provided the linker.
+ */
+extern char __executable_start[];
+extern char __etext[];
 
 static bool dw_load(SymbolResolver* resolver) {
   DynLibResult loadRes = dynlib_load(resolver->alloc, string_lit("libdw.so.1"), &resolver->dwLib);
@@ -70,8 +77,8 @@ static bool dw_load(SymbolResolver* resolver) {
   DW_LOAD_SYM(dwarf_end);
   DW_LOAD_SYM(dwarf_addrdie);
   DW_LOAD_SYM(dwarf_getscopes);
-  DW_LOAD_SYM(dwarf_diename);
   DW_LOAD_SYM(dwarf_tag);
+  DW_LOAD_SYM(dwarf_diename);
 
   return true;
 }
@@ -86,6 +93,50 @@ static bool dw_begin(SymbolResolver* resolver) {
 static void dw_end(SymbolResolver* resolver) {
   diag_assert(resolver->dwSession);
   resolver->dwarf_end(resolver->dwSession);
+}
+
+static bool dw_addr_valid(const Symbol symbol) {
+  if ((uptr)symbol < (uptr)&__executable_start) {
+    return false;
+  }
+  if ((uptr)symbol >= (uptr)&__etext) {
+    return false;
+  }
+  return true;
+}
+
+static uptr dw_addr(const Symbol symbol) { return (uptr)symbol - (uptr)&__executable_start; }
+
+/**
+ * Find the compilation unit that contains the given symbol.
+ */
+static bool dw_cu_find(SymbolResolver* resolver, const uptr addr, DwarfDie* out) {
+  diag_assert(resolver->state == SymbolResolver_Ready);
+  if (!resolver->dwarf_addrdie(resolver->dwSession, addr, out)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Retrieve symbol information for an address in the given compilation unit.
+ */
+static bool dw_cu_sym(SymbolResolver* resolver, DwarfDie* cu, const uptr addr, SymbolInfo* out) {
+  diag_assert(resolver->state == SymbolResolver_Ready);
+
+  DwarfDie* scopes;
+  const int scopeCount = resolver->dwarf_getscopes(cu, addr, &scopes);
+
+  for (u32 scopeIndex = 0; scopeIndex != (u32)scopeCount; ++scopeIndex) {
+    DwarfDie* scope = &scopes[scopeIndex];
+    const int tag   = resolver->dwarf_tag(scope);
+    if (tag == dwarf_tag_subprogram) {
+      // NOTE: Only (non-inlined) functions are supported at the moment.
+      out->name = string_from_null_term(resolver->dwarf_diename(scope));
+      return true;
+    }
+  }
+  return false;
 }
 
 static SymbolResolver* symbol_resolver_create(Allocator* alloc) {
@@ -126,10 +177,18 @@ static bool symbol_resolver_lookup(SymbolResolver* resolver, Symbol symbol, Symb
   if (resolver->state != SymbolResolver_Ready) {
     return false;
   }
-  (void)resolver;
-  (void)symbol;
-  (void)out;
-  return false;
+  if (!dw_addr_valid(symbol)) {
+    return false;
+  }
+
+  const uptr addr = dw_addr(symbol);
+
+  DwarfDie cu;
+  if (!dw_cu_find(resolver, addr, &cu)) {
+    return false; // No compilation unit found with the given symbol.
+  }
+
+  return dw_cu_sym(resolver, &cu, addr, out);
 }
 
 void symbol_pal_init(void) { g_symbolResolverMutex = thread_mutex_create(g_alloc_persist); }

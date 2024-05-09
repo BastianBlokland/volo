@@ -12,7 +12,8 @@ spec(symbol) {
     check_eq_string(symbol_name((Symbol)42), string_empty);
   }
 
-  skip_it("can lookup the name of a function") {
+  it("can lookup the name of a function") {
+    // NOTE: Requires the test executable to be build with debug info.
     check_eq_string(symbol_name(&test_symbol_func), string_lit("test_symbol_func"));
   }
 }

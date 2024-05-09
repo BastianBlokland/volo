@@ -5,7 +5,8 @@ typedef void* Symbol;
 
 /**
  * Lookup the name of the given symbol, returns an empty string if no name was found.
- * NOTE: Requires the executable to be compiled with debug symbols.
- * NOTE: Only (non-inlined) function symbols are supported at this time.
+ *
+ * Pre-condition: Executable contains debug information.
+ * Pre-condition: Symbol points to a (non-inlined) function contained in the executable itself.
  */
 String symbol_name(Symbol);
