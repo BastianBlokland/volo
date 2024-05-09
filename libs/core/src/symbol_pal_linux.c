@@ -4,6 +4,19 @@
 
 #include "symbol_internal.h"
 
+#define dwarf_cmd_read 0
+
+typedef struct sDwarf       Dwarf;
+typedef struct sDwarfCu     DwarfCu;
+typedef struct sDwarfAbbrev DwarfAbbrev;
+
+typedef struct {
+  void*        addr;
+  DwarfCu*     cu;
+  DwarfAbbrev* abbrev;
+  long int     padding;
+} DwarfDie;
+
 typedef enum {
   SymbolResolver_Ready,
   SymbolResolver_Error,
@@ -14,11 +27,13 @@ typedef struct {
   SymbolResolverState state;
 
   DynLib* libDw;
-  void*   dwarf_begin;
-  void*   dwarf_addrdie;
-  void*   dwarf_getscopes;
-  void*   dwarf_diename;
-  void*   dwarf_tag;
+  // clang-format off
+  Dwarf*      (SYS_DECL* dwarf_begin)(int fildes, int cmd);
+  DwarfDie*   (SYS_DECL* dwarf_addrdie)(Dwarf*, uptr addr, DwarfDie* result);
+  int         (SYS_DECL* dwarf_getscopes)(DwarfDie* cuDie, uptr addr, DwarfDie** scopes);
+  const char* (SYS_DECL* dwarf_diename)(DwarfDie*);
+  int         (SYS_DECL* dwarf_tag)(DwarfDie*);
+  // clang-format on
 } SymbolResolver;
 
 typedef struct {
