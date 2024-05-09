@@ -149,8 +149,8 @@ macro(set_clang_compile_options)
     # Forward declaration of enums is defined in c as all enums use int as underlying the type.
     add_compile_options(-Wno-microsoft-enum-forward-reference)
 
-    # On windows the linker explicitly to be given the -g flag to output debug symbols. Perhaps this
-    # is a ldd on windows quirk?
+    # On windows the linker explicitly needs to be given the -g flag to output debug symbols.
+    # Perhaps this is a ldd on windows quirk?
     add_link_options(-g)
   endif()
 
