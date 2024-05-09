@@ -93,6 +93,7 @@ macro(set_gcc_compile_options)
   if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
     add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
   endif()
+  add_compile_options(-fno-stack-protector)
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   add_compile_options(-fno-math-errno) # Disable errno setting behaviour for math functions.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
@@ -132,6 +133,7 @@ macro(set_clang_compile_options)
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
   add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  add_compile_options(-fno-stack-protector)
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   add_compile_options(-fno-math-errno) # Disable errno setting behaviour for math functions.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
