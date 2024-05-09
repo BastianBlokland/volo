@@ -28,8 +28,8 @@ void core_init(void) {
     file_init();
     tty_init();
     path_init();
-    symbol_init();
     dynlib_init();
+    symbol_init();
     thread_init_late();
   }
 
@@ -48,8 +48,8 @@ void core_teardown(void) {
   }
   if (g_thread_tid == g_thread_main_tid && g_initalized) {
     thread_teardown();
-    dynlib_teardown();
     symbol_teardown();
+    dynlib_teardown();
     file_teardown();
     alloc_teardown();
     g_initalized = false;
