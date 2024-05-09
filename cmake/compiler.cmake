@@ -86,7 +86,7 @@ macro(set_gcc_compile_options)
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
   add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
                       -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
-                      -Wno-override-init-side-effects)
+                      -Wno-override-init-side-effects -Wno-enum-conversion)
 
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
