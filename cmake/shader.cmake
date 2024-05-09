@@ -14,7 +14,11 @@ function(configure_shaders target)
   message(STATUS "> Configuring shaders: ${target}")
 
   find_package(Vulkan REQUIRED)
-  message(STATUS ">> Vulkan glslc: ${Vulkan_GLSLC_EXECUTABLE}")
+  if(${Vulkan_GLSLC_EXECUTABLE} STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
+    message(FATAL_ERROR ">> Vulkan glslc: Not found")
+  else()
+    message(STATUS ">> Vulkan glslc: ${Vulkan_GLSLC_EXECUTABLE}")
+  endif()
 
   foreach(source ${ARG_SOURCES})
 
