@@ -74,8 +74,6 @@ typedef struct {
   // clang-format on
 } SymResolver;
 
-static SymbolAddr   g_symProgramStart;
-static SymbolAddr   g_symProgramEnd;
 static SymResolver* g_symResolver;
 static ThreadMutex  g_symResolverMutex;
 
@@ -84,21 +82,6 @@ static const char* to_null_term_scratch(const String str) {
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
-}
-
-static SymbolAddrRel sym_addr_to_rel(const SymbolAddr addr, const SymbolAddr base) {
-  return (SymbolAddrRel)(addr - base);
-}
-
-/**
- * Check if the given symbol is part of the executable itself (so not from a dynamic library).
- */
-static bool sym_prog_valid(const Symbol symbol) {
-  return (SymbolAddr)symbol >= g_symProgramStart && (SymbolAddr)symbol < g_symProgramEnd;
-}
-
-static SymbolAddrRel sym_prog_rel(const Symbol symbol) {
-  return sym_addr_to_rel((SymbolAddr)symbol, g_symProgramStart);
 }
 
 static i8 resolver_sym_compare(const void* a, const void* b) {
@@ -194,7 +177,7 @@ resolver_dbghelp_enum_callback(const DbgHelpSymInfo* info, const ULONG size, voi
   if (info->Address < r->dbgHelpBaseAddr) {
     goto Continue; // Symbol is outside of the executable space.
   }
-  const SymbolAddrRel addr = sym_addr_to_rel((SymbolAddr)info->Address, r->dbgHelpBaseAddr);
+  const SymbolAddrRel addr = (SymbolAddrRel)((SymbolAddr)info->Address - r->dbgHelpBaseAddr);
   const String        name = mem_create(info->Name, info->NameLen);
   resolver_sym_register(r, addr, name);
 
@@ -251,28 +234,14 @@ static void resolver_destroy(SymResolver* r) {
   alloc_free_t(r->alloc, r);
 }
 
-static const SymInfo* resolver_lookup(SymResolver* r, Symbol symbol) {
+static const SymInfo* resolver_lookup(SymResolver* r, const SymbolAddrRel addr) {
   if (r->state != SymResolver_Ready) {
     return null;
   }
-  if (!sym_prog_valid(symbol)) {
-    return null; // Symbol is not part of the main program (could be from a dynamic library).
-  }
-  const SymbolAddrRel addr = sym_prog_rel(symbol);
   return resolver_sym_find(r, addr);
 }
 
-void symbol_pal_init(void) {
-  extern const u8 __ImageBase[]; // Provided by the linker script.
-
-  HANDLE     process = GetCurrentProcess();
-  MODULEINFO moduleInfo;
-  GetModuleInformation(process, (HMODULE)&__ImageBase, &moduleInfo, sizeof(MODULEINFO));
-
-  g_symProgramStart  = (uptr)moduleInfo.lpBaseOfDll;
-  g_symProgramEnd    = (uptr)moduleInfo.lpBaseOfDll + (uptr)moduleInfo.SizeOfImage;
-  g_symResolverMutex = thread_mutex_create(g_alloc_persist);
-}
+void symbol_pal_init(void) { g_symResolverMutex = thread_mutex_create(g_alloc_persist); }
 
 void symbol_pal_teardown(void) {
   if (g_symResolver) {
@@ -296,14 +265,14 @@ SymbolAddr symbol_pal_program_end(void) {
   return programStart + (SymbolAddr)moduleInfo.SizeOfImage;
 }
 
-String symbol_pal_name(Symbol symbol) {
+String symbol_pal_name(const SymbolAddrRel addr) {
   String result = string_empty;
   thread_mutex_lock(g_symResolverMutex);
   {
     if (!g_symResolver) {
       g_symResolver = resolver_create(g_alloc_heap);
     }
-    const SymInfo* info = resolver_lookup(g_symResolver, symbol);
+    const SymInfo* info = resolver_lookup(g_symResolver, addr);
     if (info) {
       result = info->name;
     }

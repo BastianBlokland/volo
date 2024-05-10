@@ -85,31 +85,6 @@ typedef struct {
 static SymResolver* g_symResolver;
 static ThreadMutex  g_symResolverMutex;
 
-static SymbolAddrRel sym_addr_to_rel(const SymbolAddr addr, const SymbolAddr base) {
-  return (SymbolAddrRel)(addr - base);
-}
-
-static SymbolAddr sym_prog_start() {
-  extern const u8 __executable_start[]; // Provided by the linker script.
-  return (SymbolAddr)&__executable_start;
-}
-
-static SymbolAddr sym_prog_end() {
-  extern const u8 __etext[]; // Provided by the linker script.
-  return (SymbolAddr)&__etext;
-}
-
-/**
- * Check if the given symbol is part of the executable itself (so not from a dynamic library).
- */
-static bool sym_prog_valid(const Symbol symbol) {
-  return (SymbolAddr)symbol >= sym_prog_start() && (SymbolAddr)symbol < sym_prog_end();
-}
-
-static SymbolAddrRel sym_prog_rel(const Symbol symbol) {
-  return sym_addr_to_rel((SymbolAddr)symbol, sym_prog_start());
-}
-
 static i8 resolver_sym_compare(const void* a, const void* b) {
   return compare_u32(field_ptr(a, SymInfo, addr), field_ptr(b, SymInfo, addr));
 }
@@ -230,7 +205,7 @@ static bool resolver_init(SymResolver* r) {
         if (entryAddr < baseAddr) {
           continue; // Function is outside of the mapped region; this would mean a corrupt elf file.
         }
-        resolver_sym_register(r, sym_addr_to_rel(entryAddr, baseAddr), funcName);
+        resolver_sym_register(r, (SymbolAddrRel)(entryAddr - baseAddr), funcName);
 
       } while (r->dwarf_siblingof(&child, &child) == 0);
     }
@@ -280,14 +255,10 @@ static void resolver_destroy(SymResolver* r) {
   alloc_free_t(r->alloc, r);
 }
 
-static const SymInfo* resolver_lookup(SymResolver* r, Symbol symbol) {
+static const SymInfo* resolver_lookup(SymResolver* r, const SymbolAddrRel addr) {
   if (r->state != SymResolver_Ready) {
     return null;
   }
-  if (!sym_prog_valid(symbol)) {
-    return null; // Symbol is not part of the main program (could be from a dynamic library).
-  }
-  const SymbolAddrRel addr = sym_prog_rel(symbol);
   return resolver_sym_find(r, addr);
 }
 
@@ -300,24 +271,24 @@ void symbol_pal_teardown(void) {
   thread_mutex_destroy(g_symResolverMutex);
 }
 
-static SymbolAddr symbol_pal_program_start(void) {
+SymbolAddr symbol_pal_program_start(void) {
   extern const u8 __executable_start[]; // Provided by the linker script.
   return (SymbolAddr)&__executable_start;
 }
 
-static SymbolAddr symbol_pal_program_end(void) {
+SymbolAddr symbol_pal_program_end(void) {
   extern const u8 __etext[]; // Provided by the linker script.
   return (SymbolAddr)&__etext;
 }
 
-String symbol_pal_name(Symbol symbol) {
+String symbol_pal_name(const SymbolAddrRel addr) {
   String result = string_empty;
   thread_mutex_lock(g_symResolverMutex);
   {
     if (!g_symResolver) {
       g_symResolver = resolver_create(g_alloc_heap);
     }
-    const SymInfo* info = resolver_lookup(g_symResolver, symbol);
+    const SymInfo* info = resolver_lookup(g_symResolver, addr);
     if (info) {
       result = string_from_null_term(info->name);
     }
