@@ -10,6 +10,7 @@ spec(symbol) {
 
   it("returns an empty string for a non-existent function") {
     check_eq_string(symbol_name((Symbol)42), string_empty);
+    check_eq_string(symbol_name((Symbol)uptr_max), string_empty);
   }
 
   it("can lookup the name of a function") {
