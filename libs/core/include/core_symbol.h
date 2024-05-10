@@ -20,3 +20,4 @@ SymbolAddr    symbol_addr_abs(SymbolAddrRel);
  * Pre-condition: Symbol points to a (non-inlined) function contained in the executable itself.
  */
 String symbol_name(Symbol);
+String symbol_name_from_rel(SymbolAddrRel);

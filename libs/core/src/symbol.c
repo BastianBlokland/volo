@@ -26,3 +26,5 @@ String symbol_name(Symbol symbol) {
   const SymbolAddrRel addr = symbol_addr_rel(symbol);
   return symbol_pal_name(addr);
 }
+
+String symbol_name_from_rel(const SymbolAddrRel addr) { return symbol_pal_name(addr); }
