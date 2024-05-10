@@ -4,7 +4,7 @@
 
 #include "dynlib_internal.h"
 
-#include <windows.h>
+#include <Windows.h>
 
 #define dynlib_max_symbol_name 128
 
