@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_sentinel.h"
 
 #include "symbol_internal.h"
@@ -13,6 +14,46 @@ void symbol_init(void) {
 }
 
 void symbol_teardown(void) { symbol_pal_teardown(); }
+
+NO_INLINE_HINT SymbolStack symbol_stack(void) {
+  /**
+   * Walk the stack using the frame-pointer stored in the RBP register on x86_64.
+   * NOTE: Only x86_64 is supported at the moment.
+   * NOTE: Requires the binary to be compiled with frame-pointers.
+   */
+  ASSERT(sizeof(uptr) == 8, "Only 64 bit architectures are supported at the moment")
+
+  struct Frame {
+    const struct Frame* prev;
+    SymbolAddr          retAddr;
+  };
+  ASSERT(sizeof(struct Frame) == sizeof(uptr) * 2, "Unexpected Frame size");
+
+  // Retrieve the frame-pointer from the EBP register.
+  const struct Frame* fp;
+  asm("movq %%rbp, %[fp]" : [fp] "=r"(fp));
+
+  SymbolStack stack;
+  u32         frameIndex = 0;
+
+  // Fill the stack by walking the linked-list of frames.
+  for (; fp; fp = fp->prev) {
+    if (!symbol_addr_valid(fp->retAddr)) {
+      continue; // Function does not belong to our executable.
+    }
+    stack.frames[frameIndex++] = symbol_addr_rel(fp->retAddr);
+    if (frameIndex == array_elems(stack.frames)) {
+      break; // Reached the stack-frame limit.
+    }
+  }
+
+  // Set the remaining frames to a sentinel value.
+  for (; frameIndex != array_elems(stack.frames); ++frameIndex) {
+    stack.frames[frameIndex] = sentinel_u32;
+  }
+
+  return stack;
+}
 
 bool symbol_addr_valid(const SymbolAddr symbol) {
   return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;

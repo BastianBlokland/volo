@@ -5,6 +5,20 @@ typedef void* Symbol;
 typedef uptr  SymbolAddr;
 typedef u32   SymbolAddrRel; // Relative to program base (limits executable size to 4 GiB).
 
+typedef struct {
+  SymbolAddrRel frames[8]; // NOTE: Addresses are inside functions, not entry-points.
+} SymbolStack;
+
+/**
+ * Collect the active stack frames.
+ * NOTE: Only contains frames from our own executable, not from dynamic libraries.
+ * NOTE: Has a fixed frame limit, for too deep stacks it only contains the topmost frames.
+ * NOTE: Unused frames are set to sentinel_u32.
+ *
+ * Pre-condition: Executable is build with frame-pointers.
+ */
+SymbolStack symbol_stack(void);
+
 /**
  * Utilities for converting between relative and absolute addresses.
  * NOTE: Only works for symbols contained in the executable itself, not for dynamic library symbols.
