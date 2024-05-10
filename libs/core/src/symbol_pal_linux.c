@@ -216,9 +216,10 @@ static bool resolver_init(SymResolver* r) {
 
 static SymResolver* resolver_create(Allocator* alloc) {
   SymResolver* r = alloc_alloc_t(alloc, SymResolver);
-  *r             = (SymResolver){
-                  .alloc = alloc,
-                  .syms  = dynarray_create_t(alloc, SymInfo, 1024),
+
+  *r = (SymResolver){
+      .alloc = alloc,
+      .syms  = dynarray_create_t(alloc, SymInfo, 1024),
   };
 
   if (file_create(alloc, g_path_executable, FileMode_Open, FileAccess_Read, &r->exec)) {
@@ -271,7 +272,7 @@ void symbol_pal_teardown(void) {
   thread_mutex_destroy(g_symResolverMutex);
 }
 
-SymbolAddr symbol_pal_program_start(void) {
+SymbolAddr symbol_pal_program_begin(void) {
   extern const u8 __executable_start[]; // Provided by the linker script.
   return (SymbolAddr)&__executable_start;
 }

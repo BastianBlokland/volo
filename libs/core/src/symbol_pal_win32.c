@@ -250,19 +250,19 @@ void symbol_pal_teardown(void) {
   thread_mutex_destroy(g_symResolverMutex);
 }
 
-SymbolAddr symbol_pal_program_start(void) {
+SymbolAddr symbol_pal_program_begin(void) {
   extern const u8 __ImageBase[]; // Provided by the linker script.
   return (SymbolAddr)&__ImageBase;
 }
 
 SymbolAddr symbol_pal_program_end(void) {
-  HANDLE     process      = GetCurrentProcess();
-  SymbolAddr programStart = symbol_pal_program_start();
+  HANDLE           process      = GetCurrentProcess();
+  const SymbolAddr programBegin = symbol_pal_program_begin();
 
   MODULEINFO moduleInfo;
-  GetModuleInformation(process, (HMODULE)programStart, &moduleInfo, sizeof(MODULEINFO));
+  GetModuleInformation(process, (HMODULE)programBegin, &moduleInfo, sizeof(MODULEINFO));
 
-  return programStart + (SymbolAddr)moduleInfo.SizeOfImage;
+  return programBegin + (SymbolAddr)moduleInfo.SizeOfImage;
 }
 
 String symbol_pal_name(const SymbolAddrRel addr) {

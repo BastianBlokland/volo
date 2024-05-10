@@ -2,34 +2,34 @@
 
 #include "symbol_internal.h"
 
-static SymbolAddr g_symProgramStart;
+static SymbolAddr g_symProgramBegin;
 static SymbolAddr g_symProgramEnd;
 
 void symbol_init(void) {
   symbol_pal_init();
 
-  g_symProgramStart = symbol_pal_program_start();
+  g_symProgramBegin = symbol_pal_program_begin();
   g_symProgramEnd   = symbol_pal_program_end();
 }
 
 void symbol_teardown(void) { symbol_pal_teardown(); }
 
 bool symbol_addr_valid(const SymbolAddr symbol) {
-  return symbol >= g_symProgramStart && symbol < g_symProgramEnd;
+  return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;
 }
 
 SymbolAddrRel symbol_addr_rel(const SymbolAddr symbol) {
   if (!symbol_addr_valid(symbol)) {
     return sentinel_u32;
   }
-  return (SymbolAddrRel)(symbol - g_symProgramStart);
+  return (SymbolAddrRel)(symbol - g_symProgramBegin);
 }
 
 SymbolAddr symbol_addr_abs(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return 0;
   }
-  return (SymbolAddr)addr + g_symProgramStart;
+  return (SymbolAddr)addr + g_symProgramBegin;
 }
 
 String symbol_name(const SymbolAddr addr) {
