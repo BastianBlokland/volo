@@ -26,9 +26,12 @@ typedef struct {
 
   DynLib* dbgHelp;
   bool    dbgHelpActive;
+  u64     dbgHelpBaseAddr;
+
   // clang-format off
-  BOOL (SYS_DECL* SymInitialize)(HANDLE process, PCSTR userSearchPath, BOOL invadeProcess);
-  BOOL (SYS_DECL* SymCleanup)(HANDLE process);
+  BOOL    (SYS_DECL* SymInitialize)(HANDLE process, PCSTR userSearchPath, BOOL invadeProcess);
+  BOOL    (SYS_DECL* SymCleanup)(HANDLE process);
+  DWORD64 (SYS_DECL* SymLoadModuleEx)(HANDLE process, HANDLE file, PCSTR imageName, PCSTR moduleName, DWORD64 baseOfDll, DWORD dllSize, void* data, DWORD flags);
   // clang-format on
 } SymResolver;
 
@@ -58,6 +61,7 @@ static bool resolver_dbghelp_load(SymResolver* r) {
 
   DBG_LOAD_SYM(SymInitialize);
   DBG_LOAD_SYM(SymCleanup);
+  DBG_LOAD_SYM(SymLoadModuleEx);
 
   return true;
 }
@@ -74,11 +78,13 @@ static const char* resolver_dbghelp_searchpath() {
 static bool resolver_dbghelp_begin(SymResolver* r) {
   diag_assert(r->state == SymResolver_Init);
   const BOOL invadeProcess = false; // Do not automatically load dbg-info for all modules.
-  if (r->SymInitialize(r->process, resolver_dbghelp_searchpath(), invadeProcess)) {
-    r->dbgHelpActive = true;
-    return true;
+  if (!r->SymInitialize(r->process, resolver_dbghelp_searchpath(), invadeProcess)) {
+    return false;
   }
-  return false;
+  const char* imageName = to_null_term_scratch(g_path_executable);
+  r->dbgHelpActive      = true;
+  r->dbgHelpBaseAddr    = r->SymLoadModuleEx(r->process, null, imageName, null, 0, 0, null, 0);
+  return r->dbgHelpBaseAddr != 0;
 }
 
 static void resolver_dbghelp_end(SymResolver* r) { r->SymCleanup(r->process); }
