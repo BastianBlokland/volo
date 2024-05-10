@@ -18,8 +18,11 @@ bool symbol_valid(Symbol symbol) {
   return (SymbolAddr)symbol >= g_symProgramStart && (SymbolAddr)symbol < g_symProgramEnd;
 }
 
-SymbolAddrRel symbol_addr_rel(Symbol symbol) { return (SymbolAddr)symbol - g_symProgramStart; }
-SymbolAddr    symbol_addr_abs(SymbolAddrRel addr) { return (SymbolAddr)addr + g_symProgramStart; }
+SymbolAddrRel symbol_addr_rel(Symbol symbol) {
+  return (SymbolAddrRel)((SymbolAddr)symbol - g_symProgramStart);
+}
+
+SymbolAddr symbol_addr_abs(SymbolAddrRel addr) { return (SymbolAddr)addr + g_symProgramStart; }
 
 String symbol_name(Symbol symbol) {
   if (!symbol_valid(symbol)) {
