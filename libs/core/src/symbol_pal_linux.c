@@ -10,9 +10,6 @@
 
 // #define VOLO_SYMBOL_RESOLVER_VERBOSE
 
-typedef uptr SymbolAddr;
-typedef u32  SymbolAddrRel; // Relative to program base (limits executable size to 4 GiB).
-
 typedef struct {
   SymbolAddrRel addr;
   const char*   name;
@@ -245,8 +242,8 @@ static bool resolver_init(SymResolver* r) {
 static SymResolver* resolver_create(Allocator* alloc) {
   SymResolver* r = alloc_alloc_t(alloc, SymResolver);
   *r             = (SymResolver){
-      .alloc = alloc,
-      .syms  = dynarray_create_t(alloc, SymInfo, 1024),
+                  .alloc = alloc,
+                  .syms  = dynarray_create_t(alloc, SymInfo, 1024),
   };
 
   if (file_create(alloc, g_path_executable, FileMode_Open, FileAccess_Read, &r->exec)) {

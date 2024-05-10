@@ -14,9 +14,6 @@
 #define symbol_aux_chunk_size (4 * usize_kibibyte)
 #define symbol_name_length_max 64
 
-typedef uptr SymbolAddr;
-typedef u32  SymbolAddrRel; // Relative to program base (limits executable size to 4 GiB).
-
 typedef struct {
   SymbolAddrRel addr;
   String        name;
