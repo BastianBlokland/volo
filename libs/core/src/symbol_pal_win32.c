@@ -31,6 +31,7 @@ typedef struct {
   // clang-format off
   BOOL    (SYS_DECL* SymInitialize)(HANDLE process, PCSTR userSearchPath, BOOL invadeProcess);
   BOOL    (SYS_DECL* SymCleanup)(HANDLE process);
+  DWORD   (SYS_DECL* SymSetOptions)(DWORD options);
   DWORD64 (SYS_DECL* SymLoadModuleEx)(HANDLE process, HANDLE file, PCSTR imageName, PCSTR moduleName, DWORD64 baseOfDll, DWORD dllSize, void* data, DWORD flags);
   // clang-format on
 } SymResolver;
@@ -61,6 +62,7 @@ static bool resolver_dbghelp_load(SymResolver* r) {
 
   DBG_LOAD_SYM(SymInitialize);
   DBG_LOAD_SYM(SymCleanup);
+  DBG_LOAD_SYM(SymSetOptions);
   DBG_LOAD_SYM(SymLoadModuleEx);
 
   return true;
@@ -75,12 +77,24 @@ static const char* resolver_dbghelp_searchpath() {
   return to_null_term_scratch(execParentPath);
 }
 
+static DWORD resolver_dbghelp_options() {
+  DWORD options = 0;
+  options |= 0x00000004; /* SYMOPT_DEFERRED_LOADS */
+  options |= 0x00000200; /* SYMOPT_FAIL_CRITICAL_ERRORS */
+  options |= 0x00080000; /* SYMOPT_NO_PROMPTS */
+  options |= 0x00000100; /* SYMOPT_NO_UNQUALIFIED_LOADS */
+  options |= 0x00000002; /* SYMOPT_UNDNAME */
+  return options;
+}
+
 static bool resolver_dbghelp_begin(SymResolver* r) {
   diag_assert(r->state == SymResolver_Init);
   const BOOL invadeProcess = false; // Do not automatically load dbg-info for all modules.
   if (!r->SymInitialize(r->process, resolver_dbghelp_searchpath(), invadeProcess)) {
     return false;
   }
+  r->SymSetOptions(resolver_dbghelp_options());
+
   const char* imageName = to_null_term_scratch(g_path_executable);
   r->dbgHelpActive      = true;
   r->dbgHelpBaseAddr    = r->SymLoadModuleEx(r->process, null, imageName, null, 0, 0, null, 0);
