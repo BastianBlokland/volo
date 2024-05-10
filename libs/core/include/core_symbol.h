@@ -36,3 +36,12 @@ SymbolAddr    symbol_addr_abs(SymbolAddrRel);
  */
 String symbol_name(SymbolAddr);
 String symbol_name_rel(SymbolAddrRel);
+
+/**
+ * Lookup the base address of the symbol at the given address.
+ * NOTE: returns sentinel_u32 if the symbol could not be found.
+ *
+ * Pre-condition: Executable contains debug information.
+ * Pre-condition: Address is contained in a (non-inlined) function in the executable itself.
+ */
+SymbolAddrRel symbol_base(SymbolAddrRel);

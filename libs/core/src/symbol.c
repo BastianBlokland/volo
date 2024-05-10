@@ -87,3 +87,10 @@ String symbol_name_rel(const SymbolAddrRel addr) {
   }
   return symbol_pal_name(addr);
 }
+
+SymbolAddrRel symbol_base(const SymbolAddrRel addr) {
+  if (sentinel_check(addr)) {
+    return sentinel_u32;
+  }
+  return symbol_pal_base(addr);
+}

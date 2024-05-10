@@ -324,3 +324,19 @@ String symbol_pal_name(const SymbolAddrRel addr) {
   thread_mutex_unlock(g_symResolverMutex);
   return result;
 }
+
+SymbolAddrRel symbol_pal_base(const SymbolAddrRel addr) {
+  SymbolAddrRel result = sentinel_u32;
+  thread_mutex_lock(g_symResolverMutex);
+  {
+    if (!g_symResolver) {
+      g_symResolver = resolver_create(g_alloc_heap);
+    }
+    const SymInfo* info = resolver_lookup(g_symResolver, addr);
+    if (info) {
+      result = info->begin;
+    }
+  }
+  thread_mutex_unlock(g_symResolverMutex);
+  return result;
+}
