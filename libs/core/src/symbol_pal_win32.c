@@ -3,8 +3,11 @@
 
 #include "symbol_internal.h"
 
+#include <Windows.h>
+
 typedef struct {
   Allocator* alloc;
+  HANDLE     process;
 } SymResolver;
 
 static SymResolver* g_symResolver;
@@ -12,7 +15,10 @@ static ThreadMutex  g_symResolverMutex;
 
 static SymResolver* resolver_create(Allocator* alloc) {
   SymResolver* r = alloc_alloc_t(alloc, SymResolver);
-  *r             = (SymResolver){.alloc = alloc};
+  *r             = (SymResolver){
+                  .alloc   = alloc,
+                  .process = GetCurrentProcess(),
+  };
   return r;
 }
 
