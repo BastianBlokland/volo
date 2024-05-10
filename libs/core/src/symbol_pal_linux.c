@@ -3,6 +3,7 @@
 #include "core_dynlib.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_search.h"
 #include "core_thread.h"
 
 #include "file_internal.h"
@@ -11,7 +12,7 @@
 // #define VOLO_SYMBOL_RESOLVER_VERBOSE
 
 typedef struct {
-  SymbolAddrRel addr;
+  SymbolAddrRel begin, end;
   const char*   name;
 } SymInfo;
 
@@ -61,7 +62,7 @@ typedef struct {
   SymResolverState state;
   File*            exec; // Handle to our own executable.
 
-  DynArray syms; // SymInfo[], kept sorted on address.
+  DynArray syms; // SymInfo[], kept sorted on begin address.
 
   DynLib* dwLib;
   Dwarf*  dwSession;
@@ -73,7 +74,8 @@ typedef struct {
   int         (SYS_DECL* dwarf_nextcu)(Dwarf*, u64 off, u64* nextOff, usize* headerSize, u64* abbrevOffset, u8* addressSize, u8* offsetSize);
   DwarfDie*   (SYS_DECL* dwarf_offdie)(Dwarf*, u64 off, DwarfDie* result);
   int         (SYS_DECL* dwarf_child)(DwarfDie*, DwarfDie* result);
-  int         (SYS_DECL* dwarf_entrypc)(DwarfDie*, uptr* result);
+  int         (SYS_DECL* dwarf_lowpc)(DwarfDie*, uptr* result);
+  int         (SYS_DECL* dwarf_highpc)(DwarfDie*, uptr* result);
   int         (SYS_DECL* dwarf_siblingof)(DwarfDie*, DwarfDie* result);
   int         (SYS_DECL* dwarf_tag)(DwarfDie*);
   const char* (SYS_DECL* dwarf_diename)(DwarfDie*);
@@ -86,21 +88,40 @@ static SymResolver* g_symResolver;
 static ThreadMutex  g_symResolverMutex;
 
 static i8 resolver_sym_compare(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, SymInfo, addr), field_ptr(b, SymInfo, addr));
+  return compare_u32(field_ptr(a, SymInfo, begin), field_ptr(b, SymInfo, begin));
 }
 
-static void resolver_sym_register(SymResolver* r, const SymbolAddrRel addr, const char* name) {
-  const SymInfo sym = {.addr = addr, .name = name};
+static bool resolver_sym_contains(const SymInfo* sym, const SymbolAddrRel addr) {
+  return addr >= sym->begin && addr < sym->end;
+}
+
+static void resolver_sym_register(
+    SymResolver* r, const SymbolAddrRel begin, const SymbolAddrRel end, const char* name) {
+  const SymInfo sym = {.begin = begin, .end = end, .name = name};
   *dynarray_insert_sorted_t(&r->syms, SymInfo, resolver_sym_compare, &sym) = sym;
 
 #ifdef VOLO_SYMBOL_RESOLVER_VERBOSE
   diag_print(
-      "{}:{}\n", fmt_int(addr, .base = 16, .minDigits = 6), fmt_text(string_from_null_term(name)));
+      "[{}:{}] {}\n",
+      fmt_int(begin, .base = 16, .minDigits = 6),
+      fmt_int(end, .base = 16, .minDigits = 6),
+      fmt_text(string_from_null_term(name)));
 #endif
 }
 
 static const SymInfo* resolver_sym_find(SymResolver* r, const SymbolAddrRel addr) {
-  return dynarray_search_binary(&r->syms, resolver_sym_compare, &addr);
+  if (!r->syms.size) {
+    return null; // No symbols known.
+  }
+  const SymInfo* begin = dynarray_begin_t(&r->syms, SymInfo);
+  const SymInfo* end   = dynarray_end_t(&r->syms, SymInfo);
+
+  const SymInfo  tgt     = {.begin = addr};
+  const SymInfo* greater = search_binary_greater_t(begin, end, SymInfo, resolver_sym_compare, &tgt);
+  const SymInfo* greaterOrEnd = greater ? greater : end;
+  const SymInfo* candidate    = greaterOrEnd - 1;
+
+  return resolver_sym_contains(candidate, addr) ? candidate : null;
 }
 
 static bool resolver_dw_load(SymResolver* r) {
@@ -123,7 +144,8 @@ static bool resolver_dw_load(SymResolver* r) {
   DW_LOAD_SYM(dwarf_nextcu);
   DW_LOAD_SYM(dwarf_offdie);
   DW_LOAD_SYM(dwarf_child);
-  DW_LOAD_SYM(dwarf_entrypc);
+  DW_LOAD_SYM(dwarf_lowpc);
+  DW_LOAD_SYM(dwarf_highpc);
   DW_LOAD_SYM(dwarf_siblingof);
   DW_LOAD_SYM(dwarf_tag);
   DW_LOAD_SYM(dwarf_diename);
@@ -150,7 +172,7 @@ static void resolver_dw_end(SymResolver* r) {
  * NOTE: This does not necessarily match the actual '__executable_start' if address layout
  * randomization is used, when using randomization the ELF base address is usually zero.
  */
-static bool resolver_base_addr(SymResolver* r, SymbolAddr* out) {
+static bool resolver_addr_base(SymResolver* r, SymbolAddr* out) {
   Elf*  elf = r->dwarf_getelf(r->dwSession);
   usize pHeaderCount;
   if (r->elf_getphdrnum(elf, &pHeaderCount)) {
@@ -173,8 +195,8 @@ static bool resolver_init(SymResolver* r) {
    * Find all the (non-inlined) function symbols in all the compilation units.
    * NOTE: Doesn't depend on 'aranges' dwarf info as that is optional and clang does not emit it.
    */
-  SymbolAddr baseAddr;
-  if (!resolver_base_addr(r, &baseAddr)) {
+  SymbolAddr addrBase;
+  if (!resolver_addr_base(r, &addrBase)) {
     return false;
   }
   u64    cuOffset = 0;
@@ -198,14 +220,19 @@ static bool resolver_init(SymResolver* r) {
         if (!funcName) {
           continue; // Function is missing a name.
         }
-        SymbolAddr entryAddr;
-        if (r->dwarf_entrypc(&child, &entryAddr) == -1) {
-          continue; // Function is missing an entry address.
+        SymbolAddr addrBegin, addrEnd;
+        if (r->dwarf_lowpc(&child, &addrBegin) == -1) {
+          continue; // Function is missing an lowpc address.
         }
-        if (entryAddr < baseAddr) {
-          continue; // Function is outside of the mapped region; this would mean a corrupt elf file.
+        if (r->dwarf_highpc(&child, &addrEnd) == -1) {
+          continue; // Function is missing an highpc address.
         }
-        resolver_sym_register(r, (SymbolAddrRel)(entryAddr - baseAddr), funcName);
+        if (addrBegin < addrBase || addrEnd < addrBegin) {
+          continue; // Invalid address, this would mean a corrupt elf file.
+        }
+        const SymbolAddrRel addrBeginRel = (SymbolAddrRel)(addrBegin - addrBase);
+        const SymbolAddrRel addrEndRel   = (SymbolAddrRel)(addrEnd - addrBase);
+        resolver_sym_register(r, addrBeginRel, addrEndRel, funcName);
 
       } while (r->dwarf_siblingof(&child, &child) == 0);
     }
