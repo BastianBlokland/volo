@@ -103,11 +103,7 @@ macro(set_gcc_compile_options)
 
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
-  if(NOT ${FAST} AND NOT ${VOLO_PLATFORM} STREQUAL "win32")
-    # NOTE: The MinGW GCC port fails code-gen with the 'no-omit-frame-pointer' option.
-    # Open issue: https://github.com/msys2/MINGW-packages/issues/4409
-    add_compile_options(-fno-omit-frame-pointer)
-  endif()
+  add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   # Link time optimization.
   if(${LTO})
@@ -143,9 +139,7 @@ macro(set_clang_compile_options)
 
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
-  if(NOT ${FAST})
-    add_compile_options(-fno-omit-frame-pointer)
-  endif()
+  add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   if(${VOLO_PLATFORM} STREQUAL "win32")
     # Forward declaration of enums is defined in c as all enums use int as underlying the type.
@@ -214,6 +208,7 @@ macro(set_msvc_compile_options)
 
   # Debug options.
   add_compile_options(/Zi) # Debug symbols in seperate pdb files.
+  add_compile_options(/Oy-) # Include frame-pointers for fast stack-traces.
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
