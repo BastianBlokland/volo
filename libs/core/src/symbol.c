@@ -1,3 +1,5 @@
+#include "core_sentinel.h"
+
 #include "symbol_internal.h"
 
 static SymbolAddr g_symProgramStart;
@@ -27,4 +29,9 @@ String symbol_name(Symbol symbol) {
   return symbol_pal_name(addr);
 }
 
-String symbol_name_from_rel(const SymbolAddrRel addr) { return symbol_pal_name(addr); }
+String symbol_name_from_rel(const SymbolAddrRel addr) {
+  if (sentinel_check(addr)) {
+    return string_empty;
+  }
+  return symbol_pal_name(addr);
+}
