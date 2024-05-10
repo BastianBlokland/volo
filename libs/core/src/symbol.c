@@ -14,25 +14,33 @@ void symbol_init(void) {
 
 void symbol_teardown(void) { symbol_pal_teardown(); }
 
-bool symbol_in_executable(Symbol symbol) {
-  return (SymbolAddr)symbol >= g_symProgramStart && (SymbolAddr)symbol < g_symProgramEnd;
+bool symbol_addr_valid(const SymbolAddr symbol) {
+  return symbol >= g_symProgramStart && symbol < g_symProgramEnd;
 }
 
-SymbolAddrRel symbol_addr_rel(Symbol symbol) {
-  return (SymbolAddrRel)((SymbolAddr)symbol - g_symProgramStart);
+SymbolAddrRel symbol_addr_rel(const SymbolAddr symbol) {
+  if (!symbol_addr_valid(symbol)) {
+    return sentinel_u32;
+  }
+  return (SymbolAddrRel)(symbol - g_symProgramStart);
 }
 
-SymbolAddr symbol_addr_abs(SymbolAddrRel addr) { return (SymbolAddr)addr + g_symProgramStart; }
+SymbolAddr symbol_addr_abs(const SymbolAddrRel addr) {
+  if (sentinel_check(addr)) {
+    return 0;
+  }
+  return (SymbolAddr)addr + g_symProgramStart;
+}
 
-String symbol_name(Symbol symbol) {
-  if (!symbol_in_executable(symbol)) {
+String symbol_name(const SymbolAddr addr) {
+  if (!symbol_addr_valid(addr)) {
     return string_empty;
   }
-  const SymbolAddrRel addr = symbol_addr_rel(symbol);
-  return symbol_pal_name(addr);
+  const SymbolAddrRel addrRel = symbol_addr_rel(addr);
+  return symbol_pal_name(addrRel);
 }
 
-String symbol_name_from_rel(const SymbolAddrRel addr) {
+String symbol_name_rel(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return string_empty;
   }
