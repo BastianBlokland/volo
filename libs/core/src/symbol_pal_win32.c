@@ -281,6 +281,21 @@ void symbol_pal_teardown(void) {
   thread_mutex_destroy(g_symResolverMutex);
 }
 
+SymbolAddr symbol_pal_program_start(void) {
+  extern const u8 __ImageBase[]; // Provided by the linker script.
+  return (SymbolAddr)&__ImageBase;
+}
+
+SymbolAddr symbol_pal_program_end(void) {
+  HANDLE     process      = GetCurrentProcess();
+  SymbolAddr programStart = symbol_pal_program_start();
+
+  MODULEINFO moduleInfo;
+  GetModuleInformation(process, (HMODULE)programStart, &moduleInfo, sizeof(MODULEINFO));
+
+  return programStart + (SymbolAddr)moduleInfo.SizeOfImage;
+}
+
 String symbol_pal_name(Symbol symbol) {
   String result = string_empty;
   thread_mutex_lock(g_symResolverMutex);

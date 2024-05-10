@@ -300,6 +300,16 @@ void symbol_pal_teardown(void) {
   thread_mutex_destroy(g_symResolverMutex);
 }
 
+static SymbolAddr symbol_pal_program_start(void) {
+  extern const u8 __executable_start[]; // Provided by the linker script.
+  return (SymbolAddr)&__executable_start;
+}
+
+static SymbolAddr symbol_pal_program_end(void) {
+  extern const u8 __etext[]; // Provided by the linker script.
+  return (SymbolAddr)&__etext;
+}
+
 String symbol_pal_name(Symbol symbol) {
   String result = string_empty;
   thread_mutex_lock(g_symResolverMutex);
