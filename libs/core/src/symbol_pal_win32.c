@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynlib.h"
 #include "core_path.h"
+#include "core_search.h"
 #include "core_thread.h"
 
 #include "symbol_internal.h"
@@ -15,7 +16,7 @@
 #define symbol_name_length_max 64
 
 typedef struct {
-  SymbolAddrRel addr;
+  SymbolAddrRel begin, end;
   String        name;
 } SymInfo;
 
@@ -85,20 +86,40 @@ static const char* to_null_term_scratch(const String str) {
 }
 
 static i8 resolver_sym_compare(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, SymInfo, addr), field_ptr(b, SymInfo, addr));
+  return compare_u32(field_ptr(a, SymInfo, begin), field_ptr(b, SymInfo, begin));
 }
 
-static void resolver_sym_register(SymResolver* r, const SymbolAddrRel addr, const String name) {
-  const SymInfo sym = {.addr = addr, .name = string_dup(r->allocAux, name)};
+static bool resolver_sym_contains(const SymInfo* sym, const SymbolAddrRel addr) {
+  return addr >= sym->begin && addr < sym->end;
+}
+
+static void resolver_sym_register(
+    SymResolver* r, const SymbolAddrRel begin, const SymbolAddrRel end, const String name) {
+  const SymInfo sym = {.begin = begin, .end = end, .name = string_dup(r->allocAux, name)};
   *dynarray_insert_sorted_t(&r->syms, SymInfo, resolver_sym_compare, &sym) = sym;
 
 #ifdef VOLO_SYMBOL_RESOLVER_VERBOSE
-  diag_print("{}:{}\n", fmt_int(addr, .base = 16, .minDigits = 6), fmt_text(sym.name));
+  diag_print(
+      "[{}:{}] {}\n",
+      fmt_int(begin, .base = 16, .minDigits = 6),
+      fmt_int(end, .base = 16, .minDigits = 6),
+      fmt_text(name));
 #endif
 }
 
 static const SymInfo* resolver_sym_find(SymResolver* r, const SymbolAddrRel addr) {
-  return dynarray_search_binary(&r->syms, resolver_sym_compare, &addr);
+  if (!r->syms.size) {
+    return null; // No symbols known.
+  }
+  const SymInfo* begin = dynarray_begin_t(&r->syms, SymInfo);
+  const SymInfo* end   = dynarray_end_t(&r->syms, SymInfo);
+
+  const SymInfo  tgt     = {.begin = addr};
+  const SymInfo* greater = search_binary_greater_t(begin, end, SymInfo, resolver_sym_compare, &tgt);
+  const SymInfo* greaterOrEnd = greater ? greater : end;
+  const SymInfo* candidate    = greaterOrEnd - 1;
+
+  return resolver_sym_contains(candidate, addr) ? candidate : null;
 }
 
 static bool resolver_dbghelp_load(SymResolver* r) {
@@ -165,7 +186,7 @@ static void resolver_dbghelp_end(SymResolver* r) {
 }
 
 static BOOL SYS_DECL
-resolver_dbghelp_enum_callback(const DbgHelpSymInfo* info, const ULONG size, void* ctx) {
+resolver_dbghelp_enum_proc(const DbgHelpSymInfo* info, const ULONG size, void* ctx) {
   (void)size;
   SymResolver* r = ctx;
   if (info->Tag != dbghelp_symtag_function) {
@@ -177,9 +198,13 @@ resolver_dbghelp_enum_callback(const DbgHelpSymInfo* info, const ULONG size, voi
   if (info->Address < r->dbgHelpBaseAddr) {
     goto Continue; // Symbol is outside of the executable space.
   }
-  const SymbolAddrRel addr = (SymbolAddrRel)((SymbolAddr)info->Address - r->dbgHelpBaseAddr);
-  const String        name = mem_create(info->Name, info->NameLen);
-  resolver_sym_register(r, addr, name);
+  if (!size) {
+    goto Continue;
+  }
+  const SymbolAddrRel addrBegin = (SymbolAddrRel)((SymbolAddr)info->Address - r->dbgHelpBaseAddr);
+  const SymbolAddrRel addrEnd   = addrBegin + (SymbolAddrRel)size;
+  const String        name      = mem_create(info->Name, info->NameLen);
+  resolver_sym_register(r, addrBegin, addrEnd, name);
 
 Continue:
   return TRUE; // Continue enumerating.
@@ -187,7 +212,7 @@ Continue:
 
 static bool resolver_init(SymResolver* r) {
   const DWORD                  options  = 1; /* SYMENUM_OPTIONS_DEFAULT */
-  const DbgHelpSymEnumCallback callback = &resolver_dbghelp_enum_callback;
+  const DbgHelpSymEnumCallback callback = &resolver_dbghelp_enum_proc;
   if (r->SymEnumSymbolsEx(r->process, r->dbgHelpBaseAddr, "*", callback, r, options)) {
     return true;
   }
@@ -275,6 +300,22 @@ String symbol_pal_name(const SymbolAddrRel addr) {
     const SymInfo* info = resolver_lookup(g_symResolver, addr);
     if (info) {
       result = info->name;
+    }
+  }
+  thread_mutex_unlock(g_symResolverMutex);
+  return result;
+}
+
+SymbolAddrRel symbol_pal_base(const SymbolAddrRel addr) {
+  SymbolAddrRel result = sentinel_u32;
+  thread_mutex_lock(g_symResolverMutex);
+  {
+    if (!g_symResolver) {
+      g_symResolver = resolver_create(g_alloc_heap);
+    }
+    const SymInfo* info = resolver_lookup(g_symResolver, addr);
+    if (info) {
+      result = info->begin;
     }
   }
   thread_mutex_unlock(g_symResolverMutex);

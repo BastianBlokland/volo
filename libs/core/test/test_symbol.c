@@ -34,5 +34,12 @@ spec(symbol) {
     check_eq_string(symbol_name((SymbolAddr)&test_symbol_func), string_lit("test_symbol_func"));
   }
 
+  it("can lookup the base address of a function") {
+    const SymbolAddr    addr    = (SymbolAddr)&test_symbol_func;
+    const SymbolAddrRel addrRel = symbol_addr_rel(addr);
+    check_eq_int(symbol_base(addrRel), addrRel);
+    check_eq_int(symbol_base(addrRel + 4), addrRel);
+  }
+
   it("can collect stack traces") { check(test_symbol_stack_valid()); }
 }
