@@ -9,7 +9,7 @@ typedef u32   SymbolAddrRel; // Relative to program base (limits executable size
  * Utilities for converting between relative and absolute addresses.
  * NOTE: Only works for symbols contained in the executable itself, not for dynamic library symbols.
  */
-bool          symbol_valid(Symbol);
+bool          symbol_in_executable(Symbol);
 SymbolAddrRel symbol_addr_rel(Symbol);
 SymbolAddr    symbol_addr_abs(SymbolAddrRel);
 

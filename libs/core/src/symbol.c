@@ -14,7 +14,7 @@ void symbol_init(void) {
 
 void symbol_teardown(void) { symbol_pal_teardown(); }
 
-bool symbol_valid(Symbol symbol) {
+bool symbol_in_executable(Symbol symbol) {
   return (SymbolAddr)symbol >= g_symProgramStart && (SymbolAddr)symbol < g_symProgramEnd;
 }
 
@@ -25,7 +25,7 @@ SymbolAddrRel symbol_addr_rel(Symbol symbol) {
 SymbolAddr symbol_addr_abs(SymbolAddrRel addr) { return (SymbolAddr)addr + g_symProgramStart; }
 
 String symbol_name(Symbol symbol) {
-  if (!symbol_valid(symbol)) {
+  if (!symbol_in_executable(symbol)) {
     return string_empty;
   }
   const SymbolAddrRel addr = symbol_addr_rel(symbol);
