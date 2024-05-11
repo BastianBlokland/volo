@@ -298,6 +298,7 @@ ProcessResult process_signal(Process* process, const Signal signal) {
     return ProcessResult_InvalidProcess;
   }
   switch (signal) {
+  case Signal_Terminate:
   case Signal_Interrupt:
     /**
      * NOTE: Send 'CTRL_BREAK' instead of 'CTRL_C' because we cannot send ctrl-c to other process
