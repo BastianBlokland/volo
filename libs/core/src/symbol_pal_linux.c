@@ -305,8 +305,8 @@ SymbolAddr symbol_pal_program_begin(void) {
 }
 
 SymbolAddr symbol_pal_program_end(void) {
-  extern const u8 __etext[]; // Provided by the linker script.
-  return (SymbolAddr)&__etext;
+  extern const u8 _etext[]; // Provided by the linker script.
+  return (SymbolAddr)&_etext;
 }
 
 String symbol_pal_name(const SymbolAddrRel addr) {
