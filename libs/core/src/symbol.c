@@ -29,7 +29,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
 #if defined(VOLO_WIN32)
   /**
    * Walk the stack using the x64 unwind tables.
-   * NOTE: MSVC does not use a frame-pointer on x86_64 at all.
+   * NOTE: Win32 x86_64 ABI rarely uses a frame-pointer unfortunately.
    * Docs: https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64
    * Ref: http://www.nynaeve.net/Code/StackWalk64.cpp
    */
