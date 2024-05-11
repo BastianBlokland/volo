@@ -91,7 +91,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
     if (!unwindCtx.Rip) {
       break; // Reached the end of the call-stack.
     }
-    const SymbolAddrRel addrRel = symbol_addr_rel(fp->retAddr);
+    const SymbolAddrRel addrRel = symbol_addr_rel(unwindCtx.Rip);
     if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
     }
