@@ -4,7 +4,7 @@
 
 #include "symbol_internal.h"
 
-#if defined(VOLO_MSVC)
+#if defined(VOLO_WIN32)
 #include <Windows.h>
 #endif
 
@@ -26,34 +26,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
   SymbolStack stack;
   u32         frameIndex = 0;
 
-#if defined(VOLO_CLANG) || defined(VOLO_GCC)
-  /**
-   * Walk the stack using the frame-pointer stored in the RBP register on x86_64.
-   * NOTE: Only x86_64 is supported at the moment.
-   * NOTE: Requires the binary to be compiled with frame-pointers.
-   */
-  struct Frame {
-    const struct Frame* prev;
-    SymbolAddr          retAddr;
-  };
-  ASSERT(sizeof(struct Frame) == sizeof(uptr) * 2, "Unexpected Frame size");
-
-  // Retrieve the frame-pointer from the EBP register.
-  const struct Frame* fp;
-  asm("movq %%rbp, %[fp]" : [fp] "=r"(fp));
-
-  // Fill the stack by walking the linked-list of frames.
-  for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
-    const SymbolAddrRel addrRel = symbol_addr_rel(fp->retAddr);
-    if (sentinel_check(addrRel)) {
-      continue; // Function does not belong to our executable.
-    }
-    stack.frames[frameIndex++] = addrRel;
-    if (frameIndex == array_elems(stack.frames)) {
-      break; // Reached the stack-frame limit.
-    }
-  }
-#elif defined(VOLO_MSVC)
+#if defined(VOLO_WIN32)
   /**
    * Walk the stack using the x64 unwind tables.
    * NOTE: MSVC does not use a frame-pointer on x86_64 at all.
@@ -101,7 +74,32 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
     }
   }
 #else
-  ASSERT(false, "Unsupported compiler");
+  /**
+   * Walk the stack using the frame-pointer stored in the RBP register on x86_64.
+   * NOTE: Only x86_64 is supported at the moment.
+   * NOTE: Requires the binary to be compiled with frame-pointers.
+   */
+  struct Frame {
+    const struct Frame* prev;
+    SymbolAddr          retAddr;
+  };
+  ASSERT(sizeof(struct Frame) == sizeof(uptr) * 2, "Unexpected Frame size");
+
+  // Retrieve the frame-pointer from the EBP register.
+  const struct Frame* fp;
+  asm("movq %%rbp, %[fp]" : [fp] "=r"(fp));
+
+  // Fill the stack by walking the linked-list of frames.
+  for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
+    const SymbolAddrRel addrRel = symbol_addr_rel(fp->retAddr);
+    if (sentinel_check(addrRel)) {
+      continue; // Function does not belong to our executable.
+    }
+    stack.frames[frameIndex++] = addrRel;
+    if (frameIndex == array_elems(stack.frames)) {
+      break; // Reached the stack-frame limit.
+    }
+  }
 #endif
 
   // Set the remaining frames to a sentinel value.
