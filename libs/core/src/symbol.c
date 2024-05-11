@@ -3,6 +3,10 @@
 
 #include "symbol_internal.h"
 
+#if defined(VOLO_MSVC)
+#include <Windows.h>
+#endif
+
 static SymbolAddr g_symProgramBegin;
 static SymbolAddr g_symProgramEnd;
 
@@ -48,7 +52,51 @@ NO_INLINE_HINT SymbolStack symbol_stack(void) {
     }
   }
 #elif defined(VOLO_MSVC)
+  /**
+   * Walk the stack using the x64 unwind tables.
+   * NOTE: MSVC does not use a frame-pointer on x86_64 at all.
+   * Docs: https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64
+   * Ref: http://www.nynaeve.net/Code/StackWalk64.cpp
+   */
+  CONTEXT                       unwindCtx;
+  KNONVOLATILE_CONTEXT_POINTERS unwindNvCtx;
+  PRUNTIME_FUNCTION             unwindFunc;
+  DWORD64                       unwindImageBase;
+  PVOID                         unwindHandlerData;
+  ULONG_PTR                     unwindEstablisherFrame;
 
+  RtlCaptureContext(&unwindCtx);
+
+  for (;;) {
+    unwindFunc = RtlLookupFunctionEntry(unwindCtx.Rip, &unwindImageBase, NULL);
+    RtlZeroMemory(&unwindNvCtx, sizeof(KNONVOLATILE_CONTEXT_POINTERS));
+    if (!unwindFunc) {
+      // Function has no unwind-data, must be a leaf-function; adjust the stack accordingly.
+      unwindCtx.Rip = (ULONG64)(*(PULONG64)unwindCtx.Rsp);
+      unwindCtx.Rsp += 8;
+    } else {
+      // Unwind to the caller function.
+      RtlVirtualUnwind(
+          UNW_FLAG_NHANDLER,
+          unwindImageBase,
+          unwindCtx.Rip,
+          unwindFunc,
+          &unwindCtx,
+          &unwindHandlerData,
+          &unwindEstablisherFrame,
+          &unwindNvCtx);
+    }
+    if (!unwindCtx.Rip) {
+      break; // Reached the end of the call-stack.
+    }
+    if (!symbol_addr_valid(unwindCtx.Rip)) {
+      continue; // Function does not belong to our executable.
+    }
+    stack.frames[frameIndex++] = symbol_addr_rel(unwindCtx.Rip);
+    if (frameIndex == array_elems(stack.frames)) {
+      break; // Reached the stack-frame limit.
+    }
+  }
 #else
   ASSERT(false, "Unsupported compiler");
 #endif
@@ -62,6 +110,7 @@ NO_INLINE_HINT SymbolStack symbol_stack(void) {
 }
 
 bool symbol_addr_valid(const SymbolAddr symbol) {
+  // NOTE: Only includes the executable itself, not dynamic libraries.
   return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;
 }
 
