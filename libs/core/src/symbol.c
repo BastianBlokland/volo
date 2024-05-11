@@ -279,13 +279,19 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
       const u32 offset = addr - info->begin;
       fmt_write(
           out,
-          " {} {} {} +{}\n",
+          " {}) {} {} +{}\n",
           fmt_int(frameIndex),
           fmt_int(info->begin, .base = 16, .minDigits = 8),
           fmt_text(info->name),
           fmt_int(offset));
     } else {
-      fmt_write(out, " {} {}\n", fmt_int(frameIndex), fmt_int(addr, .base = 16, .minDigits = 8));
+      const SymbolAddr addrAbs = symbol_addr_abs(addr);
+      fmt_write(
+          out,
+          " {}) {} {}\n",
+          fmt_int(frameIndex),
+          fmt_int(addr, .base = 16, .minDigits = 8),
+          fmt_int(addrAbs, .base = 16, .minDigits = 16));
     }
   }
 }
