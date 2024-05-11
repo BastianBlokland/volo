@@ -113,9 +113,6 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
 }
 
 bool symbol_addr_valid(const SymbolAddr symbol) {
-  if (!bits_aligned(symbol, sizeof(uptr))) {
-    return false;
-  }
   // NOTE: Only includes the executable itself, not dynamic libraries.
   return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;
 }
