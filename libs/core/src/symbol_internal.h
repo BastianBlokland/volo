@@ -3,7 +3,7 @@
 
 void          symbol_pal_init(void);
 void          symbol_pal_teardown(void);
-SymbolAddr    symbol_pal_program_begin(void);
-SymbolAddr    symbol_pal_program_end(void);
+SymbolAddr    symbol_pal_prog_begin(void);
+SymbolAddr    symbol_pal_prog_end(void);
 String        symbol_pal_name(SymbolAddrRel);
 SymbolAddrRel symbol_pal_base(SymbolAddrRel);

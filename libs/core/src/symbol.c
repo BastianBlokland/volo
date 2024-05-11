@@ -8,33 +8,33 @@
 #include <Windows.h>
 #endif
 
-static SymbolAddr g_symProgramBegin;
-static SymbolAddr g_symProgramEnd;
+static SymbolAddr g_symProgBegin;
+static SymbolAddr g_symProgEnd;
 
 INLINE_HINT static bool sym_addr_valid(const SymbolAddr symbol) {
   // NOTE: Only includes the executable itself, not dynamic libraries.
-  return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;
+  return symbol >= g_symProgBegin && symbol < g_symProgEnd;
 }
 
 INLINE_HINT static SymbolAddrRel sym_addr_rel(const SymbolAddr symbol) {
   if (!sym_addr_valid(symbol)) {
     return (SymbolAddrRel)sentinel_u32;
   }
-  return (SymbolAddrRel)(symbol - g_symProgramBegin);
+  return (SymbolAddrRel)(symbol - g_symProgBegin);
 }
 
 INLINE_HINT static SymbolAddr sym_addr_abs(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return (SymbolAddr)sentinel_uptr;
   }
-  return (SymbolAddr)addr + g_symProgramBegin;
+  return (SymbolAddr)addr + g_symProgBegin;
 }
 
 void symbol_init(void) {
   symbol_pal_init();
 
-  g_symProgramBegin = symbol_pal_program_begin();
-  g_symProgramEnd   = symbol_pal_program_end();
+  g_symProgBegin = symbol_pal_prog_begin();
+  g_symProgEnd   = symbol_pal_prog_end();
 }
 
 void symbol_teardown(void) { symbol_pal_teardown(); }

@@ -299,12 +299,12 @@ void symbol_pal_teardown(void) {
   thread_mutex_destroy(g_symResolverMutex);
 }
 
-SymbolAddr symbol_pal_program_begin(void) {
+SymbolAddr symbol_pal_prog_begin(void) {
   extern const u8 __executable_start[]; // Provided by the linker script.
   return (SymbolAddr)&__executable_start;
 }
 
-SymbolAddr symbol_pal_program_end(void) {
+SymbolAddr symbol_pal_prog_end(void) {
   extern const u8 _etext[]; // Provided by the linker script.
   return (SymbolAddr)&_etext;
 }
