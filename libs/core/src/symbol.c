@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_file.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_search.h"
 #include "core_sentinel.h"
 #include "core_thread.h"
@@ -16,6 +17,7 @@
 
 // #define VOLO_SYMBOL_VERBOSE
 
+#define symbol_reg_name_max 64
 #define symbol_reg_aux_chunk_size (4 * usize_kibibyte)
 
 typedef struct {
@@ -151,7 +153,10 @@ static const SymbolReg* symbol_reg_get(void) {
 
 void symbol_reg_add(
     SymbolReg* r, const SymbolAddrRel begin, const SymbolAddrRel end, const String name) {
-  const SymbolInfo info = {.begin = begin, .end = end, .name = string_dup(r->allocAux, name)};
+  const usize  nameSize   = math_min(name.size, symbol_reg_name_max);
+  const String nameStored = string_dup(r->allocAux, string_slice(name, 0, nameSize));
+
+  const SymbolInfo info = {.begin = begin, .end = end, .name = nameStored};
   *dynarray_insert_sorted_t(&r->syms, SymbolInfo, sym_info_compare, &info) = info;
 }
 
