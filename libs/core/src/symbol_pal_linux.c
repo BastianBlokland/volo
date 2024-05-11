@@ -187,7 +187,7 @@ SymbolAddr symbol_pal_prog_end(void) {
 }
 
 void symbol_pal_dbg_init(SymbolReg* reg) {
-  Allocator* bumpAlloc = alloc_bump_create(mem_stack(4 * usize_kibibyte));
+  Allocator* bumpAlloc = alloc_bump_create_stack(4 * usize_kibibyte);
 
   SymDbg dbg = {0};
   if (file_create(bumpAlloc, g_path_executable, FileMode_Open, FileAccess_Read, &dbg.exec)) {
