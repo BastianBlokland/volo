@@ -155,18 +155,18 @@ static bool sym_dbg_query(SymDbg* dbg, SymbolReg* reg) {
         if (!funcName) {
           continue; // Function is missing a name.
         }
-        SymbolAddr addrBegin, addrEnd;
-        if (dbg->dwarf_lowpc(&child, &addrBegin) == -1) {
+        SymbolAddr addrLow, addrHigh;
+        if (dbg->dwarf_lowpc(&child, &addrLow) == -1) {
           continue; // Function is missing an lowpc address.
         }
-        if (dbg->dwarf_highpc(&child, &addrEnd) == -1) {
+        if (dbg->dwarf_highpc(&child, &addrHigh) == -1) {
           continue; // Function is missing an highpc address.
         }
-        if (addrBegin < addrBase || addrEnd < addrBegin) {
+        if (addrLow < addrBase || addrHigh < addrLow) {
           continue; // Invalid address, this would mean a corrupt elf file.
         }
-        const SymbolAddrRel addrBeginRel = (SymbolAddrRel)(addrBegin - addrBase);
-        const SymbolAddrRel addrEndRel   = (SymbolAddrRel)(addrEnd - addrBase);
+        const SymbolAddrRel addrBeginRel = (SymbolAddrRel)(addrLow - addrBase);
+        const SymbolAddrRel addrEndRel   = (SymbolAddrRel)(addrHigh - addrBase + 1);
         symbol_reg_add(reg, addrBeginRel, addrEndRel, string_from_null_term(funcName));
 
       } while (dbg->dwarf_siblingof(&child, &child) == 0);
