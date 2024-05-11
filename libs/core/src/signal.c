@@ -15,7 +15,7 @@ void signal_intercept_enable(void) {
 
 bool signal_is_received(const Signal sig) {
   diag_assert_msg(g_signalInterceptActive, "Signal interception is not active");
-  return signal_pal_is_received(sig);
+  return signal_pal_counter(sig) != 0;
 }
 
 void signal_reset(const Signal sig) {
