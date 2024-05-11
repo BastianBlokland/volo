@@ -2,6 +2,8 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
+#include "core_file.h"
+#include "core_format.h"
 #include "core_search.h"
 #include "core_sentinel.h"
 #include "core_thread.h"
@@ -11,6 +13,8 @@
 #if defined(VOLO_WIN32)
 #include <Windows.h>
 #endif
+
+// #define VOLO_SYMBOL_VERBOSE
 
 #define symbol_reg_aux_chunk_size (4 * usize_kibibyte)
 
@@ -79,21 +83,6 @@ static void symbol_reg_destroy(SymbolReg* r) {
   alloc_free_t(r->alloc, r);
 }
 
-static const SymbolReg* symbol_reg_get(void) {
-  if (g_symReg) {
-    return g_symReg;
-  }
-  thread_mutex_lock(g_symRegMutex);
-  if (!g_symReg) {
-    SymbolReg* reg = symbol_reg_create(g_alloc_heap);
-    symbol_pal_dbg_init(reg);
-    thread_atomic_fence();
-    g_symReg = reg;
-  }
-  thread_mutex_unlock(g_symRegMutex);
-  return g_symReg;
-}
-
 /**
  * Find information for the symbol that contains the given address.
  * NOTE: Retrieved pointer is valid until a new entry is added.
@@ -111,6 +100,43 @@ static const SymbolInfo* symbol_reg_query(const SymbolReg* r, const SymbolAddrRe
   const SymbolInfo* gtOrEnd   = gt ? gt : end;
   const SymbolInfo* candidate = gtOrEnd - 1;
   return sym_info_contains(candidate, addr) ? candidate : null;
+}
+
+static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
+  fmt_write(out, "Debug symbols:\n");
+  dynarray_for_t(&r->syms, SymbolInfo, info) {
+    fmt_write(
+        out,
+        " [{}:{}] {}\n",
+        fmt_int(info->begin, .base = 16, .minDigits = 6),
+        fmt_int(info->end, .base = 16, .minDigits = 6),
+        fmt_text(info->name));
+  }
+}
+
+MAYBE_UNUSED static void symbol_reg_dump_out(const SymbolReg* r) {
+  DynString str = dynstring_create(g_alloc_heap, 4 * usize_kibibyte);
+  symbol_reg_dump(r, &str);
+  file_write_sync(g_file_stdout, dynstring_view(&str));
+  dynstring_destroy(&str);
+}
+
+static const SymbolReg* symbol_reg_get(void) {
+  if (g_symReg) {
+    return g_symReg;
+  }
+  thread_mutex_lock(g_symRegMutex);
+  if (!g_symReg) {
+    SymbolReg* reg = symbol_reg_create(g_alloc_heap);
+    symbol_pal_dbg_init(reg);
+#if defined(VOLO_SYMBOL_VERBOSE)
+    symbol_reg_dump_out(reg);
+#endif
+    thread_atomic_fence();
+    g_symReg = reg;
+  }
+  thread_mutex_unlock(g_symRegMutex);
+  return g_symReg;
 }
 
 void symbol_reg_add(
