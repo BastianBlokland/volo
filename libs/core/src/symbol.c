@@ -44,10 +44,11 @@ NO_INLINE_HINT SymbolStack symbol_stack(void) {
 
   // Fill the stack by walking the linked-list of frames.
   for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
-    if (!symbol_addr_valid(fp->retAddr)) {
+    const SymbolAddrRel addrRel = symbol_addr_rel(fp->retAddr);
+    if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
     }
-    stack.frames[frameIndex++] = symbol_addr_rel(fp->retAddr);
+    stack.frames[frameIndex++] = addrRel;
     if (frameIndex == array_elems(stack.frames)) {
       break; // Reached the stack-frame limit.
     }
@@ -90,10 +91,11 @@ NO_INLINE_HINT SymbolStack symbol_stack(void) {
     if (!unwindCtx.Rip) {
       break; // Reached the end of the call-stack.
     }
-    if (!symbol_addr_valid(unwindCtx.Rip)) {
+    const SymbolAddrRel addrRel = symbol_addr_rel(fp->retAddr);
+    if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
     }
-    stack.frames[frameIndex++] = symbol_addr_rel(unwindCtx.Rip);
+    stack.frames[frameIndex++] = addrRel;
     if (frameIndex == array_elems(stack.frames)) {
       break; // Reached the stack-frame limit.
     }
