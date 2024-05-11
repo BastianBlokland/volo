@@ -1,7 +1,10 @@
 #include "core_diag.h"
 #include "core_file.h"
+#include "core_symbol.h"
 
 #include "diag_internal.h"
+
+#define VOLO_DIAG_STACK_TRACE
 
 THREAD_LOCAL AssertHandler g_assertHandler;
 THREAD_LOCAL void*         g_assertHandlerContext;
@@ -34,7 +37,25 @@ void diag_assert_report_fail(String msg, const SourceLoc sourceLoc) {
 void diag_break(void) { diag_pal_break(); }
 
 void diag_crash(void) {
-  diag_break();
+  static THREAD_LOCAL bool g_diagCrashing;
+  if (!g_diagCrashing) {
+    /**
+     * Handle a crash happening while in this function.
+     * Can for example happen when an error occurs while resolving stack symbol names.
+     */
+    g_diagCrashing = true;
+
+#ifdef VOLO_DIAG_STACK_TRACE
+    {
+      const SymbolStack stack = symbol_stack();
+
+      DynString str = dynstring_create_over(mem_stack(2048));
+      symbol_stack_write(&stack, &str);
+      file_write_sync(g_file_stderr, dynstring_view(&str));
+    }
+#endif
+    diag_break();
+  }
   diag_pal_crash();
 }
 
