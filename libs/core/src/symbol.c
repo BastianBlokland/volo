@@ -85,7 +85,10 @@ static const SymbolReg* symbol_reg_get(void) {
   }
   thread_mutex_lock(g_symRegMutex);
   if (!g_symReg) {
-    g_symReg = symbol_reg_create(g_alloc_heap);
+    SymbolReg* reg = symbol_reg_create(g_alloc_heap);
+    symbol_pal_dbg_init(reg);
+    thread_atomic_fence();
+    g_symReg = reg;
   }
   thread_mutex_unlock(g_symRegMutex);
   return g_symReg;
@@ -117,8 +120,6 @@ void symbol_reg_add(
 }
 
 void symbol_init(void) {
-  symbol_pal_init();
-
   g_symProgBegin = symbol_pal_prog_begin();
   g_symProgEnd   = symbol_pal_prog_end();
   g_symRegMutex  = thread_mutex_create(g_alloc_persist);
@@ -127,7 +128,6 @@ void symbol_init(void) {
 
 void symbol_teardown(void) {
   g_symInit = false;
-  symbol_pal_teardown();
   if (g_symReg) {
     symbol_reg_destroy(g_symReg);
   }

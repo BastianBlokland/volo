@@ -5,9 +5,6 @@ typedef struct sSymbolReg SymbolReg;
 
 void symbol_reg_add(SymbolReg*, SymbolAddrRel begin, SymbolAddrRel end, String name);
 
-void          symbol_pal_init(void);
-void          symbol_pal_teardown(void);
-SymbolAddr    symbol_pal_prog_begin(void);
-SymbolAddr    symbol_pal_prog_end(void);
-String        symbol_pal_dbg_name(SymbolAddrRel);
-SymbolAddrRel symbol_pal_dbg_base(SymbolAddrRel);
+SymbolAddr symbol_pal_prog_begin(void);
+SymbolAddr symbol_pal_prog_end(void);
+void       symbol_pal_dbg_init(SymbolReg*);
