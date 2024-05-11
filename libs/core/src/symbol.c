@@ -110,8 +110,8 @@ static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
     fmt_write(
         out,
         " [{}:{}] {}\n",
-        fmt_int(info->begin, .base = 16, .minDigits = 6),
-        fmt_int(info->end, .base = 16, .minDigits = 6),
+        fmt_int(info->begin, .base = 16, .minDigits = 8),
+        fmt_int(info->end, .base = 16, .minDigits = 8),
         fmt_text(info->name));
   }
 }
@@ -281,11 +281,11 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
           out,
           " {} {} {} +{}\n",
           fmt_int(frameIndex),
-          fmt_int(info->begin, .base = 16, .minDigits = 6),
+          fmt_int(info->begin, .base = 16, .minDigits = 8),
           fmt_text(info->name),
           fmt_int(offset));
     } else {
-      fmt_write(out, " {} {}\n", fmt_int(frameIndex), fmt_int(addr, .base = 16, .minDigits = 6));
+      fmt_write(out, " {} {}\n", fmt_int(frameIndex), fmt_int(addr, .base = 16, .minDigits = 8));
     }
   }
 }
