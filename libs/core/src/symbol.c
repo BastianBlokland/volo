@@ -87,7 +87,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
 
   // Retrieve the frame-pointer from the EBP register.
   const struct Frame* fp;
-  asm("movq %%rbp, %[fp]" : [fp] "=r"(fp));
+  asm volatile("movq %%rbp, %[fp]" : [fp] "=r"(fp)); // Volatile to avoid compiler reordering.
 
   // Fill the stack by walking the linked-list of frames.
   for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
