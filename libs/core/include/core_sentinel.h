@@ -16,6 +16,7 @@
 #define sentinel_u32 u32_max
 #define sentinel_u64 u64_max
 #define sentinel_usize usize_max
+#define sentinel_uptr uptr_max
 
 // clang-format off
 
