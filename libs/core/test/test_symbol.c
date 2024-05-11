@@ -14,7 +14,7 @@ NO_INLINE_HINT static bool test_symbol_stack_func1() { return test_symbol_stack_
 NO_INLINE_HINT static bool test_symbol_stack_func2() { return test_symbol_stack_func3() ^ true; }
 
 NO_INLINE_HINT static bool test_symbol_stack_func3() {
-  const SymbolStack stack = symbol_stack();
+  const SymbolStack stack = symbol_stack_walk();
   // The topmost three frames should be the test functions.
   if (symbol_dbg_base(stack.frames[0]) != symbol_addr_rel_ptr(&test_symbol_stack_func3)) {
     return false;

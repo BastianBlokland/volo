@@ -20,7 +20,7 @@ typedef struct {
  *
  * Pre-condition: Executable is build with frame-pointers.
  */
-SymbolStack symbol_stack(void);
+SymbolStack symbol_stack_walk(void);
 
 /**
  * Pretty print the stack to the given string.
