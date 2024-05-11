@@ -1,6 +1,9 @@
 #pragma once
 #include "core_string.h"
 
+// Forward declare from 'core_dynstring.h'.
+typedef struct sDynArray DynString;
+
 typedef void* Symbol;
 typedef uptr  SymbolAddr;
 typedef u32   SymbolAddrRel; // Relative to program base (limits executable size to 4 GiB).
@@ -18,6 +21,12 @@ typedef struct {
  * Pre-condition: Executable is build with frame-pointers.
  */
 SymbolStack symbol_stack(void);
+
+/**
+ * Pretty print the stack to the given string.
+ * NOTE: Requires debug information for pretty names / function base addresses.
+ */
+void symbol_stack_write(const SymbolStack*, DynString* out);
 
 /**
  * Utilities for converting between relative and absolute addresses.

@@ -260,6 +260,31 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
   return stack;
 }
 
+void symbol_stack_write(const SymbolStack* stack, DynString* out) {
+  const SymbolReg* reg = symbol_reg_get();
+
+  fmt_write(out, "Stack:\n");
+  for (u32 frameIndex = 0; frameIndex != array_elems(stack->frames); ++frameIndex) {
+    const SymbolAddrRel addr = stack->frames[frameIndex];
+    if (sentinel_check(addr)) {
+      break; // End of stack.
+    }
+    const SymbolInfo* info = reg ? symbol_reg_query(reg, addr) : null;
+    if (info) {
+      const u32 offset = addr - info->begin;
+      fmt_write(
+          out,
+          " {} {} {} +{}\n",
+          fmt_int(frameIndex),
+          fmt_int(info->begin, .base = 16, .minDigits = 6),
+          fmt_text(info->name),
+          fmt_int(offset));
+    } else {
+      fmt_write(out, " {} {}\n", fmt_int(frameIndex), fmt_int(addr, .base = 16, .minDigits = 6));
+    }
+  }
+}
+
 SymbolAddrRel symbol_addr_rel(const SymbolAddr addr) { return sym_addr_rel(addr); }
 SymbolAddrRel symbol_addr_rel_ptr(const Symbol symbol) { return sym_addr_rel((SymbolAddr)symbol); }
 SymbolAddr    symbol_addr_abs(const SymbolAddrRel addr) { return sym_addr_abs(addr); }
