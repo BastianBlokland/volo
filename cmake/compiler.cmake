@@ -208,7 +208,6 @@ macro(set_msvc_compile_options)
 
   # Debug options.
   add_compile_options(/Zi) # Debug symbols in seperate pdb files.
-  add_compile_options(/Oy-) # Include frame-pointers for fast stack-traces.
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
