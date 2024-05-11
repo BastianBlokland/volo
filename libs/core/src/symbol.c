@@ -11,6 +11,25 @@
 static SymbolAddr g_symProgramBegin;
 static SymbolAddr g_symProgramEnd;
 
+INLINE_HINT static bool sym_addr_valid(const SymbolAddr symbol) {
+  // NOTE: Only includes the executable itself, not dynamic libraries.
+  return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;
+}
+
+INLINE_HINT static SymbolAddrRel sym_addr_rel(const SymbolAddr symbol) {
+  if (!sym_addr_valid(symbol)) {
+    return (SymbolAddrRel)sentinel_u32;
+  }
+  return (SymbolAddrRel)(symbol - g_symProgramBegin);
+}
+
+INLINE_HINT static SymbolAddr sym_addr_abs(const SymbolAddrRel addr) {
+  if (sentinel_check(addr)) {
+    return (SymbolAddr)sentinel_uptr;
+  }
+  return (SymbolAddr)addr + g_symProgramBegin;
+}
+
 void symbol_init(void) {
   symbol_pal_init();
 
@@ -64,7 +83,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
     if (!unwindCtx.Rip) {
       break; // Reached the end of the call-stack.
     }
-    const SymbolAddrRel addrRel = symbol_addr_rel(unwindCtx.Rip);
+    const SymbolAddrRel addrRel = sym_addr_rel(unwindCtx.Rip);
     if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
     }
@@ -91,7 +110,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
 
   // Fill the stack by walking the linked-list of frames.
   for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
-    const SymbolAddrRel addrRel = symbol_addr_rel(fp->retAddr);
+    const SymbolAddrRel addrRel = sym_addr_rel(fp->retAddr);
     if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
     }
@@ -110,41 +129,18 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
   return stack;
 }
 
-bool symbol_addr_valid(const SymbolAddr symbol) {
-  // NOTE: Only includes the executable itself, not dynamic libraries.
-  return symbol >= g_symProgramBegin && symbol < g_symProgramEnd;
-}
+SymbolAddrRel symbol_addr_rel(const SymbolAddr addr) { return sym_addr_rel(addr); }
+SymbolAddrRel symbol_addr_rel_ptr(const Symbol symbol) { return sym_addr_rel((SymbolAddr)symbol); }
+SymbolAddr    symbol_addr_abs(const SymbolAddrRel addr) { return sym_addr_abs(addr); }
 
-SymbolAddrRel symbol_addr_rel(const SymbolAddr symbol) {
-  if (!symbol_addr_valid(symbol)) {
-    return sentinel_u32;
-  }
-  return (SymbolAddrRel)(symbol - g_symProgramBegin);
-}
-
-SymbolAddr symbol_addr_abs(const SymbolAddrRel addr) {
-  if (sentinel_check(addr)) {
-    return 0;
-  }
-  return (SymbolAddr)addr + g_symProgramBegin;
-}
-
-String symbol_name(const SymbolAddr addr) {
-  if (!symbol_addr_valid(addr)) {
-    return string_empty;
-  }
-  const SymbolAddrRel addrRel = symbol_addr_rel(addr);
-  return symbol_pal_name(addrRel);
-}
-
-String symbol_name_rel(const SymbolAddrRel addr) {
+String symbol_dbg_name(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return string_empty;
   }
   return symbol_pal_name(addr);
 }
 
-SymbolAddrRel symbol_base(const SymbolAddrRel addr) {
+SymbolAddrRel symbol_dbg_base(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return sentinel_u32;
   }

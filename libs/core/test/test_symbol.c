@@ -16,13 +16,13 @@ NO_INLINE_HINT static bool test_symbol_stack_func2() { return test_symbol_stack_
 NO_INLINE_HINT static bool test_symbol_stack_func3() {
   const SymbolStack stack = symbol_stack();
   // The topmost three frames should be the test functions.
-  if (symbol_base(stack.frames[0]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_func3)) {
+  if (symbol_dbg_base(stack.frames[0]) != symbol_addr_rel_ptr(&test_symbol_stack_func3)) {
     return false;
   }
-  if (symbol_base(stack.frames[1]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_func2)) {
+  if (symbol_dbg_base(stack.frames[1]) != symbol_addr_rel_ptr(&test_symbol_stack_func2)) {
     return false;
   }
-  if (symbol_base(stack.frames[2]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_func1)) {
+  if (symbol_dbg_base(stack.frames[2]) != symbol_addr_rel_ptr(&test_symbol_stack_func1)) {
     return false;
   }
   return true;
@@ -39,22 +39,17 @@ static CheckTestFlags test_requires_dbg_info_flags(void) {
 
 spec(symbol) {
 
-  it("returns an empty string for a non-existent function") {
-    check_eq_string(symbol_name((SymbolAddr)42), string_empty);
-    check_eq_string(symbol_name((SymbolAddr)uptr_max), string_empty);
-  }
-
   it("can lookup the name of a function", .flags = test_requires_dbg_info_flags()) {
     // NOTE: Requires the test executable to be build with debug info.
-    check_eq_string(symbol_name((SymbolAddr)&test_symbol_func), string_lit("test_symbol_func"));
+    const SymbolAddrRel addr = symbol_addr_rel_ptr(&test_symbol_func);
+    check_eq_string(symbol_dbg_name(addr), string_lit("test_symbol_func"));
   }
 
   it("can lookup the base address of a function", .flags = test_requires_dbg_info_flags()) {
     // NOTE: Requires the test executable to be build with debug info.
-    const SymbolAddr    addr    = (SymbolAddr)&test_symbol_func;
-    const SymbolAddrRel addrRel = symbol_addr_rel(addr);
-    check_eq_int(symbol_base(addrRel), addrRel);
-    check_eq_int(symbol_base(addrRel + 4), addrRel);
+    const SymbolAddrRel addrRel = symbol_addr_rel_ptr(&test_symbol_func);
+    check_eq_int(symbol_dbg_base(addrRel), addrRel);
+    check_eq_int(symbol_dbg_base(addrRel + 4), addrRel);
   }
 
   it("can collect stack traces", .flags = test_requires_dbg_info_flags()) {

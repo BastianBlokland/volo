@@ -22,9 +22,10 @@ SymbolStack symbol_stack(void);
 /**
  * Utilities for converting between relative and absolute addresses.
  * NOTE: Only works for symbols contained in the executable itself, not for dynamic library symbols.
+ * Returns sentinel_u32 / sentinel_uptr for symbols not contained in the executable.
  */
-bool          symbol_addr_valid(SymbolAddr);
 SymbolAddrRel symbol_addr_rel(SymbolAddr);
+SymbolAddrRel symbol_addr_rel_ptr(Symbol);
 SymbolAddr    symbol_addr_abs(SymbolAddrRel);
 
 /**
@@ -34,8 +35,7 @@ SymbolAddr    symbol_addr_abs(SymbolAddrRel);
  * Pre-condition: Executable contains debug information.
  * Pre-condition: Address is contained in a (non-inlined) function in the executable itself.
  */
-String symbol_name(SymbolAddr);
-String symbol_name_rel(SymbolAddrRel);
+String symbol_dbg_name(SymbolAddrRel);
 
 /**
  * Lookup the base address of the symbol at the given address.
@@ -44,4 +44,4 @@ String symbol_name_rel(SymbolAddrRel);
  * Pre-condition: Executable contains debug information.
  * Pre-condition: Address is contained in a (non-inlined) function in the executable itself.
  */
-SymbolAddrRel symbol_base(SymbolAddrRel);
+SymbolAddrRel symbol_dbg_base(SymbolAddrRel);
