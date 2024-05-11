@@ -8,15 +8,23 @@ spec(symbol);
 
 NO_INLINE_HINT static void test_symbol_func() { g_preserveFunc = 42; }
 
-NO_INLINE_HINT static bool test_symbol_stack_valid() {
+static bool test_symbol_stack_func1();
+static bool test_symbol_stack_func2();
+static bool test_symbol_stack_func3();
+
+NO_INLINE_HINT static bool test_symbol_stack_func1() { return test_symbol_stack_func2() ^ true; }
+NO_INLINE_HINT static bool test_symbol_stack_func2() { return test_symbol_stack_func3() ^ true; }
+
+NO_INLINE_HINT static bool test_symbol_stack_func3() {
   const SymbolStack stack = symbol_stack();
-  /**
-   * Topmost two frames should be this function and the 'symbol' spec routine.
-   */
-  if (symbol_base(stack.frames[0]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_valid)) {
+  // The topmost three frames should be the test functions.
+  if (symbol_base(stack.frames[0]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_func3)) {
     return false;
   }
-  if (symbol_base(stack.frames[1]) != symbol_addr_rel((SymbolAddr)&spec_name(symbol))) {
+  if (symbol_base(stack.frames[1]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_func2)) {
+    return false;
+  }
+  if (symbol_base(stack.frames[2]) != symbol_addr_rel((SymbolAddr)&test_symbol_stack_func1)) {
     return false;
   }
   return true;
@@ -41,5 +49,5 @@ spec(symbol) {
     check_eq_int(symbol_base(addrRel + 4), addrRel);
   }
 
-  it("can collect stack traces") { check(test_symbol_stack_valid()); }
+  it("can collect stack traces") { check(test_symbol_stack_func1()); }
 }
