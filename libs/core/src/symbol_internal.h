@@ -1,6 +1,10 @@
 #pragma once
 #include "core_symbol.h"
 
+typedef struct sSymbolReg SymbolReg;
+
+void symbol_reg_add(SymbolReg*, SymbolAddrRel begin, SymbolAddrRel end, String name);
+
 void          symbol_pal_init(void);
 void          symbol_pal_teardown(void);
 SymbolAddr    symbol_pal_prog_begin(void);

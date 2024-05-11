@@ -1,6 +1,10 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_dynarray.h"
+#include "core_search.h"
 #include "core_sentinel.h"
+#include "core_thread.h"
 
 #include "symbol_internal.h"
 
@@ -8,9 +12,28 @@
 #include <Windows.h>
 #endif
 
-static bool       g_symInit;
-static SymbolAddr g_symProgBegin;
-static SymbolAddr g_symProgEnd;
+#define symbol_reg_aux_chunk_size (4 * usize_kibibyte)
+
+typedef struct {
+  SymbolAddrRel begin, end;
+  String        name;
+} SymbolInfo;
+
+struct sSymbolReg {
+  Allocator* alloc;
+  Allocator* allocAux; // (chunked) bump allocator for axillary data (eg symbol names).
+  DynArray   syms;     // SymbolInfo[], kept sorted on begin address.
+};
+
+static bool        g_symInit;
+static SymbolAddr  g_symProgBegin;
+static SymbolAddr  g_symProgEnd;
+static SymbolReg*  g_symReg;
+static ThreadMutex g_symRegMutex;
+
+static i8 sym_info_compare(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, SymbolInfo, begin), field_ptr(b, SymbolInfo, begin));
+}
 
 INLINE_HINT static bool sym_addr_valid(const SymbolAddr symbol) {
   if (!g_symInit) {
@@ -34,15 +57,82 @@ INLINE_HINT static SymbolAddr sym_addr_abs(const SymbolAddrRel addr) {
   return (SymbolAddr)addr + g_symProgBegin;
 }
 
+static bool sym_info_contains(const SymbolInfo* sym, const SymbolAddrRel addr) {
+  return addr >= sym->begin && addr < sym->end;
+}
+
+static SymbolReg* symbol_reg_create(Allocator* alloc) {
+  SymbolReg* r = alloc_alloc_t(alloc, SymbolReg);
+
+  *r = (SymbolReg){
+      .alloc    = alloc,
+      .allocAux = alloc_chunked_create(alloc, alloc_bump_create, symbol_reg_aux_chunk_size),
+      .syms     = dynarray_create_t(alloc, SymbolInfo, 2048),
+  };
+
+  return r;
+}
+
+static void symbol_reg_destroy(SymbolReg* r) {
+  dynarray_destroy(&r->syms);
+  alloc_chunked_destroy(r->allocAux);
+  alloc_free_t(r->alloc, r);
+}
+
+static const SymbolReg* symbol_reg_get(void) {
+  if (g_symReg) {
+    return g_symReg;
+  }
+  thread_mutex_lock(g_symRegMutex);
+  if (!g_symReg) {
+    g_symReg = symbol_reg_create(g_alloc_heap);
+  }
+  thread_mutex_unlock(g_symRegMutex);
+  return g_symReg;
+}
+
+/**
+ * Find information for the symbol that contains the given address.
+ * NOTE: Retrieved pointer is valid until a new entry is added.
+ * NOTE: Retrieved symbol name is valid until teardown.
+ */
+static const SymbolInfo* symbol_reg_query(const SymbolReg* r, const SymbolAddrRel addr) {
+  if (!r->syms.size) {
+    return null; // No symbols known.
+  }
+  const SymbolInfo* begin = dynarray_begin_t(&r->syms, SymbolInfo);
+  const SymbolInfo* end   = dynarray_end_t(&r->syms, SymbolInfo);
+
+  const SymbolInfo  tgt = {.begin = addr};
+  const SymbolInfo* gt  = search_binary_greater_t(begin, end, SymbolInfo, sym_info_compare, &tgt);
+  const SymbolInfo* gtOrEnd   = gt ? gt : end;
+  const SymbolInfo* candidate = gtOrEnd - 1;
+  return sym_info_contains(candidate, addr) ? candidate : null;
+}
+
+void symbol_reg_add(
+    SymbolReg* r, const SymbolAddrRel begin, const SymbolAddrRel end, const String name) {
+  const SymbolInfo info = {.begin = begin, .end = end, .name = string_dup(r->allocAux, name)};
+  *dynarray_insert_sorted_t(&r->syms, SymbolInfo, sym_info_compare, &info) = info;
+}
+
 void symbol_init(void) {
   symbol_pal_init();
 
   g_symProgBegin = symbol_pal_prog_begin();
   g_symProgEnd   = symbol_pal_prog_end();
+  g_symRegMutex  = thread_mutex_create(g_alloc_persist);
   g_symInit      = true;
 }
 
-void symbol_teardown(void) { symbol_pal_teardown(); }
+void symbol_teardown(void) {
+  g_symInit = false;
+  symbol_pal_teardown();
+  if (g_symReg) {
+    symbol_reg_destroy(g_symReg);
+  }
+  thread_mutex_destroy(g_symRegMutex);
+}
 
 NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
   ASSERT(sizeof(uptr) == 8, "Only 64 bit architectures are supported at the moment")
@@ -142,12 +232,16 @@ String symbol_dbg_name(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return string_empty;
   }
-  return symbol_pal_dbg_name(addr);
+  const SymbolReg*  reg  = symbol_reg_get();
+  const SymbolInfo* info = symbol_reg_query(reg, addr);
+  return info ? info->name : string_empty;
 }
 
 SymbolAddrRel symbol_dbg_base(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return sentinel_u32;
   }
-  return symbol_pal_dbg_base(addr);
+  const SymbolReg*  reg  = symbol_reg_get();
+  const SymbolInfo* info = symbol_reg_query(reg, addr);
+  return info ? info->begin : sentinel_u32;
 }
