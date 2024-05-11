@@ -107,12 +107,13 @@ static const SymbolInfo* symbol_reg_query(const SymbolReg* r, const SymbolAddrRe
 static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
   fmt_write(out, "Debug symbols:\n");
   dynarray_for_t(&r->syms, SymbolInfo, info) {
+    const SymbolAddrRel size = info->end - info->begin;
     fmt_write(
         out,
-        " [{}:{}] {}\n",
+        " {} {} +{}\n",
         fmt_int(info->begin, .base = 16, .minDigits = 8),
-        fmt_int(info->end, .base = 16, .minDigits = 8),
-        fmt_text(info->name));
+        fmt_text(info->name),
+        fmt_int(size));
   }
 }
 
