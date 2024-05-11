@@ -20,7 +20,7 @@ void symbol_init(void) {
 
 void symbol_teardown(void) { symbol_pal_teardown(); }
 
-NO_INLINE_HINT SymbolStack symbol_stack(void) {
+NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack(void) {
   ASSERT(sizeof(uptr) == 8, "Only 64 bit architectures are supported at the moment")
 
   SymbolStack stack;
