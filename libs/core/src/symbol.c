@@ -8,10 +8,14 @@
 #include <Windows.h>
 #endif
 
+static bool       g_symInit;
 static SymbolAddr g_symProgBegin;
 static SymbolAddr g_symProgEnd;
 
 INLINE_HINT static bool sym_addr_valid(const SymbolAddr symbol) {
+  if (!g_symInit) {
+    return false; // Program addresses not yet initalized; can happen when calling this during init.
+  }
   // NOTE: Only includes the executable itself, not dynamic libraries.
   return symbol >= g_symProgBegin && symbol < g_symProgEnd;
 }
@@ -35,6 +39,7 @@ void symbol_init(void) {
 
   g_symProgBegin = symbol_pal_prog_begin();
   g_symProgEnd   = symbol_pal_prog_end();
+  g_symInit      = true;
 }
 
 void symbol_teardown(void) { symbol_pal_teardown(); }
