@@ -4,15 +4,13 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_sym.h'.
+typedef void* Symbol;
+
 /**
  * Handle to a loaded dynamic-library (.so / .dll).
  */
 typedef struct sDynLib DynLib;
-
-/**
- * Pointer to an exported symbol (function or variable) in a loaded dynamic-library.
- */
-typedef void* DynLibSymbol;
 
 /**
  * DynLib result-code.
@@ -53,7 +51,7 @@ String dynlib_path(const DynLib*);
  * Lookup an exported symbol (function or variable) by name.
  * NOTE: Returns null if the symbol could not be found.
  */
-DynLibSymbol dynlib_symbol(const DynLib*, String name);
+Symbol dynlib_symbol(const DynLib*, String name);
 
 /**
  * Returns the amount of currently loaded libraries.

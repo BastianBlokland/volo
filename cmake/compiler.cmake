@@ -93,6 +93,7 @@ macro(set_gcc_compile_options)
   if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
     add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
   endif()
+  add_compile_options(-fno-stack-protector)
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   add_compile_options(-fno-math-errno) # Disable errno setting behaviour for math functions.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
@@ -102,11 +103,7 @@ macro(set_gcc_compile_options)
 
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
-  if(NOT ${FAST} AND NOT ${VOLO_PLATFORM} STREQUAL "win32")
-    # NOTE: The MinGW GCC port fails code-gen with the 'no-omit-frame-pointer' option.
-    # Open issue: https://github.com/msys2/MINGW-packages/issues/4409
-    add_compile_options(-fno-omit-frame-pointer)
-  endif()
+  add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   # Link time optimization.
   if(${LTO})
@@ -132,6 +129,7 @@ macro(set_clang_compile_options)
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
   add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  add_compile_options(-fno-stack-protector)
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   add_compile_options(-fno-math-errno) # Disable errno setting behaviour for math functions.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
@@ -141,16 +139,14 @@ macro(set_clang_compile_options)
 
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
-  if(NOT ${FAST})
-    add_compile_options(-fno-omit-frame-pointer)
-  endif()
+  add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   if(${VOLO_PLATFORM} STREQUAL "win32")
     # Forward declaration of enums is defined in c as all enums use int as underlying the type.
     add_compile_options(-Wno-microsoft-enum-forward-reference)
 
-    # On windows the linker explicitly to be given the -g flag to output debug symbols. Perhaps this
-    # is a ldd on windows quirk?
+    # On windows the linker explicitly needs to be given the -g flag to output debug symbols.
+    # Perhaps this is a ldd on windows quirk?
     add_link_options(-g)
   endif()
 

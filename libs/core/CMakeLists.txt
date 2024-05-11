@@ -53,6 +53,8 @@ add_library(lib_core STATIC
   src/sort.c
   src/string.c
   src/stringtable.c
+  src/symbol_pal.c
+  src/symbol.c
   src/thread_pal.c
   src/thread.c
   src/time_pal.c
@@ -86,8 +88,8 @@ add_executable(test_lib_core
   test/test_complex.c
   test/test_dynarray.c
   test/test_dynbitset.c
-  test/test_dynstring.c
   test/test_dynlib.c
+  test/test_dynstring.c
   test/test_env.c
   test/test_file_iterator.c
   test/test_file_monitor.c
@@ -105,6 +107,7 @@ add_executable(test_lib_core
   test/test_sort.c
   test/test_string.c
   test/test_stringtable.c
+  test/test_symbol.c
   test/test_thread.c
   test/test_time.c
   test/test_unicode.c

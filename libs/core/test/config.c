@@ -35,6 +35,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, sort);
   register_spec(check, string);
   register_spec(check, stringtable);
+  register_spec(check, symbol);
   register_spec(check, thread);
   register_spec(check, time);
   register_spec(check, unicode);

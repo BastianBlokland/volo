@@ -4,7 +4,7 @@
 
 #include "dynlib_internal.h"
 
-#include <windows.h>
+#include <Windows.h>
 
 #define dynlib_max_symbol_name 128
 
@@ -72,7 +72,7 @@ void dynlib_pal_destroy(DynLib* lib) {
 
 String dynlib_pal_path(const DynLib* lib) { return lib->path; }
 
-DynLibSymbol dynlib_pal_symbol(const DynLib* lib, const String name) {
+Symbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   // Copy the name on the stack and null-terminate it.
   if (name.size >= dynlib_max_symbol_name) {
     diag_crash_msg("Symbol name too long");
@@ -81,5 +81,5 @@ DynLibSymbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   mem_cpy(nameBuffer, name);
   *mem_at_u8(nameBuffer, name.size) = '\0';
 
-  return (DynLibSymbol)GetProcAddress(lib->handle, nameBuffer.ptr);
+  return (Symbol)GetProcAddress(lib->handle, nameBuffer.ptr);
 }

@@ -14,6 +14,7 @@ void thread_init_late(void);
 void time_init(void);
 void tty_init(void);
 void stringtable_init(void);
+void symbol_init(void);
 void dynlib_init(void);
 
 /**
@@ -33,6 +34,7 @@ void alloc_teardown(void);
 void thread_teardown(void);
 void tty_teardown(void);
 void stringtable_teardown(void);
+void symbol_teardown();
 void dynlib_teardown(void);
 void file_teardown(void);
 
