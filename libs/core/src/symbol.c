@@ -125,6 +125,15 @@ static const SymbolReg* symbol_reg_get(void) {
   if (g_symReg) {
     return g_symReg;
   }
+  static THREAD_LOCAL bool g_symRegInitializing;
+  if (g_symRegInitializing) {
+    /**
+     * Handle 'symbol_reg_get' being called while we are currently creating the registry, this can
+     * happen if we trigger an assert while building the registry for example.
+     */
+    return null;
+  }
+  g_symRegInitializing = true;
   thread_mutex_lock(g_symRegMutex);
   if (!g_symReg) {
     SymbolReg* reg = symbol_reg_create(g_alloc_heap);
@@ -136,6 +145,7 @@ static const SymbolReg* symbol_reg_get(void) {
     g_symReg = reg;
   }
   thread_mutex_unlock(g_symRegMutex);
+  g_symRegInitializing = false;
   return g_symReg;
 }
 
@@ -255,19 +265,19 @@ SymbolAddrRel symbol_addr_rel_ptr(const Symbol symbol) { return sym_addr_rel((Sy
 SymbolAddr    symbol_addr_abs(const SymbolAddrRel addr) { return sym_addr_abs(addr); }
 
 String symbol_dbg_name(const SymbolAddrRel addr) {
-  if (sentinel_check(addr)) {
+  const SymbolReg* reg = symbol_reg_get();
+  if (UNLIKELY(!reg || sentinel_check(addr))) {
     return string_empty;
   }
-  const SymbolReg*  reg  = symbol_reg_get();
   const SymbolInfo* info = symbol_reg_query(reg, addr);
   return info ? info->name : string_empty;
 }
 
 SymbolAddrRel symbol_dbg_base(const SymbolAddrRel addr) {
-  if (sentinel_check(addr)) {
+  const SymbolReg* reg = symbol_reg_get();
+  if (UNLIKELY(!reg || sentinel_check(addr))) {
     return sentinel_u32;
   }
-  const SymbolReg*  reg  = symbol_reg_get();
   const SymbolInfo* info = symbol_reg_query(reg, addr);
   return info ? info->begin : sentinel_u32;
 }
