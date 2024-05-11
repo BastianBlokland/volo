@@ -127,9 +127,10 @@ jobs:
       with:
         name: archive-${{matrix.config.name}}
         path: |
+          build/**/logs/*.crash
+          build/**/logs/*.eventtrace
           build/**/logs/*.log
           build/**/logs/*.mocha
-          build/**/logs/*.eventtrace
 
     - name: report
       uses: dorny/test-reporter@v1

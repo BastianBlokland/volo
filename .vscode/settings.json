@@ -12,9 +12,10 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
+    "*.crash": "txt",
+    "*.eventtrace": "json",
     "*.log": "jsonl",
     "*.mocha": "json",
-    "*.eventtrace": "json",
     "*.arraytex": "json",
     "*.atlas": "json",
     "*.decal": "json",

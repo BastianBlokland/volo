@@ -1,7 +1,9 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_math.h"
+#include "core_path.h"
 #include "core_symbol.h"
+#include "core_thread.h"
 
 #include "diag_internal.h"
 
@@ -12,11 +14,30 @@ static THREAD_LOCAL AssertHandler g_assertHandler;
 static THREAD_LOCAL void*         g_assertHandlerContext;
 
 NO_INLINE_HINT static void diag_crash_report_internal(const SymbolStack* stack, const String msg) {
+  // Build the text.
   DynString str = dynstring_create_over(mem_stack(2048));
   dynstring_append(&str, string_slice(msg, 0, math_min(msg.size, 512)));
-
   symbol_stack_write(stack, &str);
+
+  // Write it to stderr.
   file_write_sync(g_file_stderr, dynstring_view(&str));
+
+  // Write it to a crash-file.
+  static ThreadSpinLock g_crashFileLock;
+  static bool           g_crashFileWritten;
+  thread_spinlock_lock(&g_crashFileLock);
+  {
+    // NOTE: Only write a single crash-file, even if multiple threads crash.
+    if (!g_crashFileWritten) {
+      const String crashFilePath = path_build_scratch(
+          path_parent(g_path_executable),
+          string_lit("logs"),
+          path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("crash")));
+      file_write_to_path_sync(crashFilePath, dynstring_view(&str));
+      g_crashFileWritten = true;
+    }
+  }
+  thread_spinlock_unlock(&g_crashFileLock);
 }
 
 INLINE_HINT NORETURN static void diag_crash_internal(MAYBE_UNUSED const String msg) {
