@@ -142,12 +142,12 @@ String symbol_dbg_name(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return string_empty;
   }
-  return symbol_pal_name(addr);
+  return symbol_pal_dbg_name(addr);
 }
 
 SymbolAddrRel symbol_dbg_base(const SymbolAddrRel addr) {
   if (sentinel_check(addr)) {
     return sentinel_u32;
   }
-  return symbol_pal_base(addr);
+  return symbol_pal_dbg_base(addr);
 }

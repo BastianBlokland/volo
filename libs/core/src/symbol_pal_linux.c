@@ -309,7 +309,7 @@ SymbolAddr symbol_pal_prog_end(void) {
   return (SymbolAddr)&_etext;
 }
 
-String symbol_pal_name(const SymbolAddrRel addr) {
+String symbol_pal_dbg_name(const SymbolAddrRel addr) {
   String result = string_empty;
   thread_mutex_lock(g_symResolverMutex);
   {
@@ -325,7 +325,7 @@ String symbol_pal_name(const SymbolAddrRel addr) {
   return result;
 }
 
-SymbolAddrRel symbol_pal_base(const SymbolAddrRel addr) {
+SymbolAddrRel symbol_pal_dbg_base(const SymbolAddrRel addr) {
   SymbolAddrRel result = sentinel_u32;
   thread_mutex_lock(g_symResolverMutex);
   {
