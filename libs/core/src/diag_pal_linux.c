@@ -46,9 +46,37 @@ static void diag_exception_block(void) {
   sigprocmask(SIG_BLOCK, &toBlock, null);
 }
 
+/**
+ * Retrieve the address of the current instruction pointer (above the signal handler).
+ * NOTE: Only x86_64 is supported at the moment.
+ */
+INLINE_HINT static SymbolAddr diag_exception_rip(const void* uctx) {
+  const ucontext_t* ucontext = uctx;
+  return (SymbolAddr)ucontext->uc_mcontext.gregs[REG_RIP];
+}
+
+/**
+ * Collect the stack leading up to the exception.
+ * NOTE: Only x86_64 is supported at the moment.
+ */
+INLINE_HINT static SymbolStack diag_exception_stack(const void* uctx) {
+  SymbolStack stack = symbol_stack_walk();
+
+  /**
+   * Retrieve the instruction pointer of the code above the signal-handler if its inside our
+   * executable use that as the origin of the stack instead of the signal handler.
+   */
+  const SymbolAddr    rip    = diag_exception_rip(uctx);
+  const SymbolAddrRel ripRel = symbol_addr_rel(rip);
+  if (!sentinel_check(ripRel)) {
+    stack.frames[0] = ripRel;
+  }
+
+  return stack;
+}
+
 static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* info, void* uctx) {
   (void)info;
-  (void)uctx;
 
   jmp_buf* anchor = g_exceptAnchor;
   g_exceptAnchor  = null; // Clear anchor to avoid triggering it multiple times.
@@ -62,7 +90,7 @@ static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* in
      */
     diag_exception_block(); // Block further exceptions so we can crash in peace.
 
-    g_exceptStack = symbol_stack_walk();
+    g_exceptStack = diag_exception_stack(uctx);
     longjmp(*anchor, posixSignal); // Jump to the anchor, will call 'diag_except_enable()' again.
   } else {
     /**
