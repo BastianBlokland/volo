@@ -212,6 +212,9 @@ macro(set_msvc_compile_options)
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
+  # Linker options.
+  add_link_options(/INCREMENTAL:NO) # No incremental linking.
+
   # Link time optimization.
   if(${LTO})
     message(STATUS "Enabling link-time-optimization")
