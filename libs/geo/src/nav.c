@@ -148,7 +148,12 @@ INLINE_HINT static NavLine2D nav_line_create(const GeoVector a, const GeoVector 
   const NavVec2D delta   = {b.x - a.x, b.z - a.z};
   const f32      distSqr = delta.x * delta.x + delta.y * delta.y;
   const f32      dist    = intrinsic_sqrt_f32(distSqr);
-  const NavVec2D dir     = {delta.x / dist, delta.y / dist};
+
+  const NavVec2D dir = {
+      math_abs(delta.x) > f32_epsilon ? delta.x / dist : f32_epsilon,
+      math_abs(delta.y) > f32_epsilon ? delta.y / dist : f32_epsilon,
+  };
+
   return (NavLine2D){
       .pos    = {a.x, a.z},
       .dirInv = {1.0f / dir.x, 1.0f / dir.y},
