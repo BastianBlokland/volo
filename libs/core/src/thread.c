@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag_except.h"
 #include "core_thread.h"
 
 #include "init_internal.h"
@@ -34,8 +35,10 @@ MAYBE_UNUSED INLINE_HINT static void thread_compiler_fence() {
 static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
 
-  // Initialize the core library for this thread.
-  core_init();
+  core_init(); // Initialize the core library for this thread.
+
+  jmp_buf exceptJmp;
+  diag_except_enable(&exceptJmp, setjmp(exceptJmp));
 
   // Initialize the thread name.
   g_thread_name = runData->threadName;
@@ -49,8 +52,8 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   // Invoke the user routine.
   runData->userRoutine(runData->userData);
 
-  // Tear-down the core library for this thread.
-  core_teardown();
+  diag_except_disable();
+  core_teardown(); // Tear-down the core library for this thread.
 
   // Cleanup thread data.
   string_free(g_alloc_heap, runData->threadName);

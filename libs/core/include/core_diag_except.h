@@ -11,9 +11,8 @@
  *
  * Example usage:
  * ```
- * jmp_buf   exceptJmp;
- * const i32 exceptCode = setjmp(exceptJmp);
- * diag_except_enable(&exceptJmp, exceptCode);
+ * jmp_buf exceptJmp;
+ * diag_except_enable(&exceptJmp, setjmp(exceptJmp));
  *
  * // Application code.
  *

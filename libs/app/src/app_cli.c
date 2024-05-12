@@ -1,5 +1,6 @@
 #include "app_cli.h"
 #include "core_alloc.h"
+#include "core_diag_except.h"
 #include "core_file.h"
 #include "core_init.h"
 #include "log_init.h"
@@ -7,6 +8,9 @@
 int SYS_DECL main(const int argc, const char** argv) {
   core_init();
   log_init();
+
+  jmp_buf exceptJmp;
+  diag_except_enable(&exceptJmp, setjmp(exceptJmp));
 
   int exitCode = 0;
 
@@ -25,6 +29,8 @@ int SYS_DECL main(const int argc, const char** argv) {
 exit:
   cli_parse_destroy(invoc);
   cli_app_destroy(app);
+
+  diag_except_disable();
 
   log_teardown();
   core_teardown();
