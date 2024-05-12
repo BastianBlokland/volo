@@ -27,7 +27,7 @@ static THREAD_LOCAL jmp_buf*    g_exceptAnchor;
 static THREAD_LOCAL SymbolStack g_exceptStack;
 static THREAD_LOCAL uptr        g_exceptAddr;
 
-static String diag_exception_name(const int posixSignal) {
+static String diag_except_name(const int posixSignal) {
   array_for_t(g_exceptConfig, DiagException, except) {
     if (except->posixSignal == posixSignal) {
       return except->name;
@@ -40,7 +40,7 @@ static String diag_exception_name(const int posixSignal) {
  * Block the exception signals from being fired.
  * NOTE: Only call this when we are busy crashing the program, we cannot recover from this.
  */
-static void diag_exception_block(void) {
+static void diag_except_block(void) {
   sigset_t toBlock;
   sigemptyset(&toBlock);
   array_for_t(g_exceptConfig, DiagException, except) { sigaddset(&toBlock, except->posixSignal); }
@@ -51,7 +51,7 @@ static void diag_exception_block(void) {
  * Retrieve the address of the current instruction pointer (above the signal handler).
  * NOTE: Only x86_64 is supported at the moment.
  */
-INLINE_HINT static SymbolAddr diag_exception_rip(const void* uctx) {
+INLINE_HINT static SymbolAddr diag_except_rip(const void* uctx) {
   const ucontext_t* ucontext = uctx;
   return (SymbolAddr)ucontext->uc_mcontext.gregs[REG_RIP];
 }
@@ -60,14 +60,14 @@ INLINE_HINT static SymbolAddr diag_exception_rip(const void* uctx) {
  * Collect the stack leading up to the exception.
  * NOTE: Only x86_64 is supported at the moment.
  */
-INLINE_HINT static SymbolStack diag_exception_stack(const void* uctx) {
+INLINE_HINT static SymbolStack diag_except_stack(const void* uctx) {
   SymbolStack stack = symbol_stack_walk();
 
   /**
    * Retrieve the instruction pointer of the code above the signal-handler if its inside our
    * executable use that as the origin of the stack instead of the signal handler.
    */
-  const SymbolAddr    rip    = diag_exception_rip(uctx);
+  const SymbolAddr    rip    = diag_except_rip(uctx);
   const SymbolAddrRel ripRel = symbol_addr_rel(rip);
   if (!sentinel_check(ripRel)) {
     stack.frames[0] = ripRel;
@@ -81,7 +81,7 @@ INLINE_HINT static SymbolStack diag_exception_stack(const void* uctx) {
  * Returns sentinel_uptr if no address was associated with the exception.
  * TODO: sentinel_uptr (uptr_max) can actually be used; find another sentinel.
  */
-INLINE_HINT uptr diag_exception_address(const siginfo_t* info) {
+INLINE_HINT uptr diag_except_address(const siginfo_t* info) {
   const int signo = info->si_signo;
   if (signo == SIGILL || signo == SIGFPE || signo == SIGSEGV || signo == SIGBUS) {
     return (uptr)info->si_addr;
@@ -89,7 +89,7 @@ INLINE_HINT uptr diag_exception_address(const siginfo_t* info) {
   return sentinel_uptr;
 }
 
-static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* info, void* uctx) {
+static void SYS_DECL diag_except_handler(const int posixSignal, siginfo_t* info, void* uctx) {
   jmp_buf* anchor = g_exceptAnchor;
   g_exceptAnchor  = null; // Clear anchor to avoid triggering it multiple times.
 
@@ -100,10 +100,10 @@ static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* in
      * reporting the crash.
      * Reason for not reporting the crash here is that the crash reporting is not signal safe.
      */
-    diag_exception_block(); // Block further exceptions so we can crash in peace.
+    diag_except_block(); // Block further exceptions so we can crash in peace.
 
-    g_exceptStack = diag_exception_stack(uctx);
-    g_exceptAddr  = diag_exception_address(info);
+    g_exceptStack = diag_except_stack(uctx);
+    g_exceptAddr  = diag_except_address(info);
     longjmp(*anchor, posixSignal); // Jump to the anchor, will call 'diag_except_enable()' again.
   } else {
     /**
@@ -116,17 +116,17 @@ static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* in
   }
 }
 
-void diag_pal_except_enable(jmp_buf* anchor, const i32 exceptionCode) {
+void diag_pal_except_enable(jmp_buf* anchor, const i32 exceptCode) {
   static i32 g_exceptHandlerInstalled;
 
-  if (exceptionCode) {
+  if (exceptCode) {
     /**
      * An exception has occurred, report the crash with the recorded stack.
      */
     diag_assert(!g_exceptAnchor); // Anchors should be removed when an exception occurs.
 
     DynString msg = dynstring_create_over(mem_stack(128));
-    fmt_write(&msg, "Exception: {}\n", fmt_text(diag_exception_name(exceptionCode)));
+    fmt_write(&msg, "Exception: {}\n", fmt_text(diag_except_name(exceptCode)));
     if (!sentinel_check(g_exceptAddr)) {
       fmt_write(&msg, "Address: {}\n", fmt_int(g_exceptAddr, .base = 16, .minDigits = 16));
     }
@@ -141,7 +141,7 @@ void diag_pal_except_enable(jmp_buf* anchor, const i32 exceptionCode) {
 
     if (!thread_atomic_exchange_i32(&g_exceptHandlerInstalled, true)) {
       struct sigaction action = {
-          .sa_sigaction = diag_exception_handler,
+          .sa_sigaction = diag_except_handler,
           .sa_flags     = SA_SIGINFO,
       };
       sigemptyset(&action.sa_mask);
