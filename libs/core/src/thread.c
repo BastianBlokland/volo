@@ -128,8 +128,7 @@ bool thread_exists(const ThreadId tid) { return thread_pal_exists(tid); }
 
 void thread_spinlock_lock(ThreadSpinLock* lock) {
   /**
-   * Naive implementation of a general-purpose spin-lock using atomic operations. If required a much
-   * faster architecture specific routine can be implemented.
+   * Naive implementation of a general-purpose spin-lock using atomic operations.
    *
    * Includes a general memory barrier that synchronizes with 'thread_spinlock_unlock' because both
    * write to the same memory with sequentially-consistent ordering semantics.
