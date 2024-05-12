@@ -214,6 +214,7 @@ macro(set_msvc_compile_options)
 
   # Linker options.
   add_link_options(/INCREMENTAL:NO) # No incremental linking.
+  add_link_options(/OPT:REF,ICF) # Remove functions and data that are never referenced.
 
   # Link time optimization.
   if(${LTO})
