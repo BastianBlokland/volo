@@ -8,7 +8,7 @@ typedef void* Symbol;
 typedef uptr  SymbolAddr;
 typedef u32   SymbolAddrRel; // Relative to program base (limits executable size to 4 GiB).
 
-typedef struct {
+typedef struct sSymbolStack {
   SymbolAddrRel frames[8]; // NOTE: Addresses are inside functions, not entry-points.
 } SymbolStack;
 

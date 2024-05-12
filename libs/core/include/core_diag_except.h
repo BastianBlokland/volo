@@ -32,5 +32,5 @@
  * NOTE: Exceptions are always fatal, the process will exit after reporting the crash.
  * NOTE: Its important that 'jmp_buf'is initialized in a location that stays on the stack.
  */
-void diag_except_enable(jmp_buf* anchor, i32 code);
+void diag_except_enable(jmp_buf* anchor, i32 exceptionCode);
 void diag_except_disable(void);

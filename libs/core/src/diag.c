@@ -1,4 +1,3 @@
-#include "core_diag.h"
 #include "core_file.h"
 #include "core_math.h"
 #include "core_path.h"
@@ -7,13 +6,24 @@
 
 #include "diag_internal.h"
 
-#define VOLO_DIAG_CRASH_REPORT
-
-static THREAD_LOCAL bool          g_diagIsCrashing;
+static THREAD_LOCAL bool          g_diagIsReporting;
 static THREAD_LOCAL AssertHandler g_assertHandler;
 static THREAD_LOCAL void*         g_assertHandlerContext;
 
-NO_INLINE_HINT static void diag_crash_report_internal(const SymbolStack* stack, const String msg) {
+INLINE_HINT NORETURN static void diag_crash_internal(const String msg) {
+  const SymbolStack stack = symbol_stack_walk();
+  diag_crash_report(&stack, msg);
+
+  diag_pal_break();
+  diag_pal_crash();
+}
+
+NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg) {
+  if (g_diagIsReporting) {
+    return; // Avoid reporting crashes that occur during this function.
+  }
+  g_diagIsReporting = true;
+
   // Build the text.
   DynString str = dynstring_create_over(mem_stack(2048));
   dynstring_append(&str, string_slice(msg, 0, math_min(msg.size, 512)));
@@ -29,35 +39,18 @@ NO_INLINE_HINT static void diag_crash_report_internal(const SymbolStack* stack, 
   {
     // NOTE: Only write a single crash-file, even if multiple threads crash.
     if (!g_crashFileWritten) {
+      g_crashFileWritten = true;
+
       const String crashFilePath = path_build_scratch(
           path_parent(g_path_executable),
           string_lit("logs"),
           path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("crash")));
       file_write_to_path_sync(crashFilePath, dynstring_view(&str));
-      g_crashFileWritten = true;
     }
   }
   thread_spinlock_unlock(&g_crashFileLock);
-}
 
-INLINE_HINT NORETURN static void diag_crash_internal(MAYBE_UNUSED const String msg) {
-  if (!g_diagIsCrashing) {
-    /**
-     * Handle a crash happening while in this function.
-     * Can for example happen when an error occurs while resolving stack symbol names.
-     */
-    g_diagIsCrashing = true;
-
-#ifdef VOLO_DIAG_CRASH_REPORT
-    const SymbolStack stack = symbol_stack_walk();
-    diag_crash_report_internal(&stack, msg);
-#else
-    (void)diag_crash_report_internal;
-#endif
-
-    diag_pal_break();
-  }
-  diag_pal_crash();
+  g_diagIsReporting = false;
 }
 
 void diag_print_raw(const String userMsg) { file_write_sync(g_file_stdout, userMsg); }
@@ -87,3 +80,9 @@ void diag_assert_handler(AssertHandler handler, void* context) {
   g_assertHandler        = handler;
   g_assertHandlerContext = context;
 }
+
+void diag_except_enable(jmp_buf* anchor, const i32 exceptionCode) {
+  diag_pal_except_enable(anchor, exceptionCode);
+}
+
+void diag_except_disable(void) { diag_pal_except_disable(); }
