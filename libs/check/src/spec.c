@@ -86,7 +86,7 @@ FinishLabel:
   if (finished) {
 
     // Clear our registered assertion handler.
-    diag_set_assert_handler(null, null);
+    diag_assert_handler(null, null);
 
     const TimeSteady   endTime  = time_steady_clock();
     const TimeDuration duration = time_steady_duration(startTime, endTime);
@@ -97,7 +97,7 @@ FinishLabel:
 
   // Register an assertion handler to report assertion failures as test errors instead of
   // terminating the program.
-  diag_set_assert_handler(check_assert_handler, &testCtx);
+  diag_assert_handler(check_assert_handler, &testCtx);
 
   // Execute the specific test.
   ContextExec ctx = {

@@ -2,6 +2,7 @@
 #include "core_types.h"
 
 typedef enum eSignal {
+  Signal_Terminate,
   Signal_Interrupt,
   Signal_Kill, // Not interceptable.
 

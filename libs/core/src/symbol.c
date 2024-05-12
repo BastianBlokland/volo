@@ -99,6 +99,9 @@ static const SymbolInfo* symbol_reg_query(const SymbolReg* r, const SymbolAddrRe
 
   const SymbolInfo  tgt = {.begin = addr};
   const SymbolInfo* gt  = search_binary_greater_t(begin, end, SymbolInfo, sym_info_compare, &tgt);
+  if (gt == begin) {
+    return null; // Address is before the lowest address symbol.
+  }
   const SymbolInfo* gtOrEnd   = gt ? gt : end;
   const SymbolInfo* candidate = gtOrEnd - 1;
   return sym_info_contains(candidate, addr) ? candidate : null;

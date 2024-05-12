@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag_except.h"
 #include "core_thread.h"
 
 #include "init_internal.h"
@@ -34,8 +35,10 @@ MAYBE_UNUSED INLINE_HINT static void thread_compiler_fence() {
 static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
 
-  // Initialize the core library for this thread.
-  core_init();
+  core_init(); // Initialize the core library for this thread.
+
+  jmp_buf exceptAnchor;
+  diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
 
   // Initialize the thread name.
   g_thread_name = runData->threadName;
@@ -49,8 +52,8 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   // Invoke the user routine.
   runData->userRoutine(runData->userData);
 
-  // Tear-down the core library for this thread.
-  core_teardown();
+  diag_except_disable();
+  core_teardown(); // Tear-down the core library for this thread.
 
   // Cleanup thread data.
   string_free(g_alloc_heap, runData->threadName);
@@ -128,8 +131,7 @@ bool thread_exists(const ThreadId tid) { return thread_pal_exists(tid); }
 
 void thread_spinlock_lock(ThreadSpinLock* lock) {
   /**
-   * Naive implementation of a general-purpose spin-lock using atomic operations. If required a much
-   * faster architecture specific routine can be implemented.
+   * Naive implementation of a general-purpose spin-lock using atomic operations.
    *
    * Includes a general memory barrier that synchronizes with 'thread_spinlock_unlock' because both
    * write to the same memory with sequentially-consistent ordering semantics.

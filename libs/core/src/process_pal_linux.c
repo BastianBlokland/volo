@@ -45,6 +45,8 @@ static ProcessResult process_result_from_errno(const int err) {
 
 static int process_signal_code(const Signal signal) {
   switch (signal) {
+  case Signal_Terminate:
+    return SIGTERM;
   case Signal_Interrupt:
     return SIGINT;
   case Signal_Kill:

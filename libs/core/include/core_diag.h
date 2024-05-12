@@ -2,7 +2,6 @@
 #include "core_annotation.h"
 #include "core_format.h"
 #include "core_sourceloc.h"
-#include "core_types.h"
 
 /**
  * Handler to be invoked when an assertion fails.
@@ -96,4 +95,4 @@ NORETURN void diag_crash_msg_raw(String msg);
  * NOTE: Only a single assert handler can be registered per thread, the previous will be replaced.
  * NOTE: Invoke with 'null' to clear the current assert handler for this thread.
  */
-void diag_set_assert_handler(AssertHandler, void* context);
+void diag_assert_handler(AssertHandler, void* context);

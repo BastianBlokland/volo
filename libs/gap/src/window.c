@@ -72,6 +72,9 @@ static bool window_should_close(GapWindowComp* win) {
   if (win->requests & GapWindowRequests_Close) {
     return true;
   }
+  if (signal_is_received(Signal_Terminate)) {
+    return true;
+  }
   if (win->flags & GapWindowFlags_CloseOnInterrupt && signal_is_received(Signal_Interrupt)) {
     return true;
   }

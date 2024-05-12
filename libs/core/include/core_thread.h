@@ -116,7 +116,7 @@ i32 thread_atomic_add_i32(i32*, i32 value);
 i64 thread_atomic_add_i64(i64*, i64 value);
 
 /**
- * Atomically store the result of substracting the value to the content of the given pointer at the
+ * Atomically store the result of subtracting the value to the content of the given pointer at the
  * pointer address and returns the old value.
  * This includes a general memory barrier.
  */

@@ -3,5 +3,5 @@
 
 void signal_pal_setup_handlers(void);
 
-bool signal_pal_is_received(Signal);
+i64  signal_pal_counter(Signal);
 void signal_pal_reset(Signal);
