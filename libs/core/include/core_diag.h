@@ -2,7 +2,6 @@
 #include "core_annotation.h"
 #include "core_format.h"
 #include "core_sourceloc.h"
-#include "core_types.h"
 
 /**
  * Handler to be invoked when an assertion fails.
