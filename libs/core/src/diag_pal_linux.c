@@ -25,6 +25,7 @@ static const DiagException g_exceptConfig[] = {
 };
 static THREAD_LOCAL jmp_buf*    g_exceptAnchor;
 static THREAD_LOCAL SymbolStack g_exceptStack;
+static THREAD_LOCAL uptr        g_exceptAddr;
 
 static String diag_exception_name(const int posixSignal) {
   array_for_t(g_exceptConfig, DiagException, except) {
@@ -75,9 +76,20 @@ INLINE_HINT static SymbolStack diag_exception_stack(const void* uctx) {
   return stack;
 }
 
-static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* info, void* uctx) {
-  (void)info;
+/**
+ * Retrieve the memory addr associated with the exception (for example the addr of the seg fault).
+ * Returns sentinel_uptr if no address was associated with the exception.
+ * TODO: sentinel_uptr (uptr_max) can actually be used; find another sentinel.
+ */
+INLINE_HINT uptr diag_exception_address(const siginfo_t* info) {
+  const int signo = info->si_signo;
+  if (signo == SIGILL || signo == SIGFPE || signo == SIGSEGV || signo == SIGBUS) {
+    return (uptr)info->si_addr;
+  }
+  return sentinel_uptr;
+}
 
+static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* info, void* uctx) {
   jmp_buf* anchor = g_exceptAnchor;
   g_exceptAnchor  = null; // Clear anchor to avoid triggering it multiple times.
 
@@ -91,6 +103,7 @@ static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* in
     diag_exception_block(); // Block further exceptions so we can crash in peace.
 
     g_exceptStack = diag_exception_stack(uctx);
+    g_exceptAddr  = diag_exception_address(info);
     longjmp(*anchor, posixSignal); // Jump to the anchor, will call 'diag_except_enable()' again.
   } else {
     /**
@@ -114,6 +127,9 @@ void diag_pal_except_enable(jmp_buf* anchor, const i32 exceptionCode) {
 
     DynString msg = dynstring_create_over(mem_stack(128));
     fmt_write(&msg, "Exception: {}\n", fmt_text(diag_exception_name(exceptionCode)));
+    if (!sentinel_check(g_exceptAddr)) {
+      fmt_write(&msg, "Address: {}\n", fmt_int(g_exceptAddr, .base = 16, .minDigits = 16));
+    }
     diag_crash_report(&g_exceptStack, dynstring_view(&msg));
     diag_pal_crash();
   } else {
