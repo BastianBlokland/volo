@@ -37,8 +37,8 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
 
   core_init(); // Initialize the core library for this thread.
 
-  jmp_buf exceptJmp;
-  diag_except_enable(&exceptJmp, setjmp(exceptJmp));
+  jmp_buf exceptAnchor;
+  diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
 
   // Initialize the thread name.
   g_thread_name = runData->threadName;

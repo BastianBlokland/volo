@@ -11,26 +11,26 @@
  *
  * Example usage:
  * ```
- * jmp_buf exceptJmp;
- * diag_except_enable(&exceptJmp, setjmp(exceptJmp));
+ * jmp_buf exceptAnchor;
+ * diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
  *
  * // Application code.
  *
  * diag_except_disable();
  * ```
  *
- * When an exception occurs we jump to the registered 'jmp_buf' higher in the stack with a code
+ * When an exception occurs we jump to the registered anchor higher in the stack with a code
  * indicating that an exception has occurred. Then 'diag_except_enable()' will report the crash and
  * exit the process when its called again. We use this mechanism as the exception/signal handlers
  * themselves are not a safe place to report the crash, for more information see:
  * https://man7.org/linux/man-pages/man7/signal-safety.7.html
  *
- * Before jmp_buf is popped off the stack make sure to call 'diag_except_disable()' to avoid jumping
- * to an invalid location.
+ * Before the anchor is popped off the stack make sure to call 'diag_except_disable()' to avoid
+ * jumping to an invalid location.
  *
  * NOTE: Exception interception is per thread.
  * NOTE: Exceptions are always fatal, the process will exit after reporting the crash.
  * NOTE: Its important that 'jmp_buf'is initialized in a location that stays on the stack.
  */
-void diag_except_enable(jmp_buf*, i32 code);
+void diag_except_enable(jmp_buf* anchor, i32 code);
 void diag_except_disable(void);

@@ -9,8 +9,8 @@ int SYS_DECL main(const int argc, const char** argv) {
   core_init();
   log_init();
 
-  jmp_buf exceptJmp;
-  diag_except_enable(&exceptJmp, setjmp(exceptJmp));
+  jmp_buf exceptAnchor;
+  diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
 
   int exitCode = 0;
 
