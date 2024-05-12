@@ -62,7 +62,7 @@ static String diag_except_name(const i32 exceptCode) {
  * Returns sentinel_uptr if no address was associated with the exception.
  * TODO: sentinel_uptr (uptr_max) can actually be used; find another sentinel.
  */
-INLINE_HINT uptr diag_except_address(PEXCEPTION_POINTERS exceptCtx) {
+INLINE_HINT static uptr diag_except_address(PEXCEPTION_POINTERS exceptCtx) {
   switch (exceptCtx->ExceptionRecord->ExceptionCode) {
   case EXCEPTION_ACCESS_VIOLATION:
     return (uptr)exceptCtx->ExceptionRecord->ExceptionInformation[1];
