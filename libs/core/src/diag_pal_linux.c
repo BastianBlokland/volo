@@ -35,6 +35,17 @@ static String diag_exception_name(const int posixSignal) {
   diag_pal_crash();
 }
 
+/**
+ * Block the exception signals from being fired.
+ * NOTE: Only call this when we are busy crashing the program, we cannot recover from this.
+ */
+static void diag_exception_block(void) {
+  sigset_t toBlock;
+  sigemptyset(&toBlock);
+  array_for_t(g_exceptConfig, DiagException, except) { sigaddset(&toBlock, except->posixSignal); }
+  sigprocmask(SIG_BLOCK, &toBlock, null);
+}
+
 static void SYS_DECL diag_exception_handler(const int posixSignal) {
   jmp_buf* anchor = g_exceptAnchor;
   g_exceptAnchor  = null; // Clear anchor to avoid triggering it multiple times.
@@ -49,6 +60,8 @@ static void SYS_DECL diag_exception_handler(const int posixSignal) {
      * TODO: For SIGILL, SIGFPE, SIGSEGV, SIGBUS we get the address of the fault in 'si_addr' we
      * should include this in the crash report.
      */
+    diag_exception_block(); // Block further exceptions so we can crash in peace.
+
     g_exceptStack = symbol_stack_walk();
     longjmp(*anchor, posixSignal); // Jump to the anchor, will call 'diag_except_enable()' again.
   } else {
