@@ -83,7 +83,7 @@ void diag_crash_msg_raw(const String userMsg) {
   diag_crash_internal(msg);
 }
 
-void diag_set_assert_handler(AssertHandler handler, void* context) {
+void diag_assert_handler(AssertHandler handler, void* context) {
   g_assertHandler        = handler;
   g_assertHandlerContext = context;
 }
