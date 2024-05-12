@@ -46,7 +46,10 @@ static void diag_exception_block(void) {
   sigprocmask(SIG_BLOCK, &toBlock, null);
 }
 
-static void SYS_DECL diag_exception_handler(const int posixSignal) {
+static void SYS_DECL diag_exception_handler(const int posixSignal, siginfo_t* info, void* uctx) {
+  (void)info;
+  (void)uctx;
+
   jmp_buf* anchor = g_exceptAnchor;
   g_exceptAnchor  = null; // Clear anchor to avoid triggering it multiple times.
 
@@ -56,9 +59,6 @@ static void SYS_DECL diag_exception_handler(const int posixSignal) {
      * while the offending call-chain is still on the stack and then jump to the anchor for
      * reporting the crash.
      * Reason for not reporting the crash here is that the crash reporting is not signal safe.
-     *
-     * TODO: For SIGILL, SIGFPE, SIGSEGV, SIGBUS we get the address of the fault in 'si_addr' we
-     * should include this in the crash report.
      */
     diag_exception_block(); // Block further exceptions so we can crash in peace.
 
@@ -96,7 +96,10 @@ void diag_pal_except_enable(jmp_buf* anchor, const i32 exceptionCode) {
     g_exceptAnchor = anchor;
 
     if (!thread_atomic_exchange_i32(&g_exceptHandlerInstalled, true)) {
-      struct sigaction action = {.sa_handler = diag_exception_handler};
+      struct sigaction action = {
+          .sa_sigaction = diag_exception_handler,
+          .sa_flags     = SA_SIGINFO,
+      };
       sigemptyset(&action.sa_mask);
       array_for_t(g_exceptConfig, DiagException, except) {
         sigaction(except->posixSignal, &action, null);
