@@ -81,7 +81,7 @@ INLINE_HINT static SymbolStack diag_except_stack(const void* uctx) {
  * Returns sentinel_uptr if no address was associated with the exception.
  * TODO: sentinel_uptr (uptr_max) can actually be used; find another sentinel.
  */
-INLINE_HINT uptr diag_except_address(const siginfo_t* info) {
+INLINE_HINT static uptr diag_except_address(const siginfo_t* info) {
   const int signo = info->si_signo;
   if (signo == SIGILL || signo == SIGFPE || signo == SIGSEGV || signo == SIGBUS) {
     return (uptr)info->si_addr;
