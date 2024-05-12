@@ -2,6 +2,7 @@
 #include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_intrinsic.h"
 #include "core_math.h"
 
@@ -146,7 +147,8 @@ INLINE_HINT static BcVec bc_block_principle_axis(const BcBlockCovariance* cov) {
   for (u32 i = 0; i != powerItrs; ++i) {
     axis = bc_block_cov3_mul(cov, axis);
   }
-  return bc_vec_mul(axis, 1.0f / bc_vec_max(axis));
+  const f32 max = bc_vec_max(axis);
+  return max > f32_epsilon ? bc_vec_mul(axis, 1.0f / max) : (BcVec){1, 1, 1};
 }
 
 /**
