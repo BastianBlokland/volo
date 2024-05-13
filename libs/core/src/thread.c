@@ -93,7 +93,12 @@ void thread_init_late(void) {
 
 void thread_teardown(void) { thread_pal_teardown(); }
 
-void thread_init_thread(void) { g_thread_tid = thread_pal_tid(); }
+void thread_init_thread(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
+  g_thread_tid = thread_pal_tid();
+}
 
 void thread_atomic_fence(void) {
   // TODO: Experiment with issuing an instruction with a 'LOCK' prefix instead, this can potentially
