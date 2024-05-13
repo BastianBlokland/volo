@@ -13,7 +13,7 @@ spec(alloc_block) {
   Allocator* allocBlock     = null;
 
   setup() {
-    memTotal       = alloc_alloc(g_alloc_heap, g_memSize, 1);
+    memTotal       = alloc_alloc(g_allocHeap, g_memSize, 1);
     allocParent    = alloc_bump_create(memTotal);
     memSizeUseable = alloc_max_size(allocParent);
     allocBlock     = alloc_block_create(allocParent, g_blockSize);
@@ -88,6 +88,6 @@ spec(alloc_block) {
     // Verify that all memory was returned to the parent.
     diag_assert(alloc_max_size(allocParent) == memSizeUseable);
 
-    alloc_free(g_alloc_heap, memTotal);
+    alloc_free(g_allocHeap, memTotal);
   }
 }

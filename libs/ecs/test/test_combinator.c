@@ -19,16 +19,16 @@ static void ecs_combine_compB(void* a, void* b) {
   CombineCompB* compA = a;
   CombineCompB* compB = b;
 
-  String newText = string_combine(g_alloc_heap, compA->text, compB->text);
-  string_free(g_alloc_heap, compA->text);
-  string_free(g_alloc_heap, compB->text);
+  String newText = string_combine(g_allocHeap, compA->text, compB->text);
+  string_free(g_allocHeap, compA->text);
+  string_free(g_allocHeap, compB->text);
 
   compA->text = newText;
 }
 
 static void ecs_destruct_compB(void* data) {
   CombineCompB* comp = data;
-  string_free(g_alloc_heap, comp->text);
+  string_free(g_allocHeap, comp->text);
 }
 
 ecs_module_init(combine_test_module) {
@@ -46,10 +46,10 @@ spec(combinator) {
   EcsWorld* world = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, combine_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
+    world = ecs_world_create(g_allocHeap, def);
   }
 
   it("supports combining pending components") {
@@ -97,9 +97,9 @@ spec(combinator) {
   it("supports combining components with destructors") {
     const EcsEntityId e = ecs_world_entity_create(world);
 
-    ecs_world_add_t(world, e, CombineCompB, .text = string_dup(g_alloc_heap, string_lit("Hello")));
-    ecs_world_add_t(world, e, CombineCompB, .text = string_dup(g_alloc_heap, string_lit(" ")));
-    ecs_world_add_t(world, e, CombineCompB, .text = string_dup(g_alloc_heap, string_lit("World")));
+    ecs_world_add_t(world, e, CombineCompB, .text = string_dup(g_allocHeap, string_lit("Hello")));
+    ecs_world_add_t(world, e, CombineCompB, .text = string_dup(g_allocHeap, string_lit(" ")));
+    ecs_world_add_t(world, e, CombineCompB, .text = string_dup(g_allocHeap, string_lit("World")));
 
     ecs_world_flush(world);
 

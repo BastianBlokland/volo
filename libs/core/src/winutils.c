@@ -43,7 +43,7 @@ Mem winutils_to_widestr_scratch(const String input) {
   if (UNLIKELY(sentinel_check(size))) {
     diag_crash_msg("winutils_to_widestr_scratch: Input is not valid utf8");
   }
-  Mem result = alloc_alloc(g_alloc_scratch, size, 1);
+  Mem result = alloc_alloc(g_allocScratch, size, 1);
   winutils_to_widestr(result, input);
   return result;
 }
@@ -89,13 +89,13 @@ String winutils_from_widestr_scratch(const void* input, const usize inputCharCou
   if (UNLIKELY(sentinel_check(size))) {
     diag_crash_msg("winutils_from_widestr_scratch: Input cannot be represented as utf8");
   }
-  String result = alloc_alloc(g_alloc_scratch, size, 1);
+  String result = alloc_alloc(g_allocScratch, size, 1);
   winutils_from_widestr(result, input, inputCharCount);
   return result;
 }
 
 String winutils_error_msg_scratch(const unsigned long errCode) {
-  Mem buffer = alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1);
+  Mem buffer = alloc_alloc(g_allocScratch, 2 * usize_kibibyte, 1);
 
   const DWORD chars = FormatMessage(
       FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,

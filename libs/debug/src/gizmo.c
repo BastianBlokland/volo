@@ -619,8 +619,8 @@ static void debug_gizmo_create(EcsWorld* world, const EcsEntityId entity) {
       entity,
       DebugGizmoComp,
       .size     = 1.0f,
-      .entries  = dynarray_create_t(g_alloc_heap, DebugGizmoEntry, 16),
-      .queryEnv = geo_query_env_create(g_alloc_heap));
+      .entries  = dynarray_create_t(g_allocHeap, DebugGizmoEntry, 16),
+      .queryEnv = geo_query_env_create(g_allocHeap));
 }
 
 ecs_system_define(DebugGizmoUpdateSys) {

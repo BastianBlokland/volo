@@ -146,7 +146,7 @@ RvkJob* rvk_job_create(
     const VkFormat       swapchainFormat,
     const u32            jobId,
     const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */) {
-  RvkJob* job = alloc_alloc_t(g_alloc_heap, RvkJob);
+  RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
   RvkStopwatch*   stopwatch   = rvk_stopwatch_create(dev);
@@ -191,7 +191,7 @@ void rvk_job_destroy(RvkJob* job) {
   vkDestroyCommandPool(job->dev->vkDev, job->vkCmdPool, &job->dev->vkAlloc);
   vkDestroyFence(job->dev->vkDev, job->fenceJobDone, &job->dev->vkAlloc);
 
-  alloc_free_t(g_alloc_heap, job);
+  alloc_free_t(g_allocHeap, job);
 }
 
 void rvk_job_wait_for_done(const RvkJob* job) {

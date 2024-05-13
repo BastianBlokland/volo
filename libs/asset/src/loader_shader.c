@@ -10,10 +10,10 @@ ecs_comp_define_public(AssetShaderSourceComp);
 static void ecs_destruct_shader_comp(void* data) {
   AssetShaderComp* comp = data;
   if (comp->resources.values) {
-    alloc_free_array_t(g_alloc_heap, comp->resources.values, asset_shader_max_resources);
+    alloc_free_array_t(g_allocHeap, comp->resources.values, asset_shader_max_resources);
   }
   if (comp->specs.values) {
-    alloc_free_array_t(g_alloc_heap, comp->specs.values, asset_shader_max_specs);
+    alloc_free_array_t(g_allocHeap, comp->specs.values, asset_shader_max_specs);
   }
 }
 

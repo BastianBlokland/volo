@@ -14,14 +14,14 @@ spec(process) {
   setup() {
     const String parentPath = path_parent(g_path_executable);
     const String helperName = string_lit("test_lib_core_helper");
-    helperPath              = string_dup(g_alloc_heap, path_build_scratch(parentPath, helperName));
+    helperPath              = string_dup(g_allocHeap, path_build_scratch(parentPath, helperName));
 
-    buffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
+    buffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
   }
 
   it("fails when file does not exist") {
     const String file  = string_lit("executable_that_doest_not_exist_42");
-    Process*     child = process_create(g_alloc_heap, file, null, 0, ProcessFlags_None);
+    Process*     child = process_create(g_allocHeap, file, null, 0, ProcessFlags_None);
 
     check_eq_int(process_block(child), ProcessExitCode_ExecutableNotFound);
 
@@ -29,7 +29,7 @@ spec(process) {
   }
 
   it("can wait until execution is finished") {
-    Process* child = process_create(g_alloc_heap, helperPath, null, 0, ProcessFlags_None);
+    Process* child = process_create(g_allocHeap, helperPath, null, 0, ProcessFlags_None);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check_eq_int(process_block(child), 0);
@@ -41,7 +41,7 @@ spec(process) {
     const String       args[]   = {string_lit("--exitcode"), string_lit("42")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_None;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
 
@@ -55,7 +55,7 @@ spec(process) {
     const String       args[]   = {string_lit("--block")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_None;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check(process_poll(child));
@@ -75,7 +75,7 @@ spec(process) {
     const String       args[] = {string_lit("--wait"), string_lit("--exitcode"), string_lit("42")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_NewGroup;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check(process_poll(child));
@@ -93,7 +93,7 @@ spec(process) {
     const String       args[]   = {string_lit("--greet")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_PipeStdOut;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check(process_poll(child));
@@ -111,7 +111,7 @@ spec(process) {
     const String       args[]   = {string_lit("--greetErr")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_PipeStdErr;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check(process_poll(child));
@@ -128,7 +128,7 @@ spec(process) {
     const String       args[]   = {string_lit("--countInChars")};
     const u32          argCount = array_elems(args);
     const ProcessFlags flags    = ProcessFlags_PipeStdIn;
-    Process*           child    = process_create(g_alloc_heap, helperPath, args, argCount, flags);
+    Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
     check_eq_int(process_start_result(child), ProcessResult_Success);
     check(process_poll(child));
@@ -143,7 +143,7 @@ spec(process) {
   }
 
   teardown() {
-    string_free(g_alloc_heap, helperPath);
+    string_free(g_allocHeap, helperPath);
     dynstring_destroy(&buffer);
   }
 }

@@ -42,13 +42,13 @@ typedef Allocator* (*AllocatorBuilder)(Mem);
  * 'Normal' heap allocator.
  * NOTE: Thread-safe.
  */
-extern Allocator* g_alloc_heap;
+extern Allocator* g_allocHeap;
 
 /**
  * Page allocator, allocates memory pages directly from the OS.
  * NOTE: Thread-safe.
  */
-extern Allocator* g_alloc_page;
+extern Allocator* g_allocPage;
 
 /**
  * Persitent allocator.
@@ -56,7 +56,7 @@ extern Allocator* g_alloc_page;
  * Memory cannot be manually freed, its automatically freed at application shutdown.
  * NOTE: Thread-safe.
  */
-extern Allocator* g_alloc_persist;
+extern Allocator* g_allocPersist;
 
 /**
  * Scratch allocator, allocates from a fixed size thread-local circular heap buffer.
@@ -64,7 +64,7 @@ extern Allocator* g_alloc_persist;
  * overwritten once X new allocations have been made (where X is determined by the size of the
  * allocations and the size of the scratch buffer).
  */
-extern THREAD_LOCAL Allocator* g_alloc_scratch;
+extern THREAD_LOCAL Allocator* g_allocScratch;
 
 /**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty

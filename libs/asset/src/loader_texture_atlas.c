@@ -44,7 +44,7 @@ static void atlas_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    g_dataReg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_struct_t(g_dataReg, AtlasEntryDef);
@@ -76,12 +76,12 @@ ecs_comp_define(AssetAtlasLoadComp) {
 
 static void ecs_destruct_atlas_comp(void* data) {
   AssetAtlasComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->entries, comp->entryCount);
+  alloc_free_array_t(g_allocHeap, comp->entries, comp->entryCount);
 }
 
 static void ecs_destruct_atlas_load_comp(void* data) {
   AssetAtlasLoadComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataAtlasDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataAtlasDefMeta, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -205,12 +205,12 @@ static void atlas_generate(
   }
 
   // Allocate output texture.
-  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
+  Mem pixelMem = alloc_alloc(g_allocHeap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
   mem_set(pixelMem, 0); // Initialize to black.
   bool hasAlpha = false;
 
   const u32        entryCount = (u32)def->entries.count;
-  AssetAtlasEntry* entries    = alloc_array_t(g_alloc_heap, AssetAtlasEntry, entryCount);
+  AssetAtlasEntry* entries    = alloc_array_t(g_allocHeap, AssetAtlasEntry, entryCount);
 
   // Render entries into output texture.
   AssetTexturePixelB4* pixels = pixelMem.ptr;
@@ -365,7 +365,7 @@ void asset_load_atlas(
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataAtlasDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataAtlasDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -410,14 +410,14 @@ void asset_load_atlas(
       AssetAtlasLoadComp,
       .def        = def,
       .maxEntries = maxEntries,
-      .textures   = dynarray_create_t(g_alloc_heap, EcsEntityId, def.entries.count));
+      .textures   = dynarray_create_t(g_allocHeap, EcsEntityId, def.entries.count));
   asset_repo_source_close(src);
   return;
 
 Error:
   log_e("Failed to load atlas texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataAtlasDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataAtlasDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 

@@ -56,8 +56,8 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   core_teardown(); // Tear-down the core library for this thread.
 
   // Cleanup thread data.
-  string_free(g_alloc_heap, runData->threadName);
-  alloc_free_t(g_alloc_heap, runData);
+  string_free(g_allocHeap, runData->threadName);
+  alloc_free_t(g_allocHeap, runData);
 
   return (thread_pal_rettype)0;
 }
@@ -124,8 +124,8 @@ void thread_atomic_fence_release(void) {
 
 ThreadHandle thread_start(
     ThreadRoutine routine, void* data, const String threadName, const ThreadPriority prio) {
-  ThreadRunData* threadRunData  = alloc_alloc_t(g_alloc_heap, ThreadRunData);
-  threadRunData->threadName     = string_dup(g_alloc_heap, threadName);
+  ThreadRunData* threadRunData  = alloc_alloc_t(g_allocHeap, ThreadRunData);
+  threadRunData->threadName     = string_dup(g_allocHeap, threadName);
   threadRunData->threadPriority = prio;
   threadRunData->userRoutine    = routine;
   threadRunData->userData       = data;

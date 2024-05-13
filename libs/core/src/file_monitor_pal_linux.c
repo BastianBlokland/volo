@@ -41,7 +41,7 @@ struct sFileMonitor {
 };
 
 static const char* to_null_term_scratch(const String str) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
@@ -155,7 +155,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
 
   *monitor = (FileMonitor){
       .alloc     = alloc,
-      .allocPath = alloc_chunked_create(g_alloc_page, alloc_bump_create, monitor_path_chunk_size),
+      .allocPath = alloc_chunked_create(g_allocPage, alloc_bump_create, monitor_path_chunk_size),
       .mutex     = thread_mutex_create(alloc),
       .flags     = flags,
       .fd        = fd,

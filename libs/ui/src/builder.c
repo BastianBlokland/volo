@@ -475,7 +475,7 @@ static void ui_build_debug_inspector(
   ui_build_atom_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0.0f, 0);
   ui_build_atom_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
 
-  DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
+  DynString str = dynstring_create(g_allocScratch, usize_kibibyte);
   fmt_write(&str, "Id\a>0B{}\n", fmt_int(id));
   fmt_write(&str, "AtomType\a>0B{}\n", fmt_text(g_uiAtomTypeNames[atomType]));
   fmt_write(&str, "X\a>0B{}\n", fmt_float(rect.x, .maxDecDigits = 2));

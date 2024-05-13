@@ -27,9 +27,9 @@ static bool jobs_scheduler_is_finished_locked(const JobId job) {
 
 void scheduler_init(void) {
   g_jobIdCounter = 0;
-  g_jobMutex     = thread_mutex_create(g_alloc_heap);
-  g_jobCondition = thread_cond_create(g_alloc_heap);
-  g_runningJobs  = dynarray_create_t(g_alloc_heap, Job*, 32);
+  g_jobMutex     = thread_mutex_create(g_allocHeap);
+  g_jobCondition = thread_cond_create(g_allocHeap);
+  g_runningJobs  = dynarray_create_t(g_allocHeap, Job*, 32);
 }
 
 void scheduler_teardown(void) {

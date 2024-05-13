@@ -11,11 +11,11 @@
 CliApp* cli_app_create(Allocator* alloc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
-      .name       = path_stem(g_path_executable),
-      .options    = dynarray_create_t(alloc, CliOption, 16),
-      .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
-      .alloc      = alloc,
-      .allocAux   = alloc_chunked_create(alloc, alloc_bump_create, cli_app_aux_chunk_size),
+             .name       = path_stem(g_path_executable),
+             .options    = dynarray_create_t(alloc, CliOption, 16),
+             .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
+             .alloc      = alloc,
+             .allocAux   = alloc_chunked_create(alloc, alloc_bump_create, cli_app_aux_chunk_size),
   };
   return app;
 }
@@ -145,7 +145,7 @@ void cli_register_desc_choice(
     usize         defaultChoice) {
   diag_assert_msg(choiceCount <= 1024, "Too many choices provided");
 
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   if (!string_is_empty(desc)) {
     dynstring_append(&str, desc);
     dynstring_append_char(&str, ' ');

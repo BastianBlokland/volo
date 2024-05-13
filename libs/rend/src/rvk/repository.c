@@ -56,12 +56,12 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
 }
 
 RvkRepository* rvk_repository_create(void) {
-  RvkRepository* repo = alloc_alloc_t(g_alloc_heap, RvkRepository);
+  RvkRepository* repo = alloc_alloc_t(g_allocHeap, RvkRepository);
   *repo               = (RvkRepository){0};
   return repo;
 }
 
-void rvk_repository_destroy(RvkRepository* repo) { alloc_free_t(g_alloc_heap, repo); }
+void rvk_repository_destroy(RvkRepository* repo) { alloc_free_t(g_allocHeap, repo); }
 
 void rvk_repository_texture_set(RvkRepository* repo, const RvkRepositoryId id, RvkTexture* tex) {
   diag_assert(!repo->entries[id].type || repo->entries[id].type == RvkRepositoryType_Texture);

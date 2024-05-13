@@ -6,7 +6,7 @@
 
 spec(sig) {
   it("can store ret type") {
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_bool, null, 0);
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_bool, null, 0);
 
     check_eq_int(script_sig_ret(sig), script_mask_bool);
 
@@ -17,7 +17,7 @@ spec(sig) {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_num},
     };
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_bool, args, array_elems(args));
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_bool, args, array_elems(args));
 
     check_eq_int(script_sig_ret(sig), script_mask_bool);
     check_eq_int(script_sig_arg_count(sig), 1);
@@ -33,7 +33,7 @@ spec(sig) {
         {.name = string_lit("argB"), .mask = script_mask_null},
         {.name = string_lit("argC"), .mask = script_mask_null | script_mask_vec3},
     };
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_bool, args, array_elems(args));
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_bool, args, array_elems(args));
 
     check_eq_int(script_sig_ret(sig), script_mask_bool);
     check_eq_int(script_sig_arg_count(sig), array_elems(args));
@@ -46,8 +46,8 @@ spec(sig) {
   }
 
   it("can clone signatures with zero arguments") {
-    ScriptSig* sigA = script_sig_create(g_alloc_scratch, script_mask_bool, null, 0);
-    ScriptSig* sigB = script_sig_clone(g_alloc_heap, sigA);
+    ScriptSig* sigA = script_sig_create(g_allocScratch, script_mask_bool, null, 0);
+    ScriptSig* sigB = script_sig_clone(g_allocHeap, sigA);
 
     check_eq_int(script_sig_ret(sigA), script_sig_ret(sigB));
     check_eq_int(script_sig_arg_count(sigA), script_sig_arg_count(sigB));
@@ -60,8 +60,8 @@ spec(sig) {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_num},
     };
-    ScriptSig* sigA = script_sig_create(g_alloc_scratch, script_mask_bool, args, array_elems(args));
-    ScriptSig* sigB = script_sig_clone(g_alloc_heap, sigA);
+    ScriptSig* sigA = script_sig_create(g_allocScratch, script_mask_bool, args, array_elems(args));
+    ScriptSig* sigB = script_sig_clone(g_allocHeap, sigA);
 
     check_eq_int(script_sig_ret(sigA), script_sig_ret(sigB));
     check_eq_int(script_sig_arg_count(sigA), script_sig_arg_count(sigB));
@@ -79,8 +79,8 @@ spec(sig) {
         {.name = string_lit("argB"), .mask = script_mask_null},
         {.name = string_lit("argC"), .mask = script_mask_null | script_mask_vec3},
     };
-    ScriptSig* sigA = script_sig_create(g_alloc_scratch, script_mask_bool, args, array_elems(args));
-    ScriptSig* sigB = script_sig_clone(g_alloc_heap, sigA);
+    ScriptSig* sigA = script_sig_create(g_allocScratch, script_mask_bool, args, array_elems(args));
+    ScriptSig* sigB = script_sig_clone(g_allocHeap, sigA);
 
     check_eq_int(script_sig_ret(sigA), script_sig_ret(sigB));
     check_eq_int(script_sig_arg_count(sigA), script_sig_arg_count(sigB));
@@ -96,7 +96,7 @@ spec(sig) {
 
   it("can create a textual representation of a signature with zero arguments") {
     const ScriptMask ret = script_mask_null | script_mask_bool;
-    ScriptSig*       sig = script_sig_create(g_alloc_scratch, ret, null, 0);
+    ScriptSig*       sig = script_sig_create(g_allocScratch, ret, null, 0);
 
     check_eq_string(script_sig_scratch(sig), string_lit("() -> bool?"));
 
@@ -107,7 +107,7 @@ spec(sig) {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_num},
     };
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_any, args, array_elems(args));
 
     check_eq_string(script_sig_arg_scratch(sig, 0), string_lit("argA: num"));
 
@@ -118,7 +118,7 @@ spec(sig) {
     const ScriptSigArg args[] = {
         {.name = string_lit("argA"), .mask = script_mask_num},
     };
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_any, args, array_elems(args));
 
     check_eq_string(script_sig_scratch(sig), string_lit("(argA: num) -> any"));
 
@@ -135,7 +135,7 @@ spec(sig) {
             .flags = ScriptSigArgFlags_Multi,
         },
     };
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_any, args, array_elems(args));
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_any, args, array_elems(args));
 
     check_eq_string(
         script_sig_scratch(sig), string_lit("(argA: num, argB, argC: vec3?...) -> any"));
@@ -149,7 +149,7 @@ spec(sig) {
         {.name = string_lit("argB"), .mask = script_mask_none},
         {.name = string_lit("argC"), .mask = script_mask_none, .flags = ScriptSigArgFlags_Multi},
     };
-    ScriptSig* sig = script_sig_create(g_alloc_scratch, script_mask_none, args, array_elems(args));
+    ScriptSig* sig = script_sig_create(g_allocScratch, script_mask_none, args, array_elems(args));
 
     check_eq_string(script_sig_scratch(sig), string_lit("(argA, argB, argC...)"));
 

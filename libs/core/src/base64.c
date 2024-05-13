@@ -20,8 +20,9 @@ usize base64_decoded_size(String encoded) {
     return 0;
   }
   // Check how many padding characters there are. Either 2, 1 or 0.
-  const u8 padding =
-      *(string_end(encoded) - 2) == '=' ? 2 : *(string_end(encoded) - 1) == '=' ? 1 : 0;
+  const u8 padding = *(string_end(encoded) - 2) == '='   ? 2
+                     : *(string_end(encoded) - 1) == '=' ? 1
+                                                         : 0;
   return encoded.size / 4 * 3 - padding;
 }
 
@@ -57,7 +58,7 @@ String base64_decode_scratch(String encoded) {
     return string_empty;
   }
 
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, decodedSize, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, decodedSize, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   base64_decode(&str, encoded);

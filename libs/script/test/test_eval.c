@@ -48,14 +48,14 @@ spec(eval) {
   ScriptSymBag*  symsNull    = null;
 
   setup() {
-    doc = script_create(g_alloc_heap);
-    mem = script_mem_create(g_alloc_heap);
+    doc = script_create(g_allocHeap);
+    mem = script_mem_create(g_allocHeap);
 
     script_mem_store(mem, string_hash_lit("v1"), script_bool(true));
     script_mem_store(mem, string_hash_lit("v2"), script_num(1337));
     script_mem_store(mem, string_hash_lit("v3"), script_null());
 
-    binder                         = script_binder_create(g_alloc_heap);
+    binder                         = script_binder_create(g_allocHeap);
     const String     documentation = string_empty;
     const ScriptSig* nullSig       = null;
     script_binder_declare(

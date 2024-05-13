@@ -173,10 +173,10 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   }
 
   return (AssetMeshComp){
-      .vertexData        = dynarray_copy_as_new(&builder->vertexData, g_alloc_heap),
-      .skinData          = dynarray_copy_as_new(&builder->skinData, g_alloc_heap),
+      .vertexData        = dynarray_copy_as_new(&builder->vertexData, g_allocHeap),
+      .skinData          = dynarray_copy_as_new(&builder->skinData, g_allocHeap),
       .vertexCount       = vertCount,
-      .indexData         = dynarray_copy_as_new(&builder->indexData, g_alloc_heap),
+      .indexData         = dynarray_copy_as_new(&builder->indexData, g_allocHeap),
       .indexCount        = idxCount,
       .positionBounds    = positionBounds,
       .positionRawBounds = builder->positionRawBounds,
@@ -200,7 +200,7 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
    * to split vertices, therefore we take a snapshot of the mesh and then rebuild it.
    */
 
-  AssetMeshSnapshot snapshot = asset_mesh_snapshot(builder, g_alloc_heap);
+  AssetMeshSnapshot snapshot = asset_mesh_snapshot(builder, g_allocHeap);
   asset_mesh_builder_clear(builder);
 
   diag_assert((snapshot.indexCount % 3) == 0); // Input has to be triangles.
@@ -229,7 +229,7 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
     }
   }
 
-  alloc_free(g_alloc_heap, snapshot.mem);
+  alloc_free(g_allocHeap, snapshot.mem);
 }
 
 void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
@@ -244,7 +244,7 @@ void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
   const usize vertCount = builder->vertexData.size;
   const usize idxCount  = builder->indexData.size;
 
-  Mem bufferMem = alloc_alloc(g_alloc_heap, 2 * vertCount * sizeof(GeoVector), alignof(GeoVector));
+  Mem bufferMem = alloc_alloc(g_allocHeap, 2 * vertCount * sizeof(GeoVector), alignof(GeoVector));
   mem_set(bufferMem, 0);
 
   GeoVector* tangents   = bufferMem.ptr;
@@ -309,5 +309,5 @@ void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
     vertices[i].tangent = orthoTan;
   }
 
-  alloc_free(g_alloc_heap, bufferMem);
+  alloc_free(g_allocHeap, bufferMem);
 }

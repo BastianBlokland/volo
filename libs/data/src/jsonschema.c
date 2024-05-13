@@ -152,7 +152,7 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
 }
 
 static String schema_snippet_stringify_scratch(const JsonSchemaCtx* ctx, const JsonVal val) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, jsonschema_snippet_len_max, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, jsonschema_snippet_len_max, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   /**
@@ -486,7 +486,7 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
 
 void data_jsonschema_write(
     const DataReg* reg, DynString* str, const DataMeta meta, const DataJsonSchemaFlags flags) {
-  JsonDoc*      doc     = json_create(g_alloc_scratch, 512);
+  JsonDoc*      doc     = json_create(g_allocScratch, 512);
   const JsonVal rootObj = json_add_object(doc);
 
   const JsonVal defsObj = json_add_object(doc);

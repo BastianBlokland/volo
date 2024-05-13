@@ -75,13 +75,13 @@ typedef struct {
 static RendVkExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
   u32 count;
   rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
-  VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
+  VkExtensionProperties* props = alloc_array_t(g_allocHeap, VkExtensionProperties, count);
   rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
   return (RendVkExts){.values = props, .count = count};
 }
 
 static void rvk_vk_exts_free(RendVkExts exts) {
-  alloc_free_array_t(g_alloc_heap, exts.values, exts.count);
+  alloc_free_array_t(g_allocHeap, exts.values, exts.count);
 }
 
 /**
@@ -309,10 +309,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
   queueCreateInfos[queueCreateInfoCount++]     = (VkDeviceQueueCreateInfo){
-      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = dev->graphicsQueueIndex,
-      .queueCount       = 1,
-      .pQueuePriorities = &queuePriorities[0],
+          .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+          .queueFamilyIndex = dev->graphicsQueueIndex,
+          .queueCount       = 1,
+          .pQueuePriorities = &queuePriorities[0],
   };
   if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
     queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
@@ -413,10 +413,10 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 }
 
 RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
-  RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
+  RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
   *dev           = (RvkDevice){
-      .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
-      .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
+                .vkAlloc          = rvk_mem_allocator(g_allocHeap),
+                .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
   if (settingsGlobal->flags & RendGlobalFlags_TextureCompression) {
     dev->flags |= RvkDeviceFlags_TextureCompression;
@@ -500,7 +500,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   vkDestroyInstance(dev->vkInst, &dev->vkAlloc);
   thread_mutex_destroy(dev->queueSubmitMutex);
-  alloc_free_t(g_alloc_heap, dev);
+  alloc_free_t(g_allocHeap, dev);
 
   log_d("Vulkan device destroyed");
 }

@@ -61,7 +61,7 @@ static void fonttex_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_struct_t(reg, FontTexDefFont);
@@ -92,12 +92,12 @@ ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
 
 static void ecs_destruct_fonttex_comp(void* data) {
   AssetFontTexComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->characters, comp->characterCount);
+  alloc_free_array_t(g_allocHeap, comp->characters, comp->characterCount);
 }
 
 static void ecs_destruct_fonttex_load_comp(void* data) {
   AssetFontTexLoadComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataFontTexDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(comp->def));
 }
 
 typedef enum {
@@ -272,11 +272,11 @@ static void fonttex_generate(
     AssetTextureComp*             outTexture,
     FontTexError*                 err) {
 
-  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
+  Mem pixelMem = alloc_alloc(g_allocHeap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
   mem_set(pixelMem, 0xFF); // Initialize to the maximum distance away from a glyph.
 
   AssetTexturePixelB1* pixels = pixelMem.ptr;
-  DynArray             chars  = dynarray_create_t(g_alloc_heap, AssetFontTexChar, 128);
+  DynArray             chars  = dynarray_create_t(g_allocHeap, AssetFontTexChar, 128);
 
   const u32 glyphsPerDim   = def->size / def->glyphSize;
   const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
@@ -302,7 +302,7 @@ static void fonttex_generate(
       .glyphsPerDim   = glyphsPerDim,
       .lineSpacing    = def->lineSpacing,
       .baseline       = def->baseline,
-      .characters     = dynarray_copy_as_new(&chars, g_alloc_heap),
+      .characters     = dynarray_copy_as_new(&chars, g_allocHeap),
       .characterCount = chars.size,
   };
   *outTexture = (AssetTextureComp){
@@ -321,7 +321,7 @@ static void fonttex_generate(
 Error:
   diag_assert(*err);
   dynarray_destroy(&chars);
-  alloc_free_array_t(g_alloc_heap, pixels, def->size * def->size);
+  alloc_free_array_t(g_allocHeap, pixels, def->size * def->size);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -442,7 +442,7 @@ void asset_load_fonttex(
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataFontTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataFontTexDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -472,7 +472,7 @@ void asset_load_fonttex(
 Error:
   log_e("Failed to load font-texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataFontTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 

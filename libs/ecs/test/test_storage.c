@@ -60,10 +60,10 @@ spec(storage) {
   EcsWorld* world = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, storage_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
+    world = ecs_world_create(g_allocHeap, def);
   }
 
   it("copies added components into the entities archetype") {
@@ -294,7 +294,7 @@ spec(storage) {
 
   it("keeps component data consistent when destroying many entities in the same archetype") {
     static const usize g_entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
+    DynArray           entities = dynarray_create_t(g_allocHeap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
@@ -336,7 +336,7 @@ spec(storage) {
 
   it("keeps component data consistent when splitting an archetype in two") {
     static const usize g_entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
+    DynArray           entities = dynarray_create_t(g_allocHeap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);

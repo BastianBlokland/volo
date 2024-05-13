@@ -22,7 +22,7 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator* alloc) {
   UiCmdBuffer* buffer = alloc_alloc_t(alloc, UiCmdBuffer);
 
   Allocator* allocTransient =
-      alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size);
+      alloc_chunked_create(g_allocPage, alloc_bump_create, ui_cmdbuffer_transient_chunk_size);
 
   *buffer = (UiCmdBuffer){
       .commands       = dynarray_create_t(alloc, UiCmd, 128),

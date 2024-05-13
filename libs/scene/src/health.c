@@ -31,7 +31,7 @@ ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 static SceneHealthMod* mod_storage_push(SceneHealthModStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {
     const u32       newCapacity = storage->capacity ? bits_nextpow2(storage->capacity + 1) : 4;
-    SceneHealthMod* newValues   = alloc_array_t(g_alloc_heap, SceneHealthMod, newCapacity);
+    SceneHealthMod* newValues   = alloc_array_t(g_allocHeap, SceneHealthMod, newCapacity);
     if (UNLIKELY(!newValues)) {
       diag_crash_msg("damage_storage_push(): Allocation failed");
     }
@@ -39,7 +39,7 @@ static SceneHealthMod* mod_storage_push(SceneHealthModStorage* storage) {
       mem_cpy(
           mem_from_to(newValues, newValues + storage->count),
           mem_from_to(storage->values, storage->values + storage->count));
-      alloc_free_array_t(g_alloc_heap, storage->values, storage->capacity);
+      alloc_free_array_t(g_allocHeap, storage->values, storage->capacity);
     }
     storage->values   = newValues;
     storage->capacity = newCapacity;
@@ -52,7 +52,7 @@ static void mod_storage_clear(SceneHealthModStorage* storage) { storage->count =
 
 static void mod_storage_destroy(SceneHealthModStorage* storage) {
   if (storage->capacity) {
-    alloc_free_array_t(g_alloc_heap, storage->values, storage->capacity);
+    alloc_free_array_t(g_allocHeap, storage->values, storage->capacity);
   }
 }
 

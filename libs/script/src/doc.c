@@ -661,7 +661,7 @@ void script_expr_write(
 }
 
 String script_expr_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 8, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, usize_kibibyte * 8, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   const u32 indent = 0;

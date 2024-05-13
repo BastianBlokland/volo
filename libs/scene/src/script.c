@@ -964,9 +964,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1827,7 +1827,7 @@ static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptE
 
 static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
-  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 0; i != args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
@@ -1927,7 +1927,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   data.color    = script_arg_color(args, 1, err);
   data.fontSize = (u16)script_arg_num_range(args, 2, 6.0, 30.0, err);
 
-  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 3; i < args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
@@ -1948,7 +1948,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
 
 static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   (void)err;
-  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 0; i < args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
@@ -2059,7 +2059,7 @@ static void eval_binder_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
-    ScriptBinder* b = script_binder_create(g_alloc_persist);
+    ScriptBinder* b = script_binder_create(g_allocPersist);
 
     eval_enum_init_faction();
     eval_enum_init_clock();
@@ -2188,7 +2188,7 @@ ecs_comp_define(SceneScriptResourceComp) {
 
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
-  alloc_free_array_t(g_alloc_heap, scriptInstance->slots, scriptInstance->slotCount);
+  alloc_free_array_t(g_allocHeap, scriptInstance->slots, scriptInstance->slotCount);
   if (scriptInstance->allocTransient) {
     alloc_chunked_destroy(scriptInstance->allocTransient);
   }
@@ -2299,7 +2299,7 @@ static void scene_script_eval(EvalContext* ctx) {
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
   if (!inst->allocTransient) {
     const usize chunkSize = 4 * usize_kibibyte;
-    inst->allocTransient  = alloc_chunked_create(g_alloc_page, alloc_bump_create, chunkSize);
+    inst->allocTransient  = alloc_chunked_create(g_allocPage, alloc_bump_create, chunkSize);
   }
   return alloc_dup(inst->allocTransient, mem, align);
 }
@@ -2896,11 +2896,11 @@ SceneScriptComp* scene_script_add(
       world,
       entity,
       SceneScriptComp,
-      .actions = dynarray_create_t(g_alloc_heap, ScriptAction, 0),
-      .debug   = dynarray_create_t(g_alloc_heap, SceneScriptDebug, 0));
+      .actions = dynarray_create_t(g_allocHeap, ScriptAction, 0),
+      .debug   = dynarray_create_t(g_allocHeap, SceneScriptDebug, 0));
 
   script->slotCount = (u8)scriptAssetCount;
-  script->slots     = alloc_array_t(g_alloc_heap, SceneScriptData, scriptAssetCount);
+  script->slots     = alloc_array_t(g_allocHeap, SceneScriptData, scriptAssetCount);
   for (u32 i = 0; i != scriptAssetCount; ++i) {
     diag_assert(ecs_world_exists(world, scriptAssets[i]));
     script->slots[i].asset = scriptAssets[i];

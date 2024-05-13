@@ -25,7 +25,7 @@ void cli_failure_write(DynString* dynStr, CliInvocation* invoc, const CliFailure
 }
 
 void cli_failure_write_file(CliInvocation* invoc, File* out) {
-  DynString str = dynstring_create(g_alloc_heap, 512);
+  DynString str = dynstring_create(g_allocHeap, 512);
 
   const CliFailureFlags flags = tty_isatty(out) ? CliFailureFlags_Style : CliFailureFlags_None;
   cli_failure_write(&str, invoc, flags);

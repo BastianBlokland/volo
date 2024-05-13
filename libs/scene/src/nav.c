@@ -64,14 +64,14 @@ static void ecs_destruct_nav_env_comp(void* data) {
 
 static void ecs_destruct_nav_path_comp(void* data) {
   SceneNavPathComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->cells, path_max_cells);
+  alloc_free_array_t(g_allocHeap, comp->cells, path_max_cells);
 }
 
 static GeoNavGrid* nav_grid_create(const f32 size, const SceneNavLayer layer) {
   const f32 cellSize    = g_sceneNavCellSize[layer];
   const f32 cellHeight  = g_sceneNavCellHeight[layer];
   const f32 blockHeight = g_sceneNavCellBlockHeight;
-  return geo_nav_grid_create(g_alloc_heap, size, cellSize, cellHeight, blockHeight);
+  return geo_nav_grid_create(g_allocHeap, size, cellSize, cellHeight, blockHeight);
 }
 
 static void nav_env_create(EcsWorld* world) {
@@ -743,7 +743,7 @@ void scene_nav_add_blocker(EcsWorld* w, const EcsEntityId e, const SceneNavBlock
 SceneNavAgentComp*
 scene_nav_add_agent(EcsWorld* w, const EcsEntityId e, const SceneNavLayer layer) {
 
-  GeoNavCell* pathCells = alloc_array_t(g_alloc_heap, GeoNavCell, path_max_cells);
+  GeoNavCell* pathCells = alloc_array_t(g_allocHeap, GeoNavCell, path_max_cells);
   ecs_world_add_t(w, e, SceneNavPathComp, .cells = pathCells);
 
   return ecs_world_add_t(w, e, SceneNavAgentComp, .layer = layer);

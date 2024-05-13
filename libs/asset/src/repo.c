@@ -41,7 +41,7 @@ void asset_repo_source_close(AssetSource* src) {
   if (src->close) {
     src->close(src);
   } else {
-    alloc_free_t(g_alloc_heap, src);
+    alloc_free_t(g_allocHeap, src);
   }
 }
 

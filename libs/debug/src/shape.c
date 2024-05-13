@@ -380,7 +380,7 @@ ecs_module_init(debug_shape_module) {
 
 DebugShapeComp* debug_shape_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
-      world, entity, DebugShapeComp, .entries = dynarray_create_t(g_alloc_heap, DebugShape, 64));
+      world, entity, DebugShapeComp, .entries = dynarray_create_t(g_allocHeap, DebugShape, 64));
 }
 
 void debug_box(

@@ -139,9 +139,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                        .type                 = AssetInputType_Pressed,
-                        .key                  = 15,
-                        .requiredModifierBits = 0b11,
+                            .type                 = AssetInputType_Pressed,
+                            .key                  = 15,
+                            .requiredModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -164,9 +164,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                        .type                = AssetInputType_Pressed,
-                        .key                 = 15,
-                        .illegalModifierBits = 0b11,
+                            .type                = AssetInputType_Pressed,
+                            .key                 = 15,
+                            .illegalModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -225,12 +225,12 @@ spec(loader_inputmap) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     ecs_register_module(def, loader_inputmap_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("can load inputmaps") {

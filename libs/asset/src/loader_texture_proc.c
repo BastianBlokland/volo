@@ -53,7 +53,7 @@ static void proctex_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_enum_t(reg, ProcTexType);
@@ -302,9 +302,9 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
   const u32   size             = def->size;
   const usize pixelChannelSize = proctex_pixel_channel_size(def);
   const usize pixelDataSize    = pixelChannelSize * def->channels;
-  u8*         pixels = alloc_alloc(g_alloc_heap, size * size * pixelDataSize, pixelDataSize).ptr;
+  u8*         pixels = alloc_alloc(g_allocHeap, size * size * pixelDataSize, pixelDataSize).ptr;
 
-  Rng* rng = rng_create_xorwow(g_alloc_heap, def->seed);
+  Rng* rng = rng_create_xorwow(g_allocHeap, def->seed);
   for (u32 y = 0; y != size; ++y) {
     for (u32 x = 0; x != size; ++x) {
       const GeoColor sample = proctex_sample(def, x, y, rng);
@@ -366,7 +366,7 @@ void asset_load_proctex(
   String         errMsg;
   ProcTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataProcTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataProcTexDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -396,7 +396,7 @@ void asset_load_proctex(
 Error:
   log_e("Failed to load proc texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataProcTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataProcTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 

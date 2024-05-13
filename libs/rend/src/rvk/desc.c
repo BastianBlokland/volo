@@ -146,7 +146,7 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
 }
 
 static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta* meta) {
-  RvkDescChunk* chunk = alloc_alloc_t(g_alloc_heap, RvkDescChunk);
+  RvkDescChunk* chunk = alloc_alloc_t(g_allocHeap, RvkDescChunk);
 
   *chunk = (RvkDescChunk){
       .pool     = pool,
@@ -188,7 +188,7 @@ static void rvk_desc_chunk_destroy(RvkDescChunk* chunk) {
       "Not all descriptor sets have been freed");
 
   vkDestroyDescriptorPool(chunk->pool->dev->vkDev, chunk->vkPool, &chunk->pool->dev->vkAlloc);
-  alloc_free_t(g_alloc_heap, chunk);
+  alloc_free_t(g_allocHeap, chunk);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
   log_d("Vulkan descriptor chunk destroyed", log_param("meta-hash", fmt_int(chunk->metaHash)));
@@ -214,13 +214,13 @@ static void rvk_desc_chunk_free(RvkDescChunk* chunk, const RvkDescSet set) {
 }
 
 RvkDescPool* rvk_desc_pool_create(RvkDevice* dev) {
-  RvkDescPool* pool = alloc_alloc_t(g_alloc_heap, RvkDescPool);
+  RvkDescPool* pool = alloc_alloc_t(g_allocHeap, RvkDescPool);
 
   *pool = (RvkDescPool){
       .dev        = dev,
-      .layoutLock = thread_mutex_create(g_alloc_heap),
-      .layouts    = dynarray_create_t(g_alloc_heap, RvkDescLayout, 64),
-      .chunkLock  = thread_mutex_create(g_alloc_heap),
+      .layoutLock = thread_mutex_create(g_allocHeap),
+      .layouts    = dynarray_create_t(g_allocHeap, RvkDescLayout, 64),
+      .chunkLock  = thread_mutex_create(g_allocHeap),
   };
 
   return pool;
@@ -243,7 +243,7 @@ void rvk_desc_pool_destroy(RvkDescPool* pool) {
   }
   dynarray_destroy(&pool->layouts);
 
-  alloc_free_t(g_alloc_heap, pool);
+  alloc_free_t(g_allocHeap, pool);
 }
 
 u16 rvk_desc_pool_sets_occupied(const RvkDescPool* pool) {

@@ -83,7 +83,7 @@ static void script_builtin_func_add(
   diag_assert(!script_builtin_func_lookup(string_hash(id)));
   g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
       .idHash = string_hash(id),
-      .sig    = script_sig_create(g_alloc_persist, retMask, args, argCount),
+      .sig    = script_sig_create(g_allocPersist, retMask, args, argCount),
       .intr   = intr,
       .id     = id,
       .doc    = doc,
@@ -906,9 +906,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .severity = ScriptDiagSeverity_Warning,
-          .kind     = ScriptDiag_ExprUnreachable,
-          .range    = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .kind     = ScriptDiag_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1946,13 +1946,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .syms       = syms,
+            .input      = src,
+            .inputTotal = src,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

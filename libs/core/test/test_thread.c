@@ -178,7 +178,7 @@ spec(thread) {
   }
 
   it("can lock a mutex when its currently unlocked") {
-    ThreadMutex mutex = thread_mutex_create(g_alloc_scratch);
+    ThreadMutex mutex = thread_mutex_create(g_allocScratch);
 
     thread_mutex_lock(mutex);
     thread_mutex_unlock(mutex);
@@ -187,7 +187,7 @@ spec(thread) {
   }
 
   it("can trylock a mutex when its currently unlocked") {
-    ThreadMutex mutex = thread_mutex_create(g_alloc_scratch);
+    ThreadMutex mutex = thread_mutex_create(g_allocScratch);
 
     check(thread_mutex_trylock(mutex));
     thread_mutex_unlock(mutex);
@@ -196,7 +196,7 @@ spec(thread) {
   }
 
   it("fails to trylock when a mutex is currently locked") {
-    ThreadMutex mutex = thread_mutex_create(g_alloc_scratch);
+    ThreadMutex mutex = thread_mutex_create(g_allocScratch);
 
     thread_mutex_lock(mutex);
 
@@ -217,8 +217,8 @@ spec(thread) {
 
     data.started = false;
     data.value   = 0;
-    data.mutex   = thread_mutex_create(g_alloc_scratch);
-    data.cond    = thread_cond_create(g_alloc_scratch);
+    data.mutex   = thread_mutex_create(g_allocScratch);
+    data.cond    = thread_cond_create(g_allocScratch);
 
     ThreadHandle exec = thread_start(test_cond_signal_unblocks_atleast_one, &data, name, prio);
 
@@ -244,8 +244,8 @@ spec(thread) {
     } data;
 
     data.startedExecs = 0;
-    data.mutex        = thread_mutex_create(g_alloc_scratch);
-    data.cond         = thread_cond_create(g_alloc_scratch);
+    data.mutex        = thread_mutex_create(g_allocScratch);
+    data.cond         = thread_cond_create(g_allocScratch);
 
     ThreadHandle threads[4];
     for (usize i = 0; i != array_elems(threads); ++i) {

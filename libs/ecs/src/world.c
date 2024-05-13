@@ -155,7 +155,7 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
 
 #ifndef VOLO_FAST
 static void ecs_world_validate_exclusive_entities(EcsWorld* world) {
-  DynArray totalEntities = dynarray_create_t(g_alloc_scratch, EcsEntityId, 512);
+  DynArray totalEntities = dynarray_create_t(g_allocScratch, EcsEntityId, 512);
   dynarray_for_t(&world->views, EcsView, view) {
     dynarray_for_t(&view->exclusiveEntities, EcsEntityId, e) {
       if (dynarray_search_binary(&totalEntities, ecs_compare_entity, e)) {

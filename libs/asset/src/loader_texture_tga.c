@@ -448,14 +448,14 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
 
   const u32 width  = header.imageSpec.width;
   const u32 height = header.imageSpec.height;
-  const Mem pixels = tga_pixels_alloc(g_alloc_heap, channels, width, height);
+  const Mem pixels = tga_pixels_alloc(g_allocHeap, channels, width, height);
 
   bool hasAlpha = false;
   data          = tga_pixels_read(pixels, channels, flags, width, height, data, &hasAlpha, &res);
 
   if (res) {
     tga_load_fail(world, entity, res);
-    alloc_free(g_alloc_heap, pixels);
+    alloc_free(g_allocHeap, pixels);
     goto Error;
   }
 

@@ -69,7 +69,7 @@ typedef struct {
 } CmdGroup;
 
 static void cmd_group_init(CmdGroup* group) {
-  group->entities = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+  group->entities = dynarray_create_t(g_allocHeap, EcsEntityId, 64);
 }
 
 static void cmd_group_destroy(CmdGroup* group) { dynarray_destroy(&group->entities); }
@@ -243,7 +243,7 @@ ecs_system_define(CmdControllerUpdateSys) {
   CmdControllerComp* controller = ecs_view_write_t(globalItr, CmdControllerComp);
   if (!controller) {
     controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
-    controller->commands = dynarray_create_t(g_alloc_heap, Cmd, 512);
+    controller->commands = dynarray_create_t(g_allocHeap, Cmd, 512);
     array_for_t(controller->groups, CmdGroup, group) { cmd_group_init(group); }
   }
 

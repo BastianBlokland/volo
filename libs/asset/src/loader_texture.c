@@ -60,7 +60,7 @@ ecs_comp_define_public(AssetTextureComp);
 
 static void ecs_destruct_texture_comp(void* data) {
   AssetTextureComp* comp = data;
-  alloc_free(g_alloc_heap, asset_texture_data(comp));
+  alloc_free(g_allocHeap, asset_texture_data(comp));
 }
 
 ecs_view_define(UnloadView) {

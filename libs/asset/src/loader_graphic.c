@@ -22,7 +22,7 @@ static void graphic_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_enum_t(reg, AssetGraphicTopology);
@@ -126,7 +126,7 @@ ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };
 
 static void ecs_destruct_graphic_comp(void* data) {
   AssetGraphicComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataMeta, mem_create(comp, sizeof(AssetGraphicComp)));
+  data_destroy(g_dataReg, g_allocHeap, g_dataMeta, mem_create(comp, sizeof(AssetGraphicComp)));
 }
 
 static void ecs_destruct_graphic_load_comp(void* data) {
@@ -165,7 +165,7 @@ ecs_system_define(LoadGraphicAssetSys) {
     data_read_json(
         g_dataReg,
         src->data,
-        g_alloc_heap,
+        g_allocHeap,
         g_dataMeta,
         mem_create(graphicComp, sizeof(AssetGraphicComp)),
         &result);

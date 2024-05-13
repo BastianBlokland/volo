@@ -27,15 +27,15 @@ spec(manager) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     ecs_register_module(def, manager_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
+    world = ecs_world_create(g_allocHeap, def);
     asset_manager_create_mem(world, AssetManagerFlags_None, g_records, array_elems(g_records));
     ecs_world_flush(world);
 
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("can lookup assets by name") {

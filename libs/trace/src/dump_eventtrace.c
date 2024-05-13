@@ -147,7 +147,7 @@ bool trace_dump_eventtrace_to_path(const TraceSink* storeSink, const String path
   const Mem pathCopy = mem_stack(path.size);
   mem_cpy(pathCopy, path);
 
-  DynString dynString = dynstring_create(g_alloc_heap, 128 * usize_kibibyte);
+  DynString dynString = dynstring_create(g_allocHeap, 128 * usize_kibibyte);
 
   trace_dump_eventtrace(storeSink, &dynString);
 

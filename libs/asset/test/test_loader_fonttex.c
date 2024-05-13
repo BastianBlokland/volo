@@ -118,14 +118,14 @@ spec(loader_fonttex) {
   String     testFontData = string_empty;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     ecs_register_module(def, loader_fonttex_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
 
-    testFontData = string_dup(g_alloc_heap, base64_decode_scratch(g_testFontBase64));
+    testFontData = string_dup(g_allocHeap, base64_decode_scratch(g_testFontBase64));
   }
 
   it("can load fonttex assets") {
@@ -212,6 +212,6 @@ spec(loader_fonttex) {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
     ecs_def_destroy(def);
-    alloc_free(g_alloc_heap, testFontData);
+    alloc_free(g_allocHeap, testFontData);
   }
 }

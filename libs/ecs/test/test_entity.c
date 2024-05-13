@@ -9,8 +9,8 @@ spec(entity) {
   EcsWorld* world = null;
 
   setup() {
-    def   = ecs_def_create(g_alloc_heap);
-    world = ecs_world_create(g_alloc_heap, def);
+    def   = ecs_def_create(g_allocHeap);
+    world = ecs_world_create(g_allocHeap, def);
   }
 
   it("returns 0 when comparing the same entity") {

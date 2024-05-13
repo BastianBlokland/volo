@@ -152,22 +152,22 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   AssetGltfLoadComp* comp = data;
   json_destroy(comp->jDoc);
   if (comp->buffers) {
-    alloc_free_array_t(g_alloc_heap, comp->buffers, comp->bufferCount);
+    alloc_free_array_t(g_allocHeap, comp->buffers, comp->bufferCount);
   }
   if (comp->views) {
-    alloc_free_array_t(g_alloc_heap, comp->views, comp->viewCount);
+    alloc_free_array_t(g_allocHeap, comp->views, comp->viewCount);
   }
   if (comp->access) {
-    alloc_free_array_t(g_alloc_heap, comp->access, comp->accessCount);
+    alloc_free_array_t(g_allocHeap, comp->access, comp->accessCount);
   }
   if (comp->prims) {
-    alloc_free_array_t(g_alloc_heap, comp->prims, comp->primCount);
+    alloc_free_array_t(g_allocHeap, comp->prims, comp->primCount);
   }
   if (comp->joints) {
-    alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
+    alloc_free_array_t(g_allocHeap, comp->joints, comp->jointCount);
   }
   if (comp->anims) {
-    alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
+    alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
   }
   dynarray_destroy(&comp->animData);
 }
@@ -512,7 +512,7 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
   if (!(ld->bufferCount = gltf_json_elem_count(ld, buffers))) {
     goto Error;
   }
-  ld->buffers = alloc_array_t(g_alloc_heap, GltfBuffer, ld->bufferCount);
+  ld->buffers = alloc_array_t(g_allocHeap, GltfBuffer, ld->bufferCount);
   mem_set(mem_create(ld->buffers, sizeof(GltfBuffer) * ld->bufferCount), 0);
   GltfBuffer* out = ld->buffers;
 
@@ -544,7 +544,7 @@ static void gltf_parse_views(GltfLoad* ld, GltfError* err) {
   if (!(ld->viewCount = gltf_json_elem_count(ld, views))) {
     goto Error;
   }
-  ld->views     = alloc_array_t(g_alloc_heap, GltfView, ld->viewCount);
+  ld->views     = alloc_array_t(g_allocHeap, GltfView, ld->viewCount);
   GltfView* out = ld->views;
 
   json_for_elems(ld->jDoc, views, bufferView) {
@@ -578,7 +578,7 @@ static void gltf_parse_accessors(GltfLoad* ld, GltfError* err) {
   if (!(ld->accessCount = gltf_json_elem_count(ld, accessors))) {
     goto Error;
   }
-  ld->access      = alloc_array_t(g_alloc_heap, GltfAccess, ld->accessCount);
+  ld->access      = alloc_array_t(g_allocHeap, GltfAccess, ld->accessCount);
   GltfAccess* out = ld->access;
 
   json_for_elems(ld->jDoc, accessors, accessor) {
@@ -637,7 +637,7 @@ static void gltf_parse_primitives(GltfLoad* ld, GltfError* err) {
   if (!(ld->primCount = gltf_json_elem_count(ld, primitives))) {
     goto Error;
   }
-  ld->prims     = alloc_array_t(g_alloc_heap, GltfPrim, ld->primCount);
+  ld->prims     = alloc_array_t(g_allocHeap, GltfPrim, ld->primCount);
   GltfPrim* out = ld->prims;
 
   json_for_elems(ld->jDoc, primitives, primitive) {
@@ -739,7 +739,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
   }
-  ld->joints = alloc_array_t(g_alloc_heap, GltfJoint, ld->jointCount);
+  ld->joints = alloc_array_t(g_allocHeap, GltfJoint, ld->jointCount);
 
   GltfJoint* outJoint = ld->joints;
   json_for_elems(ld->jDoc, joints, joint) {
@@ -827,7 +827,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   if (!(ld->animCount = gltf_json_elem_count(ld, animations))) {
     goto Success; // Animations are optional.
   }
-  ld->anims         = alloc_array_t(g_alloc_heap, GltfAnim, ld->animCount);
+  ld->anims         = alloc_array_t(g_allocHeap, GltfAnim, ld->animCount);
   GltfAnim* outAnim = ld->anims;
 
   enum { GltfMaxSamplerCount = 1024 };
@@ -1057,7 +1057,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   if (*err) {
     return;
   }
-  AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, meta.vertexCount);
+  AssetMeshBuilder* builder = asset_mesh_builder_create(g_allocHeap, meta.vertexCount);
 
   typedef const f32* AccessorF32;
   AccessorF32        positions, texcoords, normals, tangents;
@@ -1309,7 +1309,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
-      ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnim, ld->animCount) : null;
+      ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     resAnims[animIndex].nameHash = ld->anims[animIndex].nameHash;
     f32 duration                 = 0;
@@ -1366,7 +1366,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
-      .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
+      .animData = alloc_dup(g_allocHeap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;
   return;
@@ -1502,7 +1502,7 @@ ecs_module_init(asset_gltf_module) {
 }
 
 void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  JsonDoc*   jsonDoc = json_create(g_alloc_heap, 512);
+  JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
   json_read(jsonDoc, src->data, &jsonRes);
   asset_repo_source_close(src);
@@ -1527,5 +1527,5 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .jDoc               = jsonDoc,
       .jRoot              = jsonRes.type,
       .accBindPoseInvMats = sentinel_u32,
-      .animData           = dynarray_create(g_alloc_heap, 1, 1, 0));
+      .animData           = dynarray_create(g_allocHeap, 1, 1, 0));
 }

@@ -34,17 +34,17 @@ spec(world) {
   EcsWorld* world = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, world_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
+    world = ecs_world_create(g_allocHeap, def);
   }
 
   it("stores the definition") { check(ecs_world_def(world) == def); }
 
   it("reports created entities as existing") {
     static const usize g_entitiesToCreate = 567;
-    DynArray           entities           = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
+    DynArray           entities           = dynarray_create_t(g_allocHeap, EcsEntityId, 2048);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);
@@ -125,7 +125,7 @@ spec(world) {
 
   it("can add components for many entities") {
     static const usize g_entitiesToCreate = 567;
-    DynArray           entities           = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
+    DynArray           entities           = dynarray_create_t(g_allocHeap, EcsEntityId, 2048);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);

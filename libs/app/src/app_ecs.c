@@ -40,17 +40,17 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     goto Exit;
   }
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, LogMask_All));
-  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+  log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   log_i("Application startup", log_param("pid", fmt_int(g_threadPid)));
 
 #ifdef VOLO_TRACE
   if (!cli_parse_provided(invoc, g_optTraceNoStore)) {
-    trace_add_sink(g_tracer, trace_sink_store(g_alloc_heap));
+    trace_add_sink(g_tracer, trace_sink_store(g_allocHeap));
   }
   if (cli_parse_provided(invoc, g_optTraceSl)) {
-    trace_add_sink(g_tracer, trace_sink_superluminal(g_alloc_heap));
+    trace_add_sink(g_tracer, trace_sink_superluminal(g_allocHeap));
   }
 #endif
 
@@ -67,11 +67,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     runnerFlags &= ~EcsRunnerFlags_Replan;
   }
 
-  EcsDef* def = def = ecs_def_create(g_alloc_heap);
+  EcsDef* def = def = ecs_def_create(g_allocHeap);
   app_ecs_register(def, invoc);
 
-  EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
-  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, runnerFlags);
+  EcsWorld*  world  = ecs_world_create(g_allocHeap, def);
+  EcsRunner* runner = ecs_runner_create(g_allocHeap, world, runnerFlags);
   app_ecs_init(world, invoc);
 
   ecs_world_flush(world); // Flush any entity / component additions made during the init.

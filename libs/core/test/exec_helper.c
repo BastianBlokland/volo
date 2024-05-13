@@ -44,7 +44,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   if (cli_parse_provided(invoc, g_optCountInChars)) {
-    DynString readBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
+    DynString readBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
     file_read_to_end_sync(g_file_stdin, &readBuffer);
     const usize chars = dynstring_view(&readBuffer).size;
     dynstring_destroy(&readBuffer);

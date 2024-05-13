@@ -267,11 +267,11 @@ static u16 executor_worker_count(const JobsConfig* cfg) {
 
 void executor_init(const JobsConfig* cfg) {
   g_jobsWorkerCount = executor_worker_count(cfg);
-  g_mutex           = thread_mutex_create(g_alloc_heap);
-  g_wakeCondition   = thread_cond_create(g_alloc_heap);
+  g_mutex           = thread_mutex_create(g_allocHeap);
+  g_wakeCondition   = thread_cond_create(g_allocHeap);
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
-    g_workerQueues[i] = workqueue_create(g_alloc_heap);
+    g_workerQueues[i] = workqueue_create(g_allocHeap);
   }
 
   /**
@@ -280,7 +280,7 @@ void executor_init(const JobsConfig* cfg) {
    * execution of affinity tasks and potentially forcing all workers to wait.
    */
   g_affinityWorker = math_min(g_jobsWorkerCount - 1, 1);
-  g_affinityQueue  = affqueue_create(g_alloc_heap);
+  g_affinityQueue  = affqueue_create(g_allocHeap);
 
   // Setup worker info for the main-thread.
   g_jobsWorkerId = 0;
@@ -319,9 +319,9 @@ void executor_teardown(void) {
   }
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
-    workqueue_destroy(g_alloc_heap, &g_workerQueues[i]);
+    workqueue_destroy(g_allocHeap, &g_workerQueues[i]);
   }
-  affqueue_destroy(g_alloc_heap, &g_affinityQueue);
+  affqueue_destroy(g_allocHeap, &g_affinityQueue);
 
   thread_cond_destroy(g_wakeCondition);
   thread_mutex_destroy(g_mutex);

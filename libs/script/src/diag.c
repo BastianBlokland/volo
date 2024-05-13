@@ -137,7 +137,7 @@ void script_diag_pretty_write(DynString* out, const String sourceText, const Scr
 }
 
 String script_diag_pretty_scratch(const String sourceText, const ScriptDiag* diag) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   script_diag_pretty_write(&buffer, sourceText, diag);

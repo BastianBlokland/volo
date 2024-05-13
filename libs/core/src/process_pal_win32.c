@@ -91,7 +91,7 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
 
   size_t attrListSize;
   InitializeProcThreadAttributeList(null, 1, 0, &attrListSize);
-  LPPROC_THREAD_ATTRIBUTE_LIST attrList = alloc_alloc(g_alloc_heap, attrListSize, sizeof(uptr)).ptr;
+  LPPROC_THREAD_ATTRIBUTE_LIST attrList = alloc_alloc(g_allocHeap, attrListSize, sizeof(uptr)).ptr;
   if (UNLIKELY(!attrList || !InitializeProcThreadAttributeList(attrList, 1, 0, &attrListSize))) {
     process_maybe_close_handles(pipeHandles, array_elems(pipeHandles));
     return ProcessResult_UnknownError;
@@ -135,7 +135,7 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
     creationFlags |= CREATE_NEW_PROCESS_GROUP;
   }
 
-  DynString cmdLineScratch = dynstring_create(g_alloc_scratch, usize_kibibyte * 32);
+  DynString cmdLineScratch = dynstring_create(g_allocScratch, usize_kibibyte * 32);
   process_build_cmdline(&cmdLineScratch, info);
   Mem cmdLineWideScratch = winutils_to_widestr_scratch(dynstring_view(&cmdLineScratch));
 
@@ -167,7 +167,7 @@ process_start(const ProcessStartInfo* info, PROCESS_INFORMATION* outProcessInfo,
 
   if (attrList) {
     DeleteProcThreadAttributeList(attrList);
-    alloc_free(g_alloc_heap, mem_create(attrList, attrListSize));
+    alloc_free(g_allocHeap, mem_create(attrList, attrListSize));
   }
 
   if (!success) {

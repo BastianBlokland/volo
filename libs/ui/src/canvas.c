@@ -436,7 +436,7 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
       window,
       UiRendererComp,
       .draw         = drawEntity,
-      .overlayAtoms = dynarray_create_t(g_alloc_heap, UiAtomData, 32));
+      .overlayAtoms = dynarray_create_t(g_allocHeap, UiAtomData, 32));
 
   ecs_world_add_t(world, window, UiStatsComp);
 }
@@ -698,10 +698,10 @@ ui_canvas_create(EcsWorld* world, const EcsEntityId window, const UiCanvasCreate
       canvasEntity,
       UiCanvasComp,
       .window          = window,
-      .cmdBuffer       = ui_cmdbuffer_create(g_alloc_heap),
-      .textEditor      = ui_editor_create(g_alloc_heap),
-      .trackedElems    = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16),
-      .persistentElems = dynarray_create_t(g_alloc_heap, UiPersistentElem, 16));
+      .cmdBuffer       = ui_cmdbuffer_create(g_allocHeap),
+      .textEditor      = ui_editor_create(g_allocHeap),
+      .trackedElems    = dynarray_create_t(g_allocHeap, UiTrackedElem, 16),
+      .persistentElems = dynarray_create_t(g_allocHeap, UiPersistentElem, 16));
 
   if (flags & UiCanvasCreateFlags_ToFront) {
     ui_canvas_to_front(canvas);

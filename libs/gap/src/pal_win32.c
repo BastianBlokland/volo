@@ -136,7 +136,7 @@ static void pal_clear_volatile(GapPal* pal) {
 
     dynstring_clear(&window->inputText);
 
-    string_maybe_free(g_alloc_heap, window->clipPaste);
+    string_maybe_free(g_allocHeap, window->clipPaste);
     window->clipPaste = string_empty;
   }
 }
@@ -824,7 +824,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .params[GapParam_WindowSize] = realClientSize,
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
-      .inputText                   = dynstring_create(g_alloc_heap, 64),
+      .inputText                   = dynstring_create(g_allocHeap, 64),
       .dpi                         = dpi,
   };
 
@@ -861,7 +861,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
       }
       alloc_free(pal->alloc, window->className);
       dynstring_destroy(&window->inputText);
-      string_maybe_free(g_alloc_heap, window->clipPaste);
+      string_maybe_free(g_allocHeap, window->clipPaste);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -1084,7 +1084,7 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
 
-  string_maybe_free(g_alloc_heap, window->clipPaste);
+  string_maybe_free(g_allocHeap, window->clipPaste);
   window->clipPaste = string_empty;
 
   if (!OpenClipboard((HWND)windowId)) {
@@ -1101,7 +1101,7 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
   void*       clipMemPtr = GlobalLock(clipMemAlloc); // Lock the moveable allocation for copying.
   const usize wcharCount = wcslen((const wchar_t*)clipMemPtr);
   const usize stringSize = winutils_from_widestr_size(clipMemPtr, wcharCount);
-  window->clipPaste      = alloc_alloc(g_alloc_heap, stringSize, 1);
+  window->clipPaste      = alloc_alloc(g_allocHeap, stringSize, 1);
   winutils_from_widestr(window->clipPaste, clipMemPtr, wcharCount);
   GlobalUnlock(clipMemAlloc);
 

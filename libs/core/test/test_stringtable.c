@@ -5,7 +5,7 @@
 spec(stringtable) {
   StringTable* table;
 
-  setup() { table = stringtable_create(g_alloc_heap); }
+  setup() { table = stringtable_create(g_allocHeap); }
 
   it("can lookup strings from hashes") {
     const String str = string_lit("Hello World");

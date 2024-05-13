@@ -44,8 +44,8 @@ spec(sink_store) {
   TraceSink* storeSink;
 
   setup() {
-    tracer = trace_create(g_alloc_heap);
-    trace_add_sink(tracer, storeSink = trace_sink_store(g_alloc_heap));
+    tracer = trace_create(g_allocHeap);
+    trace_add_sink(tracer, storeSink = trace_sink_store(g_allocHeap));
   }
 
   it("records events") {

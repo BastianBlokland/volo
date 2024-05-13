@@ -58,12 +58,12 @@ spec(destruct) {
   EcsDef* def = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, destruct_test_module);
   }
 
   it("destroys components that are still in the world buffer waiting to be flushed") {
-    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 
@@ -88,7 +88,7 @@ spec(destruct) {
   }
 
   it("destroys pending component additions for a destroyed entity") {
-    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 
@@ -120,7 +120,7 @@ spec(destruct) {
   }
 
   it("destroys stored components when the world is destroyed") {
-    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 
@@ -148,8 +148,8 @@ spec(destruct) {
 
   it("destroys stored components from all chunks when the world is destroyed") {
     static const usize g_entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
-    EcsWorld*          world    = ecs_world_create(g_alloc_heap, def);
+    DynArray           entities = dynarray_create_t(g_allocHeap, EcsEntityId, g_entitiesToCreate);
+    EcsWorld*          world    = ecs_world_create(g_allocHeap, def);
 
     g_destructCount = 0;
 
@@ -169,7 +169,7 @@ spec(destruct) {
   }
 
   it("destroys components when destroying entities") {
-    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 
@@ -201,7 +201,7 @@ spec(destruct) {
   }
 
   it("destroys components when removing them from entities") {
-    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 

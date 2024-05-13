@@ -524,7 +524,7 @@ static void arch_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
 }
 
 static String arch_comp_mask_tooltip_scratch(const EcsDef* ecsDef, const BitSet compMask) {
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1));
+  DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 2 * usize_kibibyte, 1));
   dynstring_append(&str, string_lit("Components:\n"));
   bitset_for(compMask, compId) {
     const String compName = ecs_def_comp_name(ecsDef, (EcsCompId)compId);
@@ -679,7 +679,7 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
 }
 
 static String sys_views_tooltip_scratch(const EcsDef* ecsDef, const DebugEcsSysInfo* sysInfo) {
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1));
+  DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 2 * usize_kibibyte, 1));
   dynstring_append(&str, string_lit("Views:\n"));
   for (u32 i = 0; i != sysInfo->viewCount; ++i) {
     const EcsViewId viewId = sysInfo->views[i];
@@ -849,14 +849,14 @@ debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
       DebugEcsPanelComp,
       .panel        = ui_panel(.size = ui_vector(800, 500)),
       .scrollview   = ui_scrollview(),
-      .nameFilter   = dynstring_create(g_alloc_heap, 32),
+      .nameFilter   = dynstring_create(g_allocHeap, 32),
       .compSortMode = DebugCompSortMode_Archetypes,
       .archSortMode = DebugArchSortMode_ChunkCount,
       .sysSortMode  = DebugSysSortMode_Duration,
-      .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
-      .views        = dynarray_create_t(g_alloc_heap, DebugEcsViewInfo, 256),
-      .archetypes   = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
-      .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
+      .components   = dynarray_create_t(g_allocHeap, DebugEcsCompInfo, 256),
+      .views        = dynarray_create_t(g_allocHeap, DebugEcsViewInfo, 256),
+      .archetypes   = dynarray_create_t(g_allocHeap, DebugEcsArchetypeInfo, 256),
+      .systems      = dynarray_create_t(g_allocHeap, DebugEcsSysInfo, 256));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&ecsPanel->panel);

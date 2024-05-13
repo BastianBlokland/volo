@@ -54,7 +54,7 @@ static void inputmap_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     /**
@@ -232,10 +232,10 @@ static void asset_inputmap_build(
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-        .blockerBits  = asset_inputmap_blocker_bits(actionDef),
-        .bindingIndex = (u16)outBindings->size,
-        .bindingCount = (u16)bindingCount,
+              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+              .blockerBits  = asset_inputmap_blocker_bits(actionDef),
+              .bindingIndex = (u16)outBindings->size,
+              .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -261,10 +261,10 @@ ecs_comp_define_public(AssetInputMapComp);
 static void ecs_destruct_inputmap_comp(void* data) {
   AssetInputMapComp* comp = data;
   if (comp->actions) {
-    alloc_free_array_t(g_alloc_heap, comp->actions, comp->actionCount);
+    alloc_free_array_t(g_allocHeap, comp->actions, comp->actionCount);
   }
   if (comp->bindings) {
-    alloc_free_array_t(g_alloc_heap, comp->bindings, comp->bindingCount);
+    alloc_free_array_t(g_allocHeap, comp->bindings, comp->bindingCount);
   }
 }
 
@@ -298,13 +298,13 @@ void asset_load_inputs(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  DynArray actions  = dynarray_create_t(g_alloc_heap, AssetInputAction, 64);
-  DynArray bindings = dynarray_create_t(g_alloc_heap, AssetInputBinding, 128);
+  DynArray actions  = dynarray_create_t(g_allocHeap, AssetInputAction, 64);
+  DynArray bindings = dynarray_create_t(g_allocHeap, AssetInputBinding, 128);
 
   AssetInputMapDef def;
   String           errMsg;
   DataReadResult   readRes;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataInputMapDefMeta, mem_var(def), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataInputMapDefMeta, mem_var(def), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -314,7 +314,7 @@ void asset_load_inputs(
 
   InputMapError buildErr;
   asset_inputmap_build(&def, &actions, &bindings, &buildErr);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataInputMapDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataInputMapDefMeta, mem_var(def));
   if (buildErr) {
     errMsg = inputmap_error_str(buildErr);
     goto Error;
@@ -325,9 +325,9 @@ void asset_load_inputs(
       entity,
       AssetInputMapComp,
       .layer        = layer,
-      .actions      = dynarray_copy_as_new(&actions, g_alloc_heap),
+      .actions      = dynarray_copy_as_new(&actions, g_allocHeap),
       .actionCount  = actions.size,
-      .bindings     = dynarray_copy_as_new(&bindings, g_alloc_heap),
+      .bindings     = dynarray_copy_as_new(&bindings, g_allocHeap),
       .bindingCount = bindings.size);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);

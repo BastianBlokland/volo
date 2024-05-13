@@ -53,11 +53,11 @@ static void rvk_stopwatch_retrieve_results(RvkStopwatch* sw) {
 }
 
 RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
-  RvkStopwatch* sw = alloc_alloc_t(g_alloc_heap, RvkStopwatch);
+  RvkStopwatch* sw = alloc_alloc_t(g_allocHeap, RvkStopwatch);
 
   *sw = (RvkStopwatch){
       .dev                  = dev,
-      .retrieveResultsMutex = thread_mutex_create(g_alloc_heap),
+      .retrieveResultsMutex = thread_mutex_create(g_allocHeap),
   };
 
   if (dev->vkProperties.limits.timestampComputeAndGraphics) {
@@ -74,7 +74,7 @@ void rvk_stopwatch_destroy(RvkStopwatch* sw) {
     vkDestroyQueryPool(sw->dev->vkDev, sw->vkQueryPool, &sw->dev->vkAlloc);
   }
   thread_mutex_destroy(sw->retrieveResultsMutex);
-  alloc_free_t(g_alloc_heap, sw);
+  alloc_free_t(g_allocHeap, sw);
 }
 
 bool rvk_stopwatch_is_supported(const RvkStopwatch* sw) {

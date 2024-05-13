@@ -22,7 +22,7 @@ spec(file_iterator) {
   }
 
   it("finds zero entries in an empty directory") {
-    FileIterator* itr = file_iterator_create(g_alloc_heap, dirPath);
+    FileIterator* itr = file_iterator_create(g_allocHeap, dirPath);
 
     // Assert end of iterator.
     check_eq_int(file_iterator_next(itr, &entry), FileIteratorResult_End);
@@ -36,7 +36,7 @@ spec(file_iterator) {
 
     check_eq_int(file_write_to_path_sync(filePath, string_lit("Hello World")), FileResult_Success);
 
-    FileIterator* itr = file_iterator_create(g_alloc_heap, dirPath);
+    FileIterator* itr = file_iterator_create(g_allocHeap, dirPath);
 
     // Assert we find our file.
     check_eq_int(file_iterator_next(itr, &entry), FileIteratorResult_Found);
@@ -56,7 +56,7 @@ spec(file_iterator) {
 
     check_eq_int(file_create_dir_sync(subDirPath), FileResult_Success);
 
-    FileIterator* itr = file_iterator_create(g_alloc_heap, dirPath);
+    FileIterator* itr = file_iterator_create(g_allocHeap, dirPath);
 
     // Assert we find our sub-directory.
     check_eq_int(file_iterator_next(itr, &entry), FileIteratorResult_Found);
@@ -82,7 +82,7 @@ spec(file_iterator) {
       check_eq_int(file_write_to_path_sync(filePath, *name), FileResult_Success);
     }
 
-    FileIterator* itr = file_iterator_create(g_alloc_heap, dirPath);
+    FileIterator* itr = file_iterator_create(g_allocHeap, dirPath);
 
     // Try to find all files.
     u32 foundFiles = 0;
@@ -113,7 +113,7 @@ spec(file_iterator) {
   }
 
   it("fails when iterating a directory that does not exist") {
-    FileIterator* itr = file_iterator_create(g_alloc_heap, string_lit("does-not-exist-42"));
+    FileIterator* itr = file_iterator_create(g_allocHeap, string_lit("does-not-exist-42"));
 
     // Assert error.
     check_eq_int(file_iterator_next(itr, &entry), FileIteratorResult_DirectoryDoesNotExist);
@@ -125,7 +125,7 @@ spec(file_iterator) {
   }
 
   it("fails when iterating a regular file") {
-    FileIterator* itr = file_iterator_create(g_alloc_heap, g_path_executable);
+    FileIterator* itr = file_iterator_create(g_allocHeap, g_path_executable);
 
     // Assert error.
     check_eq_int(file_iterator_next(itr, &entry), FileIteratorResult_PathIsNotADirectory);

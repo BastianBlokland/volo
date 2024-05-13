@@ -33,7 +33,7 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
     return null;
   }
 
-  AssetSource* src = alloc_alloc_t(g_alloc_heap, AssetSource);
+  AssetSource* src = alloc_alloc_t(g_allocHeap, AssetSource);
   *src             = (AssetSource){.data = entry->data, .format = fmt};
   return src;
 }
@@ -55,16 +55,16 @@ static void asset_repo_mem_destroy(AssetRepo* repo) {
   AssetRepoMem* repoMem = (AssetRepoMem*)repo;
 
   dynarray_for_t(&repoMem->entries, RepoEntry, entry) {
-    string_free(g_alloc_heap, entry->id);
-    string_free(g_alloc_heap, entry->data);
+    string_free(g_allocHeap, entry->id);
+    string_free(g_allocHeap, entry->data);
   };
   dynarray_destroy(&repoMem->entries);
 
-  alloc_free_t(g_alloc_heap, repoMem);
+  alloc_free_t(g_allocHeap, repoMem);
 }
 
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize recordCount) {
-  AssetRepoMem* repo = alloc_alloc_t(g_alloc_heap, AssetRepoMem);
+  AssetRepoMem* repo = alloc_alloc_t(g_allocHeap, AssetRepoMem);
 
   *repo = (AssetRepoMem){
       .api =
@@ -75,14 +75,14 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
               .changesPoll  = null,
               .query        = asset_repo_mem_query,
           },
-      .entries = dynarray_create_t(g_alloc_heap, RepoEntry, recordCount),
+      .entries = dynarray_create_t(g_allocHeap, RepoEntry, recordCount),
   };
 
   for (usize i = 0; i != recordCount; ++i) {
     RepoEntry entry = {
         .idHash = string_hash(records[i].id),
-        .id     = string_dup(g_alloc_heap, records[i].id),
-        .data   = string_dup(g_alloc_heap, records[i].data),
+        .id     = string_dup(g_allocHeap, records[i].id),
+        .data   = string_dup(g_allocHeap, records[i].data),
     };
     *dynarray_insert_sorted_t(&repo->entries, RepoEntry, asset_compare_entry, &entry) = entry;
   }

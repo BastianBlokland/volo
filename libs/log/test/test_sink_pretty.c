@@ -11,14 +11,14 @@ spec(sink_pretty) {
   DynString buffer  = {0};
 
   setup() {
-    logger = log_create(g_alloc_heap);
-    file_temp(g_alloc_heap, &tmpFile);
+    logger = log_create(g_allocHeap);
+    file_temp(g_allocHeap, &tmpFile);
 
     const LogMask mask = LogMask_Info | LogMask_Warn;
     log_add_sink(
-        logger, log_sink_pretty(g_alloc_heap, tmpFile, mask, LogSinkPrettyFlags_DestroyFile));
+        logger, log_sink_pretty(g_allocHeap, tmpFile, mask, LogSinkPrettyFlags_DestroyFile));
 
-    buffer = dynstring_create(g_alloc_heap, 1024);
+    buffer = dynstring_create(g_allocHeap, 1024);
   }
 
   it("supports plain log messages without parameters") {

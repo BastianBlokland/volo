@@ -14,7 +14,7 @@ int SYS_DECL main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp* app = cli_app_create(g_alloc_heap);
+  CliApp* app = cli_app_create(g_allocHeap);
   app_cli_configure(app);
 
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);

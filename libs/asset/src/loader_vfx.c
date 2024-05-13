@@ -105,7 +105,7 @@ static void vfx_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_struct_t(reg, VfxVec2Def);
@@ -246,7 +246,7 @@ ecs_comp_define_public(AssetVfxComp);
 
 static void ecs_destruct_vfx_comp(void* data) {
   AssetVfxComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->emitters, comp->emitterCount);
+  alloc_free_array_t(g_allocHeap, comp->emitters, comp->emitterCount);
 }
 
 ecs_view_define(VfxUnloadView) {
@@ -378,7 +378,7 @@ static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
     flags |= AssetVfx_IgnoreTransformRotation;
   }
   out->flags        = flags;
-  out->emitters     = alloc_array_t(g_alloc_heap, AssetVfxEmitter, def->emitters.count);
+  out->emitters     = alloc_array_t(g_allocHeap, AssetVfxEmitter, def->emitters.count);
   out->emitterCount = (u32)def->emitters.count;
 
   for (u32 i = 0; i != out->emitterCount; ++i) {
@@ -402,7 +402,7 @@ void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, 
   VfxDef         vfxDef;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataVfxDefMeta, mem_var(vfxDef), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataVfxDefMeta, mem_var(vfxDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -423,7 +423,7 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_alloc_heap, g_dataVfxDefMeta, mem_var(vfxDef));
+  data_destroy(g_dataReg, g_allocHeap, g_dataVfxDefMeta, mem_var(vfxDef));
   asset_repo_source_close(src);
 }
 

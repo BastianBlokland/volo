@@ -287,15 +287,15 @@ static void format_align_all(FormatContext* ctx, const FormatAtomKind kind) {
 }
 
 void script_format(DynString* out, const String input, const ScriptFormatSettings* settings) {
-  DynArray      atoms = dynarray_create_t(g_alloc_heap, FormatAtom, 4096);
-  DynArray      lines = dynarray_create_t(g_alloc_heap, FormatSpan, 512);
+  DynArray      atoms = dynarray_create_t(g_allocHeap, FormatAtom, 4096);
+  DynArray      lines = dynarray_create_t(g_allocHeap, FormatSpan, 512);
   FormatContext ctx   = {
-      .settings   = settings,
-      .input      = input,
-      .inputTotal = input,
-      .out        = out,
-      .atoms      = &atoms,
-      .lines      = &lines,
+        .settings   = settings,
+        .input      = input,
+        .inputTotal = input,
+        .out        = out,
+        .atoms      = &atoms,
+        .lines      = &lines,
   };
 
   format_span_read_all_lines(&ctx);

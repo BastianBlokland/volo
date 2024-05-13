@@ -163,7 +163,7 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
 }
 
 RvkSamplerPool* rvk_sampler_pool_create(RvkDevice* dev) {
-  RvkSamplerPool* pool = alloc_alloc_t(g_alloc_heap, RvkSamplerPool);
+  RvkSamplerPool* pool = alloc_alloc_t(g_allocHeap, RvkSamplerPool);
   *pool                = (RvkSamplerPool){.device = dev};
   return pool;
 }
@@ -174,7 +174,7 @@ void rvk_sampler_pool_destroy(RvkSamplerPool* pool) {
       vkDestroySampler(pool->device->vkDev, pool->vkSamplers[i], &pool->device->vkAlloc);
     }
   }
-  alloc_free_t(g_alloc_heap, pool);
+  alloc_free_t(g_allocHeap, pool);
 }
 
 u16 rvk_sampler_pool_count(const RvkSamplerPool* pool) {

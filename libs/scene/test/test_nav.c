@@ -68,13 +68,13 @@ spec(nav) {
   EcsRunner* runner       = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     scene_register(def);
     ecs_register_module(def, nav_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
     ecs_run_sync(runner);
   }
 

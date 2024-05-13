@@ -339,9 +339,9 @@ debug_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       DebugAssetPanelComp,
       .panel      = ui_panel(.size = ui_vector(950, 500)),
       .scrollview = ui_scrollview(),
-      .idFilter   = dynstring_create(g_alloc_heap, 32),
+      .idFilter   = dynstring_create(g_allocHeap, 32),
       .sortMode   = DebugAssetSortMode_Status,
-      .assets     = dynarray_create_t(g_alloc_heap, DebugAssetInfo, 256));
+      .assets     = dynarray_create_t(g_allocHeap, DebugAssetInfo, 256));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&assetPanel->panel);

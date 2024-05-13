@@ -6,7 +6,7 @@ spec(dynarray) {
 
   DynArray array;
 
-  setup() { array = dynarray_create_t(g_alloc_heap, u64, 0); }
+  setup() { array = dynarray_create_t(g_allocHeap, u64, 0); }
 
   it("is empty when created") { check_eq_int(array.size, 0); }
 

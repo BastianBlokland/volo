@@ -6,7 +6,7 @@ spec(app) {
 
   CliApp* app = null;
 
-  setup() { app = cli_app_create(g_alloc_heap); }
+  setup() { app = cli_app_create(g_allocHeap); }
 
   it("assigns unique ids to flags") {
     const CliId a = cli_register_flag(app, 'a', string_lit("opt-a"), CliOptionFlags_None);

@@ -8,7 +8,7 @@ spec(graph) {
 
   JobGraph* graph = null;
 
-  setup() { graph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 0); }
+  setup() { graph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 0); }
 
   it("stores a graph name") { check_eq_string(jobs_graph_name(graph), string_lit("TestJob")); }
 
@@ -30,7 +30,7 @@ spec(graph) {
     // Setup B to depend on A.
     jobs_graph_task_depend(graph, a, b);
 
-    JobGraph* graphCopy = jobs_graph_create(g_alloc_heap, string_lit("TestJob2"), 0);
+    JobGraph* graphCopy = jobs_graph_create(g_allocHeap, string_lit("TestJob2"), 0);
     jobs_graph_copy(graphCopy, graph);
 
     // Graphs should have identical task counts.

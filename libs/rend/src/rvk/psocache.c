@@ -72,7 +72,7 @@ VkPipelineCache rvk_psocache_load(RvkDevice* dev) {
   const String path = rvk_psocache_path_scratch();
   String       data = string_empty;
   File*        file = null;
-  if (file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file)) {
+  if (file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file)) {
     log_i("Vulkan pipeline cache created", log_param("path", fmt_path(path)));
     goto Done;
   }
@@ -113,13 +113,13 @@ void rvk_psocache_save(RvkDevice* dev, VkPipelineCache vkCache) {
   vkGetPipelineCacheData(dev->vkDev, vkCache, &size, null);
   size = math_min(size, rvk_psocache_size_max); // Limit the maximum cache size.
 
-  const Mem buffer = alloc_alloc(g_alloc_heap, size, 1);
+  const Mem buffer = alloc_alloc(g_allocHeap, size, 1);
   vkGetPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
 
   const String     path = rvk_psocache_path_scratch();
   const FileResult res  = file_write_to_path_sync(path, mem_create(buffer.ptr, size));
 
-  alloc_free(g_alloc_heap, buffer);
+  alloc_free(g_allocHeap, buffer);
 
   if (res) {
     log_w(

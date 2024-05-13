@@ -165,16 +165,16 @@ static const JRpcError g_jrpcErrorInvalidParams = {
 };
 
 static void lsp_doc_destroy(LspDocument* doc) {
-  string_free(g_alloc_heap, doc->identifier);
-  string_maybe_free(g_alloc_heap, doc->text);
+  string_free(g_allocHeap, doc->identifier);
+  string_maybe_free(g_allocHeap, doc->text);
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
   script_sym_bag_destroy(doc->scriptSyms);
 }
 
 static void lsp_doc_update_text(LspDocument* doc, const String text) {
-  string_maybe_free(g_alloc_heap, doc->text);
-  doc->text = string_maybe_dup(g_alloc_heap, text);
+  string_maybe_free(g_allocHeap, doc->text);
+  doc->text = string_maybe_dup(g_allocHeap, text);
 }
 
 static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
@@ -190,11 +190,11 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
   *res = (LspDocument){
-      .identifier  = string_dup(g_alloc_heap, identifier),
-      .text        = string_maybe_dup(g_alloc_heap, text),
-      .scriptDoc   = script_create(g_alloc_heap),
-      .scriptDiags = script_diag_bag_create(g_alloc_heap, ScriptDiagFilter_All),
-      .scriptSyms  = script_sym_bag_create(g_alloc_heap),
+      .identifier  = string_dup(g_allocHeap, identifier),
+      .text        = string_maybe_dup(g_allocHeap, text),
+      .scriptDoc   = script_create(g_allocHeap),
+      .scriptDiags = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
+      .scriptSyms  = script_sym_bag_create(g_allocHeap),
   };
 
   return res;
@@ -822,7 +822,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  DynString textBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
+  DynString textBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
   dynstring_append(&textBuffer, script_expr_kind_str(hoverKind));
 
   if (script_expr_static(doc->scriptDoc, hoverExpr)) {
@@ -1028,9 +1028,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(doc->scriptSyms, callSym),
-      .doc       = script_sym_doc(doc->scriptSyms, callSym),
-      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+          .label     = script_sym_label(doc->scriptSyms, callSym),
+          .doc       = script_sym_doc(doc->scriptSyms, callSym),
+          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1115,7 +1115,7 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const usize expectedResultSize = (usize)(doc->text.size * 1.5f); // Guesstimate the output size.
-  DynString   resultBuffer       = dynstring_create(g_alloc_heap, expectedResultSize);
+  DynString   resultBuffer       = dynstring_create(g_allocHeap, expectedResultSize);
 
   const TimeSteady formatStartTime = time_steady_clock();
 
@@ -1194,10 +1194,10 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
 }
 
 static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
-  DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
-  DynString writeBuffer = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
-  JsonDoc*  jDoc        = json_create(g_alloc_heap, 1024);
-  DynArray  openDocs    = dynarray_create_t(g_alloc_heap, LspDocument, 16);
+  DynString readBuffer  = dynstring_create(g_allocHeap, 8 * usize_kibibyte);
+  DynString writeBuffer = dynstring_create(g_allocHeap, 2 * usize_kibibyte);
+  JsonDoc*  jDoc        = json_create(g_allocHeap, 1024);
+  DynArray  openDocs    = dynarray_create_t(g_allocHeap, LspDocument, 16);
 
   LspContext ctx = {
       .status       = LspStatus_Running,
@@ -1255,7 +1255,7 @@ static bool lsp_read_binder_file(ScriptBinder* binder, const String path) {
   bool       success = true;
   File*      file;
   FileResult fileRes;
-  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
+  if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     file_write_sync(g_file_stderr, string_lit("lsp: Failed to open binder file.\n"));
     success = false;
     goto Ret;
@@ -1307,7 +1307,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
   if (binderArg.count) {
-    scriptBinder = script_binder_create(g_alloc_heap);
+    scriptBinder = script_binder_create(g_allocHeap);
     if (!lsp_read_binder_file(scriptBinder, binderArg.values[0])) {
       exitCode = 1;
       goto Exit;

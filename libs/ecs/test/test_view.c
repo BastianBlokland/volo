@@ -44,10 +44,10 @@ spec(view) {
   EcsWorld* world = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, view_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
+    world = ecs_world_create(g_allocHeap, def);
   }
 
   it("can return the count of components it can read") {
@@ -250,7 +250,7 @@ spec(view) {
 
   it("can iterate over entities from multiple chunks in an archetype") {
     static const usize g_entitiesToCreate = 2000;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
+    DynArray           entities = dynarray_create_t(g_allocHeap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
@@ -316,7 +316,7 @@ spec(view) {
 
   it("skips empty archetypes") {
     static const usize g_entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
+    DynArray           entities = dynarray_create_t(g_allocHeap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
@@ -342,7 +342,7 @@ spec(view) {
 
   it("can iterate over all entities in a single archetype using a stepped iterator") {
     static const usize g_entitiesToCreate = 2000;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
+    DynArray           entities = dynarray_create_t(g_allocHeap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
@@ -396,7 +396,7 @@ spec(view) {
     EcsView* view = ecs_world_view_t(world, ReadMaybeAMaybeBMaybeC);
     check(ecs_view_chunks(view) > 1);
 
-    DynBitSet seenEntities = dynbitset_create(g_alloc_heap, g_entitiesToCreate);
+    DynBitSet seenEntities = dynbitset_create(g_allocHeap, g_entitiesToCreate);
 
     usize count = 0;
     for (u16 step = 0; step != g_steps; ++step) {

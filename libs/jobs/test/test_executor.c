@@ -64,7 +64,7 @@ spec(executor) {
   it("can execute a linear chain of tasks") {
     static const usize g_numTasks = 1000;
 
-    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph* jobGraph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
 
     i64 counter = 0;
     for (usize i = 0; i != g_numTasks; ++i) {
@@ -79,10 +79,10 @@ spec(executor) {
       }
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
     check_eq_int((usize)counter, g_numTasks);
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
     check_eq_int((usize)counter, g_numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
@@ -91,7 +91,7 @@ spec(executor) {
   it("executes a linear chain of tasks in the correct order") {
     static const usize g_numTasks = 1000;
 
-    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph* jobGraph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
 
     i64 counter = 0;
     for (usize i = 0; i != g_numTasks; ++i) {
@@ -115,10 +115,10 @@ spec(executor) {
       }
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
     check_eq_int((usize)counter, 0);
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
     check_eq_int((usize)counter, 0);
 
     jobs_graph_destroy(jobGraph);
@@ -127,7 +127,7 @@ spec(executor) {
   it("can execute a set of parallel tasks") {
     static const usize g_numTasks = 1000;
 
-    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph* jobGraph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
 
     i64 counter = 0;
     for (usize i = 0; i != g_numTasks; ++i) {
@@ -139,10 +139,10 @@ spec(executor) {
           task_flags);
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
     check_eq_int((usize)counter, g_numTasks);
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
     check_eq_int((usize)counter, g_numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
@@ -156,9 +156,9 @@ spec(executor) {
       sum += data[i] = i;
     }
 
-    JobGraph* graph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph* graph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
 
-    DynArray dependencies = dynarray_create_t(g_alloc_heap, JobTaskId, dataCount / 2);
+    DynArray dependencies = dynarray_create_t(g_allocHeap, JobTaskId, dataCount / 2);
     dynarray_resize(&dependencies, dataCount / 2);
 
     bool rootLayer = true;
@@ -179,7 +179,7 @@ spec(executor) {
       rootLayer = false;
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocPage));
     check_eq_int(data[0], sum);
 
     dynarray_destroy(&dependencies);
@@ -192,7 +192,7 @@ spec(executor) {
     i64 data[128 + 1];
     mem_set(array_mem(data), 0);
 
-    JobGraph*       graph    = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph*       graph    = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
     const JobTaskId initTask = jobs_graph_add_task(
         graph,
         string_lit("Init"),
@@ -210,7 +210,7 @@ spec(executor) {
       jobs_graph_task_depend(graph, initTask, task);
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocPage));
     array_for_t(data, i64, val) { check_eq_int(*val, 42); }
 
     jobs_graph_destroy(graph);
@@ -219,7 +219,7 @@ spec(executor) {
   it("executes a parallel set affinity tasks always on the same thread") {
     static const usize g_numTasks = 100;
 
-    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph* jobGraph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
 
     for (usize i = 0; i != g_numTasks; ++i) {
 
@@ -231,8 +231,8 @@ spec(executor) {
           task_flags | JobTaskFlags_ThreadAffinity);
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
 
     jobs_graph_destroy(jobGraph);
   }
@@ -240,7 +240,7 @@ spec(executor) {
   it("executes a linear set affinity tasks always on the same thread") {
     static const usize g_numTasks = 1000;
 
-    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    JobGraph* jobGraph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 1);
 
     for (usize i = 0; i != g_numTasks; ++i) {
       jobs_graph_add_task(
@@ -254,8 +254,8 @@ spec(executor) {
       }
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_allocPage));
 
     jobs_graph_destroy(jobGraph);
   }

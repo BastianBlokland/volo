@@ -22,7 +22,7 @@ typedef struct {
 } CheckOutputMocha;
 
 static void mocha_write_json(JsonDoc* doc, JsonVal rootObj, File* file) {
-  DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
+  DynString dynString = dynstring_create(g_allocHeap, 64 * usize_kibibyte);
 
   json_write(&dynString, doc, rootObj, &json_write_opts(.mode = JsonWriteMode_Compact));
 
@@ -210,24 +210,24 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
 
   CheckOutputMocha* mochaOut = alloc_alloc_t(alloc, CheckOutputMocha);
   *mochaOut                  = (CheckOutputMocha){
-      .api =
-          {
-              .runStarted      = output_run_started,
-              .testsDiscovered = output_tests_discovered,
-              .testSkipped     = output_test_skipped,
-              .testFinished    = output_test_finished,
-              .runFinished     = output_run_finished,
-              .destroy         = output_destroy,
+                       .api =
+                           {
+                               .runStarted      = output_run_started,
+                               .testsDiscovered = output_tests_discovered,
+                               .testSkipped     = output_test_skipped,
+                               .testFinished    = output_test_finished,
+                               .runFinished     = output_run_finished,
+                               .destroy         = output_destroy,
           },
-      .alloc       = alloc,
-      .mutex       = thread_mutex_create(alloc),
-      .doc         = doc,
-      .rootObj     = rootObj,
-      .statsObj    = statsObj,
-      .passesArr   = passesArr,
-      .failuresArr = failuresArr,
-      .pendingArr  = pendingArr,
-      .file        = file,
+                       .alloc       = alloc,
+                       .mutex       = thread_mutex_create(alloc),
+                       .doc         = doc,
+                       .rootObj     = rootObj,
+                       .statsObj    = statsObj,
+                       .passesArr   = passesArr,
+                       .failuresArr = failuresArr,
+                       .pendingArr  = pendingArr,
+                       .file        = file,
   };
   return (CheckOutput*)mochaOut;
 }

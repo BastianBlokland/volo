@@ -59,7 +59,7 @@ static SndEventMapComp* snd_event_map_init(EcsWorld* world) {
       world,
       ecs_world_global(world),
       SndEventMapComp,
-      .events = dynarray_create_t(g_alloc_heap, SndEvent, 64));
+      .events = dynarray_create_t(g_allocHeap, SndEvent, 64));
 }
 
 static void snd_event_map_prune_older(SndEventMapComp* map, const TimeDuration timestamp) {

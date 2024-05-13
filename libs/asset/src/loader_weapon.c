@@ -112,7 +112,7 @@ static void weapon_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     /**
@@ -426,10 +426,10 @@ ecs_comp_define(AssetWeaponLoadComp) { AssetSource* src; };
 static void ecs_destruct_weaponmap_comp(void* data) {
   AssetWeaponMapComp* comp = data;
   if (comp->weapons) {
-    alloc_free_array_t(g_alloc_heap, comp->weapons, comp->weaponCount);
+    alloc_free_array_t(g_allocHeap, comp->weapons, comp->weaponCount);
   }
   if (comp->effects) {
-    alloc_free_array_t(g_alloc_heap, comp->effects, comp->effectCount);
+    alloc_free_array_t(g_allocHeap, comp->effects, comp->effectCount);
   }
 }
 
@@ -460,13 +460,13 @@ ecs_system_define(LoadWeaponAssetSys) {
     const EcsEntityId  entity = ecs_view_entity(itr);
     const AssetSource* src    = ecs_view_read_t(itr, AssetWeaponLoadComp)->src;
 
-    DynArray weapons = dynarray_create_t(g_alloc_heap, AssetWeapon, 64);
-    DynArray effects = dynarray_create_t(g_alloc_heap, AssetWeaponEffect, 64);
+    DynArray weapons = dynarray_create_t(g_allocHeap, AssetWeapon, 64);
+    DynArray effects = dynarray_create_t(g_allocHeap, AssetWeaponEffect, 64);
 
     AssetWeaponMapDef def;
     String            errMsg;
     DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataMapDefMeta, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_dataMapDefMeta, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -479,7 +479,7 @@ ecs_system_define(LoadWeaponAssetSys) {
 
     WeaponError buildErr;
     weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
-    data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_dataMapDefMeta, mem_var(def));
     if (buildErr) {
       errMsg = weapon_error_str(buildErr);
       goto Error;
@@ -489,9 +489,9 @@ ecs_system_define(LoadWeaponAssetSys) {
         world,
         entity,
         AssetWeaponMapComp,
-        .weapons     = dynarray_copy_as_new(&weapons, g_alloc_heap),
+        .weapons     = dynarray_copy_as_new(&weapons, g_allocHeap),
         .weaponCount = weapons.size,
-        .effects     = dynarray_copy_as_new(&effects, g_alloc_heap),
+        .effects     = dynarray_copy_as_new(&effects, g_allocHeap),
         .effectCount = effects.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);

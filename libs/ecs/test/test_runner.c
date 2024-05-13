@@ -99,11 +99,11 @@ spec(runner) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, runner_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("executes every system once in specified order") {
@@ -130,9 +130,9 @@ spec(runner) {
   }
 
   it("it can execute without any systems") {
-    EcsDef*    emptyDef    = ecs_def_create(g_alloc_heap);
-    EcsWorld*  emptyWorld  = ecs_world_create(g_alloc_heap, emptyDef);
-    EcsRunner* emptyRunner = ecs_runner_create(g_alloc_heap, emptyWorld, EcsRunnerFlags_None);
+    EcsDef*    emptyDef    = ecs_def_create(g_allocHeap);
+    EcsWorld*  emptyWorld  = ecs_world_create(g_allocHeap, emptyDef);
+    EcsRunner* emptyRunner = ecs_runner_create(g_allocHeap, emptyWorld, EcsRunnerFlags_None);
 
     ecs_run_sync(emptyRunner);
 

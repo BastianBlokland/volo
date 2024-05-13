@@ -6,7 +6,7 @@ spec(registry) {
 
   DataReg* reg = null;
 
-  setup() { reg = data_reg_create(g_alloc_heap); }
+  setup() { reg = data_reg_create(g_allocHeap); }
 
   it("can lookup a primitive type's name") {
 #define X(_T_) check_eq_string(data_name(reg, data_prim_t(_T_)), string_lit(#_T_));

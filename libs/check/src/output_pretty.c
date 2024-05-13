@@ -88,7 +88,7 @@ static void output_test_finished(
     return;
   }
 
-  DynString str = dynstring_create(g_alloc_heap, 1024);
+  DynString str = dynstring_create(g_allocHeap, 1024);
   fmt_write(
       &str,
       "* {}{}{}: ",

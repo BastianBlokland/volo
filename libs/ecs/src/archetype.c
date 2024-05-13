@@ -46,11 +46,11 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
 
 static void* ecs_archetype_chunk_create(void) {
   const usize align = 512; // Note: In practice the page allocator will align to the page size.
-  return alloc_alloc(g_alloc_page, ecs_archetype_chunk_size, align).ptr;
+  return alloc_alloc(g_allocPage, ecs_archetype_chunk_size, align).ptr;
 }
 
 static void ecs_archetype_chunk_destroy(void* chunk) {
-  alloc_free(g_alloc_page, mem_create(chunk, ecs_archetype_chunk_size));
+  alloc_free(g_allocPage, mem_create(chunk, ecs_archetype_chunk_size));
 }
 
 static EcsEntityId* ecs_archetype_entity_ptr(EcsArchetype* archetype, const u32 index) {
@@ -140,7 +140,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   const u32 entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 
-  u16* compOffsets = alloc_alloc(g_alloc_heap, sizeof(u16) * compCount * 2, alignof(u16)).ptr;
+  u16* compOffsets = alloc_alloc(g_allocHeap, sizeof(u16) * compCount * 2, alignof(u16)).ptr;
   u16* compSizes   = compOffsets + compCount;
 
   usize offset  = sizeof(EcsEntityId) * entitiesPerChunk;
@@ -156,26 +156,26 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   }
 
   return (EcsArchetype){
-      .mask                = alloc_dup(g_alloc_heap, mask, ecs_comp_mask_align),
+      .mask                = alloc_dup(g_allocHeap, mask, ecs_comp_mask_align),
       .entitiesPerChunk    = entitiesPerChunk,
       .compOffsetsAndSizes = compOffsets,
       .compCount           = compCount,
       .chunks =
-          alloc_alloc(g_alloc_heap, sizeof(void*) * ecs_archetype_max_chunks, alignof(void*)).ptr,
+          alloc_alloc(g_allocHeap, sizeof(void*) * ecs_archetype_max_chunks, alignof(void*)).ptr,
   };
 }
 
 void ecs_archetype_destroy(EcsArchetype* archetype) {
-  alloc_free(g_alloc_heap, archetype->mask);
+  alloc_free(g_allocHeap, archetype->mask);
 
   alloc_free(
-      g_alloc_heap,
+      g_allocHeap,
       mem_create(archetype->compOffsetsAndSizes, sizeof(u16) * archetype->compCount * 2));
 
   for (usize chunkIdx = 0; chunkIdx != archetype->chunkCount; ++chunkIdx) {
     ecs_archetype_chunk_destroy(archetype->chunks[chunkIdx]);
   }
-  alloc_free(g_alloc_heap, mem_create(archetype->chunks, sizeof(void*) * ecs_archetype_max_chunks));
+  alloc_free(g_allocHeap, mem_create(archetype->chunks, sizeof(void*) * ecs_archetype_max_chunks));
 }
 
 u32 ecs_archetype_chunks_non_empty(const EcsArchetype* archetype) {

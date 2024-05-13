@@ -22,8 +22,8 @@ ecs_comp_define(SceneVisibilityEnvComp) {
 
 static void ecs_destruct_visibility_env_comp(void* data) {
   SceneVisibilityEnvComp* env = data;
-  alloc_free_array_t(g_alloc_heap, env->visionPositions, scene_vision_areas_max);
-  alloc_free_array_t(g_alloc_heap, env->visionSquaredRadii, scene_vision_areas_max);
+  alloc_free_array_t(g_allocHeap, env->visionPositions, scene_vision_areas_max);
+  alloc_free_array_t(g_allocHeap, env->visionSquaredRadii, scene_vision_areas_max);
 }
 
 static void ecs_combine_visibility(void* dataA, void* dataB) {
@@ -41,8 +41,8 @@ static void visibility_env_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       SceneVisibilityEnvComp,
-      .visionPositions    = alloc_array_t(g_alloc_heap, GeoVector, scene_vision_areas_max),
-      .visionSquaredRadii = alloc_array_t(g_alloc_heap, f32, scene_vision_areas_max));
+      .visionPositions    = alloc_array_t(g_allocHeap, GeoVector, scene_vision_areas_max),
+      .visionSquaredRadii = alloc_array_t(g_allocHeap, f32, scene_vision_areas_max));
 }
 
 static void visibility_env_clear(SceneVisibilityEnvComp* env) { env->visionCount = 0; }

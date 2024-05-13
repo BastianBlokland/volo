@@ -530,8 +530,8 @@ String data_read_json(
     Mem             data,
     DataReadResult* res) {
 
-  JsonDoc* doc         = json_create(g_alloc_heap, 512);
-  DynArray allocations = dynarray_create_t(g_alloc_heap, Mem, 64);
+  JsonDoc* doc         = json_create(g_allocHeap, 512);
+  DynArray allocations = dynarray_create_t(g_allocHeap, Mem, 64);
 
   JsonResult   jsonRes;
   const String rem = json_read(doc, input, &jsonRes);

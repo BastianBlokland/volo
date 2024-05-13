@@ -20,8 +20,8 @@ static void trace_sink_test_event_begin(
   SinkTest* testSink = (SinkTest*)sink;
 
   *dynarray_push_t(&testSink->events, SinkTestEvt) = (SinkTestEvt){
-      .id    = string_dup(g_alloc_heap, id),
-      .msg   = string_maybe_dup(g_alloc_heap, msg),
+      .id    = string_dup(g_allocHeap, id),
+      .msg   = string_maybe_dup(g_allocHeap, msg),
       .color = color,
   };
 }
@@ -36,14 +36,14 @@ spec(tracer) {
   SinkTest sink   = {0};
 
   setup() {
-    tracer = trace_create(g_alloc_heap);
+    tracer = trace_create(g_allocHeap);
     sink   = (SinkTest){
           .api =
               (TraceSink){
                   .eventBegin = trace_sink_test_event_begin,
                   .eventEnd   = trace_sink_test_event_end,
             },
-          .events = dynarray_create_t(g_alloc_heap, SinkTestEvt, 8),
+          .events = dynarray_create_t(g_allocHeap, SinkTestEvt, 8),
     };
     trace_add_sink(tracer, (TraceSink*)&sink);
   }
@@ -83,8 +83,8 @@ spec(tracer) {
     trace_destroy(tracer);
 
     dynarray_for_t(&sink.events, SinkTestEvt, evt) {
-      string_free(g_alloc_heap, evt->id);
-      string_maybe_free(g_alloc_heap, evt->msg);
+      string_free(g_allocHeap, evt->id);
+      string_maybe_free(g_allocHeap, evt->msg);
     }
     dynarray_destroy(&sink.events);
   }

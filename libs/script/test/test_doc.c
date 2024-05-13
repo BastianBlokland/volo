@@ -23,7 +23,7 @@ spec(doc) {
 
   ScriptDoc* doc = null;
 
-  setup() { doc = script_create(g_alloc_heap); }
+  setup() { doc = script_create(g_allocHeap); }
 
   it("can create value expressions") {
     check_expr_str_lit(doc, script_add_anon_value(doc, script_null()), "[value: null]");

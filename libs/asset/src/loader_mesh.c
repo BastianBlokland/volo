@@ -11,17 +11,17 @@ ecs_comp_define_public(AssetMeshSkeletonComp);
 
 static void ecs_destruct_mesh_comp(void* data) {
   AssetMeshComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->vertexData, comp->vertexCount);
+  alloc_free_array_t(g_allocHeap, comp->vertexData, comp->vertexCount);
   if (comp->skinData) {
-    alloc_free_array_t(g_alloc_heap, comp->skinData, comp->vertexCount);
+    alloc_free_array_t(g_allocHeap, comp->skinData, comp->vertexCount);
   }
-  alloc_free_array_t(g_alloc_heap, comp->indexData, comp->indexCount);
+  alloc_free_array_t(g_allocHeap, comp->indexData, comp->indexCount);
 }
 
 static void ecs_destruct_mesh_skeleton_comp(void* data) {
   AssetMeshSkeletonComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
-  alloc_free(g_alloc_heap, comp->animData);
+  alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
+  alloc_free(g_allocHeap, comp->animData);
 }
 
 ecs_view_define(UnloadView) {

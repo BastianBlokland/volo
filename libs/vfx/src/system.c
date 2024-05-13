@@ -113,7 +113,7 @@ ecs_system_define(VfxSystemStateInitSys) {
         world,
         ecs_view_entity(itr),
         VfxSystemStateComp,
-        .instances = dynarray_create_t(g_alloc_heap, VfxSystemInstance, 4));
+        .instances = dynarray_create_t(g_allocHeap, VfxSystemInstance, 4));
   }
 }
 

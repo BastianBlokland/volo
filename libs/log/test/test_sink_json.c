@@ -12,14 +12,14 @@ spec(sink_json) {
   DynString buffer  = {0};
 
   setup() {
-    logger = log_create(g_alloc_heap);
-    file_temp(g_alloc_heap, &tmpFile);
+    logger = log_create(g_allocHeap);
+    file_temp(g_allocHeap, &tmpFile);
 
     const LogMask mask = LogMask_Info | LogMask_Warn;
-    log_add_sink(logger, log_sink_json(g_alloc_heap, tmpFile, mask, LogSinkJsonFlags_DestroyFile));
+    log_add_sink(logger, log_sink_json(g_allocHeap, tmpFile, mask, LogSinkJsonFlags_DestroyFile));
 
-    jsonDoc = json_create(g_alloc_heap, 64);
-    buffer  = dynstring_create(g_alloc_heap, 1024);
+    jsonDoc = json_create(g_allocHeap, 64);
+    buffer  = dynstring_create(g_allocHeap, 1024);
   }
 
   it("supports plain log messages without parameters") {

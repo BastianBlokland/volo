@@ -30,7 +30,7 @@ static void check_test_task(const void* context) {
   const CheckTaskData* data = context;
 
   // Execute the test.
-  CheckResult*          result = check_exec_test(g_alloc_heap, data->spec, data->test->id);
+  CheckResult*          result = check_exec_test(g_allocHeap, data->spec, data->test->id);
   const CheckResultType type   = result->errors.size ? CheckResultType_Fail : CheckResultType_Pass;
 
   // Report the result.
@@ -50,20 +50,20 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
 
   // Setup outputs.
   CheckOutputPtr outputs[] = {
-      check_output_pretty(g_alloc_heap, g_file_stdout, flags),
-      check_output_mocha_default(g_alloc_heap),
-      check_output_log(g_alloc_heap, g_logger),
+      check_output_pretty(g_allocHeap, g_file_stdout, flags),
+      check_output_mocha_default(g_allocHeap),
+      check_output_log(g_allocHeap, g_logger),
   };
   CheckRunContext ctx = {.outputs = outputs, .outputsCount = array_elems(outputs)};
 
   array_for_t(outputs, CheckOutputPtr, out) { (*out)->runStarted(*out); }
 
   // Discover all tests.
-  DynArray specs    = dynarray_create_t(g_alloc_heap, CheckSpec, 64);
+  DynArray specs    = dynarray_create_t(g_allocHeap, CheckSpec, 64);
   bool     focus    = false;
   u32      numTests = 0;
   dynarray_for_t(&check->specs, CheckSpecDef, specDef) {
-    CheckSpec spec = check_spec_create(g_alloc_heap, specDef);
+    CheckSpec spec = check_spec_create(g_allocHeap, specDef);
     focus |= spec.focus;
     numTests += (u32)spec.tests.size;
     *dynarray_push_t(&specs, CheckSpec) = spec;
@@ -75,7 +75,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   }
 
   // Create a job graph with tasks to execute all tests.
-  JobGraph* graph      = jobs_graph_create(g_alloc_heap, string_lit("tests"), numTests);
+  JobGraph* graph      = jobs_graph_create(g_allocHeap, string_lit("tests"), numTests);
   usize     numSkipped = 0;
   dynarray_for_t(&specs, CheckSpec, spec) {
     // Create tasks to execute all tests in the spec.
@@ -95,7 +95,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   }
 
   // Execute all tasks.
-  jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_alloc_page));
+  jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocPage));
 
   // Observe the results.
   const usize           numFailed  = ctx.numFailedTests;

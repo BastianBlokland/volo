@@ -427,7 +427,7 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       .timeWindow = time_milliseconds(100));
 
   array_for_t(tracePanel->threads, DebugTraceData, thread) {
-    thread->events = dynarray_create_t(g_alloc_heap, TraceStoreEvent, 0);
+    thread->events = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
   }
 
   if (type == DebugPanelType_Detached) {

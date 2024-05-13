@@ -154,7 +154,7 @@ bool path_canonize(DynString* str, String path) {
 }
 
 String path_canonize_scratch(const String path) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, path_pal_max_size, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, path_pal_max_size, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   path_canonize(&str, path);
@@ -187,7 +187,7 @@ void path_build_raw(DynString* str, const String* segments) {
 }
 
 String path_build_scratch_raw(const String* segments) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, path_pal_max_size, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, path_pal_max_size, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   path_build_raw(&str, segments);
@@ -225,7 +225,7 @@ void path_name_random(DynString* str, Rng* rng, const String prefix, const Strin
 }
 
 String path_name_random_scratch(Rng* rng, const String prefix, const String extension) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 32 + extension.size, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, prefix.size + 32 + extension.size, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   path_name_random(&str, rng, prefix, extension);
@@ -254,7 +254,7 @@ void path_name_timestamp(DynString* str, const String prefix, const String exten
 }
 
 String path_name_timestamp_scratch(const String prefix, const String extension) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 32 + extension.size, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, prefix.size + 32 + extension.size, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   path_name_timestamp(&str, prefix, extension);

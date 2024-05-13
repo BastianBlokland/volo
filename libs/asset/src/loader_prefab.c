@@ -278,7 +278,7 @@ static void prefab_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     prefab_set_flags_init();
 
@@ -811,12 +811,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
@@ -877,14 +877,14 @@ ecs_comp_define(AssetPrefabLoadComp) { AssetSource* src; };
 static void ecs_destruct_prefabmap_comp(void* data) {
   AssetPrefabMapComp* comp = data;
   if (comp->prefabs) {
-    alloc_free_array_t(g_alloc_heap, comp->prefabs, comp->prefabCount);
-    alloc_free_array_t(g_alloc_heap, comp->userIndexLookup, comp->prefabCount);
+    alloc_free_array_t(g_allocHeap, comp->prefabs, comp->prefabCount);
+    alloc_free_array_t(g_allocHeap, comp->userIndexLookup, comp->prefabCount);
   }
   if (comp->traits) {
-    alloc_free_array_t(g_alloc_heap, comp->traits, comp->traitCount);
+    alloc_free_array_t(g_allocHeap, comp->traits, comp->traitCount);
   }
   if (comp->values) {
-    alloc_free_array_t(g_alloc_heap, comp->values, comp->valueCount);
+    alloc_free_array_t(g_allocHeap, comp->values, comp->valueCount);
   }
 }
 
@@ -915,14 +915,14 @@ ecs_system_define(LoadPrefabAssetSys) {
     const EcsEntityId  entity = ecs_view_entity(itr);
     const AssetSource* src    = ecs_view_read_t(itr, AssetPrefabLoadComp)->src;
 
-    DynArray prefabs = dynarray_create_t(g_alloc_heap, AssetPrefab, 64);
-    DynArray traits  = dynarray_create_t(g_alloc_heap, AssetPrefabTrait, 64);
-    DynArray values  = dynarray_create_t(g_alloc_heap, AssetPrefabValue, 32);
+    DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
+    DynArray traits  = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);
+    DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 32);
 
     AssetPrefabMapDef def;
     String            errMsg;
     DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataMapDefMeta, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_dataMapDefMeta, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -944,7 +944,7 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
-    u16* userIndexLookup = prefabs.size ? alloc_array_t(g_alloc_heap, u16, prefabs.size) : null;
+    u16* userIndexLookup = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size) : null;
     prefabmap_build_user_index_lookup(
         &def, dynarray_begin_t(&prefabs, AssetPrefab), userIndexLookup);
 
@@ -952,12 +952,12 @@ ecs_system_define(LoadPrefabAssetSys) {
         world,
         entity,
         AssetPrefabMapComp,
-        .prefabs         = dynarray_copy_as_new(&prefabs, g_alloc_heap),
+        .prefabs         = dynarray_copy_as_new(&prefabs, g_allocHeap),
         .userIndexLookup = userIndexLookup,
         .prefabCount     = prefabs.size,
-        .traits          = dynarray_copy_as_new(&traits, g_alloc_heap),
+        .traits          = dynarray_copy_as_new(&traits, g_allocHeap),
         .traitCount      = traits.size,
-        .values          = dynarray_copy_as_new(&values, g_alloc_heap),
+        .values          = dynarray_copy_as_new(&values, g_allocHeap),
         .valueCount      = values.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
@@ -968,7 +968,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
-    data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_dataMapDefMeta, mem_var(def));
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
     dynarray_destroy(&values);

@@ -70,12 +70,12 @@ spec(loader_font_ttf) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     ecs_register_module(def, loader_font_ttf_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("can load TrueType fonts") {
@@ -83,7 +83,7 @@ spec(loader_font_ttf) {
     for (usize i = 0; i != array_elems(g_testData); ++i) {
       records[i] = (AssetMemRecord){
           .id   = g_testData[i].id,
-          .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[i].base64Data)),
+          .data = string_dup(g_allocHeap, base64_decode_scratch(g_testData[i].base64Data)),
       };
     }
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_testData));
@@ -141,13 +141,13 @@ spec(loader_font_ttf) {
       check_eq_float(font->points[seg4P1].y, 0, 1e-6);
     }
 
-    array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
+    array_for_t(records, AssetMemRecord, rec) { string_free(g_allocHeap, rec->data); }
   }
 
   it("can unload TrueType font assets") {
     const AssetMemRecord record = {
         .id   = string_lit("font.ttf"),
-        .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[0].base64Data)),
+        .data = string_dup(g_allocHeap, base64_decode_scratch(g_testData[0].base64Data)),
     };
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
@@ -163,7 +163,7 @@ spec(loader_font_ttf) {
     asset_test_wait(runner);
     check(!ecs_world_has_t(world, asset, AssetFontComp));
 
-    string_free(g_alloc_heap, record.data);
+    string_free(g_allocHeap, record.data);
   }
 
   it("fails when loading invalid TrueType font files") {

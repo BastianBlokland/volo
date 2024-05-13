@@ -419,10 +419,10 @@ static void ttf_read_cmap_format4_header(Mem data, TtfCmapFormat4Header* out, Tt
     *err = TtfError_CmapFormat4EncodingMalformed;
     return;
   }
-  out->endCodes   = alloc_array_t(g_alloc_heap, u16, out->segCount);
-  out->startCodes = alloc_array_t(g_alloc_heap, u16, out->segCount);
-  out->deltas     = alloc_array_t(g_alloc_heap, u16, out->segCount);
-  out->rangeData  = alloc_array_t(g_alloc_heap, void*, out->segCount);
+  out->endCodes   = alloc_array_t(g_allocHeap, u16, out->segCount);
+  out->startCodes = alloc_array_t(g_allocHeap, u16, out->segCount);
+  out->deltas     = alloc_array_t(g_allocHeap, u16, out->segCount);
+  out->rangeData  = alloc_array_t(g_allocHeap, void*, out->segCount);
   // Read endCodes.
   for (usize i = 0; i != out->segCount; ++i) {
     data = mem_consume_be_u16(data, &out->endCodes[i]);
@@ -494,10 +494,10 @@ static void ttf_read_characters_format4(
   }
   *err = TtfError_None;
 End:
-  alloc_free_array_t(g_alloc_heap, header.endCodes, header.segCount);
-  alloc_free_array_t(g_alloc_heap, header.startCodes, header.segCount);
-  alloc_free_array_t(g_alloc_heap, header.deltas, header.segCount);
-  alloc_free_array_t(g_alloc_heap, header.rangeData, header.segCount);
+  alloc_free_array_t(g_allocHeap, header.endCodes, header.segCount);
+  alloc_free_array_t(g_allocHeap, header.startCodes, header.segCount);
+  alloc_free_array_t(g_allocHeap, header.deltas, header.segCount);
+  alloc_free_array_t(g_allocHeap, header.rangeData, header.segCount);
 }
 
 static void ttf_read_characters(
@@ -1045,15 +1045,15 @@ static void ttf_load_succeed(
   AssetFontComp* result = ecs_world_add_t(world, entity, AssetFontComp);
 
   // Copy the characters to the component.
-  result->characters     = dynarray_copy_as_new(characters, g_alloc_heap);
+  result->characters     = dynarray_copy_as_new(characters, g_allocHeap);
   result->characterCount = characters->size;
 
   // Copy the points to the component.
-  result->points     = dynarray_copy_as_new(points, g_alloc_heap);
+  result->points     = dynarray_copy_as_new(points, g_allocHeap);
   result->pointCount = points->size;
 
   // Copy the segments to the component.
-  result->segments     = dynarray_copy_as_new(segments, g_alloc_heap);
+  result->segments     = dynarray_copy_as_new(segments, g_allocHeap);
   result->segmentCount = segments->size;
 
   // Move the glyphs to the component.
@@ -1070,9 +1070,9 @@ void asset_load_ttf(EcsWorld* world, const String id, const EcsEntityId entity, 
   (void)id;
 
   TtfError            err                = TtfError_None;
-  DynArray            characters         = dynarray_create_t(g_alloc_heap, AssetFontChar, 128);
-  DynArray            points             = dynarray_create_t(g_alloc_heap, AssetFontPoint, 1024);
-  DynArray            segments           = dynarray_create_t(g_alloc_heap, AssetFontSegment, 512);
+  DynArray            characters         = dynarray_create_t(g_allocHeap, AssetFontChar, 128);
+  DynArray            points             = dynarray_create_t(g_allocHeap, AssetFontPoint, 1024);
+  DynArray            segments           = dynarray_create_t(g_allocHeap, AssetFontSegment, 512);
   Mem*                glyphDataLocations = null; // Mem[maxpTable.numGlyphs]
   TtfGlyphHorMetrics* glyphHorMetrics    = null; // TtfGlyphHorMetrics[maxpTable.numGlyphs]
   AssetFontGlyph*     glyphs             = null; // AssetFontGlyph[maxpTable.numGlyphs]
@@ -1144,21 +1144,21 @@ void asset_load_ttf(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto End;
   }
 
-  glyphDataLocations = alloc_array_t(g_alloc_heap, Mem, maxpTable.numGlyphs);
+  glyphDataLocations = alloc_array_t(g_allocHeap, Mem, maxpTable.numGlyphs);
   ttf_read_glyph_locations(&offsetTable, &maxpTable, &headTable, glyphDataLocations, &err);
   if (err) {
     ttf_load_fail(world, entity, err);
     goto End;
   }
 
-  glyphHorMetrics = alloc_array_t(g_alloc_heap, TtfGlyphHorMetrics, maxpTable.numGlyphs);
+  glyphHorMetrics = alloc_array_t(g_allocHeap, TtfGlyphHorMetrics, maxpTable.numGlyphs);
   ttf_read_glyph_hor_metrics(&offsetTable, &maxpTable, &hheaTable, glyphHorMetrics, &err);
   if (err) {
     ttf_load_fail(world, entity, err);
     goto End;
   }
 
-  glyphs = alloc_array_t(g_alloc_heap, AssetFontGlyph, maxpTable.numGlyphs);
+  glyphs = alloc_array_t(g_allocHeap, AssetFontGlyph, maxpTable.numGlyphs);
   for (usize glyphIndex = 0; glyphIndex != maxpTable.numGlyphs; ++glyphIndex) {
     ttf_read_glyph(
         glyphDataLocations[glyphIndex],
@@ -1190,13 +1190,13 @@ End:
   dynarray_destroy(&points);
   dynarray_destroy(&segments);
   if (glyphDataLocations) {
-    alloc_free_array_t(g_alloc_heap, glyphDataLocations, maxpTable.numGlyphs);
+    alloc_free_array_t(g_allocHeap, glyphDataLocations, maxpTable.numGlyphs);
   }
   if (glyphHorMetrics) {
-    alloc_free_array_t(g_alloc_heap, glyphHorMetrics, maxpTable.numGlyphs);
+    alloc_free_array_t(g_allocHeap, glyphHorMetrics, maxpTable.numGlyphs);
   }
   if (glyphs) {
-    alloc_free_array_t(g_alloc_heap, glyphs, maxpTable.numGlyphs);
+    alloc_free_array_t(g_allocHeap, glyphs, maxpTable.numGlyphs);
   }
   asset_repo_source_close(src);
 }

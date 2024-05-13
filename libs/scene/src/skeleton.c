@@ -67,12 +67,12 @@ ecs_comp_define(SceneSkeletonTemplLoadedComp);
 
 static void ecs_destruct_skeleton_comp(void* data) {
   SceneSkeletonComp* sk = data;
-  alloc_free_array_t(g_alloc_heap, sk->jointTransforms, sk->jointCount);
+  alloc_free_array_t(g_allocHeap, sk->jointTransforms, sk->jointCount);
 }
 
 static void ecs_destruct_animation_comp(void* data) {
   SceneAnimationComp* anim = data;
-  alloc_free_array_t(g_alloc_heap, anim->layers, anim->layerCount);
+  alloc_free_array_t(g_allocHeap, anim->layers, anim->layerCount);
 }
 
 static void ecs_combine_skeleton_templ(void* dataA, void* dataB) {
@@ -87,10 +87,10 @@ static void ecs_combine_skeleton_templ(void* dataA, void* dataB) {
 static void ecs_destruct_skeleton_templ_comp(void* data) {
   SceneSkeletonTemplComp* comp = data;
   if (comp->animCount) {
-    alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
+    alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
   }
   if (comp->animData.size) {
-    alloc_free(g_alloc_heap, comp->animData);
+    alloc_free(g_allocHeap, comp->animData);
   }
 }
 
@@ -125,7 +125,7 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
       entity,
       SceneSkeletonComp,
       .jointCount        = tl->jointCount,
-      .jointTransforms   = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount),
+      .jointTransforms   = alloc_array_t(g_allocHeap, GeoMatrix, tl->jointCount),
       .postTransJointIdx = sentinel_u32,
       .postTransMat      = geo_matrix_ident());
 
@@ -134,7 +134,7 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
     skel->jointTransforms[i] = geo_matrix_ident();
   }
 
-  SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
+  SceneAnimLayer* layers = alloc_array_t(g_allocHeap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     const bool isLowestLayer = i == tl->animCount - 1;
 
@@ -194,9 +194,9 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   diag_assert(asset->jointCount <= scene_skeleton_joints_max);
 
   tl->jointCount = asset->jointCount;
-  tl->animData   = alloc_dup(g_alloc_heap, asset->animData, 1);
+  tl->animData   = alloc_dup(g_allocHeap, asset->animData, 1);
 
-  tl->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
+  tl->anims     = alloc_array_t(g_allocHeap, SceneSkeletonAnim, asset->animCount);
   tl->animCount = asset->animCount;
   for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
     const AssetMeshAnim* assetAnim = &asset->anims[animIndex];

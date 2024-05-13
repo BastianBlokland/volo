@@ -29,10 +29,10 @@ spec(utils) {
   EcsWorld* world = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, utils_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
+    world = ecs_world_create(g_allocHeap, def);
   }
 
   it("can test if a view contains any entities") {

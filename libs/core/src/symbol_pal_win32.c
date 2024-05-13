@@ -52,7 +52,7 @@ typedef struct {
 } SymDbg;
 
 static const char* to_null_term_scratch(const String str) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;

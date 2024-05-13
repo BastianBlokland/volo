@@ -65,7 +65,7 @@ static void procmesh_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_enum_t(reg, ProcMeshType);
@@ -580,7 +580,7 @@ void asset_load_procmesh(
   AssetMeshBuilder* builder = null;
   ProcMeshDef       def;
   DataReadResult    result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataProcMeshDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataProcMeshDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -591,7 +591,7 @@ void asset_load_procmesh(
     goto Error;
   }
 
-  builder = asset_mesh_builder_create(g_alloc_heap, procmesh_max_verts(&def));
+  builder = asset_mesh_builder_create(g_allocHeap, procmesh_max_verts(&def));
   procmesh_generate(&(ProcMeshGenerator){
       .def             = &def,
       .builder         = builder,
@@ -619,7 +619,7 @@ Done:
   if (builder) {
     asset_mesh_builder_destroy(builder);
   }
-  data_destroy(g_dataReg, g_alloc_heap, g_dataProcMeshDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataProcMeshDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 

@@ -83,7 +83,7 @@ void thread_pal_init_late(void) {
   /**
    * If 'Winmm.dll' (Windows Multimedia API) is available then configure the scheduling interval.
    */
-  if (dynlib_load(g_alloc_persist, string_lit("Winmm.dll"), &g_libMM) == 0) {
+  if (dynlib_load(g_allocPersist, string_lit("Winmm.dll"), &g_libMM) == 0) {
     g_mmTimeBeginPeriod = dynlib_symbol(g_libMM, string_lit("timeBeginPeriod"));
     g_mmTimeEndPeriod   = dynlib_symbol(g_libMM, string_lit("timeEndPeriod"));
   }
@@ -93,7 +93,7 @@ void thread_pal_init_late(void) {
   /**
    * 'SetThreadDescription' was introduced in 'Windows 10, version 1607'; optionally load it.
    */
-  if (dynlib_load(g_alloc_persist, string_lit("kernel32.dll"), &g_libKernel32) == 0) {
+  if (dynlib_load(g_allocPersist, string_lit("kernel32.dll"), &g_libKernel32) == 0) {
     g_setThreadDescription = dynlib_symbol(g_libKernel32, string_lit("SetThreadDescription"));
   }
 }

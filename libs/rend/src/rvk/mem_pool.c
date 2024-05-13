@@ -166,16 +166,16 @@ static RvkMemChunk* rvk_mem_chunk_create(
     const u32          size,
     const u32          memType) {
 
-  RvkMemChunk* chunk = alloc_alloc_t(g_alloc_heap, RvkMemChunk);
+  RvkMemChunk* chunk = alloc_alloc_t(g_allocHeap, RvkMemChunk);
   *chunk             = (RvkMemChunk){
-      .id         = id,
-      .pool       = pool,
-      .loc        = loc,
-      .access     = access,
-      .size       = size,
-      .memType    = memType,
-      .freeBlocks = dynarray_create_t(g_alloc_heap, RvkMem, 16),
-      .vkMem      = rvk_mem_alloc_vk(pool, size, memType),
+                  .id         = id,
+                  .pool       = pool,
+                  .loc        = loc,
+                  .access     = access,
+                  .size       = size,
+                  .memType    = memType,
+                  .freeBlocks = dynarray_create_t(g_allocHeap, RvkMem, 16),
+                  .vkMem      = rvk_mem_alloc_vk(pool, size, memType),
   };
   if (loc == RvkMemLoc_Host) {
     rvk_call(vkMapMemory, pool->vkDev, chunk->vkMem, 0, VK_WHOLE_SIZE, 0, &chunk->map);
@@ -216,7 +216,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
   rvk_mem_free_vk(chunk->pool, chunk->vkMem);
 
   dynarray_destroy(&chunk->freeBlocks);
-  alloc_free_t(g_alloc_heap, chunk);
+  alloc_free_t(g_allocHeap, chunk);
 
 #if VOLO_RVK_MEM_LOGGING
   log_d(
@@ -378,13 +378,13 @@ RvkMemPool* rvk_mem_pool_create(
     const VkDevice                         vkDev,
     const VkPhysicalDeviceMemoryProperties props,
     const VkPhysicalDeviceLimits           limits) {
-  RvkMemPool* pool = alloc_alloc_t(g_alloc_heap, RvkMemPool);
+  RvkMemPool* pool = alloc_alloc_t(g_allocHeap, RvkMemPool);
   *pool            = (RvkMemPool){
-      .vkDev         = vkDev,
-      .vkDevMemProps = props,
-      .vkDevLimits   = limits,
-      .vkAlloc       = rvk_mem_allocator(g_alloc_heap),
-      .lock          = thread_mutex_create(g_alloc_heap),
+                 .vkDev         = vkDev,
+                 .vkDevMemProps = props,
+                 .vkDevLimits   = limits,
+                 .vkAlloc       = rvk_mem_allocator(g_allocHeap),
+                 .lock          = thread_mutex_create(g_allocHeap),
   };
   return pool;
 }
@@ -396,7 +396,7 @@ void rvk_mem_pool_destroy(RvkMemPool* pool) {
     rvk_mem_chunk_destroy(toDestroy);
   }
   thread_mutex_destroy(pool->lock);
-  alloc_free_t(g_alloc_heap, pool);
+  alloc_free_t(g_allocHeap, pool);
 }
 
 RvkMem rvk_mem_alloc_req(

@@ -9,10 +9,10 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-Allocator*   g_alloc_heap;
-Allocator*   g_alloc_page;
-Allocator*   g_alloc_persist;
-THREAD_LOCAL Allocator* g_alloc_scratch;
+Allocator*              g_allocHeap;
+Allocator*              g_allocPage;
+Allocator*              g_allocPersist;
+THREAD_LOCAL Allocator* g_allocScratch;
 
 static void alloc_verify_allocator(const Allocator* allocator) {
   if (UNLIKELY(allocator == null)) {
@@ -21,9 +21,9 @@ static void alloc_verify_allocator(const Allocator* allocator) {
 }
 
 void alloc_init(void) {
-  g_alloc_page    = alloc_page_init();
-  g_alloc_heap    = alloc_heap_init();
-  g_alloc_persist = alloc_persist_init();
+  g_allocPage    = alloc_page_init();
+  g_allocHeap    = alloc_heap_init();
+  g_allocPersist = alloc_persist_init();
 }
 
 void alloc_teardown(void) {
@@ -36,11 +36,11 @@ void alloc_teardown(void) {
   }
 }
 
-void alloc_init_thread(void) { g_alloc_scratch = alloc_scratch_init(); }
+void alloc_init_thread(void) { g_allocScratch = alloc_scratch_init(); }
 
 void alloc_teardown_thread(void) {
   alloc_scratch_teardown();
-  g_alloc_scratch = null;
+  g_allocScratch = null;
 }
 
 Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {

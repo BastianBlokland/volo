@@ -43,7 +43,7 @@ void script_panic_pretty_write(DynString* out, const String sourceText, const Sc
 }
 
 String script_panic_pretty_scratch(const String sourceText, const ScriptPanic* diag) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   script_panic_pretty_write(&buffer, sourceText, diag);

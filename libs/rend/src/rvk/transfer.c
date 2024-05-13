@@ -226,14 +226,14 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
 }
 
 RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
-  RvkTransferer* transferer = alloc_alloc_t(g_alloc_heap, RvkTransferer);
+  RvkTransferer* transferer = alloc_alloc_t(g_allocHeap, RvkTransferer);
 
   *transferer = (RvkTransferer){
       .dev               = dev,
-      .mutex             = thread_mutex_create(g_alloc_heap),
+      .mutex             = thread_mutex_create(g_allocHeap),
       .vkCmdPoolTransfer = rvk_commandpool_create(dev, dev->transferQueueIndex),
       .vkCmdPoolGraphics = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
-      .buffers           = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
+      .buffers           = dynarray_create_t(g_allocHeap, RvkTransferBuffer, 8),
   };
 
   rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPoolTransfer, "transferer");
@@ -255,7 +255,7 @@ void rvk_transferer_destroy(RvkTransferer* transferer) {
   thread_mutex_destroy(transferer->mutex);
   dynarray_destroy(&transferer->buffers);
 
-  alloc_free_t(g_alloc_heap, transferer);
+  alloc_free_t(g_allocHeap, transferer);
 }
 
 RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const Mem data) {

@@ -59,7 +59,7 @@ Allocator* alloc_persist_init(void) {
           .reset   = null,
       },
       .chunkedAlloc =
-          alloc_chunked_create(g_alloc_page, alloc_bump_create, alloc_persist_chunk_size),
+          alloc_chunked_create(g_allocPage, alloc_bump_create, alloc_persist_chunk_size),
   };
   return (Allocator*)&g_allocatorIntern;
 }

@@ -121,12 +121,12 @@ spec(loader_mesh_gltf) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     ecs_register_module(def, loader_mesh_gltf_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("can load gltf meshes") {
@@ -134,11 +134,11 @@ spec(loader_mesh_gltf) {
     for (usize i = 0; i != array_elems(g_testData); ++i) {
       records[i * 2 + 0] = (AssetMemRecord){
           .id   = g_testData[i].id,
-          .data = string_dup(g_alloc_heap, g_testData[i].text),
+          .data = string_dup(g_allocHeap, g_testData[i].text),
       };
       records[i * 2 + 1] = (AssetMemRecord){
           .id   = g_testData[i].bufferId,
-          .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[i].bufferBase64)),
+          .data = string_dup(g_allocHeap, base64_decode_scratch(g_testData[i].bufferBase64)),
       };
     }
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
@@ -171,18 +171,18 @@ spec(loader_mesh_gltf) {
       }
     };
 
-    array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
+    array_for_t(records, AssetMemRecord, rec) { string_free(g_allocHeap, rec->data); }
   }
 
   it("can unload gltf mesh assets") {
     const AssetMemRecord records[] = {
         {
             .id   = g_testData[0].id,
-            .data = string_dup(g_alloc_heap, g_testData[0].text),
+            .data = string_dup(g_allocHeap, g_testData[0].text),
         },
         {
             .id   = g_testData[0].bufferId,
-            .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[0].bufferBase64)),
+            .data = string_dup(g_allocHeap, base64_decode_scratch(g_testData[0].bufferBase64)),
         },
     };
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
@@ -199,7 +199,7 @@ spec(loader_mesh_gltf) {
     asset_test_wait(runner);
     check(!ecs_world_has_t(world, asset, AssetMeshComp));
 
-    array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
+    array_for_t(records, AssetMemRecord, rec) { string_free(g_allocHeap, rec->data); }
   }
 
   it("fails when loading invalid gltf files") {

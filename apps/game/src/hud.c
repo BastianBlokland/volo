@@ -461,7 +461,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
 
   const String entityName = stringtable_lookup(g_stringtable, nameComp->name);
 
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   fmt_write(&buffer, "\a.bName\ar:\a>15{}\n", fmt_text(entityName));
@@ -871,7 +871,7 @@ static void hud_production_meta_draw(UiCanvasComp* c, const AssetProduct* produc
 }
 
 static void hud_production_queue_tooltip(UiCanvasComp* c, const AssetProduct* prod, const UiId id) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   if (!string_is_empty(prod->name)) {

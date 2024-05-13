@@ -85,7 +85,7 @@ static void debug_log_sink_destroy(LogSink* sink) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
     dynarray_destroy(&debugSink->messages);
-    alloc_free_t(g_alloc_heap, debugSink);
+    alloc_free_t(g_allocHeap, debugSink);
   }
 }
 
@@ -104,11 +104,11 @@ static void debug_log_sink_prune_older(DebugLogSink* debugSink, const TimeReal t
 }
 
 DebugLogSink* debug_log_sink_create(void) {
-  DebugLogSink* sink = alloc_alloc_t(g_alloc_heap, DebugLogSink);
+  DebugLogSink* sink = alloc_alloc_t(g_allocHeap, DebugLogSink);
 
   *sink = (DebugLogSink){
       .api      = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
-      .messages = dynarray_create_t(g_alloc_heap, DebugLogMessage, 128),
+      .messages = dynarray_create_t(g_allocHeap, DebugLogMessage, 128),
   };
   return sink;
 }

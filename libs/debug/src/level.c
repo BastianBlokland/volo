@@ -428,10 +428,10 @@ debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       DebugLevelPanelComp,
       .flags         = DebugLevelFlags_Default,
       .window        = window,
-      .idFilter      = dynstring_create(g_alloc_heap, 32),
-      .nameBuffer    = dynstring_create(g_alloc_heap, 32),
-      .assetsLevel   = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
-      .assetsTerrain = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
+      .idFilter      = dynstring_create(g_allocHeap, 32),
+      .nameBuffer    = dynstring_create(g_allocHeap, 32),
+      .assetsLevel   = dynarray_create_t(g_allocHeap, EcsEntityId, 8),
+      .assetsTerrain = dynarray_create_t(g_allocHeap, EcsEntityId, 8),
       .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
 
   if (type == DebugPanelType_Detached) {

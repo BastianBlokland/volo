@@ -222,7 +222,7 @@ void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, 
   (void)id;
 
   WavError err        = WavError_None;
-  DynArray chunks     = dynarray_create_t(g_alloc_heap, WavChunk, 8);
+  DynArray chunks     = dynarray_create_t(g_allocHeap, WavChunk, 8);
   f32*     samples    = null;
   u32      frameCount = 0;
   WavChunk rootChunk;
@@ -263,7 +263,7 @@ void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, 
     wav_load_fail(world, entity, WavError_FrameCountUnsupported);
     goto End;
   }
-  samples = alloc_array_t(g_alloc_heap, f32, frameCount * format.channels);
+  samples = alloc_array_t(g_allocHeap, f32, frameCount * format.channels);
   wav_read_samples(format, &chunks, frameCount, samples, &err);
   if (err) {
     wav_load_fail(world, entity, err);
@@ -276,7 +276,7 @@ void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, 
 End:
   dynarray_destroy(&chunks);
   if (samples) {
-    alloc_free_array_t(g_alloc_heap, samples, frameCount * format.channels);
+    alloc_free_array_t(g_allocHeap, samples, frameCount * format.channels);
   }
   asset_repo_source_close(src);
 }

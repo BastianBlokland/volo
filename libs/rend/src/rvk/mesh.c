@@ -86,10 +86,10 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
 }
 
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
-  RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
+  RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
   *mesh         = (RvkMesh){
               .device            = dev,
-              .dbgName           = string_dup(g_alloc_heap, dbgName),
+              .dbgName           = string_dup(g_allocHeap, dbgName),
               .vertexCount       = (u32)asset->vertexCount,
               .indexCount        = (u32)asset->indexCount,
               .positionBounds    = asset->positionBounds,
@@ -102,7 +102,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
 
   const u32  vertexSize    = rvk_mesh_vertex_size(asset);
   const bool useScratch    = vertexSize * asset->vertexCount < rvk_mesh_max_scratch_size;
-  Allocator* verticesAlloc = useScratch ? g_alloc_scratch : g_alloc_heap;
+  Allocator* verticesAlloc = useScratch ? g_allocScratch : g_allocHeap;
   const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
   const usize indexSize = sizeof(AssetMeshIndex) * asset->indexCount;
@@ -141,8 +141,8 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   log_d("Vulkan mesh destroyed", log_param("name", fmt_text(mesh->dbgName)));
 #endif
 
-  string_free(g_alloc_heap, mesh->dbgName);
-  alloc_free_t(g_alloc_heap, mesh);
+  string_free(g_allocHeap, mesh->dbgName);
+  alloc_free_t(g_allocHeap, mesh);
 }
 
 bool rvk_mesh_prepare(RvkMesh* mesh) {

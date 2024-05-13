@@ -30,7 +30,7 @@ struct sRvkDebug {
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
@@ -126,7 +126,7 @@ static void rvk_messenger_destroy(RvkDebug* dbg) {
 RvkDebug* rvk_debug_create(
     VkInstance vkInst, VkDevice vkDev, VkAllocationCallbacks* vkAlloc, const RvkDebugFlags flags) {
 
-  RvkDebug* debug = alloc_alloc_t(g_alloc_heap, RvkDebug);
+  RvkDebug* debug = alloc_alloc_t(g_allocHeap, RvkDebug);
   *debug          = (RvkDebug){
                .flags            = flags,
                .logger           = g_logger,
@@ -144,7 +144,7 @@ RvkDebug* rvk_debug_create(
 
 void rvk_debug_destroy(RvkDebug* debug) {
   rvk_messenger_destroy(debug);
-  alloc_free_t(g_alloc_heap, debug);
+  alloc_free_t(g_allocHeap, debug);
 }
 
 void rvk_debug_name(

@@ -254,7 +254,7 @@ static bool alsa_pcm_open(SndDevice* dev) {
 static AlsaPcmInfo* alsa_pcm_info_scratch(SndDevice* dev) {
   diag_assert(dev->pcm);
 
-  AlsaPcmInfo* info = alloc_alloc(g_alloc_scratch, dev->alsa.pcm_info_sizeof(), sizeof(void*)).ptr;
+  AlsaPcmInfo* info = alloc_alloc(g_allocScratch, dev->alsa.pcm_info_sizeof(), sizeof(void*)).ptr;
   const i32    ret  = dev->alsa.pcm_info(dev->pcm, info);
   if (ret < 0) {
     const String errName = alsa_error_str(dev, ret);
@@ -272,7 +272,7 @@ static bool alsa_pcm_configure(SndDevice* dev) {
 
   // Configure the hardware parameters.
   const usize      hwParamsSize = dev->alsa.pcm_hw_params_sizeof();
-  AlsaPcmHwParams* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
+  AlsaPcmHwParams* hwParams     = alloc_alloc(g_allocScratch, hwParamsSize, sizeof(void*)).ptr;
   if ((err = dev->alsa.pcm_hw_params_any(pcm, hwParams)) < 0) {
     goto Err;
   }

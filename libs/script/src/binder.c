@@ -224,7 +224,7 @@ static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const Scri
 void script_binder_write(DynString* str, const ScriptBinder* b) {
   diag_assert_msg(b->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
-  JsonDoc* doc = json_create(g_alloc_heap, 512);
+  JsonDoc* doc = json_create(g_allocHeap, 512);
 
   const JsonVal funcsArr = json_add_array(doc);
   for (ScriptBinderSlot slot = 0; slot != b->count; ++slot) {
@@ -298,7 +298,7 @@ static const ScriptSig* binder_sig_from_json(const JsonDoc* d, const JsonVal v) 
       json_for_elems(d, argsVal, a) { args[argCount++] = binder_arg_from_json(d, a); }
     }
   }
-  return script_sig_create(g_alloc_scratch, ret, args, argCount);
+  return script_sig_create(g_allocScratch, ret, args, argCount);
 }
 
 static void binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const JsonVal v) {
@@ -311,7 +311,7 @@ static void binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const Jso
 }
 
 bool script_binder_read(ScriptBinder* out, const String str) {
-  JsonDoc* doc     = json_create(g_alloc_heap, 512);
+  JsonDoc* doc     = json_create(g_allocHeap, 512);
   bool     success = false;
 
   JsonResult readRes;

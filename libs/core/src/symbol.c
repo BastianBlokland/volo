@@ -121,7 +121,7 @@ static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
 }
 
 MAYBE_UNUSED static void symbol_reg_dump_out(const SymbolReg* r) {
-  DynString str = dynstring_create(g_alloc_heap, 4 * usize_kibibyte);
+  DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
   symbol_reg_dump(r, &str);
   file_write_sync(g_file_stdout, dynstring_view(&str));
   dynstring_destroy(&str);
@@ -142,7 +142,7 @@ static const SymbolReg* symbol_reg_get(void) {
   g_symRegInitializing = true;
   thread_mutex_lock(g_symRegMutex);
   if (!g_symReg) {
-    SymbolReg* reg = symbol_reg_create(g_alloc_heap);
+    SymbolReg* reg = symbol_reg_create(g_allocHeap);
     symbol_pal_dbg_init(reg);
 #if defined(VOLO_SYMBOL_VERBOSE)
     symbol_reg_dump_out(reg);
@@ -167,7 +167,7 @@ void symbol_reg_add(
 void symbol_init(void) {
   g_symProgBegin = symbol_pal_prog_begin();
   g_symProgEnd   = symbol_pal_prog_end();
-  g_symRegMutex  = thread_mutex_create(g_alloc_persist);
+  g_symRegMutex  = thread_mutex_create(g_allocPersist);
   g_symInit      = true;
 }
 

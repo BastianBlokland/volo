@@ -41,7 +41,7 @@ ecs_comp_define(SceneLevelRequestSaveComp) { EcsEntityId levelAsset; };
 
 static void ecs_destruct_level_manager_comp(void* data) {
   SceneLevelManagerComp* comp = data;
-  string_maybe_free(g_alloc_heap, comp->levelName);
+  string_maybe_free(g_allocHeap, comp->levelName);
 }
 
 static i8 level_compare_object_id(const void* a, const void* b) {
@@ -99,7 +99,7 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
     ++unloadedObjectCount;
   }
 
-  string_maybe_free(g_alloc_heap, manager->levelName);
+  string_maybe_free(g_allocHeap, manager->levelName);
 
   manager->levelAsset      = 0;
   manager->levelName       = string_empty;
@@ -134,7 +134,7 @@ static void scene_level_process_load(
   }
 
   manager->levelAsset      = levelAsset;
-  manager->levelName       = string_maybe_dup(g_alloc_heap, level->name);
+  manager->levelName       = string_maybe_dup(g_allocHeap, level->name);
   manager->levelStartpoint = level->startpoint;
   if (!string_is_empty(level->terrainId)) {
     manager->levelTerrain = asset_lookup(world, assets, level->terrainId);
@@ -316,7 +316,7 @@ static void scene_level_process_save(
     EcsView*                     assetView,
     const String                 id,
     EcsView*                     instanceView) {
-  DynArray objects = dynarray_create_t(g_alloc_heap, AssetLevelObject, 1024);
+  DynArray objects = dynarray_create_t(g_allocHeap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
     scene_level_object_push(&objects, itr);
   }
@@ -415,8 +415,8 @@ void scene_level_name_update(SceneLevelManagerComp* manager, const String name) 
   diag_assert_msg(manager->levelAsset, "Unable to update name: No level loaded");
   diag_assert_msg(name.size <= 32, "Unable to update name: Too long");
 
-  string_maybe_free(g_alloc_heap, manager->levelName);
-  manager->levelName = string_maybe_dup(g_alloc_heap, name);
+  string_maybe_free(g_allocHeap, manager->levelName);
+  manager->levelName = string_maybe_dup(g_allocHeap, name);
 }
 
 EcsEntityId scene_level_terrain(const SceneLevelManagerComp* manager) {

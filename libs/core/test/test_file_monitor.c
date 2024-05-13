@@ -16,7 +16,7 @@ spec(file_monitor) {
   FileMonitor* monitor = null;
 
   setup() {
-    monitor = file_monitor_create(g_alloc_heap, g_path_tempdir, FileMonitorFlags_None);
+    monitor = file_monitor_create(g_allocHeap, g_path_tempdir, FileMonitorFlags_None);
 
     // Create an empty test file.
     file_write_to_path_sync(path_build_scratch(g_path_tempdir, string_lit("test")), string_empty);
@@ -128,7 +128,7 @@ spec(file_monitor) {
 
   it("watching fails when the root directory cannot be opened") {
     const String nonExistentDir = path_build_scratch(g_path_tempdir, string_lit("does-not-exist"));
-    FileMonitor* mon = file_monitor_create(g_alloc_heap, nonExistentDir, FileMonitorFlags_None);
+    FileMonitor* mon = file_monitor_create(g_allocHeap, nonExistentDir, FileMonitorFlags_None);
 
     const String filePath = string_lit("test.txt");
     check_eq_int(file_monitor_watch(mon, filePath, 1), FileMonitorResult_UnableToOpenRoot);

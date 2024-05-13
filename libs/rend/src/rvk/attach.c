@@ -131,7 +131,7 @@ RvkImage* rvk_attach_acquire(
 }
 
 RvkAttachPool* rvk_attach_pool_create(RvkDevice* device) {
-  RvkAttachPool* pool = alloc_alloc_t(g_alloc_heap, RvkAttachPool);
+  RvkAttachPool* pool = alloc_alloc_t(g_allocHeap, RvkAttachPool);
   *pool               = (RvkAttachPool){.device = device};
   bitset_set_all(bitset_from_array(pool->emptyMask), rvk_attach_max_images);
   return pool;
@@ -143,7 +143,7 @@ void rvk_attach_pool_destroy(RvkAttachPool* pool) {
       rvk_image_destroy(&pool->images[slot], pool->device);
     }
   }
-  alloc_free_t(g_alloc_heap, pool);
+  alloc_free_t(g_allocHeap, pool);
 }
 
 u16 rvk_attach_pool_count(const RvkAttachPool* pool) {
