@@ -184,7 +184,7 @@ void symbol_teardown(void) {
  * Check if the given pointer is located on the stack of the current thread. Avoids us following
  * bogus pointers if the stack is corrupt or the executable was compiled without frame-pointers.
  */
-INLINE_HINT static bool sym_is_stack_ptr(const void* ptr) {
+INLINE_HINT MAYBE_UNUSED static bool sym_is_stack_ptr(const void* ptr) {
   uptr stackBottom;
   asm("movq %%rsp, %[stackBottom]" : [stackBottom] "=r"(stackBottom));
 
