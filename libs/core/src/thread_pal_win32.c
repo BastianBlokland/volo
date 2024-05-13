@@ -11,6 +11,8 @@
 ASSERT(sizeof(LONG) == sizeof(i32), "Expected LONG to be 32 bit");
 ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
 
+#define thread_early_crash_exit_code 2
+
 /**
  * Requested minimum OS scheduling interval in milliseconds.
  * This is a tradeoff between overhead due to many context switches if set too low and taking a long
@@ -24,6 +26,21 @@ static UINT(SYS_DECL* g_mmTimeEndPeriod)(UINT period);
 
 static DynLib* g_libKernel32;
 static HRESULT(SYS_DECL* g_setThreadDescription)(HANDLE thread, const wchar_t* description);
+
+/**
+ * Crash utility that can be used during early initialization before the allocators and the normal
+ * crash infrastructure has been initialized.
+ */
+static NORETURN void thread_crash_early_init(const String msg) {
+  HANDLE stdErr = GetStdHandle(STD_ERROR_HANDLE);
+  if (stdErr != INVALID_HANDLE_VALUE) {
+    WriteFile(msg.ptr, (DWORD)msg.size, null, null);
+  }
+
+  HANDLE curProcess = GetCurrentProcess();
+  TerminateProcess(curProcess, diag_crash_exit_code);
+  UNREACHABLE
+}
 
 static int thread_desired_prio_value(const ThreadPriority prio) {
   switch (prio) {
@@ -42,14 +59,16 @@ static int thread_desired_prio_value(const ThreadPriority prio) {
 }
 
 MAYBE_UNUSED static void thread_set_process_priority(void) {
-  /**
-   * NOTE: Called during early startup so cannot allocate memory and cannot report crashes.
-   */
   const HANDLE curProcess = GetCurrentProcess();
-  SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0);
+  if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
+    thread_crash_early_init(string_lit("SetPriorityClass() failed\n"));
+  }
 }
 
 void thread_pal_init(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
 #ifdef VOLO_FAST
   /**
    * When running an optimized build we assume the user wants to give additional priority to the

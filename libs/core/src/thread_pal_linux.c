@@ -13,6 +13,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#define thread_early_crash_exit_code 2
+
 /**
  * The nice value determines the priority of processes / threads. The higher the value, the lower
  * the priority (the "nicer" the process is to other processes). The default nice value is 0.
@@ -39,6 +41,18 @@ static int thread_desired_nice(const ThreadPriority prio) {
   diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
 }
 
+/**
+ * Crude crash utility that can be used during early initialization before the allocators and the
+ * normal crash infrastructure has been initialized.
+ */
+static NORETURN void thread_crash_early_init(const String msg) {
+  MAYBE_UNUSED const usize bytesWritten = write(2, msg.ptr, msg.size);
+
+  // NOTE: exit_group to terminate all threads in the process.
+  syscall(SYS_exit_group, thread_early_crash_exit_code);
+  UNREACHABLE
+}
+
 void thread_pal_init(void) {}
 void thread_pal_init_late(void) {}
 void thread_pal_teardown(void) {}
@@ -50,13 +64,13 @@ ThreadId thread_pal_tid(void) { return (ThreadId)syscall(SYS_gettid); }
 
 u16 thread_pal_core_count(void) {
   /**
-   * NOTE: Called during early startup so cannot allocate memory and cannot report crashes.
+   * NOTE: Called during early startup so cannot allocate memory.
    */
   cpu_set_t cpuSet;
   CPU_ZERO(&cpuSet);
   const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
   if (UNLIKELY(res != 0)) {
-    return 1; // TODO: Report this error without allocating memory.
+    thread_crash_early_init(string_lit("sched_getaffinity() failed\n"));
   }
   return CPU_COUNT(&cpuSet);
 }
