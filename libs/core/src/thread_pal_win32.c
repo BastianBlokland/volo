@@ -121,6 +121,15 @@ u16 thread_pal_core_count(void) {
   return sysInfo.dwNumberOfProcessors;
 }
 
+uptr thread_pal_stack_top(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
+  ULONG_PTR low, high;
+  GetCurrentThreadStackLimits(&low, &high);
+  return (uptr)high;
+}
+
 void thread_pal_set_name(const String str) {
   if (!g_setThreadDescription) {
     return; // Thread descriptions are not supported on this windows installation.
