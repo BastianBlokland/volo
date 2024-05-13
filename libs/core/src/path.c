@@ -12,10 +12,10 @@
 #include "init_internal.h"
 #include "path_internal.h"
 
-static String g_path_seperators = string_static("/\\");
+static String g_pathSeparators = string_static("/\\");
 
-static bool path_ends_with_seperator(const String str) {
-  return mem_contains(g_path_seperators, *string_last(str));
+static bool path_ends_with_separator(const String str) {
+  return mem_contains(g_pathSeparators, *string_last(str));
 }
 
 static bool path_starts_with_posix_root(const String path) {
@@ -59,7 +59,7 @@ bool path_is_root(const String path) {
 }
 
 String path_filename(const String path) {
-  const usize lastSegStart = string_find_last_any(path, g_path_seperators);
+  const usize lastSegStart = string_find_last_any(path, g_pathSeparators);
   return sentinel_check(lastSegStart)
              ? path
              : string_slice(path, lastSegStart + 1, path.size - lastSegStart - 1);
@@ -80,7 +80,7 @@ String path_stem(const String path) {
 }
 
 String path_parent(const String path) {
-  const usize lastSegStart = string_find_last_any(path, g_path_seperators);
+  const usize lastSegStart = string_find_last_any(path, g_pathSeparators);
   if (sentinel_check(lastSegStart)) {
     return string_empty;
   }
@@ -118,7 +118,7 @@ bool path_canonize(DynString* str, String path) {
 
   bool success = true;
   while (path.size) {
-    const usize segEnd = string_find_first_any(path, g_path_seperators);
+    const usize segEnd = string_find_first_any(path, g_pathSeparators);
     String      seg;
     if (sentinel_check(segEnd)) {
       seg  = path;
@@ -139,7 +139,7 @@ bool path_canonize(DynString* str, String path) {
       continue;
     }
 
-    if (segCount > 1 && !path_ends_with_seperator(dynstring_view(str))) {
+    if (segCount > 1 && !path_ends_with_separator(dynstring_view(str))) {
       dynstring_append_char(str, '/');
     }
     segStarts[segCount++] = str->size; // Remember where this segment starts.
@@ -165,7 +165,7 @@ String path_canonize_scratch(const String path) {
 }
 
 void path_append(DynString* str, const String path) {
-  if (str->size && !path_ends_with_seperator(dynstring_view(str))) {
+  if (str->size && !path_ends_with_separator(dynstring_view(str))) {
     dynstring_append_char(str, '/');
   }
   dynstring_append(str, path);
