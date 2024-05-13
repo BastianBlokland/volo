@@ -91,7 +91,7 @@ uptr thread_pal_stack_top(void) {
   if (pthread_attr_destroy(&attr)) {
     thread_crash_early_init(string_lit("pthread_attr_destroy() failed\n"));
   }
-  return (uptr)stackPtr;
+  return (uptr)stackPtr + (uptr)stackSize;
 }
 
 void thread_pal_set_name(const String str) {
