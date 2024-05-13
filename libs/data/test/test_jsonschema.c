@@ -17,7 +17,7 @@ spec(jsonschema) {
 
   DataReg* reg = null;
 
-  setup() { reg = data_reg_create(g_alloc_heap); }
+  setup() { reg = data_reg_create(g_allocHeap); }
 
   it("supports a boolean type") {
     const DataMeta meta = data_meta_t(data_prim_t(bool));

@@ -41,8 +41,8 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
 
   // Initialize the thread name.
-  g_thread_name = runData->threadName;
-  thread_pal_set_name(g_thread_name);
+  g_threadName = runData->threadName;
+  thread_pal_set_name(g_threadName);
 
   // Set the thread priority.
   if (runData->threadPriority != ThreadPriority_Normal) {
@@ -56,36 +56,51 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   core_teardown(); // Tear-down the core library for this thread.
 
   // Cleanup thread data.
-  string_free(g_alloc_heap, runData->threadName);
-  alloc_free_t(g_alloc_heap, runData);
+  string_free(g_allocHeap, runData->threadName);
+  alloc_free_t(g_allocHeap, runData);
 
   return (thread_pal_rettype)0;
 }
 
-ThreadId              g_thread_pid;
-ThreadId              g_thread_main_tid;
-THREAD_LOCAL ThreadId g_thread_tid;
-THREAD_LOCAL String   g_thread_name;
-u16                   g_thread_core_count;
+ThreadId              g_threadPid;
+ThreadId              g_threadMainTid;
+THREAD_LOCAL ThreadId g_threadTid;
+THREAD_LOCAL String   g_threadName;
+THREAD_LOCAL uptr     g_threadStackTop;
+u16                   g_threadCoreCount;
 
 void thread_init(void) {
+  /**
+   * Early thread initialization.
+   * NOTE: Returns before memory allocators have been setup so cannot allocate any memory.
+   */
   thread_pal_init();
 
-  g_thread_pid        = thread_pal_pid();
-  g_thread_main_tid   = thread_pal_tid();
-  g_thread_name       = string_lit("volo_main");
-  g_thread_core_count = thread_pal_core_count();
+  g_threadPid       = thread_pal_pid();
+  g_threadMainTid   = thread_pal_tid();
+  g_threadName      = string_lit("volo_main");
+  g_threadCoreCount = thread_pal_core_count();
 }
 
 void thread_init_late(void) {
+  /**
+   * Late thread initialization.
+   * NOTE: Memory can now be allocated.
+   */
   thread_pal_init_late();
 
-  thread_pal_set_name(g_thread_name);
+  thread_pal_set_name(g_threadName);
 }
 
 void thread_teardown(void) { thread_pal_teardown(); }
 
-void thread_init_thread(void) { g_thread_tid = thread_pal_tid(); }
+void thread_init_thread(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
+  g_threadTid      = thread_pal_tid();
+  g_threadStackTop = thread_pal_stack_top();
+}
 
 void thread_atomic_fence(void) {
   // TODO: Experiment with issuing an instruction with a 'LOCK' prefix instead, this can potentially
@@ -111,8 +126,8 @@ void thread_atomic_fence_release(void) {
 
 ThreadHandle thread_start(
     ThreadRoutine routine, void* data, const String threadName, const ThreadPriority prio) {
-  ThreadRunData* threadRunData  = alloc_alloc_t(g_alloc_heap, ThreadRunData);
-  threadRunData->threadName     = string_dup(g_alloc_heap, threadName);
+  ThreadRunData* threadRunData  = alloc_alloc_t(g_allocHeap, ThreadRunData);
+  threadRunData->threadName     = string_dup(g_allocHeap, threadName);
   threadRunData->threadPriority = prio;
   threadRunData->userRoutine    = routine;
   threadRunData->userData       = data;

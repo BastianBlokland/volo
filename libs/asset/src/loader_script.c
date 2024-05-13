@@ -20,7 +20,7 @@ static void bind(
     const ScriptMask   retMask,
     const ScriptSigArg args[],
     const u8           argCount) {
-  const ScriptSig* sig = script_sig_create(g_alloc_scratch, retMask, args, argCount);
+  const ScriptSig* sig = script_sig_create(g_allocScratch, retMask, args, argCount);
   script_binder_declare(binder, name, doc, sig, null);
 }
 
@@ -31,7 +31,7 @@ static void asset_binder_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
-    ScriptBinder* binder = script_binder_create(g_alloc_persist);
+    ScriptBinder* binder = script_binder_create(g_allocPersist);
     // clang-format off
     static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
     static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
@@ -786,7 +786,7 @@ ecs_comp_define_public(AssetScriptComp);
 
 static void ecs_destruct_script_comp(void* data) {
   AssetScriptComp* comp = data;
-  string_maybe_free(g_alloc_heap, comp->sourceText);
+  string_maybe_free(g_allocHeap, comp->sourceText);
   script_destroy((ScriptDoc*)comp->doc);
 }
 
@@ -822,7 +822,7 @@ void asset_load_script(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDoc*     doc      = script_create(g_alloc_heap);
+  ScriptDoc*     doc      = script_create(g_allocHeap);
   ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptSymBag*  symsNull = null;
 
@@ -845,7 +845,7 @@ void asset_load_script(
       world,
       entity,
       AssetScriptComp,
-      .sourceText = string_maybe_dup(g_alloc_heap, src->data),
+      .sourceText = string_maybe_dup(g_allocHeap, src->data),
       .doc        = doc,
       .expr       = expr);
 

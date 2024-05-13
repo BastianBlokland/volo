@@ -65,13 +65,13 @@ static u32 rng_xorwow_next(Rng* rng) {
   return t + *counter;
 }
 
-THREAD_LOCAL struct RngXorWow g_rng_xorwow = {.api = {.next = rng_xorwow_next}};
-THREAD_LOCAL Rng* g_rng;
+THREAD_LOCAL struct RngXorWow g_rngXorwow = {.api = {.next = rng_xorwow_next}};
+THREAD_LOCAL Rng*             g_rng;
 
 void rng_init_thread(void) {
-  const TimeReal seed = time_real_clock() + g_thread_tid;
-  rng_xorwow_init(&g_rng_xorwow, seed ? seed : 42);
-  g_rng = (Rng*)&g_rng_xorwow;
+  const TimeReal seed = time_real_clock() + g_threadTid;
+  rng_xorwow_init(&g_rngXorwow, seed ? seed : 42);
+  g_rng = (Rng*)&g_rngXorwow;
 }
 
 u32 rng_sample_u32(Rng* rng) {

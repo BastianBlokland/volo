@@ -48,7 +48,7 @@ static SceneBarkRegistryComp* registry_init(EcsWorld* world) {
       world,
       ecs_world_global(world),
       SceneBarkRegistryComp,
-      .events = dynarray_create_t(g_alloc_heap, SceneBarkEvent, 64));
+      .events = dynarray_create_t(g_allocHeap, SceneBarkEvent, 64));
 }
 
 static void registry_prune(SceneBarkRegistryComp* reg, const TimeDuration timestamp) {

@@ -10,7 +10,7 @@ spec(env) {
   }
 
   it("can read the value of an environment variable") {
-    DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
+    DynString buffer = dynstring_create(g_allocHeap, usize_kibibyte);
 
     check(env_var(string_lit("PATH"), &buffer));
     check(!string_is_empty(dynstring_view(&buffer)));

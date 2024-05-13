@@ -98,11 +98,11 @@ static const SymbolInfo* symbol_reg_query(const SymbolReg* r, const SymbolAddrRe
   const SymbolInfo* end   = dynarray_end_t(&r->syms, SymbolInfo);
 
   const SymbolInfo  tgt = {.begin = addr};
-  const SymbolInfo* gt  = search_binary_greater_t(begin, end, SymbolInfo, sym_info_compare, &tgt);
-  if (gt == begin) {
+  const SymbolInfo* gtr = search_binary_greater_t(begin, end, SymbolInfo, sym_info_compare, &tgt);
+  if (gtr == begin) {
     return null; // Address is before the lowest address symbol.
   }
-  const SymbolInfo* gtOrEnd   = gt ? gt : end;
+  const SymbolInfo* gtOrEnd   = gtr ? gtr : end;
   const SymbolInfo* candidate = gtOrEnd - 1;
   return sym_info_contains(candidate, addr) ? candidate : null;
 }
@@ -121,9 +121,9 @@ static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
 }
 
 MAYBE_UNUSED static void symbol_reg_dump_out(const SymbolReg* r) {
-  DynString str = dynstring_create(g_alloc_heap, 4 * usize_kibibyte);
+  DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
   symbol_reg_dump(r, &str);
-  file_write_sync(g_file_stdout, dynstring_view(&str));
+  file_write_sync(g_fileStdOut, dynstring_view(&str));
   dynstring_destroy(&str);
 }
 
@@ -142,7 +142,7 @@ static const SymbolReg* symbol_reg_get(void) {
   g_symRegInitializing = true;
   thread_mutex_lock(g_symRegMutex);
   if (!g_symReg) {
-    SymbolReg* reg = symbol_reg_create(g_alloc_heap);
+    SymbolReg* reg = symbol_reg_create(g_allocHeap);
     symbol_pal_dbg_init(reg);
 #if defined(VOLO_SYMBOL_VERBOSE)
     symbol_reg_dump_out(reg);
@@ -167,7 +167,7 @@ void symbol_reg_add(
 void symbol_init(void) {
   g_symProgBegin = symbol_pal_prog_begin();
   g_symProgEnd   = symbol_pal_prog_end();
-  g_symRegMutex  = thread_mutex_create(g_alloc_persist);
+  g_symRegMutex  = thread_mutex_create(g_allocPersist);
   g_symInit      = true;
 }
 
@@ -178,6 +178,19 @@ void symbol_teardown(void) {
   }
   thread_mutex_destroy(g_symRegMutex);
 }
+
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+/**
+ * Check if the given pointer is located on the stack of the current thread. Avoids us following
+ * bogus pointers if the stack is corrupt or the executable was compiled without frame-pointers.
+ */
+INLINE_HINT MAYBE_UNUSED static bool sym_is_stack_ptr(const void* ptr) {
+  uptr stackBottom;
+  asm("movq %%rsp, %[stackBottom]" : [stackBottom] "=r"(stackBottom));
+
+  return (uptr)ptr <= g_threadStackTop && (uptr)ptr >= stackBottom;
+}
+#endif
 
 NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
   ASSERT(sizeof(uptr) == 8, "Only 64 bit architectures are supported at the moment")
@@ -249,7 +262,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
   asm volatile("movq %%rbp, %[fp]" : [fp] "=r"(fp)); // Volatile to avoid compiler reordering.
 
   // Fill the stack by walking the linked-list of frames.
-  for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
+  for (; sym_is_stack_ptr(fp) && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
     const SymbolAddrRel addrRel = sym_addr_rel(fp->retAddr);
     if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
@@ -269,9 +282,15 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
   return stack;
 }
 
+bool symbol_stack_valid(const SymbolStack* stack) { return !sentinel_check(stack->frames[0]); }
+
 void symbol_stack_write(const SymbolStack* stack, DynString* out) {
   const SymbolReg* reg = symbol_reg_get();
 
+  if (sentinel_check(stack->frames[0])) {
+    fmt_write(out, "Stack: Invalid\n");
+    return;
+  }
   fmt_write(out, "Stack:\n");
   for (u32 frameIndex = 0; frameIndex != array_elems(stack->frames); ++frameIndex) {
     const SymbolAddrRel addr = stack->frames[frameIndex];

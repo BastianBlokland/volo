@@ -15,10 +15,10 @@ spec(read) {
   ScriptSymBag*  symsNull  = null;
 
   setup() {
-    doc   = script_create(g_alloc_heap);
-    diags = script_diag_bag_create(g_alloc_heap, ScriptDiagFilter_All);
+    doc   = script_create(g_allocHeap);
+    diags = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All);
 
-    binder                               = script_binder_create(g_alloc_heap);
+    binder                               = script_binder_create(g_allocHeap);
     const String           documentation = string_empty;
     const ScriptSig*       nullSig       = null;
     const ScriptBinderFunc nullFunc      = null;
@@ -1119,7 +1119,7 @@ spec(read) {
   }
 
   it("fails when recursing too deep") {
-    DynString str = dynstring_create(g_alloc_scratch, 256);
+    DynString str = dynstring_create(g_allocScratch, 256);
     dynstring_append_chars(&str, '(', 100);
 
     script_diag_clear(diags);
@@ -1133,7 +1133,7 @@ spec(read) {
   }
 
   it("fails when using too many variables") {
-    DynString str = dynstring_create(g_alloc_scratch, 1024);
+    DynString str = dynstring_create(g_allocScratch, 1024);
     for (u32 i = 0; i != (script_var_count + 1); ++i) {
       dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
     }

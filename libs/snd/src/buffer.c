@@ -25,8 +25,8 @@ static void snd_fft(Complex buffer[], const u32 count) {
 
   // Split even and odd indices into their own buffers.
   const u32 countHalf  = count / 2;
-  Complex*  bufferEven = alloc_array_t(g_alloc_scratch, Complex, countHalf);
-  Complex*  bufferOdd  = alloc_array_t(g_alloc_scratch, Complex, countHalf);
+  Complex*  bufferEven = alloc_array_t(g_allocScratch, Complex, countHalf);
+  Complex*  bufferOdd  = alloc_array_t(g_allocScratch, Complex, countHalf);
   for (u32 i = 0; i != countHalf; ++i) {
     bufferEven[i] = buffer[i * 2];
     bufferOdd[i]  = buffer[i * 2 + 1];

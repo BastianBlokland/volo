@@ -60,8 +60,8 @@ struct sGapPal {
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
-  if (g_thread_tid != pal->owningThreadId) {
-    diag_crash_msg("Called from non-owning thread: {}", fmt_int(g_thread_tid));
+  if (g_threadTid != pal->owningThreadId) {
+    diag_crash_msg("Called from non-owning thread: {}", fmt_int(g_threadTid));
   }
 }
 
@@ -136,7 +136,7 @@ static void pal_clear_volatile(GapPal* pal) {
 
     dynstring_clear(&window->inputText);
 
-    string_maybe_free(g_alloc_heap, window->clipPaste);
+    string_maybe_free(g_allocHeap, window->clipPaste);
     window->clipPaste = string_empty;
   }
 }
@@ -700,10 +700,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -824,7 +824,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .params[GapParam_WindowSize] = realClientSize,
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
-      .inputText                   = dynstring_create(g_alloc_heap, 64),
+      .inputText                   = dynstring_create(g_allocHeap, 64),
       .dpi                         = dpi,
   };
 
@@ -838,7 +838,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
-  const bool isWindowOwner = g_thread_tid == pal->owningThreadId;
+  const bool isWindowOwner = g_threadTid == pal->owningThreadId;
   if (isWindowOwner) {
     if (!DestroyWindow((HWND)windowId)) {
       pal_crash_with_win32_err(string_lit("DestroyWindow"));
@@ -861,7 +861,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
       }
       alloc_free(pal->alloc, window->className);
       dynstring_destroy(&window->inputText);
-      string_maybe_free(g_alloc_heap, window->clipPaste);
+      string_maybe_free(g_allocHeap, window->clipPaste);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -1084,7 +1084,7 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
 
-  string_maybe_free(g_alloc_heap, window->clipPaste);
+  string_maybe_free(g_allocHeap, window->clipPaste);
   window->clipPaste = string_empty;
 
   if (!OpenClipboard((HWND)windowId)) {
@@ -1101,7 +1101,7 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
   void*       clipMemPtr = GlobalLock(clipMemAlloc); // Lock the moveable allocation for copying.
   const usize wcharCount = wcslen((const wchar_t*)clipMemPtr);
   const usize stringSize = winutils_from_widestr_size(clipMemPtr, wcharCount);
-  window->clipPaste      = alloc_alloc(g_alloc_heap, stringSize, 1);
+  window->clipPaste      = alloc_alloc(g_allocHeap, stringSize, 1);
   winutils_from_widestr(window->clipPaste, clipMemPtr, wcharCount);
   GlobalUnlock(clipMemAlloc);
 

@@ -61,7 +61,7 @@ spec(def) {
   EcsDef* def = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, def_test_module);
   }
 

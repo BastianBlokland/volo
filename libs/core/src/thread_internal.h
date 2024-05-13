@@ -18,6 +18,7 @@ void thread_pal_teardown(void);
 ThreadId thread_pal_pid(void);
 ThreadId thread_pal_tid(void);
 u16      thread_pal_core_count(void);
+uptr     thread_pal_stack_top(void);
 void     thread_pal_set_name(String);
 bool     thread_pal_set_priority(ThreadPriority);
 

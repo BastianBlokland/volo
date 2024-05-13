@@ -89,7 +89,7 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
   BcuResult  result;
   File*      fileHandle = null;
   FileResult fileRes;
-  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &fileHandle))) {
+  if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &fileHandle))) {
     result = BcuResult_FileOpenFailed;
     goto End;
   }
@@ -152,7 +152,7 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     goto End;
   }
   const usize  pixelCount = size.width * size.height;
-  BcColor8888* pixels     = alloc_array_t(g_alloc_heap, BcColor8888, pixelCount);
+  BcColor8888* pixels     = alloc_array_t(g_allocHeap, BcColor8888, pixelCount);
   if (!pixels) {
     result = BcuResult_MemoryAllocationFailed;
     goto End;
@@ -194,7 +194,7 @@ End:
 
 static void bcu_image_destroy(BcuImage* image) {
   if (image->pixels) {
-    alloc_free_array_t(g_alloc_heap, image->pixels, image->size.width * image->size.height);
+    alloc_free_array_t(g_allocHeap, image->pixels, image->size.width * image->size.height);
   }
 }
 
@@ -202,7 +202,7 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   const usize headerSize    = 18;
   const usize pixelCount    = size.width * size.height;
   const usize pixelDataSize = pixelCount * sizeof(BcColor8888);
-  const Mem   data          = alloc_alloc(g_alloc_heap, headerSize + pixelDataSize, 1);
+  const Mem   data          = alloc_alloc(g_allocHeap, headerSize + pixelDataSize, 1);
   if (!mem_valid(data)) {
     return BcuResult_MemoryAllocationFailed;
   }
@@ -235,7 +235,7 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
   }
 
   const FileResult writeRes = file_write_to_path_sync(pathWithExt, data);
-  alloc_free(g_alloc_heap, data);
+  alloc_free(g_allocHeap, data);
   return writeRes ? BcuResult_FileWriteFailed : BcuResult_Success;
 }
 
@@ -359,12 +359,12 @@ static void bcu_blocks_quantize_bc4(Bc0Block* blocks, const u32 blockCount) {
 
 static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String outputPath) {
   const u32 blockCount = bcu_block_count(input->size);
-  Bc0Block* blocks     = alloc_array_t(g_alloc_heap, Bc0Block, blockCount);
+  Bc0Block* blocks     = alloc_array_t(g_allocHeap, Bc0Block, blockCount);
 
   bcu_blocks_extract(input->size, input->pixels, blocks);
 
   const usize  encodedPixelCount = blockCount * 16;
-  BcColor8888* encodedPixels     = alloc_array_t(g_alloc_heap, BcColor8888, encodedPixelCount);
+  BcColor8888* encodedPixels     = alloc_array_t(g_allocHeap, BcColor8888, encodedPixelCount);
 
   switch (mode) {
   case BcuMode_QuantizeBc1:
@@ -394,8 +394,8 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
       log_param("diff-r", fmt_float(diffR)),
       log_param("diff-a", fmt_float(diffA)));
 
-  alloc_free_array_t(g_alloc_heap, encodedPixels, encodedPixelCount);
-  alloc_free_array_t(g_alloc_heap, blocks, blockCount);
+  alloc_free_array_t(g_allocHeap, encodedPixels, encodedPixelCount);
+  alloc_free_array_t(g_allocHeap, blocks, blockCount);
   return result;
 }
 
@@ -422,12 +422,12 @@ void app_cli_configure(CliApp* app) {
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_file_stdout);
+    cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
-  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
+  log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   const usize   modeRaw    = cli_read_choice_array(invoc, g_optMode, g_modeStrs, BcuMode_Default);
   const BcuMode mode       = (BcuMode)modeRaw;

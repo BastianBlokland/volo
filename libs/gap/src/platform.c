@@ -19,7 +19,7 @@ static GapPlatformComp* gap_platform_get_or_create(EcsWorld* world) {
     return ecs_view_write_t(itr, GapPlatformComp);
   }
   return ecs_world_add_t(
-      world, ecs_world_global(world), GapPlatformComp, .pal = gap_pal_create(g_alloc_heap));
+      world, ecs_world_global(world), GapPlatformComp, .pal = gap_pal_create(g_allocHeap));
 }
 
 ecs_system_define(GapPlatformUpdateSys) {

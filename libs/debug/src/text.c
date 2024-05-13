@@ -117,8 +117,8 @@ ecs_system_define(DebugTextRenderSys) {
         }
         const UiVector canvasSize = ui_vector(0.2f, 0.1f);
         const UiRect   canvasRect = {
-            ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
-            canvasSize,
+              ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
+              canvasSize,
         };
         ui_style_color(canvas, debug_text_to_ui_color(entry->color));
         ui_layout_set(canvas, canvasRect, UiBase_Canvas);
@@ -161,9 +161,9 @@ DebugTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
       world,
       entity,
       DebugTextComp,
-      .entries = dynarray_create_t(g_alloc_heap, DebugText3D, 64),
+      .entries = dynarray_create_t(g_allocHeap, DebugText3D, 64),
       .allocTransient =
-          alloc_chunked_create(g_alloc_page, alloc_bump_create, debug_text_transient_chunk_size));
+          alloc_chunked_create(g_allocPage, alloc_bump_create, debug_text_transient_chunk_size));
 }
 
 void debug_text_with_opts(

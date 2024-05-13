@@ -76,7 +76,7 @@ static void product_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_struct_t(reg, AssetProductSoundDef);
@@ -162,7 +162,7 @@ static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, As
   const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
 
   out->iconImage     = string_maybe_hash(def->iconImage);
-  out->name          = string_maybe_dup(g_alloc_heap, def->name);
+  out->name          = string_maybe_dup(g_allocHeap, def->name);
   out->costTime      = math_max(costTimeRaw, time_millisecond);
   out->queueMax      = def->queueMax ? def->queueMax : u16_max;
   out->queueBulkSize = def->queueBulkSize ? def->queueBulkSize : 5;
@@ -247,13 +247,13 @@ ecs_comp_define(AssetProductLoadComp) { AssetSource* src; };
 static void ecs_destruct_productmap_comp(void* data) {
   AssetProductMapComp* comp = data;
   if (comp->sets) {
-    alloc_free_array_t(g_alloc_heap, comp->sets, comp->setCount);
+    alloc_free_array_t(g_allocHeap, comp->sets, comp->setCount);
   }
   if (comp->products) {
     for (u32 i = 0; i != comp->productCount; ++i) {
-      string_maybe_free(g_alloc_heap, comp->products[i].name);
+      string_maybe_free(g_allocHeap, comp->products[i].name);
     }
-    alloc_free_array_t(g_alloc_heap, comp->products, comp->productCount);
+    alloc_free_array_t(g_allocHeap, comp->products, comp->productCount);
   }
 }
 
@@ -284,13 +284,13 @@ ecs_system_define(LoadProductAssetSys) {
     const EcsEntityId  entity = ecs_view_entity(itr);
     const AssetSource* src    = ecs_view_read_t(itr, AssetProductLoadComp)->src;
 
-    DynArray sets     = dynarray_create_t(g_alloc_heap, AssetProductSet, 64);
-    DynArray products = dynarray_create_t(g_alloc_heap, AssetProduct, 64);
+    DynArray sets     = dynarray_create_t(g_allocHeap, AssetProductSet, 64);
+    DynArray products = dynarray_create_t(g_allocHeap, AssetProduct, 64);
 
     AssetProductMapDef def;
     String             errMsg;
     DataReadResult     readRes;
-    data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataMapDefMeta, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_dataMapDefMeta, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -303,7 +303,7 @@ ecs_system_define(LoadProductAssetSys) {
 
     ProductError buildErr;
     productmap_build(&buildCtx, &def, &sets, &products, &buildErr);
-    data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_dataMapDefMeta, mem_var(def));
     if (buildErr) {
       errMsg = product_error_str(buildErr);
       goto Error;
@@ -313,9 +313,9 @@ ecs_system_define(LoadProductAssetSys) {
         world,
         entity,
         AssetProductMapComp,
-        .sets         = dynarray_copy_as_new(&sets, g_alloc_heap),
+        .sets         = dynarray_copy_as_new(&sets, g_allocHeap),
         .setCount     = sets.size,
-        .products     = dynarray_copy_as_new(&products, g_alloc_heap),
+        .products     = dynarray_copy_as_new(&products, g_allocHeap),
         .productCount = products.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
@@ -323,7 +323,7 @@ ecs_system_define(LoadProductAssetSys) {
 
   Error:
     log_e("Failed to load ProductMap", log_param("error", fmt_text(errMsg)));
-    dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_alloc_heap, prod->name); }
+    dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_allocHeap, prod->name); }
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:

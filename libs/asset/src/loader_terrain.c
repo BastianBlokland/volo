@@ -23,7 +23,7 @@ static void terrain_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_struct_t(reg, AssetTerrainColor);
@@ -53,7 +53,7 @@ ecs_comp_define(AssetTerrainLoadComp) { AssetSource* src; };
 
 static void ecs_destruct_terrain_comp(void* data) {
   AssetTerrainComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataMeta, mem_create(comp, sizeof(AssetTerrainComp)));
+  data_destroy(g_dataReg, g_allocHeap, g_dataMeta, mem_create(comp, sizeof(AssetTerrainComp)));
 }
 
 static void ecs_destruct_terrain_load_comp(void* data) {
@@ -105,7 +105,7 @@ ecs_system_define(LoadTerrainAssetSys) {
     data_read_json(
         g_dataReg,
         src->data,
-        g_alloc_heap,
+        g_allocHeap,
         g_dataMeta,
         mem_create(terrainComp, sizeof(AssetTerrainComp)),
         &result);

@@ -1246,11 +1246,11 @@ debug_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPane
       .panel          = ui_panel(.size = ui_vector(800, 520)),
       .window         = window,
       .scrollview     = ui_scrollview(),
-      .nameFilter     = dynstring_create(g_alloc_heap, 32),
+      .nameFilter     = dynstring_create(g_allocHeap, 32),
       .drawSortMode   = DebugRendDrawSort_RenderOrder,
       .resSortMode    = DebugRendResSort_Size,
-      .draws          = dynarray_create_t(g_alloc_heap, DebugDrawInfo, 256),
-      .resources      = dynarray_create_t(g_alloc_heap, DebugResourceInfo, 256),
+      .draws          = dynarray_create_t(g_allocHeap, DebugDrawInfo, 256),
+      .resources      = dynarray_create_t(g_allocHeap, DebugResourceInfo, 256),
       .hideEmptyDraws = true);
 
   if (type == DebugPanelType_Detached) {

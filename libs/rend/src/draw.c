@@ -51,22 +51,22 @@ ecs_comp_define(RendDrawComp) {
 static void ecs_destruct_draw(void* data) {
   RendDrawComp* comp = data;
   if (mem_valid(comp->dataMem)) {
-    alloc_free(g_alloc_heap, comp->dataMem);
+    alloc_free(g_allocHeap, comp->dataMem);
   }
   if (mem_valid(comp->instDataMem)) {
-    alloc_free(g_alloc_heap, comp->instDataMem);
+    alloc_free(g_allocHeap, comp->instDataMem);
   }
   if (mem_valid(comp->instTagsMem)) {
-    alloc_free(g_alloc_heap, comp->instTagsMem);
+    alloc_free(g_allocHeap, comp->instTagsMem);
   }
   if (mem_valid(comp->instAabbMem)) {
-    alloc_free(g_alloc_heap, comp->instAabbMem);
+    alloc_free(g_allocHeap, comp->instAabbMem);
   }
   if (mem_valid(comp->sortKeyMem)) {
-    alloc_free(g_alloc_heap, comp->sortKeyMem);
+    alloc_free(g_allocHeap, comp->sortKeyMem);
   }
   if (mem_valid(comp->instDataOutput)) {
-    alloc_free(g_alloc_heap, comp->instDataOutput);
+    alloc_free(g_allocHeap, comp->instDataOutput);
   }
 }
 
@@ -100,10 +100,10 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
 
 INLINE_HINT static void buf_ensure(Mem* mem, const usize size, const usize align) {
   if (UNLIKELY(mem->size < size)) {
-    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(size), align);
+    const Mem newMem = alloc_alloc(g_allocHeap, bits_nextpow2(size), align);
     if (mem_valid(*mem)) {
       mem_cpy(newMem, *mem);
-      alloc_free(g_alloc_heap, *mem);
+      alloc_free(g_allocHeap, *mem);
     }
     *mem = newMem;
   }

@@ -71,7 +71,7 @@ static void target_trace_start(EcsWorld* world, const EcsEntityId entity) {
       world,
       entity,
       SceneTargetTraceComp,
-      .scores = dynarray_create_t(g_alloc_heap, SceneTargetScore, 128));
+      .scores = dynarray_create_t(g_allocHeap, SceneTargetScore, 128));
 }
 
 static void target_trace_stop(EcsWorld* world, const EcsEntityId entity) {
@@ -200,9 +200,9 @@ static f32 target_score(
     const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
     const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
     const SceneQueryFilter           filter    = {
-        .layerMask = SceneLayer_Environment | SceneLayer_Structure,
-        .callback  = target_los_filter,
-        .context   = &filterCtx,
+                     .layerMask = SceneLayer_Environment | SceneLayer_Structure,
+                     .callback  = target_los_filter,
+                     .context   = &filterCtx,
     };
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit) && hit.entity != tgtEntity) {

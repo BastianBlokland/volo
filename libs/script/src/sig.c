@@ -149,7 +149,7 @@ void script_sig_arg_write(const ScriptSig* sig, const u8 index, DynString* str) 
 }
 
 String script_sig_arg_scratch(const ScriptSig* sig, const u8 index) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 64, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 64, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   script_sig_arg_write(sig, index, &str);
@@ -175,7 +175,7 @@ void script_sig_write(const ScriptSig* sig, DynString* str) {
 }
 
 String script_sig_scratch(const ScriptSig* sig) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 512, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 512, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   script_sig_write(sig, &str);

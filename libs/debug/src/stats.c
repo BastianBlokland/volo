@@ -611,7 +611,7 @@ ecs_system_define(DebugStatsCreateSys) {
         world,
         ecs_world_global(world),
         DebugStatsGlobalComp,
-        .notifications = dynarray_create_t(g_alloc_heap, DebugStatsNotification, 8));
+        .notifications = dynarray_create_t(g_allocHeap, DebugStatsNotification, 8));
   }
 
   // Create a stats component for each window with 3d content (so with a camera).

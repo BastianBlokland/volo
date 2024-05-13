@@ -103,16 +103,16 @@ static void ecs_destruct_mixer_comp(void* data) {
   SndMixerComp* m = data;
   snd_device_destroy(m->device);
 
-  alloc_free_array_t(g_alloc_heap, m->objects, snd_mixer_objects_max);
-  alloc_free_array_t(g_alloc_heap, m->objectNames, snd_mixer_objects_max);
-  alloc_free_array_t(g_alloc_heap, m->objectAssets, snd_mixer_objects_max);
-  alloc_free_array_t(g_alloc_heap, m->objectUserData, snd_mixer_objects_max);
-  alloc_free(g_alloc_heap, m->objectFreeSet);
+  alloc_free_array_t(g_allocHeap, m->objects, snd_mixer_objects_max);
+  alloc_free_array_t(g_allocHeap, m->objectNames, snd_mixer_objects_max);
+  alloc_free_array_t(g_allocHeap, m->objectAssets, snd_mixer_objects_max);
+  alloc_free_array_t(g_allocHeap, m->objectUserData, snd_mixer_objects_max);
+  alloc_free(g_allocHeap, m->objectFreeSet);
 
   dynarray_destroy(&m->persistentAssets);
   dynarray_destroy(&m->persistentAssetsToAcquire);
 
-  alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
+  alloc_free_array_t(g_allocHeap, m->historyBuffer, snd_mixer_history_size);
 }
 
 static u16 snd_object_id_index(const SndObjectId id) { return (u16)id; }
@@ -570,30 +570,30 @@ ecs_module_init(snd_mixer_module) {
 SndMixerComp* snd_mixer_init(EcsWorld* world) {
   SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
 
-  m->device      = snd_device_create(g_alloc_heap);
+  m->device      = snd_device_create(g_allocHeap);
   m->gainSetting = 1.0f;
   m->limiterMult = 1.0f;
 
-  m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
+  m->historyBuffer = alloc_array_t(g_allocHeap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
 
-  m->objects = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
+  m->objects = alloc_array_t(g_allocHeap, SndObject, snd_mixer_objects_max);
   mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
 
-  m->objectNames = alloc_array_t(g_alloc_heap, String, snd_mixer_objects_max);
+  m->objectNames = alloc_array_t(g_allocHeap, String, snd_mixer_objects_max);
   mem_set(mem_create(m->objectNames, sizeof(String) * snd_mixer_objects_max), 0);
 
-  m->objectAssets = alloc_array_t(g_alloc_heap, EcsEntityId, snd_mixer_objects_max);
+  m->objectAssets = alloc_array_t(g_allocHeap, EcsEntityId, snd_mixer_objects_max);
   mem_set(mem_create(m->objectAssets, sizeof(EcsEntityId) * snd_mixer_objects_max), 0);
 
-  m->objectUserData = alloc_array_t(g_alloc_heap, u64, snd_mixer_objects_max);
+  m->objectUserData = alloc_array_t(g_allocHeap, u64, snd_mixer_objects_max);
   mem_set(mem_create(m->objectUserData, sizeof(u64) * snd_mixer_objects_max), 0xFF);
 
-  m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
+  m->objectFreeSet = alloc_alloc(g_allocHeap, bits_to_bytes(snd_mixer_objects_max), 1);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
 
-  m->persistentAssets          = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
-  m->persistentAssetsToAcquire = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
+  m->persistentAssets          = dynarray_create_t(g_allocHeap, EcsEntityId, 64);
+  m->persistentAssetsToAcquire = dynarray_create_t(g_allocHeap, EcsEntityId, 8);
 
   return m;
 }

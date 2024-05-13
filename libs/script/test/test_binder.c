@@ -30,7 +30,7 @@ spec(binder) {
 
   ScriptBinder* binder = null;
 
-  setup() { binder = script_binder_create(g_alloc_heap); }
+  setup() { binder = script_binder_create(g_allocHeap); }
 
   it("sorts bindings on the string-hash") {
     const String     doc     = string_empty;

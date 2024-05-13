@@ -370,7 +370,7 @@ void script_sym_write(DynString* out, const ScriptSymBag* bag, const ScriptSym s
 }
 
 String script_sym_scratch(const ScriptSymBag* bag, const ScriptSym sym) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   script_sym_write(&buffer, bag, sym);

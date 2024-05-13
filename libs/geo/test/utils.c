@@ -57,7 +57,7 @@ static bool test_color_equal(const GeoColor a, const GeoColor b) {
 }
 
 static String test_matrix_fmt_scratch(const GeoMatrix* matrix) {
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (usize i = 0; i != 4; ++i) {
     fmt_write(&str, "[{}]", geo_vector_fmt(geo_matrix_row(matrix, i)));
   }

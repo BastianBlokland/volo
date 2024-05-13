@@ -30,7 +30,7 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
   symbol_stack_write(stack, &str);
 
   // Write it to stderr.
-  file_write_sync(g_file_stderr, dynstring_view(&str));
+  file_write_sync(g_fileStdErr, dynstring_view(&str));
 
   // Write it to a crash-file.
   static ThreadSpinLock g_crashFileLock;
@@ -42,9 +42,9 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
       g_crashFileWritten = true;
 
       const String crashFilePath = path_build_scratch(
-          path_parent(g_path_executable),
+          path_parent(g_pathExecutable),
           string_lit("logs"),
-          path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("crash")));
+          path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("crash")));
       file_write_to_path_sync(crashFilePath, dynstring_view(&str));
     }
   }
@@ -53,8 +53,8 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
   g_diagIsReporting = false;
 }
 
-void diag_print_raw(const String userMsg) { file_write_sync(g_file_stdout, userMsg); }
-void diag_print_err_raw(const String userMsg) { file_write_sync(g_file_stderr, userMsg); }
+void diag_print_raw(const String userMsg) { file_write_sync(g_fileStdOut, userMsg); }
+void diag_print_err_raw(const String userMsg) { file_write_sync(g_fileStdErr, userMsg); }
 
 void diag_assert_report_fail(const String userMsg, const SourceLoc sourceLoc) {
   if (g_assertHandler && g_assertHandler(userMsg, sourceLoc, g_assertHandlerContext)) {
@@ -69,10 +69,10 @@ void diag_assert_report_fail(const String userMsg, const SourceLoc sourceLoc) {
 }
 
 void diag_break(void) { diag_pal_break(); }
-void diag_crash(void) { diag_crash_internal(string_lit("Crash")); }
+void diag_crash(void) { diag_crash_internal(string_lit("Crash: Unknown error\n")); }
 
 void diag_crash_msg_raw(const String userMsg) {
-  const String msg = fmt_write_scratch("Crash: '{}'\n", fmt_text(userMsg));
+  const String msg = fmt_write_scratch("Crash: {}\n", fmt_text(userMsg));
   diag_crash_internal(msg);
 }
 

@@ -16,10 +16,10 @@ ecs_system_define(AffinitySys) {
     AffinityComp* comp = ecs_view_write_t(itr, AffinityComp);
 
     if (sentinel_check(comp->tid)) {
-      comp->tid = g_thread_tid;
+      comp->tid = g_threadTid;
       continue;
     }
-    diag_assert_msg(comp->tid == g_thread_tid, "Affinity system was executed on multiple threads");
+    diag_assert_msg(comp->tid == g_threadTid, "Affinity system was executed on multiple threads");
   }
 }
 
@@ -36,11 +36,11 @@ spec(affinity) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     ecs_register_module(def, affinity_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("executes systems with thread affinity always on the same thread") {

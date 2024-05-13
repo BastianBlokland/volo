@@ -21,7 +21,7 @@ ecs_comp_define_public(RendStatsComp);
 
 static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;
-  string_maybe_free(g_alloc_heap, comp->gpuName);
+  string_maybe_free(g_allocHeap, comp->gpuName);
 }
 
 static void rend_stats_update_str(String* strPtr, const String newStr) {
@@ -30,9 +30,9 @@ static void rend_stats_update_str(String* strPtr, const String newStr) {
     return;
   }
   if (strPtr->size) {
-    alloc_free(g_alloc_heap, *strPtr);
+    alloc_free(g_allocHeap, *strPtr);
   }
-  *strPtr = string_dup(g_alloc_heap, newStr);
+  *strPtr = string_dup(g_allocHeap, newStr);
 }
 
 ecs_view_define(GlobalView) {

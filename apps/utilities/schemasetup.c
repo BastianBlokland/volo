@@ -68,7 +68,7 @@ static const SchemaConfig* scheme_for_path(const String path) {
 bool scheme_validate_path(const String input) { return scheme_for_path(input) != null; }
 
 static bool schema_write(const SchemaConfig* config, const String path) {
-  DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
+  DynString dynString = dynstring_create(g_allocHeap, 64 * usize_kibibyte);
 
   config->writer(&dynString);
 
@@ -100,12 +100,12 @@ void app_cli_configure(CliApp* app) {
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_file_stdout);
+    cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
-  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
+  log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   const CliParseValues outPathsRaw = cli_parse_values(invoc, g_optOut);
   for (u32 i = 0; i != outPathsRaw.count; ++i) {

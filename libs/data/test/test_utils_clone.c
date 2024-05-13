@@ -7,19 +7,19 @@ spec(utils_clone) {
 
   DataReg* reg = null;
 
-  setup() { reg = data_reg_create(g_alloc_heap); }
+  setup() { reg = data_reg_create(g_allocHeap); }
 
   it("can clone a string") {
-    const String original = string_dup(g_alloc_heap, string_lit("Hello World"));
+    const String original = string_dup(g_allocHeap, string_lit("Hello World"));
     const String clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(String));
-    data_clone(reg, g_alloc_heap, meta, mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     check_eq_string(clone, string_lit("Hello World"));
 
-    data_destroy(reg, g_alloc_heap, meta, mem_var(original));
-    data_destroy(reg, g_alloc_heap, meta, mem_var(clone));
+    data_destroy(reg, g_allocHeap, meta, mem_var(original));
+    data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
   it("can clone an empty string") {
@@ -27,7 +27,7 @@ spec(utils_clone) {
     const String clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(String));
-    data_clone(reg, g_alloc_heap, meta, mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     check_eq_string(clone, string_empty);
   }
@@ -39,11 +39,11 @@ spec(utils_clone) {
     i32* clone = null;
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Pointer);
-    data_clone(reg, g_alloc_heap, meta, mem_var(originalPtr), mem_var(clone));
+    data_clone(reg, g_allocHeap, meta, mem_var(originalPtr), mem_var(clone));
 
     check_eq_int(*clone, 42);
 
-    data_destroy(reg, g_alloc_heap, meta, mem_var(clone));
+    data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
   it("can clone an array of primitives") {
@@ -58,13 +58,13 @@ spec(utils_clone) {
     const PrimArray clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
-    data_clone(reg, g_alloc_heap, meta, mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     for (usize i = 0; i != original.count; ++i) {
       check_eq_int(original.values[i], (i32)i);
     }
 
-    data_destroy(reg, g_alloc_heap, meta, mem_var(clone));
+    data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
   it("can clone an empty array") {
@@ -77,7 +77,7 @@ spec(utils_clone) {
     const PrimArray clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
-    data_clone(reg, g_alloc_heap, meta, mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
   }
 
   it("can clone a structure") {
@@ -91,18 +91,18 @@ spec(utils_clone) {
     data_reg_field_t(reg, CloneStructA, c, data_prim_t(String));
 
     const CloneStructA original = {
-        .a = string_dup(g_alloc_heap, string_lit("Hello")),
-        .c = string_dup(g_alloc_heap, string_lit("World")),
+        .a = string_dup(g_allocHeap, string_lit("Hello")),
+        .c = string_dup(g_allocHeap, string_lit("World")),
     };
     CloneStructA clone = {0};
 
-    data_clone(reg, g_alloc_heap, data_meta_t(t_CloneStructA), mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, data_meta_t(t_CloneStructA), mem_var(original), mem_var(clone));
 
     check_eq_string(clone.a, string_lit("Hello"));
     check_eq_string(clone.c, string_lit("World"));
 
-    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneStructA), mem_var(original));
-    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneStructA), mem_var(clone));
+    data_destroy(reg, g_allocHeap, data_meta_t(t_CloneStructA), mem_var(original));
+    data_destroy(reg, g_allocHeap, data_meta_t(t_CloneStructA), mem_var(clone));
   }
 
   it("can clone nested structures") {
@@ -148,7 +148,7 @@ spec(utils_clone) {
     };
     CloneStructC clone = {0};
 
-    data_clone(reg, g_alloc_heap, data_meta_t(t_CloneStructC), mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, data_meta_t(t_CloneStructC), mem_var(original), mem_var(clone));
 
     check_eq_string(clone.value.a, string_lit("Hello"));
     check_eq_string(clone.value.c, string_lit("World"));
@@ -159,7 +159,7 @@ spec(utils_clone) {
       check_eq_string(clone.array.values[i].a, originalArrayValues[i].a);
     }
 
-    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneStructC), mem_var(clone));
+    data_destroy(reg, g_allocHeap, data_meta_t(t_CloneStructC), mem_var(clone));
   }
 
   it("can clone a union") {
@@ -192,39 +192,39 @@ spec(utils_clone) {
       };
       CloneUnionA clone = {0};
 
-      data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+      data_clone(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
 
       check_eq_int(clone.tag, original.tag);
       check_eq_int(clone.data_int, 42);
 
-      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
-      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+      data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original));
+      data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(clone));
     }
     {
       const CloneUnionA original = {
           .tag         = CloneUnionTag_String,
-          .data_string = string_dup(g_alloc_heap, string_lit("Hello World")),
+          .data_string = string_dup(g_allocHeap, string_lit("Hello World")),
       };
       CloneUnionA clone = {0};
 
-      data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+      data_clone(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
 
       check_eq_int(clone.tag, original.tag);
       check_eq_string(clone.data_string, string_lit("Hello World"));
 
-      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
-      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+      data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original));
+      data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(clone));
     }
     {
       const CloneUnionA original = {.tag = CloneUnionTag_Other};
       CloneUnionA       clone    = {0};
 
-      data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+      data_clone(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
 
       check_eq_int(clone.tag, original.tag);
 
-      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
-      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+      data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original));
+      data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(clone));
     }
   }
 
@@ -250,19 +250,19 @@ spec(utils_clone) {
 
     const CloneUnionA original = {
         .tag      = CloneUnionTag_Int,
-        .name     = string_dup(g_alloc_heap, string_lit("Hello")),
+        .name     = string_dup(g_allocHeap, string_lit("Hello")),
         .data_int = 42,
     };
     CloneUnionA clone = {0};
 
-    data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+    data_clone(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
 
     check_eq_string(clone.name, original.name);
     check_eq_int(clone.tag, original.tag);
     check_eq_int(clone.data_int, 42);
 
-    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
-    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+    data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(original));
+    data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(clone));
   }
 
   teardown() { data_reg_destroy(reg); }

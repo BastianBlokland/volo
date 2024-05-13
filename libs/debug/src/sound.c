@@ -517,7 +517,7 @@ debug_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       DebugSoundPanelComp,
       .panel      = ui_panel(.size = ui_vector(800, 685)),
       .scrollview = ui_scrollview(),
-      .nameFilter = dynstring_create(g_alloc_heap, 32));
+      .nameFilter = dynstring_create(g_allocHeap, 32));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&soundPanel->panel);

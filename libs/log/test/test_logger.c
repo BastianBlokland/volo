@@ -30,7 +30,7 @@ static void log_sink_test_write(
 
   *dynarray_push_t(&testSink->messages, SinkTestMsg) = (SinkTestMsg){
       .lvl     = lvl,
-      .message = string_dup(g_alloc_heap, message),
+      .message = string_dup(g_allocHeap, message),
   };
 }
 
@@ -42,10 +42,10 @@ spec(logger) {
 
   setup() {
     startTime = time_real_clock();
-    logger    = log_create(g_alloc_heap);
+    logger    = log_create(g_allocHeap);
     sink      = (SinkTest){
              .api      = (LogSink){.write = log_sink_test_write},
-             .messages = dynarray_create_t(g_alloc_heap, SinkTestMsg, 8),
+             .messages = dynarray_create_t(g_allocHeap, SinkTestMsg, 8),
     };
     log_add_sink(logger, (LogSink*)&sink);
   }
@@ -79,7 +79,7 @@ spec(logger) {
   teardown() {
     log_destroy(logger);
 
-    dynarray_for_t(&sink.messages, SinkTestMsg, msg) { string_free(g_alloc_heap, msg->message); }
+    dynarray_for_t(&sink.messages, SinkTestMsg, msg) { string_free(g_allocHeap, msg->message); }
     dynarray_destroy(&sink.messages);
   }
 }

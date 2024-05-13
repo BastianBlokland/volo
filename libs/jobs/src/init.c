@@ -7,7 +7,7 @@
 static bool g_initalized;
 
 void jobs_init(const JobsConfig* cfg) {
-  diag_assert(g_thread_tid == g_thread_main_tid);
+  diag_assert(g_threadTid == g_threadMainTid);
 
   if (!g_initalized) {
     g_initalized = true;
@@ -18,7 +18,7 @@ void jobs_init(const JobsConfig* cfg) {
 }
 
 void jobs_teardown(void) {
-  diag_assert(g_thread_tid == g_thread_main_tid);
+  diag_assert(g_threadTid == g_threadMainTid);
 
   if (g_initalized) {
     g_initalized = false;

@@ -11,7 +11,7 @@ static void test_read_success(
     Mem               data) {
 
   DataReadResult res;
-  const String   remaining = data_read_json(reg, input, g_alloc_heap, meta, data, &res);
+  const String   remaining = data_read_json(reg, input, g_allocHeap, meta, data, &res);
 
   check_eq_string(remaining, string_empty);
   check_require(res.error == DataReadError_None);
@@ -26,7 +26,7 @@ static void test_read_fail(
 
   Mem            data = mem_stack(data_meta_size(reg, meta));
   DataReadResult res;
-  const String   remaining = data_read_json(reg, input, g_alloc_heap, meta, data, &res);
+  const String   remaining = data_read_json(reg, input, g_allocHeap, meta, data, &res);
 
   check_eq_string(remaining, string_empty);
   check_eq_int(res.error, err);
@@ -36,7 +36,7 @@ spec(read_json) {
 
   DataReg* reg = null;
 
-  setup() { reg = data_reg_create(g_alloc_heap); }
+  setup() { reg = data_reg_create(g_allocHeap); }
 
   it("can read a boolean") {
     const DataMeta meta = data_meta_t(data_prim_t(bool));
@@ -122,7 +122,7 @@ spec(read_json) {
     String val;
     test_read_success(_testCtx, reg, string_lit("\"Hello World\""), meta, mem_var(val));
     check_eq_string(val, string_lit("Hello World"));
-    string_free(g_alloc_heap, val);
+    string_free(g_allocHeap, val);
 
     test_read_success(_testCtx, reg, string_lit("\"\""), meta, mem_var(val));
     check_eq_string(val, string_empty);
@@ -142,7 +142,7 @@ spec(read_json) {
     u32* val;
     test_read_success(_testCtx, reg, string_lit("42"), meta, mem_var(val));
     check_eq_int(*val, 42);
-    alloc_free_t(g_alloc_heap, val);
+    alloc_free_t(g_allocHeap, val);
 
     test_read_success(_testCtx, reg, string_lit("null"), meta, mem_var(val));
     check_eq_int(val, null);
@@ -170,14 +170,14 @@ spec(read_json) {
     test_read_success(_testCtx, reg, string_lit("[42]"), meta, mem_var(val));
     check_eq_int(val.count, 1);
     check_eq_int(val.ptr[0], 42);
-    alloc_free_array_t(g_alloc_heap, val.ptr, val.count);
+    alloc_free_array_t(g_allocHeap, val.ptr, val.count);
 
     test_read_success(_testCtx, reg, string_lit("[1, 2, 3]"), meta, mem_var(val));
     check_eq_int(val.count, 3);
     check_eq_int(val.ptr[0], 1);
     check_eq_int(val.ptr[1], 2);
     check_eq_int(val.ptr[2], 3);
-    alloc_free_array_t(g_alloc_heap, val.ptr, val.count);
+    alloc_free_array_t(g_allocHeap, val.ptr, val.count);
 
     test_read_fail(_testCtx, reg, string_lit("42"), meta, DataReadError_MismatchedType);
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
@@ -261,7 +261,7 @@ spec(read_json) {
     check_eq_int(val.valA, -42);
     check_eq_string(val.valB, string_lit("Hello World"));
     check_eq_float(val.valC, 42.42f, 1e-6);
-    string_free(g_alloc_heap, val.valB);
+    string_free(g_allocHeap, val.valB);
 
     test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_FieldNotFound);
     test_read_fail(
@@ -343,7 +343,7 @@ spec(read_json) {
 
       check_eq_int(val.tag, ReadJsonUnionTag_String);
       check_eq_string(val.data_string, string_lit("Hello World"));
-      string_free(g_alloc_heap, val.data_string);
+      string_free(g_allocHeap, val.data_string);
     }
     {
       ReadJsonUnion val;
@@ -454,7 +454,7 @@ spec(read_json) {
       check_eq_int(val.data_a.valA, -42);
       check_eq_string(val.data_a.valB, string_lit("Hello World"));
       check_eq_float(val.data_a.valC, 42.42, 1e-6f);
-      string_free(g_alloc_heap, val.data_a.valB);
+      string_free(g_allocHeap, val.data_a.valB);
     }
     {
       ReadJsonUnion val;
@@ -578,7 +578,7 @@ spec(read_json) {
       check_eq_int(val.tag, ReadJsonUnionTag_Int);
       check_eq_string(val.name, string_lit("Hello World"));
       check_eq_int(val.data_int, 42);
-      string_free(g_alloc_heap, val.name);
+      string_free(g_allocHeap, val.name);
     }
 
     test_read_fail(

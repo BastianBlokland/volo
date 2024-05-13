@@ -11,8 +11,8 @@ spec(write) {
   DynString buffer = {0};
 
   setup() {
-    doc    = json_create(g_alloc_heap, 0);
-    buffer = dynstring_create(g_alloc_page, usize_kibibyte * 4);
+    doc    = json_create(g_allocHeap, 0);
+    buffer = dynstring_create(g_allocPage, usize_kibibyte * 4);
   }
 
   it("can write arrays") {

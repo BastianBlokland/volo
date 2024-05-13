@@ -23,8 +23,8 @@ spec(file) {
   DynString buffer  = {0};
 
   setup() {
-    file_temp(g_alloc_heap, &tmpFile);
-    buffer = dynstring_create(g_alloc_page, usize_kibibyte * 4);
+    file_temp(g_allocHeap, &tmpFile);
+    buffer = dynstring_create(g_allocPage, usize_kibibyte * 4);
   }
 
   it("can read-back content that was written") {
@@ -66,7 +66,7 @@ spec(file) {
   it("can check the file-type of directories") {
     File* workingDir = null;
     check_eq_int(
-        file_create(g_alloc_heap, g_path_workingdir, FileMode_Open, FileAccess_None, &workingDir),
+        file_create(g_allocHeap, g_pathWorkingDir, FileMode_Open, FileAccess_None, &workingDir),
         FileResult_Success);
 
     if (workingDir) {
@@ -100,7 +100,7 @@ spec(file) {
   }
 
   it("can check if a file exists") {
-    const String existingPath    = g_path_executable;
+    const String existingPath    = g_pathExecutable;
     const String nonExistingPath = string_lit("path_to_non_existent_file_42");
     File*        file            = null;
 
@@ -110,14 +110,14 @@ spec(file) {
 
     // Check through making a file handle.
     check_eq_int(
-        file_create(g_alloc_heap, existingPath, FileMode_Open, FileAccess_None, &file),
+        file_create(g_allocHeap, existingPath, FileMode_Open, FileAccess_None, &file),
         FileResult_Success);
     check(file != null);
     file_destroy(file);
     file = null;
 
     check_eq_int(
-        file_create(g_alloc_heap, nonExistingPath, FileMode_Open, FileAccess_None, &file),
+        file_create(g_allocHeap, nonExistingPath, FileMode_Open, FileAccess_None, &file),
         FileResult_NotFound);
     check(file == null);
   }
@@ -125,8 +125,7 @@ spec(file) {
   it("can read its own executable") {
     File* ownExecutable = null;
     check_eq_int(
-        file_create(
-            g_alloc_heap, g_path_executable, FileMode_Open, FileAccess_Read, &ownExecutable),
+        file_create(g_allocHeap, g_pathExecutable, FileMode_Open, FileAccess_Read, &ownExecutable),
         FileResult_Success);
     check(ownExecutable != null);
     check_eq_int(file_stat_sync(ownExecutable).type, FileType_Regular);
@@ -141,19 +140,19 @@ spec(file) {
 
   it("can create a new file by opening a file-handle with 'Create' mode") {
     String path = path_build_scratch(
-        g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
+        g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     // Create a new file containing 'Hello World'.
     File* file;
     check_eq_int(
-        file_create(g_alloc_heap, path, FileMode_Create, FileAccess_Write, &file),
+        file_create(g_allocHeap, path, FileMode_Create, FileAccess_Write, &file),
         FileResult_Success);
     check_eq_int(file_write_sync(file, string_lit("Hello World!")), FileResult_Success);
     file_destroy(file);
 
     // Open the new file and read its content.
     check_eq_int(
-        file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file), FileResult_Success);
+        file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file), FileResult_Success);
     check_eq_int(file_read_sync(file, &buffer), FileResult_Success);
     check_eq_string(dynstring_view(&buffer), string_lit("Hello World!"));
     file_destroy(file);
@@ -164,14 +163,14 @@ spec(file) {
 
   it("can create a new directory") {
     String path = path_build_scratch(
-        g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
+        g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     check_eq_int(file_create_dir_sync(path), FileResult_Success);
 
     // Verify that the directory exists.
     File* dirHandle;
     check_eq_int(
-        file_create(g_alloc_scratch, path, FileMode_Open, FileAccess_None, &dirHandle),
+        file_create(g_allocScratch, path, FileMode_Open, FileAccess_None, &dirHandle),
         FileResult_Success);
     if (dirHandle) {
       file_destroy(dirHandle);

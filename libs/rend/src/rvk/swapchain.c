@@ -274,7 +274,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
 
 RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
-  RvkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RvkSwapchain);
+  RvkSwapchain* swapchain = alloc_alloc_t(g_allocHeap, RvkSwapchain);
 
   *swapchain = (RvkSwapchain){
       .dev          = dev,
@@ -310,7 +310,7 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
   }
 
   vkDestroySurfaceKHR(swapchain->dev->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
-  alloc_free_t(g_alloc_heap, swapchain);
+  alloc_free_t(g_allocHeap, swapchain);
 }
 
 VkFormat rvk_swapchain_format(const RvkSwapchain* swapchain) {

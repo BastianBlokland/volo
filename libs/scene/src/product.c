@@ -41,13 +41,13 @@ ecs_comp_define(SceneProductPreviewComp) { EcsEntityId instigator; };
 
 static void ecs_destruct_product_resource(void* data) {
   SceneProductResourceComp* comp = data;
-  string_free(g_alloc_heap, comp->mapId);
+  string_free(g_allocHeap, comp->mapId);
 }
 
 static void ecs_destruct_production(void* data) {
   SceneProductionComp* comp = data;
   if (comp->queues) {
-    alloc_free_array_t(g_alloc_heap, comp->queues, comp->queueCount);
+    alloc_free_array_t(g_allocHeap, comp->queues, comp->queueCount);
   }
 }
 
@@ -114,7 +114,7 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
   }
 
   diag_assert(productSet->productCount);
-  production->queues     = alloc_array_t(g_alloc_heap, SceneProductQueue, productSet->productCount);
+  production->queues     = alloc_array_t(g_allocHeap, SceneProductQueue, productSet->productCount);
   production->queueCount = productSet->productCount;
 
   for (u16 i = 0; i != production->queueCount; ++i) {
@@ -167,7 +167,7 @@ static void scene_production_reset_all_queues(EcsWorld* world) {
   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
     SceneProductionComp* prod = ecs_view_write_t(itr, SceneProductionComp);
     if (prod->queues) {
-      alloc_free_array_t(g_alloc_heap, prod->queues, prod->queueCount);
+      alloc_free_array_t(g_allocHeap, prod->queues, prod->queueCount);
       prod->queues     = null;
       prod->queueCount = 0;
     }
@@ -691,7 +691,7 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
       world,
       ecs_world_global(world),
       SceneProductResourceComp,
-      .mapId = string_dup(g_alloc_heap, productMapId));
+      .mapId = string_dup(g_allocHeap, productMapId));
 }
 
 void scene_product_rallypos_set_world(SceneProductionComp* production, const GeoVector rallyPos) {

@@ -132,6 +132,9 @@ static f32 float_f16_to_f32_soft(const f16 val) {
 }
 
 void float_init(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
   g_floatF32ToF16Impl =
       float_cpu_f16c_support() ? float_f32_to_f16_intrinsic : float_f32_to_f16_soft;
   g_floatF16ToF32Impl =
@@ -139,6 +142,9 @@ void float_init(void) {
 }
 
 void float_init_thread(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
 #if VOLO_FLOAT_DEBUG
   float_enable_exceptions();
 #endif

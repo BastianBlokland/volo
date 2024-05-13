@@ -79,7 +79,7 @@ static usize alloc_scratch_max_size(Allocator* allocator) {
 static THREAD_LOCAL AllocatorScratch g_allocatorIntern;
 
 Allocator* alloc_scratch_init(void) {
-  Mem scratchPages  = alloc_alloc(g_alloc_page, scratch_heap_size, sizeof(void*));
+  Mem scratchPages  = alloc_alloc(g_allocPage, scratch_heap_size, sizeof(void*));
   g_allocatorIntern = (AllocatorScratch){
       (Allocator){
           .alloc   = alloc_scratch_alloc,
@@ -93,4 +93,4 @@ Allocator* alloc_scratch_init(void) {
   return (Allocator*)&g_allocatorIntern;
 }
 
-void alloc_scratch_teardown(void) { alloc_free(g_alloc_page, g_allocatorIntern.memory); }
+void alloc_scratch_teardown(void) { alloc_free(g_allocPage, g_allocatorIntern.memory); }

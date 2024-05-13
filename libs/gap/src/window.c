@@ -47,17 +47,17 @@ static void ecs_destruct_window_comp(void* data) {
   if (comp->pal) {
     gap_pal_window_destroy(comp->pal, comp->id);
   }
-  string_maybe_free(g_alloc_heap, comp->title);
+  string_maybe_free(g_allocHeap, comp->title);
   dynstring_destroy(&comp->inputText);
-  string_maybe_free(g_alloc_heap, comp->clipCopy);
-  string_maybe_free(g_alloc_heap, comp->clipPaste);
+  string_maybe_free(g_allocHeap, comp->clipCopy);
+  string_maybe_free(g_allocHeap, comp->clipPaste);
 }
 
 static String window_default_title_scratch(const GapWindowComp* window) {
   return fmt_write_scratch(
       "{} (pid: {}, wid: {})",
-      fmt_text(path_stem(g_path_executable)),
-      fmt_int(g_thread_pid),
+      fmt_text(path_stem(g_pathExecutable)),
+      fmt_int(g_threadPid),
       fmt_int(window->id));
 }
 
@@ -152,7 +152,7 @@ static void window_update(
   }
   if (!string_is_empty(win->clipCopy)) {
     gap_pal_window_clip_copy(pal, win->id, win->clipCopy);
-    string_free(g_alloc_heap, win->clipCopy);
+    string_free(g_allocHeap, win->clipCopy);
     win->clipCopy = string_empty;
   }
   if (win->requests & GapWindowRequests_ClipPaste) {
@@ -229,9 +229,9 @@ static void window_update(
   dynstring_clear(&win->inputText);
   dynstring_append(&win->inputText, gap_pal_window_input_text(pal, win->id));
 
-  string_maybe_free(g_alloc_heap, win->clipPaste);
+  string_maybe_free(g_allocHeap, win->clipPaste);
   if (palFlags & GapPalWindowFlags_ClipPaste) {
-    win->clipPaste = string_dup(g_alloc_heap, gap_pal_window_clip_paste_result(pal, win->id));
+    win->clipPaste = string_dup(g_allocHeap, gap_pal_window_clip_paste_result(pal, win->id));
     win->events |= GapWindowEvents_ClipPaste;
   } else {
     win->clipPaste = string_empty;
@@ -300,7 +300,7 @@ EcsEntityId gap_window_create(
       .mode                        = mode,
       .requests                    = GapWindowRequests_Create,
       .params[GapParam_WindowSize] = size,
-      .inputText                   = dynstring_create(g_alloc_heap, 64));
+      .inputText                   = dynstring_create(g_allocHeap, 64));
 
   gap_window_flags_set(comp, flags);
   if (!string_is_empty(title)) {
@@ -358,8 +358,8 @@ void gap_window_resize(GapWindowComp* comp, const GapVector size, const GapWindo
 String gap_window_title_get(const GapWindowComp* window) { return window->title; }
 
 void gap_window_title_set(GapWindowComp* window, const String newTitle) {
-  string_maybe_free(g_alloc_heap, window->title);
-  window->title = string_maybe_dup(g_alloc_heap, newTitle);
+  string_maybe_free(g_allocHeap, window->title);
+  window->title = string_maybe_dup(g_allocHeap, newTitle);
   window->requests |= GapWindowRequests_UpdateTitle;
 }
 
@@ -393,8 +393,8 @@ void gap_window_cursor_set(GapWindowComp* comp, const GapCursor cursor) {
 String gap_window_input_text(const GapWindowComp* comp) { return dynstring_view(&comp->inputText); }
 
 void gap_window_clip_copy(GapWindowComp* comp, const String value) {
-  string_maybe_free(g_alloc_heap, comp->clipCopy);
-  comp->clipCopy = string_maybe_dup(g_alloc_heap, value);
+  string_maybe_free(g_allocHeap, comp->clipCopy);
+  comp->clipCopy = string_maybe_dup(g_allocHeap, value);
 }
 
 void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowRequests_ClipPaste; }

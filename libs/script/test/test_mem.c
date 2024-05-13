@@ -8,7 +8,7 @@
 spec(mem) {
   ScriptMem* m = null;
 
-  setup() { m = script_mem_create(g_alloc_heap); }
+  setup() { m = script_mem_create(g_allocHeap); }
 
   it("returns null if the value is unset") {
     check_eq_val(script_mem_load(m, string_hash_lit("test1")), script_null());

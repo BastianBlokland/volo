@@ -10,26 +10,32 @@ static THREAD_LOCAL bool g_initializedThread;
 
 void core_init(void) {
   if (!g_initalized) {
-    alloc_init();
-    float_init();
     thread_init();
-    time_init();
-    stringtable_init();
+    float_init();
   }
-
   if (!g_initializedThread) {
-    alloc_init_thread();
     thread_init_thread();
     float_init_thread();
+  }
+  if (!g_initalized) {
+    alloc_init();
+  }
+  if (!g_initializedThread) {
+    alloc_init_thread();
+  }
+  if (!g_initalized) {
+    symbol_init();
+    time_init();
+  }
+  if (!g_initializedThread) {
     rng_init_thread();
   }
-
   if (!g_initalized) {
+    stringtable_init();
     file_init();
     tty_init();
     path_init();
     dynlib_init();
-    symbol_init();
     thread_init_late();
   }
 
@@ -38,7 +44,7 @@ void core_init(void) {
 }
 
 void core_teardown(void) {
-  if (g_thread_tid == g_thread_main_tid && g_initalized) {
+  if (g_threadTid == g_threadMainTid && g_initalized) {
     stringtable_teardown();
     tty_teardown();
   }
@@ -46,7 +52,7 @@ void core_teardown(void) {
     alloc_teardown_thread();
     g_initializedThread = false;
   }
-  if (g_thread_tid == g_thread_main_tid && g_initalized) {
+  if (g_threadTid == g_threadMainTid && g_initalized) {
     thread_teardown();
     symbol_teardown();
     dynlib_teardown();

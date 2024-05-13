@@ -57,20 +57,20 @@ static GeoQueryPrim geo_prim_create(const GeoQueryPrimType type, const u32 capac
   return (GeoQueryPrim){
       .type     = type,
       .capacity = capacity,
-      .ids      = alloc_array_t(g_alloc_heap, u64, capacity),
-      .layers   = alloc_array_t(g_alloc_heap, GeoQueryLayer, capacity),
-      .bounds   = alloc_array_t(g_alloc_heap, GeoBox, capacity),
-      .shapes   = alloc_alloc(g_alloc_heap, shapeDataSize, geo_query_shape_align).ptr,
+      .ids      = alloc_array_t(g_allocHeap, u64, capacity),
+      .layers   = alloc_array_t(g_allocHeap, GeoQueryLayer, capacity),
+      .bounds   = alloc_array_t(g_allocHeap, GeoBox, capacity),
+      .shapes   = alloc_alloc(g_allocHeap, shapeDataSize, geo_query_shape_align).ptr,
   };
 }
 
 static void geo_prim_destroy(GeoQueryPrim* prim) {
-  alloc_free_array_t(g_alloc_heap, prim->ids, prim->capacity);
-  alloc_free_array_t(g_alloc_heap, prim->layers, prim->capacity);
-  alloc_free_array_t(g_alloc_heap, prim->bounds, prim->capacity);
+  alloc_free_array_t(g_allocHeap, prim->ids, prim->capacity);
+  alloc_free_array_t(g_allocHeap, prim->layers, prim->capacity);
+  alloc_free_array_t(g_allocHeap, prim->bounds, prim->capacity);
 
   const Mem shapesMem = mem_create(prim->shapes, geo_prim_entry_size(prim->type) * prim->capacity);
-  alloc_free(g_alloc_heap, shapesMem);
+  alloc_free(g_allocHeap, shapesMem);
 }
 
 static void geo_prim_copy(GeoQueryPrim* dst, const GeoQueryPrim* src) {

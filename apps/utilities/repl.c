@@ -42,10 +42,10 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
   ++stats->exprsTotal;
 }
 
-static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
+static void repl_output(const String text) { file_write_sync(g_fileStdOut, text); }
 
 static void repl_output_diag(const String src, const ScriptDiag* diag, const String id) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
@@ -75,7 +75,7 @@ static void repl_output_diag(const String src, const ScriptDiag* diag, const Str
 }
 
 static void repl_output_panic(const String src, const ScriptPanic* panic, const String id) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
@@ -97,7 +97,7 @@ static void repl_output_panic(const String src, const ScriptPanic* panic, const 
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   dynstring_append(&buffer, string_lit("Sym: "));
@@ -109,7 +109,7 @@ static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
 }
 
 static void repl_output_tokens(String text) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 8 * usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, 8 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   dynstring_append(&buffer, string_lit("Tokens: "));
@@ -139,7 +139,7 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   ReplScriptStats stats = {0};
   script_expr_visit(script, expr, &stats, repl_script_collect_stats);
 
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   // clang-format off
@@ -224,7 +224,7 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* 
   (void)ctx;
   (void)err;
 
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   for (usize i = 0; i != args.count; ++i) {
@@ -245,7 +245,7 @@ static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptE
   (void)ctx;
   (void)err;
 
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   for (usize i = 0; i != args.count; ++i) {
@@ -263,7 +263,7 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
   (void)ctx;
   (void)err;
 
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   for (usize i = 0; i != args.count; ++i) {
@@ -298,9 +298,9 @@ static void repl_exec(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDoc*     script = script_create(g_alloc_heap);
+  ScriptDoc*     script = script_create(g_allocHeap);
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
-  ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_alloc_heap) : 0;
+  ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
 
   const ScriptExpr expr = script_read(script, binder, input, diags, syms);
 
@@ -379,8 +379,8 @@ static void repl_edit_delete(const ReplEditor* editor) {
 static void repl_edit_submit(ReplEditor* editor) {
   repl_output(string_lit("\n")); // Preserve the input line.
 
-  string_maybe_free(g_alloc_heap, editor->editPrevText);
-  editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
+  string_maybe_free(g_allocHeap, editor->editPrevText);
+  editor->editPrevText = string_maybe_dup(g_allocHeap, dynstring_view(editor->editBuffer));
 
   const String id = string_empty;
   repl_exec(editor->binder, editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
@@ -389,7 +389,7 @@ static void repl_edit_submit(ReplEditor* editor) {
 }
 
 static void repl_edit_render(const ReplEditor* editor) {
-  DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
+  DynString buffer = dynstring_create(g_allocHeap, usize_kibibyte);
 
   tty_write_clear_line_sequence(&buffer, TtyClearMode_All); // Clear line.
   tty_write_set_cursor_hor_sequence(&buffer, 0);            // Move cursor to beginning of line.
@@ -421,7 +421,7 @@ static void repl_edit_render(const ReplEditor* editor) {
 }
 
 static void repl_edit_render_cleanup(void) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   tty_write_clear_line_sequence(&buffer, TtyClearMode_All);
@@ -461,20 +461,20 @@ static bool repl_edit_update(ReplEditor* editor, TtyInputToken* input) {
 }
 
 static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flags) {
-  DynString readBuffer = dynstring_create(g_alloc_heap, 32);
-  DynString editBuffer = dynstring_create(g_alloc_heap, 128);
+  DynString readBuffer = dynstring_create(g_allocHeap, 32);
+  DynString editBuffer = dynstring_create(g_allocHeap, 128);
 
   ReplEditor editor = {
       .binder     = binder,
       .flags      = flags,
       .editBuffer = &editBuffer,
-      .mem        = script_mem_create(g_alloc_heap),
+      .mem        = script_mem_create(g_allocHeap),
   };
 
-  tty_opts_set(g_file_stdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
+  tty_opts_set(g_fileStdIn, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
   repl_edit_render(&editor);
 
-  while (tty_read(g_file_stdin, &readBuffer, TtyReadFlags_None)) {
+  while (tty_read(g_fileStdIn, &readBuffer, TtyReadFlags_None)) {
     String        readStr = dynstring_view(&readBuffer);
     TtyInputToken input;
     for (;;) {
@@ -491,21 +491,21 @@ static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flag
 
 Stop:
   repl_edit_render_cleanup();
-  tty_opts_set(g_file_stdin, TtyOpts_None);
+  tty_opts_set(g_fileStdIn, TtyOpts_None);
 
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
-  string_maybe_free(g_alloc_heap, editor.editPrevText);
+  string_maybe_free(g_allocHeap, editor.editPrevText);
   script_mem_destroy(editor.mem);
   return 0;
 }
 
 static i32
 repl_run_file(const ScriptBinder* binder, File* file, const String id, const ReplFlags flags) {
-  DynString readBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
+  DynString readBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
   file_read_to_end_sync(file, &readBuffer);
 
-  ScriptMem* mem = script_mem_create(g_alloc_heap);
+  ScriptMem* mem = script_mem_create(g_allocHeap);
   repl_exec(binder, mem, flags, dynstring_view(&readBuffer), id);
   script_mem_destroy(mem);
 
@@ -521,14 +521,14 @@ static i32 repl_run_path(const ScriptBinder* binder, const String pathAbs, const
   u32        fileLockedRetries = 0;
 
 Retry:
-  fileRes = file_create(g_alloc_heap, pathAbs, FileMode_Open, FileAccess_Read, &file);
+  fileRes = file_create(g_allocHeap, pathAbs, FileMode_Open, FileAccess_Read, &file);
   if (fileRes == FileResult_Locked && fileLockedRetries++ < 10) {
     thread_sleep(time_milliseconds(100));
     goto Retry;
   } else if (fileRes != FileResult_Success) {
     const String err = file_result_str(fileRes);
     const String msg = fmt_write_scratch("ERROR: Failed to open file: {}\n", fmt_text(err));
-    file_write_sync(g_file_stderr, msg);
+    file_write_sync(g_fileStdErr, msg);
     return 1;
   }
 
@@ -543,13 +543,13 @@ static i32 repl_run_watch(const ScriptBinder* binder, const String pathAbs, cons
   i32 res = 0;
 
   const FileMonitorFlags monFlags = FileMonitorFlags_Blocking;
-  FileMonitor*           mon = file_monitor_create(g_alloc_heap, path_parent(pathAbs), monFlags);
+  FileMonitor*           mon = file_monitor_create(g_allocHeap, path_parent(pathAbs), monFlags);
 
   FileMonitorResult monRes;
   if ((monRes = file_monitor_watch(mon, path_filename(pathAbs), 0))) {
     const String err = file_monitor_result_str(monRes);
     const String msg = fmt_write_scratch("ERROR: Failed to watch path: {}\n", fmt_text(err));
-    file_write_sync(g_file_stderr, msg);
+    file_write_sync(g_fileStdErr, msg);
     res = 1;
     goto Ret;
   }
@@ -569,19 +569,19 @@ static bool repl_read_binder_file(ScriptBinder* binder, const String path) {
   bool       success = true;
   File*      file;
   FileResult fileRes;
-  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to open binder file.\n"));
+  if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
+    file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to open binder file.\n"));
     success = false;
     goto Ret;
   }
   String fileData;
   if ((fileRes = file_map(file, &fileData))) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to map binder file.\n"));
+    file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to map binder file.\n"));
     success = false;
     goto Ret;
   }
   if (!script_binder_read(binder, fileData)) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: Invalid binder file.\n"));
+    file_write_sync(g_fileStdErr, string_lit("ERROR: Invalid binder file.\n"));
     success = false;
     goto Ret;
   }
@@ -645,7 +645,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   ScriptBinder* binder   = null;
 
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_file_stdout);
+    cli_help_write_file(app, g_fileStdOut);
     goto Exit;
   }
 
@@ -669,14 +669,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     flags |= ReplFlags_OutputSymbols;
   }
 
-  if (!tty_isatty(g_file_stdout)) {
+  if (!tty_isatty(g_fileStdOut)) {
     // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
-    file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream.\n"));
+    file_write_sync(g_fileStdErr, string_lit("ERROR: REPL needs a tty output stream.\n"));
     exitCode = 1;
     goto Exit;
   }
 
-  binder = script_binder_create(g_alloc_heap);
+  binder = script_binder_create(g_allocHeap);
   repl_bind_init(binder);
   const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
   if (binderArg.count) {
@@ -689,17 +689,17 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {
-    const String pathAbs = string_dup(g_alloc_persist, path_build_scratch(fileArg.values[0]));
+    const String pathAbs = string_dup(g_allocPersist, path_build_scratch(fileArg.values[0]));
     if (flags & ReplFlags_Watch) {
       exitCode = repl_run_watch(binder, pathAbs, flags);
     } else {
       exitCode = repl_run_path(binder, pathAbs, flags);
     }
-  } else if (tty_isatty(g_file_stdin)) {
+  } else if (tty_isatty(g_fileStdIn)) {
     exitCode = repl_run_interactive(binder, flags);
   } else {
     const String id = string_empty;
-    exitCode        = repl_run_file(binder, g_file_stdin, id, flags);
+    exitCode        = repl_run_file(binder, g_fileStdIn, id, flags);
   }
 
 Exit:

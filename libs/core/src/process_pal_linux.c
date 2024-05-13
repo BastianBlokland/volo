@@ -143,7 +143,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
    * NOTE: The memory does not need to be freed as exec will free the whole address space.
    */
   const usize argSize   = process_start_arg_null_term_size(info);
-  Mem         argBuffer = alloc_alloc(g_alloc_heap, argSize, 1);
+  Mem         argBuffer = alloc_alloc(g_allocHeap, argSize, 1);
   if (!mem_valid(argBuffer)) {
     if (info->flags & ProcessPipe_StdErr) {
       diag_print_err("[process error] Out of memory");

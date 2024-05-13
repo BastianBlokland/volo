@@ -21,7 +21,7 @@ spec(write_json) {
 
   DataReg* reg = null;
 
-  setup() { reg = data_reg_create(g_alloc_heap); }
+  setup() { reg = data_reg_create(g_allocHeap); }
 
   it("can write a boolean") {
     const DataMeta meta = data_meta_t(data_prim_t(bool));

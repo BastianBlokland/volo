@@ -437,7 +437,7 @@ static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta*
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
+    RvkPass*                         pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -522,19 +522,19 @@ RvkPass* rvk_pass_create(
     const String        name) {
   diag_assert(!string_is_empty(name));
 
-  RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
+  RvkPass* pass = alloc_alloc_t(g_allocHeap, RvkPass);
 
   *pass = (RvkPass){
       .dev              = dev,
       .swapchainFormat  = swapchainFormat,
-      .name             = string_dup(g_alloc_heap, name),
+      .name             = string_dup(g_allocHeap, name),
       .statrecorder     = rvk_statrecorder_create(dev),
       .stopwatch        = stopwatch,
       .vkCmdBuf         = vkCmdBuf,
       .uniformPool      = uniformPool,
       .config           = config,
-      .descSetsVolatile = dynarray_create_t(g_alloc_heap, RvkDescSet, 8),
-      .invocations      = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
+      .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
+      .invocations      = dynarray_create_t(g_allocHeap, RvkPassInvoc, 1),
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
@@ -557,7 +557,7 @@ RvkPass* rvk_pass_create(
 void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
-  string_free(g_alloc_heap, pass->name);
+  string_free(g_allocHeap, pass->name);
   rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
 
@@ -569,7 +569,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   dynarray_destroy(&pass->descSetsVolatile);
   dynarray_destroy(&pass->invocations);
 
-  alloc_free_t(g_alloc_heap, pass);
+  alloc_free_t(g_allocHeap, pass);
 }
 
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }

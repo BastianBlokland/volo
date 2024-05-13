@@ -13,7 +13,7 @@ spec(nav) {
   const f32   blockHeight = 0.5f;
   GeoNavGrid* grid        = null;
 
-  setup() { grid = geo_nav_grid_create(g_alloc_heap, size, cellSize, height, blockHeight); }
+  setup() { grid = geo_nav_grid_create(g_allocHeap, size, cellSize, height, blockHeight); }
 
   it("can retrieve the bounding region") {
     const GeoNavRegion region = geo_nav_bounds(grid);

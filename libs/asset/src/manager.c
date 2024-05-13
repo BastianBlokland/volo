@@ -97,7 +97,7 @@ static void asset_add_dependent(AssetDependencyComp* comp, const EcsEntityId dep
   if (comp->dependents.type == AssetDependencyStorage_Single) {
     const EcsEntityId existingDep = comp->dependents.single;
     comp->dependents.type         = AssetDependencyStorage_Many;
-    comp->dependents.many         = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
+    comp->dependents.many         = dynarray_create_t(g_allocHeap, EcsEntityId, 8);
     *dynarray_push_t(&comp->dependents.many, EcsEntityId) = existingDep;
   }
   if (!dynarray_search_linear(&comp->dependents.many, ecs_compare_entity, &dep)) {
@@ -131,9 +131,9 @@ asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManag
       ecs_world_global(world),
       AssetManagerComp,
       .repo    = repo,
-      .idAlloc = alloc_chunked_create(g_alloc_page, alloc_bump_create, asset_id_chunk_size),
+      .idAlloc = alloc_chunked_create(g_allocPage, alloc_bump_create, asset_id_chunk_size),
       .flags   = flags,
-      .lookup  = dynarray_create_t(g_alloc_heap, AssetEntry, 128));
+      .lookup  = dynarray_create_t(g_allocHeap, AssetEntry, 128));
 }
 
 static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, const String id) {

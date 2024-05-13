@@ -67,7 +67,7 @@ void jobs_dot_write_graph(DynString* str, const JobGraph* graph) {
 }
 
 FileResult jobs_dot_dump_graph(File* file, const JobGraph* graph) {
-  DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
+  DynString buffer = dynstring_create(g_allocHeap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
 
   const FileResult result = file_write_sync(file, dynstring_view(&buffer));
@@ -81,7 +81,7 @@ FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph* graph) {
   if ((res = file_create_dir_sync(path_parent(path))) != FileResult_Success) {
     return res;
   }
-  DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
+  DynString buffer = dynstring_create(g_allocHeap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
 
   res = file_write_to_path_sync(path, dynstring_view(&buffer));
@@ -92,9 +92,9 @@ FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph* graph) {
 
 FileResult jobs_dot_dump_graph_to_path_default(const JobGraph* graph) {
   const String pathScratch = path_build_scratch(
-      path_parent(g_path_executable),
+      path_parent(g_pathExecutable),
       string_lit("logs"),
-      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("dot")));
+      path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("dot")));
 
   return jobs_dot_dump_graph_to_path(pathScratch, graph);
 }

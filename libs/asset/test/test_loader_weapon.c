@@ -80,24 +80,24 @@ static const struct {
     {
         .id          = string_static("effect-vfx.weapons"),
         .text        = string_static("{ \"weapons\": [ {"
-                              "      \"name\": \"Pistol\","
-                              "      \"intervalMin\": 1,"
-                              "      \"intervalMax\": 2,"
-                              "      \"readySpeed\": 3.5,"
-                              "      \"readyMinTime\": 3,"
-                              "      \"effects\": [ {"
-                              "        \"$type\": \"AssetWeaponEffect_Vfx\","
-                              "        \"assetId\": \"test1\","
-                              "        \"originJoint\": \"test2\","
-                              "        \"delay\": 0,"
-                              "        \"duration\": 1"
-                              "      }]"
-                              "  }"
-                              "]}"),
+                                     "      \"name\": \"Pistol\","
+                                     "      \"intervalMin\": 1,"
+                                     "      \"intervalMax\": 2,"
+                                     "      \"readySpeed\": 3.5,"
+                                     "      \"readyMinTime\": 3,"
+                                     "      \"effects\": [ {"
+                                     "        \"$type\": \"AssetWeaponEffect_Vfx\","
+                                     "        \"assetId\": \"test1\","
+                                     "        \"originJoint\": \"test2\","
+                                     "        \"delay\": 0,"
+                                     "        \"duration\": 1"
+                                     "      }]"
+                                     "  }"
+                                     "]}"),
         .weapons     = {{
-            .name        = string_static("Pistol"),
-            .intervalMin = time_seconds(1),
-            .intervalMax = time_seconds(2),
+                .name        = string_static("Pistol"),
+                .intervalMin = time_seconds(1),
+                .intervalMax = time_seconds(2),
         }},
         .weaponCount = 1,
     },
@@ -147,12 +147,12 @@ spec(loader_weapon) {
   EcsRunner* runner = null;
 
   setup() {
-    def = ecs_def_create(g_alloc_heap);
+    def = ecs_def_create(g_allocHeap);
     asset_register(def);
     ecs_register_module(def, loader_weapon_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+    world  = ecs_world_create(g_allocHeap, def);
+    runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
   }
 
   it("can load weapon maps") {

@@ -9,7 +9,7 @@ spec(read) {
 
   JsonDoc* doc = null;
 
-  setup() { doc = json_create(g_alloc_heap, 0); }
+  setup() { doc = json_create(g_allocHeap, 0); }
 
   it("can read arrays") {
     JsonVal tmpValA, tmpValB, tmpValC, tmpValD, tmpValE;
@@ -251,7 +251,7 @@ spec(read) {
   }
 
   it("fails when input contains a too long string") {
-    DynString input = dynstring_create(g_alloc_heap, usize_kibibyte * 128);
+    DynString input = dynstring_create(g_allocHeap, usize_kibibyte * 128);
     dynstring_append_char(&input, '"');
     dynstring_append_chars(&input, 'a', usize_kibibyte * 65);
     dynstring_append_char(&input, '"');

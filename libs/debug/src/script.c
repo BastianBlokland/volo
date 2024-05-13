@@ -368,7 +368,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
           {string_lit("Value"), string_lit("Memory value.")},
       });
 
-  DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
+  DynArray entries = dynarray_create_t(g_allocScratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
     if (panelComp->hideNullMemory && !script_val_has(script_mem_load(memory, itr.key))) {
@@ -417,7 +417,7 @@ static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       DebugScriptTrackerComp,
-      .entries         = dynarray_create_t(g_alloc_heap, DebugScriptOutput, 64),
+      .entries         = dynarray_create_t(g_allocHeap, DebugScriptOutput, 64),
       .autoOpenOnPanic = true);
 }
 
@@ -725,7 +725,7 @@ static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetMana
 
   if (!panelComp->editorLaunch && !string_is_empty(panelComp->editorReq.scriptId)) {
     DebugEditorRequest* req     = &panelComp->editorReq;
-    DynString           pathStr = dynstring_create(g_alloc_scratch, usize_kibibyte);
+    DynString           pathStr = dynstring_create(g_allocScratch, usize_kibibyte);
     if (asset_path_by_id(assets, req->scriptId, &pathStr)) {
       const String path = dynstring_view(&pathStr);
 
@@ -740,7 +740,7 @@ static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetMana
           fmt_write_scratch(
               "{}:{}:{}", fmt_text(path), fmt_int(req->pos.line + 1), fmt_int(req->pos.column + 1)),
       };
-      Process* p = process_create(g_alloc_heap, editorFile, editorArgs, array_elems(editorArgs), 0);
+      Process* p = process_create(g_allocHeap, editorFile, editorArgs, array_elems(editorArgs), 0);
       panelComp->editorLaunch = p;
     }
     dynstring_destroy(&pathStr);

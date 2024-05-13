@@ -26,7 +26,7 @@ spec(warp) {
 
   Rng* testRng;
 
-  setup() { testRng = rng_create_xorwow(g_alloc_heap, 1337); }
+  setup() { testRng = rng_create_xorwow(g_allocHeap, 1337); }
 
   it("matrix returns the same points when applying a identity warp") {
     const VfxWarpMatrix w = vfx_warp_matrix_ident();

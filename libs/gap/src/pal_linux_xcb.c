@@ -139,7 +139,7 @@ static void pal_clear_volatile(GapPal* pal) {
 
     dynstring_clear(&window->inputText);
 
-    string_maybe_free(g_alloc_heap, window->clipPaste);
+    string_maybe_free(g_allocHeap, window->clipPaste);
     window->clipPaste = string_empty;
   }
 }
@@ -387,7 +387,7 @@ static String pal_xcb_atom_name_scratch(GapPal* pal, const xcb_atom_t atom) {
     diag_crash_msg("Xcb failed to retrieve atom name, err: {}", fmt_int(err->error_code));
   }
   const Mem name = mem_create(xcb_get_atom_name_name(reply), xcb_get_atom_name_name_length(reply));
-  const String result = string_dup(g_alloc_scratch, name);
+  const String result = string_dup(g_allocScratch, name);
   free(reply);
   return result;
 }
@@ -893,7 +893,7 @@ static void pal_event_scroll(GapPal* pal, const GapWindowId windowId, const GapV
 static void pal_event_clip_copy_clear(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (window) {
-    string_maybe_free(g_alloc_heap, window->clipCopy);
+    string_maybe_free(g_allocHeap, window->clipCopy);
     window->clipCopy = string_empty;
   }
 }
@@ -987,10 +987,10 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
     diag_crash_msg("Xcb failed to retrieve clipboard value, err: {}", fmt_int(err->error_code));
   }
 
-  string_maybe_free(g_alloc_heap, window->clipPaste);
+  string_maybe_free(g_allocHeap, window->clipPaste);
   if (reply->value_len) {
     const String selectionMem = mem_create(xcb_get_property_value(reply), reply->value_len);
-    window->clipPaste         = string_dup(g_alloc_heap, selectionMem);
+    window->clipPaste         = string_dup(g_allocHeap, selectionMem);
     window->flags |= GapPalWindowFlags_ClipPaste;
   } else {
     window->clipPaste = string_empty;
@@ -1003,9 +1003,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+             .alloc    = alloc,
+             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1252,8 +1252,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -1290,7 +1290,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .params[GapParam_WindowSize] = size,
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
-      .inputText                   = dynstring_create(g_alloc_heap, 64),
+      .inputText                   = dynstring_create(g_allocHeap, 64),
       .dpi                         = pal_window_default_dpi,
   };
 
@@ -1311,8 +1311,8 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
     if (window->id == windowId) {
       dynstring_destroy(&window->inputText);
-      string_maybe_free(g_alloc_heap, window->clipCopy);
-      string_maybe_free(g_alloc_heap, window->clipPaste);
+      string_maybe_free(g_allocHeap, window->clipCopy);
+      string_maybe_free(g_allocHeap, window->clipPaste);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -1521,8 +1521,8 @@ void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const Str
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
 
-  string_maybe_free(g_alloc_heap, window->clipCopy);
-  window->clipCopy = string_dup(g_alloc_heap, value);
+  string_maybe_free(g_allocHeap, window->clipCopy);
+  window->clipCopy = string_dup(g_allocHeap, value);
   xcb_set_selection_owner(
       pal->xcbCon, (xcb_window_t)windowId, pal->atomClipboard, XCB_CURRENT_TIME);
 

@@ -22,11 +22,11 @@ spec(dump_eventtrace) {
   DynString  buffer = {0};
 
   setup() {
-    tracer = trace_create(g_alloc_heap);
-    trace_add_sink(tracer, storeSink = trace_sink_store(g_alloc_heap));
+    tracer = trace_create(g_allocHeap);
+    trace_add_sink(tracer, storeSink = trace_sink_store(g_allocHeap));
 
-    jDoc   = json_create(g_alloc_heap, 64);
-    buffer = dynstring_create(g_alloc_heap, 1024);
+    jDoc   = json_create(g_allocHeap, 64);
+    buffer = dynstring_create(g_allocHeap, 1024);
   }
 
   it("can dump events") {

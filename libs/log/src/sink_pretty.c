@@ -65,7 +65,7 @@ static void log_sink_pretty_write(
     return;
   }
 
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, log_sink_buffer_size, 1));
+  DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, log_sink_buffer_size, 1));
 
   fmt_write(
       &str,
@@ -113,21 +113,21 @@ LogSink*
 log_sink_pretty(Allocator* alloc, File* file, const LogMask mask, const LogSinkPrettyFlags flags) {
   LogSinkPretty* sink = alloc_alloc_t(alloc, LogSinkPretty);
   *sink               = (LogSinkPretty){
-      .api =
+                    .api =
           {
-              .write   = log_sink_pretty_write,
-              .destroy = log_sink_pretty_destroy,
+                            .write   = log_sink_pretty_write,
+                            .destroy = log_sink_pretty_destroy,
           },
-      .alloc    = alloc,
-      .file     = file,
-      .mask     = mask,
-      .style    = tty_isatty(file),
-      .flags    = flags,
-      .timezone = time_zone_current(),
+                    .alloc    = alloc,
+                    .file     = file,
+                    .mask     = mask,
+                    .style    = tty_isatty(file),
+                    .flags    = flags,
+                    .timezone = time_zone_current(),
   };
   return (LogSink*)sink;
 }
 
 LogSink* log_sink_pretty_default(Allocator* alloc, const LogMask mask) {
-  return log_sink_pretty(alloc, g_file_stdout, mask, LogSinkPrettyFlags_None);
+  return log_sink_pretty(alloc, g_fileStdOut, mask, LogSinkPrettyFlags_None);
 }

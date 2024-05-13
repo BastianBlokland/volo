@@ -59,7 +59,7 @@ static void attack_trace_start(EcsWorld* world, const EcsEntityId entity) {
       world,
       entity,
       SceneAttackTraceComp,
-      .events = dynarray_create_t(g_alloc_heap, SceneAttackEvent, 4));
+      .events = dynarray_create_t(g_allocHeap, SceneAttackEvent, 4));
 }
 
 static void attack_trace_stop(EcsWorld* world, const EcsEntityId entity) {

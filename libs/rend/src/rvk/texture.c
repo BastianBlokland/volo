@@ -230,7 +230,7 @@ static void rvk_texture_encode_gen_mips(
   const u32   layerCount      = math_max(asset->layers, 1);
   const u32   layerBlockCount = (asset->width / 4) * (asset->height / 4);
   const usize blockBufferSize = layerCount * layerBlockCount * sizeof(Bc0Block);
-  const Mem   blockBuffer     = alloc_alloc(g_alloc_heap, blockBufferSize, alignof(Bc0Block));
+  const Mem   blockBuffer     = alloc_alloc(g_allocHeap, blockBufferSize, alignof(Bc0Block));
 
   Bc0Block* blockPtr = blockBuffer.ptr;
   const u8* inPtr    = asset_texture_data(asset).ptr;
@@ -286,17 +286,17 @@ static void rvk_texture_encode_gen_mips(
     }
   }
 
-  alloc_free(g_alloc_heap, blockBuffer);
+  alloc_free(g_allocHeap, blockBuffer);
   diag_assert(mem_from_to(out.ptr, outPtr).size == out.size);
 }
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
   diag_assert_msg(asset->layers < u8_max, "Only {} texture layers are supported", fmt_int(u8_max));
 
-  RvkTexture* tex = alloc_alloc_t(g_alloc_heap, RvkTexture);
+  RvkTexture* tex = alloc_alloc_t(g_allocHeap, RvkTexture);
   *tex            = (RvkTexture){
                  .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .dbgName = string_dup(g_allocHeap, dbgName),
   };
   const RvkSize            size     = rvk_size(asset->width, asset->height);
   const RvkTextureCompress compress = rvk_texture_compression(dev, asset);
@@ -338,7 +338,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const usize encodedAlign     = rvk_format_info(vkFormat).size;
   const bool  encodeNeeded     = compress != RvkTextureCompress_None;
   const bool  encodeUseScratch = encodedSize < rvk_texture_max_scratch_size;
-  Allocator*  encodeAlloc      = encodeUseScratch ? g_alloc_scratch : g_alloc_heap;
+  Allocator*  encodeAlloc      = encodeUseScratch ? g_allocScratch : g_allocHeap;
 
   Mem data;
   if (encodeNeeded) {
@@ -383,8 +383,8 @@ void rvk_texture_destroy(RvkTexture* texture) {
   log_d("Vulkan texture destroyed", log_param("name", fmt_text(texture->dbgName)));
 #endif
 
-  string_free(g_alloc_heap, texture->dbgName);
-  alloc_free_t(g_alloc_heap, texture);
+  string_free(g_allocHeap, texture->dbgName);
+  alloc_free_t(g_allocHeap, texture);
 }
 
 RvkDescKind rvk_texture_sampler_kind(RvkTexture* texture) {

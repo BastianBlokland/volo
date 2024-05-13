@@ -16,10 +16,10 @@ spec(file_monitor) {
   FileMonitor* monitor = null;
 
   setup() {
-    monitor = file_monitor_create(g_alloc_heap, g_path_tempdir, FileMonitorFlags_None);
+    monitor = file_monitor_create(g_allocHeap, g_pathTempDir, FileMonitorFlags_None);
 
     // Create an empty test file.
-    file_write_to_path_sync(path_build_scratch(g_path_tempdir, string_lit("test")), string_empty);
+    file_write_to_path_sync(path_build_scratch(g_pathTempDir, string_lit("test")), string_empty);
   }
 
   it("can watch a file") {
@@ -47,7 +47,7 @@ spec(file_monitor) {
 
   it("returns false when polling when no modifications have happened") {
     const String pathRel = test_random_name();
-    const String pathAbs = path_build_scratch(g_path_tempdir, pathRel);
+    const String pathAbs = path_build_scratch(g_pathTempDir, pathRel);
     file_write_to_path_sync(pathAbs, string_lit("Hello world"));
 
     thread_sleep(time_milliseconds(1));
@@ -67,7 +67,7 @@ spec(file_monitor) {
    */
   skip_it("returns a single event when a file is modified") {
     const String pathRel = test_random_name();
-    const String pathAbs = path_build_scratch(g_path_tempdir, pathRel);
+    const String pathAbs = path_build_scratch(g_pathTempDir, pathRel);
     file_write_to_path_sync(pathAbs, string_lit(""));
 
     check_eq_int(file_monitor_watch(monitor, pathRel, 42), FileMonitorResult_Success);
@@ -94,11 +94,11 @@ spec(file_monitor) {
    */
   skip_it("can watch multiple files") {
     const String pathRelA = test_random_name();
-    const String pathAbsA = path_build_scratch(g_path_tempdir, pathRelA);
+    const String pathAbsA = path_build_scratch(g_pathTempDir, pathRelA);
     file_write_to_path_sync(pathAbsA, string_lit("A"));
 
     const String pathRelB = test_random_name();
-    const String pathAbsB = path_build_scratch(g_path_tempdir, pathRelB);
+    const String pathAbsB = path_build_scratch(g_pathTempDir, pathRelB);
     file_write_to_path_sync(pathAbsB, string_lit("B"));
 
     check_eq_int(file_monitor_watch(monitor, pathRelA, 1), FileMonitorResult_Success);
@@ -127,8 +127,8 @@ spec(file_monitor) {
   }
 
   it("watching fails when the root directory cannot be opened") {
-    const String nonExistentDir = path_build_scratch(g_path_tempdir, string_lit("does-not-exist"));
-    FileMonitor* mon = file_monitor_create(g_alloc_heap, nonExistentDir, FileMonitorFlags_None);
+    const String nonExistentDir = path_build_scratch(g_pathTempDir, string_lit("does-not-exist"));
+    FileMonitor* mon = file_monitor_create(g_allocHeap, nonExistentDir, FileMonitorFlags_None);
 
     const String filePath = string_lit("test.txt");
     check_eq_int(file_monitor_watch(mon, filePath, 1), FileMonitorResult_UnableToOpenRoot);

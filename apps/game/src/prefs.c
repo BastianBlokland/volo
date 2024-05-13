@@ -29,7 +29,7 @@ static void prefs_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     data_reg_enum_t(reg, GameQuality);
     data_reg_const_t(reg, GameQuality, VeryLow);
@@ -55,12 +55,12 @@ ecs_comp_define_public(GamePrefsComp);
 
 static void ecs_destruct_prefs_comp(void* data) {
   GamePrefsComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataMeta, mem_create(comp, sizeof(GamePrefsComp)));
+  data_destroy(g_dataReg, g_allocHeap, g_dataMeta, mem_create(comp, sizeof(GamePrefsComp)));
 }
 
 static String prefs_path_scratch(void) {
-  const String fileName = fmt_write_scratch("{}.prefs", fmt_text(path_stem(g_path_executable)));
-  return path_build_scratch(path_parent(g_path_executable), fileName);
+  const String fileName = fmt_write_scratch("{}.prefs", fmt_text(path_stem(g_pathExecutable)));
+  return path_build_scratch(path_parent(g_pathExecutable), fileName);
 }
 
 static void prefs_to_default(GamePrefsComp* prefs) {
@@ -73,7 +73,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
 }
 
 static void prefs_save(const GamePrefsComp* prefs) {
-  DynString dataBuffer = dynstring_create(g_alloc_scratch, prefs_file_size_max);
+  DynString dataBuffer = dynstring_create(g_allocScratch, prefs_file_size_max);
 
   // Serialize the preferences to json.
   const DataWriteJsonOpts writeOpts = data_write_json_opts();
@@ -117,7 +117,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
   const String filePath = prefs_path_scratch();
   File*        file     = null;
   FileResult   fileRes;
-  if ((fileRes = file_create(g_alloc_scratch, filePath, FileMode_Open, FileAccess_Read, &file))) {
+  if ((fileRes = file_create(g_allocScratch, filePath, FileMode_Open, FileAccess_Read, &file))) {
     if (fileRes != FileResult_NotFound) {
       log_e("Failed to read preference file", log_param("err", fmt_text(file_result_str(fileRes))));
     }
@@ -134,7 +134,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
   // Parse the json.
   DataReadResult result;
   const Mem      outMem = mem_create(prefs, sizeof(GamePrefsComp));
-  data_read_json(g_dataReg, fileData, g_alloc_heap, g_dataMeta, outMem, &result);
+  data_read_json(g_dataReg, fileData, g_allocHeap, g_dataMeta, outMem, &result);
   if (UNLIKELY(result.error)) {
     log_e("Failed to parse preference file", log_param("err", fmt_text(result.errorMsg)));
     goto RetDefault;

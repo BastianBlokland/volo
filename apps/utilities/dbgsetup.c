@@ -60,7 +60,7 @@ typedef struct {
 } DbgSetupCtx;
 
 static bool dbgsetup_write_json(String path, const JsonDoc* jsonDoc, const JsonVal jsonVal) {
-  DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
+  DynString dynString = dynstring_create(g_allocHeap, 64 * usize_kibibyte);
   json_write(&dynString, jsonDoc, jsonVal, &json_write_opts(.mode = JsonWriteMode_Compact));
 
   FileResult res;
@@ -120,7 +120,7 @@ static JsonVal dbgsetup_vscode_generate_json(DbgSetupCtx* ctx, JsonDoc* doc) {
 }
 
 static bool dbgsetup_vscode_generate_launch_file(DbgSetupCtx* ctx) {
-  JsonDoc* jsonDoc = json_create(g_alloc_heap, 1024);
+  JsonDoc* jsonDoc = json_create(g_allocHeap, 1024);
 
   const String path = path_build_scratch(ctx->workspace, string_lit(".vscode/launch.json"));
   const bool res = dbgsetup_write_json(path, jsonDoc, dbgsetup_vscode_generate_json(ctx, jsonDoc));
@@ -157,12 +157,12 @@ void app_cli_configure(CliApp* app) {
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_file_stdout);
+    cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
-  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
+  log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   DbgSetupCtx ctx = {
       .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, g_optDbg, g_dbgStrs, DbgSetupDbg_Default),

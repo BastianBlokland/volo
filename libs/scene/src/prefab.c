@@ -63,7 +63,7 @@ ecs_comp_define_public(ScenePrefabInstanceComp);
 
 static void ecs_destruct_prefab_env(void* data) {
   ScenePrefabEnvComp* comp = data;
-  string_free(g_alloc_heap, comp->mapId);
+  string_free(g_allocHeap, comp->mapId);
   dynarray_destroy(&comp->requests);
 }
 
@@ -643,8 +643,8 @@ void scene_prefab_init(EcsWorld* world, const String prefabMapId) {
       world,
       ecs_world_global(world),
       ScenePrefabEnvComp,
-      .mapId    = string_dup(g_alloc_heap, prefabMapId),
-      .requests = dynarray_create_t(g_alloc_heap, ScenePrefabRequest, 32));
+      .mapId    = string_dup(g_allocHeap, prefabMapId),
+      .requests = dynarray_create_t(g_allocHeap, ScenePrefabRequest, 32));
 }
 
 EcsEntityId scene_prefab_map(const ScenePrefabEnvComp* env) { return env->mapEntity; }

@@ -46,7 +46,7 @@ static void output_run_started(CheckOutput* out) {
       fmt_text(prettyOut->suiteName),
       arg_style_reset(prettyOut),
       arg_style_dim(prettyOut),
-      fmt_int(g_thread_pid),
+      fmt_int(g_threadPid),
       fmt_int(g_jobsWorkerCount),
       arg_style_reset(prettyOut));
 
@@ -88,7 +88,7 @@ static void output_test_finished(
     return;
   }
 
-  DynString str = dynstring_create(g_alloc_heap, 1024);
+  DynString str = dynstring_create(g_allocHeap, 1024);
   fmt_write(
       &str,
       "* {}{}{}: ",
@@ -172,7 +172,7 @@ CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFla
           },
                         .alloc     = alloc,
                         .file      = file,
-                        .suiteName = path_stem(g_path_executable),
+                        .suiteName = path_stem(g_pathExecutable),
                         .runFlags  = runFlags,
                         .style     = tty_isatty(file),
   };

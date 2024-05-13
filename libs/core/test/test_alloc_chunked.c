@@ -5,7 +5,7 @@
 spec(alloc_chunked) {
 
   it("allocates sequential allocations from the same chunk") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
+    Allocator* alloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, 512);
 
     Mem lastMem;
     for (usize i = 0; i != 10; ++i) {
@@ -21,7 +21,7 @@ spec(alloc_chunked) {
   }
 
   it("can free allocated memory") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
+    Allocator* alloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, 512);
 
     // Small allocation to create the first chunk.
     alloc_alloc(alloc, 10, 1);
@@ -45,7 +45,7 @@ spec(alloc_chunked) {
   }
 
   it("can create up to 64 chunks") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
+    Allocator* alloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, 512);
 
     static const usize g_allocSize = 300;
     Mem                data[64];
@@ -70,7 +70,7 @@ spec(alloc_chunked) {
   }
 
   it("fails allocations bigger then the chunk-size") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
+    Allocator* alloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, 512);
 
     Mem mem = alloc_alloc(alloc, 1024, 1);
     check(!mem_valid(mem));
@@ -79,7 +79,7 @@ spec(alloc_chunked) {
   }
 
   it("can be reset") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
+    Allocator* alloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, 512);
 
     // Fill 64 chunks with data.
     for (usize i = 0; i != 64; ++i) {
@@ -103,7 +103,7 @@ spec(alloc_chunked) {
   }
 
   it("can return the maximum allocatable size in any chunk") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
+    Allocator* alloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, 512);
 
     // Zero because no chunk has been created yet.
     // NOTE: Does this semantic actually make sense?
@@ -118,7 +118,7 @@ spec(alloc_chunked) {
   }
 
   it("can use os memory pages as chunks") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_page, alloc_bump_create, 4096);
+    Allocator* alloc = alloc_chunked_create(g_allocPage, alloc_bump_create, 4096);
 
     // NOTE: '- 64' as the bump-allocator needs space for its internal book-keeping.
     Mem page = alloc_alloc(alloc, 4096 - 64, 64);

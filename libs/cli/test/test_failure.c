@@ -7,7 +7,7 @@
 spec(failure) {
 
   it("can write a failure page") {
-    CliApp*        app   = cli_app_create(g_alloc_heap);
+    CliApp*        app   = cli_app_create(g_allocHeap);
     CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"Hello", "World"});
 
     DynString string = dynstring_create_over(mem_stack(1024));

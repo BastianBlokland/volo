@@ -34,7 +34,7 @@ static Allocator* alloc_heap_sub_allocator(AllocatorHeap* allocHeap, const usize
     return allocHeap->blockBuckets[0];
   }
   if (UNLIKELY(powIdx > block_bucket_pow_max)) {
-    return g_alloc_page;
+    return g_allocPage;
   }
   return allocHeap->blockBuckets[powIdx - block_bucket_pow_min];
 }
@@ -71,7 +71,7 @@ Allocator* alloc_heap_init(void) {
   };
   for (usize i = 0; i != block_bucket_count; ++i) {
     const usize blockSize             = usize_lit(1) << (i + block_bucket_pow_min);
-    g_allocatorIntern.blockBuckets[i] = alloc_block_create(g_alloc_page, blockSize);
+    g_allocatorIntern.blockBuckets[i] = alloc_block_create(g_allocPage, blockSize);
   }
   return (Allocator*)&g_allocatorIntern;
 }

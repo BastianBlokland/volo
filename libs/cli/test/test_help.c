@@ -6,7 +6,7 @@
 spec(help) {
 
   it("can write a help page for an empty app") {
-    CliApp* app = cli_app_create(g_alloc_heap);
+    CliApp* app = cli_app_create(g_allocHeap);
 
     DynString string = dynstring_create_over(mem_stack(1024));
     cli_help_write(&string, app, CliHelpFlags_None);
@@ -18,7 +18,7 @@ spec(help) {
   }
 
   it("can write a help page for an app with a description") {
-    CliApp* app = cli_app_create(g_alloc_heap);
+    CliApp* app = cli_app_create(g_allocHeap);
     cli_app_register_desc(app, string_lit("Hello world\nMy test app"));
 
     DynString string = dynstring_create_over(mem_stack(1024));
@@ -36,7 +36,7 @@ spec(help) {
   }
 
   it("can write a help page for an app with arguments") {
-    CliApp*     app = cli_app_create(g_alloc_heap);
+    CliApp*     app = cli_app_create(g_allocHeap);
     const CliId src = cli_register_arg(app, string_lit("src-path"), CliOptionFlags_Required);
     const CliId dst = cli_register_arg(app, string_lit("dst-path"), CliOptionFlags_None);
 
@@ -59,7 +59,7 @@ spec(help) {
   }
 
   it("can write a help page for an app with flags") {
-    CliApp*     app     = cli_app_create(g_alloc_heap);
+    CliApp*     app     = cli_app_create(g_allocHeap);
     const CliId verbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
     const CliId count   = cli_register_flag(app, 'c', string_lit("count"), CliOptionFlags_Value);
 
@@ -82,7 +82,7 @@ spec(help) {
   }
 
   it("can write a help page for an app with an descriptions, arguments and flags") {
-    CliApp* app = cli_app_create(g_alloc_heap);
+    CliApp* app = cli_app_create(g_allocHeap);
     cli_app_register_desc(app, string_lit("My app"));
     const CliId verbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
     const CliId count   = cli_register_flag(app, 'c', string_lit("count"), CliOptionFlags_Value);

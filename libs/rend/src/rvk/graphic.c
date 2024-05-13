@@ -66,7 +66,7 @@ static bool rvk_desc_is_sampler(const RvkDescKind kind) {
 }
 
 static const char* rvk_to_null_term_scratch(String str) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
@@ -226,7 +226,7 @@ static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, co
 
 static VkPipelineShaderStageCreateInfo rvk_pipeline_shader(const RvkGraphicShader* graphicShader) {
 
-  VkSpecializationInfo* specialization = alloc_alloc_t(g_alloc_scratch, VkSpecializationInfo);
+  VkSpecializationInfo* specialization = alloc_alloc_t(g_allocScratch, VkSpecializationInfo);
   *specialization                      = rvk_shader_specialize_scratch(
       graphicShader->shader, graphicShader->overrides.values, graphicShader->overrides.count);
 
@@ -640,7 +640,7 @@ static bool rend_graphic_validate_set(
 
 RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
-  RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
+  RvkGraphic* graphic = alloc_alloc_t(g_allocHeap, RvkGraphic);
 
   RvkGraphicFlags flags = 0;
   if (asset->depthClamp) {
@@ -649,7 +649,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
   *graphic = (RvkGraphic){
       .device            = dev,
-      .dbgName           = string_dup(g_alloc_heap, dbgName),
+      .dbgName           = string_dup(g_allocHeap, dbgName),
       .flags             = flags,
       .topology          = asset->topology,
       .rasterizer        = asset->rasterizer,
@@ -684,16 +684,16 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->overrides.count) {
       array_ptr_for_t(itr->overrides, RvkShaderOverride, override) {
-        string_free(g_alloc_heap, override->name);
+        string_free(g_allocHeap, override->name);
       }
-      alloc_free_array_t(g_alloc_heap, itr->overrides.values, itr->overrides.count);
+      alloc_free_array_t(g_allocHeap, itr->overrides.values, itr->overrides.count);
     }
   }
 
   log_d("Vulkan graphic destroyed", log_param("name", fmt_text(graphic->dbgName)));
 
-  string_free(g_alloc_heap, graphic->dbgName);
-  alloc_free_t(g_alloc_heap, graphic);
+  string_free(g_allocHeap, graphic->dbgName);
+  alloc_free_t(g_allocHeap, graphic);
 }
 
 void rvk_graphic_shader_add(
@@ -706,12 +706,12 @@ void rvk_graphic_shader_add(
 
       // Store shader overrides.
       if (overrideCount) {
-        itr->overrides.values = alloc_array_t(g_alloc_heap, RvkShaderOverride, overrideCount);
+        itr->overrides.values = alloc_array_t(g_allocHeap, RvkShaderOverride, overrideCount);
         itr->overrides.count  = overrideCount;
         for (usize i = 0; i != overrideCount; ++i) {
           itr->overrides.values[i] = (RvkShaderOverride){
               .binding = overrides[i].binding,
-              .name    = string_dup(g_alloc_heap, overrides[i].name),
+              .name    = string_dup(g_allocHeap, overrides[i].name),
               .value   = overrides[i].value,
           };
         }

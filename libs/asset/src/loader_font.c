@@ -24,10 +24,10 @@ ecs_comp_define_public(AssetFontComp);
 
 static void ecs_destruct_font_comp(void* data) {
   AssetFontComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->characters, comp->characterCount);
-  alloc_free_array_t(g_alloc_heap, comp->points, comp->pointCount);
-  alloc_free_array_t(g_alloc_heap, comp->segments, comp->segmentCount);
-  alloc_free_array_t(g_alloc_heap, comp->glyphs, comp->glyphCount);
+  alloc_free_array_t(g_allocHeap, comp->characters, comp->characterCount);
+  alloc_free_array_t(g_allocHeap, comp->points, comp->pointCount);
+  alloc_free_array_t(g_allocHeap, comp->segments, comp->segmentCount);
+  alloc_free_array_t(g_allocHeap, comp->glyphs, comp->glyphCount);
 }
 
 ecs_view_define(UnloadView) {

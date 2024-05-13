@@ -27,7 +27,7 @@ bool env_var(String name, DynString* output) {
   Mem nameBufferMem = mem_stack(nameBufferSize);
   winutils_to_widestr(nameBufferMem, name);
 
-  Mem         buffer         = alloc_alloc(g_alloc_scratch, env_var_max_value_size, 1);
+  Mem         buffer         = alloc_alloc(g_allocScratch, env_var_max_value_size, 1);
   const DWORD bufferMaxChars = (DWORD)(buffer.size / sizeof(wchar_t));
 
   const DWORD wcharCount = GetEnvironmentVariable(
@@ -35,14 +35,14 @@ bool env_var(String name, DynString* output) {
 
   if (wcharCount == 0) {
     // Environment variable does not exist.
-    alloc_free(g_alloc_scratch, buffer);
+    alloc_free(g_allocScratch, buffer);
     return false;
   }
 
   if (UNLIKELY(wcharCount >= bufferMaxChars)) {
     // Environment variable did not fit in our scratch buffer.
     // TODO: Decide if its worth crashing the program here or just returning false.
-    alloc_free(g_alloc_scratch, buffer);
+    alloc_free(g_allocScratch, buffer);
     return false;
   }
 
@@ -54,6 +54,6 @@ bool env_var(String name, DynString* output) {
     winutils_from_widestr(dynstring_push(output, outputSize), buffer.ptr, (usize)wcharCount);
   }
 
-  alloc_free(g_alloc_scratch, buffer);
+  alloc_free(g_allocScratch, buffer);
   return true;
 }

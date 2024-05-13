@@ -212,11 +212,11 @@ void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, 
 
   const u32            width  = (u32)header.width;
   const u32            height = (u32)header.height;
-  AssetTexturePixelB4* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixelB4, width * height);
+  AssetTexturePixelB4* pixels = alloc_array_t(g_allocHeap, AssetTexturePixelB4, width * height);
   input                       = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
     ppm_load_fail(world, entity, res);
-    alloc_free_array_t(g_alloc_heap, pixels, width * height);
+    alloc_free_array_t(g_allocHeap, pixels, width * height);
     goto Error;
   }
 

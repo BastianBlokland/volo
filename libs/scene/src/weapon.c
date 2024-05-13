@@ -19,7 +19,7 @@ ecs_comp_define(SceneWeaponResourceComp) {
 
 static void ecs_destruct_weapon_resource(void* data) {
   SceneWeaponResourceComp* comp = data;
-  string_free(g_alloc_heap, comp->mapId);
+  string_free(g_allocHeap, comp->mapId);
 }
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -97,7 +97,7 @@ void scene_weapon_init(EcsWorld* world, const String weaponMapId) {
       world,
       ecs_world_global(world),
       SceneWeaponResourceComp,
-      .mapId = string_dup(g_alloc_heap, weaponMapId));
+      .mapId = string_dup(g_allocHeap, weaponMapId));
 }
 
 EcsEntityId scene_weapon_map(const SceneWeaponResourceComp* comp) { return comp->mapEntity; }

@@ -436,7 +436,7 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
       GeoMatrix fogViewProj;
     } FogData;
 
-    FogData* data = alloc_alloc_t(g_alloc_scratch, FogData);
+    FogData* data = alloc_alloc_t(g_allocScratch, FogData);
 
     const GeoMatrix fogViewMat = geo_matrix_inverse(rend_fog_trans(fog));
     data->fogViewProj          = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
@@ -472,7 +472,7 @@ static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
     flags |= AmbientFlags_AmbientOcclusionBlur;
   }
 
-  AmbientData* data = alloc_alloc_t(g_alloc_scratch, AmbientData);
+  AmbientData* data = alloc_alloc_t(g_allocScratch, AmbientData);
   data->packed.x    = intensity;
   data->packed.y    = bits_u32_as_f32(mode);
   data->packed.z    = bits_u32_as_f32(flags);
@@ -492,7 +492,7 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     GeoVector kernel[rend_ao_kernel_size];
   } AoData;
 
-  AoData* data     = alloc_alloc_t(g_alloc_scratch, AoData);
+  AoData* data     = alloc_alloc_t(g_allocScratch, AoData);
   data->radius     = ctx->settings->aoRadius;
   data->power      = ctx->settings->aoPower;
   const Mem kernel = mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size);
@@ -526,7 +526,7 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
     f32 bloomIntensity;
   } TonemapperData;
 
-  TonemapperData* data = alloc_alloc_t(g_alloc_scratch, TonemapperData);
+  TonemapperData* data = alloc_alloc_t(g_allocScratch, TonemapperData);
   data->exposure       = ctx->settings->exposure;
   data->mode           = ctx->settings->tonemapper;
   data->bloomIntensity = ctx->settings->flags & RendFlags_Bloom ? ctx->settings->bloomIntensity : 0;
@@ -576,7 +576,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
       flags |= ImageViewerFlags_AlphaOnly;
     }
 
-    ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
+    ImageViewerData* data = alloc_alloc_t(g_allocScratch, ImageViewerData);
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
     data->lod             = float_f32_to_f16(ctx->settings->debugViewerLod);
     data->flags           = flags;
@@ -625,7 +625,7 @@ static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspe
     const GeoMatrix posMat    = geo_matrix_translate(pos);
     const GeoMatrix viewMat   = geo_matrix_mul(&posMat, &rotMat);
 
-    MeshViewerData* data = alloc_alloc_t(g_alloc_scratch, MeshViewerData);
+    MeshViewerData* data = alloc_alloc_t(g_allocScratch, MeshViewerData);
     data->viewProj       = geo_matrix_mul(&projMat, &viewMat);
 
     const RvkPassDraw draw = {
@@ -1166,7 +1166,7 @@ ecs_system_define(RendPainterCreateSys) {
         world,
         entity,
         RendPainterComp,
-        .drawBuffer = dynarray_create_t(g_alloc_heap, RvkPassDraw, 1024),
+        .drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 1024),
         .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig));
 
     if (!ecs_world_has_t(world, entity, RendSettingsComp)) {

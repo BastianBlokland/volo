@@ -92,7 +92,7 @@ monitor_query_file(FileMonitor* monitor, const String path, u64* outId, usize* o
   const FileAccessFlags access  = FileAccess_None;
   File*                 file;
   FileResult            res;
-  if ((res = file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file))) {
+  if ((res = file_create(g_allocScratch, pathAbs, FileMode_Open, access, &file))) {
     return monitor_result_from_file_result(res);
   }
   *outId   = monitor_file_id_from_handle(file->handle);
@@ -272,7 +272,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
 
   *monitor = (FileMonitor){
       .alloc      = alloc,
-      .allocPath  = alloc_chunked_create(g_alloc_page, alloc_bump_create, monitor_path_chunk_size),
+      .allocPath  = alloc_chunked_create(g_allocPage, alloc_bump_create, monitor_path_chunk_size),
       .mutex      = thread_mutex_create(alloc),
       .flags      = flags,
       .watches    = dynarray_create_t(alloc, FileWatch, 64),

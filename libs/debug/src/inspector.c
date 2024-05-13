@@ -1077,7 +1077,7 @@ static void debug_inspector_tool_drop(
 static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSetEnvComp* setEnv) {
   const StringHash s = g_sceneSetSelected;
 
-  DynArray     newEntities = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+  DynArray     newEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 64);
   EcsIterator* itr         = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (!ecs_view_maybe_jump(itr, *e)) {
@@ -1972,7 +1972,7 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       panelEntity,
       DebugInspectorPanelComp,
       .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
-      .setNameBuffer = dynstring_create(g_alloc_heap, 0));
+      .setNameBuffer = dynstring_create(g_allocHeap, 0));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);

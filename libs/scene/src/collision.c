@@ -39,7 +39,7 @@ ecs_view_define(CollisionView) {
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
 
 static void collision_env_create(EcsWorld* world) {
-  GeoQueryEnv* queryEnv = geo_query_env_create(g_alloc_heap);
+  GeoQueryEnv* queryEnv = geo_query_env_create(g_allocHeap);
 
   ecs_world_add_t(world, ecs_world_global(world), SceneCollisionEnvComp, .queryEnv = queryEnv);
   ecs_world_add_t(world, ecs_world_global(world), SceneCollisionStatsComp);

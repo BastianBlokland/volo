@@ -11,6 +11,8 @@
 ASSERT(sizeof(LONG) == sizeof(i32), "Expected LONG to be 32 bit");
 ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
 
+#define thread_early_crash_exit_code 2
+
 /**
  * Requested minimum OS scheduling interval in milliseconds.
  * This is a tradeoff between overhead due to many context switches if set too low and taking a long
@@ -24,6 +26,21 @@ static UINT(SYS_DECL* g_mmTimeEndPeriod)(UINT period);
 
 static DynLib* g_libKernel32;
 static HRESULT(SYS_DECL* g_setThreadDescription)(HANDLE thread, const wchar_t* description);
+
+/**
+ * Crash utility that can be used during early initialization before the allocators and the normal
+ * crash infrastructure has been initialized.
+ */
+static NORETURN void thread_crash_early_init(const String msg) {
+  HANDLE stdErr = GetStdHandle(STD_ERROR_HANDLE);
+  if (stdErr != INVALID_HANDLE_VALUE) {
+    WriteFile(stdErr, msg.ptr, (DWORD)msg.size, null, null);
+  }
+
+  HANDLE curProcess = GetCurrentProcess();
+  TerminateProcess(curProcess, thread_early_crash_exit_code);
+  UNREACHABLE
+}
 
 static int thread_desired_prio_value(const ThreadPriority prio) {
   switch (prio) {
@@ -44,11 +61,14 @@ static int thread_desired_prio_value(const ThreadPriority prio) {
 MAYBE_UNUSED static void thread_set_process_priority(void) {
   const HANDLE curProcess = GetCurrentProcess();
   if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
-    diag_crash_msg("SetPriorityClass() failed");
+    thread_crash_early_init(string_lit("SetPriorityClass() failed\n"));
   }
 }
 
 void thread_pal_init(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
 #ifdef VOLO_FAST
   /**
    * When running an optimized build we assume the user wants to give additional priority to the
@@ -63,7 +83,7 @@ void thread_pal_init_late(void) {
   /**
    * If 'Winmm.dll' (Windows Multimedia API) is available then configure the scheduling interval.
    */
-  if (dynlib_load(g_alloc_persist, string_lit("Winmm.dll"), &g_libMM) == 0) {
+  if (dynlib_load(g_allocPersist, string_lit("Winmm.dll"), &g_libMM) == 0) {
     g_mmTimeBeginPeriod = dynlib_symbol(g_libMM, string_lit("timeBeginPeriod"));
     g_mmTimeEndPeriod   = dynlib_symbol(g_libMM, string_lit("timeEndPeriod"));
   }
@@ -73,7 +93,7 @@ void thread_pal_init_late(void) {
   /**
    * 'SetThreadDescription' was introduced in 'Windows 10, version 1607'; optionally load it.
    */
-  if (dynlib_load(g_alloc_persist, string_lit("kernel32.dll"), &g_libKernel32) == 0) {
+  if (dynlib_load(g_allocPersist, string_lit("kernel32.dll"), &g_libKernel32) == 0) {
     g_setThreadDescription = dynlib_symbol(g_libKernel32, string_lit("SetThreadDescription"));
   }
 }
@@ -99,6 +119,15 @@ u16 thread_pal_core_count(void) {
   SYSTEM_INFO sysInfo;
   GetSystemInfo(&sysInfo);
   return sysInfo.dwNumberOfProcessors;
+}
+
+uptr thread_pal_stack_top(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
+  ULONG_PTR low, high;
+  GetCurrentThreadStackLimits(&low, &high);
+  return (uptr)high;
 }
 
 void thread_pal_set_name(const String str) {

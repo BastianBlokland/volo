@@ -12,7 +12,7 @@ ecs_comp_define_public(RendSettingsGlobalComp);
 
 static void ecs_destruct_rend_settings_comp(void* data) {
   RendSettingsComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->aoKernel, rend_ao_kernel_size);
+  alloc_free_array_t(g_allocHeap, comp->aoKernel, rend_ao_kernel_size);
 }
 
 ecs_module_init(rend_settings_module) {
@@ -85,9 +85,9 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
 
 void rend_settings_generate_ao_kernel(RendSettingsComp* s) {
   if (!s->aoKernel) {
-    s->aoKernel = alloc_array_t(g_alloc_heap, GeoVector, rend_ao_kernel_size);
+    s->aoKernel = alloc_array_t(g_allocHeap, GeoVector, rend_ao_kernel_size);
   }
-  Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
+  Rng* rng = rng_create_xorwow(g_allocScratch, 42);
   for (u32 i = 0; i != rend_ao_kernel_size; ++i) {
     const GeoVector randInCone = geo_vector_rand_in_cone3(rng, s->aoAngle);
     const f32       rand       = rng_sample_f32(rng);

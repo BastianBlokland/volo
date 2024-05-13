@@ -118,22 +118,22 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
       bits_ispow2(chunkSize), "Chunk-size '{}' is not a power-of-two", fmt_int(chunkSize));
 
   /**
-   * The control-data is a separate allocation using the 'g_alloc_heap' allocator. Alternatively we
+   * The control-data is a separate allocation using the 'g_allocHeap' allocator. Alternatively we
    * could store the control-data in the first allocated chunk, but this would require additional
    * book-keeping.
    */
-  AllocatorChunked* alloc = alloc_alloc_t(g_alloc_heap, AllocatorChunked);
+  AllocatorChunked* alloc = alloc_alloc_t(g_allocHeap, AllocatorChunked);
   *alloc                  = (AllocatorChunked){
-      .api =
-          {
-              .alloc   = alloc_chunked_alloc,
-              .free    = alloc_chunked_free,
-              .maxSize = alloc_chunked_max_size,
-              .reset   = alloc_chunked_reset,
+                       .api =
+                           {
+                               .alloc   = alloc_chunked_alloc,
+                               .free    = alloc_chunked_free,
+                               .maxSize = alloc_chunked_max_size,
+                               .reset   = alloc_chunked_reset,
           },
-      .parent    = parent,
-      .builder   = builder,
-      .chunkSize = chunkSize,
+                       .parent    = parent,
+                       .builder   = builder,
+                       .chunkSize = chunkSize,
   };
   return (Allocator*)alloc;
 }
@@ -147,5 +147,5 @@ void alloc_chunked_destroy(Allocator* allocator) {
     alloc_chunk_destroy(allocatorChunked, allocatorChunked->chunks[i]);
   }
 
-  alloc_free_t(g_alloc_heap, allocatorChunked);
+  alloc_free_t(g_allocHeap, allocatorChunked);
 }

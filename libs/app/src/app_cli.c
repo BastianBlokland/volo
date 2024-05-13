@@ -14,12 +14,12 @@ int SYS_DECL main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp* app = cli_app_create(g_alloc_heap);
+  CliApp* app = cli_app_create(g_allocHeap);
   app_cli_configure(app);
 
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
-    cli_failure_write_file(invoc, g_file_stderr);
+    cli_failure_write_file(invoc, g_fileStdErr);
     exitCode = 2;
     goto exit;
   }

@@ -52,7 +52,7 @@ RvkCanvas* rvk_canvas_create(
   RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
   const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
   RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);
-  RvkCanvas*     canvas          = alloc_alloc_t(g_alloc_heap, RvkCanvas);
+  RvkCanvas*     canvas          = alloc_alloc_t(g_allocHeap, RvkCanvas);
 
   *canvas = (RvkCanvas){
       .dev        = dev,
@@ -89,7 +89,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   log_d("Vulkan canvas destroyed");
 
-  alloc_free_t(g_alloc_heap, canvas);
+  alloc_free_t(g_allocHeap, canvas);
 }
 
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }

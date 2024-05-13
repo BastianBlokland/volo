@@ -68,11 +68,11 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
 }
 
 RvkStatRecorder* rvk_statrecorder_create(RvkDevice* dev) {
-  RvkStatRecorder* sr = alloc_alloc_t(g_alloc_heap, RvkStatRecorder);
+  RvkStatRecorder* sr = alloc_alloc_t(g_allocHeap, RvkStatRecorder);
 
   *sr = (RvkStatRecorder){
       .dev                  = dev,
-      .retrieveResultsMutex = thread_mutex_create(g_alloc_heap),
+      .retrieveResultsMutex = thread_mutex_create(g_allocHeap),
   };
 
   if (dev->flags & RvkDeviceFlags_SupportPipelineStatQuery) {
@@ -89,7 +89,7 @@ void rvk_statrecorder_destroy(RvkStatRecorder* sr) {
     vkDestroyQueryPool(sr->dev->vkDev, sr->vkQueryPool, &sr->dev->vkAlloc);
   }
   thread_mutex_destroy(sr->retrieveResultsMutex);
-  alloc_free_t(g_alloc_heap, sr);
+  alloc_free_t(g_allocHeap, sr);
 }
 
 bool rvk_statrecorder_is_supported(const RvkStatRecorder* sr) {

@@ -148,7 +148,7 @@ static const struct {
 
 static String
 menu_child_tooltip_scratch(const u32 childIndex, const bool open, const bool allowDetach) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, 1024, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, 1024, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   format_write_formatted(

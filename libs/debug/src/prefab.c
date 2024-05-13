@@ -674,7 +674,7 @@ debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPa
       .createFlags   = PrefabCreateFlags_Default,
       .createFaction = SceneFaction_A,
       .createScale   = 1.0f,
-      .idFilter      = dynstring_create(g_alloc_heap, 32),
+      .idFilter      = dynstring_create(g_allocHeap, 32),
       .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
 

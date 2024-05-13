@@ -7,7 +7,7 @@
 spec(dot) {
   it("writes a Graph-Description-Language digraph based on a job-graph") {
 
-    JobGraph* graph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
+    JobGraph* graph = jobs_graph_create(g_allocHeap, string_lit("TestJob"), 2);
 
     const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, mem_empty, task_flags);
     const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, mem_empty, task_flags);
@@ -29,7 +29,7 @@ spec(dot) {
     check(jobs_graph_validate(graph));
     check(jobs_graph_task_span(graph) == 4);
 
-    DynString buffer = dynstring_create(g_alloc_heap, 1024);
+    DynString buffer = dynstring_create(g_allocHeap, 1024);
     jobs_dot_write_graph(&buffer, graph);
 
     check_eq_string(

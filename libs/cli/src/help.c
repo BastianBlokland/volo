@@ -27,7 +27,7 @@ static bool cli_help_has_options_of_type(const CliApp* app, const CliOptionType 
 }
 
 static String cli_help_option_usage(CliOption* opt) {
-  DynString dynStr = dynstring_create_over(alloc_alloc(g_alloc_scratch, 128, 1));
+  DynString dynStr = dynstring_create_over(alloc_alloc(g_allocScratch, 128, 1));
 
   const bool optional   = (opt->flags & CliOptionFlags_Required) != CliOptionFlags_Required;
   const bool value      = (opt->flags & CliOptionFlags_Value) == CliOptionFlags_Value;
@@ -161,7 +161,7 @@ void cli_help_write(DynString* dynStr, const CliApp* app, const CliHelpFlags fla
 }
 
 void cli_help_write_file(const CliApp* app, File* out) {
-  DynString str = dynstring_create(g_alloc_heap, 1024);
+  DynString str = dynstring_create(g_allocHeap, 1024);
 
   const CliHelpFlags flags = tty_isatty(out) ? CliHelpFlags_Style : CliHelpFlags_None;
   cli_help_write(&str, app, flags);

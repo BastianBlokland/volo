@@ -375,27 +375,27 @@ spec(format) {
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("nisl condimentum\n\n"
-                                   "id venenatis a condimentum \n"
-                                   "vitae"),
+                                     "id venenatis a condimentum \n"
+                                     "vitae"),
         },
         {
             .linePrefix = string_lit("> "),
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("> nisl condimentum\n"
-                                   "> \n"
-                                   "> id venenatis a condimentum \n"
-                                   "> vitae"),
+                                     "> \n"
+                                     "> id venenatis a condimentum \n"
+                                     "> vitae"),
         },
         {
             .linePrefix = string_lit("> "),
             .maxWidth   = 30,
             .val        = string_lit("cursuseuismodquisviverranibhcraspulvinar "
-                              "cursuseuismodquisviverranibhcraspulvinar"),
+                                     "cursuseuismodquisviverranibhcraspulvinar"),
             .expected   = string_lit("> cursuseuismodquisviverranibhcr\n"
-                                   "> aspulvinar \n"
-                                   "> cursuseuismodquisviverranibhcr\n"
-                                   "> aspulvinar"),
+                                     "> aspulvinar \n"
+                                     "> cursuseuismodquisviverranibhcr\n"
+                                     "> aspulvinar"),
         },
         {
             .linePrefix = string_lit("> "),
@@ -412,7 +412,7 @@ spec(format) {
 
     };
 
-    DynString string = dynstring_create(g_alloc_scratch, 1024);
+    DynString string = dynstring_create(g_allocScratch, 1024);
     for (usize i = 0; i != array_elems(data); ++i) {
       dynstring_clear(&string);
       dynstring_append(&string, data[i].linePrefix);

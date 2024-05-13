@@ -80,9 +80,9 @@ typedef struct {
   TimeReal accessTime, modTime;
 } FileInfo;
 
-extern File* g_file_stdin;
-extern File* g_file_stdout;
-extern File* g_file_stderr;
+extern File* g_fileStdIn;
+extern File* g_fileStdOut;
+extern File* g_fileStdErr;
 
 /**
  * Return a textual representation of the given FileResult.

@@ -19,7 +19,7 @@ static void level_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_struct_t(reg, GeoVector);
@@ -66,7 +66,7 @@ ecs_comp_define_public(AssetLevelComp);
 static void ecs_destruct_level_comp(void* data) {
   AssetLevelComp* comp  = data;
   AssetLevel*     level = &comp->level;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataLevelMeta, mem_create(level, sizeof(AssetLevel)));
+  data_destroy(g_dataReg, g_allocHeap, g_dataLevelMeta, mem_create(level, sizeof(AssetLevel)));
 }
 
 ecs_view_define(LevelUnloadView) {
@@ -102,7 +102,7 @@ void asset_load_level(
   AssetLevel     level;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataLevelMeta, mem_var(level), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataLevelMeta, mem_var(level), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -133,7 +133,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
     return false;
   }
 
-  DynString dataBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
+  DynString dataBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
 
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
   const Mem               levelData = mem_create(level, sizeof(AssetLevel));

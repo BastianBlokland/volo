@@ -30,7 +30,7 @@ static String json_lex_string(String str, JsonToken* out) {
   diag_assert(*string_begin(str) == '"');
   str = json_consume_chars(str, 1);
 
-  DynString result = dynstring_create_over(alloc_alloc(g_alloc_scratch, json_string_max_size, 1));
+  DynString result = dynstring_create_over(alloc_alloc(g_allocScratch, json_string_max_size, 1));
 
   bool escaped = false;
   while (true) {

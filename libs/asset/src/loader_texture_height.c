@@ -88,7 +88,7 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
     return;
   }
 
-  Mem outputMem = alloc_alloc(g_alloc_heap, pixelSize * pixelCount, htex_pixel_align(type));
+  Mem outputMem = alloc_alloc(g_allocHeap, pixelSize * pixelCount, htex_pixel_align(type));
 
   /**
    * Read the pixels into the output memory.

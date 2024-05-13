@@ -21,7 +21,7 @@ typedef struct {
 static void asset_source_fs_close(AssetSource* src) {
   AssetSourceFs* srcFs = (AssetSourceFs*)src;
   file_destroy(srcFs->file);
-  alloc_free_t(g_alloc_heap, srcFs);
+  alloc_free_t(g_allocHeap, srcFs);
 }
 
 static bool asset_source_path(AssetRepo* repo, const String id, DynString* out) {
@@ -39,7 +39,7 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   String            data;
   File*             file;
   FileResult        result;
-  if ((result = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
+  if ((result = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     log_w(
         "AssetRepository: Failed to open file",
         log_param("path", fmt_path(path)),
@@ -55,7 +55,7 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
     return null;
   }
 
-  AssetSourceFs* src = alloc_alloc_t(g_alloc_heap, AssetSourceFs);
+  AssetSourceFs* src = alloc_alloc_t(g_allocHeap, AssetSourceFs);
 
   *src = (AssetSourceFs){
       .api  = {.data = data, .format = fmt, .close = asset_source_fs_close},
@@ -203,13 +203,13 @@ static AssetRepoQueryResult asset_repo_fs_query(
 static void asset_repo_fs_destroy(AssetRepo* repo) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  string_free(g_alloc_heap, repoFs->rootPath);
+  string_free(g_allocHeap, repoFs->rootPath);
   file_monitor_destroy(repoFs->monitor);
-  alloc_free_t(g_alloc_heap, repoFs);
+  alloc_free_t(g_allocHeap, repoFs);
 }
 
 AssetRepo* asset_repo_create_fs(String rootPath) {
-  AssetRepoFs* repo = alloc_alloc_t(g_alloc_heap, AssetRepoFs);
+  AssetRepoFs* repo = alloc_alloc_t(g_allocHeap, AssetRepoFs);
 
   *repo = (AssetRepoFs){
       .api =
@@ -222,8 +222,8 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
               .changesPoll  = asset_repo_fs_changes_poll,
               .query        = asset_repo_fs_query,
           },
-      .rootPath = string_dup(g_alloc_heap, rootPath),
-      .monitor  = file_monitor_create(g_alloc_heap, rootPath, FileMonitorFlags_None),
+      .rootPath = string_dup(g_allocHeap, rootPath),
+      .monitor  = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
   };
 
   return (AssetRepo*)repo;

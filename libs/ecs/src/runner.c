@@ -80,8 +80,8 @@ struct sEcsRunner {
   Mem                jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static void runner_plan_pick(EcsRunner*);
@@ -450,7 +450,7 @@ runner_dep_add_many(RunnerDepMatrix* dep, const EcsTaskSet parents, const EcsTas
  * Vertical axis contains the tasks and horizontal axis their dependent tasks.
  */
 MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* graph) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, 64 * usize_kibibyte, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, 64 * usize_kibibyte, 1);
   DynString buffer     = dynstring_create_over(scratchMem);
 
   u16 longestName = 0;
@@ -470,7 +470,7 @@ MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* g
     }
     dynstring_append_char(&buffer, '\n');
   }
-  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+  file_write_sync(g_fileStdOut, dynstring_view(&buffer));
 }
 
 /**
@@ -682,10 +682,10 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
   const u32       depStrideChunks = bits_to_dwords(depStrideBits);
   RunnerDepMatrix depMatrix       = {
-      .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
-      .strideBits   = depStrideBits,
-      .strideChunks = depStrideChunks,
-      .count        = runner->taskCount,
+            .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+            .strideBits   = depStrideBits,
+            .strideChunks = depStrideChunks,
+            .count        = runner->taskCount,
   };
   runner_dep_clear(&depMatrix);
 

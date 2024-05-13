@@ -30,7 +30,7 @@ typedef struct {
 static SetStorage* set_storage_create(Allocator* alloc) {
   ASSERT(sizeof(SetStorage) <= (usize_kibibyte * 4), "SceneSetStorage has to fit in a page")
 
-  SetStorage* s = alloc_alloc_t(g_alloc_page, SetStorage);
+  SetStorage* s = alloc_alloc_t(g_allocPage, SetStorage);
   mem_set(array_mem(s->ids), 0);
   array_for_t(s->members, DynArray, arr) { *arr = dynarray_create_t(alloc, EcsEntityId, 0); }
   return s;
@@ -38,7 +38,7 @@ static SetStorage* set_storage_create(Allocator* alloc) {
 
 static void set_storage_destroy(SetStorage* s) {
   array_for_t(s->members, DynArray, arr) { dynarray_destroy(arr); }
-  alloc_free_t(g_alloc_page, s);
+  alloc_free_t(g_allocPage, s);
 }
 
 static u32 set_storage_index(const SetStorage* s, const StringHash set) {
@@ -409,9 +409,9 @@ ecs_system_define(SceneSetInitSys) {
         world,
         global,
         SceneSetEnvComp,
-        .storage         = set_storage_create(g_alloc_heap),
-        .requests        = dynarray_create_t(g_alloc_heap, SetRequest, 128),
-        .speculativeAdds = dynarray_create_t(g_alloc_heap, SetSpeculativeAdd, 128));
+        .storage         = set_storage_create(g_allocHeap),
+        .requests        = dynarray_create_t(g_allocHeap, SetRequest, 128),
+        .speculativeAdds = dynarray_create_t(g_allocHeap, SetSpeculativeAdd, 128));
     return;
   }
 

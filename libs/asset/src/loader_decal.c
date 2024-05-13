@@ -50,7 +50,7 @@ static void decal_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_enum_t(reg, AssetDecalAxis);
@@ -170,7 +170,7 @@ void asset_load_decal(
   String         errMsg;
   DataReadResult readRes;
   data_read_json(
-      g_dataReg, src->data, g_alloc_heap, g_dataDecalDefMeta, mem_var(decalDef), &readRes);
+      g_dataReg, src->data, g_allocHeap, g_dataDecalDefMeta, mem_var(decalDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -192,7 +192,7 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_alloc_heap, g_dataDecalDefMeta, mem_var(decalDef));
+  data_destroy(g_dataReg, g_allocHeap, g_dataDecalDefMeta, mem_var(decalDef));
   asset_repo_source_close(src);
 }
 

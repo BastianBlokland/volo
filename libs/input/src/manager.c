@@ -57,9 +57,9 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       InputManagerComp,
-      .triggeredActions = dynarray_create_t(g_alloc_heap, StringHash, 8),
-      .activeLayers     = dynarray_create_t(g_alloc_heap, StringHash, 2),
-      .actionInfos      = dynarray_create_t(g_alloc_heap, InputActionInfo, 64));
+      .triggeredActions = dynarray_create_t(g_allocHeap, StringHash, 8),
+      .activeLayers     = dynarray_create_t(g_allocHeap, StringHash, 2),
+      .actionInfos      = dynarray_create_t(g_allocHeap, InputActionInfo, 64));
 }
 
 static const AssetInputMapComp* input_map_asset(EcsWorld* world, const EcsEntityId entity) {

@@ -36,18 +36,18 @@ spec(string) {
   }
 
   it("can combine strings") {
-    check_eq_string(string_combine(g_alloc_scratch), string_empty);
-    check_eq_string(string_combine(g_alloc_scratch, string_lit("")), string_empty);
-    check_eq_string(string_combine(g_alloc_scratch, string_lit("Hello")), string_lit("Hello"));
+    check_eq_string(string_combine(g_allocScratch), string_empty);
+    check_eq_string(string_combine(g_allocScratch, string_lit("")), string_empty);
+    check_eq_string(string_combine(g_allocScratch, string_lit("Hello")), string_lit("Hello"));
     check_eq_string(
-        string_combine(g_alloc_scratch, string_lit("Hello"), string_lit("World")),
+        string_combine(g_allocScratch, string_lit("Hello"), string_lit("World")),
         string_lit("HelloWorld"));
     check_eq_string(
-        string_combine(g_alloc_scratch, string_lit("Hello"), string_lit(" "), string_lit("World")),
+        string_combine(g_allocScratch, string_lit("Hello"), string_lit(" "), string_lit("World")),
         string_lit("Hello World"));
     check_eq_string(
         string_combine(
-            g_alloc_scratch,
+            g_allocScratch,
             string_lit(""),
             string_lit("Hello"),
             string_lit(" "),

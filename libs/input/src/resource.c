@@ -23,7 +23,7 @@ ecs_comp_define(InputResourceComp) { InputResMap maps[input_resource_max_maps]; 
 static void ecs_destruct_input_resource(void* data) {
   InputResourceComp* comp = data;
   for (u32 i = 0; i != input_resource_max_maps; ++i) {
-    string_maybe_free(g_alloc_heap, comp->maps[i].id);
+    string_maybe_free(g_allocHeap, comp->maps[i].id);
   }
 }
 
@@ -118,7 +118,7 @@ void input_resource_load_map(InputResourceComp* resource, const String inputMapI
       continue; // Slot already in use.
     }
     *map = (InputResMap){
-        .id = string_dup(g_alloc_heap, inputMapId),
+        .id = string_dup(g_allocHeap, inputMapId),
     };
     return;
   }

@@ -133,16 +133,16 @@ static RvkShaderFlags rvk_shader_flags(const AssetShaderComp* asset) {
 }
 
 RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const String dbgName) {
-  RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
+  RvkShader* shader = alloc_alloc_t(g_allocHeap, RvkShader);
 
   *shader = (RvkShader){
       .device            = dev,
-      .dbgName           = string_dup(g_alloc_heap, dbgName),
+      .dbgName           = string_dup(g_allocHeap, dbgName),
       .vkModule          = rvk_shader_module_create(dev, asset),
       .vkStage           = rvk_shader_stage(asset->kind),
       .flags             = rvk_shader_flags(asset),
       .killSpecConstMask = asset->killSpecConstMask,
-      .entryPoint        = string_dup(g_alloc_heap, asset->entryPoint),
+      .entryPoint        = string_dup(g_allocHeap, asset->entryPoint),
       .inputMask         = asset->inputMask,
       .outputMask        = asset->outputMask,
   };
@@ -155,7 +155,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 
   // Copy the specialization bindings.
   if (asset->specs.count) {
-    shader->specs.values = alloc_array_t(g_alloc_heap, AssetShaderSpec, asset->specs.count);
+    shader->specs.values = alloc_array_t(g_allocHeap, AssetShaderSpec, asset->specs.count);
     shader->specs.count  = asset->specs.count;
     mem_cpy(
         mem_from_to(shader->specs.values, shader->specs.values + shader->specs.count),
@@ -192,18 +192,18 @@ void rvk_shader_destroy(RvkShader* shader) {
   RvkDevice* dev = shader->device;
 
   vkDestroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
-  string_free(g_alloc_heap, shader->entryPoint);
+  string_free(g_allocHeap, shader->entryPoint);
 
   if (shader->specs.values) {
-    alloc_free_array_t(g_alloc_heap, shader->specs.values, shader->specs.count);
+    alloc_free_array_t(g_allocHeap, shader->specs.values, shader->specs.count);
   }
 
 #if VOLO_RVK_SHADER_LOGGING
   log_d("Vulkan shader destroyed", log_param("name", fmt_text(shader->dbgName)));
 #endif
 
-  string_free(g_alloc_heap, shader->dbgName);
-  alloc_free_t(g_alloc_heap, shader);
+  string_free(g_allocHeap, shader->dbgName);
+  alloc_free_t(g_allocHeap, shader);
 }
 
 bool rvk_shader_set_used(const RvkShader* shader, const u32 set) {
@@ -268,10 +268,10 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   }
 
   VkSpecializationMapEntry* entries =
-      alloc_array_t(g_alloc_scratch, VkSpecializationMapEntry, Limit_EntriesMax);
+      alloc_array_t(g_allocScratch, VkSpecializationMapEntry, Limit_EntriesMax);
   u32       entryCount       = 0;
   u64       usedBindingsMask = 0;
-  const Mem buffer           = alloc_alloc(g_alloc_scratch, Limit_DataSizeMax, 8);
+  const Mem buffer           = alloc_alloc(g_allocScratch, Limit_DataSizeMax, 8);
   Mem       remainingBuffer  = buffer;
 
   for (usize i = 0; i != math_min(overrideCount, Limit_EntriesMax); ++i) {

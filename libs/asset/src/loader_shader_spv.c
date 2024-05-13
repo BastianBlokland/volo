@@ -225,7 +225,7 @@ static bool spv_validate_new_id(const u32 id, const SpvProgram* prog, SpvError* 
 
 static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, SpvError* err) {
   *out = (SpvProgram){
-      .ids             = alloc_array_t(g_alloc_scratch, SpvId, maxId),
+      .ids             = alloc_array_t(g_allocScratch, SpvId, maxId),
       .idCount         = maxId,
       .killInstruction = sentinel_u32,
   };
@@ -760,8 +760,8 @@ static void spv_asset_shader_create(
   *out = (AssetShaderComp){
       .kind             = spv_shader_kind(program->execModel),
       .entryPoint       = program->entryPoint,
-      .resources.values = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
-      .specs.values     = alloc_array_t(g_alloc_heap, AssetShaderSpec, asset_shader_max_specs),
+      .resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, asset_shader_max_resources),
+      .specs.values     = alloc_array_t(g_allocHeap, AssetShaderSpec, asset_shader_max_specs),
       .data             = src->data,
   };
 

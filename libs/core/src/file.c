@@ -86,7 +86,7 @@ void file_destroy(File* file) {
 FileResult file_write_to_path_sync(const String path, const String data) {
   File*      file = null;
   FileResult res;
-  if ((res = file_create(g_alloc_scratch, path, FileMode_Create, FileAccess_Write, &file))) {
+  if ((res = file_create(g_allocScratch, path, FileMode_Create, FileAccess_Write, &file))) {
     goto ret;
   }
   if ((res = file_write_sync(file, data))) {
@@ -108,7 +108,7 @@ FileResult file_read_to_end_sync(File* file, DynString* output) {
 
 FileInfo file_stat_path_sync(const String path) {
   File* file;
-  if (file_create(g_alloc_scratch, path, FileMode_Open, FileAccess_None, &file)) {
+  if (file_create(g_allocScratch, path, FileMode_Open, FileAccess_None, &file)) {
     return (FileInfo){0};
   }
   const FileInfo res = file_stat_sync(file);
@@ -121,7 +121,7 @@ FileResult file_create_dir_sync(String path) {
   FileResult res;
 
   // Check if the target path already exists; if so: Success.
-  res = file_create(g_alloc_scratch, path, FileMode_Open, FileAccess_None, &dirHandle);
+  res = file_create(g_allocScratch, path, FileMode_Open, FileAccess_None, &dirHandle);
   if (res == FileResult_Success) {
     file_destroy(dirHandle);
     return FileResult_Success; // Directory (or other file) exists at the target path; success.

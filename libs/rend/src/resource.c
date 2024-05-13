@@ -216,8 +216,8 @@ static bool rend_res_request_internal(
       assetEntity,
       RendResComp,
       .flags        = flags | RendResFlags_Used,
-      .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
-      .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
+      .dependencies = dynarray_create_t(g_allocHeap, EcsEntityId, 0),
+      .dependents   = dynarray_create_t(g_allocHeap, EcsEntityId, 0));
   return true;
 }
 

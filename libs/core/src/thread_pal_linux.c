@@ -13,6 +13,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#define thread_early_crash_exit_code 2
+
 /**
  * The nice value determines the priority of processes / threads. The higher the value, the lower
  * the priority (the "nicer" the process is to other processes). The default nice value is 0.
@@ -39,6 +41,18 @@ static int thread_desired_nice(const ThreadPriority prio) {
   diag_crash_msg("Unsupported thread-priority: {}", fmt_int(prio));
 }
 
+/**
+ * Crude crash utility that can be used during early initialization before the allocators and the
+ * normal crash infrastructure has been initialized.
+ */
+static NORETURN void thread_crash_early_init(const String msg) {
+  MAYBE_UNUSED const usize bytesWritten = write(2, msg.ptr, msg.size);
+
+  // NOTE: exit_group to terminate all threads in the process.
+  syscall(SYS_exit_group, thread_early_crash_exit_code);
+  UNREACHABLE
+}
+
 void thread_pal_init(void) {}
 void thread_pal_init_late(void) {}
 void thread_pal_teardown(void) {}
@@ -49,13 +63,35 @@ ThreadId thread_pal_pid(void) { return (ThreadId)syscall(SYS_getpid); }
 ThreadId thread_pal_tid(void) { return (ThreadId)syscall(SYS_gettid); }
 
 u16 thread_pal_core_count(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
   cpu_set_t cpuSet;
   CPU_ZERO(&cpuSet);
   const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
   if (UNLIKELY(res != 0)) {
-    diag_crash_msg("sched_getaffinity() failed: {}", fmt_int(res));
+    thread_crash_early_init(string_lit("sched_getaffinity() failed\n"));
   }
   return CPU_COUNT(&cpuSet);
+}
+
+uptr thread_pal_stack_top(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
+  pthread_attr_t attr;
+  if (pthread_getattr_np(pthread_self(), &attr)) {
+    thread_crash_early_init(string_lit("pthread_getattr_np() failed\n"));
+  }
+  void*  stackPtr;
+  size_t stackSize;
+  if (pthread_attr_getstack(&attr, &stackPtr, &stackSize)) {
+    thread_crash_early_init(string_lit("pthread_attr_getstack() failed\n"));
+  }
+  if (pthread_attr_destroy(&attr)) {
+    thread_crash_early_init(string_lit("pthread_attr_destroy() failed\n"));
+  }
+  return (uptr)stackPtr + (uptr)stackSize;
 }
 
 void thread_pal_set_name(const String str) {

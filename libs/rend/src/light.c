@@ -502,7 +502,7 @@ ecs_module_init(rend_light_module) {
 
 RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
-      world, entity, RendLightComp, .entries = dynarray_create_t(g_alloc_heap, RendLight, 4));
+      world, entity, RendLightComp, .entries = dynarray_create_t(g_allocHeap, RendLight, 4));
 }
 
 void rend_light_directional(

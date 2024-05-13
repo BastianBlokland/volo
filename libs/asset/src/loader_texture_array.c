@@ -60,7 +60,7 @@ static void arraytex_datareg_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_allocPersist);
 
     // clang-format off
     data_reg_enum_t(reg, ArrayTexType);
@@ -91,7 +91,7 @@ ecs_comp_define(AssetArrayLoadComp) {
 
 static void ecs_destruct_arraytex_load_comp(void* data) {
   AssetArrayLoadComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataArrayTexDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -538,7 +538,7 @@ static void arraytex_generate(
   const u32   mips      = arraytex_output_mips(def);
   const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
   const usize dataAlign = asset_texture_req_align(type, channels);
-  const Mem   pixelsMem = alloc_alloc(g_alloc_heap, dataSize, dataAlign);
+  const Mem   pixelsMem = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
   bool outSrgb = irradianceMap ? false : inSrgb;
   switch (def->type) {
@@ -689,7 +689,7 @@ void asset_load_arraytex(
   String         errMsg;
   ArrayTexDef    def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataArrayTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -719,14 +719,14 @@ void asset_load_arraytex(
       entity,
       AssetArrayLoadComp,
       .def      = def,
-      .textures = dynarray_create_t(g_alloc_heap, EcsEntityId, def.textures.count));
+      .textures = dynarray_create_t(g_allocHeap, EcsEntityId, def.textures.count));
   asset_repo_source_close(src);
   return;
 
 Error:
   log_e("Failed to load array texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataArrayTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 

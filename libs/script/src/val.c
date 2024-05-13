@@ -233,7 +233,7 @@ void script_val_write(const ScriptVal value, DynString* str) {
 }
 
 String script_val_scratch(const ScriptVal value) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 128, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 128, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   script_val_write(value, &str);
@@ -271,7 +271,7 @@ void script_mask_write(ScriptMask mask, DynString* str) {
 }
 
 String script_mask_scratch(const ScriptMask mask) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 256, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 256, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   script_mask_write(mask, &str);

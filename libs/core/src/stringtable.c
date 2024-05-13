@@ -34,7 +34,7 @@ struct sStringTable {
  * Global StringTable.
  */
 StringTable* g_stringtable;
-void         stringtable_init(void) { g_stringtable = stringtable_create(g_alloc_heap); }
+void         stringtable_init(void) { g_stringtable = stringtable_create(g_allocHeap); }
 void         stringtable_teardown(void) { stringtable_destroy(g_stringtable); }
 
 INLINE_HINT static u32 stringtable_should_grow(StringTable* table) {
@@ -93,7 +93,7 @@ StringTable* stringtable_create(Allocator* alloc) {
       .alloc     = alloc,
       .slotCount = stringtable_slots_initial,
       .slots     = stringtable_slots_alloc(alloc, stringtable_slots_initial),
-      .dataAlloc = alloc_chunked_create(g_alloc_page, alloc_bump_create, stringtable_chunk_size),
+      .dataAlloc = alloc_chunked_create(g_allocPage, alloc_bump_create, stringtable_chunk_size),
   };
   return table;
 }
