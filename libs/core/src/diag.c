@@ -69,10 +69,10 @@ void diag_assert_report_fail(const String userMsg, const SourceLoc sourceLoc) {
 }
 
 void diag_break(void) { diag_pal_break(); }
-void diag_crash(void) { diag_crash_internal(string_lit("Crash")); }
+void diag_crash(void) { diag_crash_internal(string_lit("Crash: Unknown error\n")); }
 
 void diag_crash_msg_raw(const String userMsg) {
-  const String msg = fmt_write_scratch("Crash: '{}'\n", fmt_text(userMsg));
+  const String msg = fmt_write_scratch("Crash: {}\n", fmt_text(userMsg));
   diag_crash_internal(msg);
 }
 
