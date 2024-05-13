@@ -30,7 +30,7 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
   symbol_stack_write(stack, &str);
 
   // Write it to stderr.
-  file_write_sync(g_file_stderr, dynstring_view(&str));
+  file_write_sync(g_fileStderr, dynstring_view(&str));
 
   // Write it to a crash-file.
   static ThreadSpinLock g_crashFileLock;
@@ -53,8 +53,8 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
   g_diagIsReporting = false;
 }
 
-void diag_print_raw(const String userMsg) { file_write_sync(g_file_stdout, userMsg); }
-void diag_print_err_raw(const String userMsg) { file_write_sync(g_file_stderr, userMsg); }
+void diag_print_raw(const String userMsg) { file_write_sync(g_fileStdout, userMsg); }
+void diag_print_err_raw(const String userMsg) { file_write_sync(g_fileStderr, userMsg); }
 
 void diag_assert_report_fail(const String userMsg, const SourceLoc sourceLoc) {
   if (g_assertHandler && g_assertHandler(userMsg, sourceLoc, g_assertHandlerContext)) {

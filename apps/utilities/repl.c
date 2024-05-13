@@ -42,7 +42,7 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
   ++stats->exprsTotal;
 }
 
-static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
+static void repl_output(const String text) { file_write_sync(g_fileStdout, text); }
 
 static void repl_output_diag(const String src, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
@@ -471,10 +471,10 @@ static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flag
       .mem        = script_mem_create(g_allocHeap),
   };
 
-  tty_opts_set(g_file_stdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
+  tty_opts_set(g_fileStdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
   repl_edit_render(&editor);
 
-  while (tty_read(g_file_stdin, &readBuffer, TtyReadFlags_None)) {
+  while (tty_read(g_fileStdin, &readBuffer, TtyReadFlags_None)) {
     String        readStr = dynstring_view(&readBuffer);
     TtyInputToken input;
     for (;;) {
@@ -491,7 +491,7 @@ static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flag
 
 Stop:
   repl_edit_render_cleanup();
-  tty_opts_set(g_file_stdin, TtyOpts_None);
+  tty_opts_set(g_fileStdin, TtyOpts_None);
 
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
@@ -528,7 +528,7 @@ Retry:
   } else if (fileRes != FileResult_Success) {
     const String err = file_result_str(fileRes);
     const String msg = fmt_write_scratch("ERROR: Failed to open file: {}\n", fmt_text(err));
-    file_write_sync(g_file_stderr, msg);
+    file_write_sync(g_fileStderr, msg);
     return 1;
   }
 
@@ -549,7 +549,7 @@ static i32 repl_run_watch(const ScriptBinder* binder, const String pathAbs, cons
   if ((monRes = file_monitor_watch(mon, path_filename(pathAbs), 0))) {
     const String err = file_monitor_result_str(monRes);
     const String msg = fmt_write_scratch("ERROR: Failed to watch path: {}\n", fmt_text(err));
-    file_write_sync(g_file_stderr, msg);
+    file_write_sync(g_fileStderr, msg);
     res = 1;
     goto Ret;
   }
@@ -570,18 +570,18 @@ static bool repl_read_binder_file(ScriptBinder* binder, const String path) {
   File*      file;
   FileResult fileRes;
   if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to open binder file.\n"));
+    file_write_sync(g_fileStderr, string_lit("ERROR: Failed to open binder file.\n"));
     success = false;
     goto Ret;
   }
   String fileData;
   if ((fileRes = file_map(file, &fileData))) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: Failed to map binder file.\n"));
+    file_write_sync(g_fileStderr, string_lit("ERROR: Failed to map binder file.\n"));
     success = false;
     goto Ret;
   }
   if (!script_binder_read(binder, fileData)) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: Invalid binder file.\n"));
+    file_write_sync(g_fileStderr, string_lit("ERROR: Invalid binder file.\n"));
     success = false;
     goto Ret;
   }
@@ -645,7 +645,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   ScriptBinder* binder   = null;
 
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_file_stdout);
+    cli_help_write_file(app, g_fileStdout);
     goto Exit;
   }
 
@@ -669,9 +669,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     flags |= ReplFlags_OutputSymbols;
   }
 
-  if (!tty_isatty(g_file_stdout)) {
+  if (!tty_isatty(g_fileStdout)) {
     // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
-    file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream.\n"));
+    file_write_sync(g_fileStderr, string_lit("ERROR: REPL needs a tty output stream.\n"));
     exitCode = 1;
     goto Exit;
   }
@@ -695,11 +695,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     } else {
       exitCode = repl_run_path(binder, pathAbs, flags);
     }
-  } else if (tty_isatty(g_file_stdin)) {
+  } else if (tty_isatty(g_fileStdin)) {
     exitCode = repl_run_interactive(binder, flags);
   } else {
     const String id = string_empty;
-    exitCode        = repl_run_file(binder, g_file_stdin, id, flags);
+    exitCode        = repl_run_file(binder, g_fileStdin, id, flags);
   }
 
 Exit:

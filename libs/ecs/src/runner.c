@@ -470,7 +470,7 @@ MAYBE_UNUSED static void runner_dep_dump(RunnerDepMatrix* dep, const JobGraph* g
     }
     dynstring_append_char(&buffer, '\n');
   }
-  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+  file_write_sync(g_fileStdout, dynstring_view(&buffer));
 }
 
 /**

@@ -95,9 +95,9 @@ static bool tty_pal_has_key_input(File* file) {
 }
 
 void tty_pal_init(void) {
-  tty_pal_override_input_mode(g_file_stdin, &g_consoleModeInputOverride);
-  tty_pal_override_output_mode(g_file_stdout, &g_consoleModeOutputOverride);
-  tty_pal_override_output_mode(g_file_stderr, &g_consoleModeErrorOverride);
+  tty_pal_override_input_mode(g_fileStdin, &g_consoleModeInputOverride);
+  tty_pal_override_output_mode(g_fileStdout, &g_consoleModeOutputOverride);
+  tty_pal_override_output_mode(g_fileStderr, &g_consoleModeErrorOverride);
 
   // Setup the console to use the utf8 code-page.
   g_consoleInputCodePageOriginal  = GetConsoleCP();
@@ -108,9 +108,9 @@ void tty_pal_init(void) {
 }
 
 void tty_pal_teardown(void) {
-  tty_pal_restore_mode(g_file_stdin, &g_consoleModeInputOverride);
-  tty_pal_restore_mode(g_file_stdout, &g_consoleModeOutputOverride);
-  tty_pal_restore_mode(g_file_stderr, &g_consoleModeErrorOverride);
+  tty_pal_restore_mode(g_fileStdin, &g_consoleModeInputOverride);
+  tty_pal_restore_mode(g_fileStdout, &g_consoleModeOutputOverride);
+  tty_pal_restore_mode(g_fileStderr, &g_consoleModeErrorOverride);
 
   SetConsoleCP(g_consoleInputCodePageOriginal);
   SetConsoleOutputCP(g_consoleOutputCodePageOriginal);

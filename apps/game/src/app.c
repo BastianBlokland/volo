@@ -580,7 +580,7 @@ void app_ecs_configure(CliApp* app) {
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_file_stderr);
+    cli_help_write_file(app, g_fileStderr);
     return false;
   }
   return true;
