@@ -49,11 +49,14 @@ ThreadId thread_pal_pid(void) { return (ThreadId)syscall(SYS_getpid); }
 ThreadId thread_pal_tid(void) { return (ThreadId)syscall(SYS_gettid); }
 
 u16 thread_pal_core_count(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory and cannot report crashes.
+   */
   cpu_set_t cpuSet;
   CPU_ZERO(&cpuSet);
   const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
   if (UNLIKELY(res != 0)) {
-    diag_crash_msg("sched_getaffinity() failed: {}", fmt_int(res));
+    return 1; // TODO: Report this error without allocating memory.
   }
   return CPU_COUNT(&cpuSet);
 }

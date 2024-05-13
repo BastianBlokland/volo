@@ -69,6 +69,10 @@ THREAD_LOCAL String   g_thread_name;
 u16                   g_thread_core_count;
 
 void thread_init(void) {
+  /**
+   * Early thread initialization.
+   * NOTE: Returns before memory allocators have been setup so cannot allocate any memory.
+   */
   thread_pal_init();
 
   g_thread_pid        = thread_pal_pid();
@@ -78,6 +82,10 @@ void thread_init(void) {
 }
 
 void thread_init_late(void) {
+  /**
+   * Late thread initialization.
+   * NOTE: Memory can now be allocated.
+   */
   thread_pal_init_late();
 
   thread_pal_set_name(g_thread_name);

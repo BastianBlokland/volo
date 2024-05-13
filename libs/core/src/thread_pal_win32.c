@@ -42,10 +42,11 @@ static int thread_desired_prio_value(const ThreadPriority prio) {
 }
 
 MAYBE_UNUSED static void thread_set_process_priority(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory and cannot report crashes.
+   */
   const HANDLE curProcess = GetCurrentProcess();
-  if (UNLIKELY(SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0)) {
-    diag_crash_msg("SetPriorityClass() failed");
-  }
+  SetPriorityClass(curProcess, ABOVE_NORMAL_PRIORITY_CLASS) == 0);
 }
 
 void thread_pal_init(void) {
