@@ -66,6 +66,7 @@ ThreadId              g_threadPid;
 ThreadId              g_threadMainTid;
 THREAD_LOCAL ThreadId g_threadTid;
 THREAD_LOCAL String   g_threadName;
+THREAD_LOCAL uptr     g_threadStackTop;
 u16                   g_threadCoreCount;
 
 void thread_init(void) {
@@ -97,7 +98,8 @@ void thread_init_thread(void) {
   /**
    * NOTE: Called during early startup so cannot allocate memory.
    */
-  g_threadTid = thread_pal_tid();
+  g_threadTid      = thread_pal_tid();
+  g_threadStackTop = thread_pal_stack_top();
 }
 
 void thread_atomic_fence(void) {

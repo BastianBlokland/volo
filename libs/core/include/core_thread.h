@@ -38,6 +38,11 @@ extern THREAD_LOCAL ThreadId g_threadTid;
 extern THREAD_LOCAL String g_threadName;
 
 /**
+ * Address of the top of the stack of the current thread.
+ */
+extern THREAD_LOCAL uptr g_threadStackTop;
+
+/**
  * Number of logical cpu cores available to this process.
  */
 extern u16 g_threadCoreCount;
