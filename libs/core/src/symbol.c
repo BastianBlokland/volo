@@ -182,7 +182,7 @@ void symbol_teardown(void) {
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
 /**
  * Check if the given pointer is located on the stack of the current thread. Avoids us following
- * bogus pointers if the stack is corrupt of the executable was compiled without frame-pointers.
+ * bogus pointers if the stack is corrupt or the executable was compiled without frame-pointers.
  */
 INLINE_HINT static bool sym_is_stack_ptr(const void* ptr) {
   uptr stackBottom;
