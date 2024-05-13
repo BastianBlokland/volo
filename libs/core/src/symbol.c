@@ -269,9 +269,15 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
   return stack;
 }
 
+bool symbol_stack_valid(const SymbolStack* stack) { return !sentinel_check(stack->frames[0]); }
+
 void symbol_stack_write(const SymbolStack* stack, DynString* out) {
   const SymbolReg* reg = symbol_reg_get();
 
+  if (sentinel_check(stack->frames[0])) {
+    fmt_write(out, "Stack: Invalid\n");
+    return;
+  }
   fmt_write(out, "Stack:\n");
   for (u32 frameIndex = 0; frameIndex != array_elems(stack->frames); ++frameIndex) {
     const SymbolAddrRel addr = stack->frames[frameIndex];

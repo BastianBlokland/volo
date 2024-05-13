@@ -21,6 +21,7 @@ typedef struct sSymbolStack {
  * Pre-condition: Executable is build with frame-pointers.
  */
 SymbolStack symbol_stack_walk(void);
+bool        symbol_stack_valid(const SymbolStack*);
 
 /**
  * Pretty print the stack to the given string.
