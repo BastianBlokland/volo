@@ -22,8 +22,8 @@ typedef struct {
 } RvkPsoCacheHeader;
 
 static String rvk_psocache_path_scratch(void) {
-  const String fileName = fmt_write_scratch("{}.psoc", fmt_text(path_stem(g_path_executable)));
-  return path_build_scratch(path_parent(g_path_executable), fileName);
+  const String fileName = fmt_write_scratch("{}.psoc", fmt_text(path_stem(g_pathExecutable)));
+  return path_build_scratch(path_parent(g_pathExecutable), fileName);
 }
 
 static VkPipelineCache rvk_vkcache_create(RvkDevice* dev, String data) {

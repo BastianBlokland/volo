@@ -126,8 +126,8 @@ LogSink* log_sink_json_to_path(Allocator* alloc, const LogMask mask, const Strin
 
 LogSink* log_sink_json_default(Allocator* alloc, const LogMask mask) {
   const String logPath = path_build_scratch(
-      path_parent(g_path_executable),
+      path_parent(g_pathExecutable),
       string_lit("logs"),
-      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("log")));
+      path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("log")));
   return log_sink_json_to_path(alloc, mask, logPath);
 }

@@ -247,8 +247,8 @@ CheckOutput* check_output_mocha_to_path(Allocator* alloc, String path) {
 
 CheckOutput* check_output_mocha_default(Allocator* alloc) {
   const String resultPath = path_build_scratch(
-      path_parent(g_path_executable),
+      path_parent(g_pathExecutable),
       string_lit("logs"),
-      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("mocha")));
+      path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("mocha")));
   return check_output_mocha_to_path(alloc, resultPath);
 }

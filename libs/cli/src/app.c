@@ -11,7 +11,7 @@
 CliApp* cli_app_create(Allocator* alloc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
-             .name       = path_stem(g_path_executable),
+             .name       = path_stem(g_pathExecutable),
              .options    = dynarray_create_t(alloc, CliOption, 16),
              .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
              .alloc      = alloc,

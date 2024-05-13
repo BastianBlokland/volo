@@ -220,9 +220,9 @@ static i8 sys_compare_info_order(const void* a, const void* b) {
 
 static void ecs_dump_graph(const JobGraph* graph) {
   const String pathScratch = path_build_scratch(
-      path_parent(g_path_executable),
+      path_parent(g_pathExecutable),
       string_lit("logs"),
-      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("dot")));
+      path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("dot")));
 
   const FileResult res = jobs_dot_dump_graph_to_path(pathScratch, graph);
   if (res == FileResult_Success) {

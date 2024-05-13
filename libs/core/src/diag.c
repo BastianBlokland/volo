@@ -42,9 +42,9 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
       g_crashFileWritten = true;
 
       const String crashFilePath = path_build_scratch(
-          path_parent(g_path_executable),
+          path_parent(g_pathExecutable),
           string_lit("logs"),
-          path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("crash")));
+          path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("crash")));
       file_write_to_path_sync(crashFilePath, dynstring_view(&str));
     }
   }

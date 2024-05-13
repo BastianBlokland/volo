@@ -20,7 +20,7 @@ static void output_run_started(CheckOutput* out) {
       "Starting test run",
       log_param("pid", fmt_int(g_threadPid)),
       log_param("workers", fmt_int(g_jobsWorkerCount)),
-      log_param("executable", fmt_path(g_path_executable)));
+      log_param("executable", fmt_path(g_pathExecutable)));
 }
 
 static void output_tests_discovered(

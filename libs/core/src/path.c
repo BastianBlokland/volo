@@ -34,19 +34,19 @@ static bool path_starts_with_win32_root(const String path) {
          string_eq(postDriveLetter, string_lit(":\\"));
 }
 
-static u8 g_path_workingdir_buffer[path_pal_max_size];
-String    g_path_workingdir = {0};
+static u8 g_pathWorkingDir_buffer[path_pal_max_size];
+String    g_pathWorkingDir = {0};
 
-static u8 g_path_executable_buffer[path_pal_max_size];
-String    g_path_executable = {0};
+static u8 g_pathExecutable_buffer[path_pal_max_size];
+String    g_pathExecutable = {0};
 
-static u8 g_path_tempdir_buffer[path_pal_max_size];
-String    g_path_tempdir = {0};
+static u8 g_pathTempDir_buffer[path_pal_max_size];
+String    g_pathTempDir = {0};
 
 void path_init(void) {
-  g_path_workingdir = path_pal_workingdir(array_mem(g_path_workingdir_buffer));
-  g_path_executable = path_pal_executable(array_mem(g_path_executable_buffer));
-  g_path_tempdir    = path_pal_tempdir(array_mem(g_path_tempdir_buffer));
+  g_pathWorkingDir = path_pal_workingdir(array_mem(g_pathWorkingDir_buffer));
+  g_pathExecutable = path_pal_executable(array_mem(g_pathExecutable_buffer));
+  g_pathTempDir    = path_pal_tempdir(array_mem(g_pathTempDir_buffer));
 }
 
 bool path_is_absolute(const String path) {
@@ -176,7 +176,7 @@ void path_build_raw(DynString* str, const String* segments) {
 
   const bool prependWorkingDir = !segments->ptr || !path_is_absolute(*segments);
   if (prependWorkingDir) {
-    dynstring_append(&tmpWriter, g_path_workingdir);
+    dynstring_append(&tmpWriter, g_pathWorkingDir);
   }
   for (; segments->ptr && !string_is_empty(*segments); ++segments) {
     path_append(&tmpWriter, *segments);

@@ -24,19 +24,19 @@ typedef struct sRng Rng;
  * Working directory of the process.
  * NOTE: Cached at startup.
  */
-extern String g_path_workingdir;
+extern String g_pathWorkingDir;
 
 /**
  * Path to the running executable.
  * NOTE: Cached at startup.
  */
-extern String g_path_executable;
+extern String g_pathExecutable;
 
 /**
  * Path to the system's temporary directory.
  * NOTE: Cached at startup.
  */
-extern String g_path_tempdir;
+extern String g_pathTempDir;
 
 /**
  * Check if the given path is absolute (starts from a root directory).

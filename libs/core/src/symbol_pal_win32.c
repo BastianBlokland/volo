@@ -86,7 +86,7 @@ static bool sym_dbg_lib_load(SymDbg* dbg, Allocator* alloc) {
  * NOTE: We only include the executable's own directory.
  */
 static const char* sym_dbg_searchpath() {
-  const String execParentPath = path_parent(g_path_executable);
+  const String execParentPath = path_parent(g_pathExecutable);
   return to_null_term_scratch(execParentPath);
 }
 
@@ -109,7 +109,7 @@ static bool sym_dbg_lib_begin(SymDbg* dbg) {
   dbg->SymSetOptions(sym_dbg_options());
   dbg->dbgHelpActive = true;
 
-  const char* imageName = to_null_term_scratch(g_path_executable);
+  const char* imageName = to_null_term_scratch(g_pathExecutable);
   dbg->dbgHelpBaseAddr  = dbg->SymLoadModuleEx(dbg->process, null, imageName, null, 0, 0, null, 0);
   return dbg->dbgHelpBaseAddr != 0;
 }

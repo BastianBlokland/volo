@@ -172,7 +172,7 @@ CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFla
           },
                         .alloc     = alloc,
                         .file      = file,
-                        .suiteName = path_stem(g_path_executable),
+                        .suiteName = path_stem(g_pathExecutable),
                         .runFlags  = runFlags,
                         .style     = tty_isatty(file),
   };

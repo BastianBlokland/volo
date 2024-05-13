@@ -12,7 +12,7 @@ spec(process) {
   DynString buffer;
 
   setup() {
-    const String parentPath = path_parent(g_path_executable);
+    const String parentPath = path_parent(g_pathExecutable);
     const String helperName = string_lit("test_lib_core_helper");
     helperPath              = string_dup(g_allocHeap, path_build_scratch(parentPath, helperName));
 

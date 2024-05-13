@@ -55,7 +55,7 @@ MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
 static VkApplicationInfo rvk_instance_app_info(void) {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName   = path_stem(g_path_executable).ptr,
+      .pApplicationName   = path_stem(g_pathExecutable).ptr,
       .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
       .pEngineName        = "volo",
       .engineVersion      = VK_MAKE_VERSION(0, 1, 0),

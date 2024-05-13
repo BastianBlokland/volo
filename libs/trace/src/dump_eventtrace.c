@@ -27,7 +27,7 @@ static void dump_eventtrace_init(DumpEventTraceCtx* ctx) {
   dynstring_append(ctx->out, string_lit("{\"name\":\"process_name\",\"ph\":\"M\",\"pid\":"));
   format_write_u64(ctx->out, ctx->pid, &format_opts_int());
   dynstring_append(ctx->out, string_lit(",\"args\":{\"name\":\""));
-  dynstring_append(ctx->out, path_filename(g_path_executable));
+  dynstring_append(ctx->out, path_filename(g_pathExecutable));
   dynstring_append(ctx->out, string_lit("\"}},"));
 }
 
@@ -174,9 +174,9 @@ bool trace_dump_eventtrace_to_path(const TraceSink* storeSink, const String path
 
 bool trace_dump_eventtrace_to_path_default(const TraceSink* storeSink) {
   const String pathScratch = path_build_scratch(
-      path_parent(g_path_executable),
+      path_parent(g_pathExecutable),
       string_lit("logs"),
-      path_name_timestamp_scratch(path_stem(g_path_executable), string_lit("eventtrace")));
+      path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("eventtrace")));
 
   return trace_dump_eventtrace_to_path(storeSink, pathScratch);
 }

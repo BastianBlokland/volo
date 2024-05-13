@@ -56,7 +56,7 @@ static void ecs_destruct_window_comp(void* data) {
 static String window_default_title_scratch(const GapWindowComp* window) {
   return fmt_write_scratch(
       "{} (pid: {}, wid: {})",
-      fmt_text(path_stem(g_path_executable)),
+      fmt_text(path_stem(g_pathExecutable)),
       fmt_int(g_threadPid),
       fmt_int(window->id));
 }

@@ -123,13 +123,13 @@ spec(path) {
   }
 
   it("returns the working-dir when building a path from 0 segments") {
-    check_eq_string(path_build_scratch(), g_path_workingdir);
+    check_eq_string(path_build_scratch(), g_pathWorkingDir);
   }
 
   it("prepends the working-dir when building a path starting from a relative segment") {
     check_eq_string(
         path_build_scratch(string_lit("hello")),
-        fmt_write_scratch("{}/hello", fmt_text(g_path_workingdir)));
+        fmt_write_scratch("{}/hello", fmt_text(g_pathWorkingDir)));
   }
 
   it("doesn't prepend the working-dir when building a path starting from an absolute segment") {
@@ -139,7 +139,7 @@ spec(path) {
   it("supports building paths from a collection of segments") {
     check_eq_string(
         path_build_scratch(string_lit("how\\are/you"), string_lit("doing")),
-        fmt_write_scratch("{}/how/are/you/doing", fmt_text(g_path_workingdir)));
+        fmt_write_scratch("{}/how/are/you/doing", fmt_text(g_pathWorkingDir)));
   }
 
   it("can generate a random file-name") {
@@ -169,17 +169,17 @@ spec(path) {
   }
 
   it("can retrieve the executable path") {
-    check(!string_is_empty(g_path_executable));
-    check(path_is_absolute(g_path_executable));
+    check(!string_is_empty(g_pathExecutable));
+    check(path_is_absolute(g_pathExecutable));
   }
 
   it("can retrieve the working-directory path") {
-    check(!string_is_empty(g_path_workingdir));
-    check(path_is_absolute(g_path_workingdir));
+    check(!string_is_empty(g_pathWorkingDir));
+    check(path_is_absolute(g_pathWorkingDir));
   }
 
   it("can retrieve the system temp path") {
-    check(!string_is_empty(g_path_tempdir));
-    check(path_is_absolute(g_path_tempdir));
+    check(!string_is_empty(g_pathTempDir));
+    check(path_is_absolute(g_pathTempDir));
   }
 }

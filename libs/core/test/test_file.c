@@ -66,7 +66,7 @@ spec(file) {
   it("can check the file-type of directories") {
     File* workingDir = null;
     check_eq_int(
-        file_create(g_allocHeap, g_path_workingdir, FileMode_Open, FileAccess_None, &workingDir),
+        file_create(g_allocHeap, g_pathWorkingDir, FileMode_Open, FileAccess_None, &workingDir),
         FileResult_Success);
 
     if (workingDir) {
@@ -100,7 +100,7 @@ spec(file) {
   }
 
   it("can check if a file exists") {
-    const String existingPath    = g_path_executable;
+    const String existingPath    = g_pathExecutable;
     const String nonExistingPath = string_lit("path_to_non_existent_file_42");
     File*        file            = null;
 
@@ -125,7 +125,7 @@ spec(file) {
   it("can read its own executable") {
     File* ownExecutable = null;
     check_eq_int(
-        file_create(g_allocHeap, g_path_executable, FileMode_Open, FileAccess_Read, &ownExecutable),
+        file_create(g_allocHeap, g_pathExecutable, FileMode_Open, FileAccess_Read, &ownExecutable),
         FileResult_Success);
     check(ownExecutable != null);
     check_eq_int(file_stat_sync(ownExecutable).type, FileType_Regular);
@@ -140,7 +140,7 @@ spec(file) {
 
   it("can create a new file by opening a file-handle with 'Create' mode") {
     String path = path_build_scratch(
-        g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
+        g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     // Create a new file containing 'Hello World'.
     File* file;
@@ -163,7 +163,7 @@ spec(file) {
 
   it("can create a new directory") {
     String path = path_build_scratch(
-        g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
+        g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     check_eq_int(file_create_dir_sync(path), FileResult_Success);
 
