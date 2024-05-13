@@ -179,6 +179,19 @@ void symbol_teardown(void) {
   thread_mutex_destroy(g_symRegMutex);
 }
 
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+/**
+ * Check if the given pointer is located on the stack of the current thread. Avoids us following
+ * bogus pointers if the stack is corrupt of the executable was compiled without frame-pointers.
+ */
+INLINE_HINT static bool sym_is_stack_ptr(const void* ptr) {
+  uptr stackBottom;
+  asm("movq %%rsp, %[stackBottom]" : [stackBottom] "=r"(stackBottom));
+
+  return (uptr)ptr <= g_threadStackTop && (uptr)ptr >= stackBottom;
+}
+#endif
+
 NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
   ASSERT(sizeof(uptr) == 8, "Only 64 bit architectures are supported at the moment")
 
@@ -249,7 +262,7 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
   asm volatile("movq %%rbp, %[fp]" : [fp] "=r"(fp)); // Volatile to avoid compiler reordering.
 
   // Fill the stack by walking the linked-list of frames.
-  for (; fp && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
+  for (; sym_is_stack_ptr(fp) && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
     const SymbolAddrRel addrRel = sym_addr_rel(fp->retAddr);
     if (sentinel_check(addrRel)) {
       continue; // Function does not belong to our executable.
