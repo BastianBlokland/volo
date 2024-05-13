@@ -123,7 +123,7 @@ static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
 MAYBE_UNUSED static void symbol_reg_dump_out(const SymbolReg* r) {
   DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
   symbol_reg_dump(r, &str);
-  file_write_sync(g_fileStdout, dynstring_view(&str));
+  file_write_sync(g_fileStdOut, dynstring_view(&str));
   dynstring_destroy(&str);
 }
 

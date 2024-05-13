@@ -157,7 +157,7 @@ void app_cli_configure(CliApp* app) {
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdout);
+    cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
 

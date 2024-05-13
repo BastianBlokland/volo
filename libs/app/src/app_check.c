@@ -37,7 +37,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdout);
+    cli_help_write_file(app, g_fileStdOut);
     goto Exit;
   }
 

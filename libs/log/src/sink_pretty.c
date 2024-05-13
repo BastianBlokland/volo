@@ -114,7 +114,7 @@ log_sink_pretty(Allocator* alloc, File* file, const LogMask mask, const LogSinkP
   LogSinkPretty* sink = alloc_alloc_t(alloc, LogSinkPretty);
   *sink               = (LogSinkPretty){
                     .api =
-                        {
+          {
                             .write   = log_sink_pretty_write,
                             .destroy = log_sink_pretty_destroy,
           },
@@ -129,5 +129,5 @@ log_sink_pretty(Allocator* alloc, File* file, const LogMask mask, const LogSinkP
 }
 
 LogSink* log_sink_pretty_default(Allocator* alloc, const LogMask mask) {
-  return log_sink_pretty(alloc, g_fileStdout, mask, LogSinkPrettyFlags_None);
+  return log_sink_pretty(alloc, g_fileStdOut, mask, LogSinkPrettyFlags_None);
 }

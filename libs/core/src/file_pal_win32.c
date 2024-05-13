@@ -15,30 +15,30 @@ typedef struct {
   void*  addr;
 } FileMapping;
 
-File* g_fileStdin;
-File* g_fileStdout;
-File* g_fileStderr;
+File* g_fileStdIn;
+File* g_fileStdOut;
+File* g_fileStdErr;
 
 void file_pal_init(void) {
   static File stdIn = {0};
   stdIn.handle      = GetStdHandle(STD_INPUT_HANDLE);
   stdIn.access      = FileAccess_Read;
   if (stdIn.handle != INVALID_HANDLE_VALUE) {
-    g_fileStdin = &stdIn;
+    g_fileStdIn = &stdIn;
   }
 
   static File stdOut = {0};
   stdOut.handle      = GetStdHandle(STD_OUTPUT_HANDLE);
   stdOut.access      = FileAccess_Write;
   if (stdOut.handle != INVALID_HANDLE_VALUE) {
-    g_fileStdout = &stdOut;
+    g_fileStdOut = &stdOut;
   }
 
   static File stdErr = {0};
   stdErr.handle      = GetStdHandle(STD_ERROR_HANDLE);
   stdErr.access      = FileAccess_Write;
   if (stdErr.handle != INVALID_HANDLE_VALUE) {
-    g_fileStderr = &stdErr;
+    g_fileStdErr = &stdErr;
   }
 }
 

@@ -19,7 +19,7 @@ int SYS_DECL main(const int argc, const char** argv) {
 
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
-    cli_failure_write_file(invoc, g_fileStderr);
+    cli_failure_write_file(invoc, g_fileStdErr);
     exitCode = 2;
     goto exit;
   }

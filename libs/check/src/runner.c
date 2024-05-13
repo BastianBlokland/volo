@@ -50,7 +50,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
 
   // Setup outputs.
   CheckOutputPtr outputs[] = {
-      check_output_pretty(g_allocHeap, g_fileStdout, flags),
+      check_output_pretty(g_allocHeap, g_fileStdOut, flags),
       check_output_mocha_default(g_allocHeap),
       check_output_log(g_allocHeap, g_logger),
   };

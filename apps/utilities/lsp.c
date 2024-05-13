@@ -1206,8 +1206,8 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
       .scriptBinder = scriptBinder,
       .jDoc         = jDoc,
       .openDocs     = &openDocs,
-      .in           = g_fileStdin,
-      .out          = g_fileStdout,
+      .in           = g_fileStdIn,
+      .out          = g_fileStdOut,
   };
 
   lsp_send_info(&ctx, string_lit("Server starting up"));
@@ -1225,7 +1225,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
     json_read(jDoc, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErr = json_error_str(jsonResult.error);
-      file_write_sync(g_fileStderr, fmt_write_scratch("lsp: Json-Error: {}\n", fmt_text(jsonErr)));
+      file_write_sync(g_fileStdErr, fmt_write_scratch("lsp: Json-Error: {}\n", fmt_text(jsonErr)));
       ctx.status = LspStatus_ErrorInvalidJson;
       break;
     }
@@ -1245,7 +1245,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
 
   if (ctx.status != LspStatus_Exit) {
     const String errorMsg = g_lspStatusMessage[ctx.status];
-    file_write_sync(g_fileStderr, fmt_write_scratch("lsp: {}\n", fmt_text(errorMsg)));
+    file_write_sync(g_fileStdErr, fmt_write_scratch("lsp: {}\n", fmt_text(errorMsg)));
     return 1;
   }
   return 0;
@@ -1256,18 +1256,18 @@ static bool lsp_read_binder_file(ScriptBinder* binder, const String path) {
   File*      file;
   FileResult fileRes;
   if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
-    file_write_sync(g_fileStderr, string_lit("lsp: Failed to open binder file.\n"));
+    file_write_sync(g_fileStdErr, string_lit("lsp: Failed to open binder file.\n"));
     success = false;
     goto Ret;
   }
   String fileData;
   if ((fileRes = file_map(file, &fileData))) {
-    file_write_sync(g_fileStderr, string_lit("lsp: Failed to map binder file.\n"));
+    file_write_sync(g_fileStdErr, string_lit("lsp: Failed to map binder file.\n"));
     success = false;
     goto Ret;
   }
   if (!script_binder_read(binder, fileData)) {
-    file_write_sync(g_fileStderr, string_lit("lsp: Invalid binder file.\n"));
+    file_write_sync(g_fileStdErr, string_lit("lsp: Invalid binder file.\n"));
     success = false;
     goto Ret;
   }
@@ -1301,7 +1301,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   ScriptBinder* scriptBinder = null;
 
   if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdout);
+    cli_help_write_file(app, g_fileStdOut);
     goto Exit;
   }
 
@@ -1319,7 +1319,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     exitCode = lsp_run_stdio(scriptBinder);
   } else {
     exitCode = 1;
-    file_write_sync(g_fileStderr, string_lit("lsp: No communication method specified.\n"));
+    file_write_sync(g_fileStdErr, string_lit("lsp: No communication method specified.\n"));
   }
 
 Exit:

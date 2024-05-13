@@ -37,15 +37,15 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   if (cli_parse_provided(invoc, g_optGreet)) {
-    file_write_sync(g_fileStdout, string_lit("Hello Out\n"));
+    file_write_sync(g_fileStdOut, string_lit("Hello Out\n"));
   }
   if (cli_parse_provided(invoc, g_optGreetErr)) {
-    file_write_sync(g_fileStderr, string_lit("Hello Err\n"));
+    file_write_sync(g_fileStdErr, string_lit("Hello Err\n"));
   }
 
   if (cli_parse_provided(invoc, g_optCountInChars)) {
     DynString readBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
-    file_read_to_end_sync(g_fileStdin, &readBuffer);
+    file_read_to_end_sync(g_fileStdIn, &readBuffer);
     const usize chars = dynstring_view(&readBuffer).size;
     dynstring_destroy(&readBuffer);
     return (i32)chars;
