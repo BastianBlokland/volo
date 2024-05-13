@@ -75,6 +75,25 @@ u16 thread_pal_core_count(void) {
   return CPU_COUNT(&cpuSet);
 }
 
+uptr thread_pal_stack_top(void) {
+  /**
+   * NOTE: Called during early startup so cannot allocate memory.
+   */
+  pthread_attr_t attr;
+  if (pthread_getattr_np(pthread_self(), &attr)) {
+    thread_crash_early_init(string_lit("pthread_getattr_np() failed\n"));
+  }
+  void*  stackPtr;
+  size_t stackSize;
+  if (pthread_attr_getstack(&attr, &stackPtr, &stackSize)) {
+    thread_crash_early_init(string_lit("pthread_attr_getstack() failed\n"));
+  }
+  if (pthread_attr_destroy(&attr)) {
+    thread_crash_early_init(string_lit("pthread_attr_destroy() failed\n"));
+  }
+  return (uptr)stackPtr;
+}
+
 void thread_pal_set_name(const String str) {
   static const usize g_maxNameLen = 15;
   if (str.size > g_maxNameLen) {
