@@ -51,7 +51,7 @@ u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL JobTaskId   g_jobsTaskId;
-THREAD_LOCAL Job* g_jobsCurrent;
+THREAD_LOCAL Job*        g_jobsCurrent;
 
 static void executor_wake_worker_all(void) {
   thread_mutex_lock(g_mutex);
@@ -257,7 +257,7 @@ static u16 executor_worker_count_desired(const JobsConfig* cfg) {
   }
   // Amounts of cores reserved for OS and other applications on the system.
   const u16 reservedCoreCount = 1;
-  return g_thread_core_count - reservedCoreCount;
+  return g_threadCoreCount - reservedCoreCount;
 }
 
 static u16 executor_worker_count(const JobsConfig* cfg) {
@@ -304,8 +304,7 @@ void executor_init(const JobsConfig* cfg) {
 }
 
 void executor_teardown(void) {
-  diag_assert_msg(
-      g_thread_tid == g_thread_main_tid, "Only the main-thread can teardown the executor");
+  diag_assert_msg(g_threadTid == g_threadMainTid, "Only the main-thread can teardown the executor");
   diag_assert_msg(g_jobsWorkerId == 0, "Unexpected worker-id for the main-thread");
 
   // Signal the workers for teardown.

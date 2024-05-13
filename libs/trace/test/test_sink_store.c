@@ -57,8 +57,8 @@ spec(sink_store) {
 
     check_eq_int(ctx.entryCount, 1);
     TestVisitorEntry* entry = &ctx.entries[0];
-    check_eq_int(entry->threadId, g_thread_tid);
-    check_eq_string(entry->threadName, g_thread_name);
+    check_eq_int(entry->threadId, g_threadTid);
+    check_eq_string(entry->threadName, g_threadName);
     check(entry->evt.timeDur != 0);
     check_eq_int(entry->evt.color, TraceColor_Red);
     check_eq_string(entry->evtId, string_lit("testEvt"));
@@ -78,8 +78,8 @@ spec(sink_store) {
 
     check_eq_int(ctx.entryCount, 1);
     TestVisitorEntry* entry = &ctx.entries[0];
-    check_eq_int(entry->threadId, g_thread_tid);
-    check_eq_string(entry->threadName, g_thread_name);
+    check_eq_int(entry->threadId, g_threadTid);
+    check_eq_string(entry->threadName, g_threadName);
     check(entry->evt.timeDur != 0);
     check_eq_int(entry->evt.color, TraceColor_Blue);
     check_eq_string(entry->evtId, string_lit("testEvt"));

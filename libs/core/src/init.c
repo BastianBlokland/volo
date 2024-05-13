@@ -44,7 +44,7 @@ void core_init(void) {
 }
 
 void core_teardown(void) {
-  if (g_thread_tid == g_thread_main_tid && g_initalized) {
+  if (g_threadTid == g_threadMainTid && g_initalized) {
     stringtable_teardown();
     tty_teardown();
   }
@@ -52,7 +52,7 @@ void core_teardown(void) {
     alloc_teardown_thread();
     g_initializedThread = false;
   }
-  if (g_thread_tid == g_thread_main_tid && g_initalized) {
+  if (g_threadTid == g_threadMainTid && g_initalized) {
     thread_teardown();
     symbol_teardown();
     dynlib_teardown();

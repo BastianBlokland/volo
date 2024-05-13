@@ -43,7 +43,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, LogMask_All));
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
-  log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
+  log_i("Application startup", log_param("pid", fmt_int(g_threadPid)));
 
 #ifdef VOLO_TRACE
   if (!cli_parse_provided(invoc, g_optTraceNoStore)) {

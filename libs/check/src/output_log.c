@@ -18,7 +18,7 @@ static void output_run_started(CheckOutput* out) {
   log(logOut->logger,
       LogLevel_Info,
       "Starting test run",
-      log_param("pid", fmt_int(g_thread_pid)),
+      log_param("pid", fmt_int(g_threadPid)),
       log_param("workers", fmt_int(g_jobsWorkerCount)),
       log_param("executable", fmt_path(g_path_executable)));
 }
@@ -99,7 +99,8 @@ static void output_destroy(CheckOutput* out) {
 
 CheckOutput* check_output_log(Allocator* alloc, Logger* logger) {
   CheckOutputLog* logOut = alloc_alloc_t(alloc, CheckOutputLog);
-  *logOut                = (CheckOutputLog){
+
+  *logOut = (CheckOutputLog){
       .api =
           {
               .runStarted      = output_run_started,
@@ -112,5 +113,6 @@ CheckOutput* check_output_log(Allocator* alloc, Logger* logger) {
       .alloc  = alloc,
       .logger = logger,
   };
+
   return (CheckOutput*)logOut;
 }

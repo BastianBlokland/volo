@@ -128,7 +128,7 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
   TraceBuffer* result = null;
 
   // NOTE: We access thread-local data from the thread so we need to be called from that thread.
-  diag_assert(tid == g_thread_tid);
+  diag_assert(tid == g_threadTid);
 
   // Check if there's a thread that has exited, if so we can re-use its buffer.
   for (u32 i = 0; i != s->threadCount; ++i) {
@@ -145,7 +145,7 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
         diag_assert(result->stackCount == 0);
         string_maybe_free(s->alloc, result->name);
 
-        result->name        = string_maybe_dup(s->alloc, g_thread_name);
+        result->name        = string_maybe_dup(s->alloc, g_threadName);
         result->eventCursor = 0;
         mem_set(array_mem(result->events), 0);
       }
@@ -160,7 +160,7 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(TraceSinkStore* s, const Thr
       diag_crash_msg("trace: Maximum thread-count exceeded");
     }
     result              = alloc_alloc_t(s->alloc, TraceBuffer);
-    result->name        = string_maybe_dup(s->alloc, g_thread_name);
+    result->name        = string_maybe_dup(s->alloc, g_threadName);
     result->resetLock   = thread_mutex_create(s->alloc);
     result->eventCursor = result->stackCount = 0;
     mem_set(array_mem(result->events), 0);
@@ -189,7 +189,7 @@ static void trace_buffer_advance(TraceBuffer* b) {
 static void trace_sink_store_event_begin(
     TraceSink* sink, const String id, const TraceColor color, const String msg) {
   TraceSinkStore* s = (TraceSinkStore*)sink;
-  TraceBuffer*    b = trace_buffer_register(s, g_thread_tid);
+  TraceBuffer*    b = trace_buffer_register(s, g_threadTid);
 
   /**
    * Check that the current thread is not visiting, this could cause a deadlock when trying to reuse
@@ -225,7 +225,7 @@ static void trace_sink_store_event_begin(
 
 static void trace_sink_store_event_end(TraceSink* sink) {
   TraceSinkStore* s = (TraceSinkStore*)sink;
-  TraceBuffer*    b = trace_buffer_find(s, g_thread_tid);
+  TraceBuffer*    b = trace_buffer_find(s, g_threadTid);
   diag_assert_msg(b && b->stackCount, "trace: Event ended that never started on this thread");
 
   // Pop the top-most event from the stack.
@@ -324,7 +324,7 @@ TraceSink* trace_sink_store(Allocator* alloc) {
    * Pre-register the calling thread.
    * NOTE: This is a hack so the main thread has id 0, as it looks cleaner in output.
    */
-  trace_buffer_add(sink, g_thread_tid);
+  trace_buffer_add(sink, g_threadTid);
 
   return (TraceSink*)sink;
 }

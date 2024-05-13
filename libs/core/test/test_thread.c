@@ -7,20 +7,20 @@
 
 static void test_thread_has_name(void* data) {
   (void)data;
-  if (!string_eq(g_thread_name, string_lit("my_custom_name"))) {
+  if (!string_eq(g_threadName, string_lit("my_custom_name"))) {
     diag_crash_msg("Test 'test_thread_has_name' failed");
   }
 }
 
 static void test_thread_exists(void* data) {
-  if (!thread_exists(g_thread_tid)) {
+  if (!thread_exists(g_threadTid)) {
     diag_crash_msg("Test 'test_thread_exists' failed");
   }
-  if (!thread_exists(g_thread_main_tid)) {
+  if (!thread_exists(g_threadMainTid)) {
     diag_crash_msg("Test 'test_thread_exists' failed");
   }
   ThreadId* myTidRes = data;
-  thread_atomic_store_i32(myTidRes, g_thread_tid);
+  thread_atomic_store_i32(myTidRes, g_threadTid);
 }
 
 static void test_atomic_store_value(void* data) { thread_atomic_store_i64((i64*)data, 1337); }
@@ -113,8 +113,8 @@ spec(thread) {
    * TODO: Skipped for now as it can be a bit flaky on slow machines due to timing requirements.
    */
   skip_it("can check if a thread exists") {
-    check(thread_exists(g_thread_tid));      // Verify that our own thread exists.
-    check(thread_exists(g_thread_main_tid)); // Verify that the main thread exists.
+    check(thread_exists(g_threadTid));     // Verify that our own thread exists.
+    check(thread_exists(g_threadMainTid)); // Verify that the main thread exists.
 
     // Start a new thread which will verify that it exists and write its tid.
     ThreadId     tid;

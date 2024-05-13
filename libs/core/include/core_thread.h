@@ -19,28 +19,28 @@ typedef i32 ThreadId;
  * Process identifier (aka 'thread group id').
  * The same value for all threads.
  */
-extern ThreadId g_thread_pid;
+extern ThreadId g_threadPid;
 
 /**
  * Thread identifier of the main thread.
  * NOTE: The thread that calls 'core_init()' is considered the main thread.
  */
-extern ThreadId g_thread_main_tid;
+extern ThreadId g_threadMainTid;
 
 /**
  * Thread identifier of the current thread.
  */
-extern THREAD_LOCAL ThreadId g_thread_tid;
+extern THREAD_LOCAL ThreadId g_threadTid;
 
 /**
  * Name of the current thread.
  */
-extern THREAD_LOCAL String g_thread_name;
+extern THREAD_LOCAL String g_threadName;
 
 /**
  * Number of logical cpu cores available to this process.
  */
-extern u16 g_thread_core_count;
+extern u16 g_threadCoreCount;
 
 /**
  * Function to run on an execution thread.
@@ -146,7 +146,7 @@ typedef enum {
 /**
  * Start a new execution thread.
  * - 'data' is provided as an argument to the ThreadRoutine.
- * - 'threadName' can be retrieved as 'g_thread_name' in the new thread.
+ * - 'threadName' can be retrieved as 'g_threadName' in the new thread.
  * - Threads should be cleaned up by calling 'thread_join'.
  *
  * Pre-condition: threadName.size <= 15

@@ -46,7 +46,7 @@ static void output_run_started(CheckOutput* out) {
       fmt_text(prettyOut->suiteName),
       arg_style_reset(prettyOut),
       arg_style_dim(prettyOut),
-      fmt_int(g_thread_pid),
+      fmt_int(g_threadPid),
       fmt_int(g_jobsWorkerCount),
       arg_style_reset(prettyOut));
 

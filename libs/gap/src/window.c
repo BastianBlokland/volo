@@ -57,7 +57,7 @@ static String window_default_title_scratch(const GapWindowComp* window) {
   return fmt_write_scratch(
       "{} (pid: {}, wid: {})",
       fmt_text(path_stem(g_path_executable)),
-      fmt_int(g_thread_pid),
+      fmt_int(g_threadPid),
       fmt_int(window->id));
 }
 

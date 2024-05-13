@@ -53,10 +53,10 @@ static void test_task_require_affinity(const void* ctx) {
    */
   TestExecutorAffinityData* data = (TestExecutorAffinityData*)ctx;
   if (sentinel_check(data->tid)) {
-    data->tid = g_thread_tid;
+    data->tid = g_threadTid;
     return;
   }
-  diag_assert_msg(data->tid == g_thread_tid, "Affinity task was executed on multiple threads");
+  diag_assert_msg(data->tid == g_threadTid, "Affinity task was executed on multiple threads");
 }
 
 spec(executor) {

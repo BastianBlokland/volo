@@ -60,8 +60,8 @@ struct sGapPal {
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
-  if (g_thread_tid != pal->owningThreadId) {
-    diag_crash_msg("Called from non-owning thread: {}", fmt_int(g_thread_tid));
+  if (g_threadTid != pal->owningThreadId) {
+    diag_crash_msg("Called from non-owning thread: {}", fmt_int(g_threadTid));
   }
 }
 
@@ -700,10 +700,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -838,7 +838,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
-  const bool isWindowOwner = g_thread_tid == pal->owningThreadId;
+  const bool isWindowOwner = g_threadTid == pal->owningThreadId;
   if (isWindowOwner) {
     if (!DestroyWindow((HWND)windowId)) {
       pal_crash_with_win32_err(string_lit("DestroyWindow"));

@@ -16,10 +16,10 @@ ecs_system_define(AffinitySys) {
     AffinityComp* comp = ecs_view_write_t(itr, AffinityComp);
 
     if (sentinel_check(comp->tid)) {
-      comp->tid = g_thread_tid;
+      comp->tid = g_threadTid;
       continue;
     }
-    diag_assert_msg(comp->tid == g_thread_tid, "Affinity system was executed on multiple threads");
+    diag_assert_msg(comp->tid == g_threadTid, "Affinity system was executed on multiple threads");
   }
 }
 

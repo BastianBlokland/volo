@@ -128,7 +128,7 @@ static void dump_eventtrace_visitor(
 void trace_dump_eventtrace(const TraceSink* storeSink, DynString* out) {
   DumpEventTraceCtx ctx = {
       .out = out,
-      .pid = g_thread_pid,
+      .pid = g_threadPid,
   };
 
   dump_eventtrace_init(&ctx);
