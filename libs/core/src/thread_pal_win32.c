@@ -34,11 +34,11 @@ static HRESULT(SYS_DECL* g_setThreadDescription)(HANDLE thread, const wchar_t* d
 static NORETURN void thread_crash_early_init(const String msg) {
   HANDLE stdErr = GetStdHandle(STD_ERROR_HANDLE);
   if (stdErr != INVALID_HANDLE_VALUE) {
-    WriteFile(msg.ptr, (DWORD)msg.size, null, null);
+    WriteFile(stdErr, msg.ptr, (DWORD)msg.size, null, null);
   }
 
   HANDLE curProcess = GetCurrentProcess();
-  TerminateProcess(curProcess, diag_crash_exit_code);
+  TerminateProcess(curProcess, thread_early_crash_exit_code);
   UNREACHABLE
 }
 
