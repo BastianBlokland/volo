@@ -96,7 +96,8 @@ void diag_assert_handler(AssertHandler, void* context);
 /**
  * Set the application crash handler.
  * The handler is invoked when a crash is reported. Crashes are always fatal, the handler cannot
- * prevent application shutdown.
+ * prevent application shutdown. Care be taken while writing a crash-handler as the application is
+ * in an unknown state.
  *
  * NOTE: 'context' is provided to the crash handler when its invoked.
  * NOTE: Only a single crash handler can be registered, the previous will be replaced.
