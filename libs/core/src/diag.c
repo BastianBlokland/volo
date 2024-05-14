@@ -9,6 +9,8 @@
 static THREAD_LOCAL bool          g_diagIsReporting;
 static THREAD_LOCAL AssertHandler g_assertHandler;
 static THREAD_LOCAL void*         g_assertHandlerContext;
+static CrashHandler               g_crashHandler;
+static void*                      g_crashHandlerContext;
 
 INLINE_HINT NORETURN static void diag_crash_internal(const String msg) {
   const SymbolStack stack = symbol_stack_walk();
@@ -79,6 +81,11 @@ void diag_crash_msg_raw(const String userMsg) {
 void diag_assert_handler(AssertHandler handler, void* context) {
   g_assertHandler        = handler;
   g_assertHandlerContext = context;
+}
+
+void diag_crash_handler(CrashHandler handler, void* context) {
+  g_crashHandler        = handler;
+  g_crashHandlerContext = context;
 }
 
 void diag_except_enable(jmp_buf* anchor, const i32 exceptionCode) {

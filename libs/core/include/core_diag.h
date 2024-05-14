@@ -4,6 +4,7 @@
 #include "core_sourceloc.h"
 
 typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
+typedef void (*CrashHandler)(String msg, void* context);
 
 /**
  * Assert the given condition evaluates to true.
@@ -84,7 +85,6 @@ NORETURN void diag_crash_msg_raw(String msg);
 
 /**
  * Set the assert handler for the current thread.
- * If an assert handler is registered it is invoked whenever a assert is tripped.
  * When the handler returns true: the assertion is ignored else the application is terminated.
  *
  * NOTE: 'context' is provided to the assert handler when its invoked.
@@ -92,3 +92,14 @@ NORETURN void diag_crash_msg_raw(String msg);
  * NOTE: Invoke with 'null' to clear the current assert handler for this thread.
  */
 void diag_assert_handler(AssertHandler, void* context);
+
+/**
+ * Set the application crash handler.
+ * The handler is invoked when a crash is reported. Crashes are always fatal, the handler cannot
+ * prevent application shutdown.
+ *
+ * NOTE: 'context' is provided to the crash handler when its invoked.
+ * NOTE: Only a single crash handler can be registered, the previous will be replaced.
+ * NOTE: Invoke with 'null' to clear the current crash handler.
+ */
+void diag_crash_handler(CrashHandler, void* context);
