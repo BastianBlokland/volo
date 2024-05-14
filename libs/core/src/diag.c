@@ -54,8 +54,8 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
    * Write a crash-file and invoke any user crash-handler (if registered).
    * NOTE: Only runs for the first thread that crashes, the other threads will block until the
    * reporting is done.
-   * TODO: Use a Mutex instead of SpinLock to avoid wasting resources while we are inside the user
-   * crash-handler (which could be displaying a modal popup for example).
+   * TODO: Use a Mutex instead of a SpinLock to avoid potentially wasting resources while we are
+   * inside the user crash-handler and other threads are spinning.
    */
 
   static ThreadSpinLock g_crashLock;
