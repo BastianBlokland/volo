@@ -3,11 +3,6 @@
 #include "core_format.h"
 #include "core_sourceloc.h"
 
-/**
- * Handler to be invoked when an assertion fails.
- * If 'true' is returned the assertion is ignored.
- * if 'false' is returned the application is terminated.
- */
 typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
 
 /**
@@ -89,9 +84,10 @@ NORETURN void diag_crash_msg_raw(String msg);
 
 /**
  * Set the assert handler for the current thread.
- * If a assert handler is registered it is invoked whenever an assert is tripped.
- * 'context' is provided to the assert handler when its invoked.
+ * If an assert handler is registered it is invoked whenever a assert is tripped.
+ * When the handler returns true: the assertion is ignored else the application is terminated.
  *
+ * NOTE: 'context' is provided to the assert handler when its invoked.
  * NOTE: Only a single assert handler can be registered per thread, the previous will be replaced.
  * NOTE: Invoke with 'null' to clear the current assert handler for this thread.
  */
