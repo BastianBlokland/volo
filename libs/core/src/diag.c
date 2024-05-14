@@ -6,11 +6,11 @@
 
 #include "diag_internal.h"
 
-static THREAD_LOCAL bool          g_diagIsReporting;
 static THREAD_LOCAL AssertHandler g_assertHandler;
 static THREAD_LOCAL void*         g_assertHandlerContext;
-static CrashHandler               g_crashHandler;
-static void*                      g_crashHandlerContext;
+
+static CrashHandler g_crashHandler;
+static void*        g_crashHandlerContext;
 
 INLINE_HINT NORETURN static void diag_crash_internal(const String msg) {
   const SymbolStack stack = symbol_stack_walk();
@@ -20,39 +20,60 @@ INLINE_HINT NORETURN static void diag_crash_internal(const String msg) {
   diag_pal_crash();
 }
 
+NO_INLINE_HINT static void diag_crash_file_write(const String text) {
+  DynString filePath = dynstring_create_over(mem_stack(1024));
+  path_build(
+      &filePath,
+      path_parent(g_pathExecutable),
+      string_lit("logs"),
+      path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("crash")));
+
+  file_write_to_path_sync(dynstring_view(&filePath), text);
+}
+
 NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg) {
-  if (g_diagIsReporting) {
+  static THREAD_LOCAL bool g_crashBusy;
+  if (g_crashBusy) {
     return; // Avoid reporting crashes that occur during this function.
   }
-  g_diagIsReporting = true;
+  g_crashBusy = true;
 
-  // Build the text.
+  /**
+   * Report the crash to the stderr stream.
+   * NOTE: There is no locking up to this point so when multiple threads crash at the same time then
+   * all their crashes are written to stderr.
+   */
+
   DynString str = dynstring_create_over(mem_stack(2048));
   dynstring_append(&str, string_slice(msg, 0, math_min(msg.size, 512)));
   symbol_stack_write(stack, &str);
 
-  // Write it to stderr.
   file_write_sync(g_fileStdErr, dynstring_view(&str));
 
-  // Write it to a crash-file.
-  static ThreadSpinLock g_crashFileLock;
-  static bool           g_crashFileWritten;
-  thread_spinlock_lock(&g_crashFileLock);
-  {
-    // NOTE: Only write a single crash-file, even if multiple threads crash.
-    if (!g_crashFileWritten) {
-      g_crashFileWritten = true;
+  /**
+   * Write a crash-file and invoke any user crash-handler (if registered).
+   * NOTE: Only runs for the first thread that crashes, the other threads will block until the
+   * reporting is done.
+   * TODO: Use a Mutex instead of SpinLock to avoid wasting resources while we are inside the user
+   * crash-handler (which could be displaying a modal popup for example).
+   */
 
-      const String crashFilePath = path_build_scratch(
-          path_parent(g_pathExecutable),
-          string_lit("logs"),
-          path_name_timestamp_scratch(path_stem(g_pathExecutable), string_lit("crash")));
-      file_write_to_path_sync(crashFilePath, dynstring_view(&str));
+  static ThreadSpinLock g_crashLock;
+  static bool           g_crashReported;
+  thread_spinlock_lock(&g_crashLock);
+  {
+    if (!g_crashReported) {
+      g_crashReported = true;
+
+      diag_crash_file_write(dynstring_view(&str));
+
+      if (g_crashHandler) {
+        g_crashHandler(dynstring_view(&str), g_crashHandlerContext);
+      }
     }
   }
-  thread_spinlock_unlock(&g_crashFileLock);
-
-  g_diagIsReporting = false;
+  thread_spinlock_unlock(&g_crashLock);
+  g_crashBusy = false;
 }
 
 void diag_print_raw(const String userMsg) { file_write_sync(g_fileStdOut, userMsg); }
