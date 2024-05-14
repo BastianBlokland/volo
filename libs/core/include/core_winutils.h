@@ -60,7 +60,7 @@ usize winutils_from_widestr(String output, const void* input, usize inputCharCou
 String winutils_from_widestr_scratch(const void* input, usize inputCharCount);
 
 /**
- * Retieve a human readable error message for a win32 error-code into a string allocated in scratch
+ * Retrieve a human readable error message for a win32 error-code into a string allocated in scratch
  * memory.
  */
 String winutils_error_msg_scratch(unsigned long errCode);
