@@ -7,6 +7,10 @@
 
 #include <Windows.h>
 
+/**
+ * Platform page allocator.
+ */
+
 typedef struct {
   Allocator api;
   usize     pageSize;

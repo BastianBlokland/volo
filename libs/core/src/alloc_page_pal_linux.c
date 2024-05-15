@@ -9,6 +9,12 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+/**
+ * Platform page allocator.
+ * NOTE: Do NOT add locks (neither mutex nor spin-lock) to the page-allocation path as then it will
+ * become unsafe to be called after fork (as another thread might have held the lock).
+ */
+
 typedef struct {
   Allocator api;
   usize     pageSize;
