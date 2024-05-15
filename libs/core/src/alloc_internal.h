@@ -57,7 +57,7 @@ void alloc_tag_free(Mem, AllocMemType);
 void alloc_tag_guard(Mem, AllocMemType);
 
 /**
- * Diagnostic api for marking memory as poisonned.
+ * Diagnostic api for marking memory as poisoned.
  * Poisoned memory is not allowed to be read from / written to.
  */
 void alloc_poison(Mem);
