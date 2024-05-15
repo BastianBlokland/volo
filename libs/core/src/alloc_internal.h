@@ -1,6 +1,8 @@
 #pragma once
 #include "core_alloc.h"
-#include "core_diag.h"
+#include "core_symbol.h"
+
+#include "diag_internal.h"
 
 #define alloc_max_alloc_size (usize_mebibyte * 256)
 
@@ -62,3 +64,14 @@ void alloc_tag_guard(Mem, AllocMemType);
  */
 void alloc_poison(Mem);
 void alloc_unpoison(Mem);
+
+/**
+ * Allocation tracker.
+ */
+typedef struct sAllocTracker AllocTracker;
+
+AllocTracker* alloc_tracker_create();
+void          alloc_tracker_destroy(AllocTracker*);
+void          alloc_tracker_add(AllocTracker*, Mem, SymbolStack);
+void          alloc_tracker_remove(AllocTracker*, Mem);
+void          alloc_tracker_dump(File*);
