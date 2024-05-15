@@ -124,10 +124,7 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
   thread_spinlock_lock(&tracker->slotsLock);
   {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
-    if (UNLIKELY(slot->mem.size != mem.size)) {
-      alloc_crash_with_msg("Allocation known with different size in AllocationTracker");
-    }
-    slot->mem = mem_empty; // Mark the slot as empty.
+    slot->mem              = mem_empty; // Mark the slot as empty.
     --tracker->slotCountUsed;
   }
   thread_spinlock_unlock(&tracker->slotsLock);
