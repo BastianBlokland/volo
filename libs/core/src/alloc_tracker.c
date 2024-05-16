@@ -13,7 +13,7 @@ typedef struct {
 
 struct sAllocTracker {
   ThreadSpinLock    slotsLock;
-  usize             slotCount, slotCountUsed;
+  usize             slotCount, slotCountUsed, slotSizeUsed;
   AllocTrackerSlot* slots;
 };
 
@@ -109,7 +109,8 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
     if (tracker_slot_empty(slot)) {
       slot->mem   = mem;
       slot->stack = stack;
-      ++tracker->slotCountUsed;
+      tracker->slotCountUsed += 1;
+      tracker->slotSizeUsed += mem.size;
       if (UNLIKELY(tracker_should_grow(tracker))) {
         tracker_grow(tracker);
       }
@@ -125,9 +126,13 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
   {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
     slot->mem              = mem_empty; // Mark the slot as empty.
-    --tracker->slotCountUsed;
+    tracker->slotCountUsed -= 1;
+    tracker->slotSizeUsed -= mem.size;
   }
   thread_spinlock_unlock(&tracker->slotsLock);
 }
+
+usize alloc_tracker_count(AllocTracker* tracker) { return tracker->slotCountUsed; }
+usize alloc_tracker_size(AllocTracker* tracker) { return tracker->slotSizeUsed; }
 
 void alloc_tracker_dump(File*);
