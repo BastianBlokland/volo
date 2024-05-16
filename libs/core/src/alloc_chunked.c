@@ -123,17 +123,18 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
    * book-keeping.
    */
   AllocatorChunked* alloc = alloc_alloc_t(g_allocHeap, AllocatorChunked);
-  *alloc                  = (AllocatorChunked){
-                       .api =
-                           {
-                               .alloc   = alloc_chunked_alloc,
-                               .free    = alloc_chunked_free,
-                               .maxSize = alloc_chunked_max_size,
-                               .reset   = alloc_chunked_reset,
+
+  *alloc = (AllocatorChunked){
+      .api =
+          {
+              .alloc   = alloc_chunked_alloc,
+              .free    = alloc_chunked_free,
+              .maxSize = alloc_chunked_max_size,
+              .reset   = alloc_chunked_reset,
           },
-                       .parent    = parent,
-                       .builder   = builder,
-                       .chunkSize = chunkSize,
+      .parent    = parent,
+      .builder   = builder,
+      .chunkSize = chunkSize,
   };
   return (Allocator*)alloc;
 }
