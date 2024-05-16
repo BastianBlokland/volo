@@ -5,8 +5,8 @@
 /**
  * Create a bump allocator backed by a buffer on the stack. Allocations will fail once the buffer
  * has been filled up. Note: Allocations made from the allocator are not valid after the allocator
- * goes out of scope. Note: Care must be taken not to overflow the stack by using too high _SIZE_
- * values.
+ * goes out of scope.
+ * NOTE: Care must be taken not to overflow the stack by using too high _SIZE_ values.
  */
 #define alloc_bump_create_stack(_SIZE_) alloc_bump_create(mem_stack(_SIZE_))
 
