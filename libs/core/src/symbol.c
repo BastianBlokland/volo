@@ -179,6 +179,8 @@ void symbol_teardown(void) {
   thread_mutex_destroy(g_symRegMutex);
 }
 
+void symbol_dbg_preload(void) { symbol_reg_get(); }
+
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
 /**
  * Check if the given pointer is located on the stack of the current thread. Avoids us following
