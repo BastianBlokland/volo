@@ -18,7 +18,7 @@
 // #define VOLO_SYMBOL_VERBOSE
 
 #define symbol_reg_name_max 64
-#define symbol_reg_aux_chunk_size (4 * usize_kibibyte)
+#define symbol_reg_chunk_size (4 * usize_kibibyte)
 
 typedef struct {
   SymbolAddrRel begin, end;
@@ -26,7 +26,6 @@ typedef struct {
 } SymbolInfo;
 
 struct sSymbolReg {
-  Allocator* alloc;
   Allocator* allocAux; // (chunked) bump allocator for axillary data (eg symbol names).
   DynArray   syms;     // SymbolInfo[], kept sorted on begin address.
 };
@@ -67,13 +66,17 @@ static bool sym_info_contains(const SymbolInfo* sym, const SymbolAddrRel addr) {
   return addr >= sym->begin && addr < sym->end;
 }
 
-static SymbolReg* symbol_reg_create(Allocator* alloc) {
-  SymbolReg* r = alloc_alloc_t(alloc, SymbolReg);
+static SymbolReg* symbol_reg_create(void) {
+  /**
+   * We cannot use the heap allocator as the symbol registry is used in heap leak detection, instead
+   * use the page-allocator directly plus a chunked bump-allocator for small allocations.
+   */
+  Allocator* allocAux = alloc_chunked_create(g_allocPage, alloc_bump_create, symbol_reg_chunk_size);
+  SymbolReg* r        = alloc_alloc_t(allocAux, SymbolReg);
 
   *r = (SymbolReg){
-      .alloc    = alloc,
-      .allocAux = alloc_chunked_create(alloc, alloc_bump_create, symbol_reg_aux_chunk_size),
-      .syms     = dynarray_create_t(alloc, SymbolInfo, 2048),
+      .allocAux = allocAux,
+      .syms     = dynarray_create_t(g_allocPage, SymbolInfo, 2048),
   };
 
   return r;
@@ -82,7 +85,6 @@ static SymbolReg* symbol_reg_create(Allocator* alloc) {
 static void symbol_reg_destroy(SymbolReg* r) {
   dynarray_destroy(&r->syms);
   alloc_chunked_destroy(r->allocAux);
-  alloc_free_t(r->alloc, r);
 }
 
 /**
@@ -143,8 +145,7 @@ static const SymbolReg* symbol_reg_get(void) {
   g_symRegInitializing = true;
   thread_mutex_lock(g_symRegMutex);
   if (!g_symReg) {
-    // NOTE: Cannot use the heap allocator as the symbol registry is used in heap leak detection.
-    SymbolReg* reg = symbol_reg_create(g_allocPage);
+    SymbolReg* reg = symbol_reg_create();
     symbol_pal_dbg_init(reg);
 #if defined(VOLO_SYMBOL_VERBOSE)
     symbol_reg_dump_out(reg);
