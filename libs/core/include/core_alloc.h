@@ -80,9 +80,9 @@ Allocator* alloc_bump_create(Mem);
  *
  * NOTE: Chunks are only freed when the allocator is destroyed.
  * NOTE: Destroy using 'alloc_chunked_destroy()'.
- * NOTE: Only 32 chunks are supported, after that allocations will fail.
+ * NOTE: Only 64 chunks are supported, after that allocations will fail.
  *
- * Pre-condition: chunkSize >= 128.
+ * Pre-condition: chunkSize >= 768.
  * Pre-condition: chunkSize is a power-of-two.
  */
 Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder, usize chunkSize);
