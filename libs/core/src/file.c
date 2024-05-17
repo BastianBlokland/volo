@@ -12,7 +12,7 @@ static i64 g_fileCount;
 
 /**
  * Special crash-routine that does not allocate any memory.
- * Which is needed as file teardown happens after the allocators have been torn down.
+ * Reason is file teardown can happen after the allocators have been torn down.
  */
 #define file_crash_with_msg(_MSG_, ...)                                                            \
   do {                                                                                             \
