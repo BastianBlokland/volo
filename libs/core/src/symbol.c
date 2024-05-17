@@ -121,7 +121,8 @@ static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
 }
 
 MAYBE_UNUSED static void symbol_reg_dump_out(const SymbolReg* r) {
-  DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
+  // NOTE: Cannot use the heap allocator as the symbol registry is used in heap leak detection.
+  DynString str = dynstring_create(g_allocPage, 4 * usize_kibibyte);
   symbol_reg_dump(r, &str);
   file_write_sync(g_fileStdOut, dynstring_view(&str));
   dynstring_destroy(&str);
@@ -142,7 +143,8 @@ static const SymbolReg* symbol_reg_get(void) {
   g_symRegInitializing = true;
   thread_mutex_lock(g_symRegMutex);
   if (!g_symReg) {
-    SymbolReg* reg = symbol_reg_create(g_allocHeap);
+    // NOTE: Cannot use the heap allocator as the symbol registry is used in heap leak detection.
+    SymbolReg* reg = symbol_reg_create(g_allocPage);
     symbol_pal_dbg_init(reg);
 #if defined(VOLO_SYMBOL_VERBOSE)
     symbol_reg_dump_out(reg);
