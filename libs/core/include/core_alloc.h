@@ -51,7 +51,7 @@ extern Allocator* g_allocHeap;
 extern Allocator* g_allocPage;
 
 /**
- * Persitent allocator.
+ * Persistent allocator.
  * Allocator for memory that needs to persist over the whole application lifetime.
  * Memory cannot be manually freed, its automatically freed at application shutdown.
  * NOTE: Thread-safe.
