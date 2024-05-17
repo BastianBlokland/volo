@@ -28,15 +28,13 @@ typedef struct {
   RvkAllocMeta* meta;
 } RvkAllocInfo;
 
-#define alloc_meta_size sizeof(RvkAllocMeta)
-
 static RvkAllocMeta* rvk_alloc_meta_ptr(void* ptr) {
-  return (RvkAllocMeta*)bits_ptr_offset(ptr, -(iptr)alloc_meta_size);
+  return (RvkAllocMeta*)bits_ptr_offset(ptr, -(iptr)sizeof(RvkAllocMeta));
 }
 
 static Mem rvk_alloc_mem_total(void* ptr) {
   const RvkAllocMeta* meta      = rvk_alloc_meta_ptr(ptr);
-  const usize         totalSize = meta->padding + alloc_meta_size + meta->size;
+  const usize         totalSize = meta->padding + sizeof(RvkAllocMeta) + meta->size;
   return mem_create(bits_ptr_offset(meta, -(iptr)meta->padding), totalSize);
 }
 
@@ -45,13 +43,14 @@ static Mem rvk_alloc_mem_payload(void* ptr) {
   return mem_create(ptr, meta->size);
 }
 
-static RvkAllocInfo rvk_alloc_internal(
-    Allocator* alloc, const usize size, const usize align, const VkSystemAllocationScope scope) {
-
+static RvkAllocInfo
+rvk_alloc_internal(Allocator* alloc, usize size, usize align, const VkSystemAllocationScope scope) {
   (void)scope;
+  align = math_max(align, alignof(RvkAllocMeta));
+  size  = bits_align(size, align);
 
-  const usize padding   = bits_padding(alloc_meta_size, align);
-  const usize totalSize = bits_align(alloc_meta_size + padding + size, align);
+  const usize padding   = bits_padding(sizeof(RvkAllocMeta), align);
+  const usize totalSize = padding + sizeof(RvkAllocMeta) + size;
 
   Mem mem = alloc_alloc(alloc, totalSize, align);
   if (UNLIKELY(!mem_valid(mem))) {
@@ -62,7 +61,7 @@ static RvkAllocInfo rvk_alloc_internal(
   *meta              = (RvkAllocMeta){.size = (u32)size, .padding = (u32)padding};
   return (RvkAllocInfo){
       .memTotal   = mem,
-      .payloadPtr = bits_ptr_offset(meta, alloc_meta_size),
+      .payloadPtr = bits_ptr_offset(meta, sizeof(RvkAllocMeta)),
       .meta       = meta,
   };
 }
