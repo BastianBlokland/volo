@@ -20,8 +20,12 @@ typedef struct {
 
 ASSERT(alloc_chunk_size_min > sizeof(AllocatorChunked), "Meta-data does not fit in a chunk");
 
-static Allocator* alloc_chunk_create(AllocatorChunked* alloc) {
+NO_INLINE_HINT static Allocator* alloc_chunk_create(AllocatorChunked* alloc) {
   Mem chunkMem = alloc_alloc(alloc->parent, alloc->chunkSize, alloc_chunk_align);
+  if (!mem_valid(chunkMem)) {
+    alloc_crash_with_msg(
+        "ChunkedAllocator failed to allocate {} from parent", fmt_size(alloc->chunkSize));
+  }
   return alloc->builder(chunkMem);
 }
 
@@ -118,8 +122,11 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
       bits_ispow2(chunkSize), "Chunk-size '{}' is not a power-of-two", fmt_int(chunkSize));
 
   // The main-memory contains both the meta-data (AllocatorChunked) as well as chunk 0.
-  const Mem         mainMem = alloc_alloc(parent, chunkSize, alloc_chunk_align);
-  AllocatorChunked* alloc   = mem_as_t(mainMem, AllocatorChunked);
+  const Mem mainMem = alloc_alloc(parent, chunkSize, alloc_chunk_align);
+  if (!mem_valid(mainMem)) {
+    alloc_crash_with_msg("ChunkedAllocator failed to allocate {} from parent", fmt_size(chunkSize));
+  }
+  AllocatorChunked* alloc = mem_as_t(mainMem, AllocatorChunked);
 
   const Mem chunk0Mem = mem_consume(mainMem, sizeof(AllocatorChunked));
   diag_assert(bits_align_ptr(chunk0Mem.ptr, alloc_chunk_align));

@@ -163,11 +163,13 @@ Allocator* alloc_block_create(Allocator* parent, const usize blockSize) {
 
   const Mem mainMem = alloc_alloc(parent, main_size_total, main_align);
   if (!mem_valid(mainMem)) {
-    diag_crash_msg("BlockAllocator failed to allocate {} from parent", fmt_size(chunk_size_total));
+    alloc_crash_with_msg(
+        "BlockAllocator failed to allocate {} from parent", fmt_size(chunk_size_total));
   }
 
   AllocatorBlock* allocBlock = mem_as_t(mainMem, AllocatorBlock);
-  *allocBlock                = (AllocatorBlock){
+
+  *allocBlock = (AllocatorBlock){
       .api =
           {
               .alloc   = alloc_block_alloc,
