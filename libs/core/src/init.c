@@ -45,23 +45,21 @@ void core_init(void) {
 
 void core_teardown(void) {
   if (g_threadTid == g_threadMainTid && g_initalized) {
-    stringtable_teardown();
-    tty_teardown();
+    stringtable_teardown(); // Teardown early as it contains heap allocations.
+
+    dynlib_leak_report();
+    file_leak_report();
+    alloc_leak_report();
   }
   if (g_initializedThread) {
     alloc_teardown_thread();
     g_initializedThread = false;
   }
   if (g_threadTid == g_threadMainTid && g_initalized) {
-    // Leak report.
-    dynlib_leak_report();
-    file_leak_report();
-    alloc_leak_report();
-
-    // Teardown.
     thread_teardown();
     symbol_teardown();
     alloc_teardown();
+    tty_teardown();
     g_initalized = false;
   }
 }
