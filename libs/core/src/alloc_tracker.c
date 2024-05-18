@@ -166,7 +166,7 @@ static i8 tracker_report_compare_addr(const void* a, const void* b) {
 static i8 tracker_report_compare_count(const void* a, const void* b) {
   const TrackerReportEntry* entryA = a;
   const TrackerReportEntry* entryB = b;
-  const i8                  c      = compare_u32(&entryA->count, &entryB->count);
+  const i8                  c      = compare_u32_reverse(&entryA->count, &entryB->count);
   return c ? c : compare_u32(&entryA->addr, &entryB->addr);
 }
 
@@ -201,7 +201,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
       const u32 offset = entry->addr - funcAddr;
       fmt_write(
           out,
-          " x{>4} {>8} {} {} +{}\n",
+          " x{>5} {>8} {} {} +{}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
           fmt_int(funcAddr, .base = 16, .minDigits = 8),
@@ -211,7 +211,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
       const SymbolAddr addrAbs = symbol_addr_abs(entry->addr);
       fmt_write(
           out,
-          " x{>4} {>8} {} {}\n",
+          " x{>5} {>8} {} {}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
           fmt_int(entry->addr, .base = 16, .minDigits = 8),
