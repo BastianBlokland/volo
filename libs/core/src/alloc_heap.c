@@ -63,10 +63,10 @@ static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize 
 static void alloc_heap_free(Allocator* allocator, const Mem mem) {
   AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
   Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, mem.size);
-  alloc_free(allocSub, mem);
 #ifdef VOLO_MEMORY_TRACKING
   alloc_tracker_remove(allocHeap->tracker, mem);
 #endif
+  alloc_free(allocSub, mem);
 }
 
 static usize alloc_heap_max_size(Allocator* allocator) {
