@@ -163,7 +163,7 @@ DebugTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
       DebugTextComp,
       .entries = dynarray_create_t(g_allocHeap, DebugText3D, 64),
       .allocTransient =
-          alloc_chunked_create(g_allocPage, alloc_bump_create, debug_text_transient_chunk_size));
+          alloc_chunked_create(g_allocHeap, alloc_bump_create, debug_text_transient_chunk_size));
 }
 
 void debug_text_with_opts(

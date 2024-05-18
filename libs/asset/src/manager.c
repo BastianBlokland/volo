@@ -131,7 +131,7 @@ asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManag
       ecs_world_global(world),
       AssetManagerComp,
       .repo    = repo,
-      .idAlloc = alloc_chunked_create(g_allocPage, alloc_bump_create, asset_id_chunk_size),
+      .idAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, asset_id_chunk_size),
       .flags   = flags,
       .lookup  = dynarray_create_t(g_allocHeap, AssetEntry, 128));
 }

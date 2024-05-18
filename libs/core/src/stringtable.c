@@ -93,7 +93,7 @@ StringTable* stringtable_create(Allocator* alloc) {
       .alloc     = alloc,
       .slotCount = stringtable_slots_initial,
       .slots     = stringtable_slots_alloc(alloc, stringtable_slots_initial),
-      .dataAlloc = alloc_chunked_create(g_allocPage, alloc_bump_create, stringtable_chunk_size),
+      .dataAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, stringtable_chunk_size),
   };
   return table;
 }

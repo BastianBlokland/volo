@@ -272,7 +272,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMo
 
   *monitor = (FileMonitor){
       .alloc      = alloc,
-      .allocPath  = alloc_chunked_create(g_allocPage, alloc_bump_create, monitor_path_chunk_size),
+      .allocPath  = alloc_chunked_create(g_allocHeap, alloc_bump_create, monitor_path_chunk_size),
       .mutex      = thread_mutex_create(alloc),
       .flags      = flags,
       .watches    = dynarray_create_t(alloc, FileWatch, 64),
