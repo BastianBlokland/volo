@@ -204,7 +204,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
           " x{>5} {>10} {} {} +{}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
-          fmt_int(funcAddr, .base = 16, .minDigits = 8),
+          fmt_int(entry->addr, .base = 16, .minDigits = 8),
           fmt_text(funcName),
           fmt_int(offset));
     } else {
