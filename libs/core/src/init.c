@@ -59,7 +59,7 @@ void core_teardown(void) {
     thread_teardown();
     symbol_teardown();
     alloc_teardown();
-    tty_teardown();
+    tty_teardown(); // Teardown last because we shouldn't write to the terminal after this.
     g_initalized = false;
   }
 }
