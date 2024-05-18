@@ -6,10 +6,6 @@
 
 #include "alloc_internal.h"
 
-#ifndef VOLO_FAST
-#define VOLO_MEMORY_TRACKING
-#endif
-
 #define block_bucket_pow_min 4
 #define block_bucket_pow_max 11
 #define block_bucket_size_min (usize_lit(1) << block_bucket_pow_min)
@@ -27,7 +23,7 @@ typedef struct {
 #ifdef VOLO_MEMORY_TRACKING
   AllocTracker* tracker;
 #endif
-  i64 counter; // Incremented on every allocation. TODO: Determine perf cost.
+  i64 counter; // Incremented on every allocation.
 } AllocatorHeap;
 
 static usize alloc_heap_pow_index(const usize size) {

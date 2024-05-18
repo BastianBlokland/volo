@@ -4,6 +4,10 @@
 
 #include "diag_internal.h"
 
+#ifndef VOLO_FAST
+#define VOLO_MEMORY_TRACKING
+#endif
+
 #define alloc_max_alloc_size (usize_mebibyte * 256)
 
 /**

@@ -152,3 +152,4 @@ AllocStats alloc_stats_query(void);
  * NOTE: Requires memory-tracking to be compiled in.
  */
 void alloc_heap_dump(void);
+void alloc_persist_dump(void);
