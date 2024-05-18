@@ -1,4 +1,6 @@
+#include "core_array.h"
 #include "core_bits.h"
+#include "core_file.h"
 #include "core_thread.h"
 
 #include "alloc_internal.h"
@@ -59,7 +61,9 @@ static AllocTrackerSlot* tracker_slot(
     // Hash collision, jump to a new bucket (quadratic probing).
     bucket = (bucket + i + 1) & (slotCount - 1);
   }
-  diag_crash_msg("Allocation not found in AllocTracker");
+  diag_crash_msg(
+      "Allocation (addr: {}) not found in AllocTracker",
+      fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16));
 }
 
 NO_INLINE_HINT static void tracker_grow(AllocTracker* table) {
@@ -115,7 +119,9 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
         tracker_grow(tracker);
       }
     } else {
-      diag_crash_msg("Duplicate allocation in AllocationTracker");
+      diag_crash_msg(
+          "Duplicate allocation (addr: {}) in AllocationTracker",
+          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16));
     }
   }
   thread_spinlock_unlock(&tracker->slotsLock);
@@ -127,7 +133,8 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
     if (UNLIKELY(slot->mem.size != mem.size)) {
       diag_crash_msg(
-          "Allocation known with a different size ({} vs {}) in AllocationTracker",
+          "Allocation (addr: {}) known with a different size ({} vs {}) in AllocationTracker",
+          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
           fmt_int(slot->mem.size),
           fmt_int(mem.size));
     }
@@ -141,4 +148,108 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
 usize alloc_tracker_count(AllocTracker* tracker) { return tracker->slotCountUsed; }
 usize alloc_tracker_size(AllocTracker* tracker) { return tracker->slotSizeUsed; }
 
-void alloc_tracker_dump(File*);
+typedef struct {
+  SymbolAddrRel addr; // Address in a function; not the function base address.
+  u32           count;
+  usize         size;
+} TrackerReportEntry;
+
+typedef struct {
+  DynArray entries; // TrackerReportEntry[], sorted on addr.
+} TrackerReport;
+
+static i8 tracker_report_compare_addr(const void* a, const void* b) {
+  return compare_u32(
+      field_ptr(a, TrackerReportEntry, addr), field_ptr(b, TrackerReportEntry, addr));
+}
+
+static i8 tracker_report_compare_count(const void* a, const void* b) {
+  const TrackerReportEntry* entryA = a;
+  const TrackerReportEntry* entryB = b;
+  const i8                  c      = compare_u32(&entryA->count, &entryB->count);
+  return c ? c : compare_u32(&entryA->addr, &entryB->addr);
+}
+
+static TrackerReport tracker_report_create(void) {
+  return (TrackerReport){.entries = dynarray_create_t(g_allocPage, TrackerReportEntry, 256)};
+}
+
+static void tracker_report_destroy(TrackerReport* report) { dynarray_destroy(&report->entries); }
+
+static void tracker_report_add(TrackerReport* report, const SymbolAddrRel addr, const usize size) {
+  TrackerReportEntry  tgt = {.addr = addr};
+  TrackerReportEntry* entry =
+      dynarray_find_or_insert_sorted(&report->entries, tracker_report_compare_addr, &tgt);
+
+  entry->addr = addr;
+  entry->count += 1;
+  entry->size += size;
+}
+
+static void tracker_report_sort(TrackerReport* report) {
+  dynarray_sort(&report->entries, tracker_report_compare_count);
+}
+
+static void tracker_report_write(TrackerReport* report, DynString* out) {
+  fmt_write(out, "Active allocations:\n");
+  for (u32 i = 0; i != report->entries.size; ++i) {
+    const TrackerReportEntry* entry = dynarray_at_t(&report->entries, i, TrackerReportEntry);
+
+    const SymbolAddrRel funcAddr = symbol_dbg_base(entry->addr);
+    const String        funcName = symbol_dbg_name(entry->addr);
+    if (!sentinel_check(funcAddr) && !string_is_empty(funcName)) {
+      const u32 offset = entry->addr - funcAddr;
+      fmt_write(
+          out,
+          " x{>4} {>5} {} {} +{}\n",
+          fmt_int(entry->count, .minDigits = 3),
+          fmt_size(entry->size),
+          fmt_int(funcAddr, .base = 16, .minDigits = 8),
+          fmt_text(funcName),
+          fmt_int(offset));
+    } else {
+      const SymbolAddr addrAbs = symbol_addr_abs(entry->addr);
+      fmt_write(
+          out,
+          " x{>4} {>5} {} {}\n",
+          fmt_int(entry->count, .minDigits = 3),
+          fmt_size(entry->size),
+          fmt_int(entry->addr, .base = 16, .minDigits = 8),
+          fmt_int(addrAbs, .base = 16, .minDigits = 16));
+    }
+  }
+}
+
+void alloc_tracker_dump(AllocTracker* tracker, DynString* out) {
+  TrackerReport report = tracker_report_create();
+
+  // Aggregate the allocations in the tracker.
+  thread_spinlock_lock(&tracker->slotsLock);
+  {
+    for (usize i = 0; i != tracker->slotCount; ++i) {
+      AllocTrackerSlot* slot = &tracker->slots[i];
+      if (tracker_slot_empty(slot)) {
+        continue;
+      }
+      for (u32 frameIndex = 0; frameIndex != array_elems(slot->stack.frames); ++frameIndex) {
+        const SymbolAddrRel addr = slot->stack.frames[frameIndex];
+        if (sentinel_check(addr)) {
+          break; // End of stack.
+        }
+        tracker_report_add(&report, addr, slot->mem.size);
+      }
+    }
+  }
+  thread_spinlock_unlock(&tracker->slotsLock);
+
+  tracker_report_sort(&report);
+  tracker_report_write(&report, out);
+  tracker_report_destroy(&report);
+}
+
+void alloc_tracker_dump_file(AllocTracker* tracker, File* out) {
+  DynString buffer = dynstring_create(g_allocPage, 4 * usize_kibibyte);
+  alloc_tracker_dump(tracker, &buffer);
+  file_write_sync(out, dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+}

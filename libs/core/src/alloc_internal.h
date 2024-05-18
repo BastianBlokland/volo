@@ -77,4 +77,5 @@ void          alloc_tracker_add(AllocTracker*, Mem, SymbolStack);
 void          alloc_tracker_remove(AllocTracker*, Mem);
 usize         alloc_tracker_count(AllocTracker*);
 usize         alloc_tracker_size(AllocTracker*);
-void          alloc_tracker_dump(File*);
+void          alloc_tracker_dump(AllocTracker*, DynString* out);
+void          alloc_tracker_dump_file(AllocTracker*, File* out);
