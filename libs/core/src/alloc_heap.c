@@ -101,7 +101,7 @@ void alloc_heap_leak_detect(void) {
   const usize leakedAllocations = alloc_tracker_count(g_allocatorIntern.tracker);
   if (UNLIKELY(leakedAllocations)) {
     alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdErr);
-    alloc_crash_with_msg("heap: leaked {} allocation(s)", fmt_int(leakedAllocations));
+    diag_crash_msg("heap: leaked {} allocation(s)", fmt_int(leakedAllocations));
   }
 #endif
 }
