@@ -40,20 +40,20 @@ static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError
 }
 
 spec(eval) {
+  ScriptMem      mem;
   ScriptDoc*     doc         = null;
-  ScriptMem*     mem         = null;
   ScriptBinder*  binder      = null;
   void*          bindCtxNull = null;
   ScriptDiagBag* diagsNull   = null;
   ScriptSymBag*  symsNull    = null;
 
   setup() {
-    doc = script_create(g_allocHeap);
     mem = script_mem_create(g_allocHeap);
+    doc = script_create(g_allocHeap);
 
-    script_mem_store(mem, string_hash_lit("v1"), script_bool(true));
-    script_mem_store(mem, string_hash_lit("v2"), script_num(1337));
-    script_mem_store(mem, string_hash_lit("v3"), script_null());
+    script_mem_store(&mem, string_hash_lit("v1"), script_bool(true));
+    script_mem_store(&mem, string_hash_lit("v2"), script_num(1337));
+    script_mem_store(&mem, string_hash_lit("v3"), script_null());
 
     binder                         = script_binder_create(g_allocHeap);
     const String     documentation = string_empty;
@@ -290,7 +290,7 @@ spec(eval) {
       const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
+      const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, bindCtxNull);
       check(!script_panic_valid(&evalRes.panic));
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
@@ -306,11 +306,11 @@ spec(eval) {
         doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
+    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, bindCtxNull);
     check(!script_panic_valid(&evalRes.panic));
-    check_eq_val(script_mem_load(mem, string_hash_lit("test1")), script_num(42));
-    check_eq_val(script_mem_load(mem, string_hash_lit("test2")), script_num(1337));
-    check_eq_val(script_mem_load(mem, string_hash_lit("test3")), script_bool(false));
+    check_eq_val(script_mem_load(&mem, string_hash_lit("test1")), script_num(42));
+    check_eq_val(script_mem_load(&mem, string_hash_lit("test2")), script_num(1337));
+    check_eq_val(script_mem_load(&mem, string_hash_lit("test3")), script_bool(false));
   }
 
   it("can modify the context") {
@@ -324,7 +324,7 @@ spec(eval) {
         symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, &ctx);
     check(!script_panic_valid(&evalRes.panic));
     check_eq_int(ctx.counter, 3);
   }
@@ -340,7 +340,7 @@ spec(eval) {
         symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, &ctx);
     check(evalRes.panic.kind == ScriptPanic_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
@@ -351,14 +351,14 @@ spec(eval) {
         script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtxNull);
+    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, bindCtxNull);
     check(evalRes.panic.kind == ScriptPanic_ExecutionLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 
   teardown() {
     script_destroy(doc);
-    script_mem_destroy(mem);
     script_binder_destroy(binder);
+    script_mem_destroy(&mem);
   }
 }

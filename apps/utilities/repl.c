@@ -345,7 +345,7 @@ typedef struct {
   ReplFlags           flags;
   String              editPrevText;
   DynString*          editBuffer;
-  ScriptMem*          mem;
+  ScriptMem           mem;
 } ReplEditor;
 
 static bool repl_edit_empty(const ReplEditor* editor) {
@@ -383,7 +383,7 @@ static void repl_edit_submit(ReplEditor* editor) {
   editor->editPrevText = string_maybe_dup(g_allocHeap, dynstring_view(editor->editBuffer));
 
   const String id = string_empty;
-  repl_exec(editor->binder, editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
+  repl_exec(editor->binder, &editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
 
   dynstring_clear(editor->editBuffer);
 }
@@ -496,7 +496,7 @@ Stop:
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
   string_maybe_free(g_allocHeap, editor.editPrevText);
-  script_mem_destroy(editor.mem);
+  script_mem_destroy(&editor.mem);
   return 0;
 }
 
@@ -505,9 +505,9 @@ repl_run_file(const ScriptBinder* binder, File* file, const String id, const Rep
   DynString readBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
   file_read_to_end_sync(file, &readBuffer);
 
-  ScriptMem* mem = script_mem_create(g_allocHeap);
-  repl_exec(binder, mem, flags, dynstring_view(&readBuffer), id);
-  script_mem_destroy(mem);
+  ScriptMem mem = script_mem_create(g_allocHeap);
+  repl_exec(binder, &mem, flags, dynstring_view(&readBuffer), id);
+  script_mem_destroy(&mem);
 
   dynstring_destroy(&readBuffer);
   return 0;

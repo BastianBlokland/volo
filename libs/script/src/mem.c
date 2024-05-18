@@ -8,13 +8,6 @@
 #define script_mem_slots_initial 32
 #define script_mem_slots_loadfactor 0.75f
 
-struct sScriptMem {
-  Allocator*  alloc;
-  u32         slotCount, slotCountUsed;
-  StringHash* slotKeys;
-  ScriptVal*  slotValues;
-};
-
 static u32 script_mem_should_grow(ScriptMem* mem) {
   return mem->slotCountUsed >= (u32)(mem->slotCount * script_mem_slots_loadfactor);
 }
@@ -84,24 +77,20 @@ static u32 script_mem_insert(ScriptMem* mem, const StringHash key) {
   return slotIndex;
 }
 
-ScriptMem* script_mem_create(Allocator* alloc) {
-  ScriptMem* mem = alloc_alloc_t(alloc, ScriptMem);
-
+ScriptMem script_mem_create(Allocator* alloc) {
   diag_assert(bits_ispow2_32(script_mem_slots_initial));
 
-  *mem = (ScriptMem){
+  return (ScriptMem){
       .alloc      = alloc,
       .slotCount  = script_mem_slots_initial,
       .slotKeys   = script_mem_slot_keys_alloc(alloc, script_mem_slots_initial),
       .slotValues = script_mem_slot_values_alloc(alloc, script_mem_slots_initial),
   };
-  return mem;
 }
 
 void script_mem_destroy(ScriptMem* mem) {
   alloc_free_array_t(mem->alloc, mem->slotKeys, mem->slotCount);
   alloc_free_array_t(mem->alloc, mem->slotValues, mem->slotCount);
-  alloc_free_t(mem->alloc, mem);
 }
 
 ScriptVal script_mem_load(const ScriptMem* mem, const StringHash key) {
