@@ -116,13 +116,27 @@ void alloc_heap_teardown(void) {
   g_allocatorIntern = (AllocatorHeap){0};
 }
 
-u64 alloc_heap_allocated_blocks(void) {
+u64 alloc_heap_active(void) {
+#ifdef VOLO_MEMORY_TRACKING
+  return alloc_tracker_count(g_allocatorIntern.tracker);
+#else
+  /**
+   * NOTE: Without the memory tracker we estimate the active allocations by summing the allocations
+   * in the block allocators. This misses the big allocs that we forwarded to the page allocator.
+   */
   u64 result = 0;
   for (usize i = 0; i != block_bucket_count; ++i) {
     Allocator* allocBlock = g_allocatorIntern.blockBuckets[i];
     result += alloc_block_allocated_blocks(allocBlock);
   }
   return result;
+#endif
 }
 
 u64 alloc_heap_counter(void) { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }
+
+void alloc_heap_dump(void) {
+#ifdef VOLO_MEMORY_TRACKING
+  alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdOut);
+#endif
+}

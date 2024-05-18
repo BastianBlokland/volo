@@ -146,3 +146,9 @@ typedef struct {
 } AllocStats;
 
 AllocStats alloc_stats_query(void);
+
+/**
+ * Dump the active heap allocations to std-out.
+ * NOTE: Requires memory-tracking to be compiled in.
+ */
+void alloc_heap_dump(void);
