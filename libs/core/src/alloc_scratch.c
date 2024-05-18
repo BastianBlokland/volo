@@ -93,4 +93,7 @@ Allocator* alloc_scratch_init(void) {
   return (Allocator*)&g_allocatorIntern;
 }
 
-void alloc_scratch_teardown(void) { alloc_free(g_allocPage, g_allocatorIntern.memory); }
+void alloc_scratch_teardown(void) {
+  alloc_free(g_allocPage, g_allocatorIntern.memory);
+  g_allocatorIntern = (AllocatorScratch){0};
+}
