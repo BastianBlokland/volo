@@ -174,11 +174,33 @@ static void stats_draw_value(UiCanvasComp* canvas, const String value) {
   ui_layout_pop(canvas);
 }
 
+static bool stats_draw_button(UiCanvasComp* canvas, const String value) {
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+
+  ui_layout_grow(
+      canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+
+  const bool pressed = ui_button(canvas, .label = value, .frameColor = ui_color(24, 24, 24, 128));
+
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+  return pressed;
+}
+
 static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const String value) {
   stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, label);
   stats_draw_value(canvas, value);
   ui_layout_next(canvas, Ui_Down, 0);
+}
+
+static bool stats_draw_button_entry(UiCanvasComp* canvas, const String label, const String value) {
+  stats_draw_bg(canvas, DebugBgFlags_None);
+  stats_draw_label(canvas, label);
+  const bool pressed = stats_draw_button(canvas, value);
+  ui_layout_next(canvas, Ui_Down, 0);
+  return pressed;
 }
 
 static bool stats_draw_section(UiCanvasComp* canvas, const String label) {
@@ -480,6 +502,9 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
     stats_draw_val_entry(canvas, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
     stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
+    if(stats_draw_button_entry(canvas, string_lit("Heap tracking"), string_lit("Dump"))) {
+      alloc_heap_dump();
+    }
     stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
     stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
