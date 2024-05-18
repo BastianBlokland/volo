@@ -216,8 +216,8 @@ ecs_def_register_system(EcsDef* def, const EcsModuleId modId, const EcsSystemCon
   };
 
   for (usize i = 0; i != cfg->viewCount; ++i) {
-    *dynarray_insert_sorted_t(&systemDef->viewIds, EcsViewId, ecs_compare_view, &cfg->views[i]) =
-        cfg->views[i];
+    const EcsViewId* idPtr = &cfg->views[i];
+    *dynarray_insert_sorted_t(&systemDef->viewIds, EcsViewId, ecs_compare_view, idPtr) = *idPtr;
   }
 
   return id;
