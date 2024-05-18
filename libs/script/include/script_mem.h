@@ -7,13 +7,18 @@ typedef struct sAllocator Allocator;
 /**
  * Memory instance for storing values.
  */
-typedef struct sScriptMem ScriptMem;
+typedef struct sScriptMem {
+  Allocator*  alloc;
+  u32         slotCount, slotCountUsed;
+  StringHash* slotKeys;
+  ScriptVal*  slotValues;
+} ScriptMem;
 
 /**
  * Create a new ScriptMem instance.
  * Destroy using 'script_mem_destroy()'.
  */
-ScriptMem* script_mem_create(Allocator*);
+ScriptMem script_mem_create(Allocator*);
 
 /**
  * Destroy a ScriptMem instance.
