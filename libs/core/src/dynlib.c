@@ -7,26 +7,14 @@
 static bool g_dynlibInitialized;
 static i64  g_dynlibCount;
 
-/**
- * Special crash-routine that does not allocate any memory.
- * Reason is dynlib teardown can happen after the allocators have been torn down.
- */
-#define dynlib_crash_with_msg(_MSG_, ...)                                                          \
-  do {                                                                                             \
-    DynString buffer = dynstring_create_over(mem_stack(256));                                      \
-    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
-    diag_print_err_raw(dynstring_view(&buffer));                                                   \
-    diag_crash();                                                                                  \
-  } while (false)
-
 void dynlib_init(void) {
   dynlib_pal_init();
   g_dynlibInitialized = true;
 }
 
-void dynlib_teardown(void) {
+void dynlib_leak_report(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_dynlibCount) != 0)) {
-    dynlib_crash_with_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
+    diag_crash_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
   }
 }
 
@@ -46,7 +34,7 @@ String dynlib_result_str(const DynLibResult result) {
 
 DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   if (UNLIKELY(!g_dynlibInitialized)) {
-    dynlib_crash_with_msg("dynlib: Not initialized");
+    diag_crash_msg("dynlib: Not initialized");
   }
   const DynLibResult res = dynlib_pal_load(alloc, name, out);
   if (res == DynLibResult_Success) {
@@ -58,7 +46,7 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
 void dynlib_destroy(DynLib* lib) {
   dynlib_pal_destroy(lib);
   if (UNLIKELY(thread_atomic_sub_i64(&g_dynlibCount, 1) <= 0)) {
-    dynlib_crash_with_msg("dynlib: Double destroy of dynlib");
+    diag_crash_msg("dynlib: Double destroy of dynlib");
   }
 }
 

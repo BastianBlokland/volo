@@ -9,9 +9,9 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-Allocator*              g_allocHeap;
-Allocator*              g_allocPage;
-Allocator*              g_allocPersist;
+Allocator*   g_allocHeap;
+Allocator*   g_allocPage;
+Allocator*   g_allocPersist;
 THREAD_LOCAL Allocator* g_allocScratch;
 
 static void alloc_verify_allocator(const Allocator* allocator) {
@@ -25,6 +25,8 @@ void alloc_init(void) {
   g_allocHeap    = alloc_heap_init();
   g_allocPersist = alloc_persist_init();
 }
+
+void alloc_leak_report(void) { alloc_heap_leak_report(); }
 
 void alloc_teardown(void) {
   alloc_persist_teardown();

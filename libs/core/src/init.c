@@ -53,10 +53,14 @@ void core_teardown(void) {
     g_initializedThread = false;
   }
   if (g_threadTid == g_threadMainTid && g_initalized) {
+    // Leak report.
+    dynlib_leak_report();
+    file_leak_report();
+    alloc_leak_report();
+
+    // Teardown.
     thread_teardown();
     symbol_teardown();
-    dynlib_teardown();
-    file_teardown();
     alloc_teardown();
     g_initalized = false;
   }

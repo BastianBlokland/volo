@@ -10,18 +10,6 @@
 
 static i64 g_fileCount;
 
-/**
- * Special crash-routine that does not allocate any memory.
- * Reason is file teardown can happen after the allocators have been torn down.
- */
-#define file_crash_with_msg(_MSG_, ...)                                                            \
-  do {                                                                                             \
-    DynString buffer = dynstring_create_over(mem_stack(256));                                      \
-    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
-    diag_print_err_raw(dynstring_view(&buffer));                                                   \
-    diag_crash();                                                                                  \
-  } while (false)
-
 static const String g_fileResultStrs[] = {
     string_static("FileSuccess"),
     string_static("FileAlreadyExists"),
@@ -49,9 +37,9 @@ String file_result_str(const FileResult result) {
 
 void file_init(void) { file_pal_init(); }
 
-void file_teardown(void) {
+void file_leak_report(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
-    file_crash_with_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
+    diag_crash_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
   }
 }
 
@@ -79,7 +67,7 @@ FileResult file_temp(Allocator* alloc, File** file) {
 void file_destroy(File* file) {
   file_pal_destroy(file);
   if (UNLIKELY(thread_atomic_sub_i64(&g_fileCount, 1) <= 0)) {
-    file_crash_with_msg("file: Double destroy of File");
+    diag_crash_msg("file: Double destroy of File");
   }
 }
 
