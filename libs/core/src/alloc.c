@@ -30,7 +30,10 @@ void alloc_leak_report(void) { alloc_heap_leak_report(); }
 
 void alloc_teardown(void) {
   alloc_persist_teardown();
+  g_allocPersist = null;
+
   alloc_heap_teardown();
+  g_allocHeap = null;
 
   const u32 leakedPages = alloc_page_allocated_pages();
   if (leakedPages) {
