@@ -1,9 +1,14 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_bits.h"
+#include "core_file.h"
 #include "core_thread.h"
 
 #include "alloc_internal.h"
+
+#ifndef VOLO_FAST
+#define VOLO_MEMORY_TRACKING
+#endif
 
 #define block_bucket_pow_min 4
 #define block_bucket_pow_max 11
@@ -19,8 +24,10 @@ typedef struct {
   Allocator  api;
   Allocator* blockBuckets[block_bucket_count];
 
-  // TODO: Investigate perf implications, in theory could be behind a debug define.
-  i64 counter; // Incremented on every allocation.
+#ifdef VOLO_MEMORY_TRACKING
+  AllocTracker* tracker;
+#endif
+  i64 counter; // Incremented on every allocation. TODO: Determine perf cost.
 } AllocatorHeap;
 
 static usize alloc_heap_pow_index(const usize size) {
@@ -43,13 +50,23 @@ static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize 
   AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
   Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, size);
   thread_atomic_add_i64(&allocHeap->counter, 1);
-  return alloc_alloc(allocSub, size, align);
+
+  const Mem result = alloc_alloc(allocSub, size, align);
+#ifdef VOLO_MEMORY_TRACKING
+  if (LIKELY(mem_valid(result))) {
+    alloc_tracker_add(allocHeap->tracker, result, symbol_stack_walk());
+  }
+#endif
+  return result;
 }
 
-static void alloc_heap_free(Allocator* allocator, Mem mem) {
+static void alloc_heap_free(Allocator* allocator, const Mem mem) {
   AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
   Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, mem.size);
   alloc_free(allocSub, mem);
+#ifdef VOLO_MEMORY_TRACKING
+  alloc_tracker_remove(allocHeap->tracker, mem);
+#endif
 }
 
 static usize alloc_heap_max_size(Allocator* allocator) {
@@ -67,6 +84,9 @@ Allocator* alloc_heap_init(void) {
           .maxSize = alloc_heap_max_size,
           .reset   = null,
       },
+#ifdef VOLO_MEMORY_TRACKING
+      .tracker = alloc_tracker_create(),
+#endif
       .blockBuckets = {0},
   };
   for (usize i = 0; i != block_bucket_count; ++i) {
@@ -76,23 +96,23 @@ Allocator* alloc_heap_init(void) {
   return (Allocator*)&g_allocatorIntern;
 }
 
-void alloc_heap_leak_report(void) {
-  for (usize i = 0; i != block_bucket_count; ++i) {
-    Allocator*  allocBlock   = g_allocatorIntern.blockBuckets[i];
-    const usize leakedBlocks = alloc_block_allocated_blocks(allocBlock);
-    if (leakedBlocks) {
-      alloc_crash_with_msg(
-          "heap: {} allocations leaked in size-class {} during app runtime",
-          fmt_int(leakedBlocks),
-          fmt_size(alloc_max_size(allocBlock)));
-    }
+void alloc_heap_leak_detect(void) {
+#ifdef VOLO_MEMORY_TRACKING
+  const usize leakedAllocations = alloc_tracker_count(g_allocatorIntern.tracker);
+  if (UNLIKELY(leakedAllocations)) {
+    alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdErr);
+    alloc_crash_with_msg("heap: leaked {} allocation(s)", fmt_int(leakedAllocations));
   }
+#endif
 }
 
 void alloc_heap_teardown(void) {
   for (usize i = 0; i != block_bucket_count; ++i) {
     alloc_block_destroy(g_allocatorIntern.blockBuckets[i]);
   }
+#ifdef VOLO_MEMORY_TRACKING
+  alloc_tracker_destroy(g_allocatorIntern.tracker);
+#endif
   g_allocatorIntern = (AllocatorHeap){0};
 }
 
