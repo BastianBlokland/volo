@@ -59,7 +59,7 @@ static AllocTrackerSlot* tracker_slot(
     // Hash collision, jump to a new bucket (quadratic probing).
     bucket = (bucket + i + 1) & (slotCount - 1);
   }
-  alloc_crash_with_msg("Allocation not found in AllocTracker");
+  diag_crash_msg("Allocation not found in AllocTracker");
 }
 
 NO_INLINE_HINT static void tracker_grow(AllocTracker* table) {
@@ -115,7 +115,7 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
         tracker_grow(tracker);
       }
     } else {
-      alloc_crash_with_msg("Duplicate allocation in AllocationTracker");
+      diag_crash_msg("Duplicate allocation in AllocationTracker");
     }
   }
   thread_spinlock_unlock(&tracker->slotsLock);
@@ -125,7 +125,13 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
   thread_spinlock_lock(&tracker->slotsLock);
   {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
-    slot->mem              = mem_empty; // Mark the slot as empty.
+    if (UNLIKELY(slot->mem.size != mem.size)) {
+      diag_crash_msg(
+          "Allocation known with a different size ({} vs {}) in AllocationTracker",
+          fmt_int(slot->mem.size),
+          fmt_int(mem.size));
+    }
+    slot->mem = mem_empty; // Mark the slot as empty.
     tracker->slotCountUsed -= 1;
     tracker->slotSizeUsed -= mem.size;
   }
