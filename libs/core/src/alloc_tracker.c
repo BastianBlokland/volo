@@ -201,7 +201,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
       const u32 offset = entry->addr - funcAddr;
       fmt_write(
           out,
-          " x{>5} {>8} {} {} +{}\n",
+          " x{>5} {>10} {} {} +{}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
           fmt_int(funcAddr, .base = 16, .minDigits = 8),
@@ -211,7 +211,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
       const SymbolAddr addrAbs = symbol_addr_abs(entry->addr);
       fmt_write(
           out,
-          " x{>5} {>8} {} {}\n",
+          " x{>5} {>10} {} {}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
           fmt_int(entry->addr, .base = 16, .minDigits = 8),
