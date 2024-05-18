@@ -92,6 +92,7 @@ void       alloc_chunked_destroy(Allocator*);
  * Create a fixed-size block allocator.
  * Allocates chunks of memory from the parent allocator and splits them into fixed size blocks.
  *
+ * NOTE: Thread-safe.
  * NOTE: Chunks are only freed when the allocator is destroyed.
  * NOTE: Destroy using 'alloc_block_destroy()'
  *
