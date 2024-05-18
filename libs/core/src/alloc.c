@@ -26,9 +26,14 @@ void alloc_init(void) {
   g_allocPersist = alloc_persist_init();
 }
 
+void alloc_leak_detect(void) { alloc_heap_leak_detect(); }
+
 void alloc_teardown(void) {
   alloc_persist_teardown();
+  g_allocPersist = null;
+
   alloc_heap_teardown();
+  g_allocHeap = null;
 
   const u32 leakedPages = alloc_page_allocated_pages();
   if (leakedPages) {
@@ -73,7 +78,7 @@ void alloc_free(Allocator* allocator, Mem mem) {
 }
 
 Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {
-  Mem newMem = alloc_alloc(alloc, mem.size, align);
+  const Mem newMem = alloc_alloc(alloc, mem.size, align);
   if (UNLIKELY(!mem_valid(newMem))) {
     return newMem; // Allocation failed.
   }
@@ -98,7 +103,7 @@ AllocStats alloc_stats_query(void) {
       .pageCount      = alloc_page_allocated_pages(),
       .pageTotal      = alloc_page_allocated_size(),
       .pageCounter    = alloc_page_counter(),
-      .heapActive     = alloc_heap_allocated_blocks(),
+      .heapActive     = alloc_heap_active(),
       .heapCounter    = alloc_heap_counter(),
       .persistCounter = alloc_persist_counter(),
   };

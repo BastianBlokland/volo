@@ -5,7 +5,7 @@
 
 #include "alloc_internal.h"
 
-#define alloc_chunk_size_min 128
+#define alloc_chunk_size_min 768
 #define alloc_chunk_align sizeof(void*)
 #define alloc_chunks_max 64
 
@@ -18,8 +18,14 @@ typedef struct {
   Allocator*       chunks[alloc_chunks_max];
 } AllocatorChunked;
 
-static Allocator* alloc_chunk_create(AllocatorChunked* alloc) {
+ASSERT(alloc_chunk_size_min > sizeof(AllocatorChunked), "Meta-data does not fit in a chunk");
+
+NO_INLINE_HINT static Allocator* alloc_chunk_create(AllocatorChunked* alloc) {
   Mem chunkMem = alloc_alloc(alloc->parent, alloc->chunkSize, alloc_chunk_align);
+  if (!mem_valid(chunkMem)) {
+    alloc_crash_with_msg(
+        "ChunkedAllocator failed to allocate {} from parent", fmt_size(alloc->chunkSize));
+  }
   return alloc->builder(chunkMem);
 }
 
@@ -45,11 +51,9 @@ static Mem alloc_chunked_alloc(Allocator* allocator, const usize size, const usi
    * preferred-chunk.
    */
 
-  if (LIKELY(alloc->preferredChunk)) {
-    Mem mem = alloc_alloc(alloc->preferredChunk, size, align);
-    if (LIKELY(mem_valid(mem))) {
-      return mem;
-    }
+  const Mem preferredResult = alloc_alloc(alloc->preferredChunk, size, align);
+  if (LIKELY(mem_valid(preferredResult))) {
+    return preferredResult;
   }
 
   for (usize i = 0; i != alloc->chunkCount; ++i) {
@@ -62,7 +66,7 @@ static Mem alloc_chunked_alloc(Allocator* allocator, const usize size, const usi
 
   if (UNLIKELY(alloc->chunkCount == alloc_chunks_max)) {
     // Maximum chunks reached; fail the allocation.
-    alloc->preferredChunk = null;
+    alloc->preferredChunk = alloc->chunks[0];
     return mem_create(null, size);
   }
 
@@ -92,8 +96,8 @@ static void alloc_chunked_free(Allocator* allocator, Mem mem) {
 static usize alloc_chunked_max_size(Allocator* allocator) {
   AllocatorChunked* alloc = (AllocatorChunked*)allocator;
 
-  usize maxSize = 0;
-  for (usize i = 0; i != alloc->chunkCount; ++i) {
+  usize maxSize = alloc_max_size(alloc->chunks[0]);
+  for (usize i = 1; i != alloc->chunkCount; ++i) {
     maxSize = math_max(maxSize, alloc_max_size(alloc->chunks[i]));
   }
   return maxSize;
@@ -102,7 +106,7 @@ static usize alloc_chunked_max_size(Allocator* allocator) {
 static void alloc_chunked_reset(Allocator* allocator) {
   AllocatorChunked* alloc = (AllocatorChunked*)allocator;
 
-  alloc->preferredChunk = null;
+  alloc->preferredChunk = alloc->chunks[0];
   for (usize i = 0; i != alloc->chunkCount; ++i) {
     alloc_reset(alloc->chunks[i]);
   }
@@ -117,23 +121,31 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
   diag_assert_msg(
       bits_ispow2(chunkSize), "Chunk-size '{}' is not a power-of-two", fmt_int(chunkSize));
 
-  /**
-   * The control-data is a separate allocation using the 'g_allocHeap' allocator. Alternatively we
-   * could store the control-data in the first allocated chunk, but this would require additional
-   * book-keeping.
-   */
-  AllocatorChunked* alloc = alloc_alloc_t(g_allocHeap, AllocatorChunked);
-  *alloc                  = (AllocatorChunked){
-                       .api =
-                           {
-                               .alloc   = alloc_chunked_alloc,
-                               .free    = alloc_chunked_free,
-                               .maxSize = alloc_chunked_max_size,
-                               .reset   = alloc_chunked_reset,
+  // The main-memory contains both the meta-data (AllocatorChunked) as well as chunk 0.
+  const Mem mainMem = alloc_alloc(parent, chunkSize, alloc_chunk_align);
+  if (!mem_valid(mainMem)) {
+    alloc_crash_with_msg("ChunkedAllocator failed to allocate {} from parent", fmt_size(chunkSize));
+  }
+  AllocatorChunked* alloc = mem_as_t(mainMem, AllocatorChunked);
+
+  const Mem chunk0Mem = mem_consume(mainMem, sizeof(AllocatorChunked));
+  diag_assert(bits_align_ptr(chunk0Mem.ptr, alloc_chunk_align));
+  Allocator* chunk0 = builder(chunk0Mem);
+
+  *alloc = (AllocatorChunked){
+      .api =
+          {
+              .alloc   = alloc_chunked_alloc,
+              .free    = alloc_chunked_free,
+              .maxSize = alloc_chunked_max_size,
+              .reset   = alloc_chunked_reset,
           },
-                       .parent    = parent,
-                       .builder   = builder,
-                       .chunkSize = chunkSize,
+      .parent         = parent,
+      .builder        = builder,
+      .preferredChunk = chunk0,
+      .chunkSize      = chunkSize,
+      .chunks[0]      = chunk0,
+      .chunkCount     = 1,
   };
   return (Allocator*)alloc;
 }
@@ -141,11 +153,13 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
 void alloc_chunked_destroy(Allocator* allocator) {
   diag_assert_msg(allocator, "Allocator not initialized");
 
-  AllocatorChunked* allocatorChunked = (AllocatorChunked*)allocator;
+  AllocatorChunked* alloc = (AllocatorChunked*)allocator;
 
-  for (usize i = 0; i != allocatorChunked->chunkCount; ++i) {
-    alloc_chunk_destroy(allocatorChunked, allocatorChunked->chunks[i]);
+  // NOTE: Chunk 0 is contained in the main allocation.
+  for (usize i = 1; i != alloc->chunkCount; ++i) {
+    alloc_chunk_destroy(alloc, alloc->chunks[i]);
   }
 
-  alloc_free_t(g_allocHeap, allocatorChunked);
+  // Free the main allocation (includes chunk 0).
+  alloc_free(alloc->parent, mem_create(alloc, alloc->chunkSize));
 }

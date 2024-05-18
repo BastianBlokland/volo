@@ -135,7 +135,7 @@ EcsBuffer ecs_buffer_create(Allocator* alloc, const EcsDef* def) {
       .masks    = dynarray_create(alloc, (u16)ecs_comp_mask_size(def), ecs_comp_mask_align, 256),
       .entities = dynarray_create_t(alloc, EcsBufferEntity, 256),
       .compDataAllocator =
-          alloc_chunked_create(g_allocPage, alloc_bump_create, ecs_buffer_compdata_chunk_size),
+          alloc_chunked_create(g_allocHeap, alloc_bump_create, ecs_buffer_compdata_chunk_size),
   };
 }
 

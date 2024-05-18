@@ -115,6 +115,14 @@ NORETURN static void process_child_abort(const ProcessExitCode code) {
 }
 
 NORETURN static void process_child_exec(const ProcessStartInfo* info, const int pipeFds[]) {
+  /**
+   * Executed on the forked child.
+   *
+   * NOTE: Its important to not call any apis that attempt to acquire locks (neither mutex nor
+   * spin-lock) that could have been held by another thread at the time of forking, reason is the
+   * other threads are not cloned on fork so those locks will never be released.
+   */
+
   if (info->flags & ProcessFlags_NewGroup) {
     const pid_t newSession = setsid(); // Create a new session (with a new progress group).
     if (UNLIKELY(newSession == -1)) {
@@ -123,9 +131,15 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   }
 
   // Close the parent side of the pipes.
-  process_maybe_close_fd(PIPE_FD_WRITE(pipeFds, StdIn));
-  process_maybe_close_fd(PIPE_FD_READ(pipeFds, StdOut));
-  process_maybe_close_fd(PIPE_FD_READ(pipeFds, StdErr));
+  if (PIPE_FD_WRITE(pipeFds, StdIn) != -1) {
+    close(PIPE_FD_WRITE(pipeFds, StdIn));
+  }
+  if (PIPE_FD_READ(pipeFds, StdOut) != -1) {
+    close(PIPE_FD_READ(pipeFds, StdOut));
+  }
+  if (PIPE_FD_READ(pipeFds, StdErr) != -1) {
+    close(PIPE_FD_READ(pipeFds, StdErr));
+  }
 
   // Duplicate the child side of the pipes onto stdIn, stdOut and stdErr of this process.
   bool dupFail = false;
@@ -140,13 +154,14 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
    * Convert both file and the arguments to null-terminated strings for exec, and also
    * null-terminate the arguments array it self.
    * NOTE: File is appended as the first argument.
+   * NOTE: Has to use the page-allocator as that promises to not hold any mutexes.
    * NOTE: The memory does not need to be freed as exec will free the whole address space.
    */
   const usize argSize   = process_start_arg_null_term_size(info);
-  Mem         argBuffer = alloc_alloc(g_allocHeap, argSize, 1);
+  Mem         argBuffer = alloc_alloc(g_allocPage, argSize, 1);
   if (!mem_valid(argBuffer)) {
     if (info->flags & ProcessPipe_StdErr) {
-      diag_print_err("[process error] Out of memory");
+      file_write_sync(g_fileStdErr, string_lit("[process error] Out of memory\n"));
     }
     process_child_abort(ProcessExitCode_OutOfMemory);
   }
@@ -165,23 +180,23 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   switch (errno) {
   case ENOENT:
     if (info->flags & ProcessPipe_StdErr) {
-      diag_print_err("[process error] Executable not found: {}\n", fmt_text(info->file));
+      file_write_sync(g_fileStdErr, string_lit("[process error] Executable not found\n"));
     }
     process_child_abort(ProcessExitCode_ExecutableNotFound);
   case EACCES:
   case EINVAL:
     if (info->flags & ProcessPipe_StdErr) {
-      diag_print_err("[process error] Invalid executable: {}\n", fmt_text(info->file));
+      file_write_sync(g_fileStdErr, string_lit("[process error] Invalid executable\n"));
     }
     process_child_abort(ProcessExitCode_InvalidExecutable);
   case ENOMEM:
     if (info->flags & ProcessPipe_StdErr) {
-      diag_print_err("[process error] Out of memory\n");
+      file_write_sync(g_fileStdErr, string_lit("[process error] Out of memory\n"));
     }
     process_child_abort(ProcessExitCode_OutOfMemory);
   default:
     if (info->flags & ProcessPipe_StdErr) {
-      diag_print_err("[process error] Unknown error while executing: {}\n", fmt_text(info->file));
+      file_write_sync(g_fileStdErr, string_lit("[process error] Unknown error while executing\n"));
     }
     process_child_abort(ProcessExitCode_UnknownExecError);
   }

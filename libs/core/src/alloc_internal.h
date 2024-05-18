@@ -1,6 +1,12 @@
 #pragma once
 #include "core_alloc.h"
-#include "core_diag.h"
+#include "core_symbol.h"
+
+#include "diag_internal.h"
+
+#ifndef VOLO_FAST
+#define VOLO_MEMORY_TRACKING
+#endif
 
 #define alloc_max_alloc_size (usize_mebibyte * 256)
 
@@ -13,7 +19,7 @@
     DynString buffer = dynstring_create_over(mem_stack(256));                                      \
     fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
     diag_print_err_raw(dynstring_view(&buffer));                                                   \
-    diag_crash();                                                                                  \
+    diag_pal_crash(); /* Unfortunately cannot include a stack, as symbol resolving allocates. */   \
   } while (false)
 
 typedef enum {
@@ -31,8 +37,9 @@ struct sAllocator {
 };
 
 Allocator* alloc_heap_init(void);
+void       alloc_heap_leak_detect(void);
 void       alloc_heap_teardown(void);
-u64        alloc_heap_allocated_blocks(void);
+u64        alloc_heap_active(void);
 u64        alloc_heap_counter(void); // Incremented on every heap allocation.
 
 Allocator* alloc_page_init(void);
@@ -57,8 +64,22 @@ void alloc_tag_free(Mem, AllocMemType);
 void alloc_tag_guard(Mem, AllocMemType);
 
 /**
- * Diagnostic api for marking memory as poisonned.
+ * Diagnostic api for marking memory as poisoned.
  * Poisoned memory is not allowed to be read from / written to.
  */
 void alloc_poison(Mem);
 void alloc_unpoison(Mem);
+
+/**
+ * Allocation tracker.
+ */
+typedef struct sAllocTracker AllocTracker;
+
+AllocTracker* alloc_tracker_create();
+void          alloc_tracker_destroy(AllocTracker*);
+void          alloc_tracker_add(AllocTracker*, Mem, SymbolStack);
+void          alloc_tracker_remove(AllocTracker*, Mem);
+usize         alloc_tracker_count(AllocTracker*);
+usize         alloc_tracker_size(AllocTracker*);
+void          alloc_tracker_dump(AllocTracker*, DynString* out);
+void          alloc_tracker_dump_file(AllocTracker*, File* out);

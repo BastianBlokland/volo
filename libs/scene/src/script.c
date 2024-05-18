@@ -2299,7 +2299,7 @@ static void scene_script_eval(EvalContext* ctx) {
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
   if (!inst->allocTransient) {
     const usize chunkSize = 4 * usize_kibibyte;
-    inst->allocTransient  = alloc_chunked_create(g_allocPage, alloc_bump_create, chunkSize);
+    inst->allocTransient  = alloc_chunked_create(g_allocHeap, alloc_bump_create, chunkSize);
   }
   return alloc_dup(inst->allocTransient, mem, align);
 }

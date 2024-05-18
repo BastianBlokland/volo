@@ -45,8 +45,10 @@ void core_init(void) {
 
 void core_teardown(void) {
   if (g_threadTid == g_threadMainTid && g_initalized) {
-    stringtable_teardown();
-    tty_teardown();
+    stringtable_teardown(); // Teardown early as it contains heap allocations.
+
+    file_leak_detect();
+    alloc_leak_detect();
   }
   if (g_initializedThread) {
     alloc_teardown_thread();
@@ -54,10 +56,12 @@ void core_teardown(void) {
   }
   if (g_threadTid == g_threadMainTid && g_initalized) {
     thread_teardown();
+
+    dynlib_leak_detect(); // Leak-detect late as the thread module owns some dynamic-libraries.
+
     symbol_teardown();
-    dynlib_teardown();
-    file_teardown();
     alloc_teardown();
+    tty_teardown(); // Teardown last because we shouldn't write to the terminal after this.
     g_initalized = false;
   }
 }

@@ -31,7 +31,7 @@ spec(process) {
   it("can wait until execution is finished") {
     Process* child = process_create(g_allocHeap, helperPath, null, 0, ProcessFlags_None);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
+    check_require(process_start_result(child) == ProcessResult_Success);
     check_eq_int(process_block(child), 0);
 
     process_destroy(child);
@@ -43,7 +43,7 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_None;
     Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
+    check_require(process_start_result(child) == ProcessResult_Success);
 
     check_eq_int(process_block(child), 42);
     check(!process_poll(child));
@@ -57,8 +57,8 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_None;
     Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
-    check(process_poll(child));
+    check_require(process_start_result(child) == ProcessResult_Success);
+    check_require(process_poll(child));
 
     check_eq_int(process_signal(child, Signal_Kill), ProcessResult_Success);
 
@@ -77,8 +77,8 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_NewGroup;
     Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
-    check(process_poll(child));
+    check_require(process_start_result(child) == ProcessResult_Success);
+    check_require(process_poll(child));
 
     thread_sleep(time_milliseconds(50)); // Wait for child to setup interrupt handler.
     check_eq_int(process_signal(child, Signal_Interrupt), ProcessResult_Success);
@@ -95,8 +95,8 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_PipeStdOut;
     Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
-    check(process_poll(child));
+    check_require(process_start_result(child) == ProcessResult_Success);
+    check_require(process_poll(child));
 
     check_eq_int(file_read_to_end_sync(process_pipe_out(child), &buffer), FileResult_Success);
     check_eq_string(dynstring_view(&buffer), string_lit("Hello Out\n"));
@@ -113,8 +113,8 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_PipeStdErr;
     Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
-    check(process_poll(child));
+    check_require(process_start_result(child) == ProcessResult_Success);
+    check_require(process_poll(child));
 
     check_eq_int(file_read_to_end_sync(process_pipe_err(child), &buffer), FileResult_Success);
     check_eq_string(dynstring_view(&buffer), string_lit("Hello Err\n"));
@@ -130,8 +130,8 @@ spec(process) {
     const ProcessFlags flags    = ProcessFlags_PipeStdIn;
     Process*           child    = process_create(g_allocHeap, helperPath, args, argCount, flags);
 
-    check_eq_int(process_start_result(child), ProcessResult_Success);
-    check(process_poll(child));
+    check_require(process_start_result(child) == ProcessResult_Success);
+    check_require(process_poll(child));
 
     const String str = string_lit("Hello World!");
     check_eq_int(file_write_sync(process_pipe_in(child), str), FileResult_Success);

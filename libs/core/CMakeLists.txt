@@ -12,6 +12,7 @@ add_library(lib_core STATIC
   src/alloc_page_pal.c
   src/alloc_persist.c
   src/alloc_scratch.c
+  src/alloc_tracker.c
   src/alloc.c
   src/ascii.c
   src/base64.c

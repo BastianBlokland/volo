@@ -9,6 +9,12 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+/**
+ * Platform page allocator.
+ * NOTE: Do NOT add locks (neither mutex nor spin-lock) to the page-allocation path as then it will
+ * become unsafe to be called after fork (as another thread might have held the lock).
+ */
+
 typedef struct {
   Allocator api;
   usize     pageSize;
@@ -50,7 +56,7 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   const u32 pages = alloc_page_num_pages(allocPage, mem.size);
   const int res   = munmap(mem.ptr, pages * allocPage->pageSize);
   if (UNLIKELY(res != 0)) {
-    diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
+    alloc_crash_with_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }
   thread_atomic_sub_i64(&allocPage->allocatedPages, pages);
 }
@@ -64,7 +70,8 @@ static AllocatorPage g_allocatorIntern;
 
 Allocator* alloc_page_init(void) {
   const size_t pageSize = getpagesize();
-  g_allocatorIntern     = (AllocatorPage){
+
+  g_allocatorIntern = (AllocatorPage){
       .api =
           {
               .alloc   = alloc_page_alloc,

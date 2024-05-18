@@ -5,8 +5,8 @@
 /**
  * Create a bump allocator backed by a buffer on the stack. Allocations will fail once the buffer
  * has been filled up. Note: Allocations made from the allocator are not valid after the allocator
- * goes out of scope. Note: Care must be taken not to overflow the stack by using too high _SIZE_
- * values.
+ * goes out of scope.
+ * NOTE: Care must be taken not to overflow the stack by using too high _SIZE_ values.
  */
 #define alloc_bump_create_stack(_SIZE_) alloc_bump_create(mem_stack(_SIZE_))
 
@@ -51,7 +51,7 @@ extern Allocator* g_allocHeap;
 extern Allocator* g_allocPage;
 
 /**
- * Persitent allocator.
+ * Persistent allocator.
  * Allocator for memory that needs to persist over the whole application lifetime.
  * Memory cannot be manually freed, its automatically freed at application shutdown.
  * NOTE: Thread-safe.
@@ -80,9 +80,9 @@ Allocator* alloc_bump_create(Mem);
  *
  * NOTE: Chunks are only freed when the allocator is destroyed.
  * NOTE: Destroy using 'alloc_chunked_destroy()'.
- * NOTE: Only 32 chunks are supported, after that allocations will fail.
+ * NOTE: Only 64 chunks are supported, after that allocations will fail.
  *
- * Pre-condition: chunkSize >= 128.
+ * Pre-condition: chunkSize >= 768.
  * Pre-condition: chunkSize is a power-of-two.
  */
 Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder, usize chunkSize);
@@ -146,3 +146,10 @@ typedef struct {
 } AllocStats;
 
 AllocStats alloc_stats_query(void);
+
+/**
+ * Dump the active heap allocations to std-out.
+ * NOTE: Requires memory-tracking to be compiled in.
+ */
+void alloc_heap_dump(void);
+void alloc_persist_dump(void);

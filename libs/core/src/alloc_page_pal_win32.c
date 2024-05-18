@@ -7,6 +7,10 @@
 
 #include <Windows.h>
 
+/**
+ * Platform page allocator.
+ */
+
 typedef struct {
   Allocator api;
   usize     pageSize;
@@ -49,7 +53,7 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
 
   const int success = VirtualFree(mem.ptr, 0, MEM_RELEASE);
   if (UNLIKELY(!success)) {
-    diag_crash_msg("VirtualFree() failed");
+    alloc_crash_with_msg("VirtualFree() failed");
   }
   thread_atomic_sub_i64(&allocPage->allocatedPages, pages);
 }

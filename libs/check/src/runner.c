@@ -95,7 +95,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   }
 
   // Execute all tasks.
-  jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocPage));
+  jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocHeap));
 
   // Observe the results.
   const usize           numFailed  = ctx.numFailedTests;
