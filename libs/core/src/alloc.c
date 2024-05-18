@@ -26,7 +26,7 @@ void alloc_init(void) {
   g_allocPersist = alloc_persist_init();
 }
 
-void alloc_leak_report(void) { alloc_heap_leak_report(); }
+void alloc_leak_detect(void) { alloc_heap_leak_detect(); }
 
 void alloc_teardown(void) {
   alloc_persist_teardown();

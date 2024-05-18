@@ -37,7 +37,7 @@ String file_result_str(const FileResult result) {
 
 void file_init(void) { file_pal_init(); }
 
-void file_leak_report(void) {
+void file_leak_detect(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
     diag_crash_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
   }

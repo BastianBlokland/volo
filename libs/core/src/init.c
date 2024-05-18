@@ -47,9 +47,9 @@ void core_teardown(void) {
   if (g_threadTid == g_threadMainTid && g_initalized) {
     stringtable_teardown(); // Teardown early as it contains heap allocations.
 
-    dynlib_leak_report();
-    file_leak_report();
-    alloc_leak_report();
+    dynlib_leak_detect();
+    file_leak_detect();
+    alloc_leak_detect();
   }
   if (g_initializedThread) {
     alloc_teardown_thread();

@@ -27,12 +27,12 @@ void rng_init_thread(void);
 void thread_init_thread(void);
 
 /**
- * Global leak-report routines.
+ * Global leak-detect routines.
  * Fired when the core library is torn down.
  */
-void alloc_leak_report(void);
-void dynlib_leak_report(void);
-void file_leak_report(void);
+void alloc_leak_detect(void);
+void dynlib_leak_detect(void);
+void file_leak_detect(void);
 
 /**
  * Global teardown routines.

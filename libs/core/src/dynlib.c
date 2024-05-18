@@ -12,7 +12,7 @@ void dynlib_init(void) {
   g_dynlibInitialized = true;
 }
 
-void dynlib_leak_report(void) {
+void dynlib_leak_detect(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_dynlibCount) != 0)) {
     diag_crash_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
   }
