@@ -43,7 +43,7 @@ SymbolAddr    symbol_addr_abs(SymbolAddrRel);
  * Addresses in the executable are relative to this base address, useful to output addresses that
  * match up with how objdump shows them.
  */
-SymbolAddrRel symbol_dbg_offset(void);
+SymbolAddr symbol_dbg_offset(void);
 
 /**
  * Lookup the name of the symbol that contains the given address.

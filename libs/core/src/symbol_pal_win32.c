@@ -188,6 +188,7 @@ void symbol_pal_dbg_init(SymbolReg* reg) {
   if (!sym_dbg_lib_begin(&dbg)) {
     goto Done;
   }
+  symbol_reg_set_offset(reg, dbg.dbgHelpBaseAddr);
   if (!sym_dbg_query(&dbg, reg)) {
     goto Done;
   }

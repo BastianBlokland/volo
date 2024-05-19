@@ -199,7 +199,7 @@ void symbol_pal_dbg_init(SymbolReg* reg) {
   if (!sym_dbg_addr_base(&dbg, &addrBase)) {
     goto Done;
   }
-  symbol_reg_set_offset(reg, (SymbolAddrRel)addrBase);
+  symbol_reg_set_offset(reg, addrBase);
   if (!sym_dbg_query(&dbg, addrBase, reg)) {
     goto Done;
   }

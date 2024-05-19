@@ -192,10 +192,10 @@ static void tracker_report_sort(TrackerReport* report) {
 
 static void tracker_report_write(TrackerReport* report, DynString* out) {
   fmt_write(out, "Active allocations (inclusive):\n");
-  const SymbolAddrRel addrOffset = symbol_dbg_offset();
+  const SymbolAddr addrOffset = symbol_dbg_offset();
   for (u32 i = 0; i != report->entries.size; ++i) {
     const TrackerReportEntry* entry = dynarray_at_t(&report->entries, i, TrackerReportEntry);
-    const SymbolAddrRel       entryAddrInExec = entry->addr + addrOffset;
+    const SymbolAddr          entryAddrInExec = (SymbolAddr)entry->addr + addrOffset;
 
     const SymbolAddrRel funcAddr = symbol_dbg_base(entry->addr);
     const String        funcName = symbol_dbg_name(entry->addr);
