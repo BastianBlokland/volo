@@ -192,8 +192,10 @@ static void tracker_report_sort(TrackerReport* report) {
 
 static void tracker_report_write(TrackerReport* report, DynString* out) {
   fmt_write(out, "Active allocations (inclusive):\n");
+  const SymbolAddrRel addrOffset = symbol_dbg_offset();
   for (u32 i = 0; i != report->entries.size; ++i) {
     const TrackerReportEntry* entry = dynarray_at_t(&report->entries, i, TrackerReportEntry);
+    const SymbolAddrRel       entryAddrInExec = entry->addr + addrOffset;
 
     const SymbolAddrRel funcAddr = symbol_dbg_base(entry->addr);
     const String        funcName = symbol_dbg_name(entry->addr);
@@ -204,7 +206,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
           " x{>5} {>10} {} {} +{}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
-          fmt_int(entry->addr, .base = 16, .minDigits = 8),
+          fmt_int(entryAddrInExec, .base = 16, .minDigits = 8),
           fmt_text(funcName),
           fmt_int(offset));
     } else {
@@ -214,7 +216,7 @@ static void tracker_report_write(TrackerReport* report, DynString* out) {
           " x{>5} {>10} {} {}\n",
           fmt_int(entry->count, .minDigits = 3),
           fmt_size(entry->size),
-          fmt_int(entry->addr, .base = 16, .minDigits = 8),
+          fmt_int(entryAddrInExec, .base = 16, .minDigits = 8),
           fmt_int(addrAbs, .base = 16, .minDigits = 16));
     }
   }
