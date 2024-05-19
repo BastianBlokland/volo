@@ -5,9 +5,8 @@
  * Memory instance for storing values.
  */
 typedef struct sScriptMem {
-  u32         slotCount, slotCountUsed;
-  StringHash* slotKeys;
-  ScriptVal*  slotValues;
+  u32   slotCount, slotCountUsed;
+  void* slotData;
 } ScriptMem;
 
 /**
