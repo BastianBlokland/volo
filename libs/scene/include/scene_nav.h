@@ -58,6 +58,7 @@ ecs_comp_extern_public(SceneNavAgentComp) {
 };
 
 ecs_comp_extern_public(SceneNavPathComp) {
+  Allocator*    pathAlloc;
   GeoNavCell*   cells;
   u16           cellCount;
   u16           currentTargetIndex; // Index in the path we are currently moving towards.
@@ -79,7 +80,7 @@ void scene_nav_stop(SceneNavAgentComp*);
  * Initialize navigation agents and blockers.
  */
 void               scene_nav_add_blocker(EcsWorld*, EcsEntityId, SceneNavBlockerMask);
-SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId, SceneNavLayer);
+SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, SceneNavEnvComp*, EcsEntityId, SceneNavLayer);
 
 /**
  * Query navigation data.

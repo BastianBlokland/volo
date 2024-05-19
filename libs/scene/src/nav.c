@@ -47,6 +47,7 @@ ASSERT(array_elems(g_sceneNavLayerNames) == SceneNavLayer_Count, "Incorrect numb
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* grids[SceneNavLayer_Count];
   u32         gridStats[SceneNavLayer_Count][GeoNavStat_Count];
+  Allocator*  pathAlloc; // Block-allocator with size: sizeof(GeoNavCell) * path_max_cells
   u32         terrainVersion;
 };
 
@@ -60,11 +61,17 @@ static void ecs_destruct_nav_env_comp(void* data) {
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
     geo_nav_grid_destroy(comp->grids[layer]);
   }
+  alloc_block_destroy(comp->pathAlloc);
 }
 
 static void ecs_destruct_nav_path_comp(void* data) {
   SceneNavPathComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->cells, path_max_cells);
+  alloc_free(comp->pathAlloc, mem_create(comp->cells, sizeof(GeoNavCell) * path_max_cells));
+}
+
+static GeoNavCell* nav_path_alloc(SceneNavEnvComp* navEnv) {
+  const usize size = sizeof(GeoNavCell) * path_max_cells;
+  return alloc_alloc(navEnv->pathAlloc, size, alignof(GeoNavCell)).ptr;
 }
 
 static GeoNavGrid* nav_grid_create(const f32 size, const SceneNavLayer layer) {
@@ -82,6 +89,9 @@ static void nav_env_create(EcsWorld* world) {
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
     env->grids[layer] = nav_grid_create(g_sceneNavFallbackSize, layer);
   }
+
+  const usize pathSize = sizeof(GeoNavCell) * path_max_cells;
+  env->pathAlloc       = alloc_block_create(g_allocHeap, pathSize, alignof(GeoNavCell));
 }
 
 static GeoNavBlockerId
@@ -674,7 +684,7 @@ ecs_system_define(SceneNavApplyRequestsSys) {
 }
 
 ecs_module_init(scene_nav_module) {
-  ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
+  ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp, .destructOrder = 1);
   ecs_register_comp(SceneNavBlockerComp);
   ecs_register_comp(SceneNavAgentComp);
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
@@ -740,11 +750,11 @@ void scene_nav_add_blocker(EcsWorld* w, const EcsEntityId e, const SceneNavBlock
   }
 }
 
-SceneNavAgentComp*
-scene_nav_add_agent(EcsWorld* w, const EcsEntityId e, const SceneNavLayer layer) {
+SceneNavAgentComp* scene_nav_add_agent(
+    EcsWorld* w, SceneNavEnvComp* navEnv, const EcsEntityId e, const SceneNavLayer layer) {
 
-  GeoNavCell* pathCells = alloc_array_t(g_allocHeap, GeoNavCell, path_max_cells);
-  ecs_world_add_t(w, e, SceneNavPathComp, .cells = pathCells);
+  ecs_world_add_t(
+      w, e, SceneNavPathComp, .pathAlloc = navEnv->pathAlloc, .cells = nav_path_alloc(navEnv));
 
   return ecs_world_add_t(w, e, SceneNavAgentComp, .layer = layer);
 }

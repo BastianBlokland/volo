@@ -9,11 +9,18 @@
 #include "scene_register.h"
 #include "scene_transform.h"
 
+ecs_view_define(LocomotionView) { ecs_access_read(SceneLocomotionComp); }
+ecs_view_define(PathView) { ecs_access_read(SceneNavPathComp); }
+ecs_view_define(EnvView) { ecs_access_write(SceneNavEnvComp); }
+
 static EcsEntityId test_create_agent(EcsWorld* world, const GeoVector pos, const GeoVector target) {
+  const EcsEntityId global = ecs_world_global(world);
+  SceneNavEnvComp*  env    = ecs_utils_write_t(world, EnvView, global, SceneNavEnvComp);
+
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = 0.0f, .radius = 0.5f);
-  SceneNavAgentComp* agent = scene_nav_add_agent(world, e, SceneNavLayer_Normal);
+  SceneNavAgentComp* agent = scene_nav_add_agent(world, env, e, SceneNavLayer_Normal);
   scene_nav_travel_to(agent, target);
   return e;
 }
@@ -47,10 +54,6 @@ static void test_check_path(
         fmt_int(expected[i].y));
   }
 }
-
-ecs_view_define(LocomotionView) { ecs_access_read(SceneLocomotionComp); }
-ecs_view_define(PathView) { ecs_access_read(SceneNavPathComp); }
-ecs_view_define(EnvView) { ecs_access_read(SceneNavEnvComp); }
 
 ecs_module_init(nav_test_module) {
   ecs_register_view(LocomotionView);
