@@ -41,8 +41,8 @@ static u32 script_mem_slot_index(StringHash* slotKeys, const u32 slotCount, cons
 static void script_mem_grow(ScriptMem* mem) {
   // Allocate new slots.
   const u32   newSlotCount  = bits_nextpow2_32(mem->slotCount + 1);
-  StringHash* newSlotKeys   = script_mem_slot_keys_alloc(mem->alloc, newSlotCount);
-  ScriptVal*  newSlotValues = script_mem_slot_values_alloc(mem->alloc, newSlotCount);
+  StringHash* newSlotKeys   = script_mem_slot_keys_alloc(g_allocHeap, newSlotCount);
+  ScriptVal*  newSlotValues = script_mem_slot_values_alloc(g_allocHeap, newSlotCount);
 
   // Insert the existing data into the new slots.
   for (u32 oldSlotIndex = 0; oldSlotIndex != mem->slotCount; ++oldSlotIndex) {
@@ -55,8 +55,8 @@ static void script_mem_grow(ScriptMem* mem) {
   }
 
   // Free the old slots.
-  alloc_free_array_t(mem->alloc, mem->slotKeys, mem->slotCount);
-  alloc_free_array_t(mem->alloc, mem->slotValues, mem->slotCount);
+  alloc_free_array_t(g_allocHeap, mem->slotKeys, mem->slotCount);
+  alloc_free_array_t(g_allocHeap, mem->slotValues, mem->slotCount);
   mem->slotKeys   = newSlotKeys;
   mem->slotValues = newSlotValues;
   mem->slotCount  = newSlotCount;
@@ -77,20 +77,19 @@ static u32 script_mem_insert(ScriptMem* mem, const StringHash key) {
   return slotIndex;
 }
 
-ScriptMem script_mem_create(Allocator* alloc) {
+ScriptMem script_mem_create(void) {
   diag_assert(bits_ispow2_32(script_mem_slots_initial));
 
   return (ScriptMem){
-      .alloc      = alloc,
       .slotCount  = script_mem_slots_initial,
-      .slotKeys   = script_mem_slot_keys_alloc(alloc, script_mem_slots_initial),
-      .slotValues = script_mem_slot_values_alloc(alloc, script_mem_slots_initial),
+      .slotKeys   = script_mem_slot_keys_alloc(g_allocHeap, script_mem_slots_initial),
+      .slotValues = script_mem_slot_values_alloc(g_allocHeap, script_mem_slots_initial),
   };
 }
 
 void script_mem_destroy(ScriptMem* mem) {
-  alloc_free_array_t(mem->alloc, mem->slotKeys, mem->slotCount);
-  alloc_free_array_t(mem->alloc, mem->slotValues, mem->slotCount);
+  alloc_free_array_t(g_allocHeap, mem->slotKeys, mem->slotCount);
+  alloc_free_array_t(g_allocHeap, mem->slotValues, mem->slotCount);
 }
 
 ScriptVal script_mem_load(const ScriptMem* mem, const StringHash key) {

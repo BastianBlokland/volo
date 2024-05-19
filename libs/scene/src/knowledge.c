@@ -42,6 +42,5 @@ const ScriptMem* scene_knowledge_memory(const SceneKnowledgeComp* k) { return &k
 ScriptMem* scene_knowledge_memory_mut(SceneKnowledgeComp* k) { return &k->memory; }
 
 SceneKnowledgeComp* scene_knowledge_add(EcsWorld* world, const EcsEntityId entity) {
-  return ecs_world_add_t(
-      world, entity, SceneKnowledgeComp, .memory = script_mem_create(g_allocHeap));
+  return ecs_world_add_t(world, entity, SceneKnowledgeComp, .memory = script_mem_create());
 }
