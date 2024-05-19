@@ -468,7 +468,7 @@ static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flag
       .binder     = binder,
       .flags      = flags,
       .editBuffer = &editBuffer,
-      .mem        = script_mem_create(g_allocHeap),
+      .mem        = script_mem_create(),
   };
 
   tty_opts_set(g_fileStdIn, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
@@ -505,7 +505,7 @@ repl_run_file(const ScriptBinder* binder, File* file, const String id, const Rep
   DynString readBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
   file_read_to_end_sync(file, &readBuffer);
 
-  ScriptMem mem = script_mem_create(g_allocHeap);
+  ScriptMem mem = script_mem_create();
   repl_exec(binder, &mem, flags, dynstring_view(&readBuffer), id);
   script_mem_destroy(&mem);
 

@@ -8,99 +8,121 @@
 #define script_mem_slots_initial 32
 #define script_mem_slots_loadfactor 0.75f
 
-static u32 script_mem_should_grow(ScriptMem* mem) {
+/**
+ * Values and keys are stored together in one allocation.
+ * First all values (because they have a higher alignment requirement) and then all values.
+ */
+
+ASSERT(alignof(ScriptVal) > alignof(StringHash), "Padding should not be required between types");
+
+#define slot_data_values(_DATA_) ((ScriptVal*)(_DATA_))
+
+#define slot_data_keys(_DATA_, _SLOT_COUNT_)                                                       \
+  ((StringHash*)bits_ptr_offset((_DATA_), sizeof(ScriptVal) * (_SLOT_COUNT_)))
+
+INLINE_HINT static u32 slot_data_should_grow(ScriptMem* mem) {
   return mem->slotCountUsed >= (u32)(mem->slotCount * script_mem_slots_loadfactor);
 }
 
-static StringHash* script_mem_slot_keys_alloc(Allocator* alloc, const u32 slotCount) {
-  StringHash* keys = alloc_array_t(alloc, StringHash, slotCount);
-  mem_set(mem_create(keys, sizeof(StringHash) * slotCount), 0); // Zero init all keys.
-  return keys;
+static usize slot_data_size(const u32 slotCount) {
+  const usize valuesSize = sizeof(ScriptVal) * slotCount;
+  const usize keysSize   = sizeof(StringHash) * slotCount;
+  return bits_align(valuesSize + keysSize, alignof(ScriptVal));
 }
 
-static ScriptVal* script_mem_slot_values_alloc(Allocator* alloc, const u32 slotCount) {
-  ScriptVal* values = alloc_array_t(alloc, ScriptVal, slotCount);
-  mem_set(mem_create(values, sizeof(ScriptVal) * slotCount), 0); // Zero init all values.
-  return values;
+static void* slot_data_alloc(const u32 slotCount) {
+  const usize memSize = slot_data_size(slotCount);
+  const Mem   mem     = alloc_alloc(g_allocHeap, memSize, alignof(ScriptVal));
+  mem_set(mem, 0); // Zero init all the values and keys.
+  return mem.ptr;
 }
 
-static u32 script_mem_slot_index(StringHash* slotKeys, const u32 slotCount, const StringHash key) {
+static void slot_data_free(void* data, const u32 slotCount) {
+  alloc_free(g_allocHeap, mem_create(data, slot_data_size(slotCount)));
+}
+
+INLINE_HINT static u32 slot_index(const void* slotData, const u32 slotCount, const StringHash key) {
   diag_assert_msg(key, "Empty memory key is not valid");
 
-  u32 slotIndex = key & (slotCount - 1);
+  const StringHash* keys = slot_data_keys(slotData, slotCount);
+
+  u32 index = key & (slotCount - 1);
   for (u32 i = 0; i != slotCount; ++i) {
-    if (LIKELY(!slotKeys[slotIndex] || slotKeys[slotIndex] == key)) {
-      return slotIndex; // Slot is either empty or matches the desired key.
+    if (LIKELY(!keys[index] || keys[index] == key)) {
+      return index; // Slot is either empty or matches the desired key.
     }
     // Key collision, jump to a new place in the memory (quadratic probing).
-    slotIndex = (slotIndex + i + 1) & (slotCount - 1);
+    index = (index + i + 1) & (slotCount - 1);
   }
-  diag_crash_msg("No available memory slots");
+  diag_crash_msg("script: No available memory slots");
 }
 
-static void script_mem_grow(ScriptMem* mem) {
+static void slot_data_grow(ScriptMem* mem) {
   // Allocate new slots.
   const u32   newSlotCount  = bits_nextpow2_32(mem->slotCount + 1);
-  StringHash* newSlotKeys   = script_mem_slot_keys_alloc(mem->alloc, newSlotCount);
-  ScriptVal*  newSlotValues = script_mem_slot_values_alloc(mem->alloc, newSlotCount);
+  void*       newSlotData   = slot_data_alloc(newSlotCount);
+  StringHash* newSlotKeys   = slot_data_keys(newSlotData, newSlotCount);
+  ScriptVal*  newSlotValues = slot_data_values(newSlotData);
+
+  StringHash* oldSlotKeys   = slot_data_keys(mem->slotData, mem->slotCount);
+  ScriptVal*  oldSlotValues = slot_data_values(mem->slotData);
 
   // Insert the existing data into the new slots.
   for (u32 oldSlotIndex = 0; oldSlotIndex != mem->slotCount; ++oldSlotIndex) {
-    const StringHash key = mem->slotKeys[oldSlotIndex];
+    const StringHash key = oldSlotKeys[oldSlotIndex];
     if (key) {
-      const u32 newSlotIndex      = script_mem_slot_index(newSlotKeys, newSlotCount, key);
+      const u32 newSlotIndex      = slot_index(newSlotData, newSlotCount, key);
       newSlotKeys[newSlotIndex]   = key;
-      newSlotValues[newSlotIndex] = mem->slotValues[oldSlotIndex];
+      newSlotValues[newSlotIndex] = oldSlotValues[oldSlotIndex];
     }
   }
 
-  // Free the old slots.
-  alloc_free_array_t(mem->alloc, mem->slotKeys, mem->slotCount);
-  alloc_free_array_t(mem->alloc, mem->slotValues, mem->slotCount);
-  mem->slotKeys   = newSlotKeys;
-  mem->slotValues = newSlotValues;
-  mem->slotCount  = newSlotCount;
+  // Free the old slot data.
+  slot_data_free(mem->slotData, mem->slotCount);
+  mem->slotData  = newSlotData;
+  mem->slotCount = newSlotCount;
 }
 
-static u32 script_mem_insert(ScriptMem* mem, const StringHash key) {
-  u32 slotIndex = script_mem_slot_index(mem->slotKeys, mem->slotCount, key);
-  if (!mem->slotKeys[slotIndex]) {
+NO_INLINE_HINT static u32 slot_data_grow_and_query(ScriptMem* mem, const StringHash key) {
+  slot_data_grow(mem);
+
+  // Re-query the slot after growing the table as any previous index is no longer valid.
+  return slot_index(mem->slotData, mem->slotCount, key);
+}
+
+INLINE_HINT static u32 slot_insert(ScriptMem* mem, const StringHash key) {
+  u32         slotIndex = slot_index(mem->slotData, mem->slotCount, key);
+  StringHash* slotKeys  = slot_data_keys(mem->slotData, mem->slotCount);
+  if (!slotKeys[slotIndex]) {
     // New entry; initialize and test if we need to grow the table.
-    mem->slotKeys[slotIndex] = key;
+    slotKeys[slotIndex] = key;
     ++mem->slotCountUsed;
-    if (UNLIKELY(script_mem_should_grow(mem))) {
-      script_mem_grow(mem);
-      // Re-query the slot after growing the table as the previous pointer is no longer valid.
-      slotIndex = script_mem_slot_index(mem->slotKeys, mem->slotCount, key);
+    if (UNLIKELY(slot_data_should_grow(mem))) {
+      slotIndex = slot_data_grow_and_query(mem, key);
     }
   }
   return slotIndex;
 }
 
-ScriptMem script_mem_create(Allocator* alloc) {
+ScriptMem script_mem_create(void) {
   diag_assert(bits_ispow2_32(script_mem_slots_initial));
 
   return (ScriptMem){
-      .alloc      = alloc,
-      .slotCount  = script_mem_slots_initial,
-      .slotKeys   = script_mem_slot_keys_alloc(alloc, script_mem_slots_initial),
-      .slotValues = script_mem_slot_values_alloc(alloc, script_mem_slots_initial),
+      .slotCount = script_mem_slots_initial,
+      .slotData  = slot_data_alloc(script_mem_slots_initial),
   };
 }
 
-void script_mem_destroy(ScriptMem* mem) {
-  alloc_free_array_t(mem->alloc, mem->slotKeys, mem->slotCount);
-  alloc_free_array_t(mem->alloc, mem->slotValues, mem->slotCount);
-}
+void script_mem_destroy(ScriptMem* mem) { slot_data_free(mem->slotData, mem->slotCount); }
 
 ScriptVal script_mem_load(const ScriptMem* mem, const StringHash key) {
-  const u32 slotIndex = script_mem_slot_index(mem->slotKeys, mem->slotCount, key);
-  return mem->slotValues[slotIndex];
+  const u32 slotIndex = slot_index(mem->slotData, mem->slotCount, key);
+  return slot_data_values(mem->slotData)[slotIndex];
 }
 
 void script_mem_store(ScriptMem* mem, const StringHash key, const ScriptVal value) {
-  const u32 slotIndex        = script_mem_insert(mem, key);
-  mem->slotValues[slotIndex] = value;
+  const u32 slotIndex                        = slot_insert(mem, key);
+  slot_data_values(mem->slotData)[slotIndex] = value;
 }
 
 ScriptMemItr script_mem_begin(const ScriptMem* mem) {
@@ -108,9 +130,10 @@ ScriptMemItr script_mem_begin(const ScriptMem* mem) {
 }
 
 ScriptMemItr script_mem_next(const ScriptMem* mem, const ScriptMemItr itr) {
+  StringHash* slotKeys = slot_data_keys(mem->slotData, mem->slotCount);
   for (u32 i = itr.next; i < mem->slotCount; ++i) {
-    if (mem->slotKeys[i]) {
-      return (ScriptMemItr){.key = mem->slotKeys[i], .next = i + 1};
+    if (slotKeys[i]) {
+      return (ScriptMemItr){.key = slotKeys[i], .next = i + 1};
     }
   }
   return (ScriptMemItr){.key = 0, .next = sentinel_u32};

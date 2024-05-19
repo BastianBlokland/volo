@@ -1,24 +1,19 @@
 #pragma once
 #include "script_val.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * Memory instance for storing values.
  */
 typedef struct sScriptMem {
-  Allocator*  alloc;
-  u32         slotCount, slotCountUsed;
-  StringHash* slotKeys;
-  ScriptVal*  slotValues;
+  u32   slotCount, slotCountUsed;
+  void* slotData;
 } ScriptMem;
 
 /**
  * Create a new ScriptMem instance.
  * Destroy using 'script_mem_destroy()'.
  */
-ScriptMem script_mem_create(Allocator*);
+ScriptMem script_mem_create(void);
 
 /**
  * Destroy a ScriptMem instance.

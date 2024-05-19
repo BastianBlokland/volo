@@ -48,7 +48,7 @@ spec(eval) {
   ScriptSymBag*  symsNull    = null;
 
   setup() {
-    mem = script_mem_create(g_allocHeap);
+    mem = script_mem_create();
     doc = script_create(g_allocHeap);
 
     script_mem_store(&mem, string_hash_lit("v1"), script_bool(true));
