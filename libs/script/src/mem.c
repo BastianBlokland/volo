@@ -20,7 +20,7 @@ ASSERT(alignof(ScriptVal) > alignof(StringHash), "Padding should not be required
 #define slot_data_keys(_DATA_, _SLOT_COUNT_)                                                       \
   ((StringHash*)bits_ptr_offset((_DATA_), sizeof(ScriptVal) * (_SLOT_COUNT_)))
 
-static u32 slot_data_should_grow(ScriptMem* mem) {
+INLINE_HINT static u32 slot_data_should_grow(ScriptMem* mem) {
   return mem->slotCountUsed >= (u32)(mem->slotCount * script_mem_slots_loadfactor);
 }
 
@@ -41,7 +41,7 @@ static void slot_data_free(void* data, const u32 slotCount) {
   alloc_free(g_allocHeap, mem_create(data, slot_data_size(slotCount)));
 }
 
-static u32 slot_index(const void* slotData, const u32 slotCount, const StringHash key) {
+INLINE_HINT static u32 slot_index(const void* slotData, const u32 slotCount, const StringHash key) {
   diag_assert_msg(key, "Empty memory key is not valid");
 
   const StringHash* keys = slot_data_keys(slotData, slotCount);
@@ -83,7 +83,14 @@ static void slot_data_grow(ScriptMem* mem) {
   mem->slotCount = newSlotCount;
 }
 
-static u32 slot_insert(ScriptMem* mem, const StringHash key) {
+NO_INLINE_HINT static u32 slot_data_grow_and_query(ScriptMem* mem, const StringHash key) {
+  slot_data_grow(mem);
+
+  // Re-query the slot after growing the table as any previous index is no longer valid.
+  return slot_index(mem->slotData, mem->slotCount, key);
+}
+
+INLINE_HINT static u32 slot_insert(ScriptMem* mem, const StringHash key) {
   u32         slotIndex = slot_index(mem->slotData, mem->slotCount, key);
   StringHash* slotKeys  = slot_data_keys(mem->slotData, mem->slotCount);
   if (!slotKeys[slotIndex]) {
@@ -91,10 +98,7 @@ static u32 slot_insert(ScriptMem* mem, const StringHash key) {
     slotKeys[slotIndex] = key;
     ++mem->slotCountUsed;
     if (UNLIKELY(slot_data_should_grow(mem))) {
-      slot_data_grow(mem);
-
-      // Re-query the slot after growing the table as the previous pointer is no longer valid.
-      slotIndex = slot_index(mem->slotData, mem->slotCount, key);
+      slotIndex = slot_data_grow_and_query(mem, key);
     }
   }
   return slotIndex;
