@@ -30,7 +30,7 @@ typedef struct {
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
-static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
+static ScriptVal eval_expr(ScriptEvalContext*, ScriptExpr);
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
@@ -44,7 +44,7 @@ INLINE_HINT static ScriptVal eval_var_load(ScriptEvalContext* ctx, const ScriptE
 
 INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const ScriptExpr e) {
   const ScriptExprVarStore* data = &expr_data(ctx->doc, e)->var_store;
-  const ScriptVal           val  = eval(ctx, data->val);
+  const ScriptVal           val  = eval_expr(ctx, data->val);
   if (LIKELY(!ctx->signal)) {
     ctx->vars[data->var] = val;
   }
@@ -58,7 +58,7 @@ INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptE
 
 INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const ScriptExpr e) {
   const ScriptExprMemStore* data = &expr_data(ctx->doc, e)->mem_store;
-  const ScriptVal           val  = eval(ctx, data->val);
+  const ScriptVal           val  = eval_expr(ctx, data->val);
   if (LIKELY(!ctx->signal)) {
     script_mem_store(ctx->m, data->key, val);
   }
@@ -70,7 +70,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
 
 #define EVAL_ARG_WITH_INTERRUPT(_NUM_)                                                             \
-  const ScriptVal arg##_NUM_ = eval(ctx, args[_NUM_]);                                             \
+  const ScriptVal arg##_NUM_ = eval_expr(ctx, args[_NUM_]);                                        \
   if (UNLIKELY(ctx->signal)) {                                                                     \
     return arg##_NUM_;                                                                             \
   }
@@ -83,16 +83,16 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     ctx->signal |= ScriptEvalSignal_Break;
     return val_null();
   case ScriptIntrinsic_Return: {
-    const ScriptVal ret = eval(ctx, args[0]);
+    const ScriptVal ret = eval_expr(ctx, args[0]);
     ctx->signal |= ScriptEvalSignal_Return;
     return ret;
   }
   case ScriptIntrinsic_Type:
-    return script_str(script_val_type_hash(script_type(eval(ctx, args[0]))));
+    return script_str(script_val_type_hash(script_type(eval_expr(ctx, args[0]))));
   case ScriptIntrinsic_Hash:
-    return script_num(script_hash(eval(ctx, args[0])));
+    return script_num(script_hash(eval_expr(ctx, args[0])));
   case ScriptIntrinsic_Assert: {
-    if (script_falsy(eval(ctx, args[0]))) {
+    if (script_falsy(eval_expr(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
           .kind  = ScriptPanic_AssertionFailed,
           .range = script_expr_range(ctx->doc, e),
@@ -117,19 +117,19 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_Select: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_truthy(arg0) ? eval(ctx, args[1]) : eval(ctx, args[2]);
+    return script_truthy(arg0) ? eval_expr(ctx, args[1]) : eval_expr(ctx, args[2]);
   }
   case ScriptIntrinsic_NullCoalescing: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_has(arg0) ? arg0 : eval(ctx, args[1]);
+    return script_val_has(arg0) ? arg0 : eval_expr(ctx, args[1]);
   }
   case ScriptIntrinsic_LogicAnd: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(script_truthy(arg0) && script_truthy(eval(ctx, args[1])));
+    return val_bool(script_truthy(arg0) && script_truthy(eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_LogicOr: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
+    return val_bool(script_truthy(arg0) || script_truthy(eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_Loop: {
     EVAL_ARG_WITH_INTERRUPT(0); // Setup.
@@ -139,7 +139,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
       if (script_falsy(arg1) || UNLIKELY(ctx->signal)) {
         break;
       }
-      ret = eval(ctx, args[3]); // Body.
+      ret = eval_expr(ctx, args[3]); // Body.
       if (ctx->signal & ScriptEvalSignal_Continue) {
         ctx->signal &= ~ScriptEvalSignal_Continue;
       }
@@ -153,104 +153,104 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_Equal: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(script_val_equal(arg0, eval(ctx, args[1])));
+    return val_bool(script_val_equal(arg0, eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_NotEqual: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(!script_val_equal(arg0, eval(ctx, args[1])));
+    return val_bool(!script_val_equal(arg0, eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_Less: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(script_val_less(arg0, eval(ctx, args[1])));
+    return val_bool(script_val_less(arg0, eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_LessOrEqual: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(!script_val_greater(arg0, eval(ctx, args[1])));
+    return val_bool(!script_val_greater(arg0, eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_Greater: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(script_val_greater(arg0, eval(ctx, args[1])));
+    return val_bool(script_val_greater(arg0, eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_GreaterOrEqual: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return val_bool(!script_val_less(arg0, eval(ctx, args[1])));
+    return val_bool(!script_val_less(arg0, eval_expr(ctx, args[1])));
   }
   case ScriptIntrinsic_Add: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_add(arg0, eval(ctx, args[1]));
+    return script_val_add(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Sub: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_sub(arg0, eval(ctx, args[1]));
+    return script_val_sub(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Mul: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_mul(arg0, eval(ctx, args[1]));
+    return script_val_mul(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Div: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_div(arg0, eval(ctx, args[1]));
+    return script_val_div(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Mod: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_mod(arg0, eval(ctx, args[1]));
+    return script_val_mod(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Negate:
-    return script_val_neg(eval(ctx, args[0]));
+    return script_val_neg(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Invert:
-    return script_val_inv(eval(ctx, args[0]));
+    return script_val_inv(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Distance: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_dist(arg0, eval(ctx, args[1]));
+    return script_val_dist(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Angle: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_angle(arg0, eval(ctx, args[1]));
+    return script_val_angle(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Sin:
-    return script_val_sin(eval(ctx, args[0]));
+    return script_val_sin(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Cos:
-    return script_val_cos(eval(ctx, args[0]));
+    return script_val_cos(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Normalize:
-    return script_val_norm(eval(ctx, args[0]));
+    return script_val_norm(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Magnitude:
-    return script_val_mag(eval(ctx, args[0]));
+    return script_val_mag(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Absolute:
-    return script_val_abs(eval(ctx, args[0]));
+    return script_val_abs(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_VecX:
-    return script_val_vec_x(eval(ctx, args[0]));
+    return script_val_vec_x(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_VecY:
-    return script_val_vec_y(eval(ctx, args[0]));
+    return script_val_vec_y(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_VecZ:
-    return script_val_vec_z(eval(ctx, args[0]));
+    return script_val_vec_z(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Vec3Compose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
-    return script_val_vec3_compose(arg0, arg1, eval(ctx, args[2]));
+    return script_val_vec3_compose(arg0, arg1, eval_expr(ctx, args[2]));
   }
   case ScriptIntrinsic_QuatFromEuler: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
-    return script_val_quat_from_euler(arg0, arg1, eval(ctx, args[2]));
+    return script_val_quat_from_euler(arg0, arg1, eval_expr(ctx, args[2]));
   }
   case ScriptIntrinsic_QuatFromAngleAxis: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_quat_from_angle_axis(arg0, eval(ctx, args[1]));
+    return script_val_quat_from_angle_axis(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_ColorCompose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
     EVAL_ARG_WITH_INTERRUPT(2);
-    return script_val_color_compose(arg0, arg1, arg2, eval(ctx, args[3]));
+    return script_val_color_compose(arg0, arg1, arg2, eval_expr(ctx, args[3]));
   }
   case ScriptIntrinsic_ColorComposeHsv: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
     EVAL_ARG_WITH_INTERRUPT(2);
-    return script_val_color_compose_hsv(arg0, arg1, arg2, eval(ctx, args[3]));
+    return script_val_color_compose_hsv(arg0, arg1, arg2, eval_expr(ctx, args[3]));
   }
   case ScriptIntrinsic_ColorFor:
-    return script_color(geo_color_for_hash(script_hash(eval(ctx, args[0]))));
+    return script_color(geo_color_for_hash(script_hash(eval_expr(ctx, args[0]))));
   case ScriptIntrinsic_Random:
     return script_val_random();
   case ScriptIntrinsic_RandomSphere:
@@ -259,34 +259,34 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_random_circle_xz();
   case ScriptIntrinsic_RandomBetween: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_random_between(arg0, eval(ctx, args[1]));
+    return script_val_random_between(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_RoundDown:
-    return script_val_round_down(eval(ctx, args[0]));
+    return script_val_round_down(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_RoundNearest:
-    return script_val_round_nearest(eval(ctx, args[0]));
+    return script_val_round_nearest(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_RoundUp:
-    return script_val_round_up(eval(ctx, args[0]));
+    return script_val_round_up(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Clamp: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
-    return script_val_clamp(arg0, arg1, eval(ctx, args[2]));
+    return script_val_clamp(arg0, arg1, eval_expr(ctx, args[2]));
   }
   case ScriptIntrinsic_Lerp: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
-    return script_val_lerp(arg0, arg1, eval(ctx, args[2]));
+    return script_val_lerp(arg0, arg1, eval_expr(ctx, args[2]));
   }
   case ScriptIntrinsic_Min: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_min(arg0, eval(ctx, args[1]));
+    return script_val_min(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Max: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_max(arg0, eval(ctx, args[1]));
+    return script_val_max(arg0, eval_expr(ctx, args[1]));
   }
   case ScriptIntrinsic_Perlin3:
-    return script_val_perlin3(eval(ctx, args[0]));
+    return script_val_perlin3(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Count:
     break;
   }
@@ -304,7 +304,7 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
   // NOTE: Blocks need at least one expression.
   ScriptVal ret;
   for (u32 i = 0; i != data->exprCount; ++i) {
-    ret = eval(ctx, exprs[i]);
+    ret = eval_expr(ctx, exprs[i]);
     if (UNLIKELY(ctx->signal)) {
       break;
     }
@@ -317,7 +317,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   const ScriptExpr*       argExprs  = expr_set_data(ctx->doc, data->argSet);
   ScriptVal*              argValues = mem_stack(sizeof(ScriptVal) * data->argCount).ptr;
   for (u16 i = 0; i != data->argCount; ++i) {
-    argValues[i] = eval(ctx, argExprs[i]);
+    argValues[i] = eval_expr(ctx, argExprs[i]);
     if (UNLIKELY(ctx->signal)) {
       return val_null();
     }
@@ -336,7 +336,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   return ret;
 }
 
-NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr e) {
+NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptExpr e) {
   if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
     ctx->panic = (ScriptPanic){
         .kind  = ScriptPanic_ExecutionLimitExceeded,
@@ -386,7 +386,7 @@ ScriptEvalResult script_eval(
   };
 
   ScriptEvalResult res;
-  res.val           = eval(&ctx, expr);
+  res.val           = eval_expr(&ctx, expr);
   res.panic         = ctx.panic;
   res.executedExprs = ctx.executedExprs;
 
