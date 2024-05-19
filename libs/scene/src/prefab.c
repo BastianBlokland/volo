@@ -74,6 +74,7 @@ ecs_view_define(GlobalResourceUpdateView) {
 
 ecs_view_define(GlobalSpawnView) {
   ecs_access_read(SceneTerrainComp);
+  ecs_access_write(SceneNavEnvComp);
   ecs_access_write(ScenePrefabEnvComp);
 }
 
@@ -233,7 +234,8 @@ static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLif
   ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
 }
 
-static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
+static void setup_movement(
+    EcsWorld* w, SceneNavEnvComp* navEnv, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
   ecs_world_add_t(
       w,
       e,
@@ -254,7 +256,7 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
   }
 
   diag_assert(t->navLayer < SceneNavLayer_Count);
-  scene_nav_add_agent(w, e, (SceneNavLayer)t->navLayer);
+  scene_nav_add_agent(w, navEnv, e, (SceneNavLayer)t->navLayer);
 }
 
 static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitFootstep* t) {
@@ -449,6 +451,7 @@ static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
 
 static void setup_trait(
     EcsWorld*                 w,
+    SceneNavEnvComp*          navEnv,
     const EcsEntityId         e,
     const ScenePrefabSpec*    s,
     const AssetPrefabMapComp* m,
@@ -486,7 +489,7 @@ static void setup_trait(
     setup_lifetime(w, e, &t->data_lifetime);
     return;
   case AssetPrefabTrait_Movement:
-    setup_movement(w, e, &t->data_movement);
+    setup_movement(w, navEnv, e, &t->data_movement);
     return;
   case AssetPrefabTrait_Footstep:
     setup_footstep(w, e, &t->data_footstep);
@@ -529,6 +532,7 @@ static void setup_trait(
 
 static bool setup_prefab(
     EcsWorld*                 w,
+    SceneNavEnvComp*          navEnv,
     const SceneTerrainComp*   terrain,
     const EcsEntityId         e,
     const ScenePrefabSpec*    spec,
@@ -571,7 +575,7 @@ static bool setup_prefab(
 
   for (u16 i = 0; i != prefab->traitCount; ++i) {
     const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
-    setup_trait(w, e, spec, map, prefab, trait);
+    setup_trait(w, navEnv, e, spec, map, prefab, trait);
   }
 
   return true; // Prefab done processing.
@@ -583,21 +587,22 @@ ecs_system_define(ScenePrefabSpawnSys) {
   if (!globalItr) {
     return;
   }
-  ScenePrefabEnvComp*     env     = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
-  const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
+  ScenePrefabEnvComp*     prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+  SceneNavEnvComp*        navEnv    = ecs_view_write_t(globalItr, SceneNavEnvComp);
+  const SceneTerrainComp* terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
 
   EcsView*     mapAssetView = ecs_world_view_t(world, PrefabMapAssetView);
-  EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, env->mapEntity);
+  EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, prefabEnv->mapEntity);
   if (!mapAssetItr) {
     return;
   }
   const AssetPrefabMapComp* map = ecs_view_read_t(mapAssetItr, AssetPrefabMapComp);
 
   // Process global requests.
-  for (usize i = env->requests.size; i-- != 0;) {
-    const ScenePrefabRequest* req = dynarray_at_t(&env->requests, i, ScenePrefabRequest);
-    if (setup_prefab(world, terrain, req->entity, &req->spec, map)) {
-      dynarray_remove_unordered(&env->requests, i, 1);
+  for (usize i = prefabEnv->requests.size; i-- != 0;) {
+    const ScenePrefabRequest* req = dynarray_at_t(&prefabEnv->requests, i, ScenePrefabRequest);
+    if (setup_prefab(world, navEnv, terrain, req->entity, &req->spec, map)) {
+      dynarray_remove_unordered(&prefabEnv->requests, i, 1);
     }
   }
 
@@ -607,7 +612,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
     const EcsEntityId             entity  = ecs_view_entity(itr);
     const ScenePrefabRequestComp* request = ecs_view_read_t(itr, ScenePrefabRequestComp);
 
-    if (setup_prefab(world, terrain, entity, &request->spec, map)) {
+    if (setup_prefab(world, navEnv, terrain, entity, &request->spec, map)) {
       ecs_world_remove_t(world, entity, ScenePrefabRequestComp);
     }
   }

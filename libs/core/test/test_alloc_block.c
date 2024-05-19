@@ -16,7 +16,7 @@ spec(alloc_block) {
     memTotal       = alloc_alloc(g_allocHeap, g_memSize, 1);
     allocParent    = alloc_bump_create(memTotal);
     memSizeUseable = alloc_max_size(allocParent);
-    allocBlock     = alloc_block_create(allocParent, g_blockSize);
+    allocBlock     = alloc_block_create(allocParent, g_blockSize, g_blockSize);
   }
 
   it("store blocks sequentially in memory") {

@@ -37,7 +37,7 @@ typedef struct {
   ThreadSpinLock spinLock;
   BlockNode*     freeHead;
   BlockChunk*    chunkHead;
-  usize          blockSize;
+  u32            blockSize, blockAlign;
   usize          allocatedBlocks;
 } AllocatorBlock;
 
@@ -58,7 +58,7 @@ static void alloc_block_freelist_push(AllocatorBlock* allocBlock, void* blockHea
 }
 
 static void alloc_block_freelist_push_many(AllocatorBlock* allocBlock, Mem chunk) {
-  u8* head = bits_align_ptr(chunk.ptr, allocBlock->blockSize);
+  u8* head = bits_align_ptr(chunk.ptr, allocBlock->blockAlign);
   for (; (head + allocBlock->blockSize) <= mem_end(chunk); head += allocBlock->blockSize) {
     alloc_block_freelist_push(allocBlock, head);
   }
@@ -89,9 +89,7 @@ static bool alloc_block_chunk_create(AllocatorBlock* allocBlock) {
 static Mem alloc_block_alloc(Allocator* allocator, const usize size, const usize align) {
   AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
 
-  (void)align; // All blocks are aligned to atleast the block-size.
-
-  if (UNLIKELY(size > allocBlock->blockSize)) {
+  if (UNLIKELY(size > allocBlock->blockSize || align > allocBlock->blockAlign)) {
     return mem_create(null, size);
   }
 
@@ -158,8 +156,11 @@ static void alloc_block_reset(Allocator* allocator) {
   alloc_block_unlock(allocBlock);
 }
 
-Allocator* alloc_block_create(Allocator* parent, const usize blockSize) {
+Allocator* alloc_block_create(Allocator* parent, const usize blockSize, const usize blockAlign) {
   diag_assert_msg(blockSize >= sizeof(BlockNode), "Blocksize {} is too small", fmt_int(blockSize));
+  diag_assert(blockSize <= u32_max && blockAlign <= u32_max);
+  diag_assert(bits_ispow2(blockAlign));
+  diag_assert(bits_aligned(blockSize, blockAlign));
 
   const Mem mainMem = alloc_alloc(parent, main_size_total, main_align);
   if (!mem_valid(mainMem)) {
@@ -177,8 +178,9 @@ Allocator* alloc_block_create(Allocator* parent, const usize blockSize) {
               .maxSize = alloc_block_max_size,
               .reset   = alloc_block_reset,
           },
-      .parent    = parent,
-      .blockSize = blockSize,
+      .parent     = parent,
+      .blockSize  = (u32)blockSize,
+      .blockAlign = (u32)blockAlign,
   };
 
   // Use the remaining space to create blocks.
