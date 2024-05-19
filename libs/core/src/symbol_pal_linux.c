@@ -125,15 +125,11 @@ static bool sym_dbg_addr_base(SymDbg* dbg, SymbolAddr* out) {
   return false;
 }
 
-static bool sym_dbg_query(SymDbg* dbg, SymbolReg* reg) {
+static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg) {
   /**
    * Find all the (non-inlined) function symbols in all the compilation units.
    * NOTE: Doesn't depend on 'aranges' dwarf info as that is optional and clang does not emit it.
    */
-  SymbolAddr addrBase;
-  if (!sym_dbg_addr_base(dbg, &addrBase)) {
-    return false;
-  }
   u64    cuOffset = 0;
   u64    cuOffsetNext;
   size_t cuSize;
@@ -199,7 +195,12 @@ void symbol_pal_dbg_init(SymbolReg* reg) {
   if (!sym_dbg_dw_begin(&dbg)) {
     goto Done;
   }
-  if (!sym_dbg_query(&dbg, reg)) {
+  SymbolAddr addrBase;
+  if (!sym_dbg_addr_base(&dbg, &addrBase)) {
+    goto Done;
+  }
+  symbol_reg_set_offset(reg, addrBase);
+  if (!sym_dbg_query(&dbg, addrBase, reg)) {
     goto Done;
   }
 

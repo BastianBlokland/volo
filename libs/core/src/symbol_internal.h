@@ -3,6 +3,7 @@
 
 typedef struct sSymbolReg SymbolReg;
 
+void symbol_reg_set_offset(SymbolReg*, SymbolAddr addrOffset);
 void symbol_reg_add(SymbolReg*, SymbolAddrRel begin, SymbolAddrRel end, String name);
 
 /**

@@ -39,6 +39,13 @@ SymbolAddrRel symbol_addr_rel_ptr(Symbol);
 SymbolAddr    symbol_addr_abs(SymbolAddrRel);
 
 /**
+ * Lookup the address offset in the executable.
+ * Addresses in the executable are relative to this base address, useful to output addresses that
+ * match up with how objdump shows them.
+ */
+SymbolAddr symbol_dbg_offset(void);
+
+/**
  * Lookup the name of the symbol that contains the given address.
  * NOTE: returns an empty string if no name was found.
  *

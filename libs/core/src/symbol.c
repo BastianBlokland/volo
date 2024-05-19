@@ -26,8 +26,9 @@ typedef struct {
 } SymbolInfo;
 
 struct sSymbolReg {
-  Allocator* allocAux; // (chunked) bump allocator for axillary data (eg symbol names).
-  DynArray   syms;     // SymbolInfo[], kept sorted on begin address.
+  Allocator* allocAux;   // (chunked) bump allocator for axillary data (eg symbol names).
+  DynArray   syms;       // SymbolInfo[], kept sorted on begin address.
+  SymbolAddr addrOffset; // Base address in the executable.
 };
 
 static bool        g_symInit;
@@ -156,6 +157,10 @@ static const SymbolReg* symbol_reg_get(void) {
   thread_mutex_unlock(g_symRegMutex);
   g_symRegInitializing = false;
   return g_symReg;
+}
+
+void symbol_reg_set_offset(SymbolReg* r, const SymbolAddr addrOffset) {
+  r->addrOffset = addrOffset;
 }
 
 void symbol_reg_add(
@@ -290,7 +295,8 @@ NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
 bool symbol_stack_valid(const SymbolStack* stack) { return !sentinel_check(stack->frames[0]); }
 
 void symbol_stack_write(const SymbolStack* stack, DynString* out) {
-  const SymbolReg* reg = symbol_reg_get();
+  const SymbolReg* reg        = symbol_reg_get();
+  const SymbolAddr addrOffset = reg ? reg->addrOffset : 0;
 
   if (sentinel_check(stack->frames[0])) {
     fmt_write(out, "Stack: Invalid\n");
@@ -302,14 +308,15 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
     if (sentinel_check(addr)) {
       break; // End of stack.
     }
-    const SymbolInfo* info = reg ? symbol_reg_query(reg, addr) : null;
+    const SymbolAddr  addrInExec = (SymbolAddr)addr + addrOffset;
+    const SymbolInfo* info       = reg ? symbol_reg_query(reg, addr) : null;
     if (info) {
       const u32 offset = addr - info->begin;
       fmt_write(
           out,
           " {}) {} {} +{}\n",
           fmt_int(frameIndex),
-          fmt_int(addr, .base = 16, .minDigits = 8),
+          fmt_int(addrInExec, .base = 16, .minDigits = 8),
           fmt_text(info->name),
           fmt_int(offset));
     } else {
@@ -318,7 +325,7 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
           out,
           " {}) {} {}\n",
           fmt_int(frameIndex),
-          fmt_int(addr, .base = 16, .minDigits = 8),
+          fmt_int(addrInExec, .base = 16, .minDigits = 8),
           fmt_int(addrAbs, .base = 16, .minDigits = 16));
     }
   }
@@ -327,6 +334,11 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
 SymbolAddrRel symbol_addr_rel(const SymbolAddr addr) { return sym_addr_rel(addr); }
 SymbolAddrRel symbol_addr_rel_ptr(const Symbol symbol) { return sym_addr_rel((SymbolAddr)symbol); }
 SymbolAddr    symbol_addr_abs(const SymbolAddrRel addr) { return sym_addr_abs(addr); }
+
+SymbolAddr symbol_dbg_offset(void) {
+  const SymbolReg* reg = symbol_reg_get();
+  return reg ? reg->addrOffset : 0;
+}
 
 String symbol_dbg_name(const SymbolAddrRel addr) {
   const SymbolReg* reg = symbol_reg_get();
