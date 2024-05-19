@@ -19,6 +19,7 @@
     DynString buffer = dynstring_create_over(mem_stack(256));                                      \
     fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
     diag_print_err_raw(dynstring_view(&buffer));                                                   \
+    diag_pal_break();                                                                              \
     diag_pal_crash(); /* Unfortunately cannot include a stack, as symbol resolving allocates. */   \
   } while (false)
 
