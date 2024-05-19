@@ -97,8 +97,10 @@ void       alloc_chunked_destroy(Allocator*);
  * NOTE: Destroy using 'alloc_block_destroy()'
  *
  * Pre-condition: chunkSize >= 8
+ * Pre-condition: blockAlign is a power-of-two.
+ * Pre-condition: blockSize is a multiple of blockAlign.
  */
-Allocator* alloc_block_create(Allocator* parent, usize blockSize);
+Allocator* alloc_block_create(Allocator* parent, usize blockSize, usize blockAlign);
 void       alloc_block_destroy(Allocator*);
 
 /**
