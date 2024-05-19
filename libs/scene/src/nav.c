@@ -253,7 +253,7 @@ static void nav_refresh_paths(NavInitContext* ctx, EcsView* pathView) {
       if (path->layer != ctx->layer) {
         continue;
       }
-      for (u32 i = 0; i != path->cellCount; ++i) {
+      for (u16 i = 0; i != path->cellCount; ++i) {
         if (geo_nav_check(ctx->grid, path->cells[i], GeoNavCond_Blocked)) {
           path->nextRefreshTime = 0;
           ctx->change |= NavChange_PathInvalidated;
@@ -613,7 +613,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
-    for (u32 i = path->cellCount; --i > path->currentTargetIndex;) {
+    for (u16 i = path->cellCount; --i > path->currentTargetIndex;) {
       const GeoVector  pathPos      = geo_nav_position(grid, path->cells[i]);
       const GeoNavCond shortcutCond = nav_shortcut_block_cond(grid, fromCell, path->cells[i]);
       if (!geo_nav_check_channel(grid, trans->position, pathPos, shortcutCond)) {
