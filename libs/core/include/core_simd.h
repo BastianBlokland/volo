@@ -64,6 +64,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_zero(void) { return _mm_setzero
 
 MAYBE_UNUSED INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
 
+MAYBE_UNUSED INLINE_HINT static u64 simd_vec_u64(const SimdVec vec) {
+  return _mm_cvtsi128_si64(_mm_castps_si128(vec));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec
 simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
   return _mm_set_ps(d, c, b, a);
@@ -79,6 +83,13 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u16(const u16 value) 
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) {
   return _mm_castsi128_ps(_mm_set1_epi32(value));
+}
+
+/**
+ * NOTE: Requires the F16C extension.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16(const SimdVec vec) {
+  return _mm_castsi128_ps(_mm_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
