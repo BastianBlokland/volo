@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_array.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "geo_quat.h"
 
@@ -339,5 +340,17 @@ spec(quat) {
       geo_quat_clamp(&q, 0.0f);
       check_eq_quat(q, geo_quat_ident);
     }
+  }
+
+  it("can be packed into 16 bits") {
+    const GeoQuat q = geo_quat_from_euler(geo_vector(0.1337f, 13.37f, 0.42f));
+
+    f16 packed[4];
+    geo_quat_pack_f16(q, packed);
+
+    check_eq_int(packed[0], float_f32_to_f16(q.x));
+    check_eq_int(packed[1], float_f32_to_f16(q.y));
+    check_eq_int(packed[2], float_f32_to_f16(q.z));
+    check_eq_int(packed[3], float_f32_to_f16(q.w));
   }
 }
