@@ -48,7 +48,12 @@
  * Returns true if the given floating point number is equal to infinity.
  * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
-#define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_)*2 == (_VAL_))
+#define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_) * 2 == (_VAL_))
+
+/**
+ * Indicates if the F16C (aka CVT16) extension is supported.
+ */
+extern bool g_f16cSupport;
 
 /**
  * Convert a 32 bit floating point value to 16 bit.

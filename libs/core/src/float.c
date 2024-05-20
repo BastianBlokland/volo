@@ -15,7 +15,7 @@
  */
 #define VOLO_FLOAT_DEBUG 0
 
-static bool g_f16cSupport;
+bool g_f16cSupport;
 
 INLINE_HINT static f32 float_u32_as_f32(const u32 input) {
   union {
