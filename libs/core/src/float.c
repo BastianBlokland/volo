@@ -15,8 +15,7 @@
  */
 #define VOLO_FLOAT_DEBUG 0
 
-static f16 (*g_floatF32ToF16Impl)(f32);
-static f32 (*g_floatF16ToF32Impl)(f16);
+static bool g_f16cSupport;
 
 INLINE_HINT static f32 float_u32_as_f32(const u32 input) {
   union {
@@ -72,7 +71,7 @@ static bool float_cpu_f16c_support(void) {
   return (cpuId[2] & (1 << 29)) != 0;
 }
 
-static f16 float_f32_to_f16_intrinsic(const f32 val) {
+INLINE_HINT static f16 float_f32_to_f16_intrinsic(const f32 val) {
 /**
  * Intel intrinsic for converting float to half.
  * https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_cvtss_sh
@@ -85,7 +84,7 @@ static f16 float_f32_to_f16_intrinsic(const f32 val) {
 #endif
 }
 
-static f16 float_f32_to_f16_soft(const f32 val) {
+INLINE_HINT static f16 float_f32_to_f16_soft(const f32 val) {
   /**
    * IEEE-754 16-bit floating-point format (without infinity):
    * 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
@@ -110,7 +109,7 @@ static f16 float_f32_to_f16_soft(const f32 val) {
          (e > 143) * 0x7FFF; // Sign : normalized : denormalized : saturate
 }
 
-static f32 float_f16_to_f32_intrinsic(const f16 val) {
+INLINE_HINT static f32 float_f16_to_f32_intrinsic(const f16 val) {
   /**
    * Intel intrinsic for converting half to float.
    * https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_cvtsh_ss
@@ -123,12 +122,12 @@ static f32 float_f16_to_f32_intrinsic(const f16 val) {
 #endif
 }
 
-static f32 float_f16_to_f32_soft(const f16 val) {
+INLINE_HINT static f32 float_f16_to_f32_soft(const f16 val) {
   /**
    * IEEE-754 16-bit floating-point format (without infinity):
    * 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
    *
-   * Source: Awnser of user 'ProjectPhysX' on the following StackOverflow question:
+   * Source: Answer of user 'ProjectPhysX' on the following StackOverflow question:
    * https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
    */
   const u32 e = (val & 0x7C00) >> 10; // Exponent
@@ -152,10 +151,7 @@ void float_init(void) {
   /**
    * NOTE: Called during early startup so cannot allocate memory.
    */
-  g_floatF32ToF16Impl =
-      float_cpu_f16c_support() ? float_f32_to_f16_intrinsic : float_f32_to_f16_soft;
-  g_floatF16ToF32Impl =
-      float_cpu_f16c_support() ? float_f16_to_f32_intrinsic : float_f16_to_f32_soft;
+  g_f16cSupport = float_cpu_f16c_support();
 }
 
 void float_init_thread(void) {
@@ -168,8 +164,19 @@ void float_init_thread(void) {
   float_enable_denorm_to_zero();
 }
 
-f16 float_f32_to_f16(const f32 val) { return g_floatF32ToF16Impl(val); }
-f32 float_f16_to_f32(const f16 val) { return g_floatF16ToF32Impl(val); }
+f16 float_f32_to_f16(const f32 val) {
+  if (g_f16cSupport) {
+    return float_f32_to_f16_intrinsic(val);
+  }
+  return float_f32_to_f16_soft(val);
+}
+
+f32 float_f16_to_f32(const f16 val) {
+  if (g_f16cSupport) {
+    return float_f16_to_f32_intrinsic(val);
+  }
+  return float_f16_to_f32_soft(val);
+}
 
 f32 float_quantize_f32(const f32 val, const u8 maxMantissaBits) {
   u32 valBits = float_f32_as_u32(val);
