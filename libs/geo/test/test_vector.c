@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
 
@@ -276,6 +277,18 @@ spec(vector) {
     const GeoVector v1 = {.x = 1, .y = 2, .z = 4, .w = 4};
     const GeoVector v2 = {.x = .25, .y = .5, .z = 1};
     check_eq_vector(geo_vector_perspective_div(v1), v2);
+  }
+
+  it("can be packed into 16 bits") {
+    const GeoVector v = geo_vector(0.1337f, 13.37f, 0.42f, 4.2f);
+
+    f16 packed[4];
+    geo_vector_pack_f16(v, packed);
+
+    check_eq_int(packed[0], float_f32_to_f16(v.x));
+    check_eq_int(packed[1], float_f32_to_f16(v.y));
+    check_eq_int(packed[2], float_f32_to_f16(v.z));
+    check_eq_int(packed[3], float_f32_to_f16(v.w));
   }
 
   it("can generate points on the surface of a 3d unit sphere") {
