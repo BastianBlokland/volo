@@ -1,5 +1,4 @@
 #include "core_annotation.h"
-#include "core_bits.h"
 #include "core_float.h"
 
 #include <fenv.h>
@@ -18,6 +17,24 @@
 
 static f16 (*g_floatF32ToF16Impl)(f32);
 static f32 (*g_floatF16ToF32Impl)(f16);
+
+INLINE_HINT static f32 float_u32_as_f32(const u32 input) {
+  union {
+    u32 valU32;
+    f32 valF32;
+  } conv;
+  conv.valU32 = input;
+  return conv.valF32;
+}
+
+INLINE_HINT static u32 float_f32_as_u32(const f32 input) {
+  union {
+    u32 valU32;
+    f32 valF32;
+  } conv;
+  conv.valF32 = input;
+  return conv.valU32;
+}
 
 MAYBE_UNUSED static void float_enable_exceptions(void) {
 #if defined(VOLO_WIN32)
@@ -78,7 +95,7 @@ static f16 float_f32_to_f16_soft(const f32 val) {
    */
 
   // Round-to-nearest-even: add last bit after truncated mantissa
-  const u32 b = bits_f32_as_u32(val) + 0x00001000;
+  const u32 b = float_f32_as_u32(val) + 0x00001000;
   const u32 e = (b & 0x7F800000) >> 23; // exponent
   const u32 m = b & 0x007FFFFF; // Mantissa; in line below: 0x007FF000 = 0x00800000-0x00001000
                                 // = decimal indicator flag - initial rounding
@@ -118,14 +135,14 @@ static f32 float_f16_to_f32_soft(const f16 val) {
   const u32 m = (val & 0x03FF) << 13; // Mantissa
 
   // Evil log2 bit hack to count leading zeros in denormalized format:
-  const u32 v = bits_f32_as_u32((f32)m) >> 23;
+  const u32 v = float_f32_as_u32((f32)m) >> 23;
 
   /**
    * TODO: The following code contains UB as some of the intermediate values can be shifted more
    * then their type allows. The resulting (overflowed) value is not actually used in that case but
    * strictly speaking it is UB.
    */
-  return bits_u32_as_f32(
+  return float_u32_as_f32(
       (val & 0x8000) << 16 | (e != 0) * ((e + 112) << 23 | m) |
       ((e == 0) & (m != 0)) *
           ((v - 37) << 23 | ((m << (150 - v)) & 0x007FE000))); // Sign : normalized : denormalized
@@ -155,7 +172,7 @@ f16 float_f32_to_f16(const f32 val) { return g_floatF32ToF16Impl(val); }
 f32 float_f16_to_f32(const f16 val) { return g_floatF16ToF32Impl(val); }
 
 f32 float_quantize_f32(const f32 val, const u8 maxMantissaBits) {
-  u32 valBits = bits_f32_as_u32(val);
+  u32 valBits = float_f32_as_u32(val);
 
   /**
    * Generates +-inf for overflow, preserves NaN, flushes denormals to zero, rounds to nearest.
@@ -173,5 +190,5 @@ f32 float_quantize_f32(const f32 val, const u8 maxMantissaBits) {
   // Flush denormals to zero.
   valBits = exp == 0 ? 0 : valBits;
 
-  return bits_u32_as_f32(valBits);
+  return float_u32_as_f32(valBits);
 }
