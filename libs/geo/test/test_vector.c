@@ -285,10 +285,10 @@ spec(vector) {
     f16 packed[4];
     geo_vector_pack_f16(v, packed);
 
-    check_eq_int(packed[0], float_f32_to_f16(v.x));
-    check_eq_int(packed[1], float_f32_to_f16(v.y));
-    check_eq_int(packed[2], float_f32_to_f16(v.z));
-    check_eq_int(packed[3], float_f32_to_f16(v.w));
+    check_eq_float(float_f16_to_f32(packed[0]), v.x, 1e-2f);
+    check_eq_float(float_f16_to_f32(packed[1]), v.y, 1e-2f);
+    check_eq_float(float_f16_to_f32(packed[2]), v.z, 1e-2f);
+    check_eq_float(float_f16_to_f32(packed[3]), v.w, 1e-2f);
   }
 
   it("can generate points on the surface of a 3d unit sphere") {

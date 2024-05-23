@@ -1,4 +1,5 @@
 #include "check_spec.h"
+#include "core_float.h"
 
 #include "utils_internal.h"
 
@@ -109,5 +110,17 @@ spec(color) {
     check_eq_color(geo_color_from_hsv(0.5f, 0.5f, 1.0f, 1.0f), geo_color(0.5f, 1.0f, 1.0f, 1.0f));
     check_eq_color(geo_color_from_hsv(0.25f, 0.5f, 1.0f, 1.0f), geo_color(0.75f, 1.0f, 0.5f, 1.0f));
     check_eq_color(geo_color_from_hsv(0.75f, 0.5f, 1.0f, 1.0f), geo_color(0.75f, 0.5f, 1.0f, 1.0f));
+  }
+
+  it("can be packed into 16 bits") {
+    const GeoColor c = geo_color(0.1337f, 13.37f, 0.42f, 4.2f);
+
+    f16 packed[4];
+    geo_color_pack_f16(c, packed);
+
+    check_eq_float(float_f16_to_f32(packed[0]), c.r, 1e-2f);
+    check_eq_float(float_f16_to_f32(packed[1]), c.g, 1e-2f);
+    check_eq_float(float_f16_to_f32(packed[2]), c.b, 1e-2f);
+    check_eq_float(float_f16_to_f32(packed[3]), c.a, 1e-2f);
   }
 }

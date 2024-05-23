@@ -348,9 +348,9 @@ spec(quat) {
     f16 packed[4];
     geo_quat_pack_f16(q, packed);
 
-    check_eq_int(packed[0], float_f32_to_f16(q.x));
-    check_eq_int(packed[1], float_f32_to_f16(q.y));
-    check_eq_int(packed[2], float_f32_to_f16(q.z));
-    check_eq_int(packed[3], float_f32_to_f16(q.w));
+    check_eq_float(float_f16_to_f32(packed[0]), q.x, 1e-3f);
+    check_eq_float(float_f16_to_f32(packed[1]), q.y, 1e-3f);
+    check_eq_float(float_f16_to_f32(packed[2]), q.z, 1e-3f);
+    check_eq_float(float_f16_to_f32(packed[3]), q.w, 1e-3f);
   }
 }

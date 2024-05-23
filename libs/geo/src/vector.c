@@ -369,21 +369,26 @@ GeoVector geo_vector_quantize3(const GeoVector v, const u8 maxMantissaBits) {
 
 void geo_vector_pack_f16(const GeoVector v, f16 out[PARAM_ARRAY_SIZE(4)]) {
 #if geo_vec_simd_enable
+  const SimdVec vecF32 = simd_vec_load(v.comps);
+  SimdVec       vecF16;
   if (g_f16cSupport) {
-    const SimdVec vecF32 = simd_vec_load(v.comps);
-    const SimdVec vecF16 = simd_vec_f32_to_f16(vecF32);
-    const u64     data   = simd_vec_u64(vecF16);
-    out[0]               = (u16)(data >> 0);
-    out[1]               = (u16)(data >> 16);
-    out[2]               = (u16)(data >> 32);
-    out[3]               = (u16)(data >> 48);
-    return;
+    // Don't allow the compiler to re-order 'simd_vec_f32_to_f16' before the check.
+    COMPILER_BARRIER
+    vecF16 = simd_vec_f32_to_f16(vecF32);
+  } else {
+    vecF16 = simd_vec_f32_to_f16_soft(vecF32);
   }
-#endif
+  const u64 data = simd_vec_u64(vecF16);
+  out[0]         = (u16)(data >> 0);
+  out[1]         = (u16)(data >> 16);
+  out[2]         = (u16)(data >> 32);
+  out[3]         = (u16)(data >> 48);
+#else
   out[0] = float_f32_to_f16(v.x);
   out[1] = float_f32_to_f16(v.y);
   out[2] = float_f32_to_f16(v.z);
   out[3] = float_f32_to_f16(v.w);
+#endif
 }
 
 GeoVector geo_vector_rand_on_sphere3(Rng* rng) {
