@@ -414,23 +414,22 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
 
   geo_quat_pack_f16(params->rot, out->data2);
 
-  out->data3[0] = float_f32_to_f16(decalSize.x);
-  out->data3[1] = float_f32_to_f16(decalSize.y);
-  out->data3[2] = float_f32_to_f16(decalSize.z);
-  out->data3[3] = float_f32_to_f16(params->roughness);
+  geo_vector_pack_f16(
+      geo_vector(decalSize.x, decalSize.y, decalSize.z, params->roughness), out->data3);
 
   diag_assert_msg(params->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
   diag_assert_msg(params->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
 
-  out->data4[0] = float_f32_to_f16((f32)params->atlasColorIndex);
-  out->data4[1] = float_f32_to_f16((f32)params->atlasNormalIndex);
-  out->data4[2] = float_f32_to_f16(params->alphaBegin);
-  out->data4[3] = float_f32_to_f16(params->alphaEnd);
+  geo_vector_pack_f16(
+      geo_vector(
+          (f32)params->atlasColorIndex,
+          (f32)params->atlasNormalIndex,
+          params->alphaBegin,
+          params->alphaEnd),
+      out->data4);
 
-  out->data5[0] = float_f32_to_f16(warpScale.x);
-  out->data5[1] = float_f32_to_f16(warpScale.y);
-  out->data5[2] = float_f32_to_f16(params->texOffsetY);
-  out->data5[3] = float_f32_to_f16(params->texScaleY);
+  geo_vector_pack_f16(
+      geo_vector(warpScale.x, warpScale.y, params->texOffsetY, params->texScaleY), out->data5);
 
   for (u32 i = 0; i != 4; ++i) {
     out->warpPoints[i][0] = float_f32_to_f16(params->warpPoints[i].x);
