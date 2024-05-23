@@ -103,9 +103,9 @@ ASSERT(false, "Unsupported compiler");
  * Does not emit any instructions but prevents the compiler from reordering memory accesses.
  */
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
-#define COMPILER_BARRIER asm volatile("" ::: "memory");
+#define COMPILER_BARRIER(void) asm volatile("" ::: "memory")
 #elif defined(VOLO_MSVC)
-#define COMPILER_BARRIER _ReadWriteBarrier
+#define COMPILER_BARRIER(void) _ReadWriteBarrier()
 #else
 ASSERT(false, "Unsupported compiler");
 #endif

@@ -99,16 +99,15 @@ void thread_atomic_fence_acquire(void) {
    * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
    * architecture with a weak memory model) it will need to emit instructions.
    */
-  COMPILER_BARRIER
+  COMPILER_BARRIER();
 }
 
-void thread_atomic_fence_release(void){
-    /**
-     * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
-     * architecture with a weak memory model) it will need to emit instructions.
-     */
-    COMPILER_BARRIER
-    //
+void thread_atomic_fence_release(void) {
+  /**
+   * NOTE: Does not need to emit any instructions on x86, if we ever port to ARM (or another
+   * architecture with a weak memory model) it will need to emit instructions.
+   */
+  COMPILER_BARRIER();
 }
 
 ThreadHandle thread_start(

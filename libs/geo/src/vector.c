@@ -372,8 +372,7 @@ void geo_vector_pack_f16(const GeoVector v, f16 out[PARAM_ARRAY_SIZE(4)]) {
   const SimdVec vecF32 = simd_vec_load(v.comps);
   SimdVec       vecF16;
   if (g_f16cSupport) {
-    // Don't allow the compiler to re-order 'simd_vec_f32_to_f16' before the check.
-    COMPILER_BARRIER
+    COMPILER_BARRIER(); // Don't allow re-ordering 'simd_vec_f32_to_f16' before the check.
     vecF16 = simd_vec_f32_to_f16(vecF32);
   } else {
     vecF16 = simd_vec_f32_to_f16_soft(vecF32);
