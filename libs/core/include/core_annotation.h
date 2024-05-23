@@ -99,6 +99,18 @@ ASSERT(false, "Unsupported compiler");
 #endif
 
 /**
+ * Issue a compiler barrier.
+ * Does not emit any instructions but prevents the compiler from reordering memory accesses.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define COMPILER_BARRIER asm volatile("" ::: "memory");
+#elif defined(VOLO_MSVC)
+#define COMPILER_BARRIER _ReadWriteBarrier
+#else
+ASSERT(false, "Unsupported compiler");
+#endif
+
+/**
  * Mark a variable as having thread storage duration.
  * Which means it is created when the thread starts and cleaned up when the thread ends.
  */

@@ -166,6 +166,8 @@ void float_init_thread(void) {
 
 f16 float_f32_to_f16(const f32 val) {
   if (g_f16cSupport) {
+    // Don't allow the compiler to re-order 'float_f32_to_f16_intrinsic' before the check.
+    COMPILER_BARRIER
     return float_f32_to_f16_intrinsic(val);
   }
   return float_f32_to_f16_soft(val);
