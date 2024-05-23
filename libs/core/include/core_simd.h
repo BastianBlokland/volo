@@ -19,6 +19,15 @@ typedef __m128 SimdVec;
 #define simd_vec_splat(_VEC_, _COMP_)                                                              \
   simd_vec_permute((_VEC_), (_COMP_), (_COMP_), (_COMP_), (_COMP_))
 
+#define simd_vec_shift_left(_VEC_, _AMOUNT_)                                                       \
+  _mm_castsi128_ps(_mm_slli_epi32(_mm_castps_si128(_VEC_), _AMOUNT_))
+
+#define simd_vec_shift_right(_VEC_, _AMOUNT_)                                                      \
+  _mm_castsi128_ps(_mm_srli_epi32(_mm_castps_si128(_VEC_), _AMOUNT_))
+
+#define simd_vec_shift_right_sign(_VEC_, _AMOUNT_)                                                 \
+  _mm_castsi128_ps(_mm_srai_epi32(_mm_castps_si128(_VEC_), _AMOUNT_))
+
 /**
  * Load 4 (128 bit aligned) float values into a Simd vector.
  * Pre-condition: bits_aligned_ptr(values, 16)
@@ -114,6 +123,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sub(const SimdVec a, const Simd
   return _mm_sub_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sub_i32(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_sub_epi32(_mm_castps_si128(a), _mm_castps_si128(b)));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_mul(const SimdVec a, const SimdVec b) {
   return _mm_mul_ps(a, b);
 }
@@ -200,19 +213,20 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16_soft(const SimdVec v
    * Implementation adapted from 'sam hocevar's answer on StackOverflow:
    * - https://stackoverflow.com/questions/3026441/float32-to-float16
    */
-  const SimdVec a   = _mm_slli_epi32(_mm_srli_epi32(vec, 31), 5);
-  const SimdVec b   = simd_vec_and(_mm_srli_epi32(vec, 13), mask3FF);
-  const SimdVec c   = simd_vec_and(_mm_srli_epi32(vec, 23), maskFF);
-  const SimdVec d   = _mm_srli_epi32(_mm_srai_epi32(_mm_sub_epi32(mask70, c), 4), 27);
-  const SimdVec e   = simd_vec_and(_mm_sub_epi32(c, mask70), d);
-  SimdVec       res = simd_vec_or(_mm_slli_epi32(simd_vec_or(a, e), 10), b);
+  const SimdVec a   = simd_vec_shift_left(simd_vec_shift_right(vec, 31), 5);
+  const SimdVec b   = simd_vec_and(simd_vec_shift_right(vec, 13), mask3FF);
+  const SimdVec c   = simd_vec_and(simd_vec_shift_right(vec, 23), maskFF);
+  const SimdVec d   = simd_vec_sub_i32(mask70, c);
+  const SimdVec e   = simd_vec_shift_right(simd_vec_shift_right_sign(d, 4), 27);
+  const SimdVec f   = simd_vec_and(simd_vec_sub_i32(c, mask70), e);
+  SimdVec       res = simd_vec_or(simd_vec_shift_left(simd_vec_or(a, f), 10), b);
 
   /**
    * The four 16 bit floats have now been computed, move them to the bottom 64 bits of the vector.
    * [x, 0, y, 0, z, 0, w, 0] -> [x, y, z, w, 0, 0, 0, 0]
    */
-  res = _mm_shufflehi_epi16(res, _MM_SHUFFLE(0, 0, 2, 0));
-  res = _mm_shufflelo_epi16(res, _MM_SHUFFLE(0, 0, 2, 0));
+  res = _mm_castsi128_ps(_mm_shufflehi_epi16(_mm_castps_si128(res), _MM_SHUFFLE(0, 0, 2, 0)));
+  res = _mm_castsi128_ps(_mm_shufflelo_epi16(_mm_castps_si128(res), _MM_SHUFFLE(0, 0, 2, 0)));
   return simd_vec_permute(res, 0, 0, 2, 0);
 }
 
