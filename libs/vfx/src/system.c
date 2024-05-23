@@ -83,6 +83,8 @@ ecs_view_define(AssetView) {
   ecs_access_read(AssetVfxComp);
 }
 
+INLINE_HINT static f32 vfx_mod1(const f32 val) { return val - (u32)val; }
+
 static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasManagerComp* man) {
   const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Particle);
   EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
@@ -435,7 +437,7 @@ static void vfx_instance_output_sprite(
   color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
   color.a = math_max(color.a, 0); // TODO: This is a bit sketchy, reason is timeRem can be 0.
 
-  const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
+  const f32 flipbookFrac  = vfx_mod1(instanceAge / (f32)sprite->flipbookTime);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
   if (UNLIKELY(flipbookIndex >= sprite->flipbookCount)) {
     return; // NOTE: This can happen momentarily when hot-loading vfx.
