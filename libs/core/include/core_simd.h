@@ -85,13 +85,6 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) 
   return _mm_castsi128_ps(_mm_set1_epi32(value));
 }
 
-/**
- * NOTE: Requires the F16C extension.
- */
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16(const SimdVec vec) {
-  return _mm_castsi128_ps(_mm_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
-}
-
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
   return simd_vec_broadcast(-0.0f);
 }
@@ -157,6 +150,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_and(const SimdVec a, const Simd
   return _mm_and_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_or(const SimdVec a, const SimdVec b) {
+  return _mm_or_ps(a, b);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_pack_u32_to_u16(const SimdVec a, const SimdVec b) {
   return _mm_castsi128_ps(_mm_packs_epi32(_mm_castps_si128(a), _mm_castps_si128(b)));
 }
@@ -172,6 +169,51 @@ MAYBE_UNUSED INLINE_HINT static u32 simd_vec_mask_u8(const SimdVec a) {
 MAYBE_UNUSED INLINE_HINT static SimdVec
 simd_vec_select(const SimdVec a, const SimdVec b, const SimdVec mask) {
   return _mm_blendv_ps(a, b, mask);
+}
+
+/**
+ * Convert four 32 bit floating point values to 16 bit.
+ * NOTE: Requires the F16C extension.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16(const SimdVec vec) {
+  return _mm_castsi128_ps(_mm_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
+}
+
+/**
+ * Convert four 32 bit floating point values to 16 bit.
+ * This is much simpler (and faster) then 'float_f32_to_f16()' but has limitations:
+ * - NaN is not supported.
+ * - Inf and -Inf are not supported.
+ * - Values that overflow f16 are undefined.
+ * - Values that underflow f16 are not guaranteed to return zero.
+ * - Denormals are not supported.
+ *
+ * It does make the following guarantees however:
+ * - Integers 0 - 1023 (inclusive) are represented exactly.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16_soft(const SimdVec vec) {
+  const SimdVec maskFF  = simd_vec_broadcast_u32(0xFF);
+  const SimdVec mask3FF = simd_vec_broadcast_u32(0x3FF);
+  const SimdVec mask70  = simd_vec_broadcast_u32(0x70);
+
+  /**
+   * Implementation adapted from 'sam hocevar's answer on StackOverflow:
+   * - https://stackoverflow.com/questions/3026441/float32-to-float16
+   */
+  const SimdVec a   = _mm_slli_epi32(_mm_srli_epi32(vec, 31), 5);
+  const SimdVec b   = simd_vec_and(_mm_srli_epi32(vec, 13), mask3FF);
+  const SimdVec c   = simd_vec_and(_mm_srli_epi32(vec, 23), maskFF);
+  const SimdVec d   = _mm_srli_epi32(_mm_srai_epi32(_mm_sub_epi32(mask70, c), 4), 27);
+  const SimdVec e   = simd_vec_and(_mm_sub_epi32(c, mask70), d);
+  SimdVec       res = simd_vec_or(_mm_slli_epi32(simd_vec_or(a, e), 10), b);
+
+  /**
+   * The four 16 bit floats have now been computed, move them to the bottom 64 bits of the vector.
+   * [x, 0, y, 0, z, 0, w, 0] -> [x, y, z, w, 0, 0, 0, 0]
+   */
+  res = _mm_shufflehi_epi16(res, _MM_SHUFFLE(0, 0, 2, 0));
+  res = _mm_shufflelo_epi16(res, _MM_SHUFFLE(0, 0, 2, 0));
+  return simd_vec_permute(res, 0, 0, 2, 0);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec vec) {
