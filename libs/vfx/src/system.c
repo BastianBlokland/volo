@@ -85,6 +85,12 @@ ecs_view_define(AssetView) {
 
 INLINE_HINT static f32 vfx_mod1(const f32 val) { return val - (u32)val; }
 
+static f32 vfx_time_to_seconds(const TimeDuration dur) {
+  static const f64 g_toSecMul = 1.0 / (f64)time_second;
+  // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
+  return (f32)((f64)dur * g_toSecMul);
+}
+
 static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasManagerComp* man) {
   const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Particle);
   EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
@@ -303,11 +309,11 @@ static void vfx_system_spawn(
       .emitter              = emitter,
       .alpha                = (u8)(math_clamp_f32(spawnAlpha, 0.0f, 1.0f) * u8_max),
       .spriteAtlasBaseIndex = spriteAtlasEntryIndex,
-      .lifetimeSec          = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
-      .scale                = spawnScale,
-      .pos                  = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
-      .rot                  = vfx_sample_range_rotation(&emitterAsset->rotation),
-      .velo                 = geo_vector_mul(spawnDir, spawnSpeed),
+      .lifetimeSec = vfx_time_to_seconds(vfx_sample_range_duration(&emitterAsset->lifetime)),
+      .scale       = spawnScale,
+      .pos         = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
+      .rot         = vfx_sample_range_rotation(&emitterAsset->rotation),
+      .velo        = geo_vector_mul(spawnDir, spawnSpeed),
   };
 }
 
@@ -349,7 +355,7 @@ static void vfx_system_simulate(
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans) {
 
-  const f32 deltaSec = scene_delta_seconds(time);
+  const f32 deltaSec = vfx_time_to_seconds(time->delta);
 
   // Update shared state.
   state->age += time->delta;
@@ -403,23 +409,21 @@ static void vfx_instance_output_sprite(
     const AssetVfxComp*       asset,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
-    const TimeDuration        sysTimeRem) {
+    const f32                 sysTimeRemSec) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
   }
-  const AssetVfxSpace   space            = asset->emitters[instance->emitter].space;
-  const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
-  const TimeDuration    instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
-  const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
-  const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
+  const AssetVfxSpace   space  = asset->emitters[instance->emitter].space;
+  const AssetVfxSprite* sprite = &asset->emitters[instance->emitter].sprite;
+  const f32 timeRemSec         = math_min(instance->lifetimeSec - instance->ageSec, sysTimeRemSec);
 
   f32 scale = instance->scale;
   if (space == AssetVfxSpace_Local) {
     scale *= sysTrans->scale;
   }
-  scale *= sprite->scaleInTime ? math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f) : 1.0f;
-  scale *= sprite->scaleOutTime ? math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f) : 1.0f;
+  scale *= math_min(instance->ageSec * sprite->scaleInTimeInv, 1.0f);
+  scale *= math_min(timeRemSec * sprite->scaleOutTimeInv, 1.0f);
 
   GeoQuat rot = instance->rot;
   if (sprite->facing == AssetVfxFacing_Local) {
@@ -433,11 +437,10 @@ static void vfx_instance_output_sprite(
     pos = vfx_world_pos(sysTrans, pos);
     color.a *= sysCfg->alpha;
   }
-  color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
-  color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
-  color.a = math_max(color.a, 0); // TODO: This is a bit sketchy, reason is timeRem can be 0.
+  color.a *= math_min(instance->ageSec * sprite->fadeInTimeInv, 1.0f);
+  color.a *= math_min(timeRemSec * sprite->fadeOutTimeInv, 1.0f);
 
-  const f32 flipbookFrac  = vfx_mod1(instanceAge / (f32)sprite->flipbookTime);
+  const f32 flipbookFrac  = vfx_mod1(instance->ageSec / (f32)sprite->flipbookTime);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
   if (UNLIKELY(flipbookIndex >= sprite->flipbookCount)) {
     return; // NOTE: This can happen momentarily when hot-loading vfx.
@@ -475,7 +478,7 @@ static void vfx_instance_output_light(
     const AssetVfxComp*       asset,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
-    const TimeDuration        sysTimeRem) {
+    const f32                 sysTimeRemSec) {
 
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
@@ -484,10 +487,8 @@ static void vfx_instance_output_light(
   if (radiance.a <= f32_epsilon) {
     return;
   }
-  const TimeDuration  instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
-  const TimeDuration  instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
-  const TimeDuration  timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
-  const AssetVfxSpace space            = asset->emitters[instance->emitter].space;
+  const f32 timeRemSec      = math_min(instance->lifetimeSec - instance->ageSec, sysTimeRemSec);
+  const AssetVfxSpace space = asset->emitters[instance->emitter].space;
 
   GeoVector pos   = instance->pos;
   f32       scale = instance->scale;
@@ -497,8 +498,8 @@ static void vfx_instance_output_light(
     radiance.a *= sysCfg->alpha;
   }
   radiance.a *= scale;
-  radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
-  radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
+  radiance.a *= math_min(instance->ageSec * light->fadeInTimeInv, 1.0f);
+  radiance.a *= math_min(timeRemSec * light->fadeOutTimeInv, 1.0f);
   if (light->turbulenceFrequency > 0.0f) {
     // TODO: Make the turbulence scale configurable.
     // TODO: Implement a 2d perlin noise as an optimization.
@@ -587,14 +588,13 @@ ecs_system_define(VfxSystemUpdateSys) {
       sysTrans.rot = LIKELY(trans) ? trans->rotation : geo_quat_ident;
     }
 
-    const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
-
     vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
 
     if (sysVisible) {
+      const f32 sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
       dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-        vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
-        vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
+        vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
+        vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
       }
     }
   }

@@ -314,21 +314,21 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
     *out = (AssetVfxSprite){0};
     return; // Sprites are optional.
   }
-  out->atlasEntry    = string_hash(def->atlasEntry);
-  out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
-  out->blend         = def->blend;
-  out->facing        = def->facing;
-  out->flipbookCount = math_max(1, def->flipbookCount);
-  out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
-  out->sizeX         = def->size.x;
-  out->sizeY         = def->size.y;
-  out->fadeInTime    = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
-  out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
-  out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
-  out->geometryFade  = def->geometryFade;
-  out->shadowCaster  = def->shadowCaster;
-  out->distortion    = def->distortion;
+  out->atlasEntry      = string_hash(def->atlasEntry);
+  out->color           = def->color ? vfx_build_color(def->color) : geo_color_white;
+  out->blend           = def->blend;
+  out->facing          = def->facing;
+  out->flipbookCount   = math_max(1, def->flipbookCount);
+  out->flipbookTime    = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
+  out->sizeX           = def->size.x;
+  out->sizeY           = def->size.y;
+  out->fadeInTimeInv   = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;
+  out->fadeOutTimeInv  = (def->fadeOutTime > f32_epsilon) ? (1.0f / def->fadeOutTime) : f32_max;
+  out->scaleInTimeInv  = (def->scaleInTime > f32_epsilon) ? (1.0f / def->scaleInTime) : f32_max;
+  out->scaleOutTimeInv = (def->scaleOutTime > f32_epsilon) ? (1.0f / def->scaleOutTime) : f32_max;
+  out->geometryFade    = def->geometryFade;
+  out->shadowCaster    = def->shadowCaster;
+  out->distortion      = def->distortion;
 }
 
 static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
@@ -337,8 +337,8 @@ static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
     return; // Lights are optional.
   }
   out->radiance            = vfx_build_color(&def->radiance);
-  out->fadeInTime          = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime         = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->fadeInTimeInv       = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;
+  out->fadeOutTimeInv      = (def->fadeOutTime > f32_epsilon) ? (1.0f / def->fadeOutTime) : f32_max;
   out->radius              = def->radius > f32_epsilon ? def->radius : 10.0f;
   out->turbulenceFrequency = def->turbulenceFrequency;
 }
