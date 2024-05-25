@@ -28,12 +28,12 @@ typedef enum {
 } AssetVfxFacing;
 
 typedef struct {
-  StringHash     atlasEntry;
   GeoColor       color;
+  StringHash     atlasEntry;
   AssetVfxBlend  blend : 8;
   AssetVfxFacing facing : 8;
   u16            flipbookCount;
-  TimeDuration   flipbookTime;
+  f32            flipbookTimeInv; // 1.0 / timeInSeconds.
   f32            sizeX, sizeY;
   f32            fadeInTimeInv, fadeOutTimeInv;   // 1.0 / timeInSeconds.
   f32            scaleInTimeInv, scaleOutTimeInv; // 1.0 / timeInSeconds.

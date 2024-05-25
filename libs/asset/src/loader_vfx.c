@@ -319,7 +319,7 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->blend           = def->blend;
   out->facing          = def->facing;
   out->flipbookCount   = math_max(1, def->flipbookCount);
-  out->flipbookTime    = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
+  out->flipbookTimeInv = 1.0f / math_max(def->flipbookTime, 0.01f);
   out->sizeX           = def->size.x;
   out->sizeY           = def->size.y;
   out->fadeInTimeInv   = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;

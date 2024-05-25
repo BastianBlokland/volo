@@ -440,7 +440,7 @@ static void vfx_instance_output_sprite(
   color.a *= math_min(instance->ageSec * sprite->fadeInTimeInv, 1.0f);
   color.a *= math_min(timeRemSec * sprite->fadeOutTimeInv, 1.0f);
 
-  const f32 flipbookFrac  = vfx_mod1(instance->ageSec / (f32)sprite->flipbookTime);
+  const f32 flipbookFrac  = vfx_mod1(instance->ageSec * sprite->flipbookTimeInv);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
   if (UNLIKELY(flipbookIndex >= sprite->flipbookCount)) {
     return; // NOTE: This can happen momentarily when hot-loading vfx.
