@@ -8,6 +8,12 @@
 #include "core_shuffle.h"
 #include "core_sort.h"
 
+INLINE_HINT static Mem dynarray_at_internal(const DynArray* a, const usize idx, const usize count) {
+  const usize offset = a->stride * idx;
+  const usize size   = a->stride * count;
+  return mem_create(bits_ptr_offset(a->data.ptr, offset), size);
+}
+
 DynArray
 dynarray_create(Allocator* alloc, const u32 stride, const u16 align, const usize capacity) {
   diag_assert(stride);
@@ -24,7 +30,7 @@ dynarray_create(Allocator* alloc, const u32 stride, const u16 align, const usize
   return array;
 }
 
-DynArray dynarray_create_over(Mem memory, const u32 stride) {
+DynArray dynarray_create_over(const Mem memory, const u32 stride) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
@@ -34,164 +40,161 @@ DynArray dynarray_create_over(Mem memory, const u32 stride) {
   return array;
 }
 
-void dynarray_destroy(DynArray* array) {
-  if (array->alloc && LIKELY(mem_valid(array->data))) {
+void dynarray_destroy(DynArray* a) {
+  if (a->alloc && LIKELY(mem_valid(a->data))) {
     // Having a allocator pointer (and a valid allocation) means we should free the backing memory.
-    alloc_free(array->alloc, array->data);
+    alloc_free(a->alloc, a->data);
   }
 }
 
-usize dynarray_size(const DynArray* array) { return array->size; }
+usize dynarray_size(const DynArray* a) { return a->size; }
 
-NO_INLINE_HINT static void dynarray_resize_grow(DynArray* array, const usize size) {
-  diag_assert_msg(array->alloc, "DynArray without an allocator ran out of memory");
+NO_INLINE_HINT static void dynarray_resize_grow(DynArray* a, const usize size) {
+  diag_assert_msg(a->alloc, "DynArray without an allocator ran out of memory");
 
-  const Mem newMem =
-      alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride), array->align);
+  const Mem newMem = alloc_alloc(a->alloc, bits_nextpow2_64(size * a->stride), a->align);
   diag_assert_msg(mem_valid(newMem), "Allocation failed");
 
-  if (LIKELY(mem_valid(array->data))) {
-    mem_cpy(newMem, array->data);
-    alloc_free(array->alloc, array->data);
+  if (LIKELY(mem_valid(a->data))) {
+    mem_cpy(newMem, a->data);
+    alloc_free(a->alloc, a->data);
   }
-  array->data = newMem;
+  a->data = newMem;
 }
 
-INLINE_HINT static void dynarray_resize_internal(DynArray* array, const usize size) {
-  if (UNLIKELY(size * array->stride > array->data.size)) {
-    dynarray_resize_grow(array, size);
+INLINE_HINT static void dynarray_resize_internal(DynArray* a, const usize size) {
+  if (UNLIKELY(size * a->stride > a->data.size)) {
+    dynarray_resize_grow(a, size);
   }
-  array->size = size;
+  a->size = size;
 }
 
-void dynarray_resize(DynArray* array, const usize size) { dynarray_resize_internal(array, size); }
+void dynarray_resize(DynArray* a, const usize size) { dynarray_resize_internal(a, size); }
 
-void dynarray_clear(DynArray* array) { array->size = 0; }
+void dynarray_clear(DynArray* a) { a->size = 0; }
 
-Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
-  diag_assert(idx + count <= array->size);
-  const usize offset = array->stride * idx;
-  const usize size   = array->stride * count;
-  return mem_create(bits_ptr_offset(array->data.ptr, offset), size);
+Mem dynarray_at(const DynArray* a, const usize idx, const usize count) {
+  diag_assert(idx + count <= a->size);
+  return dynarray_at_internal(a, idx, count);
 }
 
-Mem dynarray_push(DynArray* array, const usize count) {
-  dynarray_resize_internal(array, array->size + count);
-  const usize offset = array->stride * (array->size - count);
-  const usize size   = array->stride * count;
-  return mem_create(bits_ptr_offset(array->data.ptr, offset), size);
+Mem dynarray_push(DynArray* a, const usize count) {
+  dynarray_resize_internal(a, a->size + count);
+  const usize offset = a->stride * (a->size - count);
+  const usize size   = a->stride * count;
+  return mem_create(bits_ptr_offset(a->data.ptr, offset), size);
 }
 
-void dynarray_pop(DynArray* array, usize count) {
-  diag_assert(count <= array->size);
-  dynarray_resize_internal(array, array->size - count);
+void dynarray_pop(DynArray* a, const usize count) {
+  diag_assert(count <= a->size);
+  dynarray_resize_internal(a, a->size - count);
 }
 
-void dynarray_remove(DynArray* array, const usize idx, const usize count) {
-  diag_assert(array->size >= idx + count);
+void dynarray_remove(DynArray* a, const usize idx, const usize count) {
+  diag_assert(a->size >= idx + count);
 
-  const usize newSize       = array->size - count;
+  const usize newSize       = a->size - count;
   const usize entriesToMove = newSize - idx;
   if (entriesToMove) {
-    const Mem dst = dynarray_at(array, idx, entriesToMove);
-    const Mem src = dynarray_at(array, idx + count, entriesToMove);
+    const Mem dst = dynarray_at_internal(a, idx, entriesToMove);
+    const Mem src = dynarray_at_internal(a, idx + count, entriesToMove);
     mem_move(dst, src);
   }
-  array->size = newSize;
+  a->size = newSize;
 }
 
-void dynarray_remove_unordered(DynArray* array, const usize idx, const usize count) {
-  diag_assert(array->size >= idx + count);
+void dynarray_remove_unordered(DynArray* a, const usize idx, const usize count) {
+  diag_assert(a->size >= idx + count);
 
-  const usize entriesToMove = math_min(count, array->size - (idx + count));
+  const usize entriesToMove = math_min(count, a->size - (idx + count));
   if (entriesToMove) {
-    const Mem dst = dynarray_at(array, idx, count);
-    const Mem src = dynarray_at(array, array->size - entriesToMove, entriesToMove);
+    const Mem dst = dynarray_at_internal(a, idx, count);
+    const Mem src = dynarray_at_internal(a, a->size - entriesToMove, entriesToMove);
     mem_cpy(dst, src);
   }
-  array->size -= count;
+  a->size -= count;
 }
 
-Mem dynarray_insert(DynArray* array, const usize idx, const usize count) {
-  diag_assert(idx <= array->size);
+Mem dynarray_insert(DynArray* a, const usize idx, const usize count) {
+  diag_assert(idx <= a->size);
 
-  const usize entriesToMove = array->size - idx;
-  dynarray_resize_internal(array, array->size + count);
+  const usize entriesToMove = a->size - idx;
+  dynarray_resize_internal(a, a->size + count);
   if (entriesToMove) {
-    const Mem dst = dynarray_at(array, idx + count, entriesToMove);
-    const Mem src = dynarray_at(array, idx, entriesToMove);
+    const Mem dst = dynarray_at_internal(a, idx + count, entriesToMove);
+    const Mem src = dynarray_at_internal(a, idx, entriesToMove);
     mem_move(dst, src);
   }
-  return dynarray_at(array, idx, count);
+  return dynarray_at_internal(a, idx, count);
 }
 
 Mem dynarray_insert_sorted(
-    DynArray* array, const usize count, CompareFunc compare, const void* target) {
-  const Mem mem = dynarray_at(array, 0, array->size);
-  void* ptr = search_binary_greater(mem_begin(mem), mem_end(mem), array->stride, compare, target);
+    DynArray* a, const usize count, CompareFunc compare, const void* target) {
+  const Mem mem = dynarray_at_internal(a, 0, a->size);
+  void*     ptr = search_binary_greater(mem_begin(mem), mem_end(mem), a->stride, compare, target);
   if (!ptr) {
     // No elements are greater; just insert at the end.
-    return dynarray_push(array, count);
+    return dynarray_push(a, count);
   }
-  const usize idx = ((u8*)ptr - mem_begin(mem)) / array->stride;
-  return dynarray_insert(array, idx, count);
+  const usize idx = ((u8*)ptr - mem_begin(mem)) / a->stride;
+  return dynarray_insert(a, idx, count);
 }
 
-void dynarray_sort(DynArray* array, CompareFunc compare) {
-  const Mem mem = dynarray_at(array, 0, array->size);
-  sort_quicksort(mem_begin(mem), mem_end(mem), array->stride, compare);
+void dynarray_sort(DynArray* a, CompareFunc compare) {
+  const Mem mem = dynarray_at_internal(a, 0, a->size);
+  sort_quicksort(mem_begin(mem), mem_end(mem), a->stride, compare);
 }
 
-void* dynarray_search_linear(DynArray* array, CompareFunc compare, const void* target) {
-  const Mem mem = dynarray_at(array, 0, array->size);
-  return search_linear(mem_begin(mem), mem_end(mem), array->stride, compare, target);
+void* dynarray_search_linear(DynArray* a, CompareFunc compare, const void* target) {
+  const Mem mem = dynarray_at_internal(a, 0, a->size);
+  return search_linear(mem_begin(mem), mem_end(mem), a->stride, compare, target);
 }
 
-void* dynarray_search_binary(DynArray* array, CompareFunc compare, const void* target) {
-  const Mem mem = dynarray_at(array, 0, array->size);
-  return search_binary(mem_begin(mem), mem_end(mem), array->stride, compare, target);
+void* dynarray_search_binary(DynArray* a, CompareFunc compare, const void* target) {
+  const Mem mem = dynarray_at_internal(a, 0, a->size);
+  return search_binary(mem_begin(mem), mem_end(mem), a->stride, compare, target);
 }
 
-void* dynarray_find_or_insert_sorted(DynArray* array, CompareFunc compare, const void* target) {
+void* dynarray_find_or_insert_sorted(DynArray* a, CompareFunc compare, const void* target) {
   /**
    * Do a binary-search for the first entry that compares 'greater', which means the target has to
    * be the one before that. If its not that means the target is not in the array.
    */
-  const Mem mem = dynarray_at(array, 0, array->size);
+  const Mem mem = dynarray_at_internal(a, 0, a->size);
   if (!mem.size) {
-    Mem res = dynarray_push(array, 1);
+    Mem res = dynarray_push(a, 1);
     mem_set(res, 0); // Clear the new memory.
     return res.ptr;
   }
   void* begin        = mem_begin(mem);
   void* end          = mem_end(mem);
-  void* greater      = search_binary_greater(begin, end, array->stride, compare, target);
+  void* greater      = search_binary_greater(begin, end, a->stride, compare, target);
   void* greaterOrEnd = greater ? greater : end;
 
   // Check if the entry before the greater entry matches the given target.
-  void* prev = bits_ptr_offset(greaterOrEnd, -(iptr)array->stride);
+  void* prev = bits_ptr_offset(greaterOrEnd, -(iptr)a->stride);
   if (prev >= begin && compare(prev, target) == 0) {
     return prev; // Existing entry found.
   }
 
   // Insert a new item at the 'greater' location (maintains sorting).
-  const usize idx = ((u8*)greaterOrEnd - (u8*)begin) / array->stride;
-  Mem         res = dynarray_insert(array, idx, 1);
+  const usize idx = ((u8*)greaterOrEnd - (u8*)begin) / a->stride;
+  Mem         res = dynarray_insert(a, idx, 1);
   mem_set(res, 0); // Clear the new memory.
   return res.ptr;
 }
 
-void dynarray_shuffle(DynArray* array, Rng* rng) {
-  const Mem mem = dynarray_at(array, 0, array->size);
-  shuffle_fisheryates(rng, mem_begin(mem), mem_end(mem), array->stride);
+void dynarray_shuffle(DynArray* a, Rng* rng) {
+  const Mem mem = dynarray_at_internal(a, 0, a->size);
+  shuffle_fisheryates(rng, mem_begin(mem), mem_end(mem), a->stride);
 }
 
-void* dynarray_copy_as_new(const DynArray* array, Allocator* alloc) {
-  if (!array->size) {
+void* dynarray_copy_as_new(const DynArray* a, Allocator* alloc) {
+  if (!a->size) {
     return null;
   }
-  const Mem arrayMem = dynarray_at(array, 0, array->size);
-  const Mem newMem   = alloc_alloc(alloc, arrayMem.size, array->align);
+  const Mem arrayMem = dynarray_at_internal(a, 0, a->size);
+  const Mem newMem   = alloc_alloc(alloc, arrayMem.size, a->align);
   mem_cpy(newMem, arrayMem);
   return newMem.ptr;
 }
