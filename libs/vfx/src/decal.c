@@ -24,6 +24,12 @@
 #include "atlas_internal.h"
 #include "draw_internal.h"
 
+#define vfx_decal_simd_enable 1
+
+#if vfx_decal_simd_enable
+#include "core_simd.h"
+#endif
+
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
 #define vfx_decal_trail_history_count 12
@@ -123,6 +129,12 @@ ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(DecalAnyView) {
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_with(VfxDecalAnyComp);
+}
+
+static f32 vfx_time_to_seconds(const TimeDuration dur) {
+  static const f64 g_toSecMul = 1.0 / (f64)time_second;
+  // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
+  return (f32)((f64)dur * g_toSecMul);
 }
 
 static const AssetAtlasComp*
@@ -249,8 +261,8 @@ static void vfx_decal_create_single(
       .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = alpha,
-      .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
-      .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
+      .fadeInSec        = asset->fadeInTime ? vfx_time_to_seconds(asset->fadeInTime) : -1.0f,
+      .fadeOutSec       = asset->fadeOutTime ? vfx_time_to_seconds(asset->fadeOutTime) : -1.0f,
       .creationTime     = timeComp->time,
       .width            = asset->width * scale,
       .height           = asset->height * scale,
@@ -282,8 +294,8 @@ static void vfx_decal_create_trail(
       .pointSpacing     = asset->spacing,
       .roughness        = asset->roughness,
       .alpha            = alpha,
-      .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
-      .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
+      .fadeInSec        = asset->fadeInTime ? vfx_time_to_seconds(asset->fadeInTime) : -1.0f,
+      .fadeOutSec       = asset->fadeOutTime ? vfx_time_to_seconds(asset->fadeOutTime) : -1.0f,
       .creationTime     = timeComp->time,
       .width            = asset->width * scale,
       .height           = asset->height * scale,
@@ -398,7 +410,7 @@ typedef struct {
   f32           width, height, thickness;
   f32           texOffsetY, texScaleY;
   VfxWarpVec    warpScale;
-  VfxWarpVec    warpPoints[4];
+  ALIGNAS(16) VfxWarpVec warpPoints[4];
 } VfxDecalParams;
 
 static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* params) {
@@ -431,10 +443,29 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   geo_vector_pack_f16(
       geo_vector(warpScale.x, warpScale.y, params->texOffsetY, params->texScaleY), out->data5);
 
+#if vfx_decal_simd_enable
+  /**
+   * Warp-points are represented by 8 floats, pack them to 16 bits in two steps.
+   */
+  const SimdVec warpPointsA = simd_vec_load((const f32*)&params->warpPoints[0]);
+  const SimdVec warpPointsB = simd_vec_load((const f32*)&params->warpPoints[2]);
+  SimdVec       warpPointsPackedA, warpPointsPackedB;
+  if (g_f16cSupport) {
+    COMPILER_BARRIER(); // Don't allow re-ordering 'simd_vec_f32_to_f16' before the check.
+    warpPointsPackedA = simd_vec_f32_to_f16(warpPointsA);
+    warpPointsPackedB = simd_vec_f32_to_f16(warpPointsB);
+  } else {
+    warpPointsPackedA = simd_vec_f32_to_f16_soft(warpPointsA);
+    warpPointsPackedB = simd_vec_f32_to_f16_soft(warpPointsB);
+  }
+  *(u64*)&out->warpPoints[0] = simd_vec_u64(warpPointsPackedA);
+  *(u64*)&out->warpPoints[2] = simd_vec_u64(warpPointsPackedB);
+#else
   for (u32 i = 0; i != 4; ++i) {
     out->warpPoints[i][0] = float_f32_to_f16(params->warpPoints[i].x);
     out->warpPoints[i][1] = float_f32_to_f16(params->warpPoints[i].y);
   }
+#endif
 }
 
 static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) {
@@ -452,7 +483,7 @@ static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) 
 static f32 vfx_decal_fade_in(
     const SceneTimeComp* timeComp, const TimeDuration creationTime, const f32 fadeInSec) {
   if (fadeInSec > 0) {
-    const f32 ageSec = (timeComp->time - creationTime) / (f32)time_second;
+    const f32 ageSec = vfx_time_to_seconds(timeComp->time - creationTime);
     return math_min(ageSec / fadeInSec, 1.0f);
   }
   return 1.0f;
@@ -460,7 +491,7 @@ static f32 vfx_decal_fade_in(
 
 static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f32 fadeOutSec) {
   if (fadeOutSec > 0) {
-    const f32 timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
+    const f32 timeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
     return math_min(timeRemSec / fadeOutSec, 1.0f);
   }
   return 1.0f;
@@ -514,22 +545,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-      .pos              = pos,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->decalFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+       .pos              = pos,
+       .rot              = rot,
+       .width            = inst->width * scale,
+       .height           = inst->height * scale,
+       .thickness        = inst->thickness,
+       .flags            = inst->decalFlags,
+       .excludeTags      = inst->excludeTags,
+       .atlasColorIndex  = inst->atlasColorIndex,
+       .atlasNormalIndex = inst->atlasNormalIndex,
+       .alphaBegin       = alpha,
+       .alphaEnd         = alpha,
+       .roughness        = inst->roughness,
+       .texOffsetY       = 0.0f,
+       .texScaleY        = 1.0f,
+       .warpScale        = {1.0f, 1.0f},
+       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
