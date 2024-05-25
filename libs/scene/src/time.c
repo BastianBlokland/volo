@@ -9,6 +9,12 @@ ecs_comp_define_public(SceneTimeComp);
 ecs_comp_define_public(SceneTimeSettingsComp);
 ecs_comp_define(SceneTimePrivateComp) { TimeSteady lastTime; };
 
+static f32 time_to_seconds(const TimeDuration dur) {
+  static const f64 g_toSecMul = 1.0 / (f64)time_second;
+  // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
+  return (f32)((f64)dur * g_toSecMul);
+}
+
 ecs_view_define(TimeUpdateView) {
   ecs_access_write(SceneTimeComp);
   ecs_access_write(SceneTimeSettingsComp);
@@ -67,10 +73,7 @@ ecs_module_init(scene_time_module) {
   ecs_order(SceneTimeUpdateSys, SceneOrder_TimeUpdate);
 }
 
-f32 scene_time_seconds(const SceneTimeComp* time) { return time->time / (f32)time_second; }
-f32 scene_delta_seconds(const SceneTimeComp* time) { return time->delta / (f32)time_second; }
-
-f32 scene_real_time_seconds(const SceneTimeComp* time) { return time->realTime / (f32)time_second; }
-f32 scene_real_delta_seconds(const SceneTimeComp* time) {
-  return time->realDelta / (f32)time_second;
-}
+f32 scene_time_seconds(const SceneTimeComp* time) { return time_to_seconds(time->time); }
+f32 scene_delta_seconds(const SceneTimeComp* time) { return time_to_seconds(time->delta); }
+f32 scene_real_time_seconds(const SceneTimeComp* time) { return time_to_seconds(time->realTime); }
+f32 scene_real_delta_seconds(const SceneTimeComp* time) { return time_to_seconds(time->realDelta); }
