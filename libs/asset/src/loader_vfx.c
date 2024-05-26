@@ -83,7 +83,7 @@ typedef struct {
   VfxLightDef         light;
   VfxRangeScalarDef   speed;
   f32                 expandForce;
-  u32                 count;
+  u16                 count;
   f32                 interval;
   VfxRangeScalarDef   scale;
   VfxRangeDurationDef lifetime;
@@ -208,7 +208,7 @@ static void vfx_datareg_init(void) {
     data_reg_field_t(reg, VfxEmitterDef, light, t_VfxLightDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, VfxEmitterDef, count, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);

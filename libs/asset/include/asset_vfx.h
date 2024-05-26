@@ -78,7 +78,7 @@ typedef struct {
   AssetVfxLight         light;
   AssetVfxRangeScalar   speed;
   f32                   expandForce;
-  u32                   count;
+  u16                   count;
   TimeDuration          interval;
   AssetVfxRangeScalar   scale;
   AssetVfxRangeDuration lifetime;
