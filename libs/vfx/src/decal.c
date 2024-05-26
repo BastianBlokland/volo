@@ -82,7 +82,7 @@ ecs_comp_define(VfxDecalSingleComp) {
   bool           snapToTerrain;
   f32            angle;
   f32            roughness, alpha;
-  f32            fadeInSec, fadeOutSec;
+  f32            fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
   f32            width, height, thickness;
   TimeDuration   creationTime;
 };
@@ -99,7 +99,7 @@ ecs_comp_define(VfxDecalTrailComp) {
   bool           snapToTerrain;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            roughness, alpha;
-  f32            fadeInSec, fadeOutSec;
+  f32            fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
   f32            width, height, thickness;
   TimeDuration   creationTime;
   f32            pointSpacing, nextPointFrac;
@@ -261,8 +261,8 @@ static void vfx_decal_create_single(
       .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = alpha,
-      .fadeInSec        = asset->fadeInTime ? vfx_time_to_seconds(asset->fadeInTime) : -1.0f,
-      .fadeOutSec       = asset->fadeOutTime ? vfx_time_to_seconds(asset->fadeOutTime) : -1.0f,
+      .fadeInTimeInv    = asset->fadeInTimeInv,
+      .fadeOutTimeInv   = asset->fadeOutTimeInv,
       .creationTime     = timeComp->time,
       .width            = asset->width * scale,
       .height           = asset->height * scale,
@@ -294,8 +294,8 @@ static void vfx_decal_create_trail(
       .pointSpacing     = asset->spacing,
       .roughness        = asset->roughness,
       .alpha            = alpha,
-      .fadeInSec        = asset->fadeInTime ? vfx_time_to_seconds(asset->fadeInTime) : -1.0f,
-      .fadeOutSec       = asset->fadeOutTime ? vfx_time_to_seconds(asset->fadeOutTime) : -1.0f,
+      .fadeInTimeInv    = asset->fadeInTimeInv,
+      .fadeOutTimeInv   = asset->fadeOutTimeInv,
       .creationTime     = timeComp->time,
       .width            = asset->width * scale,
       .height           = asset->height * scale,
@@ -421,8 +421,10 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   const GeoBox bounds = geo_box_from_rotated(&box, params->rot);
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
-  mem_cpy(array_mem(out->data1), mem_create(params->pos.comps, sizeof(f32) * 3));
-  out->data1[3] = bits_u32_as_f32((u32)params->flags | ((u32)params->excludeTags << 16));
+  out->data1[0]     = params->pos.x;
+  out->data1[1]     = params->pos.y;
+  out->data1[2]     = params->pos.z;
+  out->data1[3]     = bits_u32_as_f32((u32)params->flags | ((u32)params->excludeTags << 16));
 
   geo_quat_pack_f16(params->rot, out->data2);
 
@@ -480,23 +482,6 @@ static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) 
   UNREACHABLE
 }
 
-static f32 vfx_decal_fade_in(
-    const SceneTimeComp* timeComp, const TimeDuration creationTime, const f32 fadeInSec) {
-  if (fadeInSec > 0) {
-    const f32 ageSec = vfx_time_to_seconds(timeComp->time - creationTime);
-    return math_min(ageSec / fadeInSec, 1.0f);
-  }
-  return 1.0f;
-}
-
-static f32 vfx_decal_fade_out(const SceneLifetimeDurationComp* lifetime, const f32 fadeOutSec) {
-  if (fadeOutSec > 0) {
-    const f32 timeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
-    return math_min(timeRemSec / fadeOutSec, 1.0f);
-  }
-  return 1.0f;
-}
-
 ecs_view_define(SingleDrawView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the single-decal draw entities.
   ecs_access_write(RendDrawComp);
@@ -531,7 +516,9 @@ static void vfx_decal_single_update(
     return;
   }
 
-  const bool debug = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const f32  ageSec     = vfx_time_to_seconds(timeComp->time - inst->creationTime);
+  const f32  timeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
+  const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
 
   GeoVector pos = trans->position;
   if (inst->snapToTerrain) {
@@ -541,8 +528,8 @@ static void vfx_decal_single_update(
   const GeoQuat        rotRaw = vfx_decal_rotation(trans->rotation, inst->axis);
   const GeoQuat        rot    = geo_quat_mul(rotRaw, geo_quat_angle_axis(inst->angle, geo_forward));
   const f32            scale  = scaleComp ? scaleComp->scale : 1.0f;
-  const f32            fadeIn = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
-  const f32            fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
+  const f32            fadeIn = math_min(ageSec * inst->fadeInTimeInv, 1.0f);
+  const f32            fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
        .pos              = pos,
@@ -772,17 +759,21 @@ static void vfx_decal_trail_update(
     scene_terrain_snap(terrainComp, &headPoint.pos);
   }
 
-  const bool      debug   = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
-  const f32       fadeIn  = vfx_decal_fade_in(timeComp, inst->creationTime, inst->fadeInSec);
-  const f32       fadeOut = vfx_decal_fade_out(lifetime, inst->fadeOutSec);
-  const GeoVector projAxisRef    = geo_up; // TODO: Make the projection axis configurable.
-  const f32       trailAlpha     = decal->alpha * inst->alpha * fadeIn * fadeOut;
-  const f32       trailScale     = scaleComp ? scaleComp->scale : 1.0f;
-  const f32       trailSpacing   = inst->pointSpacing * trailScale;
-  const f32       trailWidth     = inst->width * trailScale;
-  const f32       trailHeight    = inst->height * trailScale;
-  const f32       trailWidthInv  = 1.0f / trailWidth;
-  const f32       trailTexYScale = trailSpacing / trailHeight;
+  const f32  ageSec     = vfx_time_to_seconds(timeComp->time - inst->creationTime);
+  const f32  timeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
+  const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+
+  const GeoVector projAxisRef = geo_up; // TODO: Make the projection axis configurable.
+
+  const f32 fadeIn         = math_min(ageSec * inst->fadeInTimeInv, 1.0f);
+  const f32 fadeOut        = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
+  const f32 trailAlpha     = decal->alpha * inst->alpha * fadeIn * fadeOut;
+  const f32 trailScale     = scaleComp ? scaleComp->scale : 1.0f;
+  const f32 trailSpacing   = inst->pointSpacing * trailScale;
+  const f32 trailWidth     = inst->width * trailScale;
+  const f32 trailHeight    = inst->height * trailScale;
+  const f32 trailWidthInv  = 1.0f / trailWidth;
+  const f32 trailTexYScale = trailSpacing / trailHeight;
 
   if (inst->trailFlags & VfxTrailFlags_HistoryReset) {
     vfx_decal_trail_history_reset(inst, headPoint);

@@ -44,7 +44,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              width, height;
   f32              thickness;
   f32              scaleMin, scaleMax;
-  TimeDuration     fadeInTime, fadeOutTime;
+  f32              fadeInTimeInv, fadeOutTimeInv; // 1.0f / timeInSeconds.
 };
 
 void asset_decal_jsonschema_write(DynString*);
