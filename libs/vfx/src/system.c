@@ -50,14 +50,14 @@ typedef struct {
 
 ecs_comp_define(VfxSystemStateComp) {
   TimeDuration    age, emitAge;
-  u32             assetVersion;
+  u16             assetVersion;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxSystemInstance[].
 };
 
 ecs_comp_define(VfxSystemAssetComp) {
-  VfxLoadFlags loadFlags;
-  u32          version;
+  VfxLoadFlags loadFlags : 16;
+  u16          version;
 };
 
 static void ecs_destruct_system_state_comp(void* data) {
