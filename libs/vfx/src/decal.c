@@ -62,7 +62,10 @@ typedef struct {
   f16 data3[4]; // xyz: scale, w: roughness.
   f16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: alphaBegin, w: alphaEnd.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
-  f16 warpPoints[4][2];
+  union {
+    f16 warpPoints[4][2];
+    u64 warpPointData[2];
+  };
 } VfxDecalData;
 
 ASSERT(sizeof(VfxDecalData) == 64, "Size needs to match the size defined in glsl");
@@ -460,8 +463,8 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
     warpPointsPackedA = simd_vec_f32_to_f16_soft(warpPointsA);
     warpPointsPackedB = simd_vec_f32_to_f16_soft(warpPointsB);
   }
-  *(u64*)&out->warpPoints[0] = simd_vec_u64(warpPointsPackedA);
-  *(u64*)&out->warpPoints[2] = simd_vec_u64(warpPointsPackedB);
+  out->warpPointData[0] = simd_vec_u64(warpPointsPackedA);
+  out->warpPointData[1] = simd_vec_u64(warpPointsPackedB);
 #else
   for (u32 i = 0; i != 4; ++i) {
     out->warpPoints[i][0] = float_f32_to_f16(params->warpPoints[i].x);
@@ -532,22 +535,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-       .pos              = pos,
-       .rot              = rot,
-       .width            = inst->width * scale,
-       .height           = inst->height * scale,
-       .thickness        = inst->thickness,
-       .flags            = inst->decalFlags,
-       .excludeTags      = inst->excludeTags,
-       .atlasColorIndex  = inst->atlasColorIndex,
-       .atlasNormalIndex = inst->atlasNormalIndex,
-       .alphaBegin       = alpha,
-       .alphaEnd         = alpha,
-       .roughness        = inst->roughness,
-       .texOffsetY       = 0.0f,
-       .texScaleY        = 1.0f,
-       .warpScale        = {1.0f, 1.0f},
-       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+      .pos              = pos,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->decalFlags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alphaBegin       = alpha,
+      .alphaEnd         = alpha,
+      .roughness        = inst->roughness,
+      .texOffsetY       = 0.0f,
+      .texScaleY        = 1.0f,
+      .warpScale        = {1.0f, 1.0f},
+      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
