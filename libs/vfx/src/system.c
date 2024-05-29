@@ -525,7 +525,7 @@ static void vfx_instance_output_light(
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
 }
 
-ecs_system_define(VfxSystemUpdateSys) {
+ecs_system_define(VfxSystemRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -631,12 +631,12 @@ ecs_module_init(vfx_system_module) {
   ecs_register_system(VfxSystemAssetLoadSys, ecs_register_view(LoadView));
 
   ecs_register_system(
-      VfxSystemUpdateSys,
+      VfxSystemRenderSys,
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView),
       ecs_view_id(ParticleDrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
-  ecs_order(VfxSystemUpdateSys, VfxOrder_Render);
+  ecs_order(VfxSystemRenderSys, VfxOrder_Render);
 }
