@@ -638,5 +638,5 @@ ecs_module_init(vfx_system_module) {
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
-  ecs_order(VfxSystemUpdateSys, VfxOrder_Update);
+  ecs_order(VfxSystemUpdateSys, VfxOrder_Render);
 }

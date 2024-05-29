@@ -535,22 +535,22 @@ static void vfx_decal_single_update(
   const f32            fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32            alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxDecalParams params  = {
-      .pos              = pos,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->decalFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+       .pos              = pos,
+       .rot              = rot,
+       .width            = inst->width * scale,
+       .height           = inst->height * scale,
+       .thickness        = inst->thickness,
+       .flags            = inst->decalFlags,
+       .excludeTags      = inst->excludeTags,
+       .atlasColorIndex  = inst->atlasColorIndex,
+       .atlasNormalIndex = inst->atlasNormalIndex,
+       .alphaBegin       = alpha,
+       .alphaEnd         = alpha,
+       .roughness        = inst->roughness,
+       .texOffsetY       = 0.0f,
+       .texScaleY        = 1.0f,
+       .warpScale        = {1.0f, 1.0f},
+       .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_decal_draw_output(drawNormal, &params);
@@ -967,6 +967,6 @@ ecs_module_init(vfx_decal_module) {
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
 
-  ecs_order(VfxDecalSingleUpdateSys, VfxOrder_Update);
-  ecs_order(VfxDecalTrailUpdateSys, VfxOrder_Update);
+  ecs_order(VfxDecalSingleUpdateSys, VfxOrder_Render);
+  ecs_order(VfxDecalTrailUpdateSys, VfxOrder_Render);
 }
