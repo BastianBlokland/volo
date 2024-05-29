@@ -85,6 +85,23 @@ ecs_view_define(AssetView) {
 
 INLINE_HINT static f32 vfx_mod1(const f32 val) { return val - (u32)val; }
 
+/**
+ * Approximate the given base to the power of exp.
+ * NOTE: Assumes the host system is using little-endian byte-order and 2's complement integers.
+ *
+ * Implementation based on:
+ * https://martin.ankerl.com/2007/10/04/optimized-pow-approximation-for-java-and-c-c/
+ * https://github.com/ekmett/approximate/blob/master/cbits/fast.c
+ */
+INLINE_HINT static f32 vfx_pow_approx(const f32 base, const f32 exp) {
+  union {
+    f32 valF32;
+    u32 valU32;
+  } conv      = {base};
+  conv.valU32 = (u32)(exp * (conv.valU32 - u32_lit(1064631197)) + 1065353216.0f);
+  return conv.valF32;
+}
+
 static f32 vfx_time_to_seconds(const TimeDuration dur) {
   static const f64 g_toSecMul = 1.0 / (f64)time_second;
   // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
@@ -377,23 +394,23 @@ static void vfx_system_simulate(
   // Update instances.
   VfxSystemInstance* instances = dynarray_begin_t(&state->instances, VfxSystemInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
-    VfxSystemInstance*     instance     = instances + i;
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+    VfxSystemInstance*     inst         = instances + i;
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[inst->emitter];
 
     // Apply force.
-    instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
+    inst->velo = geo_vector_add(inst->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
     // Apply friction.
-    instance->velo = geo_vector_mul(instance->velo, math_pow_f32(emitterAsset->friction, deltaSec));
+    inst->velo = geo_vector_mul(inst->velo, vfx_pow_approx(emitterAsset->friction, deltaSec));
 
     // Apply expanding.
-    instance->scale += emitterAsset->expandForce * deltaSec;
+    inst->scale += emitterAsset->expandForce * deltaSec;
 
     // Apply movement.
-    instance->pos = geo_vector_add(instance->pos, geo_vector_mul(instance->velo, deltaSec));
+    inst->pos = geo_vector_add(inst->pos, geo_vector_mul(inst->velo, deltaSec));
 
     // Update age and destruct if too old.
-    if ((instance->ageSec += deltaSec) > instance->lifetimeSec) {
+    if ((inst->ageSec += deltaSec) > inst->lifetimeSec) {
       goto Destruct;
     }
     continue;
