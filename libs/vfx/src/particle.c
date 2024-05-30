@@ -50,12 +50,9 @@ void vfx_particle_output(RendDrawComp* draw, const VfxParticle* p) {
   data->data1[3]        = (f32)p->atlasIndex;
 
   geo_quat_pack_f16(p->rotation, data->data2);
-  data->data3[0] = float_f32_to_f16(p->sizeX);
-  data->data3[1] = float_f32_to_f16(p->sizeY);
-  data->data3[2] = float_f32_to_f16(p->opacity);
 
   diag_assert_msg(p->flags <= 1024, "Flags are not exactly representable by a 16 bit float");
-  data->data3[3] = float_f32_to_f16((f32)p->flags);
+  geo_vector_pack_f16(geo_vector(p->sizeX, p->sizeY, p->opacity, (f32)p->flags), data->data3);
 
   geo_color_pack_f16(p->color, data->data4);
 }

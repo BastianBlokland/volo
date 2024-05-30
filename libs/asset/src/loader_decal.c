@@ -148,8 +148,8 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->thickness        = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
   out->scaleMin         = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
   out->scaleMax         = math_max(out->scaleMin, def->scaleMax);
-  out->fadeInTime       = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime      = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->fadeInTimeInv    = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;
+  out->fadeOutTimeInv   = (def->fadeOutTime > f32_epsilon) ? (1.0f / def->fadeOutTime) : f32_max;
 }
 
 ecs_module_init(asset_decal_module) {

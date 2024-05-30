@@ -28,25 +28,25 @@ typedef enum {
 } AssetVfxFacing;
 
 typedef struct {
-  StringHash     atlasEntry;
   GeoColor       color;
+  StringHash     atlasEntry;
   AssetVfxBlend  blend : 8;
   AssetVfxFacing facing : 8;
   u16            flipbookCount;
-  TimeDuration   flipbookTime;
+  f32            flipbookTimeInv; // 1.0 / timeInSeconds.
   f32            sizeX, sizeY;
-  TimeDuration   fadeInTime, fadeOutTime;
-  TimeDuration   scaleInTime, scaleOutTime;
-  bool           geometryFade; // Aka 'soft particles'.
+  f32            fadeInTimeInv, fadeOutTimeInv;   // 1.0 / timeInSeconds.
+  f32            scaleInTimeInv, scaleOutTimeInv; // 1.0 / timeInSeconds.
+  bool           geometryFade;                    // Aka 'soft particles'.
   bool           shadowCaster;
   bool           distortion; // Draw in the distortion pass instead of the forward pass.
 } AssetVfxSprite;
 
 typedef struct {
-  GeoColor     radiance;
-  TimeDuration fadeInTime, fadeOutTime;
-  f32          radius;
-  f32          turbulenceFrequency; // Optional random scale turbulence.
+  GeoColor radiance;
+  f32      fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
+  f32      radius;
+  f32      turbulenceFrequency; // Optional random scale turbulence.
 } AssetVfxLight;
 
 typedef struct {
@@ -78,7 +78,7 @@ typedef struct {
   AssetVfxLight         light;
   AssetVfxRangeScalar   speed;
   f32                   expandForce;
-  u32                   count;
+  u16                   count;
   TimeDuration          interval;
   AssetVfxRangeScalar   scale;
   AssetVfxRangeDuration lifetime;

@@ -138,7 +138,7 @@ bool geo_quat_clamp(GeoQuat*, f32 maxAngle);
 /**
  * Pack a quaternion to 16 bit floats.
  */
-void geo_quat_pack_f16(GeoQuat, f16 out[4]);
+void geo_quat_pack_f16(GeoQuat, f16 out[PARAM_ARRAY_SIZE(4)]);
 
 /**
  * Create a formatting argument for a quaternion.

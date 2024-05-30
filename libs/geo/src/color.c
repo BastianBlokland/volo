@@ -302,8 +302,20 @@ GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value
 }
 
 void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
+#if geo_color_simd_enable
+  const SimdVec vecF32 = simd_vec_load(color.data);
+  SimdVec       vecF16;
+  if (g_f16cSupport) {
+    COMPILER_BARRIER(); // Don't allow re-ordering 'simd_vec_f32_to_f16' before the check.
+    vecF16 = simd_vec_f32_to_f16(vecF32);
+  } else {
+    vecF16 = simd_vec_f32_to_f16_soft(vecF32);
+  }
+  *(u64*)out = simd_vec_u64(vecF16);
+#else
   out[0] = float_f32_to_f16(color.r);
   out[1] = float_f32_to_f16(color.g);
   out[2] = float_f32_to_f16(color.b);
   out[3] = float_f32_to_f16(color.a);
+#endif
 }

@@ -12,6 +12,12 @@ ecs_comp_define_public(SceneTransformComp);
 ecs_comp_define_public(SceneScaleComp);
 ecs_comp_define_public(SceneVelocityComp);
 
+static f32 trans_time_to_seconds(const TimeDuration dur) {
+  static const f64 g_toSecMul = 1.0 / (f64)time_second;
+  // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
+  return (f32)((f64)dur * g_toSecMul);
+}
+
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(VelocityUpdateView) {
@@ -122,6 +128,6 @@ GeoVector scene_position_predict(
   if (!velo) {
     return trans->position;
   }
-  const GeoVector delta = geo_vector_mul(velo->velocityAvg, timeInFuture / (f32)time_second);
+  const GeoVector delta = geo_vector_mul(velo->velocityAvg, trans_time_to_seconds(timeInFuture));
   return geo_vector_add(trans->position, delta);
 }

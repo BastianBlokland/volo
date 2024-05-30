@@ -45,19 +45,19 @@ typedef struct {
 ASSERT(sizeof(VfxSystemInstance) <= 64, "Instance should fit in a single cacheline on x86");
 
 typedef struct {
-  u32 spawnCount;
+  u64 spawnCount;
 } VfxEmitterState;
 
 ecs_comp_define(VfxSystemStateComp) {
   TimeDuration    age, emitAge;
-  u32             assetVersion;
+  u16             assetVersion;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxSystemInstance[].
 };
 
 ecs_comp_define(VfxSystemAssetComp) {
-  VfxLoadFlags loadFlags;
-  u32          version;
+  VfxLoadFlags loadFlags : 16;
+  u16          version;
 };
 
 static void ecs_destruct_system_state_comp(void* data) {
@@ -81,6 +81,31 @@ ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(AssetView) {
   ecs_access_read(VfxSystemAssetComp);
   ecs_access_read(AssetVfxComp);
+}
+
+INLINE_HINT static f32 vfx_mod1(const f32 val) { return val - (u32)val; }
+
+/**
+ * Approximate the given base to the power of exp.
+ * NOTE: Assumes the host system is using little-endian byte-order and 2's complement integers.
+ *
+ * Implementation based on:
+ * https://martin.ankerl.com/2007/10/04/optimized-pow-approximation-for-java-and-c-c/
+ * https://github.com/ekmett/approximate/blob/master/cbits/fast.c
+ */
+INLINE_HINT static f32 vfx_pow_approx(const f32 base, const f32 exp) {
+  union {
+    f32 valF32;
+    u32 valU32;
+  } conv      = {base};
+  conv.valU32 = (u32)(exp * (conv.valU32 - u32_lit(1064631197)) + 1065353216.0f);
+  return conv.valF32;
+}
+
+static f32 vfx_time_to_seconds(const TimeDuration dur) {
+  static const f64 g_toSecMul = 1.0 / (f64)time_second;
+  // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
+  return (f32)((f64)dur * g_toSecMul);
 }
 
 static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasManagerComp* man) {
@@ -156,27 +181,9 @@ ecs_system_define(VfxSystemAssetLoadSys) {
   }
 }
 
-ecs_view_define(UpdateGlobalView) {
-  ecs_access_read(SceneTimeComp);
-  ecs_access_read(SceneVisibilityEnvComp);
-  ecs_access_read(VfxAtlasManagerComp);
-  ecs_access_read(VfxDrawManagerComp);
-  ecs_access_write(RendLightComp);
-}
-
-ecs_view_define(UpdateView) {
-  ecs_access_maybe_read(SceneLifetimeDurationComp);
-  ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneTagComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneVisibilityComp);
-  ecs_access_read(SceneVfxSystemComp);
-  ecs_access_write(VfxSystemStateComp);
-}
-
-INLINE_HINT static f32 vfx_instance_alpha(const VfxSystemInstance* instance) {
+INLINE_HINT static f32 vfx_instance_alpha(const VfxSystemInstance* inst) {
   static const f32 g_u8MaxInv = 1.0f / u8_max;
-  return (f32)instance->alpha * g_u8MaxInv;
+  return (f32)inst->alpha * g_u8MaxInv;
 }
 
 static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
@@ -242,6 +249,19 @@ typedef struct {
   f32       scale;
 } VfxTrans;
 
+static VfxTrans vfx_trans_init(
+    const SceneTransformComp* trans, const SceneScaleComp* scale, const AssetVfxComp* asset) {
+  VfxTrans res = {
+      .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
+      .rot   = geo_quat_ident,
+      .scale = scale ? scale->scale : 1.0f,
+  };
+  if (!(asset->flags & AssetVfx_IgnoreTransformRotation)) {
+    res.rot = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  }
+  return res;
+}
+
 static GeoVector vfx_world_pos(const VfxTrans* t, const GeoVector pos) {
   return geo_vector_add(t->pos, geo_quat_rotate(t->rot, geo_vector_mul(pos, t->scale)));
 }
@@ -301,18 +321,18 @@ static void vfx_system_spawn(
       .emitter              = emitter,
       .alpha                = (u8)(math_clamp_f32(spawnAlpha, 0.0f, 1.0f) * u8_max),
       .spriteAtlasBaseIndex = spriteAtlasEntryIndex,
-      .lifetimeSec          = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
-      .scale                = spawnScale,
-      .pos                  = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
-      .rot                  = vfx_sample_range_rotation(&emitterAsset->rotation),
-      .velo                 = geo_vector_mul(spawnDir, spawnSpeed),
+      .lifetimeSec = vfx_time_to_seconds(vfx_sample_range_duration(&emitterAsset->lifetime)),
+      .scale       = spawnScale,
+      .pos         = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
+      .rot         = vfx_sample_range_rotation(&emitterAsset->rotation),
+      .velo        = geo_vector_mul(spawnDir, spawnSpeed),
   };
 }
 
-static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
+static u64 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
   if (emitterAsset->interval) {
-    const u32 maxCount = emitterAsset->count ? emitterAsset->count : u32_max;
-    return math_min((u32)(age / emitterAsset->interval), maxCount);
+    const u64 maxCount = emitterAsset->count ? emitterAsset->count : u64_max;
+    return math_min((u64)(age / emitterAsset->interval), maxCount);
   }
   return math_max(1, emitterAsset->count);
 }
@@ -347,7 +367,7 @@ static void vfx_system_simulate(
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans) {
 
-  const f32 deltaSec = scene_delta_seconds(time);
+  const f32 deltaSec = vfx_time_to_seconds(time->delta);
 
   // Update shared state.
   state->age += time->delta;
@@ -360,7 +380,7 @@ static void vfx_system_simulate(
     VfxEmitterState*       emitterState = &state->emitters[emitter];
     const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-    const u32 count = vfx_emitter_count(emitterAsset, state->emitAge);
+    const u64 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
       vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
     }
@@ -369,23 +389,23 @@ static void vfx_system_simulate(
   // Update instances.
   VfxSystemInstance* instances = dynarray_begin_t(&state->instances, VfxSystemInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
-    VfxSystemInstance*     instance     = instances + i;
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+    VfxSystemInstance*     inst         = instances + i;
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[inst->emitter];
 
     // Apply force.
-    instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
+    inst->velo = geo_vector_add(inst->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
     // Apply friction.
-    instance->velo = geo_vector_mul(instance->velo, math_pow_f32(emitterAsset->friction, deltaSec));
+    inst->velo = geo_vector_mul(inst->velo, vfx_pow_approx(emitterAsset->friction, deltaSec));
 
     // Apply expanding.
-    instance->scale += emitterAsset->expandForce * deltaSec;
+    inst->scale += emitterAsset->expandForce * deltaSec;
 
     // Apply movement.
-    instance->pos = geo_vector_add(instance->pos, geo_vector_mul(instance->velo, deltaSec));
+    inst->pos = geo_vector_add(inst->pos, geo_vector_mul(inst->velo, deltaSec));
 
     // Update age and destruct if too old.
-    if ((instance->ageSec += deltaSec) > instance->lifetimeSec) {
+    if ((inst->ageSec += deltaSec) > inst->lifetimeSec) {
       goto Destruct;
     }
     continue;
@@ -395,29 +415,99 @@ static void vfx_system_simulate(
   }
 }
 
+ecs_view_define(SimulateGlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_read(VfxAtlasManagerComp);
+}
+
+ecs_view_define(SimulateView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(SceneVfxSystemComp);
+  ecs_access_write(VfxSystemStateComp);
+}
+
+ecs_system_define(VfxSystemSimulateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, SimulateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+
+  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
+  if (!particleAtlas) {
+    return; // Atlas hasn't loaded yet.
+  }
+
+  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
+  u32          numAssetRequests = 0;
+
+  EcsView* simView = ecs_world_view_t(world, SimulateView);
+  for (EcsIterator* itr = ecs_view_itr_step(simView, parCount, parIndex); ecs_view_walk(itr);) {
+    const SceneScaleComp*     scale   = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneVfxSystemComp* sysCfg  = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneTagComp*       tagComp = ecs_view_read_t(itr, SceneTagComp);
+    VfxSystemStateComp*       state   = ecs_view_write_t(itr, VfxSystemStateComp);
+
+    const SceneTags sysTags = tagComp ? tagComp->tags : SceneTags_Default;
+
+    diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
+    if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
+      if (UNLIKELY(!vfx_system_asset_valid(world, sysCfg->asset))) {
+        log_e("Invalid vfx-system asset entity");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetFailedComp))) {
+        log_e("Failed to acquire vfx-system asset");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetLoadedComp))) {
+        log_e("Acquired asset was not a vfx-system");
+        continue;
+      }
+      if (sysCfg->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
+        vfx_system_asset_request(world, sysCfg->asset);
+      }
+      continue;
+    }
+    const VfxSystemAssetComp* assetRequest = ecs_view_read_t(assetItr, VfxSystemAssetComp);
+    const AssetVfxComp*       asset        = ecs_view_read_t(assetItr, AssetVfxComp);
+
+    if (UNLIKELY(state->assetVersion != assetRequest->version)) {
+      if (state->assetVersion) {
+        vfx_system_reset(state); // Reset the state after hot-loading the asset.
+      }
+      state->assetVersion = assetRequest->version;
+    }
+
+    const VfxTrans sysTrans = vfx_trans_init(trans, scale, asset);
+    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
+  }
+}
+
 static void vfx_instance_output_sprite(
     const VfxSystemInstance*  instance,
     RendDrawComp*             draws[VfxDrawType_Count],
     const AssetVfxComp*       asset,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
-    const TimeDuration        sysTimeRem) {
+    const f32                 sysTimeRemSec) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
   }
-  const AssetVfxSpace   space            = asset->emitters[instance->emitter].space;
-  const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
-  const TimeDuration    instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
-  const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
-  const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
+  const AssetVfxSpace   space  = asset->emitters[instance->emitter].space;
+  const AssetVfxSprite* sprite = &asset->emitters[instance->emitter].sprite;
+  const f32 timeRemSec         = math_min(instance->lifetimeSec - instance->ageSec, sysTimeRemSec);
 
   f32 scale = instance->scale;
   if (space == AssetVfxSpace_Local) {
     scale *= sysTrans->scale;
   }
-  scale *= sprite->scaleInTime ? math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f) : 1.0f;
-  scale *= sprite->scaleOutTime ? math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f) : 1.0f;
+  scale *= math_min(instance->ageSec * sprite->scaleInTimeInv, 1.0f);
+  scale *= math_min(timeRemSec * sprite->scaleOutTimeInv, 1.0f);
 
   GeoQuat rot = instance->rot;
   if (sprite->facing == AssetVfxFacing_Local) {
@@ -431,11 +521,10 @@ static void vfx_instance_output_sprite(
     pos = vfx_world_pos(sysTrans, pos);
     color.a *= sysCfg->alpha;
   }
-  color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
-  color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
-  color.a = math_max(color.a, 0); // TODO: This is a bit sketchy, reason is timeRem can be 0.
+  color.a *= math_min(instance->ageSec * sprite->fadeInTimeInv, 1.0f);
+  color.a *= math_min(timeRemSec * sprite->fadeOutTimeInv, 1.0f);
 
-  const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
+  const f32 flipbookFrac  = vfx_mod1(instance->ageSec * sprite->flipbookTimeInv);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
   if (UNLIKELY(flipbookIndex >= sprite->flipbookCount)) {
     return; // NOTE: This can happen momentarily when hot-loading vfx.
@@ -473,7 +562,7 @@ static void vfx_instance_output_light(
     const AssetVfxComp*       asset,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
-    const TimeDuration        sysTimeRem) {
+    const f32                 sysTimeRemSec) {
 
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
@@ -482,10 +571,8 @@ static void vfx_instance_output_light(
   if (radiance.a <= f32_epsilon) {
     return;
   }
-  const TimeDuration  instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
-  const TimeDuration  instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
-  const TimeDuration  timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
-  const AssetVfxSpace space            = asset->emitters[instance->emitter].space;
+  const f32 timeRemSec      = math_min(instance->lifetimeSec - instance->ageSec, sysTimeRemSec);
+  const AssetVfxSpace space = asset->emitters[instance->emitter].space;
 
   GeoVector pos   = instance->pos;
   f32       scale = instance->scale;
@@ -495,8 +582,8 @@ static void vfx_instance_output_light(
     radiance.a *= sysCfg->alpha;
   }
   radiance.a *= scale;
-  radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
-  radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
+  radiance.a *= math_min(instance->ageSec * light->fadeInTimeInv, 1.0f);
+  radiance.a *= math_min(timeRemSec * light->fadeOutTimeInv, 1.0f);
   if (light->turbulenceFrequency > 0.0f) {
     // TODO: Make the turbulence scale configurable.
     // TODO: Implement a 2d perlin noise as an optimization.
@@ -505,13 +592,28 @@ static void vfx_instance_output_light(
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
 }
 
-ecs_system_define(VfxSystemUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+ecs_view_define(RenderGlobalView) {
+  ecs_access_read(SceneVisibilityEnvComp);
+  ecs_access_read(VfxAtlasManagerComp);
+  ecs_access_read(VfxDrawManagerComp);
+  ecs_access_write(RendLightComp);
+}
+
+ecs_view_define(RenderView) {
+  ecs_access_maybe_read(SceneLifetimeDurationComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneVfxSystemComp);
+  ecs_access_read(VfxSystemStateComp);
+}
+
+ecs_system_define(VfxSystemRenderSys) {
+  EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*          time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxDrawManagerComp*     drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
   const VfxAtlasManagerComp*    atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
@@ -531,69 +633,32 @@ ecs_system_define(VfxSystemUpdateSys) {
     }
   }
 
-  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
-  u32          numAssetRequests = 0;
+  EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, AssetView));
 
-  EcsView* updateView = ecs_world_view_t(world, UpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const EcsEntityId                entity    = ecs_view_entity(itr);
-    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
-    const SceneVfxSystemComp*        sysCfg    = ecs_view_read_t(itr, SceneVfxSystemComp);
-    const SceneVisibilityComp*       sysVis    = ecs_view_read_t(itr, SceneVisibilityComp);
-    const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
-    VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
+  EcsView* renderView = ecs_world_view_t(world, RenderView);
+  for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
+    const EcsEntityId                entity   = ecs_view_entity(itr);
+    const SceneScaleComp*            scale    = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp*        trans    = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+    const SceneVfxSystemComp*        sysCfg   = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneVisibilityComp*       sysVis   = ecs_view_read_t(itr, SceneVisibilityComp);
+    const VfxSystemStateComp*        state    = ecs_view_read_t(itr, VfxSystemStateComp);
 
-    const SceneTags sysTags    = tagComp ? tagComp->tags : SceneTags_Default;
-    const bool      sysVisible = !sysVis || scene_visible_for_render(visEnv, sysVis);
-
-    diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
+    if (sysVis && !scene_visible_for_render(visEnv, sysVis)) {
+      continue; // Not visible.
+    }
     if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
-      if (UNLIKELY(!vfx_system_asset_valid(world, sysCfg->asset))) {
-        log_e("Invalid vfx-system asset entity");
-        continue;
-      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetFailedComp))) {
-        log_e("Failed to acquire vfx-system asset");
-        continue;
-      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetLoadedComp))) {
-        log_e("Acquired asset was not a vfx-system");
-        continue;
-      }
-      if (sysCfg->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
-        vfx_system_asset_request(world, sysCfg->asset);
-      }
-      continue;
+      continue; // Asset not loaded.
     }
-    const VfxSystemAssetComp* assetRequest = ecs_view_read_t(assetItr, VfxSystemAssetComp);
-    const AssetVfxComp*       asset        = ecs_view_read_t(assetItr, AssetVfxComp);
+    const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    if (UNLIKELY(state->assetVersion != assetRequest->version)) {
-      if (state->assetVersion) {
-        vfx_system_reset(state); // Reset the state after hot-loading the asset.
-      }
-      state->assetVersion = assetRequest->version;
-      continue; // Skip the system this frame; This gives time for the old asset to be unloaded.
-    }
+    const VfxTrans sysTrans      = vfx_trans_init(trans, scale, asset);
+    const f32      sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
 
-    VfxTrans sysTrans = {
-        .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
-        .rot   = geo_quat_ident,
-        .scale = scaleComp ? scaleComp->scale : 1.0f,
-    };
-    if (!(asset->flags & AssetVfx_IgnoreTransformRotation)) {
-      sysTrans.rot = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    }
-
-    const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
-
-    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
-
-    if (sysVisible) {
-      dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-        vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRem);
-        vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRem);
-      }
+    dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
+      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
+      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
 }
@@ -612,12 +677,21 @@ ecs_module_init(vfx_system_module) {
   ecs_register_system(VfxSystemAssetLoadSys, ecs_register_view(LoadView));
 
   ecs_register_system(
-      VfxSystemUpdateSys,
-      ecs_register_view(UpdateGlobalView),
-      ecs_register_view(UpdateView),
+      VfxSystemSimulateSys,
+      ecs_register_view(SimulateGlobalView),
+      ecs_register_view(SimulateView),
+      ecs_view_id(AssetView),
+      ecs_view_id(AtlasView));
+
+  ecs_parallel(VfxSystemSimulateSys, 4);
+
+  ecs_register_system(
+      VfxSystemRenderSys,
+      ecs_register_view(RenderGlobalView),
+      ecs_register_view(RenderView),
       ecs_view_id(ParticleDrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
-  ecs_order(VfxSystemUpdateSys, VfxOrder_Update);
+  ecs_order(VfxSystemRenderSys, VfxOrder_Render);
 }

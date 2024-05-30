@@ -105,6 +105,7 @@ add_executable(test_lib_core
   test/test_rng.c
   test/test_search.c
   test/test_shuffle.c
+  test/test_simd.c
   test/test_sort.c
   test/test_string.c
   test/test_stringtable.c
