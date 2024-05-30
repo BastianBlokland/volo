@@ -56,7 +56,7 @@ typedef enum {
   SndObjectParam_Count,
 } SndObjectParam;
 
-ASSERT(SndObjectParam_Count == 4, "Unexpected paramater count");
+ASSERT(SndObjectParam_Count == 4, "Unexpected parameter count");
 
 typedef struct {
   SndObjectPhase phase : 8;
