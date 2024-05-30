@@ -181,27 +181,9 @@ ecs_system_define(VfxSystemAssetLoadSys) {
   }
 }
 
-ecs_view_define(UpdateGlobalView) {
-  ecs_access_read(SceneTimeComp);
-  ecs_access_read(SceneVisibilityEnvComp);
-  ecs_access_read(VfxAtlasManagerComp);
-  ecs_access_read(VfxDrawManagerComp);
-  ecs_access_write(RendLightComp);
-}
-
-ecs_view_define(UpdateView) {
-  ecs_access_maybe_read(SceneLifetimeDurationComp);
-  ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneTagComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneVisibilityComp);
-  ecs_access_read(SceneVfxSystemComp);
-  ecs_access_write(VfxSystemStateComp);
-}
-
-INLINE_HINT static f32 vfx_instance_alpha(const VfxSystemInstance* instance) {
+INLINE_HINT static f32 vfx_instance_alpha(const VfxSystemInstance* inst) {
   static const f32 g_u8MaxInv = 1.0f / u8_max;
-  return (f32)instance->alpha * g_u8MaxInv;
+  return (f32)inst->alpha * g_u8MaxInv;
 }
 
 static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
@@ -266,6 +248,19 @@ typedef struct {
   GeoQuat   rot;
   f32       scale;
 } VfxTrans;
+
+static VfxTrans vfx_trans_init(
+    const SceneTransformComp* trans, const SceneScaleComp* scale, const AssetVfxComp* asset) {
+  VfxTrans res = {
+      .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
+      .rot   = geo_quat_ident,
+      .scale = scale ? scale->scale : 1.0f,
+  };
+  if (!(asset->flags & AssetVfx_IgnoreTransformRotation)) {
+    res.rot = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  }
+  return res;
+}
 
 static GeoVector vfx_world_pos(const VfxTrans* t, const GeoVector pos) {
   return geo_vector_add(t->pos, geo_quat_rotate(t->rot, geo_vector_mul(pos, t->scale)));
@@ -420,6 +415,78 @@ static void vfx_system_simulate(
   }
 }
 
+ecs_view_define(SimulateGlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_read(VfxAtlasManagerComp);
+}
+
+ecs_view_define(SimulateView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(SceneVfxSystemComp);
+  ecs_access_write(VfxSystemStateComp);
+}
+
+ecs_system_define(VfxSystemSimulateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, SimulateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+
+  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
+  if (!particleAtlas) {
+    return; // Atlas hasn't loaded yet.
+  }
+
+  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
+  u32          numAssetRequests = 0;
+
+  EcsView* simView = ecs_world_view_t(world, SimulateView);
+  for (EcsIterator* itr = ecs_view_itr_step(simView, parCount, parIndex); ecs_view_walk(itr);) {
+    const SceneScaleComp*     scale   = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneVfxSystemComp* sysCfg  = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneTagComp*       tagComp = ecs_view_read_t(itr, SceneTagComp);
+    VfxSystemStateComp*       state   = ecs_view_write_t(itr, VfxSystemStateComp);
+
+    const SceneTags sysTags = tagComp ? tagComp->tags : SceneTags_Default;
+
+    diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
+    if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
+      if (UNLIKELY(!vfx_system_asset_valid(world, sysCfg->asset))) {
+        log_e("Invalid vfx-system asset entity");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetFailedComp))) {
+        log_e("Failed to acquire vfx-system asset");
+        continue;
+      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetLoadedComp))) {
+        log_e("Acquired asset was not a vfx-system");
+        continue;
+      }
+      if (sysCfg->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
+        vfx_system_asset_request(world, sysCfg->asset);
+      }
+      continue;
+    }
+    const VfxSystemAssetComp* assetRequest = ecs_view_read_t(assetItr, VfxSystemAssetComp);
+    const AssetVfxComp*       asset        = ecs_view_read_t(assetItr, AssetVfxComp);
+
+    if (UNLIKELY(state->assetVersion != assetRequest->version)) {
+      if (state->assetVersion) {
+        vfx_system_reset(state); // Reset the state after hot-loading the asset.
+      }
+      state->assetVersion = assetRequest->version;
+    }
+
+    const VfxTrans sysTrans = vfx_trans_init(trans, scale, asset);
+    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
+  }
+}
+
 static void vfx_instance_output_sprite(
     const VfxSystemInstance*  instance,
     RendDrawComp*             draws[VfxDrawType_Count],
@@ -525,13 +592,28 @@ static void vfx_instance_output_light(
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
 }
 
+ecs_view_define(RenderGlobalView) {
+  ecs_access_read(SceneVisibilityEnvComp);
+  ecs_access_read(VfxAtlasManagerComp);
+  ecs_access_read(VfxDrawManagerComp);
+  ecs_access_write(RendLightComp);
+}
+
+ecs_view_define(RenderView) {
+  ecs_access_maybe_read(SceneLifetimeDurationComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneVfxSystemComp);
+  ecs_access_read(VfxSystemStateComp);
+}
+
 ecs_system_define(VfxSystemRenderSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*          time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxDrawManagerComp*     drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
   const VfxAtlasManagerComp*    atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
@@ -551,68 +633,32 @@ ecs_system_define(VfxSystemRenderSys) {
     }
   }
 
-  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
-  u32          numAssetRequests = 0;
+  EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, AssetView));
 
-  EcsView* updateView = ecs_world_view_t(world, UpdateView);
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const EcsEntityId                entity    = ecs_view_entity(itr);
-    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
-    const SceneVfxSystemComp*        sysCfg    = ecs_view_read_t(itr, SceneVfxSystemComp);
-    const SceneVisibilityComp*       sysVis    = ecs_view_read_t(itr, SceneVisibilityComp);
-    const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
-    VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
+  EcsView* renderView = ecs_world_view_t(world, RenderView);
+  for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
+    const EcsEntityId                entity   = ecs_view_entity(itr);
+    const SceneScaleComp*            scale    = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp*        trans    = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+    const SceneVfxSystemComp*        sysCfg   = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneVisibilityComp*       sysVis   = ecs_view_read_t(itr, SceneVisibilityComp);
+    const VfxSystemStateComp*        state    = ecs_view_read_t(itr, VfxSystemStateComp);
 
-    const SceneTags sysTags    = tagComp ? tagComp->tags : SceneTags_Default;
-    const bool      sysVisible = !sysVis || scene_visible_for_render(visEnv, sysVis);
-
-    diag_assert_msg(ecs_entity_valid(sysCfg->asset), "Vfx system is missing an asset");
+    if (sysVis && !scene_visible_for_render(visEnv, sysVis)) {
+      continue; // Not visible.
+    }
     if (!ecs_view_maybe_jump(assetItr, sysCfg->asset)) {
-      if (UNLIKELY(!vfx_system_asset_valid(world, sysCfg->asset))) {
-        log_e("Invalid vfx-system asset entity");
-        continue;
-      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetFailedComp))) {
-        log_e("Failed to acquire vfx-system asset");
-        continue;
-      } else if (UNLIKELY(ecs_world_has_t(world, sysCfg->asset, AssetLoadedComp))) {
-        log_e("Acquired asset was not a vfx-system");
-        continue;
-      }
-      if (sysCfg->asset && ++numAssetRequests < vfx_system_max_asset_requests) {
-        vfx_system_asset_request(world, sysCfg->asset);
-      }
-      continue;
+      continue; // Asset not loaded.
     }
-    const VfxSystemAssetComp* assetRequest = ecs_view_read_t(assetItr, VfxSystemAssetComp);
-    const AssetVfxComp*       asset        = ecs_view_read_t(assetItr, AssetVfxComp);
+    const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    if (UNLIKELY(state->assetVersion != assetRequest->version)) {
-      if (state->assetVersion) {
-        vfx_system_reset(state); // Reset the state after hot-loading the asset.
-      }
-      state->assetVersion = assetRequest->version;
-      continue; // Skip the system this frame; This gives time for the old asset to be unloaded.
-    }
+    const VfxTrans sysTrans      = vfx_trans_init(trans, scale, asset);
+    const f32      sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
 
-    VfxTrans sysTrans = {
-        .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
-        .rot   = geo_quat_ident,
-        .scale = scaleComp ? scaleComp->scale : 1.0f,
-    };
-    if (!(asset->flags & AssetVfx_IgnoreTransformRotation)) {
-      sysTrans.rot = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    }
-
-    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
-
-    if (sysVisible) {
-      const f32 sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
-      dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-        vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
-        vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
-      }
+    dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
+      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
+      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
 }
@@ -631,9 +677,18 @@ ecs_module_init(vfx_system_module) {
   ecs_register_system(VfxSystemAssetLoadSys, ecs_register_view(LoadView));
 
   ecs_register_system(
+      VfxSystemSimulateSys,
+      ecs_register_view(SimulateGlobalView),
+      ecs_register_view(SimulateView),
+      ecs_view_id(AssetView),
+      ecs_view_id(AtlasView));
+
+  ecs_parallel(VfxSystemSimulateSys, 4);
+
+  ecs_register_system(
       VfxSystemRenderSys,
-      ecs_register_view(UpdateGlobalView),
-      ecs_register_view(UpdateView),
+      ecs_register_view(RenderGlobalView),
+      ecs_register_view(RenderView),
       ecs_view_id(ParticleDrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
