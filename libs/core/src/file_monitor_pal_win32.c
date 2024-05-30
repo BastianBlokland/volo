@@ -140,9 +140,10 @@ static FileMonitorResult monitor_watch_locked(
     return FileMonitorResult_AlreadyWatching;
   }
   const FileWatch watch = {
-      .path     = string_dup(monitor->allocPath, path),
-      .fileId   = fileId,
-      .userData = userData,
+      .path           = string_dup(monitor->allocPath, path),
+      .fileId         = fileId,
+      .userData       = userData,
+      .lastChangeTime = i64_min,
   };
   *dynarray_insert_sorted_t(&monitor->watches, FileWatch, monitor_watch_compare, &watch) = watch;
   return FileMonitorResult_Success;
