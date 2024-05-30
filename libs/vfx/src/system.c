@@ -45,7 +45,7 @@ typedef struct {
 ASSERT(sizeof(VfxSystemInstance) <= 64, "Instance should fit in a single cacheline on x86");
 
 typedef struct {
-  u16 spawnCount;
+  u64 spawnCount;
 } VfxEmitterState;
 
 ecs_comp_define(VfxSystemStateComp) {
@@ -329,10 +329,10 @@ static void vfx_system_spawn(
   };
 }
 
-static u16 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
+static u64 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
   if (emitterAsset->interval) {
-    const u16 maxCount = emitterAsset->count ? emitterAsset->count : u16_max;
-    return math_min((u16)(age / emitterAsset->interval), maxCount);
+    const u64 maxCount = emitterAsset->count ? emitterAsset->count : u64_max;
+    return math_min((u64)(age / emitterAsset->interval), maxCount);
   }
   return math_max(1, emitterAsset->count);
 }
@@ -380,7 +380,7 @@ static void vfx_system_simulate(
     VfxEmitterState*       emitterState = &state->emitters[emitter];
     const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-    const u16 count = vfx_emitter_count(emitterAsset, state->emitAge);
+    const u64 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
       vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
     }
