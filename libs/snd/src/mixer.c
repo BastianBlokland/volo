@@ -18,9 +18,6 @@
 #include "constants_internal.h"
 #include "device_internal.h"
 
-#define snd_mixer_history_size 2048
-ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
-
 #define snd_mixer_objects_max 512
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
@@ -93,10 +90,9 @@ ecs_comp_define(SndMixerComp) {
   DynArray persistentAssetsToAcquire; // EcsEntityId[], array of new persistent assets to acquire.
 
   /**
-   * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
+   * Float sample buffer to accumulate into before outputting to the device.
    */
-  SndBufferFrame* historyBuffer;
-  usize           historyCursor;
+  SndBufferFrame* renderBuffer; // SndBufferFrame[snd_frame_count_max].
 };
 
 static void ecs_destruct_mixer_comp(void* data) {
@@ -112,7 +108,7 @@ static void ecs_destruct_mixer_comp(void* data) {
   dynarray_destroy(&m->persistentAssets);
   dynarray_destroy(&m->persistentAssetsToAcquire);
 
-  alloc_free_array_t(g_allocHeap, m->historyBuffer, snd_mixer_history_size);
+  alloc_free_array_t(g_allocHeap, m->renderBuffer, snd_frame_count_max);
 }
 
 static u16 snd_object_id_index(const SndObjectId id) { return (u16)id; }
@@ -163,14 +159,6 @@ static u32 snd_object_count_in_phase(const SndMixerComp* m, const SndObjectPhase
     }
   }
   return count;
-}
-
-static void snd_mixer_history_update(SndMixerComp* m, const SndChannel channel, const f32 value) {
-  m->historyBuffer[m->historyCursor].samples[channel] = value;
-}
-
-static void snd_mixer_history_advance(SndMixerComp* m) {
-  m->historyCursor = (m->historyCursor + 1) & (snd_mixer_history_size - 1);
 }
 
 ecs_view_define(AssetView) {
@@ -449,8 +437,7 @@ static void snd_mixer_write_to_device(
     SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
-  const f32 limiterThreshold =
-      math_min(snd_mixer_limiter_max * m->gainSetting, snd_mixer_limiter_max);
+  const f32 limThreshold = math_min(snd_mixer_limiter_max * m->gainSetting, snd_mixer_limiter_max);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
     const f32 gainTarget = m->gainSetting * m->limiterMult;
@@ -463,22 +450,22 @@ static void snd_mixer_write_to_device(
     }
 
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-      const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
+      // Apply gain. NOTE: Modify the buffer so it can be inspected for analysis / debug purposes.
+      buffer.frames[frame].samples[channel] *= m->gainActual;
+
+      // Retrieve final value.
+      const f32 val = buffer.frames[frame].samples[channel];
 
       // Engage the limiter if the value exceeds the threshold.
-      if (val > limiterThreshold) {
-        m->limiterMult         = math_min(m->limiterMult, limiterThreshold / val);
+      if (val > limThreshold) {
+        m->limiterMult         = math_min(m->limiterMult, limThreshold / val);
         m->limiterClosedFrames = snd_mimer_limiter_closed_frames;
       }
-
-      // Add it to the history ring-buffer for analysis / debug purposes.
-      snd_mixer_history_update(m, channel, val);
 
       // Write to the device buffer.
       const i16 clipped = val > 1.0 ? i16_max : (val < -1.0 ? i16_min : (i16)(val * i16_max));
       devicePeriod.samples[frame * SndChannel_Count + channel] = clipped;
     }
-    snd_mixer_history_advance(m);
   }
 }
 
@@ -490,8 +477,6 @@ ecs_system_define(SndMixerRenderSys) {
   }
   SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
-  SndBufferFrame soundFrames[snd_frame_count_max] = {0};
-
   const TimeSteady renderStartTime = time_steady_clock();
   if (snd_device_begin(m->device)) {
     const SndDevicePeriod period         = snd_device_period(m->device);
@@ -499,10 +484,11 @@ ecs_system_define(SndMixerRenderSys) {
 
     diag_assert(period.frameCount <= snd_frame_count_max);
     const SndBuffer soundBuffer = {
-        .frames     = soundFrames,
+        .frames     = m->renderBuffer,
         .frameCount = period.frameCount,
         .frameRate  = snd_frame_rate,
     };
+    snd_buffer_clear(soundBuffer);
 
     // Skip sounds forward if there's a gap between the end of the last rendered sound and the new
     // period, can happen when there was a device buffer underrun.
@@ -574,8 +560,8 @@ SndMixerComp* snd_mixer_init(EcsWorld* world) {
   m->gainSetting = 1.0f;
   m->limiterMult = 1.0f;
 
-  m->historyBuffer = alloc_array_t(g_allocHeap, SndBufferFrame, snd_mixer_history_size);
-  mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
+  m->renderBuffer = alloc_array_t(g_allocHeap, SndBufferFrame, snd_frame_count_max);
+  mem_set(mem_create(m->renderBuffer, sizeof(SndBufferFrame) * snd_frame_count_max), 0);
 
   m->objects = alloc_array_t(g_allocHeap, SndObject, snd_mixer_objects_max);
   mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
@@ -802,7 +788,8 @@ TimeDuration snd_mixer_render_duration(const SndMixerComp* m) { return m->lastRe
 
 SndBufferView snd_mixer_history(const SndMixerComp* m) {
   return (SndBufferView){
-      .frames     = m->historyBuffer,
-      .frameCount = snd_mixer_history_size,
-      .frameRate  = snd_frame_rate};
+      .frames     = m->renderBuffer,
+      .frameCount = snd_frame_count_max,
+      .frameRate  = snd_frame_rate,
+  };
 }
