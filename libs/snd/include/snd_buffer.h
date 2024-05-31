@@ -16,6 +16,7 @@ typedef struct {
   u32                   frameCount, frameRate;
 } SndBufferView;
 
+void          snd_buffer_clear(SndBuffer);
 SndBufferView snd_buffer_view(SndBuffer);
 SndBufferView snd_buffer_slice(SndBufferView, u32 offset, u32 count);
 TimeDuration  snd_buffer_duration(SndBufferView);

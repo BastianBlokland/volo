@@ -45,6 +45,10 @@ static void snd_fft(Complex buffer[], const u32 count) {
   }
 }
 
+void snd_buffer_clear(const SndBuffer buffer) {
+  mem_set(mem_create(buffer.frames, sizeof(SndBufferFrame) * buffer.frameCount), 0);
+}
+
 SndBufferView snd_buffer_view(const SndBuffer buffer) {
   return (SndBufferView){
       .frames     = buffer.frames,
