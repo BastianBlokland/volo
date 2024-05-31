@@ -168,17 +168,21 @@ ecs_view_define(AssetView) {
 
 ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
 
+static SndMixerComp* snd_mixer_get(EcsWorld* world) {
+  EcsView*     mixerView = ecs_world_view_t(world, MixerView);
+  EcsIterator* mixerItr  = ecs_view_maybe_at(mixerView, ecs_world_global(world));
+  return LIKELY(mixerItr) ? ecs_view_write_t(mixerItr, SndMixerComp) : null;
+}
+
 INLINE_HINT static bool snd_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
   return ecs_world_exists(world, assetEntity) && ecs_world_has_t(world, assetEntity, AssetComp);
 }
 
 ecs_system_define(SndMixerUpdateSys) {
-  EcsView*     mixerView = ecs_world_view_t(world, MixerView);
-  EcsIterator* mixerItr  = ecs_view_maybe_at(mixerView, ecs_world_global(world));
-  if (!mixerItr) {
+  SndMixerComp* m = snd_mixer_get(world);
+  if (UNLIKELY(!m)) {
     return;
   }
-  SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
   /**
    * Acquire new persistent sound assets.
@@ -469,12 +473,10 @@ static void snd_mixer_write_to_device(
 }
 
 ecs_system_define(SndMixerRenderSys) {
-  EcsView*     mixerView = ecs_world_view_t(world, MixerView);
-  EcsIterator* mixerItr  = ecs_view_maybe_at(mixerView, ecs_world_global(world));
-  if (!mixerItr) {
+  SndMixerComp* m = snd_mixer_get(world);
+  if (UNLIKELY(!m)) {
     return;
   }
-  SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
   if (snd_device_begin(m->device)) {
     const SndDevicePeriod period         = snd_device_period(m->device);
