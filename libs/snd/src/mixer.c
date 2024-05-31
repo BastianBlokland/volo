@@ -472,71 +472,76 @@ static void snd_mixer_write_to_device(
   }
 }
 
-ecs_system_define(SndMixerRenderSys) {
+ecs_system_define(SndMixerRenderBeginSys) {
   SndMixerComp* m = snd_mixer_get(world);
-  if (UNLIKELY(!m)) {
+  if (m) {
+    snd_device_begin(m->device);
+  }
+}
+
+ecs_system_define(SndMixerRenderAccumulateSys) {
+  SndMixerComp* m = snd_mixer_get(world);
+  if (!m || !snd_device_rendering(m->device)) {
     return;
   }
 
-  if (snd_device_begin(m->device)) {
-    const SndDevicePeriod period         = snd_device_period(m->device);
-    const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
+  const SndDevicePeriod period         = snd_device_period(m->device);
+  const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
 
-    diag_assert(period.frameCount <= snd_frame_count_max);
-    const SndBuffer soundBuffer = {
-        .frames     = m->renderBuffer,
-        .frameCount = period.frameCount,
-        .frameRate  = snd_frame_rate,
-    };
-    snd_buffer_clear(soundBuffer);
+  diag_assert(period.frameCount <= snd_frame_count_max);
+  const SndBuffer soundBuffer = {
+      .frames     = m->renderBuffer,
+      .frameCount = period.frameCount,
+      .frameRate  = snd_frame_rate,
+  };
+  snd_buffer_clear(soundBuffer);
 
-    // Skip sounds forward if there's a gap between the end of the last rendered sound and the new
-    // period, can happen when there was a device buffer underrun.
-    if (m->deviceTimeHead && period.timeBegin > m->deviceTimeHead) {
-      const TimeDuration skipDur = period.timeBegin - m->deviceTimeHead;
-      log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
-      for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
-        SndObject* obj = &m->objects[i];
-        if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
-          ++obj->phase; // Object is finished playing after the skip duration.
-        }
-      }
-    }
-
-    // Render all objects into the soundBuffer.
+  // Skip sounds forward if there's a gap between the end of the last rendered sound and the new
+  // period, can happen when there was a device buffer underrun.
+  if (m->deviceTimeHead && period.timeBegin > m->deviceTimeHead) {
+    const TimeDuration skipDur = period.timeBegin - m->deviceTimeHead;
+    log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
-      if (obj->phase != SndObjectPhase_Playing) {
-        continue;
+      if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
+        ++obj->phase; // Object is finished playing after the skip duration.
       }
-      const bool muted  = snd_object_is_muted(obj);
-      const bool silent = snd_object_is_silent(obj);
+    }
+  }
 
-      if (muted && silent) {
-        if (obj->flags & SndObjectFlags_Stop) {
-          goto FinishedPlaying; // Stopped and finished fading out.
-        }
-        if (!snd_object_skip(obj, periodDuration)) {
-          goto FinishedPlaying;
-        }
-      } else {
-        if (!snd_object_render(obj, soundBuffer)) {
-          goto FinishedPlaying;
-        }
-      }
-      continue;
-
-    FinishedPlaying:
-      ++obj->phase;
+  // Render all objects into the soundBuffer.
+  for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
+    SndObject* obj = &m->objects[i];
+    if (obj->phase != SndObjectPhase_Playing) {
       continue;
     }
+    const bool muted  = snd_object_is_muted(obj);
+    const bool silent = snd_object_is_silent(obj);
 
-    // Write the soundBuffer to the device.
-    snd_mixer_write_to_device(m, period, soundBuffer);
-    snd_device_end(m->device);
+    if (muted && silent) {
+      if (obj->flags & SndObjectFlags_Stop) {
+        goto FinishedPlaying; // Stopped and finished fading out.
+      }
+      if (!snd_object_skip(obj, periodDuration)) {
+        goto FinishedPlaying;
+      }
+    } else {
+      if (!snd_object_render(obj, soundBuffer)) {
+        goto FinishedPlaying;
+      }
+    }
+    continue;
 
-    m->deviceTimeHead = period.timeBegin + periodDuration;
+  FinishedPlaying:
+    ++obj->phase;
+    continue;
   }
+
+  // Write the soundBuffer to the device.
+  snd_mixer_write_to_device(m, period, soundBuffer);
+  snd_device_end(m->device);
+
+  m->deviceTimeHead = period.timeBegin + periodDuration;
 }
 
 ecs_module_init(snd_mixer_module) {
@@ -546,10 +551,12 @@ ecs_module_init(snd_mixer_module) {
   ecs_register_view(MixerView);
 
   ecs_register_system(SndMixerUpdateSys, ecs_view_id(MixerView), ecs_view_id(AssetView));
-  ecs_register_system(SndMixerRenderSys, ecs_view_id(MixerView));
+  ecs_register_system(SndMixerRenderBeginSys, ecs_view_id(MixerView));
+  ecs_register_system(SndMixerRenderAccumulateSys, ecs_view_id(MixerView));
 
   ecs_order(SndMixerUpdateSys, SndOrder_Update);
-  ecs_order(SndMixerRenderSys, SndOrder_Render);
+  ecs_order(SndMixerRenderBeginSys, SndOrder_RenderBegin);
+  ecs_order(SndMixerRenderAccumulateSys, SndOrder_RenderAccumulate);
 }
 
 SndMixerComp* snd_mixer_init(EcsWorld* world) {
