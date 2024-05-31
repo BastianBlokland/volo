@@ -479,7 +479,7 @@ ecs_system_define(SndMixerRenderBeginSys) {
   }
 }
 
-ecs_system_define(SndMixerRenderAccumulateSys) {
+ecs_system_define(SndMixerRenderFillSys) {
   SndMixerComp* m = snd_mixer_get(world);
   if (!m || !snd_device_rendering(m->device)) {
     return;
@@ -536,8 +536,24 @@ ecs_system_define(SndMixerRenderAccumulateSys) {
     ++obj->phase;
     continue;
   }
+}
 
-  // Write the soundBuffer to the device.
+ecs_system_define(SndMixerRenderEndSys) {
+  SndMixerComp* m = snd_mixer_get(world);
+  if (!m || !snd_device_rendering(m->device)) {
+    return;
+  }
+
+  const SndDevicePeriod period         = snd_device_period(m->device);
+  const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
+
+  diag_assert(period.frameCount <= snd_frame_count_max);
+  const SndBuffer soundBuffer = {
+      .frames     = m->renderBuffer,
+      .frameCount = period.frameCount,
+      .frameRate  = snd_frame_rate,
+  };
+
   snd_mixer_write_to_device(m, period, soundBuffer);
   snd_device_end(m->device);
 
@@ -552,11 +568,13 @@ ecs_module_init(snd_mixer_module) {
 
   ecs_register_system(SndMixerUpdateSys, ecs_view_id(MixerView), ecs_view_id(AssetView));
   ecs_register_system(SndMixerRenderBeginSys, ecs_view_id(MixerView));
-  ecs_register_system(SndMixerRenderAccumulateSys, ecs_view_id(MixerView));
+  ecs_register_system(SndMixerRenderFillSys, ecs_view_id(MixerView));
+  ecs_register_system(SndMixerRenderEndSys, ecs_view_id(MixerView));
 
   ecs_order(SndMixerUpdateSys, SndOrder_Update);
   ecs_order(SndMixerRenderBeginSys, SndOrder_RenderBegin);
-  ecs_order(SndMixerRenderAccumulateSys, SndOrder_RenderAccumulate);
+  ecs_order(SndMixerRenderFillSys, SndOrder_RenderFill);
+  ecs_order(SndMixerRenderEndSys, SndOrder_RenderEnd);
 }
 
 SndMixerComp* snd_mixer_init(EcsWorld* world) {
