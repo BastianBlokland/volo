@@ -160,7 +160,7 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
   const String levelText    = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-         "Level: \a|02\ab{}{<5}\ar  RMS",
+      "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),
@@ -262,15 +262,6 @@ static void sound_draw_mixer_stats(UiCanvasComp* c, SndMixerComp* m) {
   const String objectsText = fmt_write_scratch(
       "Playing: {<4} Allocated: {}", fmt_int(objectsPlaying), fmt_int(objectsAllocated));
   ui_label(c, objectsText);
-
-  const TimeDuration renderDuration = snd_mixer_render_duration(m);
-  sound_draw_table_header(c, &table, string_lit("Render time"));
-  ui_style_push(c);
-  if (renderDuration > time_millisecond) {
-    ui_style_color(c, ui_color_yellow);
-  }
-  ui_label(c, fmt_write_scratch("{}", fmt_duration(renderDuration)));
-  ui_style_pop(c);
 
   ui_layout_container_pop(c);
   ui_layout_pop(c);

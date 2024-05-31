@@ -68,11 +68,10 @@ typedef struct {
 } SndObject;
 
 ecs_comp_define(SndMixerComp) {
-  SndDevice*   device;
-  f32          gainActual, gainSetting;
-  f32          limiterMult;
-  u32          limiterClosedFrames;
-  TimeDuration lastRenderDuration;
+  SndDevice* device;
+  f32        gainActual, gainSetting;
+  f32        limiterMult;
+  u32        limiterClosedFrames;
 
   TimeDuration deviceTimeHead; // Timestamp of last rendered sound.
 
@@ -477,7 +476,6 @@ ecs_system_define(SndMixerRenderSys) {
   }
   SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
-  const TimeSteady renderStartTime = time_steady_clock();
   if (snd_device_begin(m->device)) {
     const SndDevicePeriod period         = snd_device_period(m->device);
     const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
@@ -535,8 +533,7 @@ ecs_system_define(SndMixerRenderSys) {
     snd_mixer_write_to_device(m, period, soundBuffer);
     snd_device_end(m->device);
 
-    m->lastRenderDuration = time_steady_duration(renderStartTime, time_steady_clock());
-    m->deviceTimeHead     = period.timeBegin + periodDuration;
+    m->deviceTimeHead = period.timeBegin + periodDuration;
   }
 }
 
@@ -783,8 +780,6 @@ u32 snd_mixer_objects_allocated(const SndMixerComp* m) {
   const usize freeObjects = bitset_count(m->objectFreeSet);
   return snd_mixer_objects_max - (u32)freeObjects;
 }
-
-TimeDuration snd_mixer_render_duration(const SndMixerComp* m) { return m->lastRenderDuration; }
 
 SndBufferView snd_mixer_history(const SndMixerComp* m) {
   return (SndBufferView){
