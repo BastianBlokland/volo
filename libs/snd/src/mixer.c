@@ -463,7 +463,7 @@ static bool snd_object_is_silent(const SndObject* obj) {
 }
 
 /**
- * Merge other buffers onto buffer 0 additively. 2 frames (with 2 channels each) at a time.
+ * Merge other buffers onto buffer 0 additively, two frames (with two channels each) at a time.
  */
 static SndBuffer snd_mixer_merge(SndMixerComp* m, const u32 frameCount) {
   ASSERT(bits_aligned(snd_frame_count_max, 2), "Max frame-count needs to be a multiple of 2");
