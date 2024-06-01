@@ -1,5 +1,4 @@
 #pragma once
-#include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "snd_buffer.h"
@@ -67,5 +66,4 @@ String        snd_mixer_device_state(const SndMixerComp*);
 u64           snd_mixer_device_underruns(const SndMixerComp*);
 u32           snd_mixer_objects_playing(const SndMixerComp*);
 u32           snd_mixer_objects_allocated(const SndMixerComp*);
-TimeDuration  snd_mixer_render_duration(const SndMixerComp*);
 SndBufferView snd_mixer_history(const SndMixerComp*);

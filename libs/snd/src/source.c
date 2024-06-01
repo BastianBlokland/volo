@@ -18,9 +18,12 @@
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
 
-#define snd_source_max_distance 150.0f
+#define snd_source_attenuate_dist 125.0f
+#define snd_source_cull_dist 150.0f
 #define snd_source_event_max_time time_milliseconds(100)
 #define snd_source_event_distance 10.0f
+
+ASSERT((u32)snd_source_cull_dist > (u32)snd_source_attenuate_dist, "Invalid cull distance");
 
 typedef struct {
   GeoVector position;
@@ -108,6 +111,11 @@ static SndListener snd_listener(EcsWorld* world) {
   return (SndListener){.position = geo_vector(0), .tangent = geo_right};
 }
 
+static bool snd_source_cull(const SndListener* listener, const GeoVector pos) {
+  const GeoVector delta = geo_vector_sub(pos, listener->position);
+  return geo_vector_mag_sqr(delta) > (snd_source_cull_dist * snd_source_cull_dist);
+}
+
 static void snd_source_update_constant(
     SndMixerComp*         m,
     const SceneSoundComp* soundComp,
@@ -131,7 +139,7 @@ static void snd_source_update_spatial(
   const GeoVector toSource = geo_vector_sub(srcPos, listener->position);
 
   const f32 dist            = geo_vector_mag(toSource);
-  const f32 distAttenuation = 1.0f - math_min(1, dist / snd_source_max_distance);
+  const f32 distAttenuation = 1.0f - math_min(1, dist / snd_source_attenuate_dist);
 
   const GeoVector dir = dist < f32_epsilon ? geo_forward : geo_vector_div(toSource, dist);
   const f32       pan = geo_vector_dot(dir, listener->tangent); // LR pan, -1 0 +1
@@ -248,12 +256,16 @@ ecs_system_define(SndSourceUpdateSys) {
       if (!ecs_entity_valid(soundComp->asset)) {
         log_e("SceneSoundComp is missing an asset");
         ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceDiscardComp);
-        continue;
+        continue; // Discarded; do not retry.
       }
       // Skip duplicate (same sound in a close proximity) sounds.
-      if (!soundComp->looping && snd_event_map_has(eventMap, soundComp->asset, srcPos)) {
+      if (!soundComp->looping && spatial && snd_event_map_has(eventMap, soundComp->asset, srcPos)) {
         ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceDiscardComp);
-        continue;
+        continue; // Discarded; do not retry.
+      }
+      // Delay creating a sound object for looping sources that are too far away.
+      if (soundComp->looping && spatial && snd_source_cull(&listener, srcPos)) {
+        continue; // Too far away; retry next tick.
       }
       SndObjectId id;
       if (snd_object_new(m, &id) == SndResult_Success) {
@@ -266,7 +278,7 @@ ecs_system_define(SndSourceUpdateSys) {
           }
         }
         srcComp = ecs_world_add_t(world, ecs_view_entity(itr), SndSourceComp, .objectId = id);
-        if (!soundComp->looping) {
+        if (!soundComp->looping && spatial) {
           snd_event_map_add(eventMap, time->realTime, soundComp->asset, srcPos);
         }
       } else {
@@ -277,8 +289,14 @@ ecs_system_define(SndSourceUpdateSys) {
     if (!snd_object_is_active(m, srcComp->objectId)) {
       continue; // Already finished playing on the mixer.
     }
+    // Stop looping sounds that are too far away to hear.
+    if (soundComp->looping && spatial && snd_source_cull(&listener, srcPos)) {
+      snd_object_stop(m, srcComp->objectId);
+      ecs_world_remove_t(world, ecs_view_entity(itr), SndSourceComp);
+      continue;
+    }
+    // Fast-path for muted sounds.
     if (srcGain < f32_epsilon || !srcVisible) {
-      // Fast-path for muted sounds.
       for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
         snd_object_set_gain(m, srcComp->objectId, chan, 0);
       }
