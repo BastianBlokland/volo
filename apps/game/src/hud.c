@@ -30,6 +30,7 @@
 #include "scene_transform.h"
 #include "scene_visibility.h"
 #include "scene_weapon.h"
+#include "trace_tracer.h"
 #include "ui.h"
 
 #include "cmd_internal.h"
@@ -1060,11 +1061,17 @@ ecs_system_define(HudDrawUiSys) {
     }
 
     hud_minimap_update(hud, drawItr, terrain, res);
-
     hud_level_draw(c, level);
+
+    trace_begin("game_hud_health", TraceColor_White);
     hud_health_draw(c, hud, &viewProj, healthView, res);
+    trace_end();
+
     hud_groups_draw(c, cmd);
+
+    trace_begin("game_hud_minimap", TraceColor_White);
     hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
+    trace_end();
 
     if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_vision_draw(hud, drawItr, visionItr);
