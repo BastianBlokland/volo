@@ -451,6 +451,33 @@ static bool snd_object_is_silent(const SndObject* obj) {
   return true;
 }
 
+/**
+ * Merge other buffers onto buffer 0 additively. 2 frames (with 2 channels each) at a time.
+ */
+static SndBuffer snd_mixer_merge(SndMixerComp* m, const u32 frameCount) {
+  ASSERT(bits_aligned(snd_frame_count_max, 2), "Max frame-count needs to be a multiple of 2");
+  ASSERT(SndChannel_Count == 2, "Unexpected frame size");
+
+  f32* restrict bufferSamples  = (f32* restrict)m->bufferFrames; // [frameCount * SndChannel_Count].
+  const u32 bufferSampleStride = snd_frame_count_max * SndChannel_Count;
+
+  const u32 sampleCount = bits_align(frameCount, 2) * SndChannel_Count;
+  for (u32 sampleIndex = 0; sampleIndex != sampleCount; sampleIndex += 4) {
+    SimdVec accum = simd_vec_load(bufferSamples + sampleIndex);
+    for (u32 i = 1; i != snd_mixer_buffer_count; ++i) {
+      const SimdVec other = simd_vec_load(bufferSamples + bufferSampleStride * i + sampleIndex);
+      accum               = simd_vec_add(accum, other);
+    }
+    simd_vec_store(accum, bufferSamples + sampleIndex);
+  }
+
+  return (SndBuffer){
+      .frames     = (SndBufferFrame*)bufferSamples,
+      .frameCount = frameCount,
+      .frameRate  = snd_frame_rate,
+  };
+}
+
 static void snd_mixer_write_to_device(
     SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
@@ -564,14 +591,14 @@ ecs_system_define(SndMixerRenderEndSys) {
     return;
   }
 
-  const SndDevicePeriod devicePeriod   = snd_device_period(m->device);
-  const SndBuffer       soundBuffer    = snd_mixer_buffer(m, 0, devicePeriod.frameCount);
-  const TimeDuration    soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
+  const SndDevicePeriod devicePeriod = snd_device_period(m->device);
+  const SndBuffer       result       = snd_mixer_merge(m, devicePeriod.frameCount);
+  const TimeDuration    resultDur    = snd_buffer_duration(snd_buffer_view(result));
 
-  snd_mixer_write_to_device(m, devicePeriod, soundBuffer);
+  snd_mixer_write_to_device(m, devicePeriod, result);
   snd_device_end(m->device);
 
-  m->deviceTimeHead = devicePeriod.timeBegin + soundBufferDur;
+  m->deviceTimeHead = devicePeriod.timeBegin + resultDur;
 }
 
 ecs_module_init(snd_mixer_module) {
