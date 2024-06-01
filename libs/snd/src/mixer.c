@@ -492,12 +492,14 @@ ecs_system_define(SndMixerRenderBeginSys) {
   if (!m || !snd_device_begin(m->device)) {
     return;
   }
-  const SndDevicePeriod period = snd_device_period(m->device);
+  const SndDevicePeriod devicePeriod = snd_device_period(m->device);
 
-  // Skip sounds forward if there's a gap between the end of the last rendered sound and the new
-  // period, can happen when there was a device buffer underrun.
-  if (m->deviceTimeHead && period.timeBegin > m->deviceTimeHead) {
-    const TimeDuration skipDur = period.timeBegin - m->deviceTimeHead;
+  /**
+   * Skip sounds forward if there's a gap between the end of the last rendered sound and the new
+   * period, can happen when there was a device buffer underrun.
+   */
+  if (m->deviceTimeHead && devicePeriod.timeBegin > m->deviceTimeHead) {
+    const TimeDuration skipDur = devicePeriod.timeBegin - m->deviceTimeHead;
     log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
@@ -505,6 +507,15 @@ ecs_system_define(SndMixerRenderBeginSys) {
         ++obj->phase; // Object is finished playing after the skip duration.
       }
     }
+  }
+
+  /**
+   * Clear all the sound buffers.
+   * NOTE: Clear all buffers here as the amount of parallelism of the filling stage could vary.
+   */
+  for (u32 bufferIndex = 0; bufferIndex != snd_mixer_buffer_count; ++bufferIndex) {
+    const SndBuffer buffer = snd_mixer_buffer(m, bufferIndex, devicePeriod.frameCount);
+    snd_buffer_clear(buffer);
   }
 }
 
@@ -517,7 +528,6 @@ ecs_system_define(SndMixerRenderFillSys) {
   const SndDevicePeriod devicePeriod   = snd_device_period(m->device);
   const SndBuffer       soundBuffer    = snd_mixer_buffer(m, 0, devicePeriod.frameCount);
   const TimeDuration    soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
-  snd_buffer_clear(soundBuffer);
 
   // Render all objects into the soundBuffer.
   for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
