@@ -30,6 +30,7 @@
 #include "scene_transform.h"
 #include "scene_visibility.h"
 #include "scene_weapon.h"
+#include "trace_tracer.h"
 #include "ui.h"
 
 #include "cmd_internal.h"
@@ -84,7 +85,10 @@ ecs_view_define(HudView) {
   ecs_access_write(InputStateComp);
 }
 
-ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
+ecs_view_define(UiCanvasView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
+  ecs_access_write(UiCanvasComp);
+}
 
 ecs_view_define(DrawView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
@@ -220,7 +224,7 @@ static void hud_indicator_box_draw(
   };
 }
 
-static bool hud_rect_intersect(const UiRect a, const UiRect b) {
+INLINE_HINT static bool hud_rect_intersect(const UiRect a, const UiRect b) {
   return a.x + a.width > b.x && b.x + b.width > a.x && a.y + a.height > b.y && b.y + b.height > a.y;
 }
 
@@ -338,6 +342,9 @@ static void hud_health_draw(
         .pos  = ui_vector(uiPos.x - barWidth * 0.5f, uiPos.y + g_hudHealthBarOffsetY),
         .size = ui_vector(barWidth, barHeight + g_hudStatusSpacing.y + g_hudStatusIconSize.y),
     };
+    if (!hud_rect_intersect(bounds, ui_rect(ui_vector(0, 0), res))) {
+      continue; // Position is outside of the screen.
+    }
     if (hud_rect_intersect(hud->minimapRect, bounds)) {
       continue; // Position is over the minimap.
     }
@@ -1060,11 +1067,17 @@ ecs_system_define(HudDrawUiSys) {
     }
 
     hud_minimap_update(hud, drawItr, terrain, res);
-
     hud_level_draw(c, level);
+
+    trace_begin("game_hud_health", TraceColor_White);
     hud_health_draw(c, hud, &viewProj, healthView, res);
+    trace_end();
+
     hud_groups_draw(c, cmd);
+
+    trace_begin("game_hud_minimap", TraceColor_White);
     hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
+    trace_end();
 
     if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_vision_draw(hud, drawItr, visionItr);

@@ -428,7 +428,11 @@ ecs_view_define(MainWindowView) {
   ecs_access_write(GapWindowComp);
 }
 
-ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
+ecs_view_define(UiCanvasView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
+  ecs_access_write(UiCanvasComp);
+}
+
 ecs_view_define(DebugPanelView) { ecs_access_write(DebugPanelComp); }
 ecs_view_define(DebugLogViewerView) { ecs_access_write(DebugLogViewerComp); }
 

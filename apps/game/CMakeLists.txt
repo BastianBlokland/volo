@@ -19,11 +19,10 @@ target_link_libraries(app_game PRIVATE
   lib_debug
   lib_gap
   lib_input
-  lib_jobs
-  lib_log
   lib_rend
   lib_scene
   lib_snd
+  lib_trace
   lib_ui
   lib_vfx
   )

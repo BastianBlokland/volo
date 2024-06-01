@@ -740,7 +740,11 @@ ecs_system_define(InputUpdateSys) {
 }
 
 ecs_view_define(UiCameraView) { ecs_access_write(InputStateComp); }
-ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
+
+ecs_view_define(UiCanvasView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
+  ecs_access_write(UiCanvasComp);
+}
 
 ecs_system_define(InputDrawUiSys) {
   EcsIterator* canvasItr  = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
