@@ -49,6 +49,8 @@ void snd_buffer_clear(const SndBuffer buffer) {
   mem_set(mem_create(buffer.frames, sizeof(SndBufferFrame) * buffer.frameCount), 0);
 }
 
+f32* snd_buffer_samples(const SndBuffer buffer) { return (f32*)buffer.frames; }
+
 SndBufferView snd_buffer_view(const SndBuffer buffer) {
   return (SndBufferView){
       .frames     = buffer.frames,
