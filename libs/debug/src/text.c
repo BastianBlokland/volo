@@ -47,7 +47,10 @@ ecs_view_define(RendererView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
-ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
+ecs_view_define(CanvasView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
+  ecs_access_write(UiCanvasComp);
+}
 
 static GeoMatrix debug_text_view_proj(
     const SceneCameraComp* cam, const SceneTransformComp* trans, const UiCanvasComp* canvas) {

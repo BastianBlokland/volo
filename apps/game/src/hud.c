@@ -85,7 +85,10 @@ ecs_view_define(HudView) {
   ecs_access_write(InputStateComp);
 }
 
-ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
+ecs_view_define(UiCanvasView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
+  ecs_access_write(UiCanvasComp);
+}
 
 ecs_view_define(DrawView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.

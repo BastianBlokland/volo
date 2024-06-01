@@ -630,7 +630,10 @@ ecs_view_define(StatsUpdateView) {
   ecs_access_read(UiStatsComp);
 }
 
-ecs_view_define(CanvasWrite) { ecs_access_write(UiCanvasComp); }
+ecs_view_define(CanvasWrite) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
+  ecs_access_write(UiCanvasComp);
+}
 
 ecs_system_define(DebugStatsCreateSys) {
   // Create a single global stats component.
