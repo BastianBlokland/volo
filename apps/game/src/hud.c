@@ -221,7 +221,7 @@ static void hud_indicator_box_draw(
   };
 }
 
-static bool hud_rect_intersect(const UiRect a, const UiRect b) {
+INLINE_HINT static bool hud_rect_intersect(const UiRect a, const UiRect b) {
   return a.x + a.width > b.x && b.x + b.width > a.x && a.y + a.height > b.y && b.y + b.height > a.y;
 }
 
@@ -339,6 +339,9 @@ static void hud_health_draw(
         .pos  = ui_vector(uiPos.x - barWidth * 0.5f, uiPos.y + g_hudHealthBarOffsetY),
         .size = ui_vector(barWidth, barHeight + g_hudStatusSpacing.y + g_hudStatusIconSize.y),
     };
+    if (!hud_rect_intersect(bounds, ui_rect(ui_vector(0, 0), res))) {
+      continue; // Position is outside of the screen.
+    }
     if (hud_rect_intersect(hud->minimapRect, bounds)) {
       continue; // Position is over the minimap.
     }
