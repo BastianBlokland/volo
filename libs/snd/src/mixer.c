@@ -23,6 +23,11 @@ ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 
 
 ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
 
+ASSERT(
+    bits_aligned(sizeof(SndBufferFrame) * snd_frame_count_max, 64),
+    "Sound buffers should be cache-line aligned");
+
+#define snd_mixer_buffer_count 3
 #define snd_mixer_gain_adjust_per_frame 0.00075f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
 #define snd_mixer_pitch_min 0.1f
@@ -89,9 +94,9 @@ ecs_comp_define(SndMixerComp) {
   DynArray persistentAssetsToAcquire; // EcsEntityId[], array of new persistent assets to acquire.
 
   /**
-   * Float sample buffer to accumulate into before outputting to the device.
+   * Float sample buffers to accumulate into before outputting to the device.
    */
-  SndBufferFrame* renderBuffer; // SndBufferFrame[snd_frame_count_max].
+  SndBufferFrame* bufferFrames; // SndBufferFrame[snd_frame_count_max][snd_mixer_buffer_count].
 };
 
 static void ecs_destruct_mixer_comp(void* data) {
@@ -107,7 +112,7 @@ static void ecs_destruct_mixer_comp(void* data) {
   dynarray_destroy(&m->persistentAssets);
   dynarray_destroy(&m->persistentAssetsToAcquire);
 
-  alloc_free_array_t(g_allocHeap, m->renderBuffer, snd_frame_count_max);
+  alloc_free_array_t(g_allocHeap, m->bufferFrames, snd_frame_count_max * snd_mixer_buffer_count);
 }
 
 static u16 snd_object_id_index(const SndObjectId id) { return (u16)id; }
@@ -158,6 +163,16 @@ static u32 snd_object_count_in_phase(const SndMixerComp* m, const SndObjectPhase
     }
   }
   return count;
+}
+
+static SndBuffer snd_mixer_buffer(SndMixerComp* m, const u32 index, const u32 frameCount) {
+  diag_assert(index < snd_mixer_buffer_count);
+  diag_assert(frameCount <= snd_frame_count_max);
+  return (SndBuffer){
+      .frames     = m->bufferFrames + index * snd_frame_count_max,
+      .frameCount = math_min(frameCount, snd_frame_count_max),
+      .frameRate  = snd_frame_rate,
+  };
 }
 
 ecs_view_define(AssetView) {
@@ -442,7 +457,7 @@ static void snd_mixer_write_to_device(
 
   const f32 limThreshold = math_min(snd_mixer_limiter_max * m->gainSetting, snd_mixer_limiter_max);
 
-  for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
+  for (u32 frame = 0; frame != buffer.frameCount; ++frame) {
     const f32 gainTarget = m->gainSetting * m->limiterMult;
     math_towards_f32(&m->gainActual, gainTarget, snd_mixer_gain_adjust_per_frame);
 
@@ -499,15 +514,9 @@ ecs_system_define(SndMixerRenderFillSys) {
     return;
   }
 
-  const SndDevicePeriod period         = snd_device_period(m->device);
-  const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
-
-  diag_assert(period.frameCount <= snd_frame_count_max);
-  const SndBuffer soundBuffer = {
-      .frames     = m->renderBuffer,
-      .frameCount = period.frameCount,
-      .frameRate  = snd_frame_rate,
-  };
+  const SndDevicePeriod devicePeriod   = snd_device_period(m->device);
+  const SndBuffer       soundBuffer    = snd_mixer_buffer(m, 0, devicePeriod.frameCount);
+  const TimeDuration    soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
   snd_buffer_clear(soundBuffer);
 
   // Render all objects into the soundBuffer.
@@ -523,7 +532,7 @@ ecs_system_define(SndMixerRenderFillSys) {
       if (obj->flags & SndObjectFlags_Stop) {
         goto FinishedPlaying; // Stopped and finished fading out.
       }
-      if (!snd_object_skip(obj, periodDuration)) {
+      if (!snd_object_skip(obj, soundBufferDur)) {
         goto FinishedPlaying;
       }
     } else {
@@ -545,20 +554,14 @@ ecs_system_define(SndMixerRenderEndSys) {
     return;
   }
 
-  const SndDevicePeriod period         = snd_device_period(m->device);
-  const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
+  const SndDevicePeriod devicePeriod   = snd_device_period(m->device);
+  const SndBuffer       soundBuffer    = snd_mixer_buffer(m, 0, devicePeriod.frameCount);
+  const TimeDuration    soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
 
-  diag_assert(period.frameCount <= snd_frame_count_max);
-  const SndBuffer soundBuffer = {
-      .frames     = m->renderBuffer,
-      .frameCount = period.frameCount,
-      .frameRate  = snd_frame_rate,
-  };
-
-  snd_mixer_write_to_device(m, period, soundBuffer);
+  snd_mixer_write_to_device(m, devicePeriod, soundBuffer);
   snd_device_end(m->device);
 
-  m->deviceTimeHead = period.timeBegin + periodDuration;
+  m->deviceTimeHead = devicePeriod.timeBegin + soundBufferDur;
 }
 
 ecs_module_init(snd_mixer_module) {
@@ -585,8 +588,9 @@ SndMixerComp* snd_mixer_init(EcsWorld* world) {
   m->gainSetting = 1.0f;
   m->limiterMult = 1.0f;
 
-  m->renderBuffer = alloc_array_t(g_allocHeap, SndBufferFrame, snd_frame_count_max);
-  mem_set(mem_create(m->renderBuffer, sizeof(SndBufferFrame) * snd_frame_count_max), 0);
+  const usize bufferFrameCount = snd_frame_count_max * snd_mixer_buffer_count;
+  m->bufferFrames = alloc_alloc(g_allocHeap, sizeof(SndBufferFrame) * bufferFrameCount, 64).ptr;
+  mem_set(mem_create(m->bufferFrames, sizeof(SndBufferFrame) * bufferFrameCount), 0);
 
   m->objects = alloc_array_t(g_allocHeap, SndObject, snd_mixer_objects_max);
   mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
@@ -810,9 +814,9 @@ u32 snd_mixer_objects_allocated(const SndMixerComp* m) {
 }
 
 SndBufferView snd_mixer_history(const SndMixerComp* m) {
-  return (SndBufferView){
-      .frames     = m->renderBuffer,
-      .frameCount = snd_frame_count_max,
-      .frameRate  = snd_frame_rate,
-  };
+  /**
+   * Output sound is merged into buffer 0, so that can be used as the output history.
+   */
+  const SndBuffer soundBuffer0 = snd_mixer_buffer((SndMixerComp*)m, 0, snd_frame_count_max);
+  return snd_buffer_view(soundBuffer0);
 }
