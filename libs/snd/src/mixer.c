@@ -181,7 +181,17 @@ ecs_view_define(AssetView) {
   ecs_access_with(AssetLoadedComp);
 }
 
-ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
+ecs_view_define(MixerView) {
+  /**
+   * Mark the view as allowing parallel writes to SndMixerComp, reason is we fill multiple
+   * sound-buffers in parallel and merge them before writing to the device.
+   * This is safe as long as fill tasks operate on different objects and different buffers.
+   * Here be dragons!
+   */
+  ecs_view_flags(EcsViewFlags_AllowParallelRandomWrite);
+
+  ecs_access_write(SndMixerComp);
+}
 
 static SndMixerComp* snd_mixer_get(EcsWorld* world) {
   EcsView*     mixerView = ecs_world_view_t(world, MixerView);
@@ -546,19 +556,37 @@ ecs_system_define(SndMixerRenderBeginSys) {
   }
 }
 
+static u32 snd_mixer_fill_objects_per_task(const u32 taskCount) {
+  return math_max(1, (u32)math_round_nearest_f32(snd_mixer_objects_max / (f32)taskCount));
+}
+
 ecs_system_define(SndMixerRenderFillSys) {
   SndMixerComp* m = snd_mixer_get(world);
   if (!m || !snd_device_rendering(m->device)) {
     return;
   }
 
+  /**
+   * Fill sound a sound buffer (each task has its own buffer) with samples from the objects.
+   *
+   * This systems runs as multiple parallel tasks (up to snd_mixer_buffer_count) but does have write
+   * access to SndMixerComp, this means care must be taken that tasks do not touch the same data.
+   *
+   * Here be dragons!
+   */
+
+  diag_assert(parIndex < snd_mixer_buffer_count); // Each task needs its own buffer.
   const SndDevicePeriod devicePeriod   = snd_device_period(m->device);
-  const SndBuffer       soundBuffer    = snd_mixer_buffer(m, 0, devicePeriod.frameCount);
+  const SndBuffer       soundBuffer    = snd_mixer_buffer(m, parIndex, devicePeriod.frameCount);
   const TimeDuration    soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
 
-  // Render all objects into the soundBuffer.
-  for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
-    SndObject* obj = &m->objects[i];
+  const bool lastTask       = parIndex == (parCount - 1);
+  const u32  objectsPerTask = snd_mixer_fill_objects_per_task(parCount);
+  const u32  objectsBegin   = parIndex * objectsPerTask;
+  const u32  objectsEnd     = lastTask ? snd_mixer_objects_max : (objectsBegin + objectsPerTask);
+
+  for (u32 objIdx = objectsBegin; objIdx != objectsEnd; ++objIdx) {
+    SndObject* obj = &m->objects[objIdx];
     if (obj->phase != SndObjectPhase_Playing) {
       continue;
     }
@@ -611,6 +639,8 @@ ecs_module_init(snd_mixer_module) {
   ecs_register_system(SndMixerRenderBeginSys, ecs_view_id(MixerView));
   ecs_register_system(SndMixerRenderFillSys, ecs_view_id(MixerView));
   ecs_register_system(SndMixerRenderEndSys, ecs_view_id(MixerView));
+
+  ecs_parallel(SndMixerRenderFillSys, snd_mixer_buffer_count);
 
   ecs_order(SndMixerUpdateSys, SndOrder_Update);
   ecs_order(SndMixerRenderBeginSys, SndOrder_RenderBegin);
