@@ -76,9 +76,10 @@ ecs_comp_define(SndMixerComp) {
   SndDevice* device;
   f32        gainActual, gainSetting;
   f32        limiterMult;
-  u32        limiterClosedFrames;
+  u16        limiterClosedFrames;
 
-  TimeDuration deviceTimeHead; // Timestamp of last rendered sound.
+  u16          deviceRequestedFrames; // How many frames to render this tick.
+  TimeDuration deviceTimeHead;        // Timestamp of last rendered sound.
 
   SndObject*   objects;        // SndObject[snd_mixer_objects_max]
   String*      objectNames;    // String[snd_mixer_objects_max]
@@ -526,10 +527,16 @@ static void snd_mixer_write_to_device(
 
 ecs_system_define(SndMixerRenderBeginSys) {
   SndMixerComp* m = snd_mixer_get(world);
-  if (!m || !snd_device_begin(m->device)) {
+  if (!m) {
     return;
   }
+  if (!snd_device_begin(m->device)) {
+    m->deviceRequestedFrames = 0;
+    return;
+  }
+
   const SndDevicePeriod devicePeriod = snd_device_period(m->device);
+  m->deviceRequestedFrames           = devicePeriod.frameCount;
 
   /**
    * Skip sounds forward if there's a gap between the end of the last rendered sound and the new
@@ -551,7 +558,7 @@ ecs_system_define(SndMixerRenderBeginSys) {
    * NOTE: Clear all buffers here as the amount of parallelism of the filling stage could vary.
    */
   for (u32 bufferIndex = 0; bufferIndex != snd_mixer_buffer_count; ++bufferIndex) {
-    const SndBuffer buffer = snd_mixer_buffer(m, bufferIndex, devicePeriod.frameCount);
+    const SndBuffer buffer = snd_mixer_buffer(m, bufferIndex, m->deviceRequestedFrames);
     snd_buffer_clear(buffer);
   }
 }
@@ -562,7 +569,7 @@ static u32 snd_mixer_fill_objects_per_task(const u32 taskCount) {
 
 ecs_system_define(SndMixerRenderFillSys) {
   SndMixerComp* m = snd_mixer_get(world);
-  if (!m || !snd_device_rendering(m->device)) {
+  if (!m || !m->deviceRequestedFrames) {
     return;
   }
 
@@ -576,9 +583,8 @@ ecs_system_define(SndMixerRenderFillSys) {
    */
 
   diag_assert(parIndex < snd_mixer_buffer_count); // Each task needs its own buffer.
-  const SndDevicePeriod devicePeriod   = snd_device_period(m->device);
-  const SndBuffer       soundBuffer    = snd_mixer_buffer(m, parIndex, devicePeriod.frameCount);
-  const TimeDuration    soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
+  const SndBuffer    soundBuffer    = snd_mixer_buffer(m, parIndex, m->deviceRequestedFrames);
+  const TimeDuration soundBufferDur = snd_buffer_duration(snd_buffer_view(soundBuffer));
 
   const bool lastTask       = parIndex == (parCount - 1);
   const u32  objectsPerTask = snd_mixer_fill_objects_per_task(parCount);
@@ -615,12 +621,12 @@ ecs_system_define(SndMixerRenderFillSys) {
 
 ecs_system_define(SndMixerRenderEndSys) {
   SndMixerComp* m = snd_mixer_get(world);
-  if (!m || !snd_device_rendering(m->device)) {
+  if (!m || !m->deviceRequestedFrames) {
     return;
   }
 
   const SndDevicePeriod devicePeriod = snd_device_period(m->device);
-  const SndBuffer       result       = snd_mixer_merge(m, devicePeriod.frameCount);
+  const SndBuffer       result       = snd_mixer_merge(m, m->deviceRequestedFrames);
   const TimeDuration    resultDur    = snd_buffer_duration(snd_buffer_view(result));
 
   snd_mixer_write_to_device(m, devicePeriod, result);
