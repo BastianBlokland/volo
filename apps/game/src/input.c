@@ -171,7 +171,8 @@ static void update_camera_movement(
     InputManagerComp*       input,
     const SceneTimeComp*    time,
     const SceneTerrainComp* terrain,
-    SceneTransformComp*     camTrans) {
+    SceneTransformComp*     camTrans,
+    const bool              windowActive) {
   const f32     deltaSeconds = scene_real_delta_seconds(time);
   const GeoQuat camRotYOld   = geo_quat_from_euler(geo_vector(0, state->camRotY, 0));
   bool          lockCursor   = false;
@@ -218,13 +219,15 @@ static void update_camera_movement(
   state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
 
   // Update zoom.
-  const bool isHoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
-  if (!isHoveringUi || state->flags & InputFlags_AllowZoomOverUi) {
-    const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
-    state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
+  if (windowActive) { /* Disallow zooming when the window is not focussed. */
+    const bool isHoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+    if (!isHoveringUi || state->flags & InputFlags_AllowZoomOverUi) {
+      const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
+      state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
+    }
+    const f32 camZoomEaseDelta = deltaSeconds * g_inputCamZoomEaseSpeed;
+    state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
   }
-  const f32 camZoomEaseDelta = deltaSeconds * g_inputCamZoomEaseSpeed;
-  state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
 
   // Set camera transform.
   const GeoQuat   camRot    = geo_quat_from_euler(geo_vector(g_inputCamRotX, state->camRotY, 0));
@@ -704,6 +707,7 @@ ecs_system_define(InputUpdateSys) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
+    const bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
 
     if (scene_set_count(setEnv, g_sceneSetSelected) != state->lastSelectionCount) {
       state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
@@ -713,10 +717,10 @@ ecs_system_define(InputUpdateSys) {
     if (input_layer_active(input, string_hash_lit("Debug"))) {
       update_camera_movement_debug(input, time, cam, camTrans);
     } else {
-      update_camera_movement(state, input, time, terrain, camTrans);
+      update_camera_movement(state, input, time, terrain, camTrans, windowActive);
     }
 
-    if (input_active_window(input) == ecs_view_entity(camItr)) {
+    if (windowActive) {
       update_group_input(state, cmdController, input, setEnv, time, debugStats);
       update_camera_interact(
           world,
