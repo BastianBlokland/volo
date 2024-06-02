@@ -2,6 +2,14 @@
 #include "core_diag.h"
 #include "core_sort.h"
 
+INLINE_HINT static void sort_swap(u8* a, u8* b, u16 bytes) {
+  do {
+    const u8 tmp = *a;
+    *a++         = *b;
+    *b++         = tmp;
+  } while (--bytes);
+}
+
 /**
  * Select a pivot to partition on.
  * At the moment we always use the center element as the pivot.
@@ -42,7 +50,7 @@ static u8* quicksort_partition(u8* begin, u8* end, u16 stride, CompareFunc compa
     }
 
     // Begin is less then end, so swap them.
-    mem_swap_raw(begin, end, stride);
+    sort_swap(begin, end, stride);
 
     begin += stride;
   }
@@ -78,7 +86,7 @@ void sort_bubblesort(u8* begin, u8* end, u16 stride, CompareFunc compare) {
       u8* a = begin + (i - 1) * stride;
       u8* b = begin + i * stride;
       if (compare(a, b) > 0) {
-        mem_swap_raw(a, b, stride);
+        sort_swap(a, b, stride);
         newLen = i;
       }
     }
