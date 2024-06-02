@@ -28,7 +28,7 @@ static void sort_insert(u8* begin, u8* end, const u16 stride, CompareFunc compar
  * Select a pivot to partition on using the median-of-three scheme.
  * NOTE: Makes sure the first and last elements are sorted with respect to the pivot.
  */
-INLINE_HINT static Mem quicksort_pivot(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
+INLINE_HINT static u8* quicksort_pivot(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
   const usize elems  = (end - begin) / stride;
   u8*         center = begin + elems / 2 * stride;
   if (compare(center, begin) < 0) {
@@ -37,13 +37,12 @@ INLINE_HINT static Mem quicksort_pivot(u8* begin, u8* end, const u16 stride, Com
   if (compare(end - stride, center) < 0) {
     sort_swap(center, end - stride, stride);
   } else {
-    goto Ret;
+    return center;
   }
   if (compare(center, begin) < 0) {
     sort_swap(center, begin, stride);
   }
-Ret:
-  return mem_create(center, stride);
+  return center;
 }
 
 /**
@@ -55,9 +54,7 @@ Ret:
  */
 static u8* quicksort_partition(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
   // Choose a pivot.
-  // Note: Make a copy of the pivot, needed because it might move due to the swapping.
-  Mem pivot = mem_stack(stride);
-  mem_cpy(pivot, quicksort_pivot(begin, end, stride, compare));
+  u8* pivot = quicksort_pivot(begin, end, stride, compare);
 
   // First and last elements are already sorted by 'quicksort_pivot' so can be skipped.
   begin += stride;
@@ -66,14 +63,14 @@ static u8* quicksort_partition(u8* begin, u8* end, const u16 stride, CompareFunc
   while (true) {
 
     // Skip over elements at the start that are correctly placed (less then the partition point).
-    while (compare(begin, pivot.ptr) < 0) {
+    while (compare(begin, pivot) < 0) {
       begin += stride;
     }
 
     // Skip over elements at the end that are correctly placed (not less then the partition point).
     do {
       end -= stride;
-    } while (compare(end, pivot.ptr) > 0);
+    } while (compare(end, pivot) > 0);
 
     // If both ends meet then the partition is finished.
     if (begin >= end) {
@@ -82,6 +79,13 @@ static u8* quicksort_partition(u8* begin, u8* end, const u16 stride, CompareFunc
 
     // Begin is less then end, so swap them.
     sort_swap(begin, end, stride);
+
+    // Patch up the pivot pointer in case it was moved.
+    if (begin == pivot) {
+      pivot = end;
+    } else if (end == pivot) {
+      pivot = begin;
+    }
 
     begin += stride;
   }
