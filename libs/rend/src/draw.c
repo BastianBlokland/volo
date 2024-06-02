@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_register.h"
+#include "trace_tracer.h"
 
 #include "draw_internal.h"
 #include "reset_internal.h"
@@ -310,11 +311,20 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   }
 
   if (draw->flags & RendDrawFlags_Sorted) {
+    // clang-format off
+#ifdef VOLO_TRACE
+    const bool trace = draw->outputInstCount > 1000;
+    if (trace) { trace_begin("rend_draw_sort", TraceColor_Blue); }
+#endif
     rend_draw_sort(draw);
     for (u32 i = 0; i != draw->outputInstCount; ++i) {
       const RendDrawSortKey* sortKey = rend_draw_sort_key(draw, i);
       rend_draw_copy_to_output(draw, sortKey->instIndex, i);
     }
+#ifdef VOLO_TRACE
+    if (trace) { trace_end(); }
+#endif
+    // clang-format on
   }
   return draw->outputInstCount != 0;
 }

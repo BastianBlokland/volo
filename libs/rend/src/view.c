@@ -3,6 +3,10 @@
 
 #include "view_internal.h"
 
+static bool rend_view_tag_filter(const SceneTagFilter filter, const SceneTags tags) {
+  return ((tags & filter.required) == filter.required) && ((tags & filter.illegal) == 0);
+}
+
 RendView rend_view_create(
     const EcsEntityId    camera,
     const GeoVector      origin,
@@ -29,7 +33,7 @@ bool rend_view_visible(
     const GeoBox*           objAabb,
     const RendSettingsComp* settings) {
 
-  if (!scene_tag_filter(view->filter, objTags)) {
+  if (!rend_view_tag_filter(view->filter, objTags)) {
     return false;
   }
   if (UNLIKELY(!(settings->flags & RendFlags_FrustumCulling))) {

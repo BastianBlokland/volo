@@ -143,7 +143,7 @@ static FileMonitorResult monitor_watch_locked(
       .path           = string_dup(monitor->allocPath, path),
       .fileId         = fileId,
       .userData       = userData,
-      .lastChangeTime = i64_min,
+      .lastChangeTime = -time_days(99),
   };
   *dynarray_insert_sorted_t(&monitor->watches, FileWatch, monitor_watch_compare, &watch) = watch;
   return FileMonitorResult_Success;
