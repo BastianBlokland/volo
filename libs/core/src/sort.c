@@ -2,6 +2,8 @@
 #include "core_diag.h"
 #include "core_sort.h"
 
+// #define VOLO_SORT_VERIFY
+
 #define sort_quicksort_elems_min 10
 
 INLINE_HINT static void sort_swap(u8* a, u8* b, u16 bytes) {
@@ -91,21 +93,42 @@ static u8* quicksort_partition(u8* begin, u8* end, const u16 stride, CompareFunc
   }
 }
 
-void sort_quicksort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
-  if ((end - begin) < (stride * sort_quicksort_elems_min)) {
-    // Small collection; use insertion sort.
-    sort_insert(begin, end, stride, compare);
-    return;
-  }
+typedef struct {
+  u8* begin;
+  u8* end;
+} QuickSortSection;
 
+void sort_quicksort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
   /**
-   * Details on the algorithm:
+   * Non-recursive QuickSort using Hoare's partition scheme.
    * - https://en.wikipedia.org/wiki/Quicksort
    */
+  QuickSortSection stack[128];
+  u32              stackSize = 0;
 
-  void* partition = quicksort_partition(begin, end, stride, compare);
-  sort_quicksort(begin, partition, stride, compare);
-  sort_quicksort(partition, end, stride, compare);
+  stack[stackSize++] = (QuickSortSection){.begin = begin, .end = end};
+
+  while (stackSize) {
+    const QuickSortSection section = stack[--stackSize];
+
+    if ((section.end - section.begin) < (stride * sort_quicksort_elems_min)) {
+      // Small section; use insertion sort.
+      sort_insert(section.begin, section.end, stride, compare);
+      continue;
+    }
+
+    u8* partition      = quicksort_partition(section.begin, section.end, stride, compare);
+    stack[stackSize++] = (QuickSortSection){.begin = section.begin, .end = partition};
+    stack[stackSize++] = (QuickSortSection){.begin = partition, .end = section.end};
+    diag_assert(stackSize < array_elems(stack));
+  }
+
+#ifdef VOLO_SORT_VERIFY
+  for (u8* itr = begin + stride; itr < end; itr += stride) {
+    u8* prev = itr - stride;
+    diag_assert(compare(prev, itr) <= 0);
+  }
+#endif
 }
 
 void sort_bubblesort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
