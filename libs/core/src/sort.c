@@ -2,12 +2,26 @@
 #include "core_diag.h"
 #include "core_sort.h"
 
+#define sort_quicksort_elems_min 10
+
 INLINE_HINT static void sort_swap(u8* a, u8* b, u16 bytes) {
   do {
     const u8 tmp = *a;
     *a++         = *b;
     *b++         = tmp;
   } while (--bytes);
+}
+
+/**
+ * Sort the given range using a basic insertion-sort scheme.
+ * https://en.wikipedia.org/wiki/Insertion_sort
+ */
+static void sort_insert(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
+  for (u8* a = begin + stride; a < end; a += stride) {
+    for (u8* b = a; b != begin && compare(b, b - stride) < 0; b -= stride) {
+      sort_swap(b, b - stride, stride);
+    }
+  }
 }
 
 /**
@@ -26,7 +40,7 @@ INLINE_HINT static Mem quicksort_pivot(u8* begin, u8* end, u16 stride) {
  * Hoare's partition scheme:
  * - https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
  */
-static u8* quicksort_partition(u8* begin, u8* end, u16 stride, CompareFunc compare) {
+static u8* quicksort_partition(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
   // Choose a pivot.
   // Note: Make a copy of the pivot, needed because it might move due to the swapping.
   Mem pivot = mem_stack(stride);
@@ -56,9 +70,11 @@ static u8* quicksort_partition(u8* begin, u8* end, u16 stride, CompareFunc compa
   }
 }
 
-void sort_quicksort(u8* begin, u8* end, u16 stride, CompareFunc compare) {
-  if ((end - begin) < (stride * 2)) {
-    return; // Less then 2 items, nothing to do.
+void sort_quicksort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
+  if ((end - begin) < (stride * sort_quicksort_elems_min)) {
+    // Small collection; use insertion sort.
+    sort_insert(begin, end, stride, compare);
+    return;
   }
 
   /**
@@ -71,7 +87,7 @@ void sort_quicksort(u8* begin, u8* end, u16 stride, CompareFunc compare) {
   sort_quicksort(partition, end, stride, compare);
 }
 
-void sort_bubblesort(u8* begin, u8* end, u16 stride, CompareFunc compare) {
+void sort_bubblesort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
   /**
    * Basic BubbleSort implementation.
    * - https://en.wikipedia.org/wiki/Bubble_sort
