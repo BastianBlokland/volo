@@ -25,12 +25,25 @@ static void sort_insert(u8* begin, u8* end, const u16 stride, CompareFunc compar
 }
 
 /**
- * Select a pivot to partition on.
- * At the moment we always use the center element as the pivot.
+ * Select a pivot to partition on using the median-of-three scheme.
+ * NOTE: Makes sure the first and last elements are sorted with respect to the pivot.
  */
-INLINE_HINT static Mem quicksort_pivot(u8* begin, u8* end, u16 stride) {
-  const usize elems = (end - begin) / stride;
-  return mem_create(begin + elems / 2 * stride, stride);
+INLINE_HINT static Mem quicksort_pivot(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
+  const usize elems  = (end - begin) / stride;
+  u8*         center = begin + elems / 2 * stride;
+  if (compare(center, begin) < 0) {
+    sort_swap(center, begin, stride);
+  }
+  if (compare(end - stride, center) < 0) {
+    sort_swap(center, end - stride, stride);
+  } else {
+    goto Ret;
+  }
+  if (compare(center, begin) < 0) {
+    sort_swap(center, begin, stride);
+  }
+Ret:
+  return mem_create(center, stride);
 }
 
 /**
@@ -44,7 +57,11 @@ static u8* quicksort_partition(u8* begin, u8* end, const u16 stride, CompareFunc
   // Choose a pivot.
   // Note: Make a copy of the pivot, needed because it might move due to the swapping.
   Mem pivot = mem_stack(stride);
-  mem_cpy(pivot, quicksort_pivot(begin, end, stride));
+  mem_cpy(pivot, quicksort_pivot(begin, end, stride, compare));
+
+  // First and last elements are already sorted by 'quicksort_pivot' so can be skipped.
+  begin += stride;
+  end -= stride;
 
   while (true) {
 
