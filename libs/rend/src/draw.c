@@ -13,12 +13,10 @@
 #include "resource_internal.h"
 #include "rvk/texture_internal.h"
 
-#if defined(VOLO_MSVC)
-#include <string.h>
-#pragma intrinsic(memcpy)
-#define intrinsic_memcpy memcpy
-#else
-#define intrinsic_memcpy __builtin_memcpy
+#define rend_draw_simd_enable 1
+
+#if rend_draw_simd_enable
+#include "core_simd.h"
 #endif
 
 #define rend_min_align 16
@@ -48,6 +46,20 @@ ecs_comp_define(RendDrawComp) {
   Mem sortKeyMem; // RendDrawSortKey[].
   Mem instDataOutput;
 };
+
+/**
+ * Pre-condition: bits_is_aligned(size, 16)
+ */
+INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize size) {
+#if rend_draw_simd_enable
+  const void* end = bits_ptr_offset(src, size);
+  for (; src != end; src += 16, dst += 16) {
+    simd_copy_128(dst, src);
+  }
+#else
+  mem_cpy(mem_create(dst, size), mem_create(src, size));
+#endif
+}
 
 static void ecs_destruct_draw(void* data) {
   RendDrawComp* comp = data;
@@ -93,7 +105,7 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
     }
 
     const Mem newData = rend_draw_add_instance(drawA, data.size, tags, aabb);
-    intrinsic_memcpy(newData.ptr, data.ptr, data.size);
+    rend_draw_memcpy(newData.ptr, data.ptr, data.size);
   }
 
   ecs_destruct_draw(drawB);
@@ -129,7 +141,7 @@ static void
 rend_draw_copy_to_output(const RendDrawComp* draw, const u32 instIndex, const u32 outputIndex) {
   const Mem outputMem   = rend_draw_inst_output_data(draw, outputIndex);
   const Mem instDataMem = rend_draw_inst_data(draw, instIndex);
-  intrinsic_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
+  rend_draw_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
 }
 
 static bool rend_resource_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {

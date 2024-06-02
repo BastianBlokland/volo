@@ -8,6 +8,13 @@
  * https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
  */
 
+/**
+ * Copy 128 bits from 'src' to 'dst'.
+ */
+MAYBE_UNUSED INLINE_HINT static void simd_copy_128(void* dst, const void* src) {
+  _mm_storeu_si128(dst, _mm_loadu_si128(src));
+}
+
 typedef __m128 SimdVec;
 
 #define simd_vec_shuffle(_A_, _B_, _C1_, _C2_, _C3_, _C4_)                                         \
