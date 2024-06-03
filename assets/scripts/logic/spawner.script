@@ -5,27 +5,27 @@
  * - "cfgSpawnerPrefab": Prefab to spawn.
  */
 
-var intervalMin   = 20
-var intervalMax   = 60
-var radius        = 20
-var spawnCountMin = 50
-var spawnCountMax = 150
-var unitPrefab    = $cfgSpawnerPrefab ?? "InfantryMonster"
+var intervalMin   = 2
+var intervalMax   = 2.5
+var spawnCountMin = 25
+var spawnCountMax = 30
 
 $nextWaveTime ??= time() + random_between(intervalMin, intervalMax)
-if ($nextWaveTime <= time()) {
+if (!$first || $nextWaveTime <= time()) {
   $nextWaveTime = null
+  $first        = true
 
   var center     = position(self())
   var faction    = faction(self()) ?? "FactionB"
   var scale      = 1.0
   var spawnCount = round_nearest(random_between(spawnCountMin, spawnCountMax))
+  var epicenter  = center + random_between(vec3(-15, 0, -150), vec3(15, 0, 150))
 
   for (var i = 0; i != spawnCount; i += 1) {
-    var pos          = center + random_circle_xz() * radius
+    var pos          = epicenter + random_circle_xz() * 10
     var posUnblocked = nav_find(pos, "Normal", "UnblockedCell")
     var rot          = angle_axis(random() * pi * 2, up)
 
-    prefab_spawn(unitPrefab, posUnblocked, rot, scale, faction)
+    prefab_spawn(random_of("InfantryRifle", "InfantryRocket", "InfantryFlame"), posUnblocked, rot, scale, faction)
   }
 }
