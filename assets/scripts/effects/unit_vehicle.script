@@ -32,8 +32,8 @@ if ($sndIdle) {
 if ($sndMove) {
   var gain = moving ? lerp(0.125, 0.2, speedFrac) : 0.0
   sound_param($sndMove, "Gain", gain)
-} else if ($assetSndMove) {
-  $sndMove = sound_spawn($assetSndMove, position(me), 0.0, 1.0, true, requireVisibility)
+} else if ($assetSndMove && moving) {
+  $sndMove = sound_spawn($assetSndMove, position(me), 1.0, 1.0, true, requireVisibility)
   attach($sndMove, me)
   destroy_after($sndMove, me)
 }
@@ -42,8 +42,8 @@ if ($sndMove) {
 if ($vfxDust) {
   var emitMultiplier = moving ? lerp(0.25, 1.0, speedFrac) : 0.0
   vfx_param($vfxDust, "EmitMultiplier", emitMultiplier)
-} else if ($assetVfxDust) {
-  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 0.0, requireVisibility)
+} else if ($assetVfxDust && moving) {
+  $vfxDust = vfx_system_spawn($assetVfxDust, position(me), rotation(me), 1.0, 1.0, requireVisibility)
   attach($vfxDust, me)
   destroy_after($vfxDust, me)
 }
@@ -59,7 +59,7 @@ if ($vfxHeat) {
 }
 
 // Trails vfx.
-if (!$trailsInitialized) {
+if (!$trailsInitialized && moving) {
   var trailLeft = vfx_decal_spawn($assetDecalTrail, position(me), rotation(me), 1.0, requireVisibility)
   attach(trailLeft, me, null, vec3(-1, 0, 0))
   destroy_after(trailLeft, me)
