@@ -42,21 +42,21 @@ endmacro(set_generic_defines)
 # Set gcc specific defines
 #
 macro(set_gcc_defines)
-  add_definitions(-DVOLO_GCC)
+  add_definitions(-DVOLO_GCC -DVOLO_SIMD)
 endmacro(set_gcc_defines)
 
 #
 # Set clang specific defines
 #
 macro(set_clang_defines)
-  add_definitions(-DVOLO_CLANG)
+  add_definitions(-DVOLO_CLANG -DVOLO_SIMD)
 endmacro(set_clang_defines)
 
 #
 # Set msvc specific defines
 #
 macro(set_msvc_defines)
-  add_definitions(-DVOLO_MSVC)
+  add_definitions(-DVOLO_MSVC -DVOLO_SIMD)
 endmacro(set_msvc_defines)
 
 #

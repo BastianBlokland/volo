@@ -10,6 +10,10 @@
 
 #include "tracer_internal.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 /**
  * Trace sink implementation that stores events in in-memory buffers to be queried later.
  */
@@ -18,15 +22,10 @@
 #define trace_store_max_threads 8
 #define trace_store_buffer_events 1024
 #define trace_store_buffer_max_depth 8
-#define trace_store_simd_enable 1
 
 ASSERT(trace_store_max_ids < u8_max, "Trace id has to be representable by a u8")
 ASSERT((trace_store_buffer_events & (trace_store_buffer_events - 1u)) == 0, "Has to be a pow2");
 ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable with a u16")
-
-#if trace_store_simd_enable
-#include "core_simd.h"
-#endif
 
 static THREAD_LOCAL bool g_traceStoreIsVisiting;
 
@@ -59,7 +58,7 @@ typedef struct {
 } TraceSinkStore;
 
 static u8 trace_id_find(TraceSinkStore* s, const StringHash hash) {
-#if trace_store_simd_enable
+#ifdef VOLO_SIMD
   ASSERT((trace_store_max_ids % 8) == 0, "Only multiple of 8 id counts are supported");
 
   const SimdVec hashVec = simd_vec_broadcast_u32(hash);

@@ -1,6 +1,8 @@
 #include "check_spec.h"
 #include "core_array.h"
 #include "core_float.h"
+
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 
 spec(simd) {
@@ -38,3 +40,4 @@ spec(simd) {
     }
   }
 }
+#endif

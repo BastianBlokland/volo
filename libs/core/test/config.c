@@ -32,7 +32,6 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, rng);
   register_spec(check, search);
   register_spec(check, shuffle);
-  register_spec(check, simd);
   register_spec(check, sort);
   register_spec(check, string);
   register_spec(check, stringtable);
@@ -42,4 +41,8 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, unicode);
   register_spec(check, utf8);
   register_spec(check, winutils);
+
+#ifdef VOLO_SIMD
+  register_spec(check, simd);
+#endif
 }

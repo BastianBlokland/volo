@@ -2,9 +2,7 @@
 #include "core_math.h"
 #include "geo_plane.h"
 
-#define geo_plane_simd_enable 1
-
-#if geo_plane_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -19,7 +17,7 @@ GeoPlane geo_plane_at(const GeoVector normal, const GeoVector position) {
 }
 
 GeoPlane geo_plane_at_triangle(const GeoVector a, const GeoVector b, const GeoVector c) {
-#if geo_plane_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec aVec     = simd_vec_load(a.comps);
   const SimdVec bVec     = simd_vec_load(b.comps);
   const SimdVec cVec     = simd_vec_load(c.comps);

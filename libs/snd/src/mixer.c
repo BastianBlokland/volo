@@ -7,7 +7,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
-#include "core_simd.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -17,6 +16,12 @@
 
 #include "constants_internal.h"
 #include "device_internal.h"
+
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#else
+#error Sound Mixer requires SIMD support
+#endif
 
 #define snd_mixer_objects_max 512
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
