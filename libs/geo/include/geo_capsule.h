@@ -25,7 +25,8 @@ GeoCapsule geo_capsule_dilate(const GeoCapsule*, f32 radius);
  * occurred.
  * NOTE: Writes the surface-normal at the point of intersection to 'outNormal'.
  */
-f32 geo_capsule_intersect_ray(const GeoCapsule*, const GeoRay*, GeoVector* outNormal);
+f32 geo_capsule_intersect_ray(const GeoCapsule*, const GeoRay*);
+f32 geo_capsule_intersect_ray_info(const GeoCapsule*, const GeoRay*, GeoVector* outNormal);
 
 /**
  * Overlap tests.

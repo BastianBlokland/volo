@@ -410,12 +410,50 @@ GeoBox geo_box_from_frustum(const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
   return result;
 }
 
-f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray, GeoVector* outNormal) {
+f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray) {
   /**
    * Find the intersection of the axis-aligned box the given ray using Cyrus-Beck clipping.
    * More information: https://izzofinal.wordpress.com/2012/11/09/ray-vs-box-round-1/
    */
+  const f32 dirXInv = 1.0f / (ray->dir.x + f32_epsilon);
+  const f32 dirYInv = 1.0f / (ray->dir.y + f32_epsilon);
+  const f32 dirZInv = 1.0f / (ray->dir.z + f32_epsilon);
 
+  const f32 t1 = (box->min.x - ray->point.x) * dirXInv;
+  const f32 t2 = (box->max.x - ray->point.x) * dirXInv;
+  const f32 t3 = (box->min.y - ray->point.y) * dirYInv;
+  const f32 t4 = (box->max.y - ray->point.y) * dirYInv;
+  const f32 t5 = (box->min.z - ray->point.z) * dirZInv;
+  const f32 t6 = (box->max.z - ray->point.z) * dirZInv;
+
+  const f32 minA = math_min(t1, t2);
+  const f32 minB = math_min(t3, t4);
+  const f32 minC = math_min(t5, t6);
+  const f32 tMin = math_max(math_max(minA, minB), minC);
+
+  const f32 maxA = math_max(t1, t2);
+  const f32 maxB = math_max(t3, t4);
+  const f32 maxC = math_max(t5, t6);
+  const f32 tMax = math_min(math_min(maxA, maxB), maxC);
+
+  // if tMax < 0: ray intersects the box, but whole box is behind us.
+  if (tMax < 0) {
+    return -1.0f;
+  }
+
+  // if tMin > tMax: ray misses the box.
+  if (tMin > tMax) {
+    return -1.0f;
+  }
+
+  return tMin >= 0 ? tMin : tMax;
+}
+
+f32 geo_box_intersect_ray_info(const GeoBox* box, const GeoRay* ray, GeoVector* outNormal) {
+  /**
+   * Find the intersection of the axis-aligned box the given ray using Cyrus-Beck clipping.
+   * More information: https://izzofinal.wordpress.com/2012/11/09/ray-vs-box-round-1/
+   */
   const f32 dirXInv = 1.0f / (ray->dir.x + f32_epsilon);
   const f32 dirYInv = 1.0f / (ray->dir.y + f32_epsilon);
   const f32 dirZInv = 1.0f / (ray->dir.z + f32_epsilon);

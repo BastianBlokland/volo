@@ -6,15 +6,17 @@ GeoCapsule geo_capsule_dilate(const GeoCapsule* capsule, const f32 radius) {
   return (GeoCapsule){.line = capsule->line, .radius = capsule->radius + radius};
 }
 
-f32 geo_capsule_intersect_ray(const GeoCapsule* capsule, const GeoRay* ray, GeoVector* outNormal) {
+f32 geo_capsule_intersect_ray(const GeoCapsule* capsule, const GeoRay* ray) {
   const GeoVector linePos       = geo_line_closest_point_ray(&capsule->line, ray);
   const GeoSphere closestSphere = {.point = linePos, .radius = capsule->radius};
-  const f32       rayHitT       = geo_sphere_intersect_ray(&closestSphere, ray);
-  if (rayHitT >= 0.0f) {
-    const GeoVector hitPos = geo_ray_position(ray, rayHitT);
-    *outNormal             = geo_vector_norm(geo_vector_sub(hitPos, closestSphere.point));
-  }
-  return rayHitT;
+  return geo_sphere_intersect_ray(&closestSphere, ray);
+}
+
+f32 geo_capsule_intersect_ray_info(
+    const GeoCapsule* capsule, const GeoRay* ray, GeoVector* outNormal) {
+  const GeoVector linePos       = geo_line_closest_point_ray(&capsule->line, ray);
+  const GeoSphere closestSphere = {.point = linePos, .radius = capsule->radius};
+  return geo_sphere_intersect_ray_info(&closestSphere, ray, outNormal);
 }
 
 bool geo_capsule_overlap_sphere(const GeoCapsule* capsule, const GeoSphere* sphere) {

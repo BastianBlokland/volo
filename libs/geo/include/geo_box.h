@@ -117,7 +117,8 @@ GeoBox geo_box_from_frustum(const GeoVector[PARAM_ARRAY_SIZE(8)]);
  * occurred.
  * NOTE: Writes the surface-normal at the point of intersection to 'outNormal'.
  */
-f32 geo_box_intersect_ray(const GeoBox*, const GeoRay*, GeoVector* outNormal);
+f32 geo_box_intersect_ray(const GeoBox*, const GeoRay*);
+f32 geo_box_intersect_ray_info(const GeoBox*, const GeoRay*, GeoVector* outNormal);
 
 /**
  * Overlap tests.

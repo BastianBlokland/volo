@@ -111,19 +111,15 @@ static f32 geo_prim_intersect_ray(
   switch (prim->type) {
   case GeoQueryPrim_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
-    const f32        hitT   = geo_sphere_intersect_ray(sphere, ray);
-    if (hitT >= 0) {
-      *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
-    }
-    return hitT;
+    return geo_sphere_intersect_ray_info(sphere, ray, outNormal);
   }
   case GeoQueryPrim_Capsule: {
     const GeoCapsule* capsule = &((const GeoCapsule*)prim->shapes)[entryIdx];
-    return geo_capsule_intersect_ray(capsule, ray, outNormal);
+    return geo_capsule_intersect_ray_info(capsule, ray, outNormal);
   }
   case GeoQueryPrim_BoxRotated: {
     const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
-    return geo_box_rotated_intersect_ray(boxRotated, ray, outNormal);
+    return geo_box_rotated_intersect_ray_info(boxRotated, ray, outNormal);
   }
   case GeoQueryPrim_Count:
     break;
@@ -150,7 +146,7 @@ static f32 geo_prim_intersect_ray_fat(
   case GeoQueryPrim_Capsule: {
     const GeoCapsule* capsule        = &((const GeoCapsule*)prim->shapes)[entryIdx];
     const GeoCapsule  capsuleDilated = geo_capsule_dilate(capsule, radius);
-    return geo_capsule_intersect_ray(&capsuleDilated, ray, outNormal);
+    return geo_capsule_intersect_ray_info(&capsuleDilated, ray, outNormal);
   }
   case GeoQueryPrim_BoxRotated: {
     const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
@@ -161,7 +157,7 @@ static f32 geo_prim_intersect_ray_fat(
      * intersections too early at the corners.
      */
     const GeoBoxRotated boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
-    return geo_box_rotated_intersect_ray(&boxRotatedDilated, ray, outNormal);
+    return geo_box_rotated_intersect_ray_info(&boxRotatedDilated, ray, outNormal);
   }
   case GeoQueryPrim_Count:
     break;

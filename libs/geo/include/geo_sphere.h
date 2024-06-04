@@ -21,8 +21,10 @@ GeoSphere geo_sphere_dilate(const GeoSphere*, f32 radius);
  * Compute the intersection of the sphere with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.
+ * NOTE: Writes the surface-normal at the point of intersection to 'outNormal'.
  */
 f32 geo_sphere_intersect_ray(const GeoSphere*, const GeoRay*);
+f32 geo_sphere_intersect_ray_info(const GeoSphere*, const GeoRay*, GeoVector* outNormal);
 
 /**
  * Overlap tests.

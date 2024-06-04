@@ -35,7 +35,8 @@ GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 
  * occurred.
  * NOTE: Writes the surface-normal at the point of intersection to 'outNormal'.
  */
-f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*, GeoVector* outNormal);
+f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*);
+f32 geo_box_rotated_intersect_ray_info(const GeoBoxRotated*, const GeoRay*, GeoVector* outNormal);
 
 /**
  * Get the closest point within the rotated box to the given point.
