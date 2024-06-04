@@ -24,9 +24,7 @@
 #include "atlas_internal.h"
 #include "draw_internal.h"
 
-#define vfx_decal_simd_enable 1
-
-#if vfx_decal_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -448,7 +446,7 @@ static void vfx_decal_draw_output(RendDrawComp* draw, const VfxDecalParams* para
   geo_vector_pack_f16(
       geo_vector(warpScale.x, warpScale.y, params->texOffsetY, params->texScaleY), out->data5);
 
-#if vfx_decal_simd_enable
+#ifdef VOLO_SIMD
   /**
    * Warp-points are represented by 8 floats, pack them to 16 bits in two steps.
    */

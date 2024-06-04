@@ -4,9 +4,7 @@
 #include "geo_box.h"
 #include "geo_sphere.h"
 
-#define geo_box_simd_enable 1
-
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -16,7 +14,7 @@ geo_rotate_around(const GeoVector point, const GeoQuat rot, const GeoVector v) {
 }
 
 GeoVector geo_box_center(const GeoBox* b) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec min  = simd_vec_load(b->min.comps);
   const SimdVec max  = simd_vec_load(b->max.comps);
   const SimdVec half = simd_vec_broadcast(0.5f);
@@ -30,7 +28,7 @@ GeoVector geo_box_center(const GeoBox* b) {
 }
 
 GeoVector geo_box_size(const GeoBox* b) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec min = simd_vec_load(b->min.comps);
   const SimdVec max = simd_vec_load(b->max.comps);
   GeoVector     res;
@@ -42,7 +40,7 @@ GeoVector geo_box_size(const GeoBox* b) {
 }
 
 GeoVector geo_box_closest_point(const GeoBox* b, const GeoVector point) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec min      = simd_vec_load(b->min.comps);
   const SimdVec max      = simd_vec_load(b->max.comps);
   const SimdVec pointVec = simd_vec_load(point.comps);
@@ -58,7 +56,7 @@ GeoVector geo_box_closest_point(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec centerVec = simd_vec_load(center.comps);
   const SimdVec sizeVec   = simd_vec_load(size.comps);
   const SimdVec halfSize  = simd_vec_mul(sizeVec, simd_vec_broadcast(0.5f));
@@ -91,7 +89,7 @@ GeoBox geo_box_inverted3(void) {
 bool geo_box_is_inverted2(const GeoBox* b) { return b->min.x > b->max.x || b->min.y > b->max.y; }
 
 bool geo_box_is_inverted3(const GeoBox* b) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec min = simd_vec_load(b->min.comps);
   const SimdVec max = simd_vec_load(b->max.comps);
   // NOTE: The non-simd impl doesn't take the w into account, is it worth ignoring it here also?
@@ -115,7 +113,7 @@ GeoBox geo_box_encapsulate2(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec p   = simd_vec_load(point.comps);
   const SimdVec min = simd_vec_min(simd_vec_load(b->min.comps), p);
   const SimdVec max = simd_vec_max(simd_vec_load(b->max.comps), p);
@@ -133,7 +131,7 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec min     = simd_vec_load(b->min.comps);
   const SimdVec max     = simd_vec_load(b->max.comps);
   const SimdVec sizeVec = simd_vec_load(size.comps);
@@ -163,7 +161,7 @@ void geo_box_corners3(const GeoBox* box, GeoVector corners[PARAM_ARRAY_SIZE(8)])
 
 GeoBox
 geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   SimdVec       min      = simd_vec_broadcast(f32_max);
   SimdVec       max      = simd_vec_broadcast(f32_min);
   const SimdVec posVec   = simd_vec_load(pos.comps);
@@ -207,7 +205,7 @@ geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, co
 }
 
 GeoBox geo_box_from_sphere(const GeoVector pos, const f32 radius) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vPos    = simd_vec_load(pos.comps);
   const SimdVec vRadius = simd_vec_clear_w(simd_vec_broadcast(radius));
   GeoBox        newBox;
@@ -223,7 +221,7 @@ GeoBox geo_box_from_sphere(const GeoVector pos, const f32 radius) {
 }
 
 GeoBox geo_box_from_rotated(const GeoBox* box, const GeoQuat rot) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   SimdVec       min     = simd_vec_broadcast(f32_max);
   SimdVec       max     = simd_vec_broadcast(f32_min);
   const SimdVec quatVec = simd_vec_load(rot.comps);
@@ -267,7 +265,7 @@ GeoBox geo_box_from_rotated(const GeoBox* box, const GeoQuat rot) {
 }
 
 GeoBox geo_box_from_capsule(const GeoVector a, const GeoVector b, const f32 radius) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vRadius = simd_vec_clear_w(simd_vec_broadcast(radius));
   const SimdVec vA      = simd_vec_load(a.comps);
   const SimdVec vAMin   = simd_vec_sub(vA, vRadius);
@@ -290,7 +288,7 @@ GeoBox geo_box_from_capsule(const GeoVector a, const GeoVector b, const f32 radi
 }
 
 GeoBox geo_box_from_cylinder(const GeoVector a, const GeoVector b, const f32 radius) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vA        = simd_vec_load(a.comps);
   const SimdVec vB        = simd_vec_load(b.comps);
   const SimdVec toB       = simd_vec_sub(vB, vA);
@@ -319,7 +317,7 @@ GeoBox geo_box_from_cylinder(const GeoVector a, const GeoVector b, const f32 rad
 }
 
 GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 radius) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vBottom   = simd_vec_load(bottom.comps);
   const SimdVec vTop      = simd_vec_load(top.comps);
   const SimdVec toTop     = simd_vec_sub(vTop, vBottom);
@@ -346,7 +344,7 @@ GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 
 }
 
 GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec fromVec = simd_vec_load(from.comps);
   const SimdVec toVec   = simd_vec_load(to.comps);
 
@@ -364,7 +362,7 @@ GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
 
 GeoBox
 geo_box_from_quad(const GeoVector center, const f32 sizeX, const f32 sizeY, const GeoQuat rot) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   SimdVec       min       = simd_vec_broadcast(f32_max);
   SimdVec       max       = simd_vec_broadcast(f32_min);
   const SimdVec centerVec = simd_vec_load(center.comps);
@@ -464,7 +462,7 @@ f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray, GeoVector* outNo
 }
 
 bool geo_box_overlap(const GeoBox* x, const GeoBox* y) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec xMin = simd_vec_load(x->min.comps);
   const SimdVec xMax = simd_vec_load(x->max.comps);
   const SimdVec yMin = simd_vec_load(y->min.comps);
@@ -484,7 +482,7 @@ bool geo_box_overlap_sphere(const GeoBox* box, const GeoSphere* sphere) {
 }
 
 bool geo_box_overlap_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4]) {
-#if geo_box_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec boxMin = simd_vec_load(box->min.comps);
   const SimdVec boxMax = simd_vec_load(box->max.comps);
   if (simd_vec_mask_u32(simd_vec_greater(boxMin, boxMax)) != 0b0000) {

@@ -44,7 +44,7 @@
 #elif defined(VOLO_MSVC)
 #define UNREACHABLE __assume(false);
 #else
-ASSERT(false, "Unsupported compiler");
+#error Unsupported compiler
 #endif
 
 /**
@@ -107,7 +107,7 @@ ASSERT(false, "Unsupported compiler");
 #elif defined(VOLO_MSVC)
 #define COMPILER_BARRIER(void) _ReadWriteBarrier()
 #else
-ASSERT(false, "Unsupported compiler");
+#error Unsupported compiler
 #endif
 
 /**
@@ -119,7 +119,7 @@ ASSERT(false, "Unsupported compiler");
 #elif defined(VOLO_MSVC)
 #define THREAD_LOCAL __declspec(thread)
 #else
-ASSERT(false, "Unsupported compiler");
+#error Unsupported compiler
 #endif
 
 /**
@@ -131,7 +131,7 @@ ASSERT(false, "Unsupported compiler");
 #elif defined(VOLO_MSVC)
 #define PARAM_ARRAY_SIZE(_SIZE_) _SIZE_
 #else
-ASSERT(false, "Unsupported compiler");
+#error Unsupported compiler
 #endif
 
 /**

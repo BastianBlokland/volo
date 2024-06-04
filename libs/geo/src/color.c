@@ -6,9 +6,7 @@
 #include "core_math.h"
 #include "geo_color.h"
 
-#define geo_color_simd_enable 1
-
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -32,7 +30,7 @@ bool geo_color_equal(const GeoColor a, const GeoColor b, const f32 threshold) {
 }
 
 GeoColor geo_color_abs(const GeoColor c) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_abs(simd_vec_load(c.data)), res.data);
   return res;
@@ -42,7 +40,7 @@ GeoColor geo_color_abs(const GeoColor c) {
 }
 
 GeoColor geo_color_add(const GeoColor a, const GeoColor b) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_add(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
   return res;
@@ -52,7 +50,7 @@ GeoColor geo_color_add(const GeoColor a, const GeoColor b) {
 }
 
 GeoColor geo_color_sub(const GeoColor a, const GeoColor b) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_sub(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
   return res;
@@ -62,7 +60,7 @@ GeoColor geo_color_sub(const GeoColor a, const GeoColor b) {
 }
 
 GeoColor geo_color_mul(const GeoColor c, const f32 scalar) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_mul(simd_vec_load(c.data), simd_vec_broadcast(scalar)), res.data);
   return res;
@@ -72,7 +70,7 @@ GeoColor geo_color_mul(const GeoColor c, const f32 scalar) {
 }
 
 GeoColor geo_color_mul_comps(const GeoColor a, const GeoColor b) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_mul(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
   return res;
@@ -82,7 +80,7 @@ GeoColor geo_color_mul_comps(const GeoColor a, const GeoColor b) {
 }
 
 GeoColor geo_color_div(const GeoColor c, const f32 scalar) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_div(simd_vec_load(c.data), simd_vec_broadcast(scalar)), res.data);
   return res;
@@ -93,7 +91,7 @@ GeoColor geo_color_div(const GeoColor c, const f32 scalar) {
 }
 
 GeoColor geo_color_div_comps(const GeoColor a, const GeoColor b) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_div(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
   return res;
@@ -103,7 +101,7 @@ GeoColor geo_color_div_comps(const GeoColor a, const GeoColor b) {
 }
 
 f32 geo_color_mag(const GeoColor c) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec tmp = simd_vec_load(c.data);
   const SimdVec dot = simd_vec_dot4(tmp, tmp);
   return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
@@ -118,7 +116,7 @@ f32 geo_color_mag(const GeoColor c) {
 }
 
 GeoColor geo_color_lerp(const GeoColor x, const GeoColor y, const f32 t) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vX = simd_vec_load(x.data);
   const SimdVec vY = simd_vec_load(y.data);
   const SimdVec vT = simd_vec_broadcast(t);
@@ -141,7 +139,7 @@ GeoColor geo_color_bilerp(
     const GeoColor c4,
     const f32      tX,
     const f32      tY) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vec1  = simd_vec_load(c1.data);
   const SimdVec vec2  = simd_vec_load(c2.data);
   const SimdVec vec3  = simd_vec_load(c3.data);
@@ -159,7 +157,7 @@ GeoColor geo_color_bilerp(
 }
 
 GeoColor geo_color_min(const GeoColor x, const GeoColor y) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_min(simd_vec_load(x.data), simd_vec_load(y.data)), res.data);
   return res;
@@ -174,7 +172,7 @@ GeoColor geo_color_min(const GeoColor x, const GeoColor y) {
 }
 
 GeoColor geo_color_max(const GeoColor x, const GeoColor y) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   GeoColor res;
   simd_vec_store(simd_vec_max(simd_vec_load(x.data), simd_vec_load(y.data)), res.data);
   return res;
@@ -200,7 +198,7 @@ GeoColor geo_color_clamp(const GeoColor c, const f32 maxMagnitude) {
 }
 
 GeoColor geo_color_clamp_comps(const GeoColor c, const GeoColor min, const GeoColor max) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   SimdVec vec = simd_vec_load(c.data);
   vec         = simd_vec_max(vec, simd_vec_load(min.data));
   vec         = simd_vec_min(vec, simd_vec_load(max.data));
@@ -226,7 +224,7 @@ GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
  * Linear to srgb curve approximation.
  * Implementation based on: http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
  */
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vecLinear = simd_vec_load(linear.data);
   const SimdVec s1        = simd_vec_sqrt(vecLinear);
   const SimdVec s2        = simd_vec_sqrt(s1);
@@ -302,7 +300,7 @@ GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value
 }
 
 void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
-#if geo_color_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vecF32 = simd_vec_load(color.data);
   SimdVec       vecF16;
   if (g_f16cSupport) {

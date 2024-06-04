@@ -6,9 +6,7 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#define geo_quat_simd_enable 1
-
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -22,7 +20,7 @@ GeoQuat geo_quat_angle_axis(const f32 angle, const GeoVector axis) {
   assert_normalized(axis);
 #endif
 
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec angleVec     = simd_vec_broadcast(angle);
   const SimdVec angleHalfVec = simd_vec_mul(angleVec, simd_vec_broadcast(0.5f));
 
@@ -46,7 +44,7 @@ GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   GeoQuat res;
   simd_vec_store(simd_quat_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -61,7 +59,7 @@ GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
 }
 
 GeoQuat geo_quat_mul_comps(const GeoQuat a, const GeoVector b) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   GeoQuat res;
   simd_vec_store(simd_vec_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -76,7 +74,7 @@ GeoQuat geo_quat_mul_comps(const GeoQuat a, const GeoVector b) {
 }
 
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_quat_rotate(simd_vec_load(q.comps), simd_vec_load(v.comps)), res.comps);
   return res;
@@ -93,7 +91,7 @@ GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 
 GeoQuat geo_quat_inverse(const GeoQuat q) {
   // Compute the conjugate ('transposing').
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   GeoQuat res;
   simd_vec_store(simd_quat_conjugate(simd_vec_load(q.comps)), res.comps);
   return res;
@@ -103,7 +101,7 @@ GeoQuat geo_quat_inverse(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_flip(const GeoQuat q) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   GeoQuat res;
   simd_vec_store(simd_vec_mul(simd_vec_load(q.comps), simd_vec_broadcast(-1.0f)), res.comps);
   return res;
@@ -118,7 +116,7 @@ GeoQuat geo_quat_flip(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_norm(const GeoQuat q) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   GeoQuat res;
   simd_vec_store(simd_quat_norm(simd_vec_load(q.comps)), res.comps);
   return res;
@@ -130,7 +128,7 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_norm_or_ident(const GeoQuat q) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec qVec   = simd_vec_load(q.comps);
   const SimdVec magSqr = simd_vec_dot4(qVec, qVec);
   if (simd_vec_x(magSqr) < f32_epsilon) {
@@ -151,7 +149,7 @@ GeoQuat geo_quat_norm_or_ident(const GeoQuat q) {
 }
 
 f32 geo_quat_dot(const GeoQuat a, const GeoQuat b) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));
 #else
   f32 res = 0;
@@ -177,7 +175,7 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
    * https://zeux.io/2016/05/05/optimizing-slerp/
    */
 
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   // Implementation of Zeux's onlerp.
   const SimdVec l          = simd_vec_load(a.comps);
   const SimdVec r          = simd_vec_load(b.comps);
@@ -373,7 +371,7 @@ bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
 }
 
 void geo_quat_pack_f16(const GeoQuat quat, f16 out[PARAM_ARRAY_SIZE(4)]) {
-#if geo_quat_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vecF32 = simd_vec_load(quat.comps);
   SimdVec       vecF16;
   if (g_f16cSupport) {

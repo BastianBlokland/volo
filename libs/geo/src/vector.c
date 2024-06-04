@@ -6,9 +6,7 @@
 #include "core_rng.h"
 #include "geo_vector.h"
 
-#define geo_vec_simd_enable 1
-
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -23,7 +21,7 @@ bool geo_vector_equal3(const GeoVector a, const GeoVector b, const f32 threshold
 }
 
 GeoVector geo_vector_abs(const GeoVector vec) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_abs(simd_vec_load(vec.comps)), res.comps);
   return res;
@@ -33,7 +31,7 @@ GeoVector geo_vector_abs(const GeoVector vec) {
 }
 
 GeoVector geo_vector_add(const GeoVector a, const GeoVector b) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_add(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -43,7 +41,7 @@ GeoVector geo_vector_add(const GeoVector a, const GeoVector b) {
 }
 
 GeoVector geo_vector_sub(const GeoVector a, const GeoVector b) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_sub(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -53,7 +51,7 @@ GeoVector geo_vector_sub(const GeoVector a, const GeoVector b) {
 }
 
 GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_mul(simd_vec_load(v.comps), simd_vec_broadcast(scalar)), res.comps);
   return res;
@@ -63,7 +61,7 @@ GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
 }
 
 GeoVector geo_vector_mul_comps(const GeoVector a, const GeoVector b) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -74,7 +72,7 @@ GeoVector geo_vector_mul_comps(const GeoVector a, const GeoVector b) {
 
 GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   diag_assert(scalar != 0);
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_div(simd_vec_load(v.comps), simd_vec_broadcast(scalar)), res.comps);
   return res;
@@ -84,7 +82,7 @@ GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
 }
 
 GeoVector geo_vector_div_comps(const GeoVector a, const GeoVector b) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_div(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -94,7 +92,7 @@ GeoVector geo_vector_div_comps(const GeoVector a, const GeoVector b) {
 }
 
 f32 geo_vector_mag_sqr(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vec = simd_vec_load(v.comps);
   return simd_vec_x(simd_vec_dot4(vec, vec));
 #else
@@ -103,7 +101,7 @@ f32 geo_vector_mag_sqr(const GeoVector v) {
 }
 
 f32 geo_vector_mag(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vec = simd_vec_load(v.comps);
   const SimdVec dot = simd_vec_dot4(vec, vec);
   return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
@@ -114,7 +112,7 @@ f32 geo_vector_mag(const GeoVector v) {
 }
 
 GeoVector geo_vector_norm(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vec    = simd_vec_load(v.comps);
   const SimdVec sqrMag = simd_vec_dot4(vec, vec);
 
@@ -136,7 +134,7 @@ GeoVector geo_vector_norm_or(const GeoVector v, const GeoVector fallback) {
 }
 
 f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));
 #else
   f32 res = 0;
@@ -149,7 +147,7 @@ f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
 }
 
 GeoVector geo_vector_cross3(const GeoVector a, const GeoVector b) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_cross3(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -184,7 +182,7 @@ GeoVector geo_vector_reflect(const GeoVector v, const GeoVector nrm) {
 }
 
 GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vX = simd_vec_load(x.comps);
   const SimdVec vY = simd_vec_load(y.comps);
   const SimdVec vT = simd_vec_broadcast(t);
@@ -208,7 +206,7 @@ GeoVector geo_vector_bilerp(
     const GeoVector v4,
     const f32       tX,
     const f32       tY) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vec1  = simd_vec_load(v1.comps);
   const SimdVec vec2  = simd_vec_load(v2.comps);
   const SimdVec vec3  = simd_vec_load(v3.comps);
@@ -226,7 +224,7 @@ GeoVector geo_vector_bilerp(
 }
 
 GeoVector geo_vector_min(const GeoVector x, const GeoVector y) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_min(simd_vec_load(x.comps), simd_vec_load(y.comps)), res.comps);
   return res;
@@ -241,7 +239,7 @@ GeoVector geo_vector_min(const GeoVector x, const GeoVector y) {
 }
 
 GeoVector geo_vector_max(const GeoVector x, const GeoVector y) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_max(simd_vec_load(x.comps), simd_vec_load(y.comps)), res.comps);
   return res;
@@ -259,7 +257,7 @@ GeoVector geo_vector_xyz(const GeoVector v) { return geo_vector(v.x, v.y, v.z, 0
 GeoVector geo_vector_xz(const GeoVector v) { return geo_vector(v.x, 0, v.z, 0); }
 
 GeoVector geo_vector_sqrt(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_sqrt(simd_vec_load(v.comps)), res.comps);
   return res;
@@ -284,7 +282,7 @@ GeoVector geo_vector_clamp(const GeoVector v, const f32 maxMagnitude) {
 }
 
 GeoVector geo_vector_clamp_comps(const GeoVector v, const GeoVector min, const GeoVector max) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   SimdVec vec = simd_vec_load(v.comps);
   vec         = simd_vec_max(vec, simd_vec_load(min.comps));
   vec         = simd_vec_min(vec, simd_vec_load(max.comps));
@@ -302,7 +300,7 @@ GeoVector geo_vector_clamp_comps(const GeoVector v, const GeoVector min, const G
 }
 
 GeoVector geo_vector_round_nearest(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_round_nearest(simd_vec_load(v.comps)), res.comps);
   return res;
@@ -317,7 +315,7 @@ GeoVector geo_vector_round_nearest(const GeoVector v) {
 }
 
 GeoVector geo_vector_round_down(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_round_down(simd_vec_load(v.comps)), res.comps);
   return res;
@@ -332,7 +330,7 @@ GeoVector geo_vector_round_down(const GeoVector v) {
 }
 
 GeoVector geo_vector_round_up(const GeoVector v) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   GeoVector res;
   simd_vec_store(simd_vec_round_up(simd_vec_load(v.comps)), res.comps);
   return res;
@@ -368,7 +366,7 @@ GeoVector geo_vector_quantize3(const GeoVector v, const u8 maxMantissaBits) {
 }
 
 void geo_vector_pack_f16(const GeoVector v, f16 out[PARAM_ARRAY_SIZE(4)]) {
-#if geo_vec_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vecF32 = simd_vec_load(v.comps);
   SimdVec       vecF16;
   if (g_f16cSupport) {

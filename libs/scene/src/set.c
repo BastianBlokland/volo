@@ -12,13 +12,11 @@
 #include "scene_set.h"
 #include "scene_tag.h"
 
-#define scene_set_simd_enable 1
-#define scene_set_wellknown_names 1
-
-#if scene_set_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
+#define scene_set_wellknown_names 1
 #define scene_set_max 64
 
 typedef struct {
@@ -42,7 +40,7 @@ static void set_storage_destroy(SetStorage* s) {
 }
 
 static u32 set_storage_index(const SetStorage* s, const StringHash set) {
-#if scene_set_simd_enable
+#ifdef VOLO_SIMD
   ASSERT((scene_set_max % 8) == 0, "Only multiple of 8 set counts are supported");
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
@@ -67,7 +65,7 @@ static u32 set_storage_index(const SetStorage* s, const StringHash set) {
 }
 
 static u32 set_storage_index_free(const SetStorage* s) {
-#if scene_set_simd_enable
+#ifdef VOLO_SIMD
   ASSERT((scene_set_max % 8) == 0, "Only multiple of 8 set counts are supported");
 
   for (u32 setIdx = 0; setIdx != scene_set_max; setIdx += 8) {
@@ -282,7 +280,7 @@ static void ecs_destruct_set_env_comp(void* data) {
 }
 
 static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
-#if scene_set_simd_enable
+#ifdef VOLO_SIMD
   ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
@@ -302,7 +300,7 @@ static bool set_member_contains(const SceneSetMemberComp* member, const StringHa
 }
 
 static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
-#if scene_set_simd_enable
+#ifdef VOLO_SIMD
   ASSERT(scene_set_member_max_sets == 8, "set_member_add only supports 8 elems at the moment")
 
   const SimdVec setVec      = simd_vec_broadcast_u32(set);
@@ -343,7 +341,7 @@ static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
 }
 
 static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) {
-#if scene_set_simd_enable
+#ifdef VOLO_SIMD
   ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);

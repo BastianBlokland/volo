@@ -3,6 +3,10 @@
 #include "core_intrinsic.h"
 #include "core_types.h"
 
+#ifndef VOLO_SIMD
+#error SIMD support not enabled
+#endif
+
 /**
  * SIMD vector utilities using SSE, SSE2 and SSE3, SSE4 and SSE4.1 instructions.
  * https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html

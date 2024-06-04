@@ -8,7 +8,7 @@
 #elif defined(VOLO_WIN32)
 #define thread_pal_rettype unsigned long
 #else
-ASSERT(false, "Unsupported platform");
+#error Unsupported platform
 #endif
 
 void thread_pal_init(void);

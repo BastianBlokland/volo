@@ -13,9 +13,7 @@
 #include "resource_internal.h"
 #include "rvk/texture_internal.h"
 
-#define rend_draw_simd_enable 1
-
-#if rend_draw_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -51,7 +49,7 @@ ecs_comp_define(RendDrawComp) {
  * Pre-condition: bits_is_aligned(size, 16)
  */
 INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize size) {
-#if rend_draw_simd_enable
+#ifdef VOLO_SIMD
   const void* end = bits_ptr_offset(src, size);
   for (; src != end; src += 16, dst += 16) {
     simd_copy_128(dst, src);

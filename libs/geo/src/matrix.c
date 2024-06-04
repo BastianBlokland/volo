@@ -4,9 +4,7 @@
 #include "core_math.h"
 #include "geo_matrix.h"
 
-#define geo_matrix_simd_enable 1
-
-#if geo_matrix_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -55,7 +53,7 @@ GeoVector geo_matrix_row(const GeoMatrix* m, const usize index) {
 }
 
 GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b) {
-#if geo_matrix_simd_enable
+#ifdef VOLO_SIMD
   GeoMatrix res;
 
   const SimdVec aCol0 = simd_vec_load(a->columns[0].comps);
@@ -137,7 +135,7 @@ GeoVector geo_matrix_transform3_point(const GeoMatrix* m, const GeoVector vec) {
 }
 
 GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
-#if geo_matrix_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec col0 = simd_vec_load(m->columns[0].comps);
   const SimdVec col1 = simd_vec_load(m->columns[1].comps);
   const SimdVec col2 = simd_vec_load(m->columns[2].comps);
@@ -353,7 +351,7 @@ GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const Geo
 }
 
 GeoMatrix geo_matrix_rotate_look(const GeoVector forward, const GeoVector upRef) {
-#if geo_matrix_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec vForward       = simd_vec_load(forward.comps);
   const SimdVec vForwardSqrMag = simd_vec_dot3(vForward, vForward);
   if (UNLIKELY(simd_vec_x(vForwardSqrMag) <= f32_epsilon)) {
@@ -408,7 +406,7 @@ GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
  * [ 2xz + 2wy,       2yz - 2wx,      1 - 2x² - 2y², 0 ]
  * [ 0,               0,              0,             1 ]
  */
-#if geo_matrix_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec q  = simd_vec_load(quat.comps);
   const SimdVec q0 = simd_vec_add(q, q);
   SimdVec       q1 = simd_vec_mul(q, q0);
@@ -524,7 +522,7 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
 }
 
 GeoMatrix geo_matrix_trs(const GeoVector t, const GeoQuat r, const GeoVector s) {
-#if geo_matrix_simd_enable
+#ifdef VOLO_SIMD
   /**
    * Inlined geo_matrix_from_quat() with added scaling and translation.
    */

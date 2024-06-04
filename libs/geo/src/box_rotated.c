@@ -5,9 +5,7 @@
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"
 
-#define geo_box_rotated_simd_enable 1
-
-#if geo_box_rotated_simd_enable
+#ifdef VOLO_SIMD
 #include "core_simd.h"
 #endif
 
@@ -71,7 +69,7 @@ static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
 
 GeoBoxRotated
 geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
-#if geo_box_rotated_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec localMin  = simd_vec_load(box->min.comps);
   const SimdVec localMax  = simd_vec_load(box->max.comps);
   const SimdVec posVec    = simd_vec_load(pos.comps);
@@ -99,7 +97,7 @@ geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const
 }
 
 GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector size) {
-#if geo_box_rotated_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec localMin = simd_vec_load(b->box.min.comps);
   const SimdVec localMax = simd_vec_load(b->box.max.comps);
   const SimdVec sizeVec  = simd_vec_load(size.comps);
@@ -141,7 +139,7 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
 
 MAYBE_UNUSED static GeoVector
 geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
-#if geo_box_rotated_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec localPointVec = simd_vec_load(localPoint.comps);
   const SimdVec localMin      = simd_vec_load(box->box.min.comps);
   const SimdVec localMax      = simd_vec_load(box->box.max.comps);
@@ -161,7 +159,7 @@ geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint
 }
 
 static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
-#if geo_box_rotated_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec pointVec    = simd_vec_load(point.comps);
   const SimdVec localMin    = simd_vec_load(box->box.min.comps);
   const SimdVec localMax    = simd_vec_load(box->box.max.comps);
@@ -210,7 +208,7 @@ f32 geo_box_rotated_intersect_ray(
 }
 
 GeoVector geo_box_rotated_closest_point(const GeoBoxRotated* boxRotated, const GeoVector point) {
-#if geo_box_rotated_simd_enable
+#ifdef VOLO_SIMD
   const SimdVec localMin    = simd_vec_load(boxRotated->box.min.comps);
   const SimdVec localMax    = simd_vec_load(boxRotated->box.max.comps);
   const SimdVec half        = simd_vec_broadcast(0.5f);
