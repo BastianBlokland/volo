@@ -21,7 +21,7 @@
 #elif defined(VOLO_WIN32)
 #include <vulkan/vulkan_win32.h>
 #else
-ASSERT(false, "Unsupported platform");
+#error Unsupported platform
 #endif
 
 #define swapchain_images_max 5
