@@ -36,6 +36,15 @@ f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
   return a - f;
 }
 
+f32 geo_sphere_intersect_ray_info(
+    const GeoSphere* sphere, const GeoRay* ray, GeoVector* outNormal) {
+  const f32 hitT = geo_sphere_intersect_ray(sphere, ray);
+  if (hitT >= 0) {
+    *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
+  }
+  return hitT;
+}
+
 bool geo_sphere_overlap(const GeoSphere* a, const GeoSphere* b) {
   const f32 distSqr = geo_vector_mag_sqr(geo_vector_sub(b->point, a->point));
   return distSqr <= ((a->radius + b->radius) * (a->radius + b->radius));

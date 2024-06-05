@@ -276,13 +276,11 @@ f32 scene_collision_intersect_ray(
   } break;
   case SceneCollisionType_Capsule: {
     const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
-    GeoVector        normal;
-    return geo_capsule_intersect_ray(&capsule, ray, &normal);
+    return geo_capsule_intersect_ray(&capsule, ray);
   } break;
   case SceneCollisionType_Box: {
     const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
-    GeoVector           normal;
-    return geo_box_rotated_intersect_ray(&boxRotated, ray, &normal);
+    return geo_box_rotated_intersect_ray(&boxRotated, ray);
   } break;
   default:
     diag_crash();

@@ -188,19 +188,17 @@ static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* 
   };
 }
 
-f32 geo_box_rotated_intersect_ray(
-    const GeoBoxRotated* box, const GeoRay* ray, GeoVector* outNormal) {
-  /**
-   * Transform the ray to the local space of the box and perform the intersection on the non-rotated
-   * box.
-   */
-
+f32 geo_box_rotated_intersect_ray(const GeoBoxRotated* box, const GeoRay* ray) {
   const GeoRay localRay = geo_box_rotated_local_ray(box, ray);
-  const f32    rayHitT  = geo_box_intersect_ray(&box->box, &localRay, outNormal);
+  return geo_box_intersect_ray(&box->box, &localRay);
+}
+
+f32 geo_box_rotated_intersect_ray_info(
+    const GeoBoxRotated* box, const GeoRay* ray, GeoVector* outNormal) {
+  const GeoRay localRay = geo_box_rotated_local_ray(box, ray);
+  const f32    rayHitT  = geo_box_intersect_ray_info(&box->box, &localRay, outNormal);
   if (rayHitT >= 0.0f) {
-    /**
-     * Transform the surface normal back to world-space.
-     */
+    // Transform the surface normal back to world-space.
     *outNormal = geo_quat_rotate(box->rotation, *outNormal);
   }
 
