@@ -7,6 +7,20 @@
 
 spec(simd) {
 
+  it("can find the min element") {
+    check_eq_float(simd_vec_x(simd_vec_min_elem(simd_vec_set(-1, 4, 6, -42))), -42, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_min_elem(simd_vec_set(-1, 4, -42, 6))), -42, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_min_elem(simd_vec_set(-1, -42, 4, 6))), -42, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_min_elem(simd_vec_set(-42, -1, 4, 6))), -42, 1e-8f);
+  }
+
+  it("can find the max element") {
+    check_eq_float(simd_vec_x(simd_vec_max_elem(simd_vec_set(-1, 4, 6, 42))), 42, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_max_elem(simd_vec_set(-1, 4, 42, 6))), 42, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_max_elem(simd_vec_set(-1, 42, 4, 6))), 42, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_max_elem(simd_vec_set(42, -1, 4, 6))), 42, 1e-8f);
+  }
+
   it("can convert f32 to f16") {
     struct {
       ALIGNAS(16) f32 in[4];
