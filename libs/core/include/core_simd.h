@@ -195,15 +195,29 @@ simd_vec_select(const SimdVec a, const SimdVec b, const SimdVec mask) {
   return _mm_blendv_ps(a, b, mask);
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min_elem(SimdVec vec) {
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min_comp(SimdVec vec) {
   SimdVec tmp = simd_vec_permute(vec, 2, 3, 2, 3);
   tmp         = simd_vec_min(vec, tmp);
   vec         = simd_vec_permute(tmp, 1, 1, 1, 1);
   return simd_vec_min(vec, tmp);
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_max_elem(SimdVec vec) {
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min_comp3(SimdVec vec) {
+  SimdVec tmp = simd_vec_permute(vec, 2, 2, 2, 2);
+  tmp         = simd_vec_min(vec, tmp);
+  vec         = simd_vec_permute(tmp, 1, 1, 1, 1);
+  return simd_vec_min(vec, tmp);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_max_comp(SimdVec vec) {
   SimdVec tmp = simd_vec_permute(vec, 2, 3, 2, 3);
+  tmp         = simd_vec_max(vec, tmp);
+  vec         = simd_vec_permute(tmp, 1, 1, 1, 1);
+  return simd_vec_max(vec, tmp);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_max_comp3(SimdVec vec) {
+  SimdVec tmp = simd_vec_permute(vec, 2, 2, 2, 2);
   tmp         = simd_vec_max(vec, tmp);
   vec         = simd_vec_permute(tmp, 1, 1, 1, 1);
   return simd_vec_max(vec, tmp);
