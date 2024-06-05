@@ -419,7 +419,7 @@ f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray) {
   const SimdVec epsVec    = simd_vec_broadcast(f32_epsilon);
   const SimdVec pointVec  = simd_vec_load(ray->point.comps);
   const SimdVec dirVec    = simd_vec_load(ray->dir.comps);
-  const SimdVec dirVecInv = simd_vec_div(simd_vec_broadcast(1.0f), simd_vec_add(dirVec, epsVec));
+  const SimdVec dirVecInv = simd_vec_reciprocal(simd_vec_add(dirVec, epsVec));
 
   const SimdVec boxMinVec = simd_vec_load(box->min.comps);
   const SimdVec boxMaxVec = simd_vec_load(box->max.comps);

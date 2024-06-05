@@ -195,6 +195,10 @@ simd_vec_select(const SimdVec a, const SimdVec b, const SimdVec mask) {
   return _mm_blendv_ps(a, b, mask);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_reciprocal(const SimdVec vec) {
+  return _mm_rcp_ps(vec);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min_comp(SimdVec vec) {
   SimdVec tmp = simd_vec_permute(vec, 2, 3, 2, 3);
   tmp         = simd_vec_min(vec, tmp);
