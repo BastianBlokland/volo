@@ -7,7 +7,9 @@
 #include "core_math.h"
 #include "core_thread.h"
 #include "geo_box_rotated.h"
+#include "geo_capsule.h"
 #include "geo_query.h"
+#include "geo_sphere.h"
 
 #define geo_query_shape_align 16
 
@@ -339,6 +341,14 @@ void geo_query_insert_box_rotated(
   prim->bounds[prim->count]                 = geo_box_from_rotated(&box.box, box.rotation);
   ((GeoBoxRotated*)prim->data)[prim->count] = box;
   ++prim->count;
+}
+
+void geo_query_build(GeoQueryEnv* env) {
+  (void)env;
+  (void)shape_handle;
+  (void)shape_bounds;
+  (void)shape_layer;
+  (void)shape_id;
 }
 
 bool geo_query_ray(

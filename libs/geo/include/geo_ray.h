@@ -5,7 +5,7 @@
  * Ray in 3 dimensional space.
  */
 
-typedef struct {
+typedef struct sGeoRay {
   GeoVector point;
   GeoVector dir; // Normalized.
 } GeoRay;

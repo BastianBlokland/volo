@@ -9,7 +9,7 @@ typedef struct sGeoSphere GeoSphere;
  * Capsule in 3 dimensional space.
  */
 
-typedef struct {
+typedef struct sGeoCapsule {
   GeoLine line;
   f32     radius;
 } GeoCapsule;

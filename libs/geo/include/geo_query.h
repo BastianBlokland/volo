@@ -1,11 +1,14 @@
 #pragma once
-#include "geo_box_rotated.h"
-#include "geo_capsule.h"
-#include "geo_ray.h"
-#include "geo_sphere.h"
+#include "geo_vector.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
+
+// Shape forward declares.
+typedef struct sGeoBoxRotated GeoBoxRotated;
+typedef struct sGeoCapsule    GeoCapsule;
+typedef struct sGeoRay        GeoRay;
+typedef struct sGeoSphere     GeoSphere;
 
 /**
  * Maximum number of objects that can be hit using a single query, additional objects are ignored.
@@ -45,15 +48,22 @@ void geo_query_env_destroy(GeoQueryEnv*);
 
 /**
  * Clear all shapes from the environment.
+ * NOTE: Invalidates previous build.
  */
 void geo_query_env_clear(GeoQueryEnv*);
 
 /**
  * Insert geometric shapes into the environment.
+ * NOTE: Call 'geo_query_build()' after inserting all the shapes.
  */
 void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id, GeoQueryLayer);
 void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id, GeoQueryLayer);
 void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id, GeoQueryLayer);
+
+/**
+ * Build the query using all the inserted shapes.
+ */
+void geo_query_build(GeoQueryEnv*);
 
 typedef struct {
   f32           time;

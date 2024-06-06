@@ -11,6 +11,8 @@
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "geo_box_rotated.h"
+#include "geo_capsule.h"
 #include "geo_query.h"
 #include "input.h"
 #include "scene_camera.h"
@@ -648,6 +650,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
     gizmo_register(gizmo, entry);
     center = i ? geo_vector_add(center, entry->pos) : entry->pos;
   }
+  geo_query_build(gizmo->queryEnv);
   center = gizmo->entries.size ? geo_vector_div(center, gizmo->entries.size) : geo_vector(0);
 
   // Update the editor.

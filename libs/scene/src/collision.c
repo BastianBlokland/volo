@@ -127,6 +127,11 @@ ecs_system_define(SceneCollisionUpdateSys) {
       geo_query_insert_sphere(env->queryEnv, sphere, (u64)e, (GeoQueryLayer)SceneLayer_Debug);
     }
   }
+
+  /**
+   * Build the query.
+   */
+  geo_query_build(env->queryEnv);
 }
 
 ecs_view_define(UpdateStatsGlobalView) {
