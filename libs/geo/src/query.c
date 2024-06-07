@@ -306,11 +306,11 @@ static void bvh_insert_root(QueryBvh* bvh, const GeoQueryEnv* env) {
   bvh->nodes[0] = (QueryBvhNode){.bounds = geo_box_inverted3()};
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
-    for (u32 idx = 0; idx != prim->count; ++idx) {
+    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
       const u32 shapeIdx    = bvh->nodes[0].shapeCount++;
-      bvh->shapes[shapeIdx] = shape_handle(primType, idx);
-      bvh->nodes[0].layers |= prim->layers[idx];
-      bvh->nodes[0].bounds = geo_box_encapsulate_box(&bvh->nodes[0].bounds, &prim->bounds[idx]);
+      bvh->shapes[shapeIdx] = shape_handle(primType, primIdx);
+      bvh->nodes[0].layers |= prim->layers[primIdx];
+      bvh->nodes[0].bounds = geo_box_encapsulate_box(&bvh->nodes[0].bounds, &prim->bounds[primIdx]);
     }
   }
   diag_assert(bvh->capacity >= bvh->nodes[0].shapeCount);
@@ -458,30 +458,30 @@ bool geo_query_ray(
 
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
-    for (u32 idx = 0; idx != prim->count; ++idx) {
-      if (!query_filter_layer(filter, prim->layers[idx])) {
+    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
+      if (!query_filter_layer(filter, prim->layers[primIdx])) {
         continue; // Layer not included in filter.
       }
-      if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
+      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
       GeoVector normal;
-      const f32 hitT = prim_intersect_ray(prim, primType, idx, ray, &normal);
+      const f32 hitT = prim_intersect_ray(prim, primType, primIdx, ray, &normal);
       if (hitT < 0.0 || hitT > maxDist) {
         continue; // Miss.
       }
       if (hitT >= bestHit.time) {
         continue; // Better hit already found.
       }
-      if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
+      if (!query_filter_callback(filter, prim->ids[primIdx], prim->layers[primIdx])) {
         continue; // Filtered out by the filter's callback.
       }
 
       // New best hit.
       bestHit.time    = hitT;
-      bestHit.shapeId = prim->ids[idx];
+      bestHit.shapeId = prim->ids[primIdx];
       bestHit.normal  = normal;
-      bestHit.layer   = prim->layers[idx];
+      bestHit.layer   = prim->layers[primIdx];
       foundHit        = true;
     }
   }
@@ -521,30 +521,30 @@ bool geo_query_ray_fat(
 
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
-    for (u32 idx = 0; idx != prim->count; ++idx) {
-      if (!query_filter_layer(filter, prim->layers[idx])) {
+    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
+      if (!query_filter_layer(filter, prim->layers[primIdx])) {
         continue; // Layer not included in filter.
       }
-      if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
+      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
       GeoVector normal;
-      const f32 hitT = prim_intersect_ray_fat(prim, primType, idx, ray, radius, &normal);
+      const f32 hitT = prim_intersect_ray_fat(prim, primType, primIdx, ray, radius, &normal);
       if (hitT < 0.0 || hitT > maxDist) {
         continue; // Miss.
       }
       if (hitT >= bestHit.time) {
         continue; // Better hit already found.
       }
-      if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
+      if (!query_filter_callback(filter, prim->ids[primIdx], prim->layers[primIdx])) {
         continue; // Filtered out by the filter's callback.
       }
 
       // New best hit.
       bestHit.time    = hitT;
-      bestHit.shapeId = prim->ids[idx];
+      bestHit.shapeId = prim->ids[primIdx];
       bestHit.normal  = normal;
-      bestHit.layer   = prim->layers[idx];
+      bestHit.layer   = prim->layers[primIdx];
       foundHit        = true;
     }
   }
@@ -568,22 +568,22 @@ u32 geo_query_sphere_all(
   u32 count = 0;
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
-    for (u32 idx = 0; idx != prim->count; ++idx) {
-      if (!query_filter_layer(filter, prim->layers[idx])) {
+    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
+      if (!query_filter_layer(filter, prim->layers[primIdx])) {
         continue; // Layer not included in filter.
       }
-      if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
+      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!prim_overlap_sphere(prim, primType, idx, sphere)) {
+      if (!prim_overlap_sphere(prim, primType, primIdx, sphere)) {
         continue; // Miss.
       }
-      if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
+      if (!query_filter_callback(filter, prim->ids[primIdx], prim->layers[primIdx])) {
         continue; // Filtered out by the filter's callback.
       }
 
       // Output hit.
-      out[count++] = prim->ids[idx];
+      out[count++] = prim->ids[primIdx];
       if (UNLIKELY(count == geo_query_max_hits)) {
         goto MaxCountReached;
       }
@@ -607,22 +607,22 @@ u32 geo_query_box_all(
   u32 count = 0;
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
-    for (u32 idx = 0; idx != prim->count; ++idx) {
-      if (!query_filter_layer(filter, prim->layers[idx])) {
+    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
+      if (!query_filter_layer(filter, prim->layers[primIdx])) {
         continue; // Layer not included in filter.
       }
-      if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
+      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!prim_overlap_box_rotated(prim, primType, idx, boxRotated)) {
+      if (!prim_overlap_box_rotated(prim, primType, primIdx, boxRotated)) {
         continue; // Miss.
       }
-      if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
+      if (!query_filter_callback(filter, prim->ids[primIdx], prim->layers[primIdx])) {
         continue; // Filtered out by the filter's callback.
       }
 
       // Output hit.
-      out[count++] = prim->ids[idx];
+      out[count++] = prim->ids[primIdx];
       if (UNLIKELY(count == geo_query_max_hits)) {
         goto MaxCountReached;
       }
@@ -646,22 +646,22 @@ u32 geo_query_frustum_all(
   u32 count = 0;
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
-    for (u32 idx = 0; idx != prim->count; ++idx) {
-      if (!query_filter_layer(filter, prim->layers[idx])) {
+    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
+      if (!query_filter_layer(filter, prim->layers[primIdx])) {
         continue; // Layer not included in filter.
       }
-      if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
+      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!prim_overlap_frustum(prim, primType, idx, frustum)) {
+      if (!prim_overlap_frustum(prim, primType, primIdx, frustum)) {
         continue; // Miss.
       }
-      if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
+      if (!query_filter_callback(filter, prim->ids[primIdx], prim->layers[primIdx])) {
         continue; // Filtered out by the filter's callback.
       }
 
       // Output hit.
-      out[count++] = prim->ids[idx];
+      out[count++] = prim->ids[primIdx];
       if (UNLIKELY(count == geo_query_max_hits)) {
         goto MaxCountReached;
       }
