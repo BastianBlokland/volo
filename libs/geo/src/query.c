@@ -28,7 +28,6 @@ typedef enum {
 } QueryPrimType;
 
 typedef struct {
-  QueryPrimType  type;
   u32            count, capacity;
   u64*           ids;
   GeoQueryLayer* layers;
@@ -59,7 +58,6 @@ static usize prim_data_size(const QueryPrimType type) {
 static QueryPrim prim_create(const QueryPrimType type, const u32 capacity) {
   const usize dataSize = prim_data_size(type) * capacity;
   return (QueryPrim){
-      .type     = type,
       .capacity = capacity,
       .ids      = alloc_array_t(g_allocHeap, u64, capacity),
       .layers   = alloc_array_t(g_allocHeap, GeoQueryLayer, capacity),
@@ -68,15 +66,14 @@ static QueryPrim prim_create(const QueryPrimType type, const u32 capacity) {
   };
 }
 
-static void prim_destroy(QueryPrim* p) {
+static void prim_destroy(QueryPrim* p, const QueryPrimType type) {
   alloc_free_array_t(g_allocHeap, p->ids, p->capacity);
   alloc_free_array_t(g_allocHeap, p->layers, p->capacity);
   alloc_free_array_t(g_allocHeap, p->bounds, p->capacity);
-  alloc_free(g_allocHeap, mem_create(p->data, prim_data_size(p->type) * p->capacity));
+  alloc_free(g_allocHeap, mem_create(p->data, prim_data_size(type) * p->capacity));
 }
 
-static void prim_copy(QueryPrim* dst, const QueryPrim* src) {
-  diag_assert(dst->type == src->type);
+static void prim_copy(QueryPrim* dst, const QueryPrim* src, const QueryPrimType type) {
   diag_assert(dst->capacity >= src->count);
 
 #define cpy_entry_field(_FIELD_, _SIZE_)                                                           \
@@ -87,30 +84,34 @@ static void prim_copy(QueryPrim* dst, const QueryPrim* src) {
   cpy_entry_field(ids, sizeof(u64));
   cpy_entry_field(layers, sizeof(GeoQueryLayer));
   cpy_entry_field(bounds, sizeof(GeoBox));
-  cpy_entry_field(data, prim_data_size(dst->type));
+  cpy_entry_field(data, prim_data_size(type));
 
   dst->count = src->count;
 
 #undef cpy_entry_field
 }
 
-NO_INLINE_HINT static void prim_grow(QueryPrim* p) {
-  QueryPrim newPrim = prim_create(p->type, bits_nextpow2(p->capacity + 1));
-  prim_copy(&newPrim, p);
-  prim_destroy(p);
+NO_INLINE_HINT static void prim_grow(QueryPrim* p, const QueryPrimType type) {
+  QueryPrim newPrim = prim_create(type, bits_nextpow2(p->capacity + 1));
+  prim_copy(&newPrim, p, type);
+  prim_destroy(p, type);
   *p = newPrim;
 }
 
-INLINE_HINT static void prim_ensure_next(QueryPrim* p) {
+INLINE_HINT static void prim_ensure_next(QueryPrim* p, const QueryPrimType type) {
   if (LIKELY(p->capacity != p->count)) {
     return; // Enough space remaining.
   }
-  prim_grow(p);
+  prim_grow(p, type);
 }
 
-static f32
-prim_intersect_ray(const QueryPrim* p, const u32 idx, const GeoRay* ray, GeoVector* outNormal) {
-  switch (p->type) {
+static f32 prim_intersect_ray(
+    const QueryPrim*    p,
+    const QueryPrimType type,
+    const u32           idx,
+    const GeoRay*       ray,
+    GeoVector*          outNormal) {
+  switch (type) {
   case QueryPrimType_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)p->data)[idx];
     return geo_sphere_intersect_ray_info(sphere, ray, outNormal);
@@ -130,8 +131,13 @@ prim_intersect_ray(const QueryPrim* p, const u32 idx, const GeoRay* ray, GeoVect
 }
 
 static f32 prim_intersect_ray_fat(
-    const QueryPrim* p, const u32 idx, const GeoRay* ray, const f32 radius, GeoVector* outNormal) {
-  switch (p->type) {
+    const QueryPrim*    p,
+    const QueryPrimType type,
+    const u32           idx,
+    const GeoRay*       ray,
+    const f32           radius,
+    GeoVector*          outNormal) {
+  switch (type) {
   case QueryPrimType_Sphere: {
     const GeoSphere* sphere        = &((const GeoSphere*)p->data)[idx];
     const GeoSphere  sphereDilated = geo_sphere_dilate(sphere, radius);
@@ -163,8 +169,9 @@ static f32 prim_intersect_ray_fat(
   UNREACHABLE
 }
 
-static bool prim_overlap_sphere(const QueryPrim* p, const u32 idx, const GeoSphere* tgt) {
-  switch (p->type) {
+static bool prim_overlap_sphere(
+    const QueryPrim* p, const QueryPrimType type, const u32 idx, const GeoSphere* tgt) {
+  switch (type) {
   case QueryPrimType_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)p->data)[idx];
     return geo_sphere_overlap(sphere, tgt);
@@ -183,8 +190,9 @@ static bool prim_overlap_sphere(const QueryPrim* p, const u32 idx, const GeoSphe
   UNREACHABLE
 }
 
-static bool prim_overlap_box_rotated(const QueryPrim* p, const u32 idx, const GeoBoxRotated* tgt) {
-  switch (p->type) {
+static bool prim_overlap_box_rotated(
+    const QueryPrim* p, const QueryPrimType type, const u32 idx, const GeoBoxRotated* tgt) {
+  switch (type) {
   case QueryPrimType_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)p->data)[idx];
     return geo_box_rotated_overlap_sphere(tgt, sphere);
@@ -206,8 +214,11 @@ static bool prim_overlap_box_rotated(const QueryPrim* p, const u32 idx, const Ge
 }
 
 static bool prim_overlap_frustum(
-    const QueryPrim* p, const u32 idx, const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
-  switch (p->type) {
+    const QueryPrim*    p,
+    const QueryPrimType type,
+    const u32           idx,
+    const GeoVector     frustum[PARAM_ARRAY_SIZE(8)]) {
+  switch (type) {
   case QueryPrimType_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)p->data)[idx];
     return geo_sphere_overlap_frustum(sphere, frustum);
@@ -291,7 +302,9 @@ GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
 }
 
 void geo_query_env_destroy(GeoQueryEnv* env) {
-  array_for_t(env->prims, QueryPrim, prim) { prim_destroy(prim); }
+  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
+    prim_destroy(&env->prims[primType], primType);
+  }
   alloc_free_t(env->alloc, env);
 }
 
@@ -305,7 +318,7 @@ void geo_query_insert_sphere(
   diag_assert_msg(layer, "Shape needs at least one layer");
 
   QueryPrim* prim = &env->prims[QueryPrimType_Sphere];
-  prim_ensure_next(prim);
+  prim_ensure_next(prim, QueryPrimType_Sphere);
   prim->ids[prim->count]                = id;
   prim->layers[prim->count]             = layer;
   prim->bounds[prim->count]             = geo_box_from_sphere(sphere.point, sphere.radius);
@@ -320,7 +333,7 @@ void geo_query_insert_capsule(
   diag_assert_msg(layer, "Shape needs at least one layer");
 
   QueryPrim* prim = &env->prims[QueryPrimType_Capsule];
-  prim_ensure_next(prim);
+  prim_ensure_next(prim, QueryPrimType_Capsule);
   prim->ids[prim->count]    = id;
   prim->layers[prim->count] = layer;
   prim->bounds[prim->count] = geo_box_from_capsule(capsule.line.a, capsule.line.b, capsule.radius);
@@ -335,7 +348,7 @@ void geo_query_insert_box_rotated(
   diag_assert_msg(layer, "Shape needs at least one layer");
 
   QueryPrim* prim = &env->prims[QueryPrimType_BoxRotated];
-  prim_ensure_next(prim);
+  prim_ensure_next(prim, QueryPrimType_BoxRotated);
   prim->ids[prim->count]                    = id;
   prim->layers[prim->count]                 = layer;
   prim->bounds[prim->count]                 = geo_box_from_rotated(&box.box, box.rotation);
@@ -385,7 +398,7 @@ bool geo_query_ray(
         continue; // Bounds do not intersect; no need to test against the shape.
       }
       GeoVector normal;
-      const f32 hitT = prim_intersect_ray(prim, idx, ray, &normal);
+      const f32 hitT = prim_intersect_ray(prim, primType, idx, ray, &normal);
       if (hitT < 0.0 || hitT > maxDist) {
         continue; // Miss.
       }
@@ -448,7 +461,7 @@ bool geo_query_ray_fat(
         continue; // Bounds do not intersect; no need to test against the shape.
       }
       GeoVector normal;
-      const f32 hitT = prim_intersect_ray_fat(prim, idx, ray, radius, &normal);
+      const f32 hitT = prim_intersect_ray_fat(prim, primType, idx, ray, radius, &normal);
       if (hitT < 0.0 || hitT > maxDist) {
         continue; // Miss.
       }
@@ -494,7 +507,7 @@ u32 geo_query_sphere_all(
       if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!prim_overlap_sphere(prim, idx, sphere)) {
+      if (!prim_overlap_sphere(prim, primType, idx, sphere)) {
         continue; // Miss.
       }
       if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
@@ -533,7 +546,7 @@ u32 geo_query_box_all(
       if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!prim_overlap_box_rotated(prim, idx, boxRotated)) {
+      if (!prim_overlap_box_rotated(prim, primType, idx, boxRotated)) {
         continue; // Miss.
       }
       if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
@@ -572,7 +585,7 @@ u32 geo_query_frustum_all(
       if (!geo_box_overlap(&prim->bounds[idx], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!prim_overlap_frustum(prim, idx, frustum)) {
+      if (!prim_overlap_frustum(prim, primType, idx, frustum)) {
         continue; // Miss.
       }
       if (!query_filter_callback(filter, prim->ids[idx], prim->layers[idx])) {
