@@ -48,10 +48,11 @@ bool geo_box_is_inverted2(const GeoBox*);
 bool geo_box_is_inverted3(const GeoBox*);
 
 /**
- * Compute a new box that encapsulates the existing box and the new point.
+ * Compute a new box that encapsulates the existing box and the new point / box.
  */
 GeoBox geo_box_encapsulate2(const GeoBox*, GeoVector point);
 GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
+GeoBox geo_box_encapsulate_box(const GeoBox*, const GeoBox*);
 
 /**
  * Dilate the box by the given amount on all sides.

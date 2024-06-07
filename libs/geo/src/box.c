@@ -130,6 +130,23 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 #endif
 }
 
+GeoBox geo_box_encapsulate_box(const GeoBox* a, const GeoBox* b) {
+#ifdef VOLO_SIMD
+  const SimdVec min = simd_vec_min(simd_vec_load(a->min.comps), simd_vec_load(b->min.comps));
+  const SimdVec max = simd_vec_max(simd_vec_load(a->max.comps), simd_vec_load(b->max.comps));
+
+  GeoBox newBox;
+  simd_vec_store(min, newBox.min.comps);
+  simd_vec_store(max, newBox.max.comps);
+  return newBox;
+#else
+  return (GeoBox){
+      .min = geo_vector_min(a->min, b->min),
+      .max = geo_vector_max(a->max, b->max),
+  };
+#endif
+}
+
 GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
 #ifdef VOLO_SIMD
   const SimdVec min     = simd_vec_load(b->min.comps);
