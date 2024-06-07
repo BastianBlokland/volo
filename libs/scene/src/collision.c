@@ -8,6 +8,7 @@
 #include "scene_collision.h"
 #include "scene_register.h"
 #include "scene_transform.h"
+#include "trace_tracer.h"
 
 // Forward declare from 'scene_camera.h'.
 ecs_comp_extern(SceneCameraComp);
@@ -75,6 +76,7 @@ ecs_system_define(SceneCollisionUpdateSys) {
   /**
    * Insert geo shapes for all colliders.
    */
+  trace_begin("collision_insert", TraceColor_Blue);
   for (EcsIterator* itr = ecs_view_itr(collisionView); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
@@ -127,11 +129,14 @@ ecs_system_define(SceneCollisionUpdateSys) {
       geo_query_insert_sphere(env->queryEnv, sphere, (u64)e, (GeoQueryLayer)SceneLayer_Debug);
     }
   }
+  trace_end();
 
   /**
    * Build the query.
    */
+  trace_begin("collision_build", TraceColor_Blue);
   geo_query_build(env->queryEnv);
+  trace_end();
 }
 
 ecs_view_define(UpdateStatsGlobalView) {
