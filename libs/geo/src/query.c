@@ -375,8 +375,8 @@ bool geo_query_ray(
   GeoQueryRayHit bestHit  = {.time = f32_max};
   bool           foundHit = false;
 
-  for (u32 primIdx = 0; primIdx != QueryPrimType_Count; ++primIdx) {
-    const QueryPrim* prim = &env->prims[primIdx];
+  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
+    const QueryPrim* prim = &env->prims[primType];
     for (u32 idx = 0; idx != prim->count; ++idx) {
       if (!query_filter_layer(filter, prim->layers[idx])) {
         continue; // Layer not included in filter.
@@ -438,8 +438,8 @@ bool geo_query_ray_fat(
   GeoQueryRayHit bestHit  = {.time = f32_max};
   bool           foundHit = false;
 
-  for (u32 primIdx = 0; primIdx != QueryPrimType_Count; ++primIdx) {
-    const QueryPrim* prim = &env->prims[primIdx];
+  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
+    const QueryPrim* prim = &env->prims[primType];
     for (u32 idx = 0; idx != prim->count; ++idx) {
       if (!query_filter_layer(filter, prim->layers[idx])) {
         continue; // Layer not included in filter.
@@ -485,8 +485,8 @@ u32 geo_query_sphere_all(
   const GeoBox queryBounds = geo_box_from_sphere(sphere->point, sphere->radius);
 
   u32 count = 0;
-  for (u32 primIdx = 0; primIdx != QueryPrimType_Count; ++primIdx) {
-    const QueryPrim* prim = &env->prims[primIdx];
+  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
+    const QueryPrim* prim = &env->prims[primType];
     for (u32 idx = 0; idx != prim->count; ++idx) {
       if (!query_filter_layer(filter, prim->layers[idx])) {
         continue; // Layer not included in filter.
@@ -524,8 +524,8 @@ u32 geo_query_box_all(
   const GeoBox queryBounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
 
   u32 count = 0;
-  for (u32 primIdx = 0; primIdx != QueryPrimType_Count; ++primIdx) {
-    const QueryPrim* prim = &env->prims[primIdx];
+  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
+    const QueryPrim* prim = &env->prims[primType];
     for (u32 idx = 0; idx != prim->count; ++idx) {
       if (!query_filter_layer(filter, prim->layers[idx])) {
         continue; // Layer not included in filter.
@@ -563,8 +563,8 @@ u32 geo_query_frustum_all(
   const GeoBox queryBounds = geo_box_from_frustum(frustum);
 
   u32 count = 0;
-  for (u32 primIdx = 0; primIdx != QueryPrimType_Count; ++primIdx) {
-    const QueryPrim* prim = &env->prims[primIdx];
+  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
+    const QueryPrim* prim = &env->prims[primType];
     for (u32 idx = 0; idx != prim->count; ++idx) {
       if (!query_filter_layer(filter, prim->layers[idx])) {
         continue; // Layer not included in filter.
