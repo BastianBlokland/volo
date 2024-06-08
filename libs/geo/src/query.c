@@ -35,6 +35,8 @@ typedef struct {
   void*          data; // GeoSphere[] / GeoCapsule[] / GeoBoxRotated[]
 } QueryPrim;
 
+typedef QueryPrim QueryPrimStorage[QueryPrimType_Count];
+
 typedef struct {
   GeoBox        bounds;
   GeoQueryLayer layers;
@@ -44,14 +46,14 @@ typedef struct {
 typedef struct {
   QueryBvhNode* nodes;  // QueryBvhNode[capacity * 2]
   QueryShape*   shapes; // QueryShape[capacity]
-  u32           capacity;
+  u32           nodeCount, shapeCapacity;
 } QueryBvh;
 
 struct sGeoQueryEnv {
-  Allocator* alloc;
-  QueryBvh   bvh;
-  QueryPrim  prims[QueryPrimType_Count];
-  i32        stats[GeoQueryStat_Count];
+  Allocator*       alloc;
+  QueryBvh         bvh;
+  QueryPrimStorage prims;
+  i32              stats[GeoQueryStat_Count];
 };
 
 static usize prim_data_size(const QueryPrimType type) {
@@ -256,65 +258,69 @@ static QueryShape    shape_handle(const QueryPrimType type, const u32 i) { retur
 static QueryPrimType shape_type(const QueryShape shape) { return (QueryPrimType)(shape & 0xff); }
 static u32           shape_index(const QueryShape shape) { return shape >> 8; }
 
-static const QueryPrim* shape_prim(const GeoQueryEnv* env, const QueryShape shape) {
-  return &env->prims[shape_type(shape)];
+static const QueryPrim* shape_prim(const QueryShape shape, const QueryPrimStorage prims) {
+  return &prims[shape_type(shape)];
 }
 
-static const GeoBox* shape_bounds(const GeoQueryEnv* env, const QueryShape shape) {
-  return &shape_prim(env, shape)->bounds[shape_index(shape)];
+static const GeoBox* shape_bounds(const QueryShape shape, const QueryPrimStorage prims) {
+  return &shape_prim(shape, prims)->bounds[shape_index(shape)];
 }
 
-static GeoQueryLayer shape_layer(const GeoQueryEnv* env, const QueryShape shape) {
-  return shape_prim(env, shape)->layers[shape_index(shape)];
+static GeoQueryLayer shape_layer(const QueryShape shape, const QueryPrimStorage prims) {
+  return shape_prim(shape, prims)->layers[shape_index(shape)];
 }
 
-static u64 shape_id(const GeoQueryEnv* env, const QueryShape shape) {
-  return shape_prim(env, shape)->ids[shape_index(shape)];
+static u64 shape_id(const QueryShape shape, const QueryPrimStorage prims) {
+  return shape_prim(shape, prims)->ids[shape_index(shape)];
 }
 
-static u32 shape_count(const GeoQueryEnv* env) {
+static u32 shape_count(const QueryPrimStorage prims) {
   u32 result = 0;
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
-    result += env->prims[primType].count;
+    result += prims[primType].count;
   }
   return result;
 }
 
-static void bvh_clear(QueryBvh* bvh) {
-  bvh->nodes[0] = (QueryBvhNode){0}; // Clear the root node.
-}
+static void bvh_clear(QueryBvh* bvh) { bvh->nodeCount = 0; }
 
-static void bvh_grow(QueryBvh* bvh, const u32 required) {
-  if (bvh->capacity >= required) {
+static void bvh_grow_if_needed(QueryBvh* bvh, const u32 shapeCount) {
+  if (bvh->shapeCapacity >= shapeCount) {
     return; // Already enough capacity.
   }
-  if (bvh->capacity) {
-    alloc_free_array_t(g_allocHeap, bvh->nodes, bvh->capacity * 2);
-    alloc_free_array_t(g_allocHeap, bvh->shapes, bvh->capacity);
+  if (bvh->shapeCapacity) {
+    alloc_free_array_t(g_allocHeap, bvh->nodes, bvh->shapeCapacity * 2);
+    alloc_free_array_t(g_allocHeap, bvh->shapes, bvh->shapeCapacity);
   }
-  bvh->capacity = bits_nextpow2(required);
-  bvh->nodes    = alloc_array_t(g_allocHeap, QueryBvhNode, bvh->capacity * 2);
-  bvh->shapes   = alloc_array_t(g_allocHeap, QueryShape, bvh->capacity);
+  bvh->shapeCapacity = bits_nextpow2(shapeCount);
+  bvh->nodes         = alloc_array_t(g_allocHeap, QueryBvhNode, bvh->shapeCapacity * 2);
+  bvh->shapes        = alloc_array_t(g_allocHeap, QueryShape, bvh->shapeCapacity);
 }
 
-static void bvh_insert_root(QueryBvh* bvh, const GeoQueryEnv* env) {
-  bvh->nodes[0] = (QueryBvhNode){.bounds = geo_box_inverted3()};
+/**
+ * Initialize a single root leaf node containing all the shapes.
+ */
+static void bvh_init(QueryBvh* bvh, const QueryPrimStorage prims) {
+  bvh_clear(bvh);
+  bvh_grow_if_needed(bvh, shape_count(prims));
+
+  QueryBvhNode* node = &bvh->nodes[bvh->nodeCount++];
+  *node              = (QueryBvhNode){.bounds = geo_box_inverted3()};
+
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
-    const QueryPrim* prim = &env->prims[primType];
+    const QueryPrim* prim = &prims[primType];
     for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
-      const u32 shapeIdx    = bvh->nodes[0].shapeCount++;
-      bvh->shapes[shapeIdx] = shape_handle(primType, primIdx);
-      bvh->nodes[0].layers |= prim->layers[primIdx];
-      bvh->nodes[0].bounds = geo_box_encapsulate_box(&bvh->nodes[0].bounds, &prim->bounds[primIdx]);
+      node->layers |= prim->layers[primIdx];
+      node->bounds = geo_box_encapsulate_box(&node->bounds, &prim->bounds[primIdx]);
+      bvh->shapes[node->shapeCount++] = shape_handle(primType, primIdx);
     }
   }
-  diag_assert(bvh->capacity >= bvh->nodes[0].shapeCount);
 }
 
 static void bvh_destroy(QueryBvh* bvh) {
-  if (bvh->capacity) {
-    alloc_free_array_t(g_allocHeap, bvh->nodes, bvh->capacity * 2);
-    alloc_free_array_t(g_allocHeap, bvh->shapes, bvh->capacity);
+  if (bvh->shapeCapacity) {
+    alloc_free_array_t(g_allocHeap, bvh->nodes, bvh->shapeCapacity * 2);
+    alloc_free_array_t(g_allocHeap, bvh->shapes, bvh->shapeCapacity);
   }
 }
 
@@ -357,8 +363,6 @@ GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
       .prims[QueryPrimType_Capsule]    = prim_create(QueryPrimType_Capsule, 32),
       .prims[QueryPrimType_BoxRotated] = prim_create(QueryPrimType_BoxRotated, 32),
   };
-  bvh_grow(&env->bvh, 128);
-  bvh_clear(&env->bvh);
 
   return env;
 }
@@ -421,8 +425,7 @@ void geo_query_insert_box_rotated(
 }
 
 void geo_query_build(GeoQueryEnv* env) {
-  bvh_grow(&env->bvh, shape_count(env));
-  bvh_insert_root(&env->bvh, env);
+  bvh_init(&env->bvh, env->prims);
 
   (void)shape_bounds;
   (void)shape_layer;
