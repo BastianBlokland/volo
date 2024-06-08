@@ -47,6 +47,7 @@ typedef QueryPrim QueryPrimStorage[QueryPrimType_Count];
 typedef struct {
   GeoBox        bounds;
   GeoQueryLayer layers;
+  u32           depth; // Only for debug purposes, could be removed if needed.
   u32           childIndex, shapeCount;
 } QueryBvhNode;
 
@@ -344,12 +345,17 @@ static u32 bvh_insert_root(QueryBvh* bvh, const QueryPrimStorage prims) {
  * Returns the node index.
  */
 static u32 bvh_insert(
-    QueryBvh* bvh, const QueryPrimStorage prims, const u32 shapeBegin, const u32 shapeCount) {
+    QueryBvh*              bvh,
+    const QueryPrimStorage prims,
+    const u32              depth,
+    const u32              shapeBegin,
+    const u32              shapeCount) {
   const u32     index = bvh->nodeCount++;
   QueryBvhNode* node  = &bvh->nodes[index];
 
   *node = (QueryBvhNode){
       .bounds     = geo_box_inverted3(),
+      .depth      = depth,
       .childIndex = shapeBegin,
       .shapeCount = shapeCount,
   };
@@ -435,8 +441,8 @@ static void bvh_subdivide(QueryBvh* bvh, const QueryPrimStorage prims, const u32
     return; // One of the partitions is empty; abort the subdivide.
   }
 
-  const u32 childA = bvh_insert(bvh, prims, node->childIndex, countA);
-  const u32 childB = bvh_insert(bvh, prims, partitionIndex, countB);
+  const u32 childA = bvh_insert(bvh, prims, node->depth + 1, node->childIndex, countA);
+  const u32 childB = bvh_insert(bvh, prims, node->depth + 1, partitionIndex, countB);
 
   node->childIndex = childA;
   node->shapeCount = 0;              // Node is no longer a leaf-node.
