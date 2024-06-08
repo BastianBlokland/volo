@@ -15,7 +15,7 @@ ecs_comp_extern(SceneScaleComp);
  */
 #define scene_query_max_hits 512
 
-#define scene_query_stat_count 8
+#define scene_query_stat_count 10
 
 // clang-format off
 

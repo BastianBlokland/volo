@@ -820,5 +820,13 @@ i32* geo_query_stats(GeoQueryEnv* env) {
   env->stats[GeoQueryStat_PrimSphereCount]     = (i32)env->prims[QueryPrimType_Sphere].count;
   env->stats[GeoQueryStat_PrimCapsuleCount]    = (i32)env->prims[QueryPrimType_Capsule].count;
   env->stats[GeoQueryStat_PrimBoxRotatedCount] = (i32)env->prims[QueryPrimType_BoxRotated].count;
+  env->stats[GeoQueryStat_BvhNodes]            = (i32)env->bvh.nodeCount;
+
+  u32 maxBvhDepth = 0;
+  for (u32 bvhNodeIdx = 0; bvhNodeIdx != env->bvh.nodeCount; ++bvhNodeIdx) {
+    maxBvhDepth = math_max(env->bvh.nodes[bvhNodeIdx].depth, maxBvhDepth);
+  }
+  env->stats[GeoQueryStat_BvhMaxDepth] = maxBvhDepth;
+
   return env->stats;
 }

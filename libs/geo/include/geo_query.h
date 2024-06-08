@@ -136,6 +136,8 @@ typedef enum {
   GeoQueryStat_QuerySphereAllCount,
   GeoQueryStat_QueryBoxAllCount,
   GeoQueryStat_QueryFrustumAllCount,
+  GeoQueryStat_BvhNodes,
+  GeoQueryStat_BvhMaxDepth,
 
   GeoQueryStat_Count,
 } GeoQueryStat;
