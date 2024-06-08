@@ -397,15 +397,22 @@ static u32 bvh_partition(
   diag_assert(node->shapeCount); // Only leaf-nodes can be partitioned.
   u32 shapeLeft  = node->childIndex;
   u32 shapeRight = shapeLeft + node->shapeCount - 1;
-  while (shapeLeft < shapeRight) {
+  for (;;) {
     const GeoBox* leftBounds = shape_bounds(bvh->shapes[shapeLeft], prims);
     const f32     leftMin    = leftBounds->min.comps[plane->axis];
     const f32     leftMax    = leftBounds->max.comps[plane->axis];
     const f32     leftCenter = (leftMin + leftMax) * 0.5f;
     if (leftCenter < plane->pos) {
-      shapeLeft++;
+      ++shapeLeft;
+      if (shapeLeft > shapeRight) {
+        break;
+      }
     } else {
-      bvh_swap_shape(bvh, shapeLeft, shapeRight--);
+      if (shapeLeft == shapeRight) {
+        break;
+      }
+      bvh_swap_shape(bvh, shapeLeft, shapeRight);
+      --shapeRight;
     }
   }
   return shapeLeft;
@@ -435,10 +442,10 @@ static void bvh_subdivide(QueryBvh* bvh, const QueryPrimStorage prims, const u32
   node->shapeCount = 0;              // Node is no longer a leaf-node.
   diag_assert(childB == childA + 1); // Child nodes have to be stored consecutively.
 
-  if (countA > geo_query_bvh_node_divide_threshold) {
+  if (countA >= geo_query_bvh_node_divide_threshold) {
     bvh_subdivide(bvh, prims, childA);
   }
-  if (countB > geo_query_bvh_node_divide_threshold) {
+  if (countB >= geo_query_bvh_node_divide_threshold) {
     bvh_subdivide(bvh, prims, childB);
   }
 }
@@ -556,7 +563,7 @@ void geo_query_build(GeoQueryEnv* env) {
     return; // Query is empty.
   }
   const u32 rootIndex = bvh_insert_root(&env->bvh, env->prims);
-  if (bvh_shape_count(&env->bvh, rootIndex) > geo_query_bvh_node_divide_threshold) {
+  if (bvh_shape_count(&env->bvh, rootIndex) >= geo_query_bvh_node_divide_threshold) {
     bvh_subdivide(&env->bvh, env->prims, rootIndex);
   }
 }
