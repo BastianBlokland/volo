@@ -10,7 +10,7 @@ typedef struct sGeoSphere GeoSphere;
  * Geometric 3d axis-aligned box.
  */
 
-typedef struct {
+typedef struct sGeoBox {
   GeoVector min, max;
 } GeoBox;
 
