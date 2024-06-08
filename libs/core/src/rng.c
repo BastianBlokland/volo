@@ -21,9 +21,9 @@ struct RngXorWow {
  * Source: https://en.wikipedia.org/wiki/Xorshift#xorwow
  */
 static u64 rng_splitmix64(u64* state) {
-  u64 result = *state += 0x9E3779B97f4A7C15;
-  result     = (result ^ (result >> 30)) * 0xBF58476D1CE4E5B9;
-  result     = (result ^ (result >> 27)) * 0x94D049BB133111EB;
+  u64 result = *state += u64_lit(0x9e3779b97f4a7c15);
+  result     = (result ^ (result >> 30)) * u64_lit(0xbf58476d1ce4e5b9);
+  result     = (result ^ (result >> 27)) * u64_lit(0x94d049bb133111eb);
   return result ^ (result >> 31);
 }
 
