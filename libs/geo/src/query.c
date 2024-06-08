@@ -286,6 +286,29 @@ static u32 shape_count(const QueryPrimStorage prims) {
   return result;
 }
 
+static f32 shape_intersect_ray(
+    const QueryShape shape, const QueryPrimStorage prims, const GeoRay* ray, GeoVector* outNormal) {
+  const QueryPrimType primType = shape_type(shape);
+  const QueryPrim*    prim     = &prims[primType];
+  switch (primType) {
+  case QueryPrimType_Sphere: {
+    const GeoSphere* sphere = &((const GeoSphere*)prim->data)[shape_index(shape)];
+    return geo_sphere_intersect_ray_info(sphere, ray, outNormal);
+  }
+  case QueryPrimType_Capsule: {
+    const GeoCapsule* capsule = &((const GeoCapsule*)prim->data)[shape_index(shape)];
+    return geo_capsule_intersect_ray_info(capsule, ray, outNormal);
+  }
+  case QueryPrimType_BoxRotated: {
+    const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->data)[shape_index(shape)];
+    return geo_box_rotated_intersect_ray_info(boxRotated, ray, outNormal);
+  }
+  case QueryPrimType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static void bvh_clear(QueryBvh* bvh) { bvh->nodeCount = 0; }
 
 static void bvh_grow_if_needed(QueryBvh* bvh, const u32 shapeCount) {
