@@ -814,6 +814,18 @@ MaxCountReached:
   return count;
 }
 
+u32 geo_query_node_count(const GeoQueryEnv* env) { return env->bvh.nodeCount; }
+
+const GeoBox* geo_query_node_bounds(const GeoQueryEnv* env, const u32 index) {
+  diag_assert(index < env->bvh.nodeCount);
+  return &env->bvh.nodes[index].bounds;
+}
+
+u32 geo_query_node_depth(const GeoQueryEnv* env, const u32 index) {
+  diag_assert(index < env->bvh.nodeCount);
+  return env->bvh.nodes[index].depth;
+}
+
 void geo_query_stats_reset(GeoQueryEnv* env) { mem_set(array_mem(env->stats), 0); }
 
 i32* geo_query_stats(GeoQueryEnv* env) {

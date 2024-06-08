@@ -5,6 +5,7 @@
 typedef struct sAllocator Allocator;
 
 // Shape forward declares.
+typedef struct sGeoBox        GeoBox;
 typedef struct sGeoBoxRotated GeoBoxRotated;
 typedef struct sGeoCapsule    GeoCapsule;
 typedef struct sGeoRay        GeoRay;
@@ -126,6 +127,10 @@ u32 geo_query_frustum_all(
 /**
  * Query statistics.
  */
+
+u32           geo_query_node_count(const GeoQueryEnv*);
+const GeoBox* geo_query_node_bounds(const GeoQueryEnv*, u32 index);
+u32           geo_query_node_depth(const GeoQueryEnv*, u32 index);
 
 typedef enum {
   GeoQueryStat_PrimSphereCount,

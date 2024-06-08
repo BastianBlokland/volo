@@ -6,6 +6,9 @@
 #include "geo_ray.h"
 #include "geo_sphere.h"
 
+// Forward declare from 'geo_query.h'.
+typedef struct sGeoQueryEnv GeoQueryEnv;
+
 // Forward declare from 'scene_transform.h'.
 ecs_comp_extern(SceneTransformComp);
 ecs_comp_extern(SceneScaleComp);
@@ -220,3 +223,8 @@ GeoBoxRotated scene_collision_world_box(
  */
 GeoBox scene_collision_world_bounds(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
+
+/**
+ * Retrieve the query-environment for debug purposes.
+ */
+const GeoQueryEnv* scene_collision_query_env(const SceneCollisionEnvComp*);

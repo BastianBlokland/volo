@@ -462,3 +462,7 @@ GeoBox scene_collision_world_bounds(
   }
   UNREACHABLE
 }
+
+const GeoQueryEnv* scene_collision_query_env(const SceneCollisionEnvComp* env) {
+  return env->queryEnv;
+}

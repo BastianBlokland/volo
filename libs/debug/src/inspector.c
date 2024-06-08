@@ -15,6 +15,7 @@
 #include "debug_text.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "geo_query.h"
 #include "input_manager.h"
 #include "scene_attack.h"
 #include "scene_bounds.h"
@@ -182,6 +183,7 @@ ecs_view_define(GlobalToolUpdateView) {
 
 ecs_view_define(GlobalVisDrawView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_write(DebugInspectorSettingsComp);
@@ -1383,18 +1385,6 @@ static void inspector_vis_draw_collision(
   }
 }
 
-static void inspector_vis_draw_collision_bounds(
-    DebugShapeComp*           shape,
-    const SceneCollisionComp* collision,
-    const SceneTransformComp* transform,
-    const SceneScaleComp*     scale) {
-  const GeoBox    b      = scene_collision_world_bounds(collision, transform, scale);
-  const GeoVector center = geo_box_center(&b);
-  const GeoVector size   = geo_box_size(&b);
-  debug_box(shape, center, geo_quat_ident, size, geo_color(1, 0, 1, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, geo_quat_ident, size, geo_color(1, 0, 1, 0.5f), DebugShape_Wire);
-}
-
 static void inspector_vis_draw_bounds_local(
     DebugShapeComp*           shape,
     const SceneBoundsComp*    bounds,
@@ -1641,9 +1631,6 @@ static void inspector_vis_draw_subject(
   if (collisionComp && set->visFlags & (1 << DebugInspectorVis_Collision)) {
     inspector_vis_draw_collision(shape, collisionComp, transformComp, scaleComp);
   }
-  if (collisionComp && set->visFlags & (1 << DebugInspectorVis_CollisionBounds)) {
-    inspector_vis_draw_collision_bounds(shape, collisionComp, transformComp, scaleComp);
-  }
   if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
     if (set->visFlags & (1 << DebugInspectorVis_BoundsLocal)) {
       inspector_vis_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
@@ -1764,6 +1751,17 @@ static void inspector_vis_draw_navigation_grid(
   }
 }
 
+static void inspector_vis_draw_collision_bounds(DebugShapeComp* shape, const GeoQueryEnv* env) {
+  const u32 nodeCount = geo_query_node_count(env);
+  for (u32 nodeIdx = 0; nodeIdx != nodeCount; ++nodeIdx) {
+    const GeoBox*   bounds = geo_query_node_bounds(env, nodeIdx);
+    const u32       depth  = geo_query_node_depth(env, nodeIdx);
+    const GeoVector center = geo_box_center(bounds);
+    const GeoVector size   = geo_box_size(bounds);
+    debug_box(shape, center, geo_quat_ident, size, geo_color_for(depth), DebugShape_Wire);
+  }
+}
+
 static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
   const SceneSetMemberComp* setMember     = ecs_view_read_t(subject, SceneSetMemberComp);
@@ -1867,10 +1865,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (!set->visFlags) {
     return;
   }
-  const SceneNavEnvComp* nav    = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneSetEnvComp* setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
-  DebugShapeComp*        shape  = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*         text   = ecs_view_write_t(globalItr, DebugTextComp);
+  const SceneNavEnvComp*       navEnv       = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneSetEnvComp*       setEnv       = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView*     transformView = ecs_world_view_t(world, TransformView);
   EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
@@ -1879,8 +1878,13 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
     trace_begin("debug_vis_grid", TraceColor_Red);
-    const GeoNavGrid* grid = scene_nav_grid(nav, set->visNavLayer);
+    const GeoNavGrid* grid = scene_nav_grid(navEnv, set->visNavLayer);
     inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
+    trace_end();
+  }
+  if (set->visFlags & (1 << DebugInspectorVis_CollisionBounds)) {
+    trace_begin("debug_vis_collision_bounds", TraceColor_Red);
+    inspector_vis_draw_collision_bounds(shape, scene_collision_query_env(collisionEnv));
     trace_end();
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
@@ -1903,13 +1907,13 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     const StringHash s = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
-        inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+        inspector_vis_draw_subject(shape, text, set, navEnv, subjectItr);
       }
     }
   } break;
   case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_subject(shape, text, set, nav, itr);
+      inspector_vis_draw_subject(shape, text, set, navEnv, itr);
     }
   } break;
   case DebugInspectorVisMode_Count:
