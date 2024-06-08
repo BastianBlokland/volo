@@ -281,9 +281,7 @@ static u32 shape_count(const GeoQueryEnv* env) {
 }
 
 static void bvh_clear(QueryBvh* bvh) {
-  if (bvh->capacity) {
-    bvh->nodes[0] = (QueryBvhNode){0}; // Clear the root node.
-  }
+  bvh->nodes[0] = (QueryBvhNode){0}; // Clear the root node.
 }
 
 static void bvh_grow(QueryBvh* bvh, const u32 required) {
@@ -300,9 +298,6 @@ static void bvh_grow(QueryBvh* bvh, const u32 required) {
 }
 
 static void bvh_insert_root(QueryBvh* bvh, const GeoQueryEnv* env) {
-  if (!bvh->capacity) {
-    return; // Query empty.
-  }
   bvh->nodes[0] = (QueryBvhNode){.bounds = geo_box_inverted3()};
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &env->prims[primType];
@@ -358,10 +353,12 @@ GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
 
   *env = (GeoQueryEnv){
       .alloc                           = alloc,
-      .prims[QueryPrimType_Sphere]     = prim_create(QueryPrimType_Sphere, 256),
-      .prims[QueryPrimType_Capsule]    = prim_create(QueryPrimType_Capsule, 256),
-      .prims[QueryPrimType_BoxRotated] = prim_create(QueryPrimType_BoxRotated, 256),
+      .prims[QueryPrimType_Sphere]     = prim_create(QueryPrimType_Sphere, 32),
+      .prims[QueryPrimType_Capsule]    = prim_create(QueryPrimType_Capsule, 32),
+      .prims[QueryPrimType_BoxRotated] = prim_create(QueryPrimType_BoxRotated, 32),
   };
+  bvh_grow(&env->bvh, 128);
+  bvh_clear(&env->bvh);
 
   return env;
 }
