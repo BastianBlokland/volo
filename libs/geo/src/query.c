@@ -12,6 +12,7 @@
 #include "geo_sphere.h"
 
 #define geo_query_shape_align 16
+#define geo_query_bvh_node_divide_threshold 8
 
 ASSERT(alignof(GeoSphere) <= geo_query_shape_align, "Insufficient alignment")
 ASSERT(alignof(GeoCapsule) <= geo_query_shape_align, "Insufficient alignment")
@@ -37,6 +38,12 @@ typedef struct {
 
 typedef QueryPrim QueryPrimStorage[QueryPrimType_Count];
 
+/**
+ * There are two types of BVH nodes:
+ * - Leaf node: Contains 'shapeCount' shapes starting from 'childIndex' in the shapes array.
+ * - Parent node: Contains two child nodes starting at 'childIndex' in the nodes array.
+ * The node-type can be determined by the 'shapeCount': '> 0' for leaf-node, '== 0' for parent node.
+ */
 typedef struct {
   GeoBox        bounds;
   GeoQueryLayer layers;
@@ -270,10 +277,6 @@ static GeoQueryLayer shape_layer(const QueryShape shape, const QueryPrimStorage 
   return shape_prim(shape, prims)->layers[shape_index(shape)];
 }
 
-static u64 shape_id(const QueryShape shape, const QueryPrimStorage prims) {
-  return shape_prim(shape, prims)->ids[shape_index(shape)];
-}
-
 static u32 shape_count(const QueryPrimStorage prims) {
   u32 result = 0;
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
@@ -297,23 +300,146 @@ static void bvh_grow_if_needed(QueryBvh* bvh, const u32 shapeCount) {
   bvh->shapes        = alloc_array_t(g_allocHeap, QueryShape, bvh->shapeCapacity);
 }
 
+static void bvh_swap_shape(QueryBvh* bvh, const u32 a, const u32 b) {
+  const QueryShape tmp = bvh->shapes[a];
+  bvh->shapes[a]       = bvh->shapes[b];
+  bvh->shapes[b]       = tmp;
+}
+
 /**
- * Initialize a single root leaf node containing all the shapes.
+ * Return the amount of shapes in a node. If non-zero its a leaf-node otherwise its a parent node.
  */
-static void bvh_init(QueryBvh* bvh, const QueryPrimStorage prims) {
-  bvh_clear(bvh);
+static u32 bvh_shape_count(QueryBvh* bvh, const u32 nodeIdx) {
+  return bvh->nodes[nodeIdx].shapeCount;
+}
+
+/**
+ * Insert a single root leaf-node containing all the shapes (needs at least 1 shape).
+ * NOTE: Bvh needs to be empty before inserting a new root.
+ * Returns the node index.
+ */
+static u32 bvh_insert_root(QueryBvh* bvh, const QueryPrimStorage prims) {
+  diag_assert(!bvh->nodeCount);    // Bvh needs to be cleared before inserting a new root.
+  diag_assert(shape_count(prims)); // Root node needs at least 1 shape.
   bvh_grow_if_needed(bvh, shape_count(prims));
 
-  QueryBvhNode* node = &bvh->nodes[bvh->nodeCount++];
-  *node              = (QueryBvhNode){.bounds = geo_box_inverted3()};
+  const u32     rootIndex = bvh->nodeCount++; // Always index 0 at the moment.
+  QueryBvhNode* root      = &bvh->nodes[rootIndex];
+  *root                   = (QueryBvhNode){.bounds = geo_box_inverted3()};
 
   for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
     const QueryPrim* prim = &prims[primType];
     for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
-      node->layers |= prim->layers[primIdx];
-      node->bounds = geo_box_encapsulate_box(&node->bounds, &prim->bounds[primIdx]);
-      bvh->shapes[node->shapeCount++] = shape_handle(primType, primIdx);
+      root->layers |= prim->layers[primIdx];
+      root->bounds = geo_box_encapsulate_box(&root->bounds, &prim->bounds[primIdx]);
+      bvh->shapes[root->shapeCount++] = shape_handle(primType, primIdx);
     }
+  }
+  return rootIndex;
+}
+
+/**
+ * Insert a new child leaf-node with the specified shapes.
+ * NOTE: Shapes need to be consecutively stored.
+ * Returns the node index.
+ */
+static u32 bvh_insert(
+    QueryBvh* bvh, const QueryPrimStorage prims, const u32 shapeBegin, const u32 shapeCount) {
+  const u32     index = bvh->nodeCount++;
+  QueryBvhNode* node  = &bvh->nodes[index];
+
+  *node = (QueryBvhNode){
+      .bounds     = geo_box_inverted3(),
+      .childIndex = shapeBegin,
+      .shapeCount = shapeCount,
+  };
+
+  for (u32 i = 0; i != shapeCount; ++i) {
+    const QueryShape shape = bvh->shapes[shapeBegin + i];
+    node->layers |= shape_layer(shape, prims);
+    node->bounds = geo_box_encapsulate_box(&node->bounds, shape_bounds(shape, prims));
+  }
+  return index;
+}
+
+typedef struct {
+  u32 axis;
+  f32 pos;
+} QueryBvhPlane;
+
+/**
+ * Pick a plane to split the leaf-node on.
+ * At the moment we just use the center of the longest axis of the node.
+ */
+static QueryBvhPlane bvh_split_pick(QueryBvh* bvh, const u32 nodeIdx) {
+  QueryBvhNode* node = &bvh->nodes[nodeIdx];
+  diag_assert(node->shapeCount); // Only leaf-nodes can be split.
+  const GeoVector nodeSize = geo_box_size(&node->bounds);
+  u32             axis     = 0;
+  if (nodeSize.y > nodeSize.x) {
+    axis = 1;
+  }
+  if (nodeSize.z > nodeSize.comps[axis]) {
+    axis = 2;
+  }
+  const f32 min  = node->bounds.min.comps[axis];
+  const f32 size = nodeSize.comps[axis];
+  return (QueryBvhPlane){.axis = axis, .pos = min + size * 0.5f};
+}
+
+/**
+ * Partition the leaf-node so all shapes before the returned shape index are on one side of the
+ * plane and all shapes after on the other side.
+ */
+static u32 bvh_partition(
+    QueryBvh* bvh, const QueryPrimStorage prims, const u32 nodeIdx, const QueryBvhPlane* plane) {
+  QueryBvhNode* node = &bvh->nodes[nodeIdx];
+  diag_assert(node->shapeCount); // Only leaf-nodes can be partitioned.
+  u32 shapeLeft  = node->childIndex;
+  u32 shapeRight = shapeLeft + node->shapeCount - 1;
+  while (shapeLeft < shapeRight) {
+    const GeoBox* leftBounds = shape_bounds(bvh->shapes[shapeLeft], prims);
+    const f32     leftMin    = leftBounds->min.comps[plane->axis];
+    const f32     leftMax    = leftBounds->max.comps[plane->axis];
+    const f32     leftCenter = (leftMin + leftMax) * 0.5f;
+    if (leftCenter < plane->pos) {
+      shapeLeft++;
+    } else {
+      bvh_swap_shape(bvh, shapeLeft, shapeRight--);
+    }
+  }
+  return shapeLeft;
+}
+
+/**
+ * Subdivide the given leaf-node, if successful the node is no longer a leaf-node but contains a
+ * tree of child nodes encompassing the same shapes as it did before subdividing.
+ */
+static void bvh_subdivide(QueryBvh* bvh, const QueryPrimStorage prims, const u32 nodeIdx) {
+  QueryBvhNode* node = &bvh->nodes[nodeIdx];
+  diag_assert(node->shapeCount); // Only leaf-nodes can be subdivided.
+
+  const QueryBvhPlane partitionPlane = bvh_split_pick(bvh, nodeIdx);
+  const u32           partitionIndex = bvh_partition(bvh, prims, nodeIdx, &partitionPlane);
+
+  const u32 countA = partitionIndex - node->childIndex;
+  const u32 countB = node->shapeCount - countA;
+  if (!countA || !countB) {
+    return; // One of the partitions is empty; abort the subdivide.
+  }
+
+  const u32 childA = bvh_insert(bvh, prims, node->childIndex, countA);
+  const u32 childB = bvh_insert(bvh, prims, partitionIndex, countB);
+
+  node->childIndex = childA;
+  node->shapeCount = 0;              // Node is no longer a leaf-node.
+  diag_assert(childB == childA + 1); // Child nodes have to be stored consecutively.
+
+  if (countA > geo_query_bvh_node_divide_threshold) {
+    bvh_subdivide(bvh, prims, childA);
+  }
+  if (countB > geo_query_bvh_node_divide_threshold) {
+    bvh_subdivide(bvh, prims, childB);
   }
 }
 
@@ -425,11 +551,14 @@ void geo_query_insert_box_rotated(
 }
 
 void geo_query_build(GeoQueryEnv* env) {
-  bvh_init(&env->bvh, env->prims);
-
-  (void)shape_bounds;
-  (void)shape_layer;
-  (void)shape_id;
+  bvh_clear(&env->bvh);
+  if (!shape_count(env->prims)) {
+    return; // Query is empty.
+  }
+  const u32 rootIndex = bvh_insert_root(&env->bvh, env->prims);
+  if (bvh_shape_count(&env->bvh, rootIndex) > geo_query_bvh_node_divide_threshold) {
+    bvh_subdivide(&env->bvh, env->prims, rootIndex);
+  }
 }
 
 bool geo_query_ray(
