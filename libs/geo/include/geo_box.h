@@ -113,6 +113,11 @@ GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotatio
 GeoBox geo_box_from_frustum(const GeoVector[PARAM_ARRAY_SIZE(8)]);
 
 /**
+ * Test if the given point is contained in the box.
+ */
+bool geo_box_contains3(const GeoBox*, GeoVector point);
+
+/**
  * Compute the intersection of the box with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.

@@ -427,6 +427,19 @@ GeoBox geo_box_from_frustum(const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
   return result;
 }
 
+bool geo_box_contains3(const GeoBox* box, const GeoVector point) {
+#ifdef VOLO_SIMD
+  const SimdVec min      = simd_vec_load(box->min.comps);
+  const SimdVec max      = simd_vec_load(box->max.comps);
+  const SimdVec pointVec = simd_vec_load(point.comps);
+  const SimdVec cmp = simd_vec_and(simd_vec_greater(pointVec, min), simd_vec_less(pointVec, max));
+  return (simd_vec_mask_u32(cmp) & 0b0111) == 0b0111; // NOTE: Only check xyz.
+#else
+  return point.x > box->min.x && point.x < box->max.x && point.y > box->min.y &&
+         point.y < box->max.y && point.z > box->min.z && point.z < box->max.z;
+#endif
+}
+
 f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray) {
 /**
  * Find the intersection of the axis-aligned box the given ray using Cyrus-Beck clipping.
