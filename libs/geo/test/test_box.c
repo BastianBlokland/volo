@@ -229,6 +229,17 @@ spec(box) {
     check_eq_vector(box.max, geo_vector(6, 1, 0));
   }
 
+  it("can test if a point is contained in a box") {
+    const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+    check(geo_box_contains3(&a, geo_vector(0, 0, 0)));
+    check(!geo_box_contains3(&a, geo_vector(0.6f, 0, 0)));
+    check(!geo_box_contains3(&a, geo_vector(0, 0.6f, 0)));
+    check(!geo_box_contains3(&a, geo_vector(0, 0, 0.6f)));
+    check(!geo_box_contains3(&a, geo_vector(-0.6f, 0, 0)));
+    check(!geo_box_contains3(&a, geo_vector(0, -0.6f, 0)));
+    check(!geo_box_contains3(&a, geo_vector(0, 0, -0.6f)));
+  }
+
   it("can test if two boxes overlap") {
     {
       const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));

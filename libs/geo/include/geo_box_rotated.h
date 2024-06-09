@@ -9,7 +9,7 @@ typedef struct sGeoSphere GeoSphere;
  * Geometric 3d rotated box.
  */
 
-typedef struct {
+typedef struct sGeoBoxRotated {
   GeoBox  box;
   GeoQuat rotation;
 } GeoBoxRotated;

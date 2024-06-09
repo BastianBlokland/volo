@@ -1,11 +1,15 @@
 #pragma once
-#include "geo_box_rotated.h"
-#include "geo_capsule.h"
-#include "geo_ray.h"
-#include "geo_sphere.h"
+#include "geo_vector.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
+
+// Shape forward declares.
+typedef struct sGeoBox        GeoBox;
+typedef struct sGeoBoxRotated GeoBoxRotated;
+typedef struct sGeoCapsule    GeoCapsule;
+typedef struct sGeoRay        GeoRay;
+typedef struct sGeoSphere     GeoSphere;
 
 /**
  * Maximum number of objects that can be hit using a single query, additional objects are ignored.
@@ -18,12 +22,12 @@ typedef struct sAllocator Allocator;
 typedef u32 GeoQueryLayer;
 
 /**
- * Callback for filtering query hits.
- * Return 'true' to keep the hit or 'false' to discard the hit.
+ * Callback for filtering potential query hits.
+ * Return 'true' to check the shape or 'false' to discard the shape.
  */
 typedef struct {
-  const void* context;                                                // Optional.
-  bool (*callback)(const void* context, u64 shapeId, u32 shapeLayer); // Optional.
+  const void* context;                                                    // Optional.
+  bool (*callback)(const void* context, u64 shapeUserId, u32 shapeLayer); // Optional.
   GeoQueryLayer layerMask;
 } GeoQueryFilter;
 
@@ -45,19 +49,26 @@ void geo_query_env_destroy(GeoQueryEnv*);
 
 /**
  * Clear all shapes from the environment.
+ * NOTE: Invalidates previous build.
  */
 void geo_query_env_clear(GeoQueryEnv*);
 
 /**
  * Insert geometric shapes into the environment.
+ * NOTE: Call 'geo_query_build()' after inserting all the shapes.
  */
-void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id, GeoQueryLayer);
-void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id, GeoQueryLayer);
-void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id, GeoQueryLayer);
+void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 userId, GeoQueryLayer);
+void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 userId, GeoQueryLayer);
+void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 userId, GeoQueryLayer);
+
+/**
+ * Build the query using all the inserted shapes.
+ */
+void geo_query_build(GeoQueryEnv*);
 
 typedef struct {
   f32           time;
-  u64           shapeId;
+  u64           userId;
   GeoVector     normal;
   GeoQueryLayer layer;
 } GeoQueryRayHit;
@@ -117,6 +128,10 @@ u32 geo_query_frustum_all(
  * Query statistics.
  */
 
+u32           geo_query_node_count(const GeoQueryEnv*);
+const GeoBox* geo_query_node_bounds(const GeoQueryEnv*, u32 index);
+u32           geo_query_node_depth(const GeoQueryEnv*, u32 index);
+
 typedef enum {
   GeoQueryStat_PrimSphereCount,
   GeoQueryStat_PrimCapsuleCount,
@@ -126,6 +141,8 @@ typedef enum {
   GeoQueryStat_QuerySphereAllCount,
   GeoQueryStat_QueryBoxAllCount,
   GeoQueryStat_QueryFrustumAllCount,
+  GeoQueryStat_BvhNodes,
+  GeoQueryStat_BvhMaxDepth,
 
   GeoQueryStat_Count,
 } GeoQueryStat;

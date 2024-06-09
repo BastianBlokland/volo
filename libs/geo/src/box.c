@@ -130,6 +130,23 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 #endif
 }
 
+GeoBox geo_box_encapsulate_box(const GeoBox* a, const GeoBox* b) {
+#ifdef VOLO_SIMD
+  const SimdVec min = simd_vec_min(simd_vec_load(a->min.comps), simd_vec_load(b->min.comps));
+  const SimdVec max = simd_vec_max(simd_vec_load(a->max.comps), simd_vec_load(b->max.comps));
+
+  GeoBox newBox;
+  simd_vec_store(min, newBox.min.comps);
+  simd_vec_store(max, newBox.max.comps);
+  return newBox;
+#else
+  return (GeoBox){
+      .min = geo_vector_min(a->min, b->min),
+      .max = geo_vector_max(a->max, b->max),
+  };
+#endif
+}
+
 GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
 #ifdef VOLO_SIMD
   const SimdVec min     = simd_vec_load(b->min.comps);
@@ -408,6 +425,19 @@ GeoBox geo_box_from_frustum(const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
     result = geo_box_encapsulate(&result, frustum[i]);
   }
   return result;
+}
+
+bool geo_box_contains3(const GeoBox* box, const GeoVector point) {
+#ifdef VOLO_SIMD
+  const SimdVec min      = simd_vec_load(box->min.comps);
+  const SimdVec max      = simd_vec_load(box->max.comps);
+  const SimdVec pointVec = simd_vec_load(point.comps);
+  const SimdVec cmp = simd_vec_and(simd_vec_greater(pointVec, min), simd_vec_less(pointVec, max));
+  return (simd_vec_mask_u32(cmp) & 0b0111) == 0b0111; // NOTE: Only check xyz.
+#else
+  return point.x > box->min.x && point.x < box->max.x && point.y > box->min.y &&
+         point.y < box->max.y && point.z > box->min.z && point.z < box->max.z;
+#endif
 }
 
 f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray) {

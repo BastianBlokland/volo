@@ -6,6 +6,9 @@
 #include "geo_ray.h"
 #include "geo_sphere.h"
 
+// Forward declare from 'geo_query.h'.
+typedef struct sGeoQueryEnv GeoQueryEnv;
+
 // Forward declare from 'scene_transform.h'.
 ecs_comp_extern(SceneTransformComp);
 ecs_comp_extern(SceneScaleComp);
@@ -15,7 +18,7 @@ ecs_comp_extern(SceneScaleComp);
  */
 #define scene_query_max_hits 512
 
-#define scene_query_stat_count 8
+#define scene_query_stat_count 10
 
 // clang-format off
 
@@ -57,8 +60,8 @@ typedef enum eSceneLayer {
 // clang-format on
 
 /**
- * Callback for filtering query hits.
- * Return 'true' to keep the hit or 'false' to discard the hit.
+ * Callback for filtering potential query hits.
+ * Return 'true' to keep the target or 'false' to discard the target.
  */
 typedef struct {
   const void* context;                                                  // Optional.
@@ -220,3 +223,8 @@ GeoBoxRotated scene_collision_world_box(
  */
 GeoBox scene_collision_world_bounds(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
+
+/**
+ * Retrieve the query-environment for debug purposes.
+ */
+const GeoQueryEnv* scene_collision_query_env(const SceneCollisionEnvComp*);

@@ -11,6 +11,8 @@
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "geo_box_rotated.h"
+#include "geo_capsule.h"
 #include "geo_query.h"
 #include "input.h"
 #include "scene_camera.h"
@@ -560,8 +562,8 @@ static void gizmo_update_interaction(
   const GeoQueryFilter   filter  = {.layerMask = g_gizmoLayer};
   const f32              maxDist = 1e3f;
   if (!isBlocked && geo_query_ray(comp->queryEnv, &inputRay, maxDist, &filter, &hit)) {
-    hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.shapeId));
-    hoverSection = gizmo_shape_section(hit.shapeId);
+    hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.userId));
+    hoverSection = gizmo_shape_section(hit.userId);
   }
 
   if (comp->status == DebugGizmoStatus_None && hoverEntry) {
@@ -648,6 +650,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
     gizmo_register(gizmo, entry);
     center = i ? geo_vector_add(center, entry->pos) : entry->pos;
   }
+  geo_query_build(gizmo->queryEnv);
   center = gizmo->entries.size ? geo_vector_div(center, gizmo->entries.size) : geo_vector(0);
 
   // Update the editor.

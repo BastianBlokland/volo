@@ -10,7 +10,7 @@ typedef struct sGeoSphere GeoSphere;
  * Geometric 3d axis-aligned box.
  */
 
-typedef struct {
+typedef struct sGeoBox {
   GeoVector min, max;
 } GeoBox;
 
@@ -48,10 +48,11 @@ bool geo_box_is_inverted2(const GeoBox*);
 bool geo_box_is_inverted3(const GeoBox*);
 
 /**
- * Compute a new box that encapsulates the existing box and the new point.
+ * Compute a new box that encapsulates the existing box and the new point / box.
  */
 GeoBox geo_box_encapsulate2(const GeoBox*, GeoVector point);
 GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
+GeoBox geo_box_encapsulate_box(const GeoBox*, const GeoBox*);
 
 /**
  * Dilate the box by the given amount on all sides.
@@ -110,6 +111,11 @@ GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotatio
  * NOTE: Defines the frustum by its corner points.
  */
 GeoBox geo_box_from_frustum(const GeoVector[PARAM_ARRAY_SIZE(8)]);
+
+/**
+ * Test if the given point is contained in the box.
+ */
+bool geo_box_contains3(const GeoBox*, GeoVector point);
 
 /**
  * Compute the intersection of the box with the given ray.
