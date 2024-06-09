@@ -40,15 +40,15 @@ typedef QueryPrim QueryPrimStorage[QueryPrimType_Count];
 
 /**
  * There are two types of BVH nodes:
- * - Leaf node: Contains 'shapeCount' shapes starting from 'childIndex' in the shapes array.
- * - Parent node: Contains two child nodes starting at 'childIndex' in the nodes array.
+ * - Leaf node: Contains 'shapeCount' shapes starting from 'child' in the shapes array.
+ * - Parent node: Contains two child nodes starting at 'child' in the nodes array.
  * The node-type can be determined by the 'shapeCount': '> 0' for leaf-node, '== 0' for parent node.
  */
 typedef struct {
   GeoBox        bounds;
   GeoQueryLayer layers;
   u32           depth; // Only for debug purposes, could be removed if needed.
-  u32           childIndex, shapeCount;
+  u32           child, shapeCount;
 } QueryBvhNode;
 
 typedef struct {
@@ -63,6 +63,12 @@ struct sGeoQueryEnv {
   QueryPrimStorage prims;
   i32              stats[GeoQueryStat_Count];
 };
+
+static void query_swap_u32(u32* a, u32* b) {
+  const u32 tmp = *a;
+  *a            = *b;
+  *b            = tmp;
+}
 
 static bool query_filter_layer(const GeoQueryFilter* f, const GeoQueryLayer shapeLayer) {
   return (f->layerMask & shapeLayer) != 0;
@@ -341,12 +347,6 @@ static void bvh_grow_if_needed(QueryBvh* bvh, const u32 shapeCount) {
   bvh->shapes        = alloc_array_t(g_allocHeap, QueryShape, bvh->shapeCapacity);
 }
 
-static void bvh_swap_shape(QueryBvh* bvh, const u32 a, const u32 b) {
-  const QueryShape tmp = bvh->shapes[a];
-  bvh->shapes[a]       = bvh->shapes[b];
-  bvh->shapes[b]       = tmp;
-}
-
 /**
  * Insert a single root leaf-node containing all the shapes (needs at least 1 shape).
  * NOTE: Bvh needs to be empty before inserting a new root.
@@ -389,7 +389,7 @@ static u32 bvh_insert(
   *node = (QueryBvhNode){
       .bounds     = geo_box_inverted3(),
       .depth      = depth,
-      .childIndex = shapeBegin,
+      .child      = shapeBegin,
       .shapeCount = shapeCount,
   };
 
@@ -434,7 +434,7 @@ static u32 bvh_partition(
     QueryBvh* bvh, const QueryPrimStorage prims, const u32 nodeIdx, const QueryBvhPlane* plane) {
   QueryBvhNode* node = &bvh->nodes[nodeIdx];
   diag_assert(node->shapeCount); // Only leaf-nodes can be partitioned.
-  u32 shapeLeft  = node->childIndex;
+  u32 shapeLeft  = node->child;
   u32 shapeRight = shapeLeft + node->shapeCount - 1;
   for (;;) {
     const GeoBox* leftBounds = shape_bounds(bvh_shape(bvh, shapeLeft), prims);
@@ -450,7 +450,7 @@ static u32 bvh_partition(
       if (shapeLeft == shapeRight) {
         break;
       }
-      bvh_swap_shape(bvh, shapeLeft, shapeRight);
+      query_swap_u32(&bvh->shapes[shapeLeft], &bvh->shapes[shapeRight]);
       --shapeRight;
     }
   }
@@ -468,16 +468,16 @@ static void bvh_subdivide(QueryBvh* bvh, const QueryPrimStorage prims, const u32
   const QueryBvhPlane partitionPlane = bvh_split_pick(bvh, nodeIdx);
   const u32           partitionIndex = bvh_partition(bvh, prims, nodeIdx, &partitionPlane);
 
-  const u32 countA = partitionIndex - node->childIndex;
+  const u32 countA = partitionIndex - node->child;
   const u32 countB = node->shapeCount - countA;
   if (!countA || !countB) {
     return; // One of the partitions is empty; abort the subdivide.
   }
 
-  const u32 childA = bvh_insert(bvh, prims, node->depth + 1, node->childIndex, countA);
+  const u32 childA = bvh_insert(bvh, prims, node->depth + 1, node->child, countA);
   const u32 childB = bvh_insert(bvh, prims, node->depth + 1, partitionIndex, countB);
 
-  node->childIndex = childA;
+  node->child      = childA;
   node->shapeCount = 0;              // Node is no longer a leaf-node.
   diag_assert(childB == childA + 1); // Child nodes have to be stored consecutively.
 
@@ -489,7 +489,7 @@ static void bvh_subdivide(QueryBvh* bvh, const QueryPrimStorage prims, const u32
   }
 }
 
-static bool bvh_test_ray(
+static f32 bvh_test_ray(
     const QueryBvh*       bvh,
     const u32             nodeIdx,
     const GeoQueryFilter* filter,
@@ -497,16 +497,19 @@ static bool bvh_test_ray(
     const f32             maxDist) {
   const QueryBvhNode* node = &bvh->nodes[nodeIdx];
   if (!query_filter_layer(filter, node->layers)) {
-    return false; // Node does not contain any shapes that are included in the filter.
+    return -1.0f; // Node does not contain any shapes that are included in the filter.
   }
   if (geo_box_contains3(&node->bounds, ray->point)) {
-    return true; // Ray starts inside the node.
+    return 0.0f; // Ray starts inside the node.
   }
   const f32 hitT = geo_box_intersect_ray(&node->bounds, ray);
-  return hitT >= 0.0f && hitT < maxDist;
+  if (hitT > maxDist) {
+    return -1.0f;
+  }
+  return hitT;
 }
 
-static bool bvh_test_ray_fat(
+static f32 bvh_test_ray_fat(
     const QueryBvh*       bvh,
     const u32             nodeIdx,
     const GeoQueryFilter* filter,
@@ -515,7 +518,7 @@ static bool bvh_test_ray_fat(
     const f32             maxDist) {
   const QueryBvhNode* node = &bvh->nodes[nodeIdx];
   if (!query_filter_layer(filter, node->layers)) {
-    return false; // Node does not contain any shapes that are included in the filter.
+    return -1.0f; // Node does not contain any shapes that are included in the filter.
   }
   const GeoVector dilateSize = geo_vector(radius, radius, radius);
   /**
@@ -525,10 +528,13 @@ static bool bvh_test_ray_fat(
    */
   const GeoBox boundsDilated = geo_box_dilate(&node->bounds, dilateSize);
   if (geo_box_contains3(&boundsDilated, ray->point)) {
-    return true; // Ray starts inside the node.
+    return 0.0f; // Ray starts inside the node.
   }
   const f32 hitT = geo_box_intersect_ray(&boundsDilated, ray);
-  return hitT >= 0.0f && hitT < maxDist;
+  if (hitT > maxDist) {
+    return -1.0f;
+  }
+  return hitT;
 }
 
 static bool bvh_test_sphere(
@@ -676,24 +682,28 @@ bool geo_query_ray(
   }
 
   bool           foundHit = false;
-  GeoQueryRayHit bestHit  = {.time = maxDist};
+  GeoQueryRayHit best     = {.time = maxDist};
   while (nodeQueueCount) {
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
-      // Parent node: Test both child nodes.
-      if (bvh_test_ray(&env->bvh, node->childIndex, filter, ray, bestHit.time)) {
-        diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex;
+      // Parent node: Test both child nodes (enqueue the closest first).
+      diag_assert((nodeQueueCount + 2) <= array_elems(nodeQueue)); // Conservative check.
+      const f32 tA = bvh_test_ray(&env->bvh, node->child, filter, ray, best.time);
+      const f32 tB = bvh_test_ray(&env->bvh, node->child + 1, filter, ray, best.time);
+      if (tA >= 0.0f) {
+        nodeQueue[nodeQueueCount++] = node->child;
       }
-      if (bvh_test_ray(&env->bvh, node->childIndex + 1, filter, ray, bestHit.time)) {
-        diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
+      if (tB >= 0.0f) {
+        nodeQueue[nodeQueueCount++] = node->child + 1;
+      }
+      if (tA >= 0.0f && tB >= 0.0f && tA < tB) {
+        query_swap_u32(&nodeQueue[nodeQueueCount - 2], &nodeQueue[nodeQueueCount - 1]);
       }
       continue;
     }
     // Leaf node: Test all shapes in the node.
     for (u32 i = 0; i != node->shapeCount; ++i) {
-      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->child + i);
       const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
       const u64           shapeUserId = shape_user_id(shape, env->prims);
       if (!query_filter_layer(filter, shapeLayer)) {
@@ -704,20 +714,20 @@ bool geo_query_ray(
       }
       GeoVector normal;
       const f32 hitT = shape_intersect_ray(shape, env->prims, ray, &normal);
-      if (hitT < 0.0f || hitT >= bestHit.time) {
+      if (hitT < 0.0f || hitT >= best.time) {
         continue; // Miss or a better hit already found.
       }
       // New best hit.
-      bestHit.time   = hitT;
-      bestHit.userId = shapeUserId;
-      bestHit.normal = normal;
-      bestHit.layer  = shapeLayer;
-      foundHit       = true;
+      best.time   = hitT;
+      best.userId = shapeUserId;
+      best.normal = normal;
+      best.layer  = shapeLayer;
+      foundHit    = true;
     }
   }
 
   if (foundHit) {
-    *outHit = bestHit;
+    *outHit = best;
   }
   return foundHit;
 }
@@ -746,24 +756,28 @@ bool geo_query_ray_fat(
   }
 
   bool           foundHit = false;
-  GeoQueryRayHit bestHit  = {.time = maxDist};
+  GeoQueryRayHit best     = {.time = maxDist};
   while (nodeQueueCount) {
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
-      // Parent node: Test both child nodes.
-      if (bvh_test_ray_fat(&env->bvh, node->childIndex, filter, ray, radius, bestHit.time)) {
-        diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex;
+      // Parent node: Test both child nodes (enqueue the closest first).
+      diag_assert((nodeQueueCount + 2) <= array_elems(nodeQueue)); // Conservative check.
+      const f32 tA = bvh_test_ray_fat(&env->bvh, node->child, filter, ray, radius, best.time);
+      const f32 tB = bvh_test_ray_fat(&env->bvh, node->child + 1, filter, ray, radius, best.time);
+      if (tA >= 0.0f) {
+        nodeQueue[nodeQueueCount++] = node->child;
       }
-      if (bvh_test_ray_fat(&env->bvh, node->childIndex + 1, filter, ray, radius, bestHit.time)) {
-        diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
+      if (tB >= 0.0f) {
+        nodeQueue[nodeQueueCount++] = node->child + 1;
+      }
+      if (tA >= 0.0f && tB >= 0.0f && tA < tB) {
+        query_swap_u32(&nodeQueue[nodeQueueCount - 2], &nodeQueue[nodeQueueCount - 1]);
       }
       continue;
     }
     // Leaf node: Test all shapes in the node.
     for (u32 i = 0; i != node->shapeCount; ++i) {
-      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->child + i);
       const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
       const u64           shapeUserId = shape_user_id(shape, env->prims);
       if (!query_filter_layer(filter, shapeLayer)) {
@@ -774,20 +788,20 @@ bool geo_query_ray_fat(
       }
       GeoVector normal;
       const f32 hitT = shape_intersect_ray_fat(shape, env->prims, ray, radius, &normal);
-      if (hitT < 0.0f || hitT >= bestHit.time) {
+      if (hitT < 0.0f || hitT >= best.time) {
         continue; // Miss or a better hit already found.
       }
       // New best hit.
-      bestHit.time   = hitT;
-      bestHit.userId = shapeUserId;
-      bestHit.normal = normal;
-      bestHit.layer  = shapeLayer;
-      foundHit       = true;
+      best.time   = hitT;
+      best.userId = shapeUserId;
+      best.normal = normal;
+      best.layer  = shapeLayer;
+      foundHit    = true;
     }
   }
 
   if (foundHit) {
-    *outHit = bestHit;
+    *outHit = best;
   }
   return foundHit;
 }
@@ -811,19 +825,19 @@ u32 geo_query_sphere_all(
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
       // Parent node: Test both child nodes.
-      if (bvh_test_sphere(&env->bvh, node->childIndex, filter, sphere)) {
+      if (bvh_test_sphere(&env->bvh, node->child, filter, sphere)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex;
+        nodeQueue[nodeQueueCount++] = node->child;
       }
-      if (bvh_test_sphere(&env->bvh, node->childIndex + 1, filter, sphere)) {
+      if (bvh_test_sphere(&env->bvh, node->child + 1, filter, sphere)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
+        nodeQueue[nodeQueueCount++] = node->child + 1;
       }
       continue;
     }
     // Leaf node: Test all shapes in the node.
     for (u32 i = 0; i != node->shapeCount; ++i) {
-      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->child + i);
       const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
       const u64           shapeUserId = shape_user_id(shape, env->prims);
       if (!query_filter_layer(filter, shapeLayer)) {
@@ -866,19 +880,19 @@ u32 geo_query_box_all(
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
       // Parent node: Test both child nodes.
-      if (bvh_test_box_rotated(&env->bvh, node->childIndex, filter, boxRotated)) {
+      if (bvh_test_box_rotated(&env->bvh, node->child, filter, boxRotated)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex;
+        nodeQueue[nodeQueueCount++] = node->child;
       }
-      if (bvh_test_box_rotated(&env->bvh, node->childIndex + 1, filter, boxRotated)) {
+      if (bvh_test_box_rotated(&env->bvh, node->child + 1, filter, boxRotated)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
+        nodeQueue[nodeQueueCount++] = node->child + 1;
       }
       continue;
     }
     // Leaf node: Test all shapes in the node.
     for (u32 i = 0; i != node->shapeCount; ++i) {
-      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->child + i);
       const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
       const u64           shapeUserId = shape_user_id(shape, env->prims);
       if (!query_filter_layer(filter, shapeLayer)) {
@@ -923,19 +937,19 @@ u32 geo_query_frustum_all(
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
       // Parent node: Test both child nodes.
-      if (bvh_test_box(&env->bvh, node->childIndex, filter, &queryBounds)) {
+      if (bvh_test_box(&env->bvh, node->child, filter, &queryBounds)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex;
+        nodeQueue[nodeQueueCount++] = node->child;
       }
-      if (bvh_test_box(&env->bvh, node->childIndex + 1, filter, &queryBounds)) {
+      if (bvh_test_box(&env->bvh, node->child + 1, filter, &queryBounds)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
-        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
+        nodeQueue[nodeQueueCount++] = node->child + 1;
       }
       continue;
     }
     // Leaf node: Test all shapes in the node.
     for (u32 i = 0; i != node->shapeCount; ++i) {
-      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->child + i);
       const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
       const u64           shapeUserId = shape_user_id(shape, env->prims);
       if (!query_filter_layer(filter, shapeLayer)) {
