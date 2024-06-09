@@ -675,16 +675,17 @@ bool geo_query_ray(
     nodeQueue[nodeQueueCount++] = 0; // Insert root node.
   }
 
-  GeoQueryRayHit bestHit = {.time = f32_max};
+  bool           foundHit = false;
+  GeoQueryRayHit bestHit  = {.time = maxDist};
   while (nodeQueueCount) {
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
       // Parent node: Test both child nodes.
-      if (bvh_test_ray(&env->bvh, node->childIndex, filter, ray, maxDist)) {
+      if (bvh_test_ray(&env->bvh, node->childIndex, filter, ray, bestHit.time)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
         nodeQueue[nodeQueueCount++] = node->childIndex;
       }
-      if (bvh_test_ray(&env->bvh, node->childIndex + 1, filter, ray, maxDist)) {
+      if (bvh_test_ray(&env->bvh, node->childIndex + 1, filter, ray, bestHit.time)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
         nodeQueue[nodeQueueCount++] = node->childIndex + 1;
       }
@@ -711,10 +712,10 @@ bool geo_query_ray(
       bestHit.userId = shapeUserId;
       bestHit.normal = normal;
       bestHit.layer  = shapeLayer;
+      foundHit       = true;
     }
   }
 
-  const bool foundHit = bestHit.time <= maxDist;
   if (foundHit) {
     *outHit = bestHit;
   }
@@ -744,16 +745,17 @@ bool geo_query_ray_fat(
     nodeQueue[nodeQueueCount++] = 0; // Insert root node.
   }
 
-  GeoQueryRayHit bestHit = {.time = f32_max};
+  bool           foundHit = false;
+  GeoQueryRayHit bestHit  = {.time = maxDist};
   while (nodeQueueCount) {
     const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
     if (!node->shapeCount) {
       // Parent node: Test both child nodes.
-      if (bvh_test_ray_fat(&env->bvh, node->childIndex, filter, ray, radius, maxDist)) {
+      if (bvh_test_ray_fat(&env->bvh, node->childIndex, filter, ray, radius, bestHit.time)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
         nodeQueue[nodeQueueCount++] = node->childIndex;
       }
-      if (bvh_test_ray_fat(&env->bvh, node->childIndex + 1, filter, ray, radius, maxDist)) {
+      if (bvh_test_ray_fat(&env->bvh, node->childIndex + 1, filter, ray, radius, bestHit.time)) {
         diag_assert(nodeQueueCount != array_elems(nodeQueue));
         nodeQueue[nodeQueueCount++] = node->childIndex + 1;
       }
@@ -780,10 +782,10 @@ bool geo_query_ray_fat(
       bestHit.userId = shapeUserId;
       bestHit.normal = normal;
       bestHit.layer  = shapeLayer;
+      foundHit       = true;
     }
   }
 
-  const bool foundHit = bestHit.time <= maxDist;
   if (foundHit) {
     *outHit = bestHit;
   }
