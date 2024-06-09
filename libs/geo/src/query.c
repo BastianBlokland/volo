@@ -153,45 +153,6 @@ INLINE_HINT static void prim_ensure_next(QueryPrim* p, const QueryPrimType type)
   prim_grow(p, type);
 }
 
-static f32 prim_intersect_ray_fat(
-    const QueryPrim*    p,
-    const QueryPrimType type,
-    const u32           idx,
-    const GeoRay*       ray,
-    const f32           radius,
-    GeoVector*          outNormal) {
-  switch (type) {
-  case QueryPrimType_Sphere: {
-    const GeoSphere* sphere        = &((const GeoSphere*)p->data)[idx];
-    const GeoSphere  sphereDilated = geo_sphere_dilate(sphere, radius);
-    const f32        hitT          = geo_sphere_intersect_ray(&sphereDilated, ray);
-    if (hitT >= 0) {
-      *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
-    }
-    return hitT;
-  }
-  case QueryPrimType_Capsule: {
-    const GeoCapsule* capsule        = &((const GeoCapsule*)p->data)[idx];
-    const GeoCapsule  capsuleDilated = geo_capsule_dilate(capsule, radius);
-    return geo_capsule_intersect_ray_info(&capsuleDilated, ray, outNormal);
-  }
-  case QueryPrimType_BoxRotated: {
-    const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)p->data)[idx];
-    const GeoVector      dilateSize = geo_vector(radius, radius, radius);
-    /**
-     * Crude (conservative) estimation of a Minkowski-sum.
-     * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
-     * intersections too early at the corners.
-     */
-    const GeoBoxRotated boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
-    return geo_box_rotated_intersect_ray_info(&boxRotatedDilated, ray, outNormal);
-  }
-  case QueryPrimType_Count:
-    break;
-  }
-  UNREACHABLE
-}
-
 static bool prim_overlap_sphere(
     const QueryPrim* p, const QueryPrimType type, const u32 idx, const GeoSphere* tgt) {
   switch (type) {
@@ -306,6 +267,42 @@ static f32 shape_intersect_ray(
   case QueryPrimType_BoxRotated: {
     const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->data)[shape_index(shape)];
     return geo_box_rotated_intersect_ray_info(boxRotated, ray, outNormal);
+  }
+  case QueryPrimType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static f32 shape_intersect_ray_fat(
+    const QueryShape       shape,
+    const QueryPrimStorage prims,
+    const GeoRay*          ray,
+    const f32              radius,
+    GeoVector*             outNormal) {
+  const QueryPrimType primType = shape_type(shape);
+  const QueryPrim*    prim     = &prims[primType];
+  switch (primType) {
+  case QueryPrimType_Sphere: {
+    const GeoSphere* sphere        = &((const GeoSphere*)prim->data)[shape_index(shape)];
+    const GeoSphere  sphereDilated = geo_sphere_dilate(sphere, radius);
+    return geo_sphere_intersect_ray_info(&sphereDilated, ray, outNormal);
+  }
+  case QueryPrimType_Capsule: {
+    const GeoCapsule* capsule        = &((const GeoCapsule*)prim->data)[shape_index(shape)];
+    const GeoCapsule  capsuleDilated = geo_capsule_dilate(capsule, radius);
+    return geo_capsule_intersect_ray_info(&capsuleDilated, ray, outNormal);
+  }
+  case QueryPrimType_BoxRotated: {
+    const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->data)[shape_index(shape)];
+    const GeoVector      dilateSize = geo_vector(radius, radius, radius);
+    /**
+     * Crude (conservative) estimation of a Minkowski-sum.
+     * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
+     * intersections too early at the corners.
+     */
+    const GeoBoxRotated boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
+    return geo_box_rotated_intersect_ray_info(&boxRotatedDilated, ray, outNormal);
   }
   case QueryPrimType_Count:
     break;
@@ -504,6 +501,31 @@ static bool bvh_test_ray(
   return hitT >= 0.0f && hitT < maxDist;
 }
 
+static bool bvh_test_ray_fat(
+    const QueryBvh*       bvh,
+    const u32             nodeIdx,
+    const GeoQueryFilter* filter,
+    const GeoRay*         ray,
+    const f32             radius,
+    const f32             maxDist) {
+  const QueryBvhNode* node = &bvh->nodes[nodeIdx];
+  if (!query_filter_layer(filter, node->layers)) {
+    return false; // Node does not contain any shapes that are included in the filter.
+  }
+  const GeoVector dilateSize = geo_vector(radius, radius, radius);
+  /**
+   * Crude (conservative) estimation of a Minkowski-sum.
+   * NOTE: Ignores the fact that the summed shape should have rounded corners, meaning we detect
+   * intersections too early at the corners.
+   */
+  const GeoBox boundsDilated = geo_box_dilate(&node->bounds, dilateSize);
+  if (geo_box_contains3(&boundsDilated, ray->point)) {
+    return true; // Ray starts inside the node.
+  }
+  const f32 hitT = geo_box_intersect_ray(&boundsDilated, ray);
+  return hitT >= 0.0f && hitT < maxDist;
+}
+
 static void bvh_destroy(QueryBvh* bvh) {
   if (bvh->shapeCapacity) {
     alloc_free_array_t(g_allocHeap, bvh->nodes, bvh->shapeCapacity * 2);
@@ -681,46 +703,52 @@ bool geo_query_ray_fat(
 
   query_stat_add(env, GeoQueryStat_QueryRayFatCount, 1);
 
-  const GeoLine queryLine = {
-      .a = ray->point,
-      .b = geo_vector_add(ray->point, geo_vector_mul(ray->dir, maxDist)),
-  };
-  const GeoBox rayBox      = geo_box_from_line(queryLine.a, queryLine.b);
-  const GeoBox queryBounds = geo_box_dilate(&rayBox, geo_vector(radius, radius, radius));
+  u32 nodeQueue[32];
+  u32 nodeQueueCount = 0;
+  if (env->bvh.nodeCount) {
+    nodeQueue[nodeQueueCount++] = 0; // Insert root node.
+  }
 
-  GeoQueryRayHit bestHit  = {.time = f32_max};
-  bool           foundHit = false;
-
-  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
-    const QueryPrim* prim = &env->prims[primType];
-    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
-      if (!query_filter_layer(filter, prim->layers[primIdx])) {
-        continue; // Layer not included in filter.
+  GeoQueryRayHit bestHit = {.time = f32_max};
+  while (nodeQueueCount) {
+    const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
+    if (!node->shapeCount) {
+      // Parent node: Test both child nodes.
+      if (bvh_test_ray_fat(&env->bvh, node->childIndex, filter, ray, radius, maxDist)) {
+        diag_assert(nodeQueueCount != array_elems(nodeQueue));
+        nodeQueue[nodeQueueCount++] = node->childIndex;
       }
-      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
-        continue; // Bounds do not intersect; no need to test against the shape.
+      if (bvh_test_ray_fat(&env->bvh, node->childIndex + 1, filter, ray, radius, maxDist)) {
+        diag_assert(nodeQueueCount != array_elems(nodeQueue));
+        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
       }
-      GeoVector normal;
-      const f32 hitT = prim_intersect_ray_fat(prim, primType, primIdx, ray, radius, &normal);
-      if (hitT < 0.0 || hitT > maxDist) {
-        continue; // Miss.
+      continue;
+    }
+    // Leaf node: Test all shapes in the node.
+    for (u32 i = 0; i != node->shapeCount; ++i) {
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
+      const u64           shapeUserId = shape_user_id(shape, env->prims);
+      if (!query_filter_layer(filter, shapeLayer)) {
+        continue; // Shape layer not included in filter.
       }
-      if (hitT >= bestHit.time) {
-        continue; // Better hit already found.
-      }
-      if (!query_filter_callback(filter, prim->userIds[primIdx], prim->layers[primIdx])) {
+      if (!query_filter_callback(filter, shapeUserId, shapeLayer)) {
         continue; // Filtered out by the filter's callback.
       }
-
+      GeoVector normal;
+      const f32 hitT = shape_intersect_ray_fat(shape, env->prims, ray, radius, &normal);
+      if (hitT < 0.0f || hitT >= bestHit.time) {
+        continue; // Miss or a better hit already found.
+      }
       // New best hit.
       bestHit.time   = hitT;
-      bestHit.userId = prim->userIds[primIdx];
+      bestHit.userId = shapeUserId;
       bestHit.normal = normal;
-      bestHit.layer  = prim->layers[primIdx];
-      foundHit       = true;
+      bestHit.layer  = shapeLayer;
     }
   }
 
+  const bool foundHit = bestHit.time <= maxDist;
   if (foundHit) {
     *outHit = bestHit;
   }
