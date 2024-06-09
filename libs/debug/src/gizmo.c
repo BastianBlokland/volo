@@ -562,8 +562,8 @@ static void gizmo_update_interaction(
   const GeoQueryFilter   filter  = {.layerMask = g_gizmoLayer};
   const f32              maxDist = 1e3f;
   if (!isBlocked && geo_query_ray(comp->queryEnv, &inputRay, maxDist, &filter, &hit)) {
-    hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.shapeId));
-    hoverSection = gizmo_shape_section(hit.shapeId);
+    hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.userId));
+    hoverSection = gizmo_shape_section(hit.userId);
   }
 
   if (comp->status == DebugGizmoStatus_None && hoverEntry) {

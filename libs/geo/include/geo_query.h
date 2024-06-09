@@ -22,12 +22,12 @@ typedef struct sGeoSphere     GeoSphere;
 typedef u32 GeoQueryLayer;
 
 /**
- * Callback for filtering query hits.
- * Return 'true' to keep the hit or 'false' to discard the hit.
+ * Callback for filtering potential query hits.
+ * Return 'true' to check the shape or 'false' to discard the shape.
  */
 typedef struct {
-  const void* context;                                                // Optional.
-  bool (*callback)(const void* context, u64 shapeId, u32 shapeLayer); // Optional.
+  const void* context;                                                    // Optional.
+  bool (*callback)(const void* context, u64 shapeUserId, u32 shapeLayer); // Optional.
   GeoQueryLayer layerMask;
 } GeoQueryFilter;
 
@@ -57,9 +57,9 @@ void geo_query_env_clear(GeoQueryEnv*);
  * Insert geometric shapes into the environment.
  * NOTE: Call 'geo_query_build()' after inserting all the shapes.
  */
-void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id, GeoQueryLayer);
-void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id, GeoQueryLayer);
-void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id, GeoQueryLayer);
+void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 userId, GeoQueryLayer);
+void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 userId, GeoQueryLayer);
+void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 userId, GeoQueryLayer);
 
 /**
  * Build the query using all the inserted shapes.
@@ -68,7 +68,7 @@ void geo_query_build(GeoQueryEnv*);
 
 typedef struct {
   f32           time;
-  u64           shapeId;
+  u64           userId;
   GeoVector     normal;
   GeoQueryLayer layer;
 } GeoQueryRayHit;

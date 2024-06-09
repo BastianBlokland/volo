@@ -60,8 +60,8 @@ typedef enum eSceneLayer {
 // clang-format on
 
 /**
- * Callback for filtering query hits.
- * Return 'true' to keep the hit or 'false' to discard the hit.
+ * Callback for filtering potential query hits.
+ * Return 'true' to keep the target or 'false' to discard the target.
  */
 typedef struct {
   const void* context;                                                  // Optional.

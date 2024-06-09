@@ -87,26 +87,26 @@ ecs_system_define(SceneCollisionUpdateSys) {
       continue;
     }
 
-    const u64           id         = (u64)ecs_view_entity(itr);
+    const u64           userId     = (u64)ecs_view_entity(itr);
     const GeoQueryLayer queryLayer = (GeoQueryLayer)collision->layer;
 
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
       const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      geo_query_insert_sphere(env->queryEnv, sphere, id, queryLayer);
+      geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
     } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
       if (collision->capsule.height <= f32_epsilon) {
         const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
-        geo_query_insert_sphere(env->queryEnv, sphere, id, queryLayer);
+        geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
       } else {
-        geo_query_insert_capsule(env->queryEnv, capsule, id, queryLayer);
+        geo_query_insert_capsule(env->queryEnv, capsule, userId, queryLayer);
       }
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
-      geo_query_insert_box_rotated(env->queryEnv, boxRotated, id, queryLayer);
+      geo_query_insert_box_rotated(env->queryEnv, boxRotated, userId, queryLayer);
     } break;
     default:
       diag_crash();
@@ -314,7 +314,7 @@ bool scene_query_ray(
   if (geo_query_ray(env->queryEnv, ray, maxDist, &geoFilter, &hit)) {
     *out = (SceneRayHit){
         .time     = hit.time,
-        .entity   = (EcsEntityId)hit.shapeId,
+        .entity   = (EcsEntityId)hit.userId,
         .position = geo_ray_position(ray, hit.time),
         .normal   = hit.normal,
         .layer    = (SceneLayer)hit.layer,
@@ -342,7 +342,7 @@ bool scene_query_ray_fat(
   if (geo_query_ray_fat(env->queryEnv, ray, radius, maxDist, &geoFilter, &hit)) {
     *out = (SceneRayHit){
         .time     = hit.time,
-        .entity   = (EcsEntityId)hit.shapeId,
+        .entity   = (EcsEntityId)hit.userId,
         .position = geo_ray_position(ray, hit.time),
         .normal   = hit.normal,
         .layer    = (SceneLayer)hit.layer,
