@@ -153,27 +153,6 @@ INLINE_HINT static void prim_ensure_next(QueryPrim* p, const QueryPrimType type)
   prim_grow(p, type);
 }
 
-static bool prim_overlap_sphere(
-    const QueryPrim* p, const QueryPrimType type, const u32 idx, const GeoSphere* tgt) {
-  switch (type) {
-  case QueryPrimType_Sphere: {
-    const GeoSphere* sphere = &((const GeoSphere*)p->data)[idx];
-    return geo_sphere_overlap(sphere, tgt);
-  }
-  case QueryPrimType_Capsule: {
-    const GeoCapsule* cap = &((const GeoCapsule*)p->data)[idx];
-    return geo_capsule_overlap_sphere(cap, tgt);
-  }
-  case QueryPrimType_BoxRotated: {
-    const GeoBoxRotated* box = &((const GeoBoxRotated*)p->data)[idx];
-    return geo_box_rotated_overlap_sphere(box, tgt);
-  }
-  case QueryPrimType_Count:
-    break;
-  }
-  UNREACHABLE
-}
-
 static bool prim_overlap_box_rotated(
     const QueryPrim* p, const QueryPrimType type, const u32 idx, const GeoBoxRotated* tgt) {
   switch (type) {
@@ -303,6 +282,29 @@ static f32 shape_intersect_ray_fat(
      */
     const GeoBoxRotated boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
     return geo_box_rotated_intersect_ray_info(&boxRotatedDilated, ray, outNormal);
+  }
+  case QueryPrimType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static bool
+shape_overlap_sphere(const QueryShape shape, const QueryPrimStorage prims, const GeoSphere* tgt) {
+  const QueryPrimType primType = shape_type(shape);
+  const QueryPrim*    prim     = &prims[primType];
+  switch (primType) {
+  case QueryPrimType_Sphere: {
+    const GeoSphere* sphere = &((const GeoSphere*)prim->data)[shape_index(shape)];
+    return geo_sphere_overlap(sphere, tgt);
+  }
+  case QueryPrimType_Capsule: {
+    const GeoCapsule* cap = &((const GeoCapsule*)prim->data)[shape_index(shape)];
+    return geo_capsule_overlap_sphere(cap, tgt);
+  }
+  case QueryPrimType_BoxRotated: {
+    const GeoBoxRotated* box = &((const GeoBoxRotated*)prim->data)[shape_index(shape)];
+    return geo_box_rotated_overlap_sphere(box, tgt);
   }
   case QueryPrimType_Count:
     break;
@@ -524,6 +526,15 @@ static bool bvh_test_ray_fat(
   }
   const f32 hitT = geo_box_intersect_ray(&boundsDilated, ray);
   return hitT >= 0.0f && hitT < maxDist;
+}
+
+static bool bvh_test_sphere(
+    const QueryBvh* bvh, const u32 nodeIdx, const GeoQueryFilter* filter, const GeoSphere* sphere) {
+  const QueryBvhNode* node = &bvh->nodes[nodeIdx];
+  if (!query_filter_layer(filter, node->layers)) {
+    return false; // Node does not contain any shapes that are included in the filter.
+  }
+  return geo_box_overlap_sphere(&node->bounds, sphere);
 }
 
 static void bvh_destroy(QueryBvh* bvh) {
@@ -763,35 +774,51 @@ u32 geo_query_sphere_all(
 
   query_stat_add(env, GeoQueryStat_QuerySphereAllCount, 1);
 
-  const GeoBox queryBounds = geo_box_from_sphere(sphere->point, sphere->radius);
+  u32 nodeQueue[32];
+  u32 nodeQueueCount = 0;
+  if (env->bvh.nodeCount) {
+    nodeQueue[nodeQueueCount++] = 0; // Insert root node.
+  }
 
-  u32 count = 0;
-  for (QueryPrimType primType = 0; primType != QueryPrimType_Count; ++primType) {
-    const QueryPrim* prim = &env->prims[primType];
-    for (u32 primIdx = 0; primIdx != prim->count; ++primIdx) {
-      if (!query_filter_layer(filter, prim->layers[primIdx])) {
-        continue; // Layer not included in filter.
+  u32 outCount = 0;
+  while (nodeQueueCount) {
+    const QueryBvhNode* node = &env->bvh.nodes[nodeQueue[--nodeQueueCount]];
+    if (!node->shapeCount) {
+      // Parent node: Test both child nodes.
+      if (bvh_test_sphere(&env->bvh, node->childIndex, filter, sphere)) {
+        diag_assert(nodeQueueCount != array_elems(nodeQueue));
+        nodeQueue[nodeQueueCount++] = node->childIndex;
       }
-      if (!geo_box_overlap(&prim->bounds[primIdx], &queryBounds)) {
-        continue; // Bounds do not intersect; no need to test against the shape.
+      if (bvh_test_sphere(&env->bvh, node->childIndex + 1, filter, sphere)) {
+        diag_assert(nodeQueueCount != array_elems(nodeQueue));
+        nodeQueue[nodeQueueCount++] = node->childIndex + 1;
       }
-      if (!prim_overlap_sphere(prim, primType, primIdx, sphere)) {
-        continue; // Miss.
+      continue;
+    }
+    // Leaf node: Test all shapes in the node.
+    for (u32 i = 0; i != node->shapeCount; ++i) {
+      const QueryShape    shape       = bvh_shape(&env->bvh, node->childIndex + i);
+      const GeoQueryLayer shapeLayer  = shape_layer(shape, env->prims);
+      const u64           shapeUserId = shape_user_id(shape, env->prims);
+      if (!query_filter_layer(filter, shapeLayer)) {
+        continue; // Shape layer not included in filter.
       }
-      if (!query_filter_callback(filter, prim->userIds[primIdx], prim->layers[primIdx])) {
+      if (!query_filter_callback(filter, shapeUserId, shapeLayer)) {
         continue; // Filtered out by the filter's callback.
       }
-
+      if (!shape_overlap_sphere(shape, env->prims, sphere)) {
+        continue; // Miss.
+      }
       // Output hit.
-      out[count++] = prim->userIds[primIdx];
-      if (UNLIKELY(count == geo_query_max_hits)) {
+      out[outCount++] = shape_user_id(shape, env->prims);
+      if (UNLIKELY(outCount == geo_query_max_hits)) {
         goto MaxCountReached;
       }
     }
   }
 
 MaxCountReached:
-  return count;
+  return outCount;
 }
 
 u32 geo_query_box_all(
