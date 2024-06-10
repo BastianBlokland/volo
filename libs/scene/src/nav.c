@@ -713,7 +713,7 @@ ecs_module_init(scene_nav_module) {
       ecs_register_view(AgentView),
       ecs_register_view(TargetView));
 
-  ecs_parallel(SceneNavUpdateAgentsSys, 4);
+  ecs_parallel(SceneNavUpdateAgentsSys, 8);
 
   ecs_register_system(SceneNavApplyRequestsSys, ecs_register_view(NavRequestsView));
 
