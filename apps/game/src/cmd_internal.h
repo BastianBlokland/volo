@@ -6,7 +6,7 @@
 #define cmd_group_count 9
 
 enum {
-  AppOrder_CommandUpdate = 25,
+  AppOrder_CommandUpdate = 730,
 };
 
 ecs_comp_extern(CmdControllerComp);
