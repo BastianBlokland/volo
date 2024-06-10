@@ -29,7 +29,7 @@ static void ecs_destruct_collision_env_comp(void* data) {
   geo_query_env_destroy(env->queryEnv);
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
+ecs_view_define(InitGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionView) {
   ecs_access_read(SceneCollisionComp);
@@ -55,13 +55,13 @@ static void scene_collision_stats_update(SceneCollisionStatsComp* stats, GeoQuer
   geo_query_stats_reset(queryEnv);
 }
 
-ecs_system_define(SceneCollisionUpdateSys) {
+ecs_system_define(SceneCollisionInitSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneCollisionEnvComp)) {
     collision_env_create(world);
     return;
   }
 
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, InitGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -139,13 +139,13 @@ ecs_system_define(SceneCollisionUpdateSys) {
   trace_end();
 }
 
-ecs_view_define(UpdateStatsGlobalView) {
+ecs_view_define(StatsGlobalView) {
   ecs_access_write(SceneCollisionEnvComp);
   ecs_access_write(SceneCollisionStatsComp);
 }
 
-ecs_system_define(SceneCollisionUpdateStatsSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UpdateStatsGlobalView);
+ecs_system_define(SceneCollisionStatsSys) {
+  EcsView*     globalView = ecs_world_view_t(world, StatsGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -161,25 +161,25 @@ ecs_module_init(scene_collision_module) {
   ecs_register_comp(SceneCollisionStatsComp);
   ecs_register_comp(SceneCollisionComp);
 
-  ecs_register_view(UpdateGlobalView);
+  ecs_register_view(InitGlobalView);
   ecs_register_view(CollisionView);
   ecs_register_view(TransformView);
 
   ecs_register_system(
-      SceneCollisionUpdateSys,
-      ecs_view_id(UpdateGlobalView),
+      SceneCollisionInitSys,
+      ecs_view_id(InitGlobalView),
       ecs_view_id(CollisionView),
       ecs_view_id(TransformView));
 
-  ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
+  ecs_order(SceneCollisionInitSys, SceneOrder_CollisionInit);
 
-  ecs_register_system(SceneCollisionUpdateStatsSys, ecs_register_view(UpdateStatsGlobalView));
+  ecs_register_system(SceneCollisionStatsSys, ecs_register_view(StatsGlobalView));
 
   enum {
-    SceneOrder_Normal               = 0,
-    SceneOrder_CollisionStatsUpdate = 1,
+    SceneOrder_Normal         = 0,
+    SceneOrder_CollisionStats = 1,
   };
-  ecs_order(SceneCollisionUpdateStatsSys, SceneOrder_CollisionStatsUpdate);
+  ecs_order(SceneCollisionStatsSys, SceneOrder_CollisionStats);
 }
 
 String scene_layer_name(const SceneLayer layer) {
