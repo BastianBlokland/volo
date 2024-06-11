@@ -6,6 +6,9 @@
 #include "ui_rect.h"
 #include "ui_units.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 // Forward declare from 'ui_canvas.h'.
 typedef u64 UiId;
 
@@ -96,6 +99,14 @@ typedef struct {
   UiColor       frameColor;
   String        tooltip;
 } UiNumboxOpts;
+
+typedef struct {
+  UiWidgetFlags flags;
+  TimeDuration  min, max;
+  u16           fontSize;
+  UiColor       frameColor;
+  String        tooltip;
+} UiDurboxOpts;
 
 typedef struct {
   UiBase base;
@@ -222,6 +233,18 @@ typedef struct {
     __VA_ARGS__}))
 
 /**
+ * Draw editable time duration box.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_durbox(_CANVAS_, _VALUE_, ...) ui_durbox_with_opts((_CANVAS_), (_VALUE_),               \
+  &((UiDurboxOpts){                                                                                \
+    .max        = i64_max,                                                                         \
+    .fontSize   = 16,                                                                              \
+    .frameColor = ui_color(32, 32, 32, 192),                                                       \
+    __VA_ARGS__}))
+
+
+/**
  * Draw a circle at the given point.
  */
 #define ui_circle(_CANVAS_, _POS_, ...) ui_circle_with_opts((_CANVAS_), (_POS_),                   \
@@ -253,5 +276,6 @@ bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
 bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);
 bool ui_numbox_with_opts(UiCanvasComp*, f64*, const UiNumboxOpts*);
+bool ui_durbox_with_opts(UiCanvasComp*, TimeDuration*, const UiDurboxOpts*);
 void ui_circle_with_opts(UiCanvasComp*, UiVector pos, const UiCircleOpts*);
 void ui_line_with_opts(UiCanvasComp*, UiVector from, UiVector to, const UiLineOpts*);

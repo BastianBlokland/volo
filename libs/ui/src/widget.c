@@ -748,6 +748,24 @@ bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* o
   return false;
 }
 
+bool ui_durbox_with_opts(UiCanvasComp* canvas, TimeDuration* input, const UiDurboxOpts* opts) {
+  DynString text = dynstring_create_over(mem_stack(64));
+  format_write_time_duration_pretty(&text, *input, &format_opts_float(.maxDecDigits = 4));
+  if (ui_textbox(
+          canvas,
+          &text,
+          .flags         = opts->flags,
+          .fontSize      = opts->fontSize,
+          .maxTextLength = 64,
+          .frameColor    = opts->frameColor,
+          .tooltip       = opts->tooltip)) {
+    format_read_time_duration(dynstring_view(&text), input);
+    *input = math_clamp_i64(*input, opts->min, opts->max);
+    return true;
+  }
+  return false;
+}
+
 void ui_circle_with_opts(UiCanvasComp* canvas, const UiVector pos, const UiCircleOpts* opts) {
   const UiVector size = ui_vector(opts->radius * 2, opts->radius * 2);
 
