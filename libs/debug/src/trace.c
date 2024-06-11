@@ -108,7 +108,8 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
 
   ui_table_next_column(c, &table);
   const String timeLabel = fmt_write_scratch(
-      "Window: {}", fmt_duration(panel->timeWindow, .minDecDigits = 1, .maxDecDigits = 1));
+      "Window: {}",
+      fmt_duration(panel->timeWindow, .minIntDigits = 3, .minDecDigits = 1, .maxDecDigits = 1));
   ui_label(c, timeLabel);
 
   ui_table_next_column(c, &table);
