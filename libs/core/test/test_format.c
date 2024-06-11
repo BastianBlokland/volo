@@ -605,4 +605,45 @@ spec(format) {
           fmt_text(data[i].expectedRemaining));
     }
   }
+
+  it("can read time durations") {
+    struct {
+      String       val;
+      TimeDuration expected;
+      String       expectedRemaining;
+    } const data[] = {
+        {string_lit("42"), time_seconds(42), string_empty},
+        {string_lit("1ns"), time_nanosecond, string_empty},
+        {string_lit("-1ns"), -time_nanosecond, string_empty},
+        {string_lit("42ns"), time_nanoseconds(42), string_empty},
+        {string_lit("1us"), time_microsecond, string_empty},
+        {string_lit("42us"), time_microseconds(42), string_empty},
+        {string_lit("1ms"), time_millisecond, string_empty},
+        {string_lit("42ms"), time_milliseconds(42), string_empty},
+        {string_lit("1s"), time_second, string_empty},
+        {string_lit("42s"), time_seconds(42), string_empty},
+        {string_lit("1m"), time_minute, string_empty},
+        {string_lit("42m"), time_minutes(42), string_empty},
+        {string_lit("1h"), time_hour, string_empty},
+        {string_lit("13h"), time_hours(13), string_empty},
+        {string_lit("1d"), time_day, string_empty},
+        {string_lit("42d"), time_days(42), string_empty},
+        {string_lit("-42d"), -time_days(42), string_empty},
+        {string_lit("-42d"), time_days(-42), string_empty},
+        {string_lit("1.3ms"), time_millisecond + time_microseconds(300), string_empty},
+        {string_lit("1 s"), time_second, string_empty},
+        {string_lit("42 s"), time_seconds(42), string_empty},
+        {string_lit("1\tm"), time_minute, string_empty},
+        {string_lit("42  m"), time_minutes(42), string_empty},
+        {string_lit("1test"), time_second, string_lit("test")},
+        {string_lit("1stest"), time_second, string_lit("test")},
+    };
+
+    for (usize i = 0; i != array_elems(data); ++i) {
+      TimeDuration out;
+      const String rem = format_read_time_duration(data[i].val, &out);
+      check_eq_int(out, data[i].expected);
+      check_eq_string(rem, data[i].expectedRemaining);
+    }
+  }
 }

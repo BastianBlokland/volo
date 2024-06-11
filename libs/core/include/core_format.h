@@ -554,3 +554,10 @@ String format_read_i64(String input, i64* output, u8 base);
  * The value is written to the output pointer, pass 'null' to ignore the output.
  */
 String format_read_f64(String input, f64* output);
+
+/**
+ * Read a time duration from the input. Example input: '42.3s'.
+ * Returns the remaining input.
+ * The value is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_time_duration(String input, TimeDuration* output);

@@ -285,22 +285,22 @@ static struct FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatO
    * More info: https://blog.benoitblanchon.fr/lightweight-float-to-string/
    */
 
-  static f64 binPow10[]           = {1e1, 1e2, 1e4, 1e8, 1e16, 1e32, 1e64, 1e128, 1e256};
-  static f64 negBinPow10[]        = {1e-1, 1e-2, 1e-4, 1e-8, 1e-16, 1e-32, 1e-64, 1e-128, 1e-256};
-  static f64 negBinPow10PlusOne[] = {1e0, 1e-1, 1e-3, 1e-7, 1e-15, 1e-31, 1e-63, 1e-127, 1e-255};
+  static f64 g_binPow10[]           = {1e1, 1e2, 1e4, 1e8, 1e16, 1e32, 1e64, 1e128, 1e256};
+  static f64 g_negBinPow10[]        = {1e-1, 1e-2, 1e-4, 1e-8, 1e-16, 1e-32, 1e-64, 1e-128, 1e-256};
+  static f64 g_negBinPow10PlusOne[] = {1e0, 1e-1, 1e-3, 1e-7, 1e-15, 1e-31, 1e-63, 1e-127, 1e-255};
 
   struct FormatF64Exp res;
   res.exp       = 0;
   res.remaining = val;
 
-  i32 i   = array_elems(binPow10) - 1;
+  i32 i   = array_elems(g_binPow10) - 1;
   i32 bit = 1 << i;
 
   if (val >= opts->expThresholdPos) {
     // Calculate the positive exponent.
     for (; i >= 0; --i) {
-      if (res.remaining >= binPow10[i]) {
-        res.remaining *= negBinPow10[i];
+      if (res.remaining >= g_binPow10[i]) {
+        res.remaining *= g_negBinPow10[i];
         res.exp = (i16)(res.exp + bit);
       }
       bit >>= 1;
@@ -308,8 +308,8 @@ static struct FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatO
   } else if (val > 0 && val <= opts->expThresholdNeg) {
     // Calculate the negative exponent.
     for (; i >= 0; --i) {
-      if (res.remaining < negBinPow10PlusOne[i]) {
-        res.remaining *= binPow10[i];
+      if (res.remaining < g_negBinPow10PlusOne[i]) {
+        res.remaining *= g_binPow10[i];
         res.exp = (i16)(res.exp - bit);
       }
       bit >>= 1;
@@ -420,7 +420,7 @@ void format_write_time_duration_pretty(
   static struct {
     TimeDuration val;
     String       str;
-  } units[] = {
+  } g_units[] = {
       {time_nanosecond, string_static("ns")},
       {time_microsecond, string_static("us")},
       {time_millisecond, string_static("ms")},
@@ -431,10 +431,10 @@ void format_write_time_duration_pretty(
   };
   const TimeDuration absVal = math_abs(val);
   usize              i      = 0;
-  for (; (i + 1) != array_elems(units) && absVal >= units[i + 1].val; ++i)
+  for (; (i + 1) != array_elems(g_units) && absVal >= g_units[i + 1].val; ++i)
     ;
-  format_write_f64(str, (f64)val / (f64)units[i].val, opts);
-  dynstring_append(str, units[i].str);
+  format_write_f64(str, (f64)val / (f64)g_units[i].val, opts);
+  dynstring_append(str, g_units[i].str);
 }
 
 void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatOptsTime* opts) {
@@ -497,7 +497,7 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
 }
 
 void format_write_size_pretty(DynString* str, const usize val) {
-  static String units[] = {
+  static String g_units[] = {
       string_static("B"),
       string_static("KiB"),
       string_static("MiB"),
@@ -508,11 +508,11 @@ void format_write_size_pretty(DynString* str, const usize val) {
 
   u8  unit       = 0;
   f64 scaledSize = val;
-  for (; scaledSize >= 1024.0 && unit != array_elems(units) - 1; ++unit) {
+  for (; scaledSize >= 1024.0 && unit != array_elems(g_units) - 1; ++unit) {
     scaledSize /= 1024.0;
   }
   format_write_float(str, scaledSize, .maxDecDigits = 1);
-  dynstring_append(str, units[unit]);
+  dynstring_append(str, g_units[unit]);
 }
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
@@ -582,7 +582,7 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
   static struct {
     u8     byte;
     String escapeSeq;
-  } escapes[] = {
+  } g_escapes[] = {
       {'"', string_static("\\\"")},
       {'\\', string_static("\\\\")},
       {'\r', string_static("\\r")},
@@ -595,9 +595,9 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
 
   if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(val)) {
     // If we have a well-known sequence for this byte we apply it.
-    for (usize i = 0; i != array_elems(escapes); ++i) {
-      if (escapes[i].byte == val) {
-        dynstring_append(str, escapes[i].escapeSeq);
+    for (usize i = 0; i != array_elems(g_escapes); ++i) {
+      if (g_escapes[i].byte == val) {
+        dynstring_append(str, g_escapes[i].escapeSeq);
         return;
       }
     }
@@ -737,6 +737,38 @@ String format_read_f64(String input, f64* output) {
 
   if (output) {
     *output = mantissa / divider * (f64)sign;
+  }
+  return input;
+}
+
+String format_read_time_duration(String input, TimeDuration* output) {
+  static struct {
+    String       str;
+    TimeDuration base;
+  } g_units[] = {
+      {string_static("ns"), time_nanosecond},
+      {string_static("us"), time_microsecond},
+      {string_static("ms"), time_millisecond},
+      {string_static("s"), time_second},
+      {string_static("m"), time_minute},
+      {string_static("h"), time_hour},
+      {string_static("d"), time_day},
+  };
+  f64 val;
+  input = format_read_f64(input, &val);
+  input = format_read_whitespace(input, null);
+
+  TimeDuration base = time_second;
+  for (u32 i = 0; i != array_elems(g_units); ++i) {
+    if (string_starts_with(input, g_units[i].str)) {
+      base  = g_units[i].base;
+      input = string_consume(input, g_units[i].str.size);
+      break;
+    }
+  }
+
+  if (output) {
+    *output = (TimeDuration)(val * base);
   }
   return input;
 }
