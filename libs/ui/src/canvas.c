@@ -762,17 +762,36 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
   return ui_canvas_tracked((UiCanvasComp*)comp, id)->rect;
 }
 
-UiStatus ui_canvas_group_status(const UiCanvasComp* comp, const UiId begin, const UiId end) {
-  if (comp->activeId < begin || comp->activeId > end) {
+UiStatus ui_canvas_group_status(const UiCanvasComp* comp, const UiId first, const UiId last) {
+  if (comp->activeId < first || comp->activeId > last) {
     return UiStatus_Idle;
   }
   return comp->activeStatus;
+}
+
+bool ui_canvas_group_inactive(const UiCanvasComp* comp, const UiId first, const UiId last) {
+  if (ui_canvas_group_status(comp, first, last) != UiStatus_Idle) {
+    return false;
+  }
+  if (ui_editor_active(comp->textEditor)) {
+    const UiId editingId = ui_editor_element(comp->textEditor);
+    if (editingId >= first && editingId <= last) {
+      return false;
+    }
+  }
+  return true;
 }
 
 UiStatus ui_canvas_group_block_status(const UiCanvasComp* comp) {
   const u64 blockEnd   = bits_align_64(comp->nextId + 1, u64_lit(1) << 32);
   const u64 blockBegin = blockEnd - (u64_lit(1) << 32);
   return ui_canvas_group_status(comp, blockBegin, blockEnd - 1);
+}
+
+bool ui_canvas_group_block_inactive(const UiCanvasComp* comp) {
+  const u64 blockEnd   = bits_align_64(comp->nextId + 1, u64_lit(1) << 32);
+  const u64 blockBegin = blockEnd - (u64_lit(1) << 32);
+  return ui_canvas_group_inactive(comp, blockBegin, blockEnd - 1);
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }

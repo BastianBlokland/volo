@@ -272,7 +272,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
     ui_layout_pop(canvas);
 
     // Close when pressing outside.
-    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_status(canvas) == UiStatus_Idle) {
+    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_inactive(canvas)) {
       ui_canvas_persistent_flags_unset(canvas, popupId, UiPersistentFlags_Open);
     }
   }
@@ -346,7 +346,7 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_layout_pop(canvas);
 
     // Close when pressing outside.
-    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_status(canvas) == UiStatus_Idle) {
+    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_inactive(canvas)) {
       ui_canvas_persistent_flags_unset(canvas, popupId, UiPersistentFlags_Open);
     }
   }
