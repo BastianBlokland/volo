@@ -14,6 +14,8 @@
 
 static const String g_tooltipFreeze       = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipRefresh      = string_static("Refresh the data set.");
+static const String g_tooltipTrigger      = string_static("Configure the trigger (auto freeze) settings.");
+static const String g_tooltipTriggerPick  = string_static("Trigger on '{}' event.");
 static const String g_tooltipTraceDump    = string_static("Dump performance trace data to disk (in the 'logs' directory).");
 static const String g_messageNoStoreSink  = string_static("No store trace-sink found.\nNote: Check if the binary was compiled with the 'TRACE' option and not explicitly disabled.");
 
@@ -29,18 +31,35 @@ typedef struct {
   DynArray events; // TraceStoreEvent[]
 } DebugTraceData;
 
+typedef struct {
+  bool         enabled, picking;
+  u8           eventId;
+  TimeDuration threshold;
+} DebugTraceTrigger;
+
 ecs_comp_define(DebugTracePanelComp) {
-  UiPanel        panel;
-  bool           freeze, refresh;
-  bool           hoverAny, panAny;
-  TimeSteady     timeHead;
-  TimeDuration   timeWindow;
-  DebugTraceData threads[debug_trace_max_threads];
+  UiPanel           panel;
+  bool              freeze, refresh;
+  bool              hoverAny, panAny;
+  TimeSteady        timeHead;
+  TimeDuration      timeWindow;
+  DebugTraceTrigger trigger;
+  DebugTraceData    threads[debug_trace_max_threads];
 };
 
 static void ecs_destruct_trace_panel(void* data) {
   DebugTracePanelComp* comp = data;
   array_for_t(comp->threads, DebugTraceData, thread) { dynarray_destroy(&thread->events); }
+}
+
+static void trace_trigger_set(DebugTraceTrigger* t, const u8 eventId) {
+  t->eventId = eventId;
+  t->enabled = true;
+  t->picking = false;
+}
+
+static bool trace_trigger_match(const DebugTraceTrigger* t, const TraceStoreEvent* evt) {
+  return t->enabled && t->eventId == evt->id && evt->timeDur >= t->threshold;
 }
 
 static UiColor trace_event_color(const TraceColor col) {
@@ -68,6 +87,12 @@ static void trace_data_clear(DebugTracePanelComp* panel) {
   }
 }
 
+static void trace_data_focus(DebugTracePanelComp* panel, const TraceStoreEvent* evt) {
+  panel->timeHead   = evt->timeStart + evt->timeDur;
+  panel->timeWindow = math_clamp_i64(evt->timeDur, time_microsecond, time_milliseconds(500));
+  panel->freeze     = true;
+}
+
 static void trace_data_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
@@ -87,6 +112,111 @@ static void trace_data_visitor(
     mem_cpy(array_mem(threadData->nameBuffer), mem_slice(threadName, 0, threadData->nameLength));
   }
   *((TraceStoreEvent*)dynarray_push(&threadData->events, 1).ptr) = *evt;
+
+  if (UNLIKELY(trace_trigger_match(&panel->trigger, evt))) {
+    trace_data_focus(panel, evt);
+  }
+}
+
+static UiColor trace_trigger_button_color(const DebugTraceTrigger* t) {
+  UiColor color = ui_color(32, 32, 32, 192);
+  if (t->picking) {
+    color = ui_color(255, 16, 0, 192);
+  } else if (t->enabled) {
+    color = ui_color(16, 192, 0, 192);
+  }
+  return color;
+}
+
+static void trace_options_trigger_draw(
+    UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
+  static const UiVector g_popupSize = {.x = 255.0f, .y = 100.0f};
+
+  DebugTraceTrigger*      t           = &panel->trigger;
+  const UiId              popupId     = ui_canvas_id_peek(c);
+  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(c, popupId);
+  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
+  const bool              hasEvent    = !sentinel_check(t->eventId);
+
+  const String  trigLabel = string_lit("Trigger");
+  const UiColor trigColor = trace_trigger_button_color(&panel->trigger);
+  if (ui_button(c, .label = trigLabel, .tooltip = g_tooltipTrigger, .frameColor = trigColor)) {
+    ui_canvas_persistent_flags_toggle(c, popupId, UiPersistentFlags_Open);
+  }
+
+  ui_canvas_id_block_next(c); // Put the popup on its own id-block.
+
+  ui_style_push(c);
+  if (popupActive) {
+    ui_style_layer(c, UiLayer_Overlay);
+    ui_canvas_min_interact_layer(c, UiLayer_Overlay);
+
+    ui_layout_push(c);
+    ui_layout_move(c, ui_vector(0.5f, 0.5f), UiBase_Current, Ui_XY);
+    ui_layout_resize(c, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+
+    // Popup background.
+    ui_style_push(c);
+    ui_style_outline(c, 2);
+    ui_style_color(c, ui_color(64, 64, 64, 235));
+    ui_canvas_draw_glyph(c, UiShape_Circle, 5, UiFlags_Interactable);
+    ui_style_pop(c);
+
+    // Popup content.
+    ui_layout_container_push(c, UiClip_None);
+
+    UiTable table = ui_table();
+    ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Action"));
+    ui_table_next_column(c, &table);
+    if (t->enabled) {
+      if (ui_button(c, .label = string_lit("Disable"))) {
+        t->enabled = false;
+      }
+    } else {
+      const UiWidgetFlags enableFlags = hasEvent ? UiWidget_Default : UiWidget_Disabled;
+      if (ui_button(c, .label = string_lit("Enable"), .flags = enableFlags)) {
+        t->enabled    = true;
+        panel->freeze = false;
+      }
+    }
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Event"));
+    ui_table_next_column(c, &table);
+    if (ui_button(
+            c,
+            .label = hasEvent ? trace_sink_store_id(sinkStore, t->eventId) : string_lit("Pick"),
+            .frameColor = hasEvent ? ui_color(16, 192, 0, 192) : ui_color(255, 16, 0, 192))) {
+      t->picking    = true;
+      t->enabled    = false;
+      panel->freeze = true;
+      ui_canvas_persistent_flags_unset(c, popupId, UiPersistentFlags_Open);
+    }
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Threshold"));
+    ui_table_next_column(c, &table);
+    if (ui_durbox(c, &t->threshold, .min = time_microsecond, .max = time_milliseconds(500))) {
+      if (t->enabled) {
+        panel->freeze = false;
+      }
+    }
+
+    ui_layout_container_pop(c);
+    ui_layout_pop(c);
+
+    // Close popup when pressing outside.
+    if (ui_canvas_input_any(c) && ui_canvas_group_block_inactive(c)) {
+      ui_canvas_persistent_flags_unset(c, popupId, UiPersistentFlags_Open);
+    }
+  }
+  ui_style_pop(c);
+
+  ui_canvas_id_block_next(c); // End on an consistent id.
 }
 
 static void
@@ -94,36 +224,44 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Fixed, 160);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_next_row(c, &table);
 
-  if (ui_button(c, .label = string_lit("Dump (eventtrace)"), .tooltip = g_tooltipTraceDump)) {
-    trace_dump_eventtrace_to_path_default(sinkStore);
+  if (panel->trigger.picking) {
+    ui_label(c, string_lit("Picking event"));
+  } else {
+    const String timeLabel = fmt_write_scratch(
+        "Window: {}",
+        fmt_duration(panel->timeWindow, .minIntDigits = 3, .minDecDigits = 1, .maxDecDigits = 1));
+    ui_label(c, timeLabel);
   }
-
-  ui_table_next_column(c, &table);
-  const String timeLabel = fmt_write_scratch(
-      "Window: {}",
-      fmt_duration(panel->timeWindow, .minIntDigits = 3, .minDecDigits = 1, .maxDecDigits = 1));
-  ui_label(c, timeLabel);
 
   ui_table_next_column(c, &table);
   ui_label(c, string_lit("Freeze:"));
   ui_table_next_column(c, &table);
-  ui_toggle(c, &panel->freeze, .tooltip = g_tooltipFreeze);
+  const UiWidgetFlags freezeFlags = panel->trigger.picking ? UiWidget_Disabled : UiWidget_Default;
+  ui_toggle(c, &panel->freeze, .tooltip = g_tooltipFreeze, .flags = freezeFlags);
 
   ui_table_next_column(c, &table);
-  if (ui_button(
-          c,
-          .label   = string_lit("Refresh"),
-          .tooltip = g_tooltipRefresh,
-          .flags   = panel->freeze ? UiWidget_Default : UiWidget_Disabled)) {
+  const String        refreshLabel   = string_lit("Refresh");
+  const bool          refreshBlocked = !panel->freeze || panel->trigger.picking;
+  const UiWidgetFlags refreshFlags   = refreshBlocked ? UiWidget_Disabled : UiWidget_Default;
+  if (ui_button(c, .label = refreshLabel, .tooltip = g_tooltipRefresh, .flags = refreshFlags)) {
     panel->refresh = true;
+  }
+
+  ui_table_next_column(c, &table);
+  trace_options_trigger_draw(c, panel, sinkStore);
+
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .label = string_lit("Dump"), .tooltip = g_tooltipTraceDump)) {
+    trace_dump_eventtrace_to_path_default(sinkStore);
   }
 
   ui_layout_pop(c);
@@ -151,11 +289,6 @@ static void trace_data_input_pan(UiCanvasComp* c, DebugTracePanelComp* panel, co
     const f64 inputFrac = ui_canvas_input_delta(c).x / rect.width;
     panel->timeHead -= (TimeDuration)((f64)panel->timeWindow * inputFrac);
   }
-}
-
-static void trace_data_input_focus(DebugTracePanelComp* panel, const TraceStoreEvent* evt) {
-  panel->timeHead   = evt->timeStart + evt->timeDur;
-  panel->timeWindow = math_max(evt->timeDur, time_microsecond);
 }
 
 static void trace_data_tooltip_draw(
@@ -250,9 +383,19 @@ static void trace_data_events_draw(
       ui_canvas_interact_type(c, UiInteractType_Action);
       if (!panel->panAny && barStatus == UiStatus_Activated) {
         ui_canvas_sound(c, UiSoundType_Click);
-        trace_data_input_focus(panel, evt);
+        if (panel->trigger.picking) {
+          trace_trigger_set(&panel->trigger, evt->id);
+          panel->freeze = false;
+        } else {
+          trace_data_focus(panel, evt);
+        }
       }
-      trace_data_tooltip_draw(c, barId, evt, msg, id);
+      if (panel->trigger.picking) {
+        ui_tooltip(
+            c, barId, format_write_formatted_scratch(g_tooltipTriggerPick, fmt_args(fmt_text(id))));
+      } else {
+        trace_data_tooltip_draw(c, barId, evt, msg, id);
+      }
     } else {
       ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
     }
@@ -390,6 +533,7 @@ ecs_system_define(DebugTracePanelDrawSys) {
     const bool pinned = ui_panel_pinned(&panel->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       panel->hoverAny = panel->panAny = false;
+      panel->trigger.picking = panel->trigger.enabled = false;
       continue;
     }
 
@@ -423,9 +567,11 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       world,
       panelEntity,
       DebugTracePanelComp,
-      .panel      = ui_panel(.size = ui_vector(800, 500)),
-      .timeHead   = time_steady_clock(),
-      .timeWindow = time_milliseconds(100));
+      .panel             = ui_panel(.size = ui_vector(800, 500)),
+      .timeHead          = time_steady_clock(),
+      .timeWindow        = time_milliseconds(100),
+      .trigger.eventId   = sentinel_u8,
+      .trigger.threshold = time_milliseconds(20));
 
   array_for_t(tracePanel->threads, DebugTraceData, thread) {
     thread->events = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
