@@ -723,7 +723,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
     ui_canvas_interact_type(canvas, UiInteractType_Text);
   }
 
-  return changed || ((flags & UiWidget_DirtyWhileEditing) && editing);
+  return changed || ((opts->flags & UiWidget_DirtyWhileEditing) && editing);
 }
 
 bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* opts) {
@@ -743,6 +743,24 @@ bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* o
       *input = math_round_nearest_f64(*input / opts->step) * opts->step;
     }
     *input = math_clamp_f64(*input, opts->min, opts->max);
+    return true;
+  }
+  return false;
+}
+
+bool ui_durbox_with_opts(UiCanvasComp* canvas, TimeDuration* input, const UiDurboxOpts* opts) {
+  DynString text = dynstring_create_over(mem_stack(64));
+  format_write_time_duration_pretty(&text, *input, &format_opts_float(.maxDecDigits = 4));
+  if (ui_textbox(
+          canvas,
+          &text,
+          .flags         = opts->flags,
+          .fontSize      = opts->fontSize,
+          .maxTextLength = 64,
+          .frameColor    = opts->frameColor,
+          .tooltip       = opts->tooltip)) {
+    format_read_time_duration(dynstring_view(&text), input);
+    *input = math_clamp_i64(*input, opts->min, opts->max);
     return true;
   }
   return false;

@@ -123,9 +123,12 @@ UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
 /**
  * Query information about a group of elements.
  * NOTE: Requires cross frame consistency of identifiers.
+ * NOTE: Inactive means UiStatus_Idle AND not editing any text in the group.
  */
-UiStatus ui_canvas_group_status(const UiCanvasComp*, UiId begin, UiId end);
+UiStatus ui_canvas_group_status(const UiCanvasComp*, UiId first, UiId last);
+bool     ui_canvas_group_inactive(const UiCanvasComp*, UiId first, UiId last);
 UiStatus ui_canvas_group_block_status(const UiCanvasComp*);
+bool     ui_canvas_group_block_inactive(const UiCanvasComp*);
 
 /**
  * Get or set persistent element state.

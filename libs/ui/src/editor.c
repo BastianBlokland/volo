@@ -108,7 +108,7 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
     return false; // Multi line editing is not supported at this time.
   }
   if (cp == Unicode_ZeroWidthSpace) {
-    return false; // Invisible characters (which also no not advance the cursor) are not supported.
+    return false; // Invisible characters (which also do not advance the cursor) are not supported.
   }
   return true;
 }
