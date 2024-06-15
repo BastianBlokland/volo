@@ -94,7 +94,7 @@ static String json_lex_string(String str, JsonToken* out) {
       break;
     case '"':
       out->type       = JsonTokenType_String;
-      out->val_string = dynstring_view(&result);
+      out->val_string = mem_create(result.data.ptr, result.size);
       goto Ret;
     default:
       if (UNLIKELY(ascii_is_control(ch))) {
