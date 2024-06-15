@@ -34,9 +34,9 @@ struct sJsonDoc {
   DynArray   values;      // JsonValData[]
 };
 
-static JsonValData* json_val_data(const JsonDoc* doc, const JsonVal val) {
+INLINE_HINT static JsonValData* json_val_data(const JsonDoc* doc, const JsonVal val) {
   diag_assert_msg(val < doc->values.size, "Out of bounds JsonVal");
-  return dynarray_at_t(&doc->values, val, JsonValData);
+  return &dynarray_begin_t(&doc->values, JsonValData)[val];
 }
 
 static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
