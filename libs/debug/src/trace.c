@@ -168,7 +168,7 @@ static void trace_options_trigger_draw(
 
     ui_layout_push(c);
     ui_layout_move(c, ui_vector(0.5f, 0.5f), UiBase_Current, Ui_XY);
-    ui_layout_resize(c, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+    ui_layout_resize(c, UiAlign_TopCenter, g_popupSize, UiBase_Absolute, Ui_XY);
 
     // Popup background.
     ui_style_push(c);
@@ -217,7 +217,11 @@ static void trace_options_trigger_draw(
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Message"));
     ui_table_next_column(c, &table);
-    ui_textbox(c, &t->msgFilter, .placeholder = string_lit("*"));
+    if (ui_textbox(c, &t->msgFilter, .placeholder = string_lit("*"))) {
+      if (t->enabled) {
+        panel->freeze = false;
+      }
+    }
 
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Threshold"));

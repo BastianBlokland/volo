@@ -2,7 +2,7 @@
 #include "ecs_def.h"
 
 enum {
-  AssetOrder_Update = 0,
+  AssetOrder_Update = -900,
 };
 
 /**

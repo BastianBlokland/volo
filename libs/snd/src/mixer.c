@@ -253,7 +253,7 @@ ecs_system_define(SndMixerUpdateSys) {
        * but we do check if the ref-count is zero when accessing the asset. If its zero then its not
        * safe to access the asset as it might be queued for unload.
        */
-      ASSERT((u32)SndOrder_Update > AssetOrder_Update, "Sound update has to be after asset update");
+      ASSERT((i32)SndOrder_Update > AssetOrder_Update, "Sound update has to be after asset update");
       // Fallthrough.
     case SndObjectPhase_Acquired:
       if (obj->flags & SndObjectFlags_Stop) {
