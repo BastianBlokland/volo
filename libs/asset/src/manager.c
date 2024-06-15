@@ -5,6 +5,7 @@
 #include "core_dynarray.h"
 #include "core_path.h"
 #include "core_search.h"
+#include "core_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -13,8 +14,8 @@
 #include "loader_internal.h"
 #include "repo_internal.h"
 
-#define asset_max_loads_per_task 1
-#define asset_num_load_tasks 3
+#define asset_max_load_time_per_task time_milliseconds(2)
+#define asset_num_load_tasks 2
 #define asset_id_chunk_size (16 * usize_kibibyte)
 
 /**
@@ -228,8 +229,8 @@ ecs_system_define(AssetUpdateDirtySys) {
     return;
   }
 
-  u32      startedLoads = 0;
-  EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
+  TimeDuration loadTime   = 0;
+  EcsView*     assetsView = ecs_world_view_t(world, DirtyAssetView);
 
   for (EcsIterator* itr = ecs_view_itr_step(assetsView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity         = ecs_view_entity(itr);
@@ -268,11 +269,12 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      const bool canLoad = startedLoads < asset_max_loads_per_task;
+      const bool canLoad = loadTime < asset_max_load_time_per_task;
       if (canLoad) {
         assetComp->flags |= AssetFlags_Loading;
+        const TimeSteady loadStart = time_steady_clock();
         if (asset_manager_load(world, manager, assetComp, entity)) {
-          startedLoads++;
+          loadTime += time_steady_duration(loadStart, time_steady_clock());
         } else {
           ecs_world_add_empty_t(world, entity, AssetFailedComp);
         }
