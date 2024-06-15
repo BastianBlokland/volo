@@ -184,10 +184,12 @@ usize string_find_last_any(String, String chars);
 
 /**
  * Match the given string to a glob pattern.
+ * NOTE: Ascii only.
  *
  * Supported pattern syntax:
  * '?' matches any single character.
  * '*' matches any number of any characters including none.
+ * '!' inverts the entire match (not per segment and cannot be disabled after enabling).
  */
 bool string_match_glob(String, String pattern, StringMatchFlags);
 

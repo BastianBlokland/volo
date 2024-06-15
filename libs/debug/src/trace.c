@@ -34,6 +34,7 @@ typedef struct {
 typedef struct {
   bool         enabled, picking;
   u8           eventId;
+  DynString    msgFilter;
   TimeDuration threshold;
 } DebugTraceTrigger;
 
@@ -49,6 +50,7 @@ ecs_comp_define(DebugTracePanelComp) {
 
 static void ecs_destruct_trace_panel(void* data) {
   DebugTracePanelComp* comp = data;
+  dynstring_destroy(&comp->trigger.msgFilter);
   array_for_t(comp->threads, DebugTraceData, thread) { dynarray_destroy(&thread->events); }
 }
 
@@ -59,7 +61,20 @@ static void trace_trigger_set(DebugTraceTrigger* t, const u8 eventId) {
 }
 
 static bool trace_trigger_match(const DebugTraceTrigger* t, const TraceStoreEvent* evt) {
-  return t->enabled && t->eventId == evt->id && evt->timeDur >= t->threshold;
+  if (!t->enabled) {
+    return false;
+  }
+  if (evt->id != t->eventId) {
+    return false;
+  }
+  if (evt->timeDur < t->threshold) {
+    return false;
+  }
+  if (!t->msgFilter.size) {
+    return true;
+  }
+  const String evtMsg = mem_create(evt->msgData, evt->msgLength);
+  return string_match_glob(evtMsg, dynstring_view(&t->msgFilter), StringMatchFlags_IgnoreCase);
 }
 
 static UiColor trace_event_color(const TraceColor col) {
@@ -130,7 +145,7 @@ static UiColor trace_trigger_button_color(const DebugTraceTrigger* t) {
 
 static void trace_options_trigger_draw(
     UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
-  static const UiVector g_popupSize = {.x = 255.0f, .y = 100.0f};
+  static const UiVector g_popupSize = {.x = 255.0f, .y = 130.0f};
 
   DebugTraceTrigger*      t           = &panel->trigger;
   const UiId              popupId     = ui_canvas_id_peek(c);
@@ -172,13 +187,15 @@ static void trace_options_trigger_draw(
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Action"));
     ui_table_next_column(c, &table);
+    const UiColor enabledColor = t->enabled ? ui_color(16, 192, 0, 192) : ui_color(255, 16, 0, 192);
     if (t->enabled) {
-      if (ui_button(c, .label = string_lit("Disable"))) {
+      if (ui_button(c, .label = string_lit("Disable"), .frameColor = enabledColor)) {
         t->enabled = false;
       }
     } else {
       const UiWidgetFlags enableFlags = hasEvent ? UiWidget_Default : UiWidget_Disabled;
-      if (ui_button(c, .label = string_lit("Enable"), .flags = enableFlags)) {
+      if (ui_button(
+              c, .label = string_lit("Enable"), .flags = enableFlags, .frameColor = enabledColor)) {
         t->enabled    = true;
         panel->freeze = false;
       }
@@ -196,6 +213,11 @@ static void trace_options_trigger_draw(
       panel->freeze = true;
       ui_canvas_persistent_flags_unset(c, popupId, UiPersistentFlags_Open);
     }
+
+    ui_table_next_row(c, &table);
+    ui_label(c, string_lit("Message"));
+    ui_table_next_column(c, &table);
+    ui_textbox(c, &t->msgFilter, .placeholder = string_lit("*"));
 
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Threshold"));
@@ -571,6 +593,7 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       .timeHead          = time_steady_clock(),
       .timeWindow        = time_milliseconds(100),
       .trigger.eventId   = sentinel_u8,
+      .trigger.msgFilter = dynstring_create(g_allocHeap, 0),
       .trigger.threshold = time_milliseconds(20));
 
   array_for_t(tracePanel->threads, DebugTraceData, thread) {

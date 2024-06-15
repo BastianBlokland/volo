@@ -631,7 +631,7 @@ ecs_view_define(StatsUpdateView) {
   ecs_access_read(UiStatsComp);
 }
 
-ecs_view_define(CanvasWrite) {
+ecs_view_define(CanvasWriteView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
   ecs_access_write(UiCanvasComp);
 }
@@ -670,7 +670,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   const EcsRunnerStats ecsRunnerStats = ecs_runner_stats_query(g_ecsRunningRunner);
   debug_stats_global_update(statsGlobal, &ecsRunnerStats);
 
-  EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
+  EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWriteView));
 
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
@@ -721,14 +721,14 @@ ecs_module_init(debug_stats_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(StatsCreateView);
   ecs_register_view(StatsUpdateView);
-  ecs_register_view(CanvasWrite);
+  ecs_register_view(CanvasWriteView);
 
   ecs_register_system(DebugStatsCreateSys, ecs_view_id(StatsCreateView));
   ecs_register_system(
       DebugStatsUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(StatsUpdateView),
-      ecs_view_id(CanvasWrite));
+      ecs_view_id(CanvasWriteView));
 }
 
 void debug_stats_notify(DebugStatsGlobalComp* comp, const String key, const String value) {

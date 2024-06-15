@@ -8,7 +8,7 @@
 
 // clang-format off
 
-static const String g_tooltipFilter = string_static("Filter assets by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipFilter = string_static("Filter assets by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipReload = string_static("Request the asset to be reloaded.\nReload is delayed until all systems release the asset and reacquire it.");
 
 // clang-format on

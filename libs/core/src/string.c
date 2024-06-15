@@ -125,11 +125,22 @@ usize string_find_last_any(const String str, const String chars) {
   return sentinel_usize;
 }
 
+static bool glob_match_char(u8 a, u8 b, const StringMatchFlags flags) {
+  if (flags & StringMatchFlags_IgnoreCase) {
+    a ^= a >= 'A' && a <= 'Z' ? 0x20 : 0;
+    b ^= b >= 'A' && b <= 'Z' ? 0x20 : 0;
+  }
+  return a == b;
+}
+
 bool string_match_glob(const String str, const String pattern, const StringMatchFlags flags) {
   /**
    * Basic glob matching algorithm.
    * More information on the implementation: https://research.swtch.com/glob.
+   * TODO: Invert currently inverts the entire match instead of inverting the segment.
+   * TODO: Add unicode support.
    */
+  bool  patternInvert  = false;
   usize patternIdx     = 0;
   usize strIdx         = 0;
   usize nextPatternIdx = 0;
@@ -149,15 +160,15 @@ bool string_match_glob(const String str, const String pattern, const StringMatch
         nextPatternIdx = patternIdx++;
         nextStrIdx     = strIdx + 1;
         continue;
+      case '!':
+        ++patternIdx;
+        patternInvert = true;
+        continue;
       default:
         if (strIdx >= str.size || string_is_empty(str)) {
           break;
         }
-        const bool charMatches =
-            flags & StringMatchFlags_IgnoreCase
-                ? ascii_to_lower(*string_at(str, strIdx)) == ascii_to_lower(patternChar)
-                : *string_at(str, strIdx) == patternChar;
-        if (!charMatches) {
+        if (!glob_match_char(*string_at(str, strIdx), patternChar, flags)) {
           break;
         }
         ++patternIdx;
@@ -171,10 +182,10 @@ bool string_match_glob(const String str, const String pattern, const StringMatch
       strIdx     = nextStrIdx;
       continue;
     }
-    return false;
+    return patternInvert;
   }
   // Entire pattern matched.
-  return true;
+  return !patternInvert;
 }
 
 String string_trim(const String value, const String chars) {
