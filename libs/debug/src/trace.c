@@ -217,7 +217,11 @@ static void trace_options_trigger_draw(
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Message"));
     ui_table_next_column(c, &table);
-    ui_textbox(c, &t->msgFilter, .placeholder = string_lit("*"));
+    if (ui_textbox(c, &t->msgFilter, .placeholder = string_lit("*"))) {
+      if (t->enabled) {
+        panel->freeze = false;
+      }
+    }
 
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Threshold"));
