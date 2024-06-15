@@ -184,6 +184,7 @@ usize string_find_last_any(String, String chars);
 
 /**
  * Match the given string to a glob pattern.
+ * NOTE: Ascii only.
  *
  * Supported pattern syntax:
  * '?' matches any single character.
