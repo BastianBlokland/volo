@@ -187,13 +187,15 @@ static void trace_options_trigger_draw(
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Action"));
     ui_table_next_column(c, &table);
+    const UiColor enabledColor = t->enabled ? ui_color(16, 192, 0, 192) : ui_color(255, 16, 0, 192);
     if (t->enabled) {
-      if (ui_button(c, .label = string_lit("Disable"))) {
+      if (ui_button(c, .label = string_lit("Disable"), .frameColor = enabledColor)) {
         t->enabled = false;
       }
     } else {
       const UiWidgetFlags enableFlags = hasEvent ? UiWidget_Default : UiWidget_Disabled;
-      if (ui_button(c, .label = string_lit("Enable"), .flags = enableFlags)) {
+      if (ui_button(
+              c, .label = string_lit("Enable"), .flags = enableFlags, .frameColor = enabledColor)) {
         t->enabled    = true;
         panel->freeze = false;
       }
@@ -384,8 +386,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
