@@ -13,7 +13,7 @@
 
 // clang-format off
 
-static const String g_tooltipFilter    = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipFilter    = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipFreeze    = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipDumpGraph = string_static("Dump the current task graph as a dot file.");
 

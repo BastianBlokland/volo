@@ -129,7 +129,9 @@ bool string_match_glob(const String str, const String pattern, const StringMatch
   /**
    * Basic glob matching algorithm.
    * More information on the implementation: https://research.swtch.com/glob.
+   * TODO: Invert currently inverts the entire match instead of inverting the segment.
    */
+  bool  patternInvert  = false;
   usize patternIdx     = 0;
   usize strIdx         = 0;
   usize nextPatternIdx = 0;
@@ -148,6 +150,10 @@ bool string_match_glob(const String str, const String pattern, const StringMatch
       case '*':
         nextPatternIdx = patternIdx++;
         nextStrIdx     = strIdx + 1;
+        continue;
+      case '!':
+        ++patternIdx;
+        patternInvert = true;
         continue;
       default:
         if (strIdx >= str.size || string_is_empty(str)) {
@@ -171,10 +177,10 @@ bool string_match_glob(const String str, const String pattern, const StringMatch
       strIdx     = nextStrIdx;
       continue;
     }
-    return false;
+    return patternInvert;
   }
   // Entire pattern matched.
-  return true;
+  return !patternInvert;
 }
 
 String string_trim(const String value, const String chars) {

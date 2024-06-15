@@ -18,7 +18,7 @@
 static const String g_tooltipReload       = string_static("Reload the current level.");
 static const String g_tooltipUnload       = string_static("Unload the current level.");
 static const String g_tooltipSave         = string_static("Save the current level.");
-static const String g_tooltipFilter       = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipFilter       = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_queryPatternLevel   = string_static("levels/*.level");
 static const String g_queryPatternTerrain = string_static("terrains/*.terrain");
 

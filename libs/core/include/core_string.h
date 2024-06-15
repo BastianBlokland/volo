@@ -188,6 +188,7 @@ usize string_find_last_any(String, String chars);
  * Supported pattern syntax:
  * '?' matches any single character.
  * '*' matches any number of any characters including none.
+ * '!' inverts the entire match (not per segment and cannot be disabled after enabling).
  */
 bool string_match_glob(String, String pattern, StringMatchFlags);
 

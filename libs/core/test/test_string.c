@@ -216,6 +216,15 @@ spec(string) {
     check(!string_match_glob(string_lit("helloworld"), string_lit("h??lo?w?rld?"), f));
     check(!string_match_glob(string_lit("hello world"), string_lit("h??lo?w?rld?"), f));
 
+    check(string_match_glob(string_lit("hello"), string_lit("!world"), f));
+    check(!string_match_glob(string_lit("world"), string_lit("!world"), f));
+    check(string_match_glob(string_lit("hello"), string_lit("!*world"), f));
+    check(string_match_glob(string_lit("worldhello"), string_lit("!*world"), f));
+    check(string_match_glob(string_empty, string_lit("!hello"), f));
+    check(string_match_glob(string_lit("world"), string_lit("!hello"), f));
+    check(!string_match_glob(string_lit("world"), string_lit("!*world"), f));
+    check(!string_match_glob(string_lit(" world"), string_lit("!?world"), f));
+
     check(string_match_glob(string_lit("HeLlO"), string_lit("hello"), StringMatchFlags_IgnoreCase));
     check(
         !string_match_glob(string_lit("HeLlOZ"), string_lit("hello"), StringMatchFlags_IgnoreCase));
