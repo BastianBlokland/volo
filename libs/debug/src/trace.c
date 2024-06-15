@@ -168,7 +168,7 @@ static void trace_options_trigger_draw(
 
     ui_layout_push(c);
     ui_layout_move(c, ui_vector(0.5f, 0.5f), UiBase_Current, Ui_XY);
-    ui_layout_resize(c, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+    ui_layout_resize(c, UiAlign_TopCenter, g_popupSize, UiBase_Absolute, Ui_XY);
 
     // Popup background.
     ui_style_push(c);
