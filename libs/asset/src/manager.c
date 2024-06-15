@@ -13,7 +13,7 @@
 #include "loader_internal.h"
 #include "repo_internal.h"
 
-#define asset_max_loads_per_task 3
+#define asset_max_loads_per_task 1
 #define asset_num_load_tasks 3
 #define asset_id_chunk_size (16 * usize_kibibyte)
 
