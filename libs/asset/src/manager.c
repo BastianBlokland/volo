@@ -8,6 +8,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "loader_internal.h"
 #include "repo_internal.h"
@@ -154,6 +155,7 @@ static bool asset_manager_load(
   if (!source) {
     return false;
   }
+  trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(path_filename(asset->id)));
 
   if (manager->flags & AssetManagerFlags_TrackChanges) {
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
@@ -169,6 +171,8 @@ static bool asset_manager_load(
 
   AssetLoader loader = asset_loader(source->format);
   loader(world, asset->id, assetEntity, source);
+
+  trace_end();
   return true;
 }
 
