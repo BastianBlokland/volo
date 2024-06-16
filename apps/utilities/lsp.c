@@ -294,7 +294,7 @@ static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String 
   if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Object) {
     return sentinel_u32;
   }
-  return json_field(ctx->jDoc, val, fieldName);
+  return json_field(ctx->jDoc, val, string_hash(fieldName));
 }
 
 static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 index) {

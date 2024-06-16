@@ -189,7 +189,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.name);
+    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.hash);
 
     if (sentinel_check(fieldVal)) {
       if (fieldDecl->meta.flags & DataFlags_Opt) {
@@ -236,7 +236,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
 
 static const DataDeclChoice* data_read_json_union_choice(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
-  const JsonVal   typeVal = json_field(ctx->doc, ctx->val, string_lit("$type"));
+  const JsonVal   typeVal = json_field_lit(ctx->doc, ctx->val, "$type");
 
   if (UNLIKELY(sentinel_check(typeVal))) {
     *res = result_fail(DataReadError_UnionTypeMissing, "Union is missing a '$type' field");
@@ -277,7 +277,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
-  const JsonVal nameVal = json_field(ctx->doc, ctx->val, string_lit("$name"));
+  const JsonVal nameVal = json_field_lit(ctx->doc, ctx->val, "$name");
   if (!sentinel_check(nameVal)) {
     if (UNLIKELY(json_type(ctx->doc, nameVal) != JsonType_String)) {
       *res = result_fail(DataReadError_UnionInvalidName, "'$name' field has to be a string");
@@ -316,7 +316,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       data_read_json_struct(&choiceCtx, res, fieldsRead);
     } break;
     default: {
-      const JsonVal dataVal = json_field(ctx->doc, ctx->val, string_lit("$data"));
+      const JsonVal dataVal = json_field_lit(ctx->doc, ctx->val, "$data");
       if (UNLIKELY(sentinel_check(dataVal))) {
         *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
         return;

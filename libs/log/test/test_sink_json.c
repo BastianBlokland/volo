@@ -33,13 +33,11 @@ spec(sink_json) {
     check_eq_int(result.type, JsonResultType_Success);
 
     check_eq_string(
-        json_string(jsonDoc, json_field(jsonDoc, result.val, string_lit("message"))),
+        json_string(jsonDoc, json_field_lit(jsonDoc, result.val, "message")),
         string_lit("Hello World"));
     check_eq_string(
-        json_string(jsonDoc, json_field(jsonDoc, result.val, string_lit("level"))),
-        string_lit("inf"));
-    check_eq_float(
-        json_number(jsonDoc, json_field(jsonDoc, result.val, string_lit("line"))), 26, 1e-6);
+        json_string(jsonDoc, json_field_lit(jsonDoc, result.val, "level")), string_lit("inf"));
+    check_eq_float(json_number(jsonDoc, json_field_lit(jsonDoc, result.val, "line")), 26, 1e-6);
   }
 
   it("supports log messages with parameters") {
@@ -52,9 +50,8 @@ spec(sink_json) {
     json_read(jsonDoc, dynstring_view(&buffer), &result);
     check_eq_int(result.type, JsonResultType_Success);
 
-    JsonVal extraObj = json_field(jsonDoc, result.val, string_lit("extra"));
-    check_eq_float(
-        json_number(jsonDoc, json_field(jsonDoc, extraObj, string_lit("param"))), 42, 1e-6);
+    JsonVal extraObj = json_field_lit(jsonDoc, result.val, "extra");
+    check_eq_float(json_number(jsonDoc, json_field_lit(jsonDoc, extraObj, "param")), 42, 1e-6);
   }
 
   it("supports list parameters") {
@@ -70,8 +67,8 @@ spec(sink_json) {
     json_read(jsonDoc, dynstring_view(&buffer), &result);
     check_eq_int(result.type, JsonResultType_Success);
 
-    JsonVal extraObj = json_field(jsonDoc, result.val, string_lit("extra"));
-    JsonVal paramArr = json_field(jsonDoc, extraObj, string_lit("param"));
+    JsonVal extraObj = json_field_lit(jsonDoc, result.val, "extra");
+    JsonVal paramArr = json_field_lit(jsonDoc, extraObj, "param");
     check_eq_int(json_elem_count(jsonDoc, paramArr), 3);
     check_eq_float(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 0)), 1, 1e-6);
     check_eq_float(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 1)), 2, 1e-6);
@@ -89,7 +86,7 @@ spec(sink_json) {
     check_eq_int(result.type, JsonResultType_Success);
 
     check_eq_string(
-        json_string(jsonDoc, json_field(jsonDoc, result.val, string_lit("message"))),
+        json_string(jsonDoc, json_field_lit(jsonDoc, result.val, "message")),
         string_lit("Hello42World"));
   }
 

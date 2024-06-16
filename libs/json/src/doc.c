@@ -248,9 +248,8 @@ JsonVal json_elem_next(const JsonDoc* doc, const JsonVal elem) {
   return json_val_data(doc, elem)->next;
 }
 
-JsonVal json_field(const JsonDoc* doc, const JsonVal object, const String name) {
+JsonVal json_field(const JsonDoc* doc, const JsonVal object, const StringHash nameHash) {
   diag_assert_msg(json_type(doc, object) == JsonType_Object, "Invalid object value");
-  const StringHash nameHash = string_hash(name);
 
   JsonValData* objectData = json_val_data(doc, object);
 

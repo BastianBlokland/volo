@@ -64,6 +64,14 @@ typedef struct {
                     _VAR_ = json_field_next((_DOC_), _VAR_.value))
 
 /**
+ * Lookup an object field by its name.
+ * Returns 'sentinel_u32' when no field was found with the given name.
+ *
+ * Pre-condition: object is a value of type JsonType_Object in the given document.
+ */
+#define json_field_lit(_DOC_, _OBJ_, _LIT_) json_field((_DOC_), (_OBJ_), string_hash_lit(_LIT_))
+
+/**
  * Add a new field to an object.
  * Returns 'false' if the object already contains a field with the given name.
  * NOTE: When 'false' is returned the state of the object is not modified.
@@ -225,12 +233,12 @@ JsonVal json_elem_begin(const JsonDoc*, JsonVal array);
 JsonVal json_elem_next(const JsonDoc*, JsonVal elem);
 
 /**
- * Lookup a object field by its name.
+ * Lookup an object field by the hash of its name.
  * Returns 'sentinel_u32' when no field was found with the given name.
  *
  * Pre-condition: object is a value of type JsonType_Object in the given document.
  */
-JsonVal json_field(const JsonDoc*, JsonVal object, String name);
+JsonVal json_field(const JsonDoc*, JsonVal object, StringHash nameHash);
 
 /**
  * Retrieve the amount of fields in an object.
