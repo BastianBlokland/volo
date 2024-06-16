@@ -7,11 +7,18 @@
 
 #include "lex_internal.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 #define json_string_max_size (usize_kibibyte * 64)
 
 #define json_token_err(_ERR_)                                                                      \
   (JsonToken) { .type = JsonTokenType_Error, .val_error = (_ERR_) }
 
+/**
+ * Consume x Ascii characters.
+ */
 INLINE_HINT static String json_consume_chars(const String str, const usize amount) {
   return (String){
       .ptr  = bits_ptr_offset(str.ptr, amount),
@@ -29,6 +36,35 @@ static String json_lex_string(String str, JsonToken* out) {
   // Caller is responsible for checking that the first character is valid.
   diag_assert(*string_begin(str) == '"');
   str = json_consume_chars(str, 1);
+
+#ifdef VOLO_SIMD
+  /**
+   * Fast path for simple strings (no escape sequences), if the fast path cannot handle the input it
+   * will abort and let the slow path handle it.
+   */
+  const SimdVec quoteVec   = simd_vec_broadcast_u8('"');
+  const SimdVec escapeVec  = simd_vec_broadcast_u8('\\');
+  const SimdVec limLowVec  = simd_vec_broadcast_u8(32);
+  const SimdVec limHighVec = simd_vec_broadcast_u8(126);
+  for (String rem = str; rem.size >= 16; rem = json_consume_chars(rem, 16)) {
+    const SimdVec charsVec = simd_vec_load_unaligned(rem.ptr);
+
+    SimdVec invalidVec = simd_vec_eq_u8(charsVec, escapeVec);
+    invalidVec         = simd_vec_or(invalidVec, simd_vec_less_u8(charsVec, limLowVec));
+    invalidVec         = simd_vec_or(invalidVec, simd_vec_greater_u8(charsVec, limHighVec));
+    if (simd_vec_mask_u8(invalidVec)) {
+      break; // Not valid for the fast-path: abort.
+    }
+
+    const u32 eqMask = simd_vec_mask_u8(simd_vec_eq_u8(charsVec, quoteVec));
+    if (eqMask) {
+      rem             = json_consume_chars(rem, intrinsic_ctz_32(eqMask) + 1);
+      out->type       = JsonTokenType_String;
+      out->val_string = mem_from_to(str.ptr, (u8*)rem.ptr - 1);
+      return rem;
+    }
+  }
+#endif
 
   DynString result = dynstring_create_over(alloc_alloc(g_allocScratch, json_string_max_size, 1));
 
@@ -94,10 +130,10 @@ static String json_lex_string(String str, JsonToken* out) {
       break;
     case '"':
       out->type       = JsonTokenType_String;
-      out->val_string = dynstring_view(&result);
+      out->val_string = mem_create(result.data.ptr, result.size);
       goto Ret;
     default:
-      if (UNLIKELY(ascii_is_control(ch))) {
+      if (UNLIKELY(!ascii_is_printable(ch))) {
         *out = json_token_err(JsonError_InvalidCharInString);
         goto Ret;
       }

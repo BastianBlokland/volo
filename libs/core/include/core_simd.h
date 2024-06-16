@@ -40,44 +40,26 @@ typedef __m128 SimdVec;
   _mm_castsi128_ps(_mm_srai_epi32(_mm_castps_si128(_VEC_), _AMOUNT_))
 
 /**
- * Load 4 (128 bit aligned) float values into a Simd vector.
- * Pre-condition: bits_aligned_ptr(values, 16)
+ * Load 128 bits of data (128 bit aligned) into a Simd vector.
+ * Pre-condition: bits_aligned_ptr(data, 16)
  */
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const f32 values[PARAM_ARRAY_SIZE(4)]) {
-  return _mm_load_ps(values);
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const void* data) {
+  return _mm_load_ps(data);
 }
 
 /**
- * Load 16 (128 bit aligned) u8 values into a Simd vector.
- * Pre-condition: bits_aligned_ptr(values, 16)
+ * Load 128 bits of data into a Simd vector.
  */
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u8(const u8 values[PARAM_ARRAY_SIZE(16)]) {
-  return _mm_load_ps((const f32*)values);
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_unaligned(const void* data) {
+  return _mm_loadu_ps(data);
 }
 
 /**
- * Load 8 (128 bit aligned) u16 values into a Simd vector.
- * Pre-condition: bits_aligned_ptr(values, 16)
+ * Store a Simd vector to memory (128 bit aligned).
+ * Pre-condition: bits_aligned_ptr(out, 16)
  */
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u16(const u16 values[PARAM_ARRAY_SIZE(8)]) {
-  return _mm_load_ps((const f32*)values);
-}
-
-/**
- * Load 4 (128 bit aligned) u32 values into a Simd vector.
- * Pre-condition: bits_aligned_ptr(values, 16)
- */
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u32(const u32 values[PARAM_ARRAY_SIZE(4)]) {
-  return _mm_load_ps((const f32*)values);
-}
-
-/**
- * Store a Simd vector to 4 (128 bit aligned) float values.
- * Pre-condition: bits_aligned_ptr(values, 16)
- */
-MAYBE_UNUSED INLINE_HINT static void
-simd_vec_store(const SimdVec vec, f32 values[PARAM_ARRAY_SIZE(4)]) {
-  _mm_store_ps(values, vec);
+MAYBE_UNUSED INLINE_HINT static void simd_vec_store(const SimdVec vec, void* out) {
+  _mm_store_ps(out, vec);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_zero(void) { return _mm_setzero_ps(); }
@@ -95,6 +77,10 @@ simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
   return _mm_set1_ps(value);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u8(const u8 value) {
+  return _mm_castsi128_ps(_mm_set1_epi8(value));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u16(const u16 value) {
@@ -162,8 +148,20 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less(const SimdVec a, const Sim
   return _mm_cmplt_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less_u8(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_cmplt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater(const SimdVec a, const SimdVec b) {
   return _mm_cmpgt_ps(a, b);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_u8(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_cmpgt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u8(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_cmpeq_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u32(const SimdVec a, const SimdVec b) {

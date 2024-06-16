@@ -4,6 +4,8 @@
 #include "core_dynarray.h"
 #include "json_doc.h"
 
+#define json_doc_string_chunk_size (4 * usize_kibibyte)
+
 typedef struct {
   JsonVal elemHead, elemTail;
   u32     elemCount;
@@ -27,13 +29,14 @@ typedef struct {
 } JsonValData;
 
 struct sJsonDoc {
-  DynArray   values; // JsonValData[]
   Allocator* alloc;
+  Allocator* allocString; // (chunked) bump allocator for string data.
+  DynArray   values;      // JsonValData[]
 };
 
-static JsonValData* json_val_data(const JsonDoc* doc, const JsonVal val) {
+INLINE_HINT static JsonValData* json_val_data(const JsonDoc* doc, const JsonVal val) {
   diag_assert_msg(val < doc->values.size, "Out of bounds JsonVal");
-  return dynarray_at_t(&doc->values, val, JsonValData);
+  return &dynarray_begin_t(&doc->values, JsonValData)[val];
 }
 
 static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
@@ -44,29 +47,24 @@ static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
 
 JsonDoc* json_create(Allocator* alloc, usize valueCapacity) {
   JsonDoc* doc = alloc_alloc_t(alloc, JsonDoc);
-  *doc         = (JsonDoc){
-              .values = dynarray_create_t(alloc, JsonValData, valueCapacity),
-              .alloc  = alloc,
+
+  *doc = (JsonDoc){
+      .alloc       = alloc,
+      .allocString = alloc_chunked_create(alloc, alloc_bump_create, json_doc_string_chunk_size),
+      .values      = dynarray_create_t(alloc, JsonValData, valueCapacity),
   };
+
   return doc;
 }
 
 void json_destroy(JsonDoc* doc) {
-  json_clear(doc);
   dynarray_destroy(&doc->values);
+  alloc_chunked_destroy(doc->allocString);
   alloc_free_t(doc->alloc, doc);
 }
 
 void json_clear(JsonDoc* doc) {
-  dynarray_for_t(&doc->values, JsonValData, data) {
-    switch (data->typeAndParent & 0xFFFF) {
-    case JsonType_String:
-      string_maybe_free(doc->alloc, data->val_string);
-      break;
-    default:
-      break;
-    }
-  }
+  alloc_reset(doc->allocString); // Free all string data.
   dynarray_clear(&doc->values);
 }
 
@@ -96,7 +94,7 @@ JsonVal json_add_string(JsonDoc* doc, const String string) {
       (JsonValData){
           .typeAndParent = JsonType_String,
           .next          = sentinel_u32,
-          .val_string    = string_maybe_dup(doc->alloc, string),
+          .val_string    = string_maybe_dup(doc->allocString, string),
       });
 }
 

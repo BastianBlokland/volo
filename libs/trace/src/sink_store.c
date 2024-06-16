@@ -63,8 +63,8 @@ static u8 trace_id_find(TraceSinkStore* s, const StringHash hash) {
 
   const SimdVec hashVec = simd_vec_broadcast_u32(hash);
   for (u32 i = 0; i != trace_store_max_ids; i += 8) {
-    const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(s->idHashes + i), hashVec);
-    const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(s->idHashes + i + 4), hashVec);
+    const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(s->idHashes + i), hashVec);
+    const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(s->idHashes + i + 4), hashVec);
     const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
 
     if (eqMask) {

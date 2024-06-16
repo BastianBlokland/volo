@@ -45,8 +45,8 @@ static u32 set_storage_index(const SetStorage* s, const StringHash set) {
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
   for (u32 setIdx = 0; setIdx != scene_set_max; setIdx += 8) {
-    const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx), setVec);
-    const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx + 4), setVec);
+    const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(s->ids + setIdx), setVec);
+    const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(s->ids + setIdx + 4), setVec);
     const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
 
     if (eqMask) {
@@ -69,8 +69,8 @@ static u32 set_storage_index_free(const SetStorage* s) {
   ASSERT((scene_set_max % 8) == 0, "Only multiple of 8 set counts are supported");
 
   for (u32 setIdx = 0; setIdx != scene_set_max; setIdx += 8) {
-    const SimdVec freeA = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx), simd_vec_zero());
-    const SimdVec freeB = simd_vec_eq_u32(simd_vec_load_u32(s->ids + setIdx + 4), simd_vec_zero());
+    const SimdVec freeA    = simd_vec_eq_u32(simd_vec_load(s->ids + setIdx), simd_vec_zero());
+    const SimdVec freeB    = simd_vec_eq_u32(simd_vec_load(s->ids + setIdx + 4), simd_vec_zero());
     const u32     freeMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(freeA, freeB));
 
     if (freeMask) {
@@ -284,8 +284,8 @@ static bool set_member_contains(const SceneSetMemberComp* member, const StringHa
   ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
-  const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
-  const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(member->sets + 4), setVec);
+  const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(member->sets), setVec);
+  const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(member->sets + 4), setVec);
   const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
 
   return eqMask != 0;
@@ -304,8 +304,8 @@ static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
   ASSERT(scene_set_member_max_sets == 8, "set_member_add only supports 8 elems at the moment")
 
   const SimdVec setVec      = simd_vec_broadcast_u32(set);
-  const SimdVec memberSetsA = simd_vec_load_u32(member->sets);
-  const SimdVec memberSetsB = simd_vec_load_u32(member->sets + 4);
+  const SimdVec memberSetsA = simd_vec_load(member->sets);
+  const SimdVec memberSetsB = simd_vec_load(member->sets + 4);
 
   const SimdVec eqA    = simd_vec_eq_u32(memberSetsA, setVec);
   const SimdVec eqB    = simd_vec_eq_u32(memberSetsB, setVec);
@@ -345,8 +345,8 @@ static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) 
   ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
-  const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load_u32(member->sets), setVec);
-  const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load_u32(member->sets + 4), setVec);
+  const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(member->sets), setVec);
+  const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(member->sets + 4), setVec);
   const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
 
   if (eqMask) {
