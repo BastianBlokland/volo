@@ -97,12 +97,12 @@ static void product_datareg_init(void) {
 
     data_reg_struct_t(reg, AssetProductUnitDef);
     data_reg_field_t(reg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
     data_reg_field_t(reg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetProductPlacableDef);
     data_reg_field_t(reg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
     data_reg_field_t(reg, AssetProductPlacableDef, soundBlocked, t_AssetProductSoundDef, .flags = DataFlags_Opt);
 
     data_reg_union_t(reg, AssetProductDef, type);

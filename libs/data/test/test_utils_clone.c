@@ -22,6 +22,19 @@ spec(utils_clone) {
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
+  it("can clone an interned string") {
+    const String original = string_lit("Hello World");
+    const String clone    = {0};
+
+    const DataMeta meta = data_meta_t(data_prim_t(String), .flags = DataFlags_Intern);
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+
+    check_eq_string(clone, string_lit("Hello World"));
+
+    data_destroy(reg, g_allocHeap, meta, mem_var(original));
+    data_destroy(reg, g_allocHeap, meta, mem_var(clone));
+  }
+
   it("can clone an empty string") {
     const String original = string_empty;
     const String clone    = {0};

@@ -15,6 +15,13 @@ spec(utils_destroy) {
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
+  it("can destroy an interned string") {
+    const String val = string_lit("Hello World");
+
+    const DataMeta meta = data_meta_t(data_prim_t(String), .flags = DataFlags_Intern);
+    data_destroy(reg, g_allocHeap, meta, mem_var(val));
+  }
+
   it("can destroy an empty string") {
     const String val = string_empty;
 
@@ -92,9 +99,9 @@ spec(utils_destroy) {
 
     DestroyStructB* ptr = alloc_alloc_t(g_allocHeap, DestroyStructB);
     *ptr                = (DestroyStructB){
-                       .a = string_dup(g_allocHeap, string_lit("Some")),
-                       .b = string_dup(g_allocHeap, string_lit("New")),
-                       .c = string_dup(g_allocHeap, string_lit("Values")),
+        .a = string_dup(g_allocHeap, string_lit("Some")),
+        .b = string_dup(g_allocHeap, string_lit("New")),
+        .c = string_dup(g_allocHeap, string_lit("Values")),
     };
 
     const usize     arrayCount  = 4;

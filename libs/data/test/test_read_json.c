@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_stringtable.h"
 #include "data.h"
 
 static void test_read_success(
@@ -128,6 +129,15 @@ spec(read_json) {
     check_eq_string(val, string_empty);
 
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("can read an interned string") {
+    const DataMeta meta = data_meta_t(data_prim_t(String), .flags = DataFlags_Intern);
+
+    String val;
+    test_read_success(_testCtx, reg, string_lit("\"Hello World\""), meta, mem_var(val));
+    check_eq_string(val, string_lit("Hello World"));
+    check(val.ptr == stringtable_lookup(g_stringtable, string_hash_lit("Hello World")).ptr);
   }
 
   it("fails when a string value cannot be empty") {

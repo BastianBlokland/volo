@@ -15,8 +15,12 @@ typedef struct {
 static void data_clone_internal(const CloneCtx*);
 
 static void data_clone_string(const CloneCtx* ctx) {
-  const String originalVal      = *mem_as_t(ctx->original, String);
-  *mem_as_t(ctx->clone, String) = string_maybe_dup(ctx->alloc, originalVal);
+  const String originalVal = *mem_as_t(ctx->original, String);
+  if (ctx->meta.flags & DataFlags_Intern) {
+    *mem_as_t(ctx->clone, String) = originalVal;
+  } else {
+    *mem_as_t(ctx->clone, String) = string_maybe_dup(ctx->alloc, originalVal);
+  }
 }
 
 static void data_clone_struct(const CloneCtx* ctx) {

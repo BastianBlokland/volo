@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_stringtable.h"
 #include "data_read.h"
 #include "json_read.h"
 
@@ -168,9 +169,13 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
   if (string_is_empty(jsonStr)) {
     *mem_as_t(ctx->data, String) = string_empty;
   } else {
-    const String str = string_dup(ctx->alloc, jsonStr);
-    data_register_alloc(ctx, str);
-    *mem_as_t(ctx->data, String) = str;
+    if (ctx->meta.flags & DataFlags_Intern) {
+      *mem_as_t(ctx->data, String) = stringtable_intern(g_stringtable, jsonStr);
+    } else {
+      const String str = string_dup(ctx->alloc, jsonStr);
+      data_register_alloc(ctx, str);
+      *mem_as_t(ctx->data, String) = str;
+    }
   }
   *res = result_success();
 }

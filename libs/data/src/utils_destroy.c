@@ -15,8 +15,10 @@ typedef struct {
 static void data_destroy_internal(const DestroyCtx*);
 
 static void data_destroy_string(const DestroyCtx* ctx) {
-  const String val = *mem_as_t(ctx->data, String);
-  string_maybe_free(ctx->alloc, val);
+  if (!(ctx->meta.flags & DataFlags_Intern)) {
+    const String val = *mem_as_t(ctx->data, String);
+    string_maybe_free(ctx->alloc, val);
+  }
 }
 
 static void data_destroy_struct(const DestroyCtx* ctx) {
