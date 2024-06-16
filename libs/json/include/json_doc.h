@@ -39,7 +39,7 @@ typedef u32 JsonVal;
  * Iterator for iterating object fields.
  */
 typedef struct {
-  String  name;  // 'string_empty' when no field was found.
+  JsonVal name;  // 'sentinel_u32' when no field was found.
   JsonVal value; // 'sentinel_u32' when no field was found.
 } JsonFieldItr;
 

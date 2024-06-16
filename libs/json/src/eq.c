@@ -42,7 +42,7 @@ static bool json_eq_object(JsonDoc* doc, JsonVal x, JsonVal y) {
   JsonFieldItr xFieldItr = json_field_begin(doc, x);
   JsonFieldItr yFieldItr = json_field_begin(doc, y);
   do {
-    if (!string_eq(xFieldItr.name, yFieldItr.name)) {
+    if (json_string_hash(doc, xFieldItr.name) != json_string_hash(doc, yFieldItr.name)) {
       return false;
     }
     if (!json_eq(doc, xFieldItr.value, yFieldItr.value)) {

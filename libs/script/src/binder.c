@@ -257,7 +257,7 @@ static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
     return script_mask_none;
   }
   if (json_type(d, v) == JsonType_String) {
-    if (string_eq(json_string(d, v), string_lit("any"))) {
+    if (json_string_hash(d, v) == string_hash_lit("any")) {
       return script_mask_any;
     }
     return script_mask(script_val_type_from_hash(json_string_hash(d, v)));

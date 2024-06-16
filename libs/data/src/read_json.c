@@ -36,10 +36,9 @@ static void data_register_alloc(const ReadCtx* ctx, const Mem allocation) {
   *dynarray_push_t(ctx->allocations, Mem) = allocation;
 }
 
-static const DataDeclField* data_field_by_name(const DataDeclStruct* data, const String name) {
-  const StringHash nameHash = string_hash(name);
+static const DataDeclField* data_field_by_name(const DataDeclStruct* data, const StringHash name) {
   dynarray_for_t(&data->fields, DataDeclField, fieldDecl) {
-    if (fieldDecl->id.hash == nameHash) {
+    if (fieldDecl->id.hash == name) {
       return fieldDecl;
     }
   }
@@ -223,8 +222,18 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
 
   if (UNLIKELY(fieldsRead != json_field_count(ctx->doc, ctx->val))) {
     json_for_fields(ctx->doc, ctx->val, field) {
-      if (!data_field_by_name(&decl->val_struct, field.name)) {
-        *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_text(field.name));
+      const StringHash nameHash = json_string_hash(ctx->doc, field.name);
+      if (!data_field_by_name(&decl->val_struct, nameHash)) {
+        String name = json_string(ctx->doc, field.name);
+        if (string_is_empty(name)) {
+          // Field uses a hash-only name; attempt to retrieve the name from the global string-table.
+          name = stringtable_lookup(g_stringtable, nameHash);
+        }
+        if (string_is_empty(name)) {
+          *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_int(nameHash));
+        } else {
+          *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_text(name));
+        }
         return;
       }
     }

@@ -287,21 +287,22 @@ JsonFieldItr json_field_begin(const JsonDoc* doc, const JsonVal object) {
 
   JsonValData* objectData = json_val_data(doc, object);
   if (sentinel_check(objectData->val_object.fieldHead)) {
-    return (JsonFieldItr){.name = string_empty, .value = sentinel_u32};
+    return (JsonFieldItr){.name = sentinel_u32, .value = sentinel_u32};
   }
-  JsonValData* nameData = json_val_data(doc, objectData->val_object.fieldHead);
-  return (JsonFieldItr){.name = json_data_str(&nameData->val_string), .value = nameData->next};
+  const JsonVal fieldVal = objectData->val_object.fieldHead;
+  JsonValData*  nameData = json_val_data(doc, fieldVal);
+  return (JsonFieldItr){.name = fieldVal, .value = nameData->next};
 }
 
-JsonFieldItr json_field_next(const JsonDoc* doc, JsonVal fieldVal) {
+JsonFieldItr json_field_next(const JsonDoc* doc, const JsonVal fieldVal) {
   diag_assert_msg(json_parent(doc, fieldVal) == JsonParent_Object, "Invalid field value");
 
   JsonValData* itrValData = json_val_data(doc, fieldVal);
   if (sentinel_check(itrValData->next)) {
-    return (JsonFieldItr){.name = string_empty, .value = sentinel_u32};
+    return (JsonFieldItr){.name = sentinel_u32, .value = sentinel_u32};
   }
   JsonValData* nameData = json_val_data(doc, itrValData->next);
-  return (JsonFieldItr){.name = json_data_str(&nameData->val_string), .value = nameData->next};
+  return (JsonFieldItr){.name = itrValData->next, .value = nameData->next};
 }
 
 String json_string(const JsonDoc* doc, const JsonVal val) {
