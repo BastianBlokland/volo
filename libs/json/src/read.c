@@ -6,6 +6,11 @@
 
 #define json_depth_max 100
 
+typedef struct {
+  JsonDoc*      doc;
+  JsonReadFlags flags;
+} JsonReadState;
+
 #define json_err(_ERR_)                                                                            \
   (JsonResult) { .type = JsonResultType_Fail, .error = (_ERR_) }
 
@@ -36,10 +41,10 @@ String json_error_str(const JsonError error) {
   return g_errorStrs[error];
 }
 
-static String json_read_with_start_token(JsonDoc*, String, JsonToken, JsonResult*);
+static String json_read_with_start_token(JsonReadState*, String, JsonToken, JsonResult*);
 
-static String json_read_array(JsonDoc* doc, String input, JsonResult* res) {
-  const JsonVal array = json_add_array(doc);
+static String json_read_array(JsonReadState* state, String input, JsonResult* res) {
+  const JsonVal array = json_add_array(state->doc);
 
   JsonToken  token;
   JsonResult valRes;
@@ -50,12 +55,12 @@ static String json_read_array(JsonDoc* doc, String input, JsonResult* res) {
       // NOTE: Not fully spec compliant but we accept arrays with trailing comma's.
       goto Success;
     }
-    input = json_read_with_start_token(doc, input, token, &valRes);
+    input = json_read_with_start_token(state, input, token, &valRes);
     if (valRes.type == JsonResultType_Fail) {
       *res = json_err(valRes.error);
       return input;
     }
-    json_add_elem(doc, array, valRes.val);
+    json_add_elem(state->doc, array, valRes.val);
 
     // Read separator (comma).
     input = json_lex(input, &token);
@@ -80,8 +85,8 @@ Success:
   return input;
 }
 
-static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
-  const JsonVal object = json_add_object(doc);
+static String json_read_object(JsonReadState* state, String input, JsonResult* res) {
+  const JsonVal object = json_add_object(state->doc);
 
   JsonToken  token;
   JsonResult valRes;
@@ -97,7 +102,7 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
           token.type == JsonTokenType_End ? JsonError_Truncated : JsonError_InvalidFieldName);
       return input;
     }
-    const JsonVal fieldName = json_add_string(doc, token.val_string);
+    const JsonVal fieldName = json_add_string(state->doc, token.val_string);
 
     // Read separator (colon).
     input = json_lex(input, &token);
@@ -107,12 +112,12 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
     }
 
     // Read field value.
-    input = json_read(doc, input, JsonReadFlags_None, &valRes);
+    input = json_read(state->doc, input, JsonReadFlags_None, &valRes);
     if (valRes.type == JsonResultType_Fail) {
       *res = json_err(valRes.error);
       return input;
     }
-    if (!json_add_field(doc, object, fieldName, valRes.val)) {
+    if (!json_add_field(state->doc, object, fieldName, valRes.val)) {
       *res = json_err(JsonError_DuplicateField);
       return input;
     }
@@ -140,8 +145,8 @@ Success:
   return input;
 }
 
-static String
-json_read_with_start_token(JsonDoc* doc, String input, JsonToken startToken, JsonResult* res) {
+static String json_read_with_start_token(
+    JsonReadState* state, String input, JsonToken startToken, JsonResult* res) {
 
   static THREAD_LOCAL u32 depth;
   if (++depth > json_depth_max) {
@@ -152,10 +157,10 @@ json_read_with_start_token(JsonDoc* doc, String input, JsonToken startToken, Jso
 
   switch (startToken.type) {
   case JsonTokenType_BracketOpen:
-    input = json_read_array(doc, input, res);
+    input = json_read_array(state, input, res);
     break;
   case JsonTokenType_CurlyOpen:
-    input = json_read_object(doc, input, res);
+    input = json_read_object(state, input, res);
     break;
   case JsonTokenType_BracketClose:
   case JsonTokenType_CurlyClose:
@@ -164,19 +169,19 @@ json_read_with_start_token(JsonDoc* doc, String input, JsonToken startToken, Jso
     *res = json_err(JsonError_UnexpectedToken);
     break;
   case JsonTokenType_String:
-    *res = json_success(json_add_string(doc, startToken.val_string));
+    *res = json_success(json_add_string(state->doc, startToken.val_string));
     break;
   case JsonTokenType_Number:
-    *res = json_success(json_add_number(doc, startToken.val_number));
+    *res = json_success(json_add_number(state->doc, startToken.val_number));
     break;
   case JsonTokenType_True:
-    *res = json_success(json_add_bool(doc, true));
+    *res = json_success(json_add_bool(state->doc, true));
     break;
   case JsonTokenType_False:
-    *res = json_success(json_add_bool(doc, false));
+    *res = json_success(json_add_bool(state->doc, false));
     break;
   case JsonTokenType_Null:
-    *res = json_success(json_add_null(doc));
+    *res = json_success(json_add_null(state->doc));
     break;
   case JsonTokenType_Error:
     *res = json_err(startToken.val_error);
@@ -193,7 +198,12 @@ json_read_with_start_token(JsonDoc* doc, String input, JsonToken startToken, Jso
 String json_read(JsonDoc* doc, String input, const JsonReadFlags flags, JsonResult* res) {
   (void)flags;
 
+  JsonReadState state = {
+      .doc   = doc,
+      .flags = flags,
+  };
+
   JsonToken startToken;
   input = json_lex(input, &startToken);
-  return json_read_with_start_token(doc, input, startToken, res);
+  return json_read_with_start_token(&state, input, startToken, res);
 }
