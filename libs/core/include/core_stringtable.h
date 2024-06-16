@@ -5,8 +5,7 @@
 typedef struct sAllocator Allocator;
 
 /**
- * Table for storing the textual representation of StringHash values, often useful for visualization
- * purposes.
+ * Table for storing strings.
  * NOTE: Meant for storing short strings, preferably less then 128 bytes.
  */
 typedef struct sStringTable StringTable;
@@ -34,7 +33,7 @@ void stringtable_destroy(StringTable*);
 u32 stringtable_count(const StringTable*);
 
 /**
- * Lookup a textual representation of the given hash.
+ * Lookup a String by hash.
  * NOTE: If the hash has not been added to the table an empty String is returned.
  * NOTE: Thread-safe.
  */
@@ -47,3 +46,12 @@ String stringtable_lookup(const StringTable*, StringHash);
  * Pre-condition: string.size <= 512
  */
 StringHash stringtable_add(StringTable*, String);
+
+/**
+ * Store a copy of the given string in the StringTable, the returned pointer is stable throughout
+ * the table's lifetime.
+ * NOTE: Strings are deduplicated: returns an existing string if one matches.
+ * NOTE: Thread-safe.
+ * Pre-condition: string.size <= 512
+ */
+String stringtable_intern(StringTable*, String);

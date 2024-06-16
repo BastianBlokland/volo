@@ -14,7 +14,7 @@
  * Strings are looked up using a simple open-addressing hash table.
  * https://en.wikipedia.org/wiki/Open_addressing
  *
- * NOTE: Strings cannot be removed from the table at this time.
+ * NOTE: Strings cannot be removed from the table.
  */
 
 typedef struct {
@@ -27,7 +27,7 @@ struct sStringTable {
   ThreadSpinLock   slotsLock;
   u32              slotCount, slotCountUsed;
   StringTableSlot* slots;
-  Allocator*       dataAlloc; // Allocator for string the string character data.
+  Allocator*       dataAlloc; // Allocator for the string character data.
 };
 
 /**
@@ -141,7 +141,7 @@ StringHash stringtable_add(StringTable* table, const String str) {
     } else {
       /**
        * New entry in the table.
-       * Copy the string data into the table's data-allocator and initial the values in the slot.
+       * Copy the string data into the table's data-allocator and initialize the values in the slot.
        */
       slot->hash = hash;
       if (LIKELY(!string_is_empty(str))) {
@@ -156,4 +156,43 @@ StringHash stringtable_add(StringTable* table, const String str) {
   }
   thread_spinlock_unlock(&table->slotsLock);
   return hash;
+}
+
+String stringtable_intern(StringTable* table, const String str) {
+  diag_assert_msg(
+      str.size <= stringtable_string_size_max,
+      "String size '{}' exceeds maximum",
+      fmt_size(str.size));
+
+  const StringHash hash   = string_hash(str);
+  String           result = string_empty;
+
+  thread_spinlock_lock(&table->slotsLock);
+  {
+    StringTableSlot* slot = stringtable_slot(table->slots, table->slotCount, hash);
+    if (slot->hash) {
+      /**
+       * String already existed in the table.
+       */
+      diag_assert_msg(string_eq(str, slot->data), "StringHash collision in StringTable");
+      result = slot->data;
+    } else {
+      /**
+       * New entry in the table.
+       * Copy the string data into the table's data-allocator and initialize the values in the slot.
+       */
+      slot->hash = hash;
+      if (LIKELY(!string_is_empty(str))) {
+        result = string_dup(table->dataAlloc, str);
+        diag_assert_msg(result.ptr, "StringTable allocator ran out of space");
+        slot->data = result;
+      }
+      ++table->slotCountUsed;
+      if (UNLIKELY(stringtable_should_grow(table))) {
+        stringtable_grow(table);
+      }
+    }
+  }
+  thread_spinlock_unlock(&table->slotsLock);
+  return result;
 }

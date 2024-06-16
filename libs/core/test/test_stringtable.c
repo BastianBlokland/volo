@@ -36,5 +36,13 @@ spec(stringtable) {
     }
   }
 
+  it("can intern strings") {
+    const String str      = string_lit("Hello World");
+    const String interned = stringtable_intern(table, str);
+
+    check_eq_string(str, interned);
+    check(interned.ptr == stringtable_lookup(table, string_hash(str)).ptr);
+  }
+
   teardown() { stringtable_destroy(table); }
 }
