@@ -42,6 +42,7 @@ String json_error_str(const JsonError error) {
   return g_errorStrs[error];
 }
 
+static String json_read_internal(JsonReadState*, String, JsonResult*);
 static String json_read_with_start_token(JsonReadState*, String, JsonToken, JsonResult*);
 
 static String json_read_array(JsonReadState* state, String input, JsonResult* res) {
@@ -124,7 +125,7 @@ static String json_read_object(JsonReadState* state, String input, JsonResult* r
     }
 
     // Read field value.
-    input = json_read(state->doc, input, JsonReadFlags_None, &valRes);
+    input = json_read_internal(state, input, &valRes);
     if (valRes.type == JsonResultType_Fail) {
       *res = json_err(valRes.error);
       return input;
@@ -207,15 +208,16 @@ static String json_read_with_start_token(
   return input;
 }
 
-String json_read(JsonDoc* doc, String input, const JsonReadFlags flags, JsonResult* res) {
-  (void)flags;
+static String json_read_internal(JsonReadState* state, String input, JsonResult* res) {
+  JsonToken startToken;
+  input = json_lex(input, &startToken);
+  return json_read_with_start_token(state, input, startToken, res);
+}
 
+String json_read(JsonDoc* doc, const String input, const JsonReadFlags flags, JsonResult* res) {
   JsonReadState state = {
       .doc   = doc,
       .flags = flags,
   };
-
-  JsonToken startToken;
-  input = json_lex(input, &startToken);
-  return json_read_with_start_token(&state, input, startToken, res);
+  return json_read_internal(&state, input, res);
 }
