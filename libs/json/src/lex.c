@@ -97,7 +97,7 @@ static String json_lex_string(String str, JsonToken* out) {
       out->val_string = mem_create(result.data.ptr, result.size);
       goto Ret;
     default:
-      if (UNLIKELY(ascii_is_control(ch))) {
+      if (UNLIKELY(!ascii_is_printable(ch))) {
         *out = json_token_err(JsonError_InvalidCharInString);
         goto Ret;
       }
