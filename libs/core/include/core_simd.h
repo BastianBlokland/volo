@@ -79,6 +79,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
   return _mm_set1_ps(value);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u8(const u8 value) {
+  return _mm_castsi128_ps(_mm_set1_epi8(value));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u16(const u16 value) {
   return _mm_castsi128_ps(_mm_set1_epi16(value));
 }
@@ -144,8 +148,20 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less(const SimdVec a, const Sim
   return _mm_cmplt_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less_u8(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_cmplt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater(const SimdVec a, const SimdVec b) {
   return _mm_cmpgt_ps(a, b);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_u8(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_cmpgt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u8(const SimdVec a, const SimdVec b) {
+  return _mm_castsi128_ps(_mm_cmpeq_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u32(const SimdVec a, const SimdVec b) {
