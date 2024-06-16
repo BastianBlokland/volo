@@ -29,7 +29,7 @@
         "light": { "title": "VfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/VfxLightDef" },
         "speed": { "title": "VfxRangeScalarDef", "$ref": "#/$defs/VfxRangeScalarDef" },
         "expandForce": { "title": "f32", "type": "number" },
-        "count": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "count": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "interval": { "title": "f32", "type": "number" },
         "scale": { "title": "VfxRangeScalarDef", "$ref": "#/$defs/VfxRangeScalarDef" },
         "lifetime": { "title": "VfxRangeDurationDef", "$ref": "#/$defs/VfxRangeDurationDef" },
