@@ -1222,7 +1222,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    json_read(jDoc, content, &jsonResult);
+    json_read(jDoc, content, JsonReadFlags_None, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErr = json_error_str(jsonResult.error);
       file_write_sync(g_fileStdErr, fmt_write_scratch("lsp: Json-Error: {}\n", fmt_text(jsonErr)));

@@ -107,7 +107,7 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
     }
 
     // Read field value.
-    input = json_read(doc, input, &valRes);
+    input = json_read(doc, input, JsonReadFlags_None, &valRes);
     if (valRes.type == JsonResultType_Fail) {
       *res = json_err(valRes.error);
       return input;
@@ -190,7 +190,9 @@ json_read_with_start_token(JsonDoc* doc, String input, JsonToken startToken, Jso
   return input;
 }
 
-String json_read(JsonDoc* doc, String input, JsonResult* res) {
+String json_read(JsonDoc* doc, String input, const JsonReadFlags flags, JsonResult* res) {
+  (void)flags;
+
   JsonToken startToken;
   input = json_lex(input, &startToken);
   return json_read_with_start_token(doc, input, startToken, res);

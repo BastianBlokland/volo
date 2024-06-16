@@ -38,7 +38,7 @@ spec(dump_eventtrace) {
     trace_dump_eventtrace(storeSink, &buffer);
 
     JsonResult result;
-    json_read(jDoc, dynstring_view(&buffer), &result);
+    json_read(jDoc, dynstring_view(&buffer), JsonReadFlags_None, &result);
     check_eq_int(result.type, JsonResultType_Success);
 
     const JsonVal evtArr = json_field_lit(jDoc, result.val, "traceEvents");

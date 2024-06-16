@@ -548,7 +548,7 @@ String data_read_json(
   DynArray allocations = dynarray_create_t(g_allocHeap, Mem, 64);
 
   JsonResult   jsonRes;
-  const String rem = json_read(doc, input, &jsonRes);
+  const String rem = json_read(doc, input, JsonReadFlags_None, &jsonRes);
   if (jsonRes.type != JsonResultType_Success) {
     *res = result_fail(
         DataReadError_Malformed,

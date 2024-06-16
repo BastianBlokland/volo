@@ -29,7 +29,7 @@ spec(sink_json) {
     file_read_to_end_sync(tmpFile, &buffer);
 
     JsonResult result;
-    json_read(jsonDoc, dynstring_view(&buffer), &result);
+    json_read(jsonDoc, dynstring_view(&buffer), JsonReadFlags_None, &result);
     check_eq_int(result.type, JsonResultType_Success);
 
     check_eq_string(
@@ -47,7 +47,7 @@ spec(sink_json) {
     file_read_to_end_sync(tmpFile, &buffer);
 
     JsonResult result;
-    json_read(jsonDoc, dynstring_view(&buffer), &result);
+    json_read(jsonDoc, dynstring_view(&buffer), JsonReadFlags_None, &result);
     check_eq_int(result.type, JsonResultType_Success);
 
     JsonVal extraObj = json_field_lit(jsonDoc, result.val, "extra");
@@ -64,7 +64,7 @@ spec(sink_json) {
     file_read_to_end_sync(tmpFile, &buffer);
 
     JsonResult result;
-    json_read(jsonDoc, dynstring_view(&buffer), &result);
+    json_read(jsonDoc, dynstring_view(&buffer), JsonReadFlags_None, &result);
     check_eq_int(result.type, JsonResultType_Success);
 
     JsonVal extraObj = json_field_lit(jsonDoc, result.val, "extra");
@@ -82,7 +82,7 @@ spec(sink_json) {
     file_read_to_end_sync(tmpFile, &buffer);
 
     JsonResult result;
-    json_read(jsonDoc, dynstring_view(&buffer), &result);
+    json_read(jsonDoc, dynstring_view(&buffer), JsonReadFlags_None, &result);
     check_eq_int(result.type, JsonResultType_Success);
 
     check_eq_string(

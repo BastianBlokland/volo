@@ -315,7 +315,7 @@ bool script_binder_read(ScriptBinder* out, const String str) {
   bool     success = false;
 
   JsonResult readRes;
-  json_read(doc, str, &readRes);
+  json_read(doc, str, JsonReadFlags_None, &readRes);
 
   if (readRes.type == JsonResultType_Success && json_type(doc, readRes.val) == JsonType_Object) {
     const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");

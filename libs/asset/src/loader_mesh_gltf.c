@@ -1518,7 +1518,7 @@ ecs_module_init(asset_gltf_module) {
 void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
-  json_read(jsonDoc, src->data, &jsonRes);
+  json_read(jsonDoc, src->data, JsonReadFlags_None, &jsonRes);
   asset_repo_source_close(src);
 
   if (jsonRes.type != JsonResultType_Success) {
