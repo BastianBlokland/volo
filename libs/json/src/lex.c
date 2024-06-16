@@ -42,13 +42,12 @@ static String json_lex_string(String str, JsonToken* out) {
    * Fast path for simple strings (no escape sequences), if the fast path cannot handle the input it
    * will abort and let the slow path handle it.
    */
-  String        remVec     = str;
   const SimdVec quoteVec   = simd_vec_broadcast_u8('"');
   const SimdVec escapeVec  = simd_vec_broadcast_u8('\\');
   const SimdVec limLowVec  = simd_vec_broadcast_u8(32);
   const SimdVec limHighVec = simd_vec_broadcast_u8(126);
-  for (; remVec.size >= 16; remVec = json_consume_chars(remVec, 16)) {
-    const SimdVec charsVec = simd_vec_load_unaligned(remVec.ptr);
+  for (String rem = str; rem.size >= 16; rem = json_consume_chars(rem, 16)) {
+    const SimdVec charsVec = simd_vec_load_unaligned(rem.ptr);
 
     SimdVec invalidVec = simd_vec_eq_u8(charsVec, escapeVec);
     invalidVec         = simd_vec_or(invalidVec, simd_vec_less_u8(charsVec, limLowVec));
@@ -59,10 +58,10 @@ static String json_lex_string(String str, JsonToken* out) {
 
     const u32 eqMask = simd_vec_mask_u8(simd_vec_eq_u8(charsVec, quoteVec));
     if (eqMask) {
-      remVec          = json_consume_chars(remVec, intrinsic_ctz_32(eqMask) + 1);
+      rem             = json_consume_chars(rem, intrinsic_ctz_32(eqMask) + 1);
       out->type       = JsonTokenType_String;
-      out->val_string = mem_from_to(str.ptr, (u8*)remVec.ptr - 1);
-      return remVec;
+      out->val_string = mem_from_to(str.ptr, (u8*)rem.ptr - 1);
+      return rem;
     }
   }
 #endif
