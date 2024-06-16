@@ -341,7 +341,7 @@ static void prefab_datareg_init(void) {
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, t_AssetPrefabColorDef);
-    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String));
+    data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
     data_reg_choice_t(reg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
 
@@ -349,7 +349,7 @@ static void prefab_datareg_init(void) {
     data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitSetMemberDef);
-    data_reg_field_t(reg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_Array, .flags = DataFlags_NotEmpty | DataFlags_Intern);
 
     data_reg_struct_t(reg, AssetPrefabTraitRenderableDef);
     data_reg_field_t(reg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -406,7 +406,7 @@ static void prefab_datareg_init(void) {
     data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathEffectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitAttackDef);
-    data_reg_field_t(reg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetRangeMin, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -424,8 +424,8 @@ static void prefab_datareg_init(void) {
 
     data_reg_struct_t(reg, AssetPrefabTraitBarkDef);
     data_reg_field_t(reg, AssetPrefabTraitBarkDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetPrefabTraitBarkDef, barkDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitBarkDef, barkDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
+    data_reg_field_t(reg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
     data_reg_struct_t(reg, AssetPrefabTraitLocationDef);
     data_reg_field_t(reg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
@@ -471,7 +471,7 @@ static void prefab_datareg_init(void) {
     data_reg_choice_empty(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
     data_reg_struct_t(reg, AssetPrefabDef);
-    data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
     data_reg_field_t(reg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
@@ -811,12 +811,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

@@ -138,8 +138,8 @@ static void weapon_datareg_init(void) {
     data_reg_field_t(reg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, projectilePrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, projectilePrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
     data_reg_struct_t(reg, AssetWeaponEffectDmgDef);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
@@ -151,7 +151,7 @@ static void weapon_datareg_init(void) {
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
     data_reg_struct_t(reg, AssetWeaponEffectAnimDef);
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
