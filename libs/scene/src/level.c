@@ -11,6 +11,7 @@
 #include "scene_faction.h"
 #include "scene_prefab.h"
 #include "scene_transform.h"
+#include "trace_tracer.h"
 
 typedef enum {
   LevelLoadState_Start,
@@ -92,6 +93,8 @@ ecs_view_define(InstanceView) {
 
 static void
 scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsView* instanceView) {
+  trace_begin("level_unload", TraceColor_White);
+
   u32 unloadedObjectCount = 0;
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
@@ -106,6 +109,8 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
   manager->levelTerrain    = 0;
   manager->levelStartpoint = geo_vector(0);
 
+  trace_end();
+
   log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
 
@@ -118,6 +123,8 @@ static void scene_level_process_load(
   diag_assert(!ecs_entity_valid(manager->levelAsset));
   diag_assert(string_is_empty(manager->levelName));
   diag_assert(!ecs_entity_valid(manager->levelTerrain));
+
+  trace_begin("level_load", TraceColor_White);
 
   array_ptr_for_t(level->objects, AssetLevelObject, obj) {
     const StringHash prefabId = string_hash(obj->prefab);
@@ -139,6 +146,8 @@ static void scene_level_process_load(
   if (!string_is_empty(level->terrainId)) {
     manager->levelTerrain = asset_lookup(world, assets, level->terrainId);
   }
+
+  trace_end();
 
   log_i(
       "Level loaded",
