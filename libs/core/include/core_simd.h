@@ -40,11 +40,18 @@ typedef __m128 SimdVec;
   _mm_castsi128_ps(_mm_srai_epi32(_mm_castps_si128(_VEC_), _AMOUNT_))
 
 /**
- * Load 128 bit (128 bit aligned) data into a Simd vector.
+ * Load 128 bits of data (128 bit aligned) into a Simd vector.
  * Pre-condition: bits_aligned_ptr(data, 16)
  */
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const void* data) {
   return _mm_load_ps(data);
+}
+
+/**
+ * Load 128 bits of data into a Simd vector.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_unaligned(const void* data) {
+  return _mm_loadu_ps(data);
 }
 
 /**
