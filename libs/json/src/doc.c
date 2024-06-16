@@ -299,6 +299,11 @@ String json_string(const JsonDoc* doc, const JsonVal val) {
   return json_data_str(&json_val_data(doc, val)->val_string);
 }
 
+StringHash json_string_hash(const JsonDoc* doc, const JsonVal val) {
+  diag_assert_msg(json_type(doc, val) == JsonType_String, "Given JsonVal is not a string");
+  return json_val_data(doc, val)->val_string.hash;
+}
+
 f64 json_number(const JsonDoc* doc, const JsonVal val) {
   diag_assert_msg(json_type(doc, val) == JsonType_Number, "Given JsonVal is not a number");
   return json_val_data(doc, val)->val_number;

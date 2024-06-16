@@ -268,7 +268,8 @@ JsonFieldItr json_field_next(const JsonDoc*, JsonVal fieldVal);
  *
  * Pre-condition: JsonVal is a value of type JsonType_String in the given document.
  */
-String json_string(const JsonDoc*, JsonVal);
+String     json_string(const JsonDoc*, JsonVal);
+StringHash json_string_hash(const JsonDoc*, JsonVal);
 
 /**
  * Retrieve the value of a number.

@@ -247,7 +247,7 @@ static const DataDeclChoice* data_read_json_union_choice(const ReadCtx* ctx, Dat
     return null;
   }
 
-  const StringHash valueHash = string_hash(json_string(ctx->doc, typeVal));
+  const StringHash valueHash = json_string_hash(ctx->doc, typeVal);
   dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
     if (choice->id.hash == valueHash) {
       *res = result_success();
@@ -351,7 +351,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
 static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
-  const StringHash valueHash = string_hash(json_string(ctx->doc, ctx->val));
+  const StringHash valueHash = json_string_hash(ctx->doc, ctx->val);
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     if (constDecl->id.hash == valueHash) {

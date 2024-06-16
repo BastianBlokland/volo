@@ -66,7 +66,7 @@ bool json_eq(JsonDoc* doc, JsonVal x, JsonVal y) {
   case JsonType_Object:
     return json_eq_object(doc, x, y);
   case JsonType_String:
-    return string_eq(json_string(doc, x), json_string(doc, y));
+    return json_string_hash(doc, x) == json_string_hash(doc, y);
   case JsonType_Number:
     return json_number(doc, x) == json_number(doc, y); // TODO: Should we add a diff threshold?
   case JsonType_Bool:
