@@ -17,6 +17,7 @@ typedef enum {
   DataFlags_Opt      = 1 << 0,
   DataFlags_NotEmpty = 1 << 1,
   DataFlags_HideName = 1 << 2,
+  DataFlags_Intern   = 1 << 3, // Intern the string in the global string-table.
 } DataFlags;
 
 /**
