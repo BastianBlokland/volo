@@ -116,6 +116,7 @@ JsonVal json_add_object(JsonDoc*);
 
 /**
  * Add a new string to the document.
+ * Pre-condition: string.length < u32_max
  */
 JsonVal json_add_string(JsonDoc*, String);
 
@@ -166,6 +167,7 @@ bool json_add_field(JsonDoc*, JsonVal object, JsonVal name, JsonVal val);
  *
  * Pre-condition: object is a value of type JsonType_Object in the given document.
  * Pre-condition: !string_is_empty(name).
+ * Pre-condition: name.length < u32_max
  * Pre-condition: val is valid in the given document.
  * Pre-condition: val doesn't have a parent yet.
  * Pre-condition: Adding val to object does not create cycles.
