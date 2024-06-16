@@ -39,18 +39,18 @@ static bool json_eq_object(JsonDoc* doc, JsonVal x, JsonVal y) {
    * More info: https://datatracker.ietf.org/doc/html/rfc7159#section-4
    */
 
-  JsonFieldItr xfieldItr = json_field_begin(doc, x);
-  JsonFieldItr yfieldItr = json_field_begin(doc, y);
+  JsonFieldItr xFieldItr = json_field_begin(doc, x);
+  JsonFieldItr yFieldItr = json_field_begin(doc, y);
   do {
-    if (!string_eq(xfieldItr.name, yfieldItr.name)) {
+    if (!string_eq(xFieldItr.name, yFieldItr.name)) {
       return false;
     }
-    if (!json_eq(doc, xfieldItr.value, yfieldItr.value)) {
+    if (!json_eq(doc, xFieldItr.value, yFieldItr.value)) {
       return false;
     }
-    xfieldItr = json_field_next(doc, xfieldItr.value);
-    yfieldItr = json_field_next(doc, yfieldItr.value);
-  } while (!sentinel_check(xfieldItr.value));
+    xFieldItr = json_field_next(doc, xFieldItr.value);
+    yFieldItr = json_field_next(doc, yFieldItr.value);
+  } while (!sentinel_check(xFieldItr.value));
 
   return true;
 }
