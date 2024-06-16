@@ -129,6 +129,13 @@ JsonVal json_add_object(JsonDoc*);
 JsonVal json_add_string(JsonDoc*, String);
 
 /**
+ * Add a hash-only string.
+ * Hash-only strings can be used as an optimization when the value of a string is not needed.
+ * NOTE: Documents with hash-only string cannot be serialized.
+ */
+JsonVal json_add_string_hash(JsonDoc*, StringHash);
+
+/**
  * Add a new number to the document.
  */
 JsonVal json_add_number(JsonDoc*, f64);
@@ -265,6 +272,7 @@ JsonFieldItr json_field_next(const JsonDoc*, JsonVal fieldVal);
 
 /**
  * Retrieve the value of a string.
+ * NOTE: The value of a string cannot be retrieved if it was added as a hash-only string.
  *
  * Pre-condition: JsonVal is a value of type JsonType_String in the given document.
  */

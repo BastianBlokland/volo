@@ -114,6 +114,16 @@ JsonVal json_add_string(JsonDoc* doc, const String string) {
       });
 }
 
+JsonVal json_add_string_hash(JsonDoc* doc, const StringHash stringHash) {
+  return json_add_data(
+      doc,
+      (JsonValData){
+          .typeAndParent = JsonType_String,
+          .next          = sentinel_u32,
+          .val_string    = {.hash = stringHash},
+      });
+}
+
 JsonVal json_add_number(JsonDoc* doc, const f64 number) {
   return json_add_data(
       doc,
