@@ -40,7 +40,8 @@ typedef struct {
 } JsonResult;
 
 typedef enum {
-  JsonReadFlags_None = 0,
+  JsonReadFlags_None               = 0,
+  JsonReadFlags_HashOnlyFieldNames = 1 << 0, // Do not store object field names as strings.
 } JsonReadFlags;
 
 /**

@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_stringtable.h"
 #include "json_read.h"
 
 #include "lex_internal.h"
@@ -102,7 +103,18 @@ static String json_read_object(JsonReadState* state, String input, JsonResult* r
           token.type == JsonTokenType_End ? JsonError_Truncated : JsonError_InvalidFieldName);
       return input;
     }
-    const JsonVal fieldName = json_add_string(state->doc, token.val_string);
+    JsonVal fieldName;
+    if (state->flags & JsonReadFlags_HashOnlyFieldNames) {
+      StringHash fieldNameHash;
+#ifndef VOLO_FAST
+      fieldNameHash = stringtable_add(g_stringtable, token.val_string);
+#else
+      fieldNameHash = string_hash(token.val_string);
+#endif
+      fieldName = json_add_string_hash(state->doc, fieldNameHash);
+    } else {
+      fieldName = json_add_string(state->doc, token.val_string);
+    }
 
     // Read separator (colon).
     input = json_lex(input, &token);

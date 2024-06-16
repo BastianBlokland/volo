@@ -180,7 +180,7 @@ bool json_add_field(JsonDoc* doc, const JsonVal object, const JsonVal name, cons
       object != name && object != val,
       "Objects cannot contain cycles"); // TODO: Detect indirect cycles.
   diag_assert_msg(json_parent(doc, name) == JsonParent_None, "Given name is already parented");
-  diag_assert_msg(!string_is_empty(json_string(doc, name)), "Field name cannot be empty");
+  diag_assert_msg(json_string_hash(doc, name) != string_hash_lit(""), "Field name cannot be empty");
   diag_assert_msg(json_parent(doc, val) == JsonParent_None, "Given value is already parented");
 
   const JsonValData* nameData   = json_val_data(doc, name);
