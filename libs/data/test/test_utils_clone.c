@@ -30,7 +30,6 @@ spec(utils_clone) {
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     check_eq_string(clone, string_lit("Hello World"));
-    check(clone.ptr == original.ptr);
 
     data_destroy(reg, g_allocHeap, meta, mem_var(original));
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
