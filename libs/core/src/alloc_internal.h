@@ -44,6 +44,7 @@ u64        alloc_heap_active(void);
 u64        alloc_heap_counter(void); // Incremented on every heap allocation.
 
 Allocator* alloc_page_init(void);
+usize      alloc_page_size(void);
 u32        alloc_page_allocated_pages(void);
 usize      alloc_page_allocated_size(void);
 u64        alloc_page_counter(void); // Incremented on every page allocation.

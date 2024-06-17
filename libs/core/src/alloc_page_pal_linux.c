@@ -92,6 +92,8 @@ Allocator* alloc_page_init(void) {
   return (Allocator*)&g_allocatorIntern;
 }
 
+usize alloc_page_size(void) { return g_allocatorIntern.pageSize; }
+
 u32 alloc_page_allocated_pages(void) {
   return (u32)thread_atomic_load_i64(&g_allocatorIntern.allocatedPages);
 }
