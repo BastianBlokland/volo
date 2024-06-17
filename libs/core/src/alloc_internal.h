@@ -37,6 +37,8 @@ struct sAllocator {
   void (*reset)(Allocator*);
 };
 
+extern Allocator* g_allocPageCache;
+
 Allocator* alloc_heap_init(void);
 void       alloc_heap_leak_detect(void);
 void       alloc_heap_teardown(void);
@@ -48,6 +50,8 @@ usize      alloc_page_size(void);
 u32        alloc_page_allocated_pages(void);
 usize      alloc_page_allocated_size(void);
 u64        alloc_page_counter(void); // Incremented on every page allocation.
+
+Allocator* alloc_pagecache_init(void);
 
 Allocator* alloc_persist_init(void);
 void       alloc_persist_teardown(void);

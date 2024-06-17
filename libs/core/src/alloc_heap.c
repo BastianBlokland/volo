@@ -37,7 +37,7 @@ static Allocator* alloc_heap_sub_allocator(AllocatorHeap* allocHeap, const usize
     return allocHeap->blockBuckets[0];
   }
   if (UNLIKELY(powIdx > block_bucket_pow_max)) {
-    return g_allocPage;
+    return g_allocPageCache;
   }
   return allocHeap->blockBuckets[powIdx - block_bucket_pow_min];
 }

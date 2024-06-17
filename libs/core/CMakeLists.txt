@@ -10,6 +10,7 @@ add_library(lib_core STATIC
   src/alloc_chunked.c
   src/alloc_heap.c
   src/alloc_page_pal.c
+  src/alloc_pagecache.c
   src/alloc_persist.c
   src/alloc_scratch.c
   src/alloc_tracker.c
