@@ -37,6 +37,8 @@ static Mem pagecache_alloc(Allocator* allocator, const usize size, const usize a
     alloc_crash_with_msg(
         "pagecache_alloc: Alignment '{}' invalid (stronger then pageSize)", fmt_int(align));
   }
+#else
+  (void)align;
 #endif
 
   const u32 numPages = pagecache_num_pages(cache, size);
