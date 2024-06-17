@@ -11,6 +11,7 @@
  */
 
 #define pagecache_pages_max 4
+#define pagecache_count_max 1024
 
 typedef struct sPageCacheNode {
   struct sPageCacheNode* next;
@@ -21,6 +22,7 @@ typedef struct {
   ThreadSpinLock spinLock;
   usize          pageSize;
   PageCacheNode* freeNodes[pagecache_pages_max];
+  u32            freeNodesCount[pagecache_pages_max];
 } AllocatorPageCache;
 
 static u32 pagecache_num_pages(AllocatorPageCache* cache, const usize size) {
@@ -48,7 +50,9 @@ static Mem pagecache_alloc(Allocator* allocator, const usize size, const usize a
     PageCacheNode* cacheNode = cache->freeNodes[numPages - 1];
     if (cacheNode) {
       alloc_unpoison(mem_create(cacheNode, numPages * cache->pageSize));
+
       cache->freeNodes[numPages - 1] = cacheNode->next;
+      cache->freeNodesCount[numPages - 1]--;
 
       result = mem_create(cacheNode, size);
     }
@@ -78,14 +82,20 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
   if (numPages > pagecache_pages_max) {
     goto FreeAllocation;
   }
+  if (cache->freeNodesCount[numPages - 1] >= pagecache_count_max) {
+    goto FreeAllocation; // Already have enough cached of this size.
+  }
 
   alloc_tag_free(mem, AllocMemType_Normal);
 
   thread_spinlock_lock(&cache->spinLock);
   {
-    PageCacheNode* cacheNode       = mem.ptr;
-    *cacheNode                     = (PageCacheNode){.next = cache->freeNodes[numPages - 1]};
+
+    PageCacheNode* cacheNode = mem.ptr;
+    *cacheNode               = (PageCacheNode){.next = cache->freeNodes[numPages - 1]};
+
     cache->freeNodes[numPages - 1] = cacheNode;
+    cache->freeNodesCount[numPages - 1]++;
 
     alloc_poison(mem_create(cacheNode, numPages * cache->pageSize));
   }
@@ -111,7 +121,8 @@ static void pagecache_reset(Allocator* allocator) {
         cacheNode         = cacheNode->next;
         alloc_free(g_allocPage, nodeMem);
       }
-      cache->freeNodes[i] = null;
+      cache->freeNodes[i]      = null;
+      cache->freeNodesCount[i] = 0;
     }
   }
   thread_spinlock_unlock(&cache->spinLock);
