@@ -48,7 +48,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
 static void alloc_page_free(Allocator* allocator, Mem mem) {
 #ifndef VOLO_FAST
   if (UNLIKELY(!mem_valid(mem))) {
-    alloc_crash_with_msg("alloc_page_alloc: Invalid allocation");
+    alloc_crash_with_msg("alloc_page_free: Invalid allocation");
   }
 #endif
 
