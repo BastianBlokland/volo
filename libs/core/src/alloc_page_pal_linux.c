@@ -70,6 +70,9 @@ static AllocatorPage g_allocatorIntern;
 
 Allocator* alloc_page_init(void) {
   const size_t pageSize = getpagesize();
+  if (!bits_ispow2(pageSize)) {
+    alloc_crash_with_msg("Non pow2 page-size is not supported");
+  }
 
   g_allocatorIntern = (AllocatorPage){
       .api =

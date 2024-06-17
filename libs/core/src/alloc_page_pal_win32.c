@@ -69,6 +69,9 @@ Allocator* alloc_page_init(void) {
   SYSTEM_INFO si;
   GetSystemInfo(&si);
   const size_t pageSize = si.dwPageSize;
+  if (!bits_ispow2(pageSize)) {
+    alloc_crash_with_msg("Non pow2 page-size is not supported");
+  }
 
   g_allocatorIntern = (AllocatorPage){
       .api =
