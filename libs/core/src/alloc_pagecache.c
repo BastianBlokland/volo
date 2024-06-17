@@ -103,7 +103,7 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
   return;
 
 FreeAllocation:
-  return alloc_free(g_allocPage, mem_create(mem.ptr, numPages * cache->pageSize));
+  alloc_free(g_allocPage, mem_create(mem.ptr, numPages * cache->pageSize));
 }
 
 static usize pagecache_max_size(Allocator* allocator) {
