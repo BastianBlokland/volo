@@ -1,5 +1,4 @@
 #include "core_bits.h"
-#include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
 
@@ -26,10 +25,12 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
   AllocatorPage* allocPage = (AllocatorPage*)allocator;
   (void)align;
 
-  diag_assert_msg(
-      bits_aligned(allocPage->pageSize, align),
-      "alloc_page_alloc: Alignment '{}' cannot be satisfied (stronger then pageSize alignment)",
-      fmt_int(align));
+#ifndef VOLO_FAST
+  if (UNLIKELY(!bits_aligned(allocPage->pageSize, align))) {
+    alloc_crash_with_msg(
+        "alloc_page_alloc: Alignment '{}' invalid (stronger then pageSize)", fmt_int(align));
+  }
+#endif
 
   const u32   pages    = alloc_page_num_pages(allocPage, size);
   const usize realSize = pages * allocPage->pageSize;
@@ -45,7 +46,11 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
 }
 
 static void alloc_page_free(Allocator* allocator, Mem mem) {
-  diag_assert(mem_valid(mem));
+#ifndef VOLO_FAST
+  if (UNLIKELY(!mem_valid(mem))) {
+    alloc_crash_with_msg("alloc_page_alloc: Invalid allocation");
+  }
+#endif
 
   AllocatorPage* allocPage = (AllocatorPage*)allocator;
 
@@ -69,7 +74,7 @@ Allocator* alloc_page_init(void) {
   SYSTEM_INFO si;
   GetSystemInfo(&si);
   const size_t pageSize = si.dwPageSize;
-  if (!bits_ispow2(pageSize)) {
+  if (UNLIKELY(!bits_ispow2(pageSize))) {
     alloc_crash_with_msg("Non pow2 page-size is not supported");
   }
 
