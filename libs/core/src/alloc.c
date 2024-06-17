@@ -37,6 +37,9 @@ void alloc_teardown(void) {
   alloc_heap_teardown();
   g_allocHeap = null;
 
+  alloc_pagecache_teardown();
+  g_allocPageCache = null;
+
   const u32 leakedPages = alloc_page_allocated_pages();
   if (leakedPages) {
     alloc_crash_with_msg("alloc: {} pages leaked during app runtime", fmt_int(leakedPages));

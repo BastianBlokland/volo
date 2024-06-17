@@ -52,6 +52,7 @@ usize      alloc_page_allocated_size(void);
 u64        alloc_page_counter(void); // Incremented on every page allocation.
 
 Allocator* alloc_pagecache_init(void);
+void       alloc_pagecache_teardown(void);
 
 Allocator* alloc_persist_init(void);
 void       alloc_persist_teardown(void);
