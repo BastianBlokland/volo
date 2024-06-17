@@ -118,7 +118,9 @@ static void pagecache_reset(Allocator* allocator) {
     for (u32 i = 0; i != array_elems(cache->freeNodes); ++i) {
       for (PageCacheNode* cacheNode = cache->freeNodes[i]; cacheNode;) {
         const Mem nodeMem = mem_create(cacheNode, (i + 1) * cache->pageSize);
-        cacheNode         = cacheNode->next;
+        alloc_unpoison(nodeMem);
+
+        cacheNode = cacheNode->next;
         alloc_free(g_allocPage, nodeMem);
       }
       cache->freeNodes[i]      = null;
