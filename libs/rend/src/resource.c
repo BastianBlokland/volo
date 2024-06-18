@@ -74,7 +74,7 @@ typedef enum {
   RendResFlags_None               = 0,
   RendResFlags_Used               = 1 << 0,
   RendResFlags_Persistent         = 1 << 1, // Always considered in-use.
-  RendResFlags_IgnoreAssetChanges = 1 << 2, // Don't unload when the backend asset changes.
+  RendResFlags_IgnoreAssetChanges = 1 << 2, // Don't unload when the source asset changes.
 } RendResFlags;
 
 typedef enum {
