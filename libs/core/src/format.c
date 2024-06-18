@@ -207,13 +207,19 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_Size:
     format_write_size_pretty(str, arg->value_size);
     break;
-  case FormatArgType_Text:
-    format_write_text(
-        str,
-        arg->value_text.size > fmt_txt_len_max ? string_slice(arg->value_text, 0, fmt_txt_len_max)
-                                               : arg->value_text,
-        arg->settings);
+  case FormatArgType_Text: {
+    const FormatOptsText* textOpts = arg->settings;
+    String                text     = arg->value_text;
+    if (text.size > fmt_txt_len_max) {
+      text = string_slice(text, 0, fmt_txt_len_max);
+    }
+    if (textOpts->flags & FormatTextFlags_Escape) {
+      format_write_text(str, text, arg->settings);
+    } else {
+      dynstring_append(str, text); // Fast path for raw text.
+    }
     break;
+  }
   case FormatArgType_Char:
     format_write_char(str, arg->value_char, arg->settings);
     break;
@@ -517,7 +523,11 @@ void format_write_size_pretty(DynString* str, const usize val) {
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
   diag_assert_msg(val.size <= usize_gibibyte, "Text too big: '{}'", fmt_size(val.size));
-  mem_for_u8(val, itr) { format_write_char(str, *itr, opts); }
+  if (opts->flags & FormatTextFlags_Escape) {
+    mem_for_u8(val, itr) { format_write_char(str, *itr, opts); }
+  } else {
+    dynstring_append(str, val); // Fast path for raw text.
+  }
 }
 
 void format_write_text_wrapped(
