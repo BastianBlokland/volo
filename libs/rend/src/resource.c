@@ -2,10 +2,12 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_path.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_register.h"
+#include "trace_tracer.h"
 
 #include "platform_internal.h"
 #include "reset_internal.h"
@@ -518,9 +520,14 @@ ecs_system_define(RendResLoadSys) {
       }
     } break;
     case RendResLoadState_Create: {
+#ifdef VOLO_TRACE
+      const String traceMsg = path_filename(asset_id(ecs_view_read_t(itr, AssetComp)));
+#endif
+      trace_begin_msg("rend_res_create", TraceColor_Blue, "{}", fmt_text(traceMsg));
       if (rend_res_create(device, world, itr)) {
         ++resComp->state;
       }
+      trace_end();
     } break;
     case RendResLoadState_FinishedSuccess: {
       rend_res_finished_success(world, itr);
