@@ -606,7 +606,7 @@ ecs_view_define(UnloadChangedView) {
 }
 
 /**
- * Start unloading resources where the source asset has changed.
+ * Start unloading resources when the source asset has changed.
  */
 ecs_system_define(RendResUnloadChangedSys) {
   EcsView* changedAssetsView = ecs_world_view_t(world, UnloadChangedView);
