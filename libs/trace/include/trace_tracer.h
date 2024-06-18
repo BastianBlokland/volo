@@ -38,7 +38,7 @@ typedef enum {
  * Pre-condition: id is constant throughout the program (for example a literal).
  * Pre-condition: id only consists of ascii characters.
  * Pre-condition: msg (and format args) only consist of ascii characters.
- * Pre-condition: length of msg (after formatting) is less then 64 bytes.
+ * Pre-condition: length of msg (after formatting) is less then 256 bytes.
  */
 #ifdef VOLO_TRACE
 #define trace_begin_msg(_ID_, _COLOR_, _MSG_LIT_, ...)                                             \
