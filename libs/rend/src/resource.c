@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -19,7 +20,13 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
-static const u32 g_rendResUnloadUnusedAfterTicks = 480; // NOTE: Less then 2 is not supported.
+#define rend_res_max_load_time time_milliseconds(2)
+
+/**
+ * Amount of frames to delay unloading of resources.
+ * NOTE: Less then 2 is not supported.
+ */
+#define rend_res_unload_delay 480
 
 typedef struct {
   RvkRepositoryId repoId;
@@ -495,6 +502,8 @@ ecs_system_define(RendResLoadSys) {
    */
   RvkDevice* device = platform->device;
 
+  TimeDuration loadTime = 0;
+
   EcsView* resourceView = ecs_world_view_t(world, ResLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
     RendResComp* resComp = ecs_view_write_t(itr, RendResComp);
@@ -520,13 +529,20 @@ ecs_system_define(RendResLoadSys) {
       }
     } break;
     case RendResLoadState_Create: {
+      if (loadTime >= rend_res_max_load_time) {
+        break; // Already spend our load budget for this frame; retry next frame.
+      }
 #ifdef VOLO_TRACE
       const String traceMsg = path_filename(asset_id(ecs_view_read_t(itr, AssetComp)));
 #endif
       trace_begin_msg("rend_res_create", TraceColor_Blue, "{}", fmt_text(traceMsg));
+
+      const TimeSteady loadStart = time_steady_clock();
       if (rend_res_create(device, world, itr)) {
         ++resComp->state;
       }
+      loadTime += time_steady_duration(loadStart, time_steady_clock());
+
       trace_end();
     } break;
     case RendResLoadState_FinishedSuccess: {
@@ -575,7 +591,7 @@ ecs_system_define(RendResUnloadUnusedSys) {
     if (UNLIKELY(isUnloading || failed)) {
       continue;
     }
-    if (resComp->unusedTicks++ > g_rendResUnloadUnusedAfterTicks) {
+    if (resComp->unusedTicks++ > rend_res_unload_delay) {
       ecs_world_add_t(world, ecs_view_entity(itr), RendResUnloadComp);
     }
   }
@@ -742,10 +758,10 @@ bool rend_res_is_persistent(const RendResComp* comp) {
 }
 
 u32 rend_res_ticks_until_unload(const RendResComp* comp) {
-  if (comp->unusedTicks > g_rendResUnloadUnusedAfterTicks) {
+  if (comp->unusedTicks > rend_res_unload_delay) {
     return 0;
   }
-  return g_rendResUnloadUnusedAfterTicks - comp->unusedTicks;
+  return rend_res_unload_delay - comp->unusedTicks;
 }
 
 u32 rend_res_dependents(const RendResComp* comp) { return (u32)comp->dependents.size; }
