@@ -95,16 +95,17 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
    * NOTE: Iterate y backwards because we're using y0 to mean the bottom of the texture and most
    * authoring tools use y0 to mean the top.
    */
+  const usize rowStride = size * pixelSize;
   for (u32 y = size; y-- != 0;) {
     const usize outRowIndex = y * (usize)size;
-    const Mem   outRowMem   = mem_slice(outMem, outRowIndex * pixelSize, size * pixelSize);
+    const Mem   outRowMem   = mem_slice(outMem, outRowIndex * pixelSize, rowStride);
 
     // Copy the pixel data.
     // NOTE: Assumes values written in the same endianess as the host.
-    mem_cpy(outRowMem, mem_slice(data, 0, size * pixelSize));
+    mem_cpy(outRowMem, mem_slice(data, 0, rowStride));
 
     // Advance input data.
-    data = mem_consume(data, size * pixelSize);
+    data = mem_consume(data, rowStride);
   }
 
   ecs_world_add_t(
