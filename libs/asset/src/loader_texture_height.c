@@ -88,25 +88,24 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
     return;
   }
 
-  Mem outputMem = alloc_alloc(g_allocHeap, pixelSize * pixelCount, htex_pixel_align(type));
+  Mem outMem = alloc_alloc(g_allocHeap, pixelSize * pixelCount, htex_pixel_align(type));
 
   /**
    * Read the pixels into the output memory.
    * NOTE: Iterate y backwards because we're using y0 to mean the bottom of the texture and most
    * authoring tools use y0 to mean the top.
    */
+  const usize rowStride = size * pixelSize;
   for (u32 y = size; y-- != 0;) {
-    for (u32 x = 0; x != size; ++x) {
-      const usize outputIndex    = y * (usize)size + x;
-      const Mem   outputPixelMem = mem_slice(outputMem, outputIndex * pixelSize, pixelSize);
+    const usize outRowIndex = y * (usize)size;
+    const Mem   outRowMem   = mem_slice(outMem, outRowIndex * pixelSize, rowStride);
 
-      // Copy the pixel data.
-      // NOTE: Assumes values written in the same endianess as the host.
-      mem_cpy(outputPixelMem, mem_slice(data, 0, pixelSize));
+    // Copy the pixel data.
+    // NOTE: Assumes values written in the same endianess as the host.
+    mem_cpy(outRowMem, mem_slice(data, 0, rowStride));
 
-      // Advance input data.
-      data = mem_consume(data, pixelSize);
-    }
+    // Advance input data.
+    data = mem_consume(data, rowStride);
   }
 
   ecs_world_add_t(
@@ -117,7 +116,7 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
       .channels     = AssetTextureChannels_One,
       .width        = size,
       .height       = size,
-      .pixelsRaw    = outputMem.ptr,
+      .pixelsRaw    = outMem.ptr,
       .layers       = 1,
       .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
