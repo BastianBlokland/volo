@@ -525,7 +525,10 @@ ecs_system_define(RendResLoadSys) {
         break;
       }
       ++resComp->state;
-      break; // NOTE: Cannot fallthrough as dependency acquire takes a frame to take effect.
+      if (resComp->dependencies.size) {
+        break; // NOTE: Cannot fallthrough as dependency acquire takes a frame to take effect.
+      }
+      // Fallthrough.
     case RendResLoadState_DependenciesWait:
       if (!rend_res_dependencies_wait(world, itr)) {
         break;
