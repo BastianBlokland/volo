@@ -359,14 +359,15 @@ static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr
     dependencyRes->flags |= RendResFlags_Used; // Mark the dependencies as still in use.
     rend_res_add_dependent(dependencyRes, entity);
 
-    if (dependencyRes->state == RendResLoadState_FinishedFailure) {
-      // Dependency failed to load, also fail this resource.
-      resComp->state = RendResLoadState_FinishedFailure;
-      return false;
-    }
-    if (dependencyRes->state != RendResLoadState_FinishedSuccess) {
+    if (ecs_world_has_t(world, *dep, RendResFinishedComp)) {
+      if (dependencyRes->state == RendResLoadState_FinishedFailure) {
+        // Dependency failed to load, also fail this resource.
+        resComp->state = RendResLoadState_FinishedFailure;
+        return false;
+      }
+      diag_assert(dependencyRes->state == RendResLoadState_FinishedSuccess);
+    } else {
       ready = false;
-      continue;
     }
   }
   return ready;
@@ -508,29 +509,35 @@ ecs_system_define(RendResLoadSys) {
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
     RendResComp* resComp = ecs_view_write_t(itr, RendResComp);
     switch (resComp->state) {
-    case RendResLoadState_AssetAcquire: {
-      if (rend_res_asset_acquire(world, itr)) {
-        ++resComp->state;
+    case RendResLoadState_AssetAcquire:
+      if (!rend_res_asset_acquire(world, itr)) {
+        break;
       }
-    } break;
-    case RendResLoadState_AssetWait: {
-      if (rend_res_asset_wait(world, itr)) {
-        ++resComp->state;
+      ++resComp->state;
+      break; // NOTE: Cannot fallthrough as asset require takes a frame to take effect.
+    case RendResLoadState_AssetWait:
+      if (!rend_res_asset_wait(world, itr)) {
+        break;
       }
-    } break;
-    case RendResLoadState_DependenciesAcquire: {
-      if (rend_res_dependencies_acquire(world, itr)) {
-        ++resComp->state;
+      ++resComp->state;
+      // Fallthrough.
+    case RendResLoadState_DependenciesAcquire:
+      if (!rend_res_dependencies_acquire(world, itr)) {
+        break;
       }
-    } break;
-    case RendResLoadState_DependenciesWait: {
-      if (rend_res_dependencies_wait(world, itr)) {
-        ++resComp->state;
+      ++resComp->state;
+      break; // NOTE: Cannot fallthrough as dependency acquire takes a frame to take effect.
+    case RendResLoadState_DependenciesWait:
+      if (!rend_res_dependencies_wait(world, itr)) {
+        break;
       }
-    } break;
+      ++resComp->state;
+      // Fallthrough.
     case RendResLoadState_Create: {
       if (loadTime >= rend_res_max_load_time) {
-        break; // Already spend our load budget for this frame; retry next frame.
+        // Already spend our load budget for this frame; retry next frame.
+        resComp->state = RendResLoadState_DependenciesWait;
+        break;
       }
 #ifdef VOLO_TRACE
       const String traceMsg = path_filename(asset_id(ecs_view_read_t(itr, AssetComp)));
@@ -540,17 +547,22 @@ ecs_system_define(RendResLoadSys) {
       const TimeSteady loadStart = time_steady_clock();
       if (rend_res_create(device, world, itr)) {
         ++resComp->state;
+      } else {
+        diag_assert(resComp->state == RendResLoadState_FinishedFailure);
       }
       loadTime += time_steady_duration(loadStart, time_steady_clock());
 
       trace_end();
     } break;
-    case RendResLoadState_FinishedSuccess: {
+    case RendResLoadState_FinishedSuccess:
+    case RendResLoadState_FinishedFailure:
+      UNREACHABLE
+    }
+
+    if (resComp->state == RendResLoadState_FinishedSuccess) {
       rend_res_finished_success(world, itr);
-    } break;
-    case RendResLoadState_FinishedFailure: {
+    } else if (resComp->state == RendResLoadState_FinishedFailure) {
       rend_res_finished_failure(world, itr);
-    } break;
     }
   }
 }
