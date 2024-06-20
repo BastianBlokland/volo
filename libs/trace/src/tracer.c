@@ -6,7 +6,7 @@
 #include "tracer_internal.h"
 
 #define trace_sinks_max 4
-#define trace_message_max 64
+#define trace_message_max 256
 
 struct sTracer {
   TraceSink*     sinks[trace_sinks_max];

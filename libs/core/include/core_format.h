@@ -339,6 +339,7 @@ typedef struct {
 typedef enum {
   FormatTextFlags_None                = 0,
   FormatTextFlags_EscapeNonPrintAscii = 1 << 0,
+  FormatTextFlags_Escape              = FormatTextFlags_EscapeNonPrintAscii,
 } FormatTextFlags;
 
 /**
