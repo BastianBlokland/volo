@@ -24,9 +24,8 @@
 
 /**
  * Amount of frames to delay unloading of resources.
- * NOTE: Less then 2 is not supported.
  */
-#define rend_res_unload_delay 480
+#define rend_res_unload_delay 500
 
 typedef struct {
   RvkRepositoryId repoId;
