@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/turret/turret_4_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/turret/turret_2_nrm.tga", "anisotropy": "x2" }
+    { "textureId": "external/turret/turret_5_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/turret/turret_3_nrm.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/turret/turret_missile_2.gltf"
 }

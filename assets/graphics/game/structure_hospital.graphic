@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/tent/tent_medical_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/tent/tent_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/tent/tent_medical_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/tent/tent_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/tent/tent.gltf"
 }

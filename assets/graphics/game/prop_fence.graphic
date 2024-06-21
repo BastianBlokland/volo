@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/fence/fence_1_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/fence/fence_1_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/fence/fence_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/fence/fence_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/fence/fence_1.gltf"
 }

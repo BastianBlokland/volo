@@ -76,28 +76,28 @@ if(${EXTERNAL_ASSETS})
       alarm/alarm_normal_emissive.tga
       alarm/alarm.bin
       alarm/alarm.gltf
+      barracks/barracks_2_color_rough.tga
+      barracks/barracks_2_normal.tga
       barracks/barracks_2.bin
       barracks/barracks_2.gltf
-      barracks/barracks_color_rough.tga
-      barracks/barracks_normal.tga
       barrel_explosive/barrel_explosive_color_rough.tga
       barrel_explosive/barrel_explosive_normal.tga
       barrel_explosive/barrel_explosive.bin
       barrel_explosive/barrel_explosive.gltf
-      barrel/barrel_color_rough.tga
-      barrel/barrel_normal.tga
+      barrel/barrel_2_color_rough.tga
+      barrel/barrel_2_normal.tga
       barrel/barrel.bin
       barrel/barrel.gltf
-      car_wreck/car_wreck_2_color_rough.tga
-      car_wreck/car_wreck_normal.tga
+      car_wreck/car_wreck_2_normal.tga
+      car_wreck/car_wreck_3_color_rough.tga
       car_wreck/car_wreck.bin
       car_wreck/car_wreck.gltf
-      container/container_3_color_rough.tga
-      container/container_normal.tga
+      container/container_2_normal.tga
+      container/container_4_color_rough.tga
       container/container.bin
       container/container.gltf
-      crate/crate_color_rough.tga
-      crate/crate_normal.tga
+      crate/crate_2_color_rough.tga
+      crate/crate_2_normal.tga
       crate/crate.bin
       crate/crate.gltf
       decal/blood_splatter_2_normal.tga
@@ -120,14 +120,14 @@ if(${EXTERNAL_ASSETS})
       decal/tarp_normal.tga
       decal/tarp.tga
       decal/text_volo.tga
-      factory/factory_color_rough.tga
-      factory/factory_normal.tga
+      factory/factory_2_color_rough.tga
+      factory/factory_2_normal.tga
       factory/factory.bin
       factory/factory.gltf
-      fence/fence_1_color_rough.tga
-      fence/fence_1_normal.tga
       fence/fence_1.bin
       fence/fence_1.gltf
+      fence/fence_2_color_rough.tga
+      fence/fence_2_normal.tga
       fire_2/fire_0.tga
       fire_2/fire_1.tga
       fire_2/fire_10.tga
@@ -149,8 +149,8 @@ if(${EXTERNAL_ASSETS})
       floor_light/floor_light_normal_emissive.tga
       floor_light/floor_light.bin
       floor_light/floor_light.gltf
-      gas_tank/gas_tank_color_rough.tga
-      gas_tank/gas_tank_normal.tga
+      gas_tank/gas_tank_2_color_rough.tga
+      gas_tank/gas_tank_2_normal.tga
       gas_tank/gas_tank.bin
       gas_tank/gas_tank.gltf
       gate/gate_1.bin
@@ -166,8 +166,8 @@ if(${EXTERNAL_ASSETS})
       icon/icon_structure_turret_gun.tga
       icon/icon_structure_turret_missile.tga
       icon/icon_vehicle_tank.tga
-      maynard/maynard_2_color_rough.tga
-      maynard/maynard_2_nrm.tga
+      maynard/maynard_3_color_rough.tga
+      maynard/maynard_3_nrm.tga
       maynard/maynard_3.bin
       maynard/maynard_3.gltf
       plant_fern/plant_fern_alpha.tga
@@ -175,11 +175,11 @@ if(${EXTERNAL_ASSETS})
       plant_fern/plant_fern_normal.tga
       plant_fern/plant_fern.bin
       plant_fern/plant_fern.gltf
-      pressure_plate/pressure_plate_color_rough_2.tga
+      pressure_plate/pressure_plate_3_color_rough.tga
       pressure_plate/pressure_plate.bin
       pressure_plate/pressure_plate.gltf
-      rock/rock_color_rough.tga
-      rock/rock_normal.tga
+      rock/rock_2_color_rough.tga
+      rock/rock_2_normal.tga
       rock/rock.bin
       rock/rock.gltf
       skybox/teide_small_back.tga
@@ -229,24 +229,24 @@ if(${EXTERNAL_ASSETS})
       sound/tank-move-01.wav
       sound/tank-shot-01.wav
       sound/tank-turret-01.wav
-      swat/swat_2_color_rough.tga
-      swat/swat_2_nrm.tga
+      swat/swat_3_color_rough.tga
+      swat/swat_3_nrm.tga
       swat/swat_4.bin
       swat/swat_4.gltf
-      swat/swat_flame_1_color_rough.tga
-      swat/swat_flame_1_nrm.tga
       swat/swat_flame_1.bin
       swat/swat_flame_1.gltf
-      swat/swat_rocket_1_color_rough.tga
-      swat/swat_rocket_1_nrm.tga
+      swat/swat_flame_2_color_rough.tga
+      swat/swat_flame_2_nrm.tga
       swat/swat_rocket_1.bin
       swat/swat_rocket_1.gltf
+      swat/swat_rocket_2_color_rough.tga
+      swat/swat_rocket_2_nrm.tga
       tank/tank_04.bin
       tank/tank_04.gltf
-      tank/tank_2_color_rough.tga
-      tent/tent_color_rough.tga
-      tent/tent_medical_color_rough.tga
-      tent/tent_normal.tga
+      tank/tank_3_color_rough.tga
+      tent/tent_2_color_rough.tga
+      tent/tent_2_normal.tga
+      tent/tent_medical_2_color_rough.tga
       tent/tent.bin
       tent/tent.gltf
       terrain/terrain_3_height.r16
@@ -268,15 +268,15 @@ if(${EXTERNAL_ASSETS})
       traffic_signs/traffic_cone.gltf
       traffic_signs/traffic_sign_stop.bin
       traffic_signs/traffic_sign_stop.gltf
-      traffic_signs/traffic_signs_color_rough.tga
-      traffic_signs/traffic_signs_normal.tga
-      tree_acacia/tree_acacia_2_color_rough.tga
-      tree_acacia/tree_acacia_alpha.tga
-      tree_acacia/tree_acacia_normal.tga
+      traffic_signs/traffic_signs_2_color_rough.tga
+      traffic_signs/traffic_signs_2_normal.tga
+      tree_acacia/tree_acacia_2_alpha.tga
+      tree_acacia/tree_acacia_2_normal.tga
+      tree_acacia/tree_acacia_3_color_rough.tga
       tree_acacia/tree_acacia.bin
       tree_acacia/tree_acacia.gltf
-      turret/turret_2_nrm.tga
-      turret/turret_4_color_rough.tga
+      turret/turret_3_nrm.tga
+      turret/turret_5_color_rough.tga
       turret/turret_big.gltf
       turret/turret_missile_2.bin
       turret/turret_missile_2.gltf
@@ -293,8 +293,8 @@ if(${EXTERNAL_ASSETS})
       vfx/smoke.tga
       vfx/star.tga
       vfx/trail_2.tga
-      water_tower/water_tower_color_rough.tga
-      water_tower/water_tower_normal.tga
+      water_tower/water_tower_2_color_rough.tga
+      water_tower/water_tower_2_normal.tga
       water_tower/water_tower.obj
     )
 endif()

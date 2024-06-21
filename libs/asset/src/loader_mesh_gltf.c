@@ -12,6 +12,7 @@
 #include "ecs_world.h"
 #include "json_read.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "manager_internal.h"
 #include "mesh_utils_internal.h"
@@ -1376,7 +1377,10 @@ Error:
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetGltfLoadComp); }
+ecs_view_define(LoadView) {
+  ecs_access_write(AssetGltfLoadComp);
+  ecs_access_read(AssetComp);
+}
 ecs_view_define(BufferView) { ecs_access_read(AssetRawComp); }
 
 /**
@@ -1455,8 +1459,15 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
+#ifdef VOLO_TRACE
+      const String traceMsg = path_filename(asset_id(ecs_view_read_t(itr, AssetComp)));
+#endif
+      trace_begin_msg("asset_gltf_build", TraceColor_Blue, "{}", fmt_text(traceMsg));
+
       AssetMeshComp resultMesh;
       gltf_build_mesh(ld, &resultMesh, &err);
+
+      trace_end();
       if (err) {
         goto Error;
       }

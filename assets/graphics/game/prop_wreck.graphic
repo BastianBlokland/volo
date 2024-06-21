@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/car_wreck/car_wreck_2_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/car_wreck/car_wreck_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/car_wreck/car_wreck_3_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/car_wreck/car_wreck_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/car_wreck/car_wreck.gltf"
 }

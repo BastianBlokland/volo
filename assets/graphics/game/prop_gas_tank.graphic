@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/gas_tank/gas_tank_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/gas_tank/gas_tank_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/gas_tank/gas_tank_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/gas_tank/gas_tank_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/gas_tank/gas_tank.gltf"
 }

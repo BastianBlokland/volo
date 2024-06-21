@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/crate/crate_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/crate/crate_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/crate/crate_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/crate/crate_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/crate/crate.gltf"
 }

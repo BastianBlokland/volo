@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/water_tower/water_tower_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/water_tower/water_tower_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/water_tower/water_tower_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/water_tower/water_tower_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/water_tower/water_tower.obj"
 }
