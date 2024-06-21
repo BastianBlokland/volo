@@ -12,6 +12,10 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 #define scene_skeleton_max_loads 16
 #define scene_anim_duration_min 0.001f
 #define scene_weight_min 0.001f
@@ -292,10 +296,24 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
   }
 }
 
-static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
+INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
   /**
-   * Binary search for the first frame with a higher time (and then return the frame before it).
+   * Search for the first frame with a higher (or equal) time (and then return the frame before it).
    */
+#ifdef VOLO_SIMD
+  const SimdVec tVec = simd_vec_broadcast_u16(tNorm16);
+  for (u32 i = 0;;) {
+    const SimdVec timesVec    = simd_vec_load(&ch->times[i]);
+    const u32     greaterMask = simd_vec_mask_u8(simd_vec_greater_eq_u16(timesVec, tVec));
+    if (greaterMask) {
+      const u32 greaterIndex = i + intrinsic_ctz_32(greaterMask) / 2;
+      return greaterIndex ? greaterIndex - 1 : 0;
+    }
+    if ((i += 8) >= ch->frameCount) {
+      return ch->frameCount - 1;
+    }
+  }
+#else
   u32 count = ch->frameCount;
   u32 begin = 0;
   while (count) {
@@ -309,13 +327,14 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
     }
   }
   return begin ? (begin - 1) : 0;
+#endif
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  const u32 frame = anim_find_frame(ch, tNorm16);
-  if (frame == ch->frameCount - 1) {
-    return ch->values_vec[frame];
+  if (ch->frameCount == 1) {
+    return ch->values_vec[0];
   }
+  const u32 frame   = anim_find_frame(ch, tNorm16);
   const u16 fromT16 = ch->times[frame];
   const u16 toT16   = ch->times[frame + 1];
   const f32 frac    = (f32)(tNorm16 - fromT16) / (f32)(toT16 - fromT16);
@@ -323,17 +342,14 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 
 }
 
 static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  const u32 frame = anim_find_frame(ch, tNorm16);
-  if (frame == ch->frameCount - 1) {
-    return ch->values_quat[frame];
+  if (ch->frameCount == 1) {
+    return ch->values_quat[0];
   }
+  const u32 frame   = anim_find_frame(ch, tNorm16);
   const u16 fromT16 = ch->times[frame];
   const u16 toT16   = ch->times[frame + 1];
   const f32 frac    = (f32)(tNorm16 - fromT16) / (f32)(toT16 - fromT16);
-
-  const GeoQuat from = ch->values_quat[frame];
-  GeoQuat       to   = ch->values_quat[frame + 1];
-  return geo_quat_slerp(from, to, frac);
+  return geo_quat_slerp(ch->values_quat[frame], ch->values_quat[frame + 1], frac);
 }
 
 static void anim_blend_vec(const GeoVector v, const f32 weight, f32* outWeight, GeoVector* outVec) {

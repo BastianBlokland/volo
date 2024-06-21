@@ -158,7 +158,7 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less(const SimdVec a, const Sim
   return _mm_cmplt_ps(a, b);
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less_u8(const SimdVec a, const SimdVec b) {
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_less_i8(const SimdVec a, const SimdVec b) {
   return _mm_castsi128_ps(_mm_cmplt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
 }
 
@@ -166,8 +166,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater(const SimdVec a, const 
   return _mm_cmpgt_ps(a, b);
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_u8(const SimdVec a, const SimdVec b) {
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_i8(const SimdVec a, const SimdVec b) {
   return _mm_castsi128_ps(_mm_cmpgt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_eq_u16(const SimdVec a, const SimdVec b) {
+  // There is no unsigned comparision in SSE but 'a >= b' == 'a == max(a, b)'.
+  return _mm_castsi128_ps(_mm_cmpeq_epi16(
+      _mm_castps_si128(a), _mm_max_epu16(_mm_castps_si128(a), _mm_castps_si128(b))));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u8(const SimdVec a, const SimdVec b) {

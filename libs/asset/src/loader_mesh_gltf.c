@@ -468,7 +468,7 @@ gltf_anim_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValu
   diag_assert(ld->access[acc].compCount == 1);
 
   const f32              refValueInv = refValue > 0 ? (1.0f / refValue) : 0.0f;
-  const AssetMeshAnimPtr res         = gltf_anim_data_begin(ld, alignof(u16));
+  const AssetMeshAnimPtr res         = gltf_anim_data_begin(ld, 16); // Always 16 byte aligned.
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     const f32 valNorm = ld->access[acc].data_f32[i] * refValueInv;
     *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
@@ -1357,6 +1357,9 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     gltf_anim_data_push_trans(ld, joint->trans);
   }
 
+  // Pad animData so the size is always a multiple of 16.
+  mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
+
   *out = (AssetMeshSkeletonComp){
       .anims           = resAnims,
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
@@ -1367,7 +1370,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
-      .animData = alloc_dup(g_allocHeap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
+      .animData = alloc_dup(g_allocHeap, dynarray_at(&ld->animData, 0, ld->animData.size), 16),
   };
   *err = GltfError_None;
   return;

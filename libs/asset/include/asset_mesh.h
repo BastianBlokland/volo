@@ -66,7 +66,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshAnimPtr     jointNames;      // StringHash[jointCount].
   u8                   jointCount;
   u32                  animCount;
-  Mem                  animData;
+  Mem                  animData; // 16 bit aligned and the size is always a multiple of 16.
 };
 
 void asset_mesh_proc_jsonschema_write(DynString*);

@@ -50,8 +50,8 @@ static String json_lex_string(String str, JsonToken* out) {
     const SimdVec charsVec = simd_vec_load_unaligned(rem.ptr);
 
     SimdVec invalidVec    = simd_vec_eq_u8(charsVec, escapeVec);
-    invalidVec            = simd_vec_or(invalidVec, simd_vec_less_u8(charsVec, limLowVec));
-    invalidVec            = simd_vec_or(invalidVec, simd_vec_greater_u8(charsVec, limHighVec));
+    invalidVec            = simd_vec_or(invalidVec, simd_vec_less_i8(charsVec, limLowVec));
+    invalidVec            = simd_vec_or(invalidVec, simd_vec_greater_i8(charsVec, limHighVec));
     const u32 invalidMask = simd_vec_mask_u8(invalidVec);
 
     const u32 eqMask = simd_vec_mask_u8(simd_vec_eq_u8(charsVec, quoteVec));
