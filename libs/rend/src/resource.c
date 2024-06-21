@@ -306,7 +306,7 @@ static bool rend_res_asset_wait(EcsWorld* world, EcsIterator* resourceItr) {
     return false;
   }
   if (ecs_world_has_t(world, entity, AssetChangedComp)) {
-    log_e(
+    log_w(
         "Loaded an out-of-date asset",
         log_param("info", fmt_text("Usually indicates that a changed asset was not released")));
   }
