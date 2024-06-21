@@ -70,6 +70,16 @@ MAYBE_UNUSED INLINE_HINT static u64 simd_vec_u64(const SimdVec vec) {
   return _mm_cvtsi128_si64(_mm_castps_si128(vec));
 }
 
+/**
+ * Take the x (32 bit) value of each vector and store them sequential in the resulting vector.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec
+simd_vec_x_merge(const SimdVec a, const SimdVec b, const SimdVec c, const SimdVec d) {
+  const SimdVec tmpA = _mm_unpacklo_ps(a, c); // a.x, c.x, any, any.
+  const SimdVec tmpB = _mm_unpacklo_ps(b, d); // b.x, d.x, any, any.
+  return _mm_unpacklo_ps(tmpA, tmpB);         // a.x, b.x, c.x, d.x.
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec
 simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
   return _mm_set_ps(d, c, b, a);

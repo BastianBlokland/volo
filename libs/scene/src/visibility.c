@@ -36,12 +36,13 @@ ecs_comp_define_public(SceneVisibilityComp);
 ecs_comp_define_public(SceneVisionComp);
 
 static void visibility_env_create(EcsWorld* world) {
+  const u32 areasMax = scene_vision_areas_max;
   ecs_world_add_t(
       world,
       ecs_world_global(world),
       SceneVisibilityEnvComp,
-      .visionPositions    = alloc_array_t(g_allocHeap, GeoVector, scene_vision_areas_max),
-      .visionSquaredRadii = alloc_array_t(g_allocHeap, f32, scene_vision_areas_max));
+      .visionPositions    = alloc_alloc(g_allocHeap, sizeof(GeoVector) * areasMax, 16).ptr,
+      .visionSquaredRadii = alloc_alloc(g_allocHeap, sizeof(f32) * areasMax, 16).ptr);
 }
 
 static void visibility_env_clear(SceneVisibilityEnvComp* env) { env->visionCount = 0; }
@@ -58,25 +59,37 @@ visibility_env_insert(SceneVisibilityEnvComp* env, const GeoVector pos, const f3
 }
 
 static bool visiblity_env_visible(const SceneVisibilityEnvComp* env, const GeoVector pos) {
-  // TODO: This could use some kind of acceleration structure.
+  /**
+   * Check if the given position is within any of the registered vision areas.
+   * TODO: This could use an acceleration structure.
+   */
+  u32 i = 0;
 #ifdef VOLO_SIMD
   const SimdVec posVec = simd_vec_load(pos.comps);
-  for (u32 i = 0; i != env->visionCount; ++i) {
-    const SimdVec delta        = simd_vec_sub(posVec, simd_vec_load(env->visionPositions[i].comps));
-    const SimdVec squaredDist  = simd_vec_dot4(delta, delta);
-    const SimdVec squaredRadii = simd_vec_broadcast(env->visionSquaredRadii[i]);
-    if (simd_vec_mask_u32(simd_vec_greater(squaredRadii, squaredDist))) {
+  for (; (i + 4) <= env->visionCount; i += 4) {
+    const SimdVec deltaA = simd_vec_sub(posVec, simd_vec_load(env->visionPositions[i].comps));
+    const SimdVec deltaB = simd_vec_sub(posVec, simd_vec_load(env->visionPositions[i + 1].comps));
+    const SimdVec deltaC = simd_vec_sub(posVec, simd_vec_load(env->visionPositions[i + 2].comps));
+    const SimdVec deltaD = simd_vec_sub(posVec, simd_vec_load(env->visionPositions[i + 3].comps));
+
+    const SimdVec distSqrA   = simd_vec_dot3(deltaA, deltaA);
+    const SimdVec distSqrB   = simd_vec_dot3(deltaB, deltaB);
+    const SimdVec distSqrC   = simd_vec_dot3(deltaC, deltaC);
+    const SimdVec distSqrD   = simd_vec_dot3(deltaD, deltaD);
+    const SimdVec distSqrAll = simd_vec_x_merge(distSqrA, distSqrB, distSqrC, distSqrD);
+
+    const SimdVec radiusSqr = simd_vec_load(&env->visionSquaredRadii[i]);
+    if (simd_vec_mask_u32(simd_vec_greater(radiusSqr, distSqrAll))) {
       return true;
     }
   }
-#else
-  for (u32 i = 0; i != env->visionCount; ++i) {
+#endif
+  for (; i != env->visionCount; ++i) {
     const GeoVector delta = geo_vector_sub(pos, env->visionPositions[i]);
     if (geo_vector_mag_sqr(delta) <= env->visionSquaredRadii[i]) {
       return true;
     }
   }
-#endif
   return false;
 }
 
