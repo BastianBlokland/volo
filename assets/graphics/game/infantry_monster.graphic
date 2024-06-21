@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/maynard/maynard_2_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/maynard/maynard_2_nrm.tga", "anisotropy": "x2" }
+    { "textureId": "external/maynard/maynard_3_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/maynard/maynard_3_nrm.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/maynard/maynard_3.gltf"
 }

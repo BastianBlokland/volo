@@ -4,7 +4,7 @@
     { "shaderId": "shaders/standard.frag.spv" }
   ],
   "samplers": [
-    { "textureId": "external/pressure_plate/pressure_plate_color_rough_2.tga", "anisotropy": "x2" }
+    { "textureId": "external/pressure_plate/pressure_plate_3_color_rough.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/pressure_plate/pressure_plate.gltf"
 }

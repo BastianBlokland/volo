@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/container/container_3_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/container/container_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/container/container_4_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/container/container_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/container/container.gltf"
 }

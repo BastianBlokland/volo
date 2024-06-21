@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/rock/rock_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/rock/rock_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/rock/rock_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/rock/rock_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/rock/rock.gltf"
 }

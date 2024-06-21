@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/traffic_signs/traffic_signs_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/traffic_signs/traffic_signs_normal.tga", "anisotropy": "x2" }
+    { "textureId": "external/traffic_signs/traffic_signs_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/traffic_signs/traffic_signs_2_normal.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/traffic_signs/traffic_sign_stop.gltf",
   "cull": "None"

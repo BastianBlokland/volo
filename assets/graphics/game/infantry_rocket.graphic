@@ -9,8 +9,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/swat/swat_rocket_1_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/swat/swat_rocket_1_nrm.tga", "anisotropy": "x2" }
+    { "textureId": "external/swat/swat_rocket_2_color_rough.tga", "anisotropy": "x2" },
+    { "textureId": "external/swat/swat_rocket_2_nrm.tga", "anisotropy": "x2" }
   ],
   "meshId": "external/swat/swat_rocket_1.gltf"
 }
