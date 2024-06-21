@@ -49,19 +49,24 @@ static String json_lex_string(String str, JsonToken* out) {
   for (String rem = str; rem.size >= 16; rem = json_consume_chars(rem, 16)) {
     const SimdVec charsVec = simd_vec_load_unaligned(rem.ptr);
 
-    SimdVec invalidVec = simd_vec_eq_u8(charsVec, escapeVec);
-    invalidVec         = simd_vec_or(invalidVec, simd_vec_less_u8(charsVec, limLowVec));
-    invalidVec         = simd_vec_or(invalidVec, simd_vec_greater_u8(charsVec, limHighVec));
-    if (simd_vec_mask_u8(invalidVec)) {
-      break; // Not valid for the fast-path: abort.
-    }
+    SimdVec invalidVec    = simd_vec_eq_u8(charsVec, escapeVec);
+    invalidVec            = simd_vec_or(invalidVec, simd_vec_less_u8(charsVec, limLowVec));
+    invalidVec            = simd_vec_or(invalidVec, simd_vec_greater_u8(charsVec, limHighVec));
+    const u32 invalidMask = simd_vec_mask_u8(invalidVec);
 
     const u32 eqMask = simd_vec_mask_u8(simd_vec_eq_u8(charsVec, quoteVec));
     if (eqMask) {
-      rem             = json_consume_chars(rem, intrinsic_ctz_32(eqMask) + 1);
+      const u32 eqIndex = intrinsic_ctz_32(eqMask);
+      if (invalidMask && intrinsic_ctz_32(invalidMask) <= eqIndex) {
+        break; // A character inside the string was not valid for the fast-path: abort.
+      }
+      rem             = json_consume_chars(rem, eqIndex + 1);
       out->type       = JsonTokenType_String;
       out->val_string = mem_from_to(str.ptr, (u8*)rem.ptr - 1);
       return rem;
+    }
+    if (invalidMask) {
+      break; // Any character was not valid for the fast-path: abort.
     }
   }
 #endif
