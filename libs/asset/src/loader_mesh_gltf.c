@@ -468,7 +468,7 @@ gltf_anim_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValu
   diag_assert(ld->access[acc].compCount == 1);
 
   const f32              refValueInv = refValue > 0 ? (1.0f / refValue) : 0.0f;
-  const AssetMeshAnimPtr res         = gltf_anim_data_begin(ld, alignof(u16));
+  const AssetMeshAnimPtr res         = gltf_anim_data_begin(ld, 16); // Always 16 byte aligned.
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     const f32 valNorm = ld->access[acc].data_f32[i] * refValueInv;
     *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
