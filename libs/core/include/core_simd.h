@@ -170,6 +170,12 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_i8(const SimdVec a, con
   return _mm_castsi128_ps(_mm_cmpgt_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_greater_eq_u16(const SimdVec a, const SimdVec b) {
+  // There is no unsigned comparision in SSE but 'a >= b' == 'a == max(a, b)'.
+  return _mm_castsi128_ps(_mm_cmpeq_epi16(
+      _mm_castps_si128(a), _mm_max_epu16(_mm_castps_si128(a), _mm_castps_si128(b))));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_eq_u8(const SimdVec a, const SimdVec b) {
   return _mm_castsi128_ps(_mm_cmpeq_epi8(_mm_castps_si128(a), _mm_castps_si128(b)));
 }
