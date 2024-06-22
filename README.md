@@ -23,8 +23,8 @@
 * Install a `c` compiler and build-system (debian: `apt install build-essential`).
 * Install `CMake` (debian: `apt install cmake`).
 * Install the `Vulkan` sdk (source: https://vulkan.lunarg.com/sdk/home#linux).
-* Install `XCB` + `xkb`, `xkbcommon`, `xkbcommon-x11`, `xfixes`, `icccm`, `randr`, `cursor-util` and `render` extensions
-  (debian: `apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev` `libxcb-render0-dev`).
+* Install `XCB` + `xkb`, `xkbcommon`, `xkbcommon-x11`, `xfixes`, `icccm`, `randr`, `cursor-util`, `image` and `render` extensions
+  (debian: `apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev` `libxcb-image0-dev` `libxcb-render0-dev`).
 * (*Optional*) Install `asound` (audio library for the Alsa architecture)
   (debian: `apt install libasound2`).
 * Build and run: `ci/run-linux.sh` (or invoke `cmake` and your build-system manually).
