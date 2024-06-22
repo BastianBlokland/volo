@@ -6,6 +6,7 @@
 
 typedef struct {
   EcsEntityId asset;
+  bool        loading;
 } GapPlatformCursor;
 
 ecs_comp_extern_public(GapPlatformComp) {

@@ -1235,6 +1235,12 @@ void gap_pal_update(GapPal* pal) {
   }
 }
 
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+  (void)pal;
+  (void)id;
+  (void)asset;
+}
+
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_connection_t* con = pal->xcbCon;
   const GapWindowId id  = xcb_generate_id(con);

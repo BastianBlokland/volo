@@ -754,6 +754,12 @@ void gap_pal_update(GapPal* pal) {
   }
 }
 
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+  (void)pal;
+  (void)id;
+  (void)asset;
+}
+
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   pal_check_thread_ownership(pal);
 
