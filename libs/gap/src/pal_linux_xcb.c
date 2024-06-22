@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <xcb/randr.h>
+#include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
@@ -17,7 +18,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes, icccm, randr and cursor-util extensions.
+ * Optionally uses the xkb, xfixes, icccm, randr, cursor-util and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -39,6 +40,7 @@ typedef enum {
   GapPalXcbExtFlags_Icccm      = 1 << 2,
   GapPalXcbExtFlags_Randr      = 1 << 3,
   GapPalXcbExtFlags_CursorUtil = 1 << 4,
+  GapPalXcbExtFlags_Render     = 1 << 5,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -630,6 +632,39 @@ static bool pal_cursorutil_init(GapPal* pal) {
   return true;
 }
 
+static bool pal_render_init(GapPal* pal) {
+  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_render_id);
+  if (!data || !data->present) {
+    log_w("Xcb render extention not present");
+    return false;
+  }
+  xcb_generic_error_t*              err   = null;
+  xcb_render_query_version_reply_t* reply = pal_xcb_call(
+      pal->xcbCon,
+      xcb_render_query_version,
+      &err,
+      XCB_RENDER_MAJOR_VERSION,
+      XCB_RENDER_MINOR_VERSION);
+
+  if (UNLIKELY(err)) {
+    log_w(
+        "Xcb failed to initialize the render extension",
+        log_param("error", fmt_int(err->error_code)));
+    free(reply);
+    return false;
+  }
+
+  MAYBE_UNUSED const u16 versionMajor = reply->major_version;
+  MAYBE_UNUSED const u16 versionMinor = reply->minor_version;
+  free(reply);
+
+  log_i(
+      "Xcb initialized the render extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+
+  return true;
+}
+
 static void pal_init_extensions(GapPal* pal) {
   if (pal_xkb_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
@@ -643,6 +678,9 @@ static void pal_init_extensions(GapPal* pal) {
   }
   if (pal_cursorutil_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_CursorUtil;
+  }
+  if (pal_render_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_Render;
   }
 }
 
@@ -1003,9 +1041,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc    = alloc,
-             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+      .alloc    = alloc,
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1236,6 +1274,9 @@ void gap_pal_update(GapPal* pal) {
 }
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+  if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
+    return; // The render extension is required for color cursors.
+  }
   (void)pal;
   (void)id;
   (void)asset;
@@ -1258,8 +1299,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(

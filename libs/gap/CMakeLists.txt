@@ -22,24 +22,26 @@ target_link_libraries(lib_gap PRIVATE lib_log lib_asset)
 #
 if(${VOLO_PLATFORM} STREQUAL "linux")
 
-  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr and cursor-util extensions) package")
+  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr, cursor-util and render extensions) package")
   find_package(xcb REQUIRED)
   find_package(xcb-cursor REQUIRED)
   find_package(xcb-icccm REQUIRED)
   find_package(xcb-randr REQUIRED)
+  find_package(xcb-render REQUIRED)
   find_package(xcb-xfixes REQUIRED)
   find_package(xcb-xkb REQUIRED)
   find_package(xkbcommon REQUIRED)
   find_package(xkbcommon-x11 REQUIRED)
   target_link_libraries(lib_gap PRIVATE
+    xcb
     xcb-cursor
     xcb-icccm
     xcb-randr
+    xcb-render
     xcb-xfixes
     xcb-xkb
-    xcb
-    xkbcommon-x11
     xkbcommon
+    xkbcommon-x11
     )
 
 endif()
