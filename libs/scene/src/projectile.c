@@ -240,5 +240,5 @@ ecs_module_init(scene_projectile_module) {
       ecs_view_id(ProjectileView),
       ecs_view_id(SeekTargetView));
 
-  ecs_parallel(SceneProjectileSys, 4);
+  ecs_parallel(SceneProjectileSys, g_jobsWorkerCount);
 }

@@ -840,7 +840,7 @@ ecs_module_init(scene_attack_module) {
       ecs_view_id(GraphicView),
       ecs_view_id(AttackView),
       ecs_view_id(TargetView));
-  ecs_parallel(SceneAttackSys, 4);
+  ecs_parallel(SceneAttackSys, g_jobsWorkerCount);
 
   ecs_register_system(
       SceneAttackAimSys,

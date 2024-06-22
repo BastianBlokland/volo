@@ -2816,7 +2816,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalSkeletonTemplView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
-  ecs_parallel(SceneScriptUpdateSys, 4);
+  ecs_parallel(SceneScriptUpdateSys, g_jobsWorkerCount);
 
   ecs_register_system(
       ScriptActionApplySys,

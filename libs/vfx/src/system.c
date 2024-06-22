@@ -683,7 +683,7 @@ ecs_module_init(vfx_system_module) {
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
-  ecs_parallel(VfxSystemSimulateSys, 4);
+  ecs_parallel(VfxSystemSimulateSys, g_jobsWorkerCount);
 
   ecs_register_system(
       VfxSystemRenderSys,

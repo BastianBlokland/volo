@@ -608,7 +608,7 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(UpdateView),
       ecs_view_id(SkeletonTemplView));
 
-  ecs_parallel(SceneSkeletonUpdateSys, 8);
+  ecs_parallel(SceneSkeletonUpdateSys, g_jobsWorkerCount * 2);
 
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }

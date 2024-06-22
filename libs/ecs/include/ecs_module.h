@@ -7,6 +7,9 @@
 // Forward declare from 'ecs_world.h'.
 typedef struct sEcsWorld EcsWorld;
 
+// Forward declare from 'jobs_executor.h'.
+extern u16 g_jobsWorkerCount;
+
 typedef u16 EcsModuleId;
 typedef u16 EcsViewId;
 typedef u16 EcsSystemId;
