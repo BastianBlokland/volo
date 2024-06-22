@@ -34,6 +34,8 @@
 #define pal_xcb_call(_CON_, _FUNC_, _ERR_, ...)                                                    \
   _FUNC_##_reply((_CON_), _FUNC_((_CON_), __VA_ARGS__), (_ERR_))
 
+#define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
+
 typedef enum {
   GapPalXcbExtFlags_Xkb        = 1 << 0,
   GapPalXcbExtFlags_XFixes     = 1 << 1,
@@ -79,6 +81,8 @@ struct sGapPal {
   i32                 xkbDeviceId;
   struct xkb_keymap*  xkbKeymap;
   struct xkb_state*   xkbState;
+
+  xcb_render_pictformat_t formatRgba32;
 
   xcb_cursor_context_t* cursorCtx;
   xcb_cursor_t          cursors[GapCursor_Count];
@@ -632,14 +636,51 @@ static bool pal_cursorutil_init(GapPal* pal) {
   return true;
 }
 
+static bool pal_render_find_formats(GapPal* pal) {
+  xcb_generic_error_t*                   err = null;
+  xcb_render_query_pict_formats_reply_t* formats =
+      pal_xcb_call_void(pal->xcbCon, xcb_render_query_pict_formats, &err);
+
+  if (UNLIKELY(err)) {
+    return false;
+  }
+
+  xcb_render_pictforminfo_iterator_t itr = xcb_render_query_pict_formats_formats_iterator(formats);
+  for (; itr.rem; xcb_render_pictforminfo_next(&itr)) {
+    if (itr.data->depth != 32) {
+      continue;
+    }
+    if (itr.data->type != XCB_RENDER_PICT_TYPE_DIRECT) {
+      continue;
+    }
+    if (itr.data->direct.red_shift != 16 || itr.data->direct.red_mask != 0xFF) {
+      continue;
+    }
+    if (itr.data->direct.green_shift != 8 || itr.data->direct.green_mask != 0xFF) {
+      continue;
+    }
+    if (itr.data->direct.blue_shift != 0 || itr.data->direct.blue_mask != 0xFF) {
+      continue;
+    }
+    if (itr.data->direct.alpha_shift != 24 || itr.data->direct.alpha_mask != 0xFF) {
+      continue;
+    }
+    pal->formatRgba32 = itr.data->id;
+    return true;
+  }
+
+  free(formats);
+  return false; // Rgba32 not found.
+}
+
 static bool pal_render_init(GapPal* pal) {
   const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_render_id);
   if (!data || !data->present) {
     log_w("Xcb render extention not present");
     return false;
   }
-  xcb_generic_error_t*              err   = null;
-  xcb_render_query_version_reply_t* reply = pal_xcb_call(
+  xcb_generic_error_t*              err     = null;
+  xcb_render_query_version_reply_t* version = pal_xcb_call(
       pal->xcbCon,
       xcb_render_query_version,
       &err,
@@ -650,13 +691,17 @@ static bool pal_render_init(GapPal* pal) {
     log_w(
         "Xcb failed to initialize the render extension",
         log_param("error", fmt_int(err->error_code)));
-    free(reply);
+    free(version);
     return false;
   }
+  MAYBE_UNUSED const u16 versionMajor = version->major_version;
+  MAYBE_UNUSED const u16 versionMinor = version->minor_version;
+  free(version);
 
-  MAYBE_UNUSED const u16 versionMajor = reply->major_version;
-  MAYBE_UNUSED const u16 versionMinor = reply->minor_version;
-  free(reply);
+  if (!pal_render_find_formats(pal)) {
+    log_w("Xcb failed to find required render formats");
+    return false;
+  }
 
   log_i(
       "Xcb initialized the render extension",
