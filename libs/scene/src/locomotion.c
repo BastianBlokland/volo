@@ -226,7 +226,7 @@ ecs_module_init(scene_locomotion_module) {
 
   ecs_order(SceneLocomotionMoveSys, SceneOrder_LocomotionUpdate);
 
-  ecs_parallel(SceneLocomotionMoveSys, 4);
+  ecs_parallel(SceneLocomotionMoveSys, g_jobsWorkerCount);
 }
 
 f32 scene_locomotion_radius(const SceneLocomotionComp* loco, const f32 scale) {

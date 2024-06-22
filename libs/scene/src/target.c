@@ -358,7 +358,7 @@ ecs_module_init(scene_target_module) {
       ecs_view_id(TargetFinderView),
       ecs_view_id(TargetView));
 
-  ecs_parallel(SceneTargetUpdateSys, 4);
+  ecs_parallel(SceneTargetUpdateSys, g_jobsWorkerCount);
 }
 
 EcsEntityId scene_target_primary(const SceneTargetFinderComp* finder) {
