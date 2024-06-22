@@ -593,7 +593,7 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       world,
       panelEntity,
       DebugTracePanelComp,
-      .panel             = ui_panel(.size = ui_vector(800, 500)),
+      .panel             = ui_panel(.size = ui_vector(800, 100 + 100 * g_jobsWorkerCount)),
       .timeHead          = time_steady_clock(),
       .timeWindow        = time_milliseconds(100),
       .trigger.eventId   = sentinel_u8,
