@@ -11,6 +11,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/xcb_image.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
@@ -82,7 +83,7 @@ struct sGapPal {
   struct xkb_keymap*  xkbKeymap;
   struct xkb_state*   xkbState;
 
-  xcb_render_pictformat_t formatRgba32;
+  xcb_render_pictformat_t formatArgb32;
 
   xcb_cursor_context_t* cursorCtx;
   xcb_cursor_t          cursors[GapCursor_Count];
@@ -653,19 +654,19 @@ static bool pal_render_find_formats(GapPal* pal) {
     if (itr.data->type != XCB_RENDER_PICT_TYPE_DIRECT) {
       continue;
     }
-    if (itr.data->direct.red_shift != 16 || itr.data->direct.red_mask != 0xFF) {
+    if (itr.data->direct.alpha_shift != 0 || itr.data->direct.alpha_mask != 0xFF) {
       continue;
     }
-    if (itr.data->direct.green_shift != 8 || itr.data->direct.green_mask != 0xFF) {
+    if (itr.data->direct.red_shift != 8 || itr.data->direct.red_mask != 0xFF) {
       continue;
     }
-    if (itr.data->direct.blue_shift != 0 || itr.data->direct.blue_mask != 0xFF) {
+    if (itr.data->direct.green_shift != 16 || itr.data->direct.green_mask != 0xFF) {
       continue;
     }
-    if (itr.data->direct.alpha_shift != 24 || itr.data->direct.alpha_mask != 0xFF) {
+    if (itr.data->direct.blue_shift != 24 || itr.data->direct.blue_mask != 0xFF) {
       continue;
     }
-    pal->formatRgba32 = itr.data->id;
+    pal->formatArgb32 = itr.data->id;
     return true;
   }
 
@@ -1322,9 +1323,60 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
     return; // The render extension is required for color cursors.
   }
-  (void)pal;
-  (void)id;
-  (void)asset;
+  xcb_image_t* img = xcb_image_create(
+      asset->width,
+      asset->height,
+      XCB_IMAGE_FORMAT_Z_PIXMAP,
+      32,
+      32,
+      32,
+      32,
+      XCB_IMAGE_ORDER_LSB_FIRST,
+      XCB_IMAGE_ORDER_MSB_FIRST,
+      null,
+      0,
+      null);
+
+  if (UNLIKELY(!img)) {
+    diag_crash_msg("xcb_image_create() failed");
+  }
+
+  // Flip the y axis of the image and convert to argb.
+  const Mem               outMem  = alloc_alloc(pal->alloc, img->stride * asset->height, 4);
+  const AssetCursorPixel* inPixel = asset->pixels;
+  for (u32 y = asset->height; y-- != 0;) {
+    for (u32 x = 0; x != asset->width; ++x) {
+      u8* outData = bits_ptr_offset(outMem.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      outData[0]  = inPixel->a;
+      outData[1]  = inPixel->r;
+      outData[2]  = inPixel->g;
+      outData[3]  = inPixel->b;
+      ++inPixel;
+    }
+  }
+  img->data = outMem.ptr;
+
+  xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
+  xcb_create_pixmap(pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
+
+  xcb_render_picture_t picture = xcb_generate_id(pal->xcbCon);
+  xcb_render_create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
+
+  xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
+  xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
+  xcb_image_put(pal->xcbCon, pixmap, graphicsContext, img, 0, 0, 0);
+  xcb_free_gc(pal->xcbCon, graphicsContext);
+
+  xcb_cursor_t cursor = xcb_generate_id(pal->xcbCon);
+  xcb_render_create_cursor(
+      pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
+
+  alloc_free(pal->alloc, outMem);
+  xcb_image_destroy(img);
+  xcb_render_free_picture(pal->xcbCon, picture);
+  xcb_free_pixmap(pal->xcbCon, pixmap);
+
+  pal->cursors[id] = cursor;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
