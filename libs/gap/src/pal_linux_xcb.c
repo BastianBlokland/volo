@@ -1156,7 +1156,10 @@ void gap_pal_update(GapPal* pal) {
 
     case 0: {
       const xcb_generic_error_t* errMsg = (const void*)evt;
-      log_e("Xcb error", log_param("code", fmt_int(errMsg->error_code)));
+      log_e(
+          "Xcb error",
+          log_param("code", fmt_int(errMsg->error_code)),
+          log_param("msg", fmt_text(pal_xcb_err_str(errMsg->error_code))));
     } break;
 
     case XCB_CLIENT_MESSAGE: {
@@ -1377,6 +1380,9 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_render_free_picture(pal->xcbCon, picture);
   xcb_free_pixmap(pal->xcbCon, pixmap);
 
+  if (pal->cursors[id] != XCB_NONE) {
+    xcb_free_cursor(pal->xcbCon, pal->cursors[id]);
+  }
   pal->cursors[id] = cursor;
 
   // Update the cursor for any window that is currently using this cursor type.
