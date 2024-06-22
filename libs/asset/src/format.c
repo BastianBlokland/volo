@@ -8,6 +8,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("arraytex"),
       string_static("atlas"),
       string_static("bin"),
+      string_static("cursor"),
       string_static("decal"),
       string_static("fonttex"),
       string_static("gltf"),

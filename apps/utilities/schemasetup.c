@@ -1,5 +1,6 @@
 #include "app_cli.h"
 #include "asset_atlas.h"
+#include "asset_cursor.h"
 #include "asset_decal.h"
 #include "asset_fonttex.h"
 #include "asset_graphic.h"
@@ -39,6 +40,7 @@ typedef struct {
 static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("arraytex.schema.json"), .writer = asset_texture_array_jsonschema_write, },
     {.pattern = string_static("atlas.schema.json"),    .writer = asset_atlas_jsonschema_write,         },
+    {.pattern = string_static("cursor.schema.json"),   .writer = asset_cursor_jsonschema_write,         },
     {.pattern = string_static("decal.schema.json"),    .writer = asset_decal_jsonschema_write,         },
     {.pattern = string_static("fonttex.schema.json"),  .writer = asset_fonttex_jsonschema_write,       },
     {.pattern = string_static("graphic.schema.json"),  .writer = asset_graphic_jsonschema_write,       },
