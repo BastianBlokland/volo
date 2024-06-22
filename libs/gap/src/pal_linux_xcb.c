@@ -55,6 +55,7 @@ typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
+  GapCursor         cursor : 16;
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
@@ -1377,6 +1378,13 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_free_pixmap(pal->xcbCon, pixmap);
 
   pal->cursors[id] = cursor;
+
+  // Update the cursor for any window that is currently using this cursor type.
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
+    if (window->cursor == id) {
+      gap_pal_window_cursor_set(pal, window->id, id);
+    }
+  }
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
@@ -1620,11 +1628,14 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
   if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
     xcb_change_window_attributes(
         pal->xcbCon, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
     xcb_flush(pal->xcbCon);
   }
+  window->cursor = cursor;
 }
 
 void gap_pal_window_cursor_pos_set(
