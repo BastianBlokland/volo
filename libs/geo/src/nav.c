@@ -70,16 +70,19 @@ typedef struct {
 } GeoNavIslandUpdater;
 
 struct sGeoNavGrid {
-  f32           size;
-  u32           cellCountAxis, cellCountTotal;
-  f32           cellSize, cellDensity;
-  f32           cellHeight;
-  f32           cellBlockHeight;
-  GeoVector     cellOffset;
-  f32*          cellY;            // f32[cellCountTotal]
-  u8*           cellBlockerCount; // u8[cellCountTotal]
-  u16*          cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
-  GeoNavIsland* cellIslands;      // GeoNavIsland[cellCountTotal]
+  f32       size;
+  u32       cellCountAxis, cellCountTotal;
+  f32       cellSize, cellDensity;
+  f32       cellHeight;
+  f32       cellBlockHeight;
+  GeoVector cellOffset;
+  f32*      cellY;            // f32[cellCountTotal]
+  u8*       cellBlockerCount; // u8[cellCountTotal]
+
+  u16*   cellOccupancy;             // u16[cellCountTotal][geo_nav_occupants_per_cell]
+  BitSet cellOccupiedStationarySet; // bit[cellCountTotal], cell has a non-moving occupant.
+
+  GeoNavIsland* cellIslands; // GeoNavIsland[cellCountTotal]
   u32           islandCount;
 
   GeoNavBlocker* blockers;       // GeoNavBlocker[geo_nav_blockers_max]
@@ -372,19 +375,9 @@ static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
 static u16 nav_path_cost(const GeoNavGrid* g, const u32 cellIndex) {
   enum { NormalCost = 1, OccupiedStationaryCost = 10 };
 
-  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
-  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  do {
-    const u16 occupantIdx = *occupancyItr;
-    if (sentinel_check(occupantIdx)) {
-      continue; // Not occupied.
-    }
-    if (g->occupants[occupantIdx].flags & GeoNavOccupantFlags_Moving) {
-      continue; // Occupant is moving.
-    }
-    return OccupiedStationaryCost; // Cell contains a non-moving occupant.
-  } while (++occupancyItr != occupancyEnd);
-
+  if (nav_bit_test(g->cellOccupiedStationarySet, cellIndex)) {
+    return OccupiedStationaryCost;
+  }
   return NormalCost;
 }
 
@@ -670,20 +663,7 @@ static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const u32 ce
 static bool
 nav_pred_occupied_stationary(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
   (void)ctx;
-  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
-  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  do {
-    const u16 occupantIndex = *occupancyItr;
-    if (sentinel_check(occupantIndex)) {
-      continue; // Cell occupant slot empty.
-    }
-    if (g->occupants[occupantIndex].flags & GeoNavOccupantFlags_Moving) {
-      continue; // Cell occupant is moving.
-    }
-    return true; // Cell has a stationary occupant.
-  } while (++occupancyItr != occupancyEnd);
-
-  return false;
+  return nav_bit_test(g->cellOccupiedStationarySet, cellIndex);
 }
 
 static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
@@ -711,27 +691,15 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIn
   /**
    * Test if the cell is not blocked and has no stationary occupant.
    */
-  if (g->cellBlockerCount[cellIndex]) {
-    return false; // Cell blocked.
-  }
-  const u16* occupancyItr = &g->cellOccupancy[cellIndex * geo_nav_occupants_per_cell];
-  const u16* occupancyEnd = occupancyItr + geo_nav_occupants_per_cell;
-  do {
-    const u16 occupantIndex = *occupancyItr;
-    if (sentinel_check(occupantIndex)) {
-      continue; // Cell occupant slot empty.
-    }
-    if (g->occupants[occupantIndex].flags & GeoNavOccupantFlags_Moving) {
-      continue; // Cell occupant is moving.
-    }
-    return false; // Cell has a stationary occupant.
-  } while (++occupancyItr != occupancyEnd);
-
-  return true; // Cell is free.
+  return !g->cellBlockerCount[cellIndex] && !nav_bit_test(g->cellOccupiedStationarySet, cellIndex);
 }
 
 static bool nav_pred_non_free(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
-  return !nav_pred_free(g, ctx, cellIndex);
+  (void)ctx;
+  /**
+   * Test if the cell is blocked or has a stationary occupant.
+   */
+  return g->cellBlockerCount[cellIndex] || nav_bit_test(g->cellOccupiedStationarySet, cellIndex);
 }
 
 static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
@@ -1143,12 +1111,13 @@ GeoNavGrid* geo_nav_grid_create(
       .cellY            = alloc_array_t(alloc, f32, cellCountTotal),
       .cellBlockerCount = alloc_array_t(alloc, u8, cellCountTotal),
       .cellOccupancy    = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
-      .cellIslands      = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
-      .blockers         = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
-      .blockerFreeSet   = alloc_alloc(alloc, bits_to_bytes(geo_nav_blockers_max), 1),
-      .occupants        = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
-      .islandUpdater    = {.markedCells = alloc_alloc(alloc, bits_to_bytes(cellCountTotal) + 1, 1)},
-      .alloc            = alloc,
+      .cellOccupiedStationarySet = alloc_alloc(alloc, bits_to_bytes(cellCountTotal) + 1, 1),
+      .cellIslands               = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
+      .blockers                  = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
+      .blockerFreeSet            = alloc_alloc(alloc, bits_to_bytes(geo_nav_blockers_max), 1),
+      .occupants                 = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
+      .islandUpdater = {.markedCells = alloc_alloc(alloc, bits_to_bytes(cellCountTotal) + 1, 1)},
+      .alloc         = alloc,
   };
 
   // Initialize cell y's and islands to 0.
@@ -1167,6 +1136,7 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free_array_t(grid->alloc, grid->blockers, geo_nav_blockers_max);
   alloc_free(grid->alloc, grid->blockerFreeSet);
   alloc_free_array_t(grid->alloc, grid->occupants, geo_nav_occupants_max);
+  alloc_free(grid->alloc, grid->cellOccupiedStationarySet);
   alloc_free(grid->alloc, grid->islandUpdater.markedCells);
 
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
@@ -1628,6 +1598,9 @@ void geo_nav_occupant_add(
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return; // Occupant outside of the grid.
   }
+  if (!(flags & GeoNavOccupantFlags_Moving)) {
+    nav_bit_set(grid->cellOccupiedStationarySet, nav_cell_index(grid, mapRes.cell));
+  }
   const u16 occupantIndex        = grid->occupantCount++;
   grid->occupants[occupantIndex] = (GeoNavOccupant){
       .userId = userId,
@@ -1642,6 +1615,7 @@ void geo_nav_occupant_add(
 
 void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
   mem_set(nav_occupancy_mem(grid), 255);
+  mem_set(grid->cellOccupiedStationarySet, 0);
   grid->occupantCount = 0;
 }
 
@@ -1705,6 +1679,7 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
   dataSizeGrid += (sizeof(GeoNavBlocker) * geo_nav_blockers_max);     // grid.blockers
   dataSizeGrid += bits_to_bytes(geo_nav_blockers_max);                // grid.blockerFreeSet
   dataSizeGrid += (sizeof(GeoNavOccupant) * geo_nav_occupants_max);   // grid.occupants
+  dataSizeGrid += (bits_to_bytes(grid->cellCountTotal) + 1); // grid.cellOccupiedStationarySet
   dataSizeGrid += (bits_to_bytes(grid->cellCountTotal) + 1); // grid.islandUpdater.markedCells
 
   u32 dataSizePerWorker = sizeof(GeoNavWorkerState);
