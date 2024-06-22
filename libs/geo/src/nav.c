@@ -695,6 +695,7 @@ static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const u32 cellIn
 }
 
 static bool nav_pred_non_free(const GeoNavGrid* g, const void* ctx, const u32 cellIndex) {
+  (void)ctx;
   /**
    * Test if the cell is blocked or has a stationary occupant.
    */
