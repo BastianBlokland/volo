@@ -13,7 +13,7 @@ add_library(lib_gap STATIC
   )
 target_include_directories(lib_gap PUBLIC include)
 target_link_libraries(lib_gap PUBLIC lib_core lib_ecs)
-target_link_libraries(lib_gap PRIVATE lib_log)
+target_link_libraries(lib_gap PRIVATE lib_log lib_asset)
 
 #
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
