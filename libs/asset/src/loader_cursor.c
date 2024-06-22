@@ -201,7 +201,11 @@ ecs_module_init(asset_cursor_module) {
   ecs_register_view(TextureView);
   ecs_register_view(UnloadView);
 
-  ecs_register_system(LoadCursorAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(
+      LoadCursorAssetSys,
+      ecs_view_id(ManagerView),
+      ecs_view_id(LoadView),
+      ecs_view_id(TextureView));
   ecs_register_system(UnloadCursorAssetSys, ecs_view_id(UnloadView));
 }
 
