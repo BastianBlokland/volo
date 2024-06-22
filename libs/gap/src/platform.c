@@ -29,10 +29,15 @@ static void gap_platform_update_cursors(EcsWorld* world, GapPlatformComp* platfo
 
   for (GapCursor c = 0; c != GapCursor_Count; ++c) {
     if (!platform->cursors[c].asset) {
-      continue; // No custom cursor specified for this type.
+      goto Wait;
     }
     if (!platform->cursors[c].loading) {
-      continue; // Not currently loading this cursor.
+      // When the cursor source asset changes start loading it again.
+      if (ecs_world_has_t(world, platform->cursors[c].asset, AssetChangedComp)) {
+        platform->cursors[c].loading = true;
+        asset_acquire(world, platform->cursors[c].asset);
+      }
+      goto Wait;
     }
     if (ecs_world_has_t(world, platform->cursors[c].asset, AssetFailedComp)) {
       goto Done;
