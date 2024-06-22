@@ -16,7 +16,7 @@
 
 // Note: the main-thread is also a worker, so worker count of 1 won't start any additional threads.
 #define worker_min_count 1
-#define worker_max_count 4
+#define worker_max_count 8
 
 // Maximum amount of root tasks in a job.
 #define job_max_root_tasks 1024
