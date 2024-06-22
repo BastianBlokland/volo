@@ -658,6 +658,9 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     return true;
   }
   case WM_SETCURSOR: {
+    if (LOWORD(lParam) != HTCLIENT) {
+      return false; // Cursor is not over our window; let the system choose the cursor.
+    }
     if (window->cursor != GapCursor_Normal) {
       SetCursor(pal->cursors[window->cursor]);
       return true;
