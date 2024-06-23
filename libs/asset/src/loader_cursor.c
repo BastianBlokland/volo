@@ -80,6 +80,20 @@ static void ecs_destruct_cursor_load_comp(void* data) {
   data_destroy(g_dataReg, g_allocHeap, g_dataCursorDefMeta, mem_var(comp->def));
 }
 
+static void asset_cursor_generate(
+    const CursorDef* def, const AssetTextureComp* texture, AssetCursorComp* outCursor) {
+  const u32   pixelCount   = texture->width * texture->height;
+  const usize pixelMemSize = sizeof(AssetCursorPixel) * pixelCount;
+  const Mem   pixelMem     = alloc_alloc(g_allocHeap, pixelMemSize, sizeof(AssetCursorPixel));
+  mem_cpy(pixelMem, mem_create(texture->pixelsRaw, pixelMemSize));
+
+  outCursor->width    = texture->width;
+  outCursor->height   = texture->height;
+  outCursor->hotspotX = def->hotspotX;
+  outCursor->hotspotY = def->hotspotY;
+  outCursor->pixels   = pixelMem.ptr;
+}
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(LoadView) { ecs_access_write(AssetCursorLoadComp); }
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
@@ -150,19 +164,9 @@ ecs_system_define(LoadCursorAssetSys) {
     /**
      * Build cursor.
      */
-    const u32   pixelCount   = texture->width * texture->height;
-    const usize pixelMemSize = sizeof(AssetCursorPixel) * pixelCount;
-    const Mem   pixelMem     = alloc_alloc(g_allocHeap, pixelMemSize, sizeof(AssetCursorPixel));
-    mem_cpy(pixelMem, mem_create(texture->pixelsRaw, pixelMemSize));
-    ecs_world_add_t(
-        world,
-        entity,
-        AssetCursorComp,
-        .width    = texture->width,
-        .height   = texture->height,
-        .hotspotX = load->def.hotspotX,
-        .hotspotY = load->def.hotspotY,
-        .pixels   = pixelMem.ptr);
+    AssetCursorComp* cursor = ecs_world_add_t(world, entity, AssetCursorComp);
+    asset_cursor_generate(&load->def, texture, cursor);
+
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
 
