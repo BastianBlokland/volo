@@ -1086,9 +1086,10 @@ ecs_system_define(HudDrawSys) {
       hud_production_draw(c, hud, input, drawItr, productionItr);
     }
 
-    const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
-    const TimeDuration hoveredTime   = input_hovered_time(inputState);
-    if (hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
+    EcsEntityId  hoveredEntity;
+    TimeDuration hoveredTime;
+    const bool   hovered = input_hovered_entity(inputState, &hoveredEntity, &hoveredTime);
+    if (hovered && hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
       hud_info_draw(c, infoItr, weaponMapItr);
     }
     ui_canvas_id_block_next(c); // End on an consistent id.

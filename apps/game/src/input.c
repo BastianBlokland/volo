@@ -841,13 +841,17 @@ void input_set_allow_zoom_over_ui(InputStateComp* state, const bool allowZoomOve
   }
 }
 
-EcsEntityId input_hovered_entity(const InputStateComp* state) {
+bool input_hovered_entity(
+    const InputStateComp* state, EcsEntityId* outEntity, TimeDuration* outTime) {
   if (state->selectState >= InputSelectState_Down) {
-    return 0;
+    return false; // Disallow hovering UI when actively selecting a unit.
   }
-  return state->hoveredEntity[InputQuery_Select];
-}
-
-TimeDuration input_hovered_time(const InputStateComp* state) {
-  return state->hoveredTime[InputQuery_Select];
+  for (InputQueryType type = 0; type != InputQuery_Count; ++type) {
+    if (state->hoveredEntity[type]) {
+      *outEntity = state->hoveredEntity[type];
+      *outTime   = state->hoveredTime[type];
+      return true;
+    }
+  }
+  return false;
 }
