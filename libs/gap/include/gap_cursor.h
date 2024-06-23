@@ -5,6 +5,8 @@ typedef enum {
   GapCursor_Text,
   GapCursor_Click,
   GapCursor_Select,
+  GapCursor_SelectAdd,
+  GapCursor_SelectSubtract,
   GapCursor_Target,
   GapCursor_Resize,
 

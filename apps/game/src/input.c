@@ -777,6 +777,18 @@ ecs_view_define(UiCanvasView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static UiInteractType input_select_ui_interaction(const InputSelectMode mode) {
+  switch (mode) {
+  case InputSelectMode_Replace:
+    return UiInteractType_Select;
+  case InputSelectMode_Add:
+    return UiInteractType_SelectAdd;
+  case InputSelectMode_Subtract:
+    return UiInteractType_SelectSubtract;
+  }
+  UNREACHABLE
+}
+
 ecs_system_define(InputDrawUiSys) {
   EcsIterator* canvasItr  = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     cameraView = ecs_world_view_t(world, UiCameraView);
@@ -792,16 +804,16 @@ ecs_system_define(InputDrawUiSys) {
     switch (state->selectState) {
     case InputSelectState_None: {
       if (state->hoveredEntity[InputQuery_Select]) {
-        ui_canvas_interact_type(c, UiInteractType_Select);
+        ui_canvas_interact_type(c, input_select_ui_interaction(state->selectMode));
       } else if (state->lastSelectionCount && state->hoveredEntity[InputQuery_Attack]) {
         ui_canvas_interact_type(c, UiInteractType_Target);
       }
     } break;
     case InputSelectState_Down: {
-      ui_canvas_interact_type(c, UiInteractType_Select);
+      ui_canvas_interact_type(c, input_select_ui_interaction(state->selectMode));
     } break;
     case InputSelectState_Dragging: {
-      ui_canvas_interact_type(c, UiInteractType_Select);
+      ui_canvas_interact_type(c, input_select_ui_interaction(state->selectMode));
 
       const UiVector startPos = ui_vector(state->selectStart.x, state->selectStart.y);
       ui_layout_move(c, startPos, UiBase_Canvas, Ui_XY);
