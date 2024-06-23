@@ -385,8 +385,7 @@ static void select_start_drag(InputStateComp* state) {
   state->selectState = InputSelectState_Dragging;
 }
 
-static void
-select_end_click(InputStateComp* state, CmdControllerComp* cmdController, InputManagerComp* input) {
+static void select_end_click(InputStateComp* state, CmdControllerComp* cmdController) {
   state->selectState = InputSelectState_None;
 
   if (state->hoveredEntity[InputQuery_Select]) {
@@ -631,7 +630,7 @@ static void update_camera_interact(
         select_start_drag(state);
       }
     } else {
-      select_end_click(state, cmdController, input);
+      select_end_click(state, cmdController);
     }
     break;
   case InputSelectState_Dragging:
