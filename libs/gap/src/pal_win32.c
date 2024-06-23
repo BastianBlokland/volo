@@ -116,10 +116,10 @@ static void pal_dpi_init(GapPal* pal) {
 }
 
 static void pal_cursors_init(GapPal* pal) {
-  pal->cursors[GapCursor_Normal]     = LoadCursor(null, IDC_ARROW);
-  pal->cursors[GapCursor_Click]      = LoadCursor(null, IDC_HAND);
-  pal->cursors[GapCursor_Text]       = LoadCursor(null, IDC_IBEAM);
-  pal->cursors[GapCursor_ResizeDrag] = LoadCursor(null, IDC_SIZENWSE);
+  pal->cursors[GapCursor_Normal] = LoadCursor(null, IDC_ARROW);
+  pal->cursors[GapCursor_Click]  = LoadCursor(null, IDC_HAND);
+  pal->cursors[GapCursor_Text]   = LoadCursor(null, IDC_IBEAM);
+  pal->cursors[GapCursor_Resize] = LoadCursor(null, IDC_SIZENWSE);
 }
 
 static void pal_clear_volatile(GapPal* pal) {
