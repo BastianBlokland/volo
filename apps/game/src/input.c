@@ -774,6 +774,8 @@ ecs_system_define(InputDrawUiSys) {
       ui_style_color(c, ui_color(255, 255, 255, 16));
       ui_style_outline(c, 3);
       ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
+
+      ui_canvas_interact_type(c, UiInteractType_Select);
     } break;
     default:
       break;
