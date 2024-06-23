@@ -8,7 +8,8 @@
       "properties": {
         "texture": { "title": "String", "type": "string", "minLength": 1 },
         "hotspotX": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
-        "hotspotY": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 }
+        "hotspotY": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "scale": { "title": "f32", "type": "number" }
       },
       "required": [ "texture", "hotspotX", "hotspotY" ],
       "defaultSnippets": [
