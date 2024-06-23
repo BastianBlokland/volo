@@ -5,7 +5,7 @@
 typedef struct sDynArray DynString;
 
 typedef struct {
-  u8 r, g, b, a;
+  u8 r, g, b, a; // Srgb encoded.
 } AssetCursorPixel;
 
 ecs_comp_extern_public(AssetCursorComp) {

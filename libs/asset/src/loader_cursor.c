@@ -2,6 +2,8 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_float.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
 #include "data_schema.h"
@@ -15,8 +17,14 @@ static DataReg* g_dataReg;
 static DataMeta g_dataCursorDefMeta;
 
 typedef struct {
-  String texture;
-  u32    hotspotX, hotspotY;
+  f32 r, g, b, a;
+} CursorColorDef;
+
+typedef struct {
+  String          texture;
+  u32             hotspotX, hotspotY;
+  f32             scale;
+  CursorColorDef* color;
 } CursorDef;
 
 static void cursor_datareg_init(void) {
@@ -28,10 +36,20 @@ static void cursor_datareg_init(void) {
   if (!g_dataReg) {
     DataReg* reg = data_reg_create(g_allocPersist);
 
+    // clang-format off
+    data_reg_struct_t(reg, CursorColorDef);
+    data_reg_field_t(reg, CursorColorDef, r, data_prim_t(f32));
+    data_reg_field_t(reg, CursorColorDef, g, data_prim_t(f32));
+    data_reg_field_t(reg, CursorColorDef, b, data_prim_t(f32));
+    data_reg_field_t(reg, CursorColorDef, a, data_prim_t(f32));
+
     data_reg_struct_t(reg, CursorDef);
     data_reg_field_t(reg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, CursorDef, hotspotX, data_prim_t(u32));
     data_reg_field_t(reg, CursorDef, hotspotY, data_prim_t(u32));
+    data_reg_field_t(reg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(reg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+    // clang-format on
 
     g_dataCursorDefMeta = data_meta_t(t_CursorDef);
     g_dataReg           = reg;
@@ -78,6 +96,66 @@ static void ecs_destruct_cursor_comp(void* data) {
 static void ecs_destruct_cursor_load_comp(void* data) {
   AssetCursorLoadComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_dataCursorDefMeta, mem_var(comp->def));
+}
+
+static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  return (AssetCursorPixel){
+      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
+  };
+}
+
+static GeoColor asset_cursor_color(const CursorColorDef* def) {
+  return geo_color(def->r, def->g, def->b, def->a);
+}
+
+static void asset_cursor_generate(
+    const CursorDef* def, const AssetTextureComp* texture, AssetCursorComp* outCursor) {
+
+  const f32 scale     = def->scale < f32_epsilon ? 1.0f : def->scale;
+  const u32 outWidth  = math_max((u32)math_round_nearest_f32(texture->width * scale), 1);
+  const u32 outHeight = math_max((u32)math_round_nearest_f32(texture->height * scale), 1);
+
+  const u32   pixelCount   = outWidth * outHeight;
+  const usize pixelMemSize = sizeof(AssetCursorPixel) * pixelCount;
+  const Mem   pixelMem     = alloc_alloc(g_allocHeap, pixelMemSize, sizeof(AssetCursorPixel));
+
+  const bool scaled  = outWidth != texture->width || outHeight != texture->height;
+  const bool colored = def->color != null;
+  if (scaled || colored || !(texture->flags & AssetTextureFlags_Srgb)) {
+    const GeoColor    colorMul     = def->color ? asset_cursor_color(def->color) : geo_color_white;
+    const f32         outWidthInv  = 1.0f / (f32)outWidth;
+    const f32         outHeightInv = 1.0f / (f32)outHeight;
+    AssetCursorPixel* outPixels    = pixelMem.ptr;
+    for (u32 y = 0; y != outHeight; ++y) {
+      const f32 yNorm = (f32)(y + 0.5f) * outHeightInv;
+      for (u32 x = 0; x != outWidth; ++x) {
+        const f32 xNorm = (f32)(x + 0.5f) * outWidthInv;
+
+        const u32 layer       = 0;
+        GeoColor  colorLinear = asset_texture_sample(texture, xNorm, yNorm, layer);
+
+        if (colored) {
+          colorLinear = geo_color_mul_comps(colorLinear, colorMul);
+          colorLinear = geo_color_clamp_comps(colorLinear, geo_color_clear, geo_color_white);
+        }
+
+        // Always output Srgb encoded pixels.
+        outPixels[y * outWidth + x] = asset_cursor_pixel(geo_color_linear_to_srgb(colorLinear));
+      }
+    }
+  } else {
+    mem_cpy(pixelMem, mem_create(texture->pixelsRaw, pixelMemSize));
+  }
+
+  outCursor->width    = outWidth;
+  outCursor->height   = outHeight;
+  outCursor->hotspotX = math_min((u32)math_round_nearest_f32(def->hotspotX * scale), outWidth - 1);
+  outCursor->hotspotY = math_min((u32)math_round_nearest_f32(def->hotspotY * scale), outHeight - 1);
+  outCursor->pixels   = pixelMem.ptr;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -150,19 +228,9 @@ ecs_system_define(LoadCursorAssetSys) {
     /**
      * Build cursor.
      */
-    const u32   pixelCount   = texture->width * texture->height;
-    const usize pixelMemSize = sizeof(AssetCursorPixel) * pixelCount;
-    const Mem   pixelMem     = alloc_alloc(g_allocHeap, pixelMemSize, sizeof(AssetCursorPixel));
-    mem_cpy(pixelMem, mem_create(texture->pixelsRaw, pixelMemSize));
-    ecs_world_add_t(
-        world,
-        entity,
-        AssetCursorComp,
-        .width    = texture->width,
-        .height   = texture->height,
-        .hotspotX = load->def.hotspotX,
-        .hotspotY = load->def.hotspotY,
-        .pixels   = pixelMem.ptr);
+    AssetCursorComp* cursor = ecs_world_add_t(world, entity, AssetCursorComp);
+    asset_cursor_generate(&load->def, texture, cursor);
+
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
 
