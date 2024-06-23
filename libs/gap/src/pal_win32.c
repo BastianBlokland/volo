@@ -661,11 +661,8 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     if (LOWORD(lParam) != HTCLIENT) {
       return false; // Cursor is not over our window; let the system choose the cursor.
     }
-    if (window->cursor != GapCursor_Normal) {
-      SetCursor(pal->cursors[window->cursor]);
-      return true;
-    }
-    return false;
+    SetCursor(pal->cursors[window->cursor]);
+    return true;
   }
   default:
     return false;
@@ -755,9 +752,45 @@ void gap_pal_update(GapPal* pal) {
 }
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
-  (void)pal;
-  (void)id;
-  (void)asset;
+  BITMAPV5HEADER header = {
+      .bV5Size        = sizeof(BITMAPV5HEADER),
+      .bV5Width       = (LONG)asset->width,
+      .bV5Height      = (LONG)asset->height,
+      .bV5Planes      = 1,
+      .bV5BitCount    = 32,
+      .bV5Compression = BI_RGB,
+  };
+
+  HDC     deviceCtx = GetDC(null);
+  void*   bits      = null;
+  HBITMAP bitmap = CreateDIBSection(deviceCtx, (BITMAPINFO*)&header, DIB_RGB_COLORS, &bits, 0, 0);
+  ReleaseDC(null, deviceCtx);
+
+  const AssetCursorPixel* inPixel = asset->pixels;
+  for (u32 y = 0; y != asset->height; ++y) {
+    for (u32 x = 0; x != asset->width; ++x) {
+      u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      outData[0]  = inPixel->b;
+      outData[1]  = inPixel->g;
+      outData[2]  = inPixel->r;
+      outData[3]  = inPixel->a;
+      ++inPixel;
+    }
+  }
+
+  ICONINFO iconInfo = {
+      .fIcon    = false,
+      .xHotspot = (DWORD)asset->hotspotX,
+      .yHotspot = (DWORD)(asset->height - asset->hotspotY),
+      .hbmMask  = CreateBitmap(asset->width, asset->height, 1, 1, null), // Empty mask.
+      .hbmColor = bitmap,
+  };
+
+  HCURSOR cursor = CreateIconIndirect(&iconInfo);
+  DeleteObject(iconInfo.hbmMask);
+  DeleteObject(iconInfo.hbmColor);
+
+  pal->cursors[id] = cursor;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
