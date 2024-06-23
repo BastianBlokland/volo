@@ -7,8 +7,10 @@
 
 static const String g_gapCursorAssets[GapCursor_Count] = {
     [GapCursor_Normal] = string_static("cursors/normal.cursor"),
-    [GapCursor_Click]  = string_static("cursors/click.cursor"),
     [GapCursor_Text]   = string_static("cursors/text.cursor"),
+    [GapCursor_Click]  = string_static("cursors/click.cursor"),
+    [GapCursor_Select] = string_static("cursors/select.cursor"),
+    [GapCursor_Target] = string_static("cursors/target.cursor"),
     [GapCursor_Resize] = string_static("cursors/resize.cursor"),
 };
 

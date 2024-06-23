@@ -627,8 +627,8 @@ static bool pal_cursorutil_init(GapPal* pal) {
     return false;
   }
 
-  pal->cursors[GapCursor_Click]  = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
   pal->cursors[GapCursor_Text]   = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
+  pal->cursors[GapCursor_Click]  = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
   pal->cursors[GapCursor_Resize] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
 
   log_i("Xcb initialized the cursor-util xcb extension");
