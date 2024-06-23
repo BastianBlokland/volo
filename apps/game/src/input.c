@@ -52,6 +52,12 @@ typedef enum {
 } InputSelectState;
 
 typedef enum {
+  InputSelectMode_Replace,
+  InputSelectMode_Add,
+  InputSelectMode_Subtract,
+} InputSelectMode;
+
+typedef enum {
   InputQuery_Select,
   InputQuery_Attack,
 
@@ -62,6 +68,7 @@ ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
   InputFlags       flags : 8;
   InputSelectState selectState : 8;
+  InputSelectMode  selectMode : 8;
   u32              lastLevelCounter;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 
@@ -382,18 +389,16 @@ static void
 select_end_click(InputStateComp* state, CmdControllerComp* cmdController, InputManagerComp* input) {
   state->selectState = InputSelectState_None;
 
-  const bool addToSelection      = (input_modifiers(input) & InputModifier_Control) != 0;
-  const bool removeFromSelection = (input_modifiers(input) & InputModifier_Shift) != 0;
   if (state->hoveredEntity[InputQuery_Select]) {
-    if (!addToSelection && !removeFromSelection) {
+    if (state->selectMode == InputSelectMode_Replace) {
       cmd_push_deselect_all(cmdController);
     }
-    if (removeFromSelection) {
+    if (state->selectMode == InputSelectMode_Subtract) {
       cmd_push_deselect(cmdController, state->hoveredEntity[InputQuery_Select]);
     } else {
       cmd_push_select(cmdController, state->hoveredEntity[InputQuery_Select]);
     }
-  } else if (!addToSelection && !removeFromSelection) {
+  } else if (state->selectMode == InputSelectMode_Replace) {
     cmd_push_deselect_all(cmdController);
   }
 }
@@ -406,9 +411,7 @@ static void select_update_drag(
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     const f32                    inputAspect) {
-  const bool addToSelection      = (input_modifiers(input) & InputModifier_Control) != 0;
-  const bool removeFromSelection = (input_modifiers(input) & InputModifier_Shift) != 0;
-  if (!addToSelection && !removeFromSelection) {
+  if (state->selectMode == InputSelectMode_Replace) {
     cmd_push_deselect_all(cmdController);
   }
 
@@ -426,7 +429,7 @@ static void select_update_drag(
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
   for (u32 i = 0; i != resultCount; ++i) {
-    if (removeFromSelection) {
+    if (state->selectMode == InputSelectMode_Subtract) {
       cmd_push_deselect(cmdController, results[i]);
     } else {
       cmd_push_select(cmdController, results[i]);
@@ -600,6 +603,13 @@ static void update_camera_interact(
   const bool placementActive = placement_update(input, setEnv, terrain, productionView, &inputRay);
 
   update_camera_hover(state, input, collisionEnv, time, &inputRay);
+
+  state->selectMode = InputSelectMode_Replace;
+  if (input_modifiers(input) & InputModifier_Shift) {
+    state->selectMode = InputSelectMode_Subtract;
+  } else if (input_modifiers(input) & InputModifier_Control) {
+    state->selectMode = InputSelectMode_Add;
+  }
 
   const bool selectActive = !placementActive && input_triggered_lit(input, "Select");
   switch (state->selectState) {
