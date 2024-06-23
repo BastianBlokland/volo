@@ -103,6 +103,8 @@ if(${EXTERNAL_ASSETS})
       cursors/click.tga
       cursors/normal.tga
       cursors/resize.tga
+      cursors/select-add.tga
+      cursors/select-subtract.tga
       cursors/select.tga
       cursors/target.tga
       cursors/text.tga

@@ -405,11 +405,13 @@ ecs_system_define(UiCanvasInputSys) {
 
 static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType interact) {
   static const GapCursor g_interactCursor[UiInteractType_Count] = {
-      [UiInteractType_Text]   = GapCursor_Text,
-      [UiInteractType_Action] = GapCursor_Click,
-      [UiInteractType_Resize] = GapCursor_Resize,
-      [UiInteractType_Select] = GapCursor_Select,
-      [UiInteractType_Target] = GapCursor_Target,
+      [UiInteractType_Text]           = GapCursor_Text,
+      [UiInteractType_Action]         = GapCursor_Click,
+      [UiInteractType_Resize]         = GapCursor_Resize,
+      [UiInteractType_Select]         = GapCursor_Select,
+      [UiInteractType_SelectAdd]      = GapCursor_SelectAdd,
+      [UiInteractType_SelectSubtract] = GapCursor_SelectSubtract,
+      [UiInteractType_Target]         = GapCursor_Target,
   };
   gap_window_cursor_set(window, g_interactCursor[interact]);
 }
