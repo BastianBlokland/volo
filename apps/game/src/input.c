@@ -783,6 +783,8 @@ ecs_system_define(InputDrawUiSys) {
     case InputSelectState_None: {
       if (state->hoveredEntity[InputQuery_Select]) {
         ui_canvas_interact_type(c, UiInteractType_Select);
+      } else if (state->lastSelectionCount && state->hoveredEntity[InputQuery_Attack]) {
+        ui_canvas_interact_type(c, UiInteractType_Target);
       }
     } break;
     case InputSelectState_Dragging: {
