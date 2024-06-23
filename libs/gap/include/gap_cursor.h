@@ -7,7 +7,6 @@ typedef enum {
   GapCursor_Busy,
   GapCursor_Crosshair,
   GapCursor_ResizeDrag,
-  GapCursor_Move,
 
   GapCursor_Count,
 } GapCursor;

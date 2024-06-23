@@ -12,7 +12,6 @@ static const String g_gapCursorAssets[GapCursor_Count] = {
     [GapCursor_Busy]       = string_static("cursors/busy.cursor"),
     [GapCursor_Crosshair]  = string_static("cursors/crosshair.cursor"),
     [GapCursor_ResizeDrag] = string_static("cursors/resize-drag.cursor"),
-    [GapCursor_Move]       = string_static("cursors/move.cursor"),
 };
 
 ecs_comp_define_public(GapPlatformComp);

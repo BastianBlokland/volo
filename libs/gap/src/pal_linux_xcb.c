@@ -632,7 +632,6 @@ static bool pal_cursorutil_init(GapPal* pal) {
   pal->cursors[GapCursor_Busy]       = xcb_cursor_load_cursor(pal->cursorCtx, "watch");
   pal->cursors[GapCursor_Crosshair]  = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
   pal->cursors[GapCursor_ResizeDrag] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
-  pal->cursors[GapCursor_Move]       = xcb_cursor_load_cursor(pal->cursorCtx, "move");
 
   log_i("Xcb initialized the cursor-util xcb extension");
   return true;
@@ -1088,9 +1087,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+             .alloc    = alloc,
+             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);

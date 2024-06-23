@@ -414,9 +414,6 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
   case UiInteractType_Resize:
     gap_window_cursor_set(window, GapCursor_ResizeDrag);
     break;
-  case UiInteractType_Move:
-    gap_window_cursor_set(window, GapCursor_Move);
-    break;
   case UiInteractType_Text:
     gap_window_cursor_set(window, GapCursor_Text);
     break;
@@ -526,13 +523,13 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-        .settings      = settings,
-        .atlasFont     = atlasFont,
-        .atlasImage    = atlasImage,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+         .settings      = settings,
+         .atlasFont     = atlasFont,
+         .atlasImage    = atlasImage,
+         .renderer      = renderer,
+         .draw          = draw,
+         .clipRects[0]  = {.size = canvasSize},
+         .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];

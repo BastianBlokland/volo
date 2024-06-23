@@ -105,7 +105,6 @@ if(${EXTERNAL_ASSETS})
       cursors/pointer_l.tga
       cursors/pointer_scifi_a.tga
       cursors/progress.tga
-      cursors/resize_d_cross.tga
       cursors/target_a.tga
       decal/blood_splatter_2_normal.tga
       decal/blood_splatter_2.tga
