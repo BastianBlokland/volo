@@ -516,10 +516,12 @@ static void input_order(
   const SceneQueryFilter filter = {
       .layerMask = (~SceneLayer_UnitFactionA & SceneLayer_Unit) | SceneLayer_Destructible,
   };
-  const f32 radius  = 0.5f;
+  const f32 radius  = g_inputInteractRadius;
   const f32 maxDist = g_inputInteractMaxDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
-    input_order_attack(world, cmdController, setEnv, debugStats, hit.entity);
+    if (hit.time >= g_inputInteractMinDist) {
+      input_order_attack(world, cmdController, setEnv, debugStats, hit.entity);
+    }
     return;
   }
   /**
