@@ -24,13 +24,16 @@ typedef enum {
 
 /**
  * Indicates the possible user interaction.
+ * NOTE: Ordered by priority.
  */
 typedef enum {
   UiInteractType_None,
+  UiInteractType_Text,
   UiInteractType_Action,
   UiInteractType_Resize,
   UiInteractType_Select,
-  UiInteractType_Text,
+
+  UiInteractType_Count
 } UiInteractType;
 
 typedef enum {

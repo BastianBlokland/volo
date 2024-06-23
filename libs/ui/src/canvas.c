@@ -404,23 +404,13 @@ ecs_system_define(UiCanvasInputSys) {
 }
 
 static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType interact) {
-  switch (interact) {
-  case UiInteractType_None:
-    gap_window_cursor_set(window, GapCursor_Normal);
-    break;
-  case UiInteractType_Action:
-    gap_window_cursor_set(window, GapCursor_Click);
-    break;
-  case UiInteractType_Select:
-    gap_window_cursor_set(window, GapCursor_Select);
-    break;
-  case UiInteractType_Resize:
-    gap_window_cursor_set(window, GapCursor_Resize);
-    break;
-  case UiInteractType_Text:
-    gap_window_cursor_set(window, GapCursor_Text);
-    break;
-  }
+  static const GapCursor g_interactCursor[UiInteractType_Count] = {
+      [UiInteractType_Text]   = GapCursor_Text,
+      [UiInteractType_Action] = GapCursor_Click,
+      [UiInteractType_Resize] = GapCursor_Resize,
+      [UiInteractType_Select] = GapCursor_Select,
+  };
+  gap_window_cursor_set(window, g_interactCursor[interact]);
 }
 
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
@@ -553,8 +543,8 @@ ecs_system_define(UiRenderSys) {
       if (!sentinel_check(result.hover.id) && result.hover.layer >= hover.layer) {
         hoveredCanvasIndex = i;
         hover              = result.hover;
-        interactType       = canvas->interactType;
       }
+      interactType         = math_max(interactType, canvas->interactType);
       canvas->interactType = UiInteractType_None; // Interact type does not persist across frames.
 
       stats->commandCount += result.commandCount;
@@ -728,6 +718,7 @@ void ui_canvas_min_interact_layer(UiCanvasComp* comp, const UiLayer layer) {
 }
 
 void ui_canvas_interact_type(UiCanvasComp* comp, const UiInteractType type) {
+  diag_assert_msg(type, "No interaction type specified");
   comp->interactType = type;
 }
 
