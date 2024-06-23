@@ -1,5 +1,5 @@
 {
-  "texture": "external/cursors/pointer_l.tga",
-  "hotspotX": 8,
-  "hotspotY": 24
+  "texture": "external/cursors/resize.tga",
+  "hotspotX": 3,
+  "hotspotY": 17
 }

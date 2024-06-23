@@ -1,5 +1,5 @@
 {
-  "texture": "external/cursors/pointer_scifi_a.tga",
-  "hotspotX": 5,
-  "hotspotY": 27
+  "texture": "external/cursors/normal.tga",
+  "hotspotX": 2,
+  "hotspotY": 21
 }

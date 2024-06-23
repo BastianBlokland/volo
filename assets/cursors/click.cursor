@@ -1,5 +1,5 @@
 {
-  "texture": "external/cursors/hand_thin_point.tga",
-  "hotspotX": 8,
-  "hotspotY": 26
+  "texture": "external/cursors/click.tga",
+  "hotspotX": 16,
+  "hotspotY": 16
 }
