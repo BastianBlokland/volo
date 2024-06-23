@@ -71,6 +71,42 @@ ecs_comp_define(InputStateComp) {
   f32       camZoom, camZoomTgt;
 };
 
+typedef enum {
+  InputQuery_Select,
+} InputQueryType;
+
+static SceneQueryFilter input_query_filter(const InputManagerComp* input, const InputQueryType t) {
+  SceneQueryFilter filter = {0};
+  switch (t) {
+  case InputQuery_Select:
+    if (input_layer_active(input, string_hash_lit("Debug"))) {
+      // Allow selecting all objects (including debug shapes) in debug mode.
+      filter.layerMask = SceneLayer_AllIncludingDebug;
+    } else {
+      // In node mode only allow selecting your own units.
+      filter.layerMask = SceneLayer_UnitFactionA;
+    }
+    break;
+  }
+  return filter;
+}
+
+static EcsEntityId input_query_ray(
+    const SceneCollisionEnvComp* collisionEnv,
+    const InputManagerComp*      input,
+    const InputQueryType         t,
+    const GeoRay*                inputRay) {
+
+  const SceneQueryFilter filter = input_query_filter(input, t);
+  const f32              radius = g_inputInteractRadius;
+
+  SceneRayHit hit;
+  if (scene_query_ray_fat(collisionEnv, inputRay, radius, g_inputInteractMaxDist, &filter, &hit)) {
+    return hit.time >= g_inputInteractMinDist ? hit.entity : 0;
+  }
+  return 0;
+}
+
 static void input_report_command(DebugStatsGlobalComp* debugStats, const String command) {
   if (debugStats) {
     const String label = string_lit("Command");
@@ -325,32 +361,6 @@ static bool placement_update(
   return placementActive;
 }
 
-static SceneQueryFilter select_filter(const InputManagerComp* input) {
-  if (input_layer_active(input, string_hash_lit("Debug"))) {
-    /**
-     * Allow selecting all objects (including debug shapes) in debug mode.
-     */
-    return (SceneQueryFilter){.layerMask = SceneLayer_AllIncludingDebug};
-  }
-  /**
-   * Only allow selecting your own units.
-   */
-  return (SceneQueryFilter){.layerMask = SceneLayer_UnitFactionA};
-}
-
-static EcsEntityId select_hovered(
-    const SceneCollisionEnvComp* collisionEnv,
-    const InputManagerComp*      input,
-    const GeoRay*                inputRay) {
-  SceneRayHit            hit;
-  const SceneQueryFilter filter = select_filter(input);
-  const f32              radius = g_inputInteractRadius;
-  if (scene_query_ray_fat(collisionEnv, inputRay, radius, g_inputInteractMaxDist, &filter, &hit)) {
-    return hit.time >= g_inputInteractMinDist ? hit.entity : 0;
-  }
-  return 0;
-}
-
 static void select_start(InputStateComp* state, InputManagerComp* input) {
   state->selectState = InputSelectState_Down;
   state->selectStart = (GeoVector){.x = input_cursor_x(input), .y = input_cursor_y(input)};
@@ -368,7 +378,7 @@ static void select_end_click(
     const GeoRay*                inputRay) {
   state->selectState = InputSelectState_None;
 
-  const EcsEntityId entity = select_hovered(collisionEnv, input, inputRay);
+  const EcsEntityId entity = input_query_ray(collisionEnv, input, InputQuery_Select, inputRay);
 
   const bool addToSelection      = (input_modifiers(input) & InputModifier_Control) != 0;
   const bool removeFromSelection = (input_modifiers(input) & InputModifier_Shift) != 0;
@@ -409,7 +419,7 @@ static void select_update_drag(
   GeoVector frustumCorners[8];
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 
-  const SceneQueryFilter filter = select_filter(input);
+  const SceneQueryFilter filter = input_query_filter(input, InputQuery_Select);
 
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
@@ -607,13 +617,13 @@ static void update_camera_interact(
 
   const bool hoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
   if (!selectActive && input_layer_active(input, string_hash_lit("Game")) && !hoveringUi) {
-    const EcsEntityId newHoveredUnit = select_hovered(collisionEnv, input, &inputRay);
-    if (newHoveredUnit == state->hoveredEntity) {
+    const EcsEntityId newHover = input_query_ray(collisionEnv, input, InputQuery_Select, &inputRay);
+    if (newHover == state->hoveredEntity) {
       state->hoveredTime += time->realDelta;
     } else {
       state->hoveredTime = 0;
     }
-    state->hoveredEntity = newHoveredUnit;
+    state->hoveredEntity = newHover;
   } else {
     state->hoveredEntity = 0;
   }
