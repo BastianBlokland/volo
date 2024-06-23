@@ -140,6 +140,7 @@ static void asset_cursor_generate(
 
         if (colored) {
           colorLinear = geo_color_mul_comps(colorLinear, colorMul);
+          colorLinear = geo_color_clamp_comps(colorLinear, geo_color_clear, geo_color_white);
         }
 
         // Always output Srgb encoded pixels.
