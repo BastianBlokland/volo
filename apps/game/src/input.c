@@ -22,8 +22,9 @@
 #include "cmd_internal.h"
 #include "input_internal.h"
 
-static const f32  g_inputMinInteractDist       = 1.0f;
-static const f32  g_inputMaxInteractDist       = 250.0f;
+static const f32  g_inputInteractMinDist       = 1.0f;
+static const f32  g_inputInteractMaxDist       = 250.0f;
+static const f32  g_inputInteractRadius        = 0.5f;
 static const f32  g_inputCamDistMin            = 20.0f;
 static const f32  g_inputCamDistMax            = 85.0f;
 static const f32  g_inputCamPanCursorMult      = 100.0f;
@@ -299,11 +300,11 @@ static bool placement_update(
       // Update placement position.
       f32 rayT;
       if (scene_terrain_loaded(terrain)) {
-        rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
+        rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputInteractMaxDist);
       } else {
         rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
       }
-      if (rayT > g_inputMinInteractDist) {
+      if (rayT > g_inputInteractMinDist) {
         production->placementPos = geo_ray_position(inputRay, rayT);
       }
       if (input_triggered_lit(input, "PlacementAccept")) {
@@ -324,7 +325,7 @@ static bool placement_update(
   return placementActive;
 }
 
-static SceneQueryFilter select_filter(InputManagerComp* input) {
+static SceneQueryFilter select_filter(const InputManagerComp* input) {
   if (input_layer_active(input, string_hash_lit("Debug"))) {
     /**
      * Allow selecting all objects (including debug shapes) in debug mode.
@@ -335,6 +336,19 @@ static SceneQueryFilter select_filter(InputManagerComp* input) {
    * Only allow selecting your own units.
    */
   return (SceneQueryFilter){.layerMask = SceneLayer_UnitFactionA};
+}
+
+static EcsEntityId select_hovered(
+    const SceneCollisionEnvComp* collisionEnv,
+    const InputManagerComp*      input,
+    const GeoRay*                inputRay) {
+  SceneRayHit            hit;
+  const SceneQueryFilter filter = select_filter(input);
+  const f32              radius = g_inputInteractRadius;
+  if (scene_query_ray_fat(collisionEnv, inputRay, radius, g_inputInteractMaxDist, &filter, &hit)) {
+    return hit.time >= g_inputInteractMinDist ? hit.entity : 0;
+  }
+  return 0;
 }
 
 static void select_start(InputStateComp* state, InputManagerComp* input) {
@@ -354,21 +368,18 @@ static void select_end_click(
     const GeoRay*                inputRay) {
   state->selectState = InputSelectState_None;
 
-  SceneRayHit            hit;
-  const SceneQueryFilter filter  = select_filter(input);
-  const f32              maxDist = 1e4f;
-  const bool             hasHit  = scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit);
+  const EcsEntityId entity = select_hovered(collisionEnv, input, inputRay);
 
   const bool addToSelection      = (input_modifiers(input) & InputModifier_Control) != 0;
   const bool removeFromSelection = (input_modifiers(input) & InputModifier_Shift) != 0;
-  if (hasHit) {
+  if (entity) {
     if (!addToSelection && !removeFromSelection) {
       cmd_push_deselect_all(cmdController);
     }
     if (removeFromSelection) {
-      cmd_push_deselect(cmdController, hit.entity);
+      cmd_push_deselect(cmdController, entity);
     } else {
-      cmd_push_select(cmdController, hit.entity);
+      cmd_push_select(cmdController, entity);
     }
   } else if (!addToSelection && !removeFromSelection) {
     cmd_push_deselect_all(cmdController);
@@ -506,7 +517,7 @@ static void input_order(
       .layerMask = (~SceneLayer_UnitFactionA & SceneLayer_Unit) | SceneLayer_Destructible,
   };
   const f32 radius  = 0.5f;
-  const f32 maxDist = g_inputMaxInteractDist;
+  const f32 maxDist = g_inputInteractMaxDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
     input_order_attack(world, cmdController, setEnv, debugStats, hit.entity);
     return;
@@ -516,28 +527,16 @@ static void input_order(
    */
   f32 rayT = -1.0f;
   if (scene_terrain_loaded(terrain)) {
-    rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
+    rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputInteractMaxDist);
   } else {
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
   }
-  if (rayT > g_inputMinInteractDist) {
+  if (rayT > g_inputInteractMinDist) {
     const GeoVector targetPos        = geo_ray_position(inputRay, rayT);
     const GeoVector targetPosClamped = input_clamp_to_play_area(terrain, targetPos);
     input_order_move(world, cmdController, setEnv, nav, debugStats, targetPosClamped);
     return;
   }
-}
-
-static EcsEntityId
-input_query_hovered_entity(const SceneCollisionEnvComp* collisionEnv, const GeoRay* inputRay) {
-  SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_Unit};
-  const f32              radius  = 0.5f;
-  const f32              maxDist = g_inputMaxInteractDist;
-  if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
-    return hit.entity;
-  }
-  return 0;
 }
 
 static void input_camera_reset(InputStateComp* state, const SceneLevelManagerComp* levelManager) {
@@ -606,7 +605,7 @@ static void update_camera_interact(
 
   const bool hoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
   if (!selectActive && input_layer_active(input, string_hash_lit("Game")) && !hoveringUi) {
-    const EcsEntityId newHoveredUnit = input_query_hovered_entity(collisionEnv, &inputRay);
+    const EcsEntityId newHoveredUnit = select_hovered(collisionEnv, input, &inputRay);
     if (newHoveredUnit == state->hoveredEntity) {
       state->hoveredTime += time->realDelta;
     } else {
