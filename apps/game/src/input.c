@@ -73,6 +73,7 @@ ecs_comp_define(InputStateComp) {
 
 typedef enum {
   InputQuery_Select,
+  InputQuery_Attack,
 } InputQueryType;
 
 static SceneQueryFilter input_query_filter(const InputManagerComp* input, const InputQueryType t) {
@@ -86,6 +87,9 @@ static SceneQueryFilter input_query_filter(const InputManagerComp* input, const 
       // In node mode only allow selecting your own units.
       filter.layerMask = SceneLayer_UnitFactionA;
     }
+    break;
+  case InputQuery_Attack:
+    filter.layerMask = (~SceneLayer_UnitFactionA & SceneLayer_Unit) | SceneLayer_Destructible;
     break;
   }
   return filter;
@@ -514,6 +518,7 @@ static void input_order(
     EcsWorld*                    world,
     CmdControllerComp*           cmdController,
     const SceneCollisionEnvComp* collisionEnv,
+    const InputManagerComp*      input,
     const SceneSetEnvComp*       setEnv,
     const SceneTerrainComp*      terrain,
     const SceneNavEnvComp*       nav,
@@ -522,16 +527,9 @@ static void input_order(
   /**
    * Order an attack when clicking an opponent unit or a destructible.
    */
-  SceneRayHit            hit;
-  const SceneQueryFilter filter = {
-      .layerMask = (~SceneLayer_UnitFactionA & SceneLayer_Unit) | SceneLayer_Destructible,
-  };
-  const f32 radius  = g_inputInteractRadius;
-  const f32 maxDist = g_inputInteractMaxDist;
-  if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
-    if (hit.time >= g_inputInteractMinDist) {
-      input_order_attack(world, cmdController, setEnv, debugStats, hit.entity);
-    }
+  const EcsEntityId targetUnit = input_query_ray(collisionEnv, input, InputQuery_Attack, inputRay);
+  if (targetUnit) {
+    input_order_attack(world, cmdController, setEnv, debugStats, targetUnit);
     return;
   }
   /**
@@ -630,7 +628,8 @@ static void update_camera_interact(
 
   const bool hasSelection = scene_set_count(setEnv, g_sceneSetSelected) != 0;
   if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
-    input_order(world, cmdController, collisionEnv, setEnv, terrain, nav, debugStats, &inputRay);
+    input_order(
+        world, cmdController, collisionEnv, input, setEnv, terrain, nav, debugStats, &inputRay);
   }
   const u32 newLevelCounter = scene_level_counter(levelManager);
   if (state->lastLevelCounter != newLevelCounter) {
