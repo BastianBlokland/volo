@@ -125,7 +125,7 @@ static void asset_cursor_generate(
 
   const bool scaled  = outWidth != texture->width || outHeight != texture->height;
   const bool colored = def->color != null;
-  if (scaled || colored) {
+  if (scaled || colored || !(texture->flags & AssetTextureFlags_Srgb)) {
     const GeoColor    colorMul     = def->color ? asset_cursor_color(def->color) : geo_color_white;
     const f32         outWidthInv  = 1.0f / (f32)outWidth;
     const f32         outHeightInv = 1.0f / (f32)outHeight;
