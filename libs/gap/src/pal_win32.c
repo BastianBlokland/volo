@@ -57,6 +57,7 @@ struct sGapPal {
   GapPalFlags flags;
 
   HCURSOR cursors[GapCursor_Count];
+  u32     cursorIcons; // bit[GapCursor_Count], mask of which cursors are custom icons.
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
@@ -723,6 +724,11 @@ void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
+  for (GapCursor cursor = 0; cursor != GapCursor_Count; ++cursor) {
+    if (pal->cursorIcons & (1 << cursor)) {
+      DestroyIcon(pal->cursors[cursor]);
+    }
+  }
   if (pal->dpi.shcore) {
     dynlib_destroy(pal->dpi.shcore);
   }
@@ -787,10 +793,17 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   };
 
   HCURSOR cursor = CreateIconIndirect(&iconInfo);
-  DeleteObject(iconInfo.hbmMask);
-  DeleteObject(iconInfo.hbmColor);
-
+  if (!DeleteObject(iconInfo.hbmMask)) {
+    pal_crash_with_win32_err(string_lit("DeleteObject"));
+  }
+  if (!DeleteObject(iconInfo.hbmColor)) {
+    pal_crash_with_win32_err(string_lit("DeleteObject"));
+  }
+  if (pal->cursorIcons & (1 << id)) {
+    DestroyIcon(pal->cursors[id]);
+  }
   pal->cursors[id] = cursor;
+  pal->cursorIcons |= 1 << id;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
