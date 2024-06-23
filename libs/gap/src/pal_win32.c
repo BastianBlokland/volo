@@ -800,7 +800,14 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
     pal_crash_with_win32_err(string_lit("DeleteObject"));
   }
   if (pal->cursorIcons & (1 << id)) {
-    DestroyIcon(pal->cursors[id]);
+    bool cursorInUse = false;
+    dynarray_for_t(&pal->windows, GapPalWindow, window) { cursorInUse |= window->cursor == id; }
+    if (cursorInUse) {
+      SetCursor(null);
+    }
+    if (!DestroyIcon(pal->cursors[id])) {
+      pal_crash_with_win32_err(string_lit("DestroyIcon"));
+    }
   }
   pal->cursors[id] = cursor;
   pal->cursorIcons |= 1 << id;
