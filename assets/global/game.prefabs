@@ -622,8 +622,9 @@
     {
       "name": "PropBarrelExplosive",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barrel_explosive.graphic" },
+        { "$type": "AssetPrefabTrait_Name", "name": "Barrel" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible" ] },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barrel_explosive.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,

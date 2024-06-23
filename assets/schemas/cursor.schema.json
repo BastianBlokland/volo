@@ -1,0 +1,19 @@
+{
+  "title": "CursorDef",
+  "$ref": "#/$defs/CursorDef",
+  "$defs": {
+    "CursorDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "texture": { "title": "String", "type": "string", "minLength": 1 },
+        "hotspotX": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "hotspotY": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      },
+      "required": [ "texture", "hotspotX", "hotspotY" ],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{\n  \"texture\": \"placeholder\",\n  \"hotspotX\": 0,\n  \"hotspotY\": 0\n}" }
+      ]
+    }
+  }
+}

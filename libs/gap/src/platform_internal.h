@@ -1,6 +1,15 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 
 #include "pal_internal.h"
 
-ecs_comp_extern_public(GapPlatformComp) { GapPal* pal; };
+typedef struct {
+  EcsEntityId asset;
+  bool        loading;
+} GapPlatformCursor;
+
+ecs_comp_extern_public(GapPlatformComp) {
+  GapPal*           pal;
+  GapPlatformCursor cursors[GapCursor_Count];
+};

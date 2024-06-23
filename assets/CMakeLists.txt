@@ -100,6 +100,12 @@ if(${EXTERNAL_ASSETS})
       crate/crate_2_normal.tga
       crate/crate.bin
       crate/crate.gltf
+      cursors/click.tga
+      cursors/normal.tga
+      cursors/resize.tga
+      cursors/select.tga
+      cursors/target.tga
+      cursors/text.tga
       decal/blood_splatter_2_normal.tga
       decal/blood_splatter_2.tga
       decal/dirt.tga

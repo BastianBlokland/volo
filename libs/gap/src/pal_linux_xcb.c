@@ -7,9 +7,11 @@
 
 #include <stdlib.h>
 #include <xcb/randr.h>
+#include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/xcb_image.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
@@ -17,7 +19,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes, icccm, randr and cursor-util extensions.
+ * Optionally uses the xkb, xfixes, icccm, randr, cursor-util and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -33,12 +35,15 @@
 #define pal_xcb_call(_CON_, _FUNC_, _ERR_, ...)                                                    \
   _FUNC_##_reply((_CON_), _FUNC_((_CON_), __VA_ARGS__), (_ERR_))
 
+#define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
+
 typedef enum {
   GapPalXcbExtFlags_Xkb        = 1 << 0,
   GapPalXcbExtFlags_XFixes     = 1 << 1,
   GapPalXcbExtFlags_Icccm      = 1 << 2,
   GapPalXcbExtFlags_Randr      = 1 << 3,
   GapPalXcbExtFlags_CursorUtil = 1 << 4,
+  GapPalXcbExtFlags_Render     = 1 << 5,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -50,6 +55,7 @@ typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
+  GapCursor         cursor : 16;
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
@@ -77,6 +83,8 @@ struct sGapPal {
   i32                 xkbDeviceId;
   struct xkb_keymap*  xkbKeymap;
   struct xkb_state*   xkbState;
+
+  xcb_render_pictformat_t formatArgb32;
 
   xcb_cursor_context_t* cursorCtx;
   xcb_cursor_t          cursors[GapCursor_Count];
@@ -619,14 +627,85 @@ static bool pal_cursorutil_init(GapPal* pal) {
     return false;
   }
 
-  pal->cursors[GapCursor_Click]      = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
-  pal->cursors[GapCursor_Text]       = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
-  pal->cursors[GapCursor_Busy]       = xcb_cursor_load_cursor(pal->cursorCtx, "watch");
-  pal->cursors[GapCursor_Crosshair]  = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
-  pal->cursors[GapCursor_ResizeDiag] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
-  pal->cursors[GapCursor_Move]       = xcb_cursor_load_cursor(pal->cursorCtx, "move");
+  pal->cursors[GapCursor_Text]   = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
+  pal->cursors[GapCursor_Click]  = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
+  pal->cursors[GapCursor_Resize] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
 
   log_i("Xcb initialized the cursor-util xcb extension");
+  return true;
+}
+
+static bool pal_render_find_formats(GapPal* pal) {
+  xcb_generic_error_t*                   err = null;
+  xcb_render_query_pict_formats_reply_t* formats =
+      pal_xcb_call_void(pal->xcbCon, xcb_render_query_pict_formats, &err);
+
+  if (UNLIKELY(err)) {
+    return false;
+  }
+
+  xcb_render_pictforminfo_iterator_t itr = xcb_render_query_pict_formats_formats_iterator(formats);
+  for (; itr.rem; xcb_render_pictforminfo_next(&itr)) {
+    if (itr.data->depth != 32) {
+      continue;
+    }
+    if (itr.data->type != XCB_RENDER_PICT_TYPE_DIRECT) {
+      continue;
+    }
+    if (itr.data->direct.alpha_shift != 0 || itr.data->direct.alpha_mask != 0xFF) {
+      continue;
+    }
+    if (itr.data->direct.red_shift != 8 || itr.data->direct.red_mask != 0xFF) {
+      continue;
+    }
+    if (itr.data->direct.green_shift != 16 || itr.data->direct.green_mask != 0xFF) {
+      continue;
+    }
+    if (itr.data->direct.blue_shift != 24 || itr.data->direct.blue_mask != 0xFF) {
+      continue;
+    }
+    pal->formatArgb32 = itr.data->id;
+    return true;
+  }
+
+  free(formats);
+  return false; // Rgba32 not found.
+}
+
+static bool pal_render_init(GapPal* pal) {
+  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_render_id);
+  if (!data || !data->present) {
+    log_w("Xcb render extention not present");
+    return false;
+  }
+  xcb_generic_error_t*              err     = null;
+  xcb_render_query_version_reply_t* version = pal_xcb_call(
+      pal->xcbCon,
+      xcb_render_query_version,
+      &err,
+      XCB_RENDER_MAJOR_VERSION,
+      XCB_RENDER_MINOR_VERSION);
+
+  if (UNLIKELY(err)) {
+    log_w(
+        "Xcb failed to initialize the render extension",
+        log_param("error", fmt_int(err->error_code)));
+    free(version);
+    return false;
+  }
+  MAYBE_UNUSED const u16 versionMajor = version->major_version;
+  MAYBE_UNUSED const u16 versionMinor = version->minor_version;
+  free(version);
+
+  if (!pal_render_find_formats(pal)) {
+    log_w("Xcb failed to find required render formats");
+    return false;
+  }
+
+  log_i(
+      "Xcb initialized the render extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+
   return true;
 }
 
@@ -643,6 +722,9 @@ static void pal_init_extensions(GapPal* pal) {
   }
   if (pal_cursorutil_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_CursorUtil;
+  }
+  if (pal_render_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_Render;
   }
 }
 
@@ -1071,7 +1153,10 @@ void gap_pal_update(GapPal* pal) {
 
     case 0: {
       const xcb_generic_error_t* errMsg = (const void*)evt;
-      log_e("Xcb error", log_param("code", fmt_int(errMsg->error_code)));
+      log_e(
+          "Xcb error",
+          log_param("code", fmt_int(errMsg->error_code)),
+          log_param("msg", fmt_text(pal_xcb_err_str(errMsg->error_code))));
     } break;
 
     case XCB_CLIENT_MESSAGE: {
@@ -1235,6 +1320,76 @@ void gap_pal_update(GapPal* pal) {
   }
 }
 
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+  if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
+    return; // The render extension is required for color cursors.
+  }
+  xcb_image_t* img = xcb_image_create(
+      asset->width,
+      asset->height,
+      XCB_IMAGE_FORMAT_Z_PIXMAP,
+      32,
+      32,
+      32,
+      32,
+      XCB_IMAGE_ORDER_LSB_FIRST,
+      XCB_IMAGE_ORDER_MSB_FIRST,
+      null,
+      0,
+      null);
+
+  if (UNLIKELY(!img)) {
+    diag_crash_msg("xcb_image_create() failed");
+  }
+
+  // Flip the y axis of the image and convert to argb.
+  const Mem               outMem  = alloc_alloc(pal->alloc, img->stride * asset->height, 4);
+  const AssetCursorPixel* inPixel = asset->pixels;
+  for (u32 y = asset->height; y-- != 0;) {
+    for (u32 x = 0; x != asset->width; ++x) {
+      u8* outData = bits_ptr_offset(outMem.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      outData[0]  = inPixel->a;
+      outData[1]  = inPixel->r;
+      outData[2]  = inPixel->g;
+      outData[3]  = inPixel->b;
+      ++inPixel;
+    }
+  }
+  img->data = outMem.ptr;
+
+  xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
+  xcb_create_pixmap(pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
+
+  xcb_render_picture_t picture = xcb_generate_id(pal->xcbCon);
+  xcb_render_create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
+
+  xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
+  xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
+  xcb_image_put(pal->xcbCon, pixmap, graphicsContext, img, 0, 0, 0);
+  xcb_free_gc(pal->xcbCon, graphicsContext);
+
+  xcb_cursor_t cursor = xcb_generate_id(pal->xcbCon);
+  xcb_render_create_cursor(
+      pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
+
+  alloc_free(pal->alloc, outMem);
+  xcb_image_destroy(img);
+  xcb_render_free_picture(pal->xcbCon, picture);
+  xcb_free_pixmap(pal->xcbCon, pixmap);
+
+  if (pal->cursors[id] != XCB_NONE) {
+    xcb_free_cursor(pal->xcbCon, pal->cursors[id]);
+  }
+  pal->cursors[id] = cursor;
+
+  // Update the cursor for any window that is currently using this cursor type.
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
+    if (window->cursor == id) {
+      gap_pal_window_cursor_set(pal, window->id, id);
+    }
+  }
+}
+
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_connection_t* con = pal->xcbCon;
   const GapWindowId id  = xcb_generate_id(con);
@@ -1252,8 +1407,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -1476,11 +1631,14 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
   if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
     xcb_change_window_attributes(
         pal->xcbCon, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
     xcb_flush(pal->xcbCon);
   }
+  window->cursor = cursor;
 }
 
 void gap_pal_window_cursor_pos_set(

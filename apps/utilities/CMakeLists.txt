@@ -11,6 +11,7 @@ configure_debuggable(app_schemasetup)
 add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/arraytex.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/atlas.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/cursor.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/decal.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/fonttex.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/graphic.schema.json"

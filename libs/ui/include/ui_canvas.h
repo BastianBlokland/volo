@@ -24,13 +24,17 @@ typedef enum {
 
 /**
  * Indicates the possible user interaction.
+ * NOTE: Ordered by priority.
  */
 typedef enum {
-  UiInteractType_None,   // No interaction possible (eg. normal cursor).
-  UiInteractType_Action, // Action (click) interaction possible (eg. hand cursor).
-  UiInteractType_Resize, // Resize (drag) interaction possible (eg. diag resize cursor).
-  UiInteractType_Move,   // Move (drag) interaction possible (eg. move cursor).
-  UiInteractType_Text,   // Text editing interaction possible (eg. text cursor).
+  UiInteractType_None,
+  UiInteractType_Text,
+  UiInteractType_Action,
+  UiInteractType_Resize,
+  UiInteractType_Select,
+  UiInteractType_Target,
+
+  UiInteractType_Count
 } UiInteractType;
 
 typedef enum {

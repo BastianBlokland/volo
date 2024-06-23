@@ -57,6 +57,7 @@ struct sGapPal {
   GapPalFlags flags;
 
   HCURSOR cursors[GapCursor_Count];
+  u32     cursorIcons; // bit[GapCursor_Count], mask of which cursors are custom icons.
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
@@ -115,13 +116,10 @@ static void pal_dpi_init(GapPal* pal) {
 }
 
 static void pal_cursors_init(GapPal* pal) {
-  pal->cursors[GapCursor_Normal]     = LoadCursor(null, IDC_ARROW);
-  pal->cursors[GapCursor_Click]      = LoadCursor(null, IDC_HAND);
-  pal->cursors[GapCursor_Text]       = LoadCursor(null, IDC_IBEAM);
-  pal->cursors[GapCursor_Busy]       = LoadCursor(null, IDC_WAIT);
-  pal->cursors[GapCursor_Crosshair]  = LoadCursor(null, IDC_CROSS);
-  pal->cursors[GapCursor_ResizeDiag] = LoadCursor(null, IDC_SIZENWSE);
-  pal->cursors[GapCursor_Move]       = LoadCursor(null, IDC_SIZEALL);
+  pal->cursors[GapCursor_Normal] = LoadCursor(null, IDC_ARROW);
+  pal->cursors[GapCursor_Text]   = LoadCursor(null, IDC_IBEAM);
+  pal->cursors[GapCursor_Click]  = LoadCursor(null, IDC_HAND);
+  pal->cursors[GapCursor_Resize] = LoadCursor(null, IDC_SIZENWSE);
 }
 
 static void pal_clear_volatile(GapPal* pal) {
@@ -658,11 +656,11 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     return true;
   }
   case WM_SETCURSOR: {
-    if (window->cursor != GapCursor_Normal) {
-      SetCursor(pal->cursors[window->cursor]);
-      return true;
+    if (LOWORD(lParam) != HTCLIENT) {
+      return false; // Cursor is not over our window; let the system choose the cursor.
     }
-    return false;
+    SetCursor(pal->cursors[window->cursor]);
+    return true;
   }
   default:
     return false;
@@ -723,6 +721,11 @@ void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
+  for (GapCursor cursor = 0; cursor != GapCursor_Count; ++cursor) {
+    if (pal->cursorIcons & (1 << cursor)) {
+      DestroyIcon(pal->cursors[cursor]);
+    }
+  }
   if (pal->dpi.shcore) {
     dynlib_destroy(pal->dpi.shcore);
   }
@@ -749,6 +752,62 @@ void gap_pal_update(GapPal* pal) {
       DispatchMessage(&msg);
     }
   }
+}
+
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+  BITMAPV5HEADER header = {
+      .bV5Size        = sizeof(BITMAPV5HEADER),
+      .bV5Width       = (LONG)asset->width,
+      .bV5Height      = (LONG)asset->height,
+      .bV5Planes      = 1,
+      .bV5BitCount    = 32,
+      .bV5Compression = BI_RGB,
+  };
+
+  HDC     deviceCtx = GetDC(null);
+  void*   bits      = null;
+  HBITMAP bitmap = CreateDIBSection(deviceCtx, (BITMAPINFO*)&header, DIB_RGB_COLORS, &bits, 0, 0);
+  ReleaseDC(null, deviceCtx);
+
+  const AssetCursorPixel* inPixel = asset->pixels;
+  for (u32 y = 0; y != asset->height; ++y) {
+    for (u32 x = 0; x != asset->width; ++x) {
+      u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      outData[0]  = inPixel->b;
+      outData[1]  = inPixel->g;
+      outData[2]  = inPixel->r;
+      outData[3]  = inPixel->a;
+      ++inPixel;
+    }
+  }
+
+  ICONINFO iconInfo = {
+      .fIcon    = false,
+      .xHotspot = (DWORD)asset->hotspotX,
+      .yHotspot = (DWORD)(asset->height - asset->hotspotY),
+      .hbmMask  = CreateBitmap(asset->width, asset->height, 1, 1, null), // Empty mask.
+      .hbmColor = bitmap,
+  };
+
+  HCURSOR cursor = CreateIconIndirect(&iconInfo);
+  if (!DeleteObject(iconInfo.hbmMask)) {
+    pal_crash_with_win32_err(string_lit("DeleteObject"));
+  }
+  if (!DeleteObject(iconInfo.hbmColor)) {
+    pal_crash_with_win32_err(string_lit("DeleteObject"));
+  }
+  if (pal->cursorIcons & (1 << id)) {
+    bool cursorInUse = false;
+    dynarray_for_t(&pal->windows, GapPalWindow, window) { cursorInUse |= window->cursor == id; }
+    if (cursorInUse) {
+      SetCursor(null);
+    }
+    if (!DestroyIcon(pal->cursors[id])) {
+      pal_crash_with_win32_err(string_lit("DestroyIcon"));
+    }
+  }
+  pal->cursors[id] = cursor;
+  pal->cursorIcons |= 1 << id;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {

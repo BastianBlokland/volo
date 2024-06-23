@@ -2,12 +2,11 @@
 
 typedef enum {
   GapCursor_Normal,
-  GapCursor_Click,
   GapCursor_Text,
-  GapCursor_Busy,
-  GapCursor_Crosshair,
-  GapCursor_ResizeDiag,
-  GapCursor_Move,
+  GapCursor_Click,
+  GapCursor_Select,
+  GapCursor_Target,
+  GapCursor_Resize,
 
   GapCursor_Count,
 } GapCursor;

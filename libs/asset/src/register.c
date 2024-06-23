@@ -5,6 +5,7 @@
 void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_arraytex_module);
   ecs_register_module(def, asset_atlas_module);
+  ecs_register_module(def, asset_cursor_module);
   ecs_register_module(def, asset_decal_module);
   ecs_register_module(def, asset_font_module);
   ecs_register_module(def, asset_fonttex_module);
