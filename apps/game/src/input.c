@@ -758,17 +758,26 @@ ecs_system_define(InputDrawUiSys) {
     if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
       continue;
     }
-    UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
-    ui_canvas_reset(canvas);
-    ui_canvas_to_back(canvas);
+    UiCanvasComp* c = ecs_view_write_t(canvasItr, UiCanvasComp);
+    ui_canvas_reset(c);
+    ui_canvas_to_back(c);
 
-    if (state->selectState == InputSelectState_Dragging) {
+    switch (state->selectState) {
+    case InputSelectState_None: {
+      if (state->hoveredEntity) {
+        ui_canvas_interact_type(c, UiInteractType_Select);
+      }
+    } break;
+    case InputSelectState_Dragging: {
       const UiVector startPos = ui_vector(state->selectStart.x, state->selectStart.y);
-      ui_layout_move(canvas, startPos, UiBase_Canvas, Ui_XY);
-      ui_layout_resize_to(canvas, UiBase_Input, UiAlign_BottomLeft, Ui_XY);
-      ui_style_color(canvas, ui_color(255, 255, 255, 16));
-      ui_style_outline(canvas, 3);
-      ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
+      ui_layout_move(c, startPos, UiBase_Canvas, Ui_XY);
+      ui_layout_resize_to(c, UiBase_Input, UiAlign_BottomLeft, Ui_XY);
+      ui_style_color(c, ui_color(255, 255, 255, 16));
+      ui_style_outline(c, 3);
+      ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
+    } break;
+    default:
+      break;
     }
   }
 }
