@@ -32,6 +32,7 @@ typedef enum {
   UiInteractType_Action,
   UiInteractType_Resize,
   UiInteractType_Select,
+  UiInteractType_Target,
 
   UiInteractType_Count
 } UiInteractType;

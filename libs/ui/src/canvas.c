@@ -409,6 +409,7 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
       [UiInteractType_Action] = GapCursor_Click,
       [UiInteractType_Resize] = GapCursor_Resize,
       [UiInteractType_Select] = GapCursor_Select,
+      [UiInteractType_Target] = GapCursor_Target,
   };
   gap_window_cursor_set(window, g_interactCursor[interact]);
 }
