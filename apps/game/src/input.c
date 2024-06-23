@@ -787,15 +787,18 @@ ecs_system_define(InputDrawUiSys) {
         ui_canvas_interact_type(c, UiInteractType_Target);
       }
     } break;
+    case InputSelectState_Down: {
+      ui_canvas_interact_type(c, UiInteractType_Select);
+    } break;
     case InputSelectState_Dragging: {
+      ui_canvas_interact_type(c, UiInteractType_Select);
+
       const UiVector startPos = ui_vector(state->selectStart.x, state->selectStart.y);
       ui_layout_move(c, startPos, UiBase_Canvas, Ui_XY);
       ui_layout_resize_to(c, UiBase_Input, UiAlign_BottomLeft, Ui_XY);
       ui_style_color(c, ui_color(255, 255, 255, 16));
       ui_style_outline(c, 3);
       ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
-
-      ui_canvas_interact_type(c, UiInteractType_Select);
     } break;
     default:
       break;
