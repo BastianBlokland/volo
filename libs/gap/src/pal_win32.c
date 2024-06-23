@@ -119,7 +119,6 @@ static void pal_cursors_init(GapPal* pal) {
   pal->cursors[GapCursor_Normal]     = LoadCursor(null, IDC_ARROW);
   pal->cursors[GapCursor_Click]      = LoadCursor(null, IDC_HAND);
   pal->cursors[GapCursor_Text]       = LoadCursor(null, IDC_IBEAM);
-  pal->cursors[GapCursor_Busy]       = LoadCursor(null, IDC_WAIT);
   pal->cursors[GapCursor_Crosshair]  = LoadCursor(null, IDC_CROSS);
   pal->cursors[GapCursor_ResizeDrag] = LoadCursor(null, IDC_SIZENWSE);
 }
