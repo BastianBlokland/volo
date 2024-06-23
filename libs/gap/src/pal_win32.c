@@ -1078,7 +1078,18 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
-  pal_maybe_window(pal, windowId)->cursor = cursor;
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+
+  window->cursor = cursor;
+
+  if (window->flags & GapPalWindowFlags_Focussed) {
+    /**
+     * When the window is focussed then immediatly update the cursor, this avoids the issue that
+     * the cursor change is only visible after moving the cursor.
+     */
+    SetCursor(pal->cursors[cursor]);
+  }
 }
 
 void gap_pal_window_cursor_pos_set(
