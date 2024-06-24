@@ -9,14 +9,13 @@
 #include <xcb/randr.h>
 #include <xcb/render.h>
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr and render extensions.
+ * Optionally uses the xkb, xkbcommon, xkbcommon-x11, xfixes, randr and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -37,9 +36,8 @@
 typedef enum {
   GapPalXcbExtFlags_Xkb    = 1 << 0,
   GapPalXcbExtFlags_XFixes = 1 << 1,
-  GapPalXcbExtFlags_Icccm  = 1 << 2,
-  GapPalXcbExtFlags_Randr  = 1 << 3,
-  GapPalXcbExtFlags_Render = 1 << 4,
+  GapPalXcbExtFlags_Randr  = 1 << 2,
+  GapPalXcbExtFlags_Render = 1 << 3,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -635,7 +633,6 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xfixes_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
-  pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
   if (pal_randr_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
@@ -730,13 +727,35 @@ Return:
 
 static void
 pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector minSize) {
-  diag_assert(pal->extensions & GapPalXcbExtFlags_Icccm);
+  // Needs to match 'WinXSizeHints' from the XServer.
+  struct SizeHints {
+    u32 flags;
+    i32 x, y;
+    i32 width, height;
+    i32 minWidth, minHeight;
+    i32 maxWidth, maxHeight;
+    i32 width_inc, height_inc;
+    i32 minAspectNum, minAspectDen;
+    i32 maxAspectNum, maxAspectDen;
+    i32 baseWidth, baseHeight;
+    u32 winGravity;
+  };
 
-  xcb_size_hints_t hints = {0};
-  xcb_icccm_size_hints_set_min_size(&hints, minSize.x, minSize.y);
+  const struct SizeHints newHints = {
+      .flags     = 1 << 4 /* PMinSize */,
+      .minWidth  = minSize.width,
+      .minHeight = minSize.height,
+  };
 
-  xcb_icccm_set_wm_size_hints(
-      pal->xcbCon, (xcb_window_t)windowId, XCB_ATOM_WM_NORMAL_HINTS, &hints);
+  xcb_change_property(
+      pal->xcbCon,
+      XCB_PROP_MODE_REPLACE,
+      (xcb_window_t)windowId,
+      XCB_ATOM_WM_NORMAL_HINTS,
+      XCB_ATOM_WM_SIZE_HINTS,
+      32,
+      bytes_to_words(sizeof(newHints)),
+      &newHints);
 }
 
 static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
