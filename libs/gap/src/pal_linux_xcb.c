@@ -1228,11 +1228,11 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
 
   // Flip the y axis of the image and convert to argb.
-  const Mem               outMem  = alloc_alloc(pal->alloc, asset->height * asset->width * 4, 4);
+  const Mem               buffer = alloc_alloc(g_allocScratch, asset->height * asset->width * 4, 4);
   const AssetCursorPixel* inPixel = asset->pixels;
   for (u32 y = asset->height; y-- != 0;) {
     for (u32 x = 0; x != asset->width; ++x) {
-      u8* outData = bits_ptr_offset(outMem.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      u8* outData = bits_ptr_offset(buffer.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));
       outData[0]  = inPixel->a;
       outData[1]  = inPixel->r;
       outData[2]  = inPixel->g;
@@ -1252,8 +1252,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
       0,
       0,
       32,
-      (u32)outMem.size,
-      outMem.ptr);
+      (u32)buffer.size,
+      buffer.ptr);
 
   xcb_free_gc(pal->xcbCon, graphicsContext);
 
@@ -1261,7 +1261,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_render_create_cursor(
       pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
 
-  alloc_free(pal->alloc, outMem);
+  alloc_free(pal->alloc, buffer);
   xcb_render_free_picture(pal->xcbCon, picture);
   xcb_free_pixmap(pal->xcbCon, pixmap);
 
