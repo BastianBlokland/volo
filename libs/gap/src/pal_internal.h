@@ -37,10 +37,13 @@ typedef enum {
 
 typedef struct sGapPal GapPal;
 
-GapPal*           gap_pal_create(Allocator*);
-void              gap_pal_destroy(GapPal*);
-void              gap_pal_update(GapPal*);
-void              gap_pal_cursor_load(GapPal*, GapCursor, const AssetCursorComp*);
+GapPal* gap_pal_create(Allocator*);
+void    gap_pal_destroy(GapPal*);
+void    gap_pal_update(GapPal*);
+void    gap_pal_flush(GapPal*);
+
+void gap_pal_cursor_load(GapPal*, GapCursor, const AssetCursorComp*);
+
 GapWindowId       gap_pal_window_create(GapPal*, GapVector size);
 void              gap_pal_window_destroy(GapPal*, GapWindowId);
 GapPalWindowFlags gap_pal_window_flags(const GapPal*, GapWindowId);

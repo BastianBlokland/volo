@@ -699,10 +699,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_threadTid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -754,6 +754,8 @@ void gap_pal_update(GapPal* pal) {
     }
   }
 }
+
+void gap_pal_flush(GapPal* pal) { (void)pal; }
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
   BITMAPV5HEADER header = {

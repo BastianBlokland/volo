@@ -363,14 +363,6 @@ static void pal_xkb_log_callback(
       log_param("message", fmt_text(string_slice(buffer, 0, chars))));
 }
 
-static void pal_xcb_check_con(GapPal* pal) {
-  const int error = xcb_connection_has_error(pal->xcbCon);
-  if (UNLIKELY(error)) {
-    diag_crash_msg(
-        "Xcb error: code {}, msg: '{}'", fmt_int(error), fmt_text(pal_xcb_err_str(error)));
-  }
-}
-
 /**
  * Synchonously retrieve an xcb atom by name.
  * Xcb atoms are named tokens that are used in the x11 specification.
@@ -402,9 +394,8 @@ static String pal_xcb_atom_name_scratch(GapPal* pal, const xcb_atom_t atom) {
 
 static void pal_xcb_connect(GapPal* pal) {
   // Establish a connection with the x-server.
-  int screen  = 0;
-  pal->xcbCon = xcb_connect(null, &screen);
-  pal_xcb_check_con(pal);
+  int screen            = 0;
+  pal->xcbCon           = xcb_connect(null, &screen);
   pal->maxRequestLength = xcb_get_maximum_request_length(pal->xcbCon) * 4;
 
   // Find the screen for our connection.
@@ -1046,7 +1037,6 @@ static void pal_event_clip_copy_request(
 
   xcb_send_event(
       pal->xcbCon, 0, reqEvt->requestor, XCB_EVENT_MASK_PROPERTY_CHANGE, (char*)&notifyEvt);
-  xcb_flush(pal->xcbCon);
 }
 
 static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId) {
@@ -1085,9 +1075,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc    = alloc,
-             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+      .alloc    = alloc,
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1105,9 +1095,6 @@ GapPal* gap_pal_create(Allocator* alloc) {
   if (pal->extensions & GapPalXcbExtFlags_Randr) {
     pal_randr_query_displays(pal);
   }
-
-  xcb_flush(pal->xcbCon);
-  pal_xcb_check_con(pal);
 
   return pal;
 }
@@ -1320,6 +1307,16 @@ void gap_pal_update(GapPal* pal) {
   }
 }
 
+void gap_pal_flush(GapPal* pal) {
+  xcb_flush(pal->xcbCon);
+
+  const int error = xcb_connection_has_error(pal->xcbCon);
+  if (UNLIKELY(error)) {
+    diag_crash_msg(
+        "Xcb error: code {}, msg: '{}'", fmt_int(error), fmt_text(pal_xcb_err_str(error)));
+  }
+}
+
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
     return; // The render extension is required for color cursors.
@@ -1439,7 +1436,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   xcb_map_window(con, (xcb_window_t)id);
   pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
-  xcb_flush(con);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -1567,9 +1563,6 @@ void gap_pal_window_resize(
         XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
         values);
   }
-
-  xcb_flush(pal->xcbCon);
-  pal_xcb_check_con(pal);
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
@@ -1636,7 +1629,6 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const Ga
   if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
     xcb_change_window_attributes(
         pal->xcbCon, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
-    xcb_flush(pal->xcbCon);
   }
   window->cursor = cursor;
 }
@@ -1683,9 +1675,6 @@ void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const Str
   window->clipCopy = string_dup(g_allocHeap, value);
   xcb_set_selection_owner(
       pal->xcbCon, (xcb_window_t)windowId, pal->atomClipboard, XCB_CURRENT_TIME);
-
-  xcb_flush(pal->xcbCon);
-  pal_xcb_check_con(pal);
 }
 
 void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
@@ -1697,9 +1686,6 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
       pal->atomUtf8String,
       pal->atomVoloClipboard,
       XCB_CURRENT_TIME);
-
-  xcb_flush(pal->xcbCon);
-  pal_xcb_check_con(pal);
 }
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
