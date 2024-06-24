@@ -322,43 +322,6 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   return GapKey_None;
 }
 
-static void pal_xkb_log_callback(
-    struct xkb_context* context, enum xkb_log_level level, const char* format, va_list args) {
-  (void)context;
-  Mem       buffer = mem_stack(256);
-  const int chars  = vsnprintf(buffer.ptr, buffer.size, format, args);
-  if (UNLIKELY(chars < 0)) {
-    diag_crash_msg("vsnprintf() failed for xcb xkb log message");
-  }
-  LogLevel logLevel;
-  String   typeLabel;
-  switch (level) {
-  case XKB_LOG_LEVEL_CRITICAL:
-  case XKB_LOG_LEVEL_ERROR:
-  default:
-    logLevel  = LogLevel_Error;
-    typeLabel = string_lit("error");
-    break;
-  case XKB_LOG_LEVEL_WARNING:
-    logLevel  = LogLevel_Warn;
-    typeLabel = string_lit("warn");
-    break;
-  case XKB_LOG_LEVEL_INFO:
-    logLevel  = LogLevel_Info;
-    typeLabel = string_lit("info");
-    break;
-  case XKB_LOG_LEVEL_DEBUG:
-    logLevel  = LogLevel_Debug;
-    typeLabel = string_lit("debug");
-    break;
-  }
-  log(g_logger,
-      logLevel,
-      "Xcb xkb {} log",
-      log_param("type", fmt_text(typeLabel)),
-      log_param("message", fmt_text(string_slice(buffer, 0, chars))));
-}
-
 /**
  * Synchonously retrieve an xcb atom by name.
  * Xcb atoms are named tokens that are used in the x11 specification.
@@ -501,8 +464,6 @@ static bool pal_xkb_init(GapPal* pal) {
     log_w("Xcb failed to create the xkb-common context");
     return false;
   }
-  xkb_context_set_log_level(pal->xkbContext, XKB_LOG_LEVEL_INFO);
-  xkb_context_set_log_fn(pal->xkbContext, pal_xkb_log_callback);
   pal->xkbDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbCon);
   if (UNLIKELY(pal->xkbDeviceId < 0)) {
     log_w("Xcb failed to retrieve the xkb keyboard device-id");
