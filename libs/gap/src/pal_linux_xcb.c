@@ -10,14 +10,13 @@
 #include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
-#include <xcb/xcb_image.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr, image and render exts.
+ * Optionally uses the xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -1218,26 +1217,18 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
     return; // The render extension is required for color cursors.
   }
-  xcb_image_t* img = xcb_image_create(
-      asset->width,
-      asset->height,
-      XCB_IMAGE_FORMAT_Z_PIXMAP,
-      32,
-      32,
-      32,
-      32,
-      XCB_IMAGE_ORDER_LSB_FIRST,
-      XCB_IMAGE_ORDER_MSB_FIRST,
-      null,
-      0,
-      null);
 
-  if (UNLIKELY(!img)) {
-    diag_crash_msg("xcb_image_create() failed");
-  }
+  xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
+  xcb_create_pixmap(pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
+
+  xcb_render_picture_t picture = xcb_generate_id(pal->xcbCon);
+  xcb_render_create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
+
+  xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
+  xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
 
   // Flip the y axis of the image and convert to argb.
-  const Mem               outMem  = alloc_alloc(pal->alloc, img->stride * asset->height, 4);
+  const Mem               outMem  = alloc_alloc(pal->alloc, asset->height * asset->width * 4, 4);
   const AssetCursorPixel* inPixel = asset->pixels;
   for (u32 y = asset->height; y-- != 0;) {
     for (u32 x = 0; x != asset->width; ++x) {
@@ -1249,17 +1240,21 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
       ++inPixel;
     }
   }
-  img->data = outMem.ptr;
 
-  xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
-  xcb_create_pixmap(pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
+  xcb_put_image(
+      pal->xcbCon,
+      XCB_IMAGE_FORMAT_Z_PIXMAP,
+      pixmap,
+      graphicsContext,
+      asset->width,
+      asset->height,
+      0,
+      0,
+      0,
+      32,
+      (u32)outMem.size,
+      outMem.ptr);
 
-  xcb_render_picture_t picture = xcb_generate_id(pal->xcbCon);
-  xcb_render_create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
-
-  xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
-  xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
-  xcb_image_put(pal->xcbCon, pixmap, graphicsContext, img, 0, 0, 0);
   xcb_free_gc(pal->xcbCon, graphicsContext);
 
   xcb_cursor_t cursor = xcb_generate_id(pal->xcbCon);
@@ -1267,7 +1262,6 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
       pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
 
   alloc_free(pal->alloc, outMem);
-  xcb_image_destroy(img);
   xcb_render_free_picture(pal->xcbCon, picture);
   xcb_free_pixmap(pal->xcbCon, pixmap);
 
