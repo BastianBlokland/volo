@@ -23,6 +23,11 @@
 #define bytes_to_bits(_BYTES_) ((_BYTES_)*8)
 
 /**
+ * Convert number of bytes to words (32 bit values). Divide by 4.
+ */
+#define bytes_to_words(_BYTES_) ((_BYTES_) >> 2)
+
+/**
  * Convert number of words (32 bit values) to bits. Multiply by 32.
  */
 #define words_to_bits(_WORDS_) ((_WORDS_)*32)
