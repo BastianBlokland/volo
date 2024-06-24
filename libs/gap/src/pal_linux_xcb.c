@@ -17,7 +17,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes, icccm, randr and render extensions.
+ * Optionally uses the xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
