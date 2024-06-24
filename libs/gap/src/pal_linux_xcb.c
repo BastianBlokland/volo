@@ -1261,7 +1261,6 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_render_create_cursor(
       pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
 
-  alloc_free(pal->alloc, buffer);
   xcb_render_free_picture(pal->xcbCon, picture);
   xcb_free_pixmap(pal->xcbCon, pixmap);
 
