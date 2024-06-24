@@ -18,13 +18,12 @@ target_link_libraries(lib_gap PRIVATE lib_log lib_asset)
 #
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
 # For debian based systems:
-# apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev libxcb-image0-dev libxcb-render0-dev
+# apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-image0-dev libxcb-render0-dev
 #
 if(${VOLO_PLATFORM} STREQUAL "linux")
 
-  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr, cursor-util, image and render extensions) package")
+  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr, image and render extensions) package")
   find_package(xcb REQUIRED)
-  find_package(xcb-cursor REQUIRED)
   find_package(xcb-icccm REQUIRED)
   find_package(xcb-image REQUIRED)
   find_package(xcb-randr REQUIRED)
@@ -35,7 +34,6 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   find_package(xkbcommon-x11 REQUIRED)
   target_link_libraries(lib_gap PRIVATE
     xcb
-    xcb-cursor
     xcb-icccm
     xcb-image
     xcb-randr

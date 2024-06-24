@@ -266,6 +266,8 @@ ecs_system_define(GapWindowUpdateSys) {
 
     window_update(world, platform, win, winAspect, winEntity);
   }
+
+  gap_pal_flush(platform->pal);
 }
 
 ecs_module_init(gap_window_module) {
