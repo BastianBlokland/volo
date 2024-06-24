@@ -9,7 +9,6 @@
 #include <xcb/randr.h>
 #include <xcb/render.h>
 #include <xcb/xcb.h>
-#include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_image.h>
 #include <xcb/xfixes.h>
@@ -19,7 +18,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes, icccm, randr, cursor-util and render extensions.
+ * Optionally uses the xkb, xfixes, icccm, randr and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -38,12 +37,11 @@
 #define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
 
 typedef enum {
-  GapPalXcbExtFlags_Xkb        = 1 << 0,
-  GapPalXcbExtFlags_XFixes     = 1 << 1,
-  GapPalXcbExtFlags_Icccm      = 1 << 2,
-  GapPalXcbExtFlags_Randr      = 1 << 3,
-  GapPalXcbExtFlags_CursorUtil = 1 << 4,
-  GapPalXcbExtFlags_Render     = 1 << 5,
+  GapPalXcbExtFlags_Xkb    = 1 << 0,
+  GapPalXcbExtFlags_XFixes = 1 << 1,
+  GapPalXcbExtFlags_Icccm  = 1 << 2,
+  GapPalXcbExtFlags_Randr  = 1 << 3,
+  GapPalXcbExtFlags_Render = 1 << 4,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -86,8 +84,7 @@ struct sGapPal {
 
   xcb_render_pictformat_t formatArgb32;
 
-  xcb_cursor_context_t* cursorCtx;
-  xcb_cursor_t          cursors[GapCursor_Count];
+  xcb_cursor_t cursors[GapCursor_Count];
 
   xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmState, atomWmStateFullscreen,
       atomWmStateBypassCompositor, atomClipboard, atomVoloClipboard, atomTargets, atomUtf8String,
@@ -598,24 +595,6 @@ static bool pal_randr_init(GapPal* pal) {
   return true;
 }
 
-/**
- * Initialize the cursor-util extension.
- */
-static bool pal_cursorutil_init(GapPal* pal) {
-  const int res = xcb_cursor_context_new(pal->xcbCon, pal->xcbScreen, &pal->cursorCtx);
-  if (res != 0) {
-    log_w("Xcb failed to initialize the cursor-util xcb ext", log_param("error", fmt_int(res)));
-    return false;
-  }
-
-  pal->cursors[GapCursor_Text]   = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
-  pal->cursors[GapCursor_Click]  = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
-  pal->cursors[GapCursor_Resize] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
-
-  log_i("Xcb initialized the cursor-util xcb extension");
-  return true;
-}
-
 static bool pal_render_find_formats(GapPal* pal) {
   xcb_generic_error_t*                   err = null;
   xcb_render_query_pict_formats_reply_t* formats =
@@ -700,9 +679,6 @@ static void pal_init_extensions(GapPal* pal) {
   pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
   if (pal_randr_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
-  }
-  if (pal_cursorutil_init(pal)) {
-    pal->extensions |= GapPalXcbExtFlags_CursorUtil;
   }
   if (pal_render_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Render;
@@ -1081,9 +1057,6 @@ void gap_pal_destroy(GapPal* pal) {
     if (*cursor != XCB_NONE) {
       xcb_free_cursor(pal->xcbCon, *cursor);
     }
-  }
-  if (pal->cursorCtx) {
-    xcb_cursor_context_free(pal->cursorCtx);
   }
 
   xcb_disconnect(pal->xcbCon);
@@ -1570,10 +1543,10 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
-  if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
-    xcb_change_window_attributes(
-        pal->xcbCon, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
-  }
+
+  xcb_change_window_attributes(
+      pal->xcbCon, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
+
   window->cursor = cursor;
 }
 

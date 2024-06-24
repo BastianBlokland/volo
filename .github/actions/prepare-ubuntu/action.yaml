@@ -18,7 +18,7 @@ runs:
       run: |
         sudo apt install \
           libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev \
-          libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev libxcb-image0-dev libxcb-render0-dev
+          libxcb-icccm4-dev libxcb-randr0-dev libxcb-image0-dev libxcb-render0-dev
 
     - name: install-vulkan
       shell: bash
