@@ -480,11 +480,7 @@ static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
 }
 
 static void pal_xcb_cursor_grab_release(GapPal* pal) {
-  const xcb_void_cookie_t    cookie = xcb_ungrab_pointer_checked(pal->xcbCon, XCB_CURRENT_TIME);
-  const xcb_generic_error_t* err    = xcb_request_check(pal->xcbCon, cookie);
-  if (UNLIKELY(err)) {
-    diag_crash_msg("xcb_ungrab_pointer(), err: {}", fmt_int(err->error_code));
-  }
+  xcb_ungrab_pointer(pal->xcbCon, XCB_CURRENT_TIME);
 }
 
 static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
@@ -1452,11 +1448,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
-  const xcb_void_cookie_t cookie = xcb_destroy_window_checked(pal->xcbCon, (xcb_window_t)windowId);
-  const xcb_generic_error_t* err = xcb_request_check(pal->xcbCon, cookie);
-  if (UNLIKELY(err)) {
-    diag_crash_msg("xcb_destroy_window(), err: {}", fmt_int(err->error_code));
-  }
+  xcb_destroy_window(pal->xcbCon, (xcb_window_t)windowId);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
@@ -1504,7 +1496,7 @@ String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) 
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  const xcb_void_cookie_t cookie = xcb_change_property_checked(
+  xcb_change_property(
       pal->xcbCon,
       XCB_PROP_MODE_REPLACE,
       (xcb_window_t)windowId,
@@ -1513,10 +1505,6 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
       sizeof(u8) * 8,
       (u32)title.size,
       title.ptr);
-  const xcb_generic_error_t* err = xcb_request_check(pal->xcbCon, cookie);
-  if (UNLIKELY(err)) {
-    diag_crash_msg("xcb_change_property(), err: {}", fmt_int(err->error_code));
-  }
 }
 
 void gap_pal_window_resize(
@@ -1572,23 +1560,11 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
   }
 
   if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
-
-    const xcb_void_cookie_t cookie =
-        xcb_xfixes_hide_cursor_checked(pal->xcbCon, (xcb_window_t)windowId);
-    const xcb_generic_error_t* err = xcb_request_check(pal->xcbCon, cookie);
-    if (UNLIKELY(err)) {
-      diag_crash_msg("xcb_xfixes_hide_cursor(), err: {}", fmt_int(err->error_code));
-    }
+    xcb_xfixes_hide_cursor(pal->xcbCon, (xcb_window_t)windowId);
     pal->flags |= GapPalFlags_CursorHidden;
 
   } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
-
-    const xcb_void_cookie_t cookie =
-        xcb_xfixes_show_cursor_checked(pal->xcbCon, (xcb_window_t)windowId);
-    const xcb_generic_error_t* err = xcb_request_check(pal->xcbCon, cookie);
-    if (UNLIKELY(err)) {
-      diag_crash_msg("xcb_xfixes_show_cursor(), err: {}", fmt_int(err->error_code));
-    }
+    xcb_xfixes_show_cursor(pal->xcbCon, (xcb_window_t)windowId);
     pal->flags &= ~GapPalFlags_CursorHidden;
   }
 }
@@ -1646,13 +1622,7 @@ void gap_pal_window_cursor_pos_set(
       .x = position.x,
       .y = window->params[GapParam_WindowSize].height - position.y,
   };
-
-  const xcb_void_cookie_t cookie = xcb_warp_pointer_checked(
-      pal->xcbCon, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
-  const xcb_generic_error_t* err = xcb_request_check(pal->xcbCon, cookie);
-  if (UNLIKELY(err)) {
-    diag_crash_msg("xcb_warp_pointer(), err: {}", fmt_int(err->error_code));
-  }
+  xcb_warp_pointer(pal->xcbCon, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
 
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
