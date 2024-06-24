@@ -1215,7 +1215,7 @@ void gap_pal_flush(GapPal* pal) {
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
-    return; // The render extension is required for color cursors.
+    return; // The render extension is required for pix-map cursors.
   }
 
   xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
