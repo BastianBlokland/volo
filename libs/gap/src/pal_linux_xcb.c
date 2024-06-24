@@ -14,7 +14,6 @@
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
-#include <xkbcommon/xkbcommon.h>
 
 /**
  * X11 client implementation using the xcb library.
