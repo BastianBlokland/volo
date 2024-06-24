@@ -336,18 +336,6 @@ static xcb_atom_t pal_xcb_atom(GapPal* pal, const String name) {
   return result;
 }
 
-static String pal_xcb_atom_name_scratch(GapPal* pal, const xcb_atom_t atom) {
-  xcb_generic_error_t*       err   = null;
-  xcb_get_atom_name_reply_t* reply = pal_xcb_call(pal->xcbCon, xcb_get_atom_name, &err, atom);
-  if (UNLIKELY(err)) {
-    diag_crash_msg("Xcb failed to retrieve atom name, err: {}", fmt_int(err->error_code));
-  }
-  const Mem name = mem_create(xcb_get_atom_name_name(reply), xcb_get_atom_name_name_length(reply));
-  const String result = string_dup(g_allocScratch, name);
-  free(reply);
-  return result;
-}
-
 static void pal_xcb_connect(GapPal* pal) {
   // Establish a connection with the x-server.
   int screen            = 0;
@@ -492,7 +480,7 @@ static bool pal_xkb_init(GapPal* pal) {
 }
 
 /**
- * Initialize xfixes extension, contains various cursor visibility utilities.
+ * Initialize xfixes extension, contains various utilities.
  */
 static bool pal_xfixes_init(GapPal* pal) {
   xcb_generic_error_t*              err   = null;
@@ -947,9 +935,7 @@ static void pal_event_clip_copy_request(
       pal_clip_send_utf8(pal, window, reqEvt->requestor, reqEvt->property);
       notifyEvt.property = reqEvt->property;
     } else {
-      log_w(
-          "Xcb copy request for unsupported target received",
-          log_param("target", fmt_text(pal_xcb_atom_name_scratch(pal, reqEvt->target))));
+      log_w("Xcb copy request for unsupported target received");
     }
   }
 
