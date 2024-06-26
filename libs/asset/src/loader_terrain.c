@@ -142,8 +142,6 @@ ecs_system_define(LoadTerrainAssetSys) {
     // Resolve asset references.
     terrainComp->graphic   = asset_lookup(world, manager, terrainComp->graphicId);
     terrainComp->heightmap = asset_lookup(world, manager, terrainComp->heightmapId);
-    asset_register_dep(world, entity, terrainComp->graphic);
-    asset_register_dep(world, entity, terrainComp->heightmap);
 
     ecs_world_remove_t(world, entity, AssetTerrainLoadComp);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
