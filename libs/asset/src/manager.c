@@ -506,3 +506,7 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
       .dependents.type   = AssetDependencyStorage_Single,
       .dependents.single = asset);
 }
+
+AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
+  return asset_repo_source_open(manager->repo, id);
+}
