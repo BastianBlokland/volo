@@ -510,3 +510,13 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
 AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
   return asset_repo_source_open(manager->repo, id);
 }
+
+EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String id) {
+  const EcsEntityId assetEntity = asset_lookup(world, manager, id);
+
+  if (manager->flags & AssetManagerFlags_TrackChanges) {
+    asset_repo_changes_watch(manager->repo, id, (u64)assetEntity);
+  }
+
+  return assetEntity;
+}

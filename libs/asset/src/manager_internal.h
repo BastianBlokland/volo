@@ -15,3 +15,9 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, EcsEntityId dependen
  * NOTE: Does not register the asset with the manager and does not trigger loaders.
  */
 AssetSource* asset_source_open(const AssetManagerComp*, String id);
+
+/**
+ * Watch an asset for changes, 'AssetChangedComp' will be added once a change is detected.
+ * Pre-condition: !string_is_empty(id).
+ */
+EcsEntityId asset_watch(EcsWorld*, AssetManagerComp*, String id);
