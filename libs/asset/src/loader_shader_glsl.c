@@ -45,6 +45,19 @@ typedef enum {
   ShadercCompilationStatus_Success = 0,
 } ShadercCompilationStatus;
 
+typedef struct {
+  const char* sourceName; // Resolved absolute path.
+  usize       sourceNameLength;
+  const char* content; // Contains the error message in-case of inclusion error.=
+  usize       contentLength;
+  void*       userContext;
+} ShadercIncludeResult;
+
+typedef enum {
+  ShadercIncludeType_Relative, // #include "other"
+  ShadercIncludeType_Standard, // #include <other>
+} ShadercIncludeType;
+
 typedef struct sShadercCompiler          ShadercCompiler;
 typedef struct sShadercCompileOptions    ShadercCompileOptions;
 typedef struct sShadercCompilationResult ShadercCompilationResult;
@@ -66,6 +79,7 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                      (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
   void                      (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
+  void                      (SYS_DECL* compile_options_set_include_callbacks)(ShadercCompileOptions*, void* resolver, void* releaser, void* userContext);
   ShadercCompilationResult* (SYS_DECL* compile_into_spv)(const ShadercCompiler*, const char* sourceText, usize sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
   void                      (SYS_DECL* result_release)(ShadercCompilationResult*);
   ShadercCompilationStatus  (SYS_DECL* result_get_compilation_status)(const ShadercCompilationResult*);
@@ -145,6 +159,25 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
   return count;
 }
 
+static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
+    void*                    userContext,
+    const char*              requestedSource,
+    const ShadercIncludeType type,
+    const char*              requestingSource,
+    const usize              includeDepth) {
+  (void)userContext;
+  (void)requestedSource;
+  (void)type;
+  (void)requestingSource;
+  (void)includeDepth;
+  return null;
+}
+
+static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
+  (void)userContext;
+  (void)result;
+}
+
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
   AssetGlslEnvComp* env = ecs_world_add_t(world, entity, AssetGlslEnvComp);
 
@@ -180,6 +213,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compile_options_set_preserve_bindings);
   SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
   SHADERC_LOAD_SYM(compile_options_set_optimization_level);
+  SHADERC_LOAD_SYM(compile_options_set_include_callbacks);
   SHADERC_LOAD_SYM(compile_into_spv);
   SHADERC_LOAD_SYM(result_release);
   SHADERC_LOAD_SYM(result_get_compilation_status);
@@ -201,6 +235,8 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   env->compile_options_set_forced_version_profile(env->options, glsl_shaderc_glsl_version, 0);
   env->compile_options_set_warnings_as_errors(env->options);
   env->compile_options_set_preserve_bindings(env->options, true);
+  env->compile_options_set_include_callbacks(
+      env->options, glsl_include_resolve, glsl_include_release, null);
 #if glsl_shaderc_debug_info
   env->compile_options_set_generate_debug_info(env->options);
 #endif
