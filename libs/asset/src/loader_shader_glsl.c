@@ -12,7 +12,7 @@
  */
 
 #ifdef VOLO_WIN32
-static const String g_glslShadercPath = string_static("libshaderc_shared.so.1");
+static const String g_glslShadercPath = string_static("shaderc_shared.dll");
 #else
 static const String g_glslShadercPath = string_static("libshaderc_shared.so.1");
 #endif
