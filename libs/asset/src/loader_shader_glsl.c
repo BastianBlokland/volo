@@ -184,7 +184,14 @@ static ShadercIncludeContext* glsl_include_ctx_init(void) {
   return ctx;
 }
 
-static ShadercIncludeResult* glsl_include_fatal_result(ShadercIncludeContext* ctx) {
+static ShadercIncludeResult* glsl_include_result_alloc(ShadercIncludeContext* ctx) {
+  if (ctx->resultCount == array_elems(ctx->results)) {
+    return null;
+  }
+  return &ctx->results[ctx->resultCount++];
+}
+
+static ShadercIncludeResult* glsl_include_result_fatal(ShadercIncludeContext* ctx) {
   return &ctx->results[0];
 }
 
@@ -195,20 +202,23 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     const char*              requestingSource,
     const usize              includeDepth) {
   ShadercIncludeContext* ctx = userContext;
+  ShadercIncludeResult*  res = glsl_include_result_alloc(ctx);
+  if (UNLIKELY(!res)) {
+    return glsl_include_result_fatal(ctx);
+  }
 
   (void)requestedSource;
   (void)type;
   (void)requestingSource;
   (void)includeDepth;
 
-  return glsl_include_fatal_result(ctx);
+  return res;
 }
 
 static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
-  ShadercIncludeContext* ctx = userContext;
-
-  (void)ctx;
+  (void)userContext;
   (void)result;
+  // NOTE: We do not re-use result object at the moment
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
