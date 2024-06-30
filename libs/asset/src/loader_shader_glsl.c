@@ -55,19 +55,19 @@ ecs_comp_define(AssetGlslEnvComp) {
   ShadercCompileOptions* options;
 
   // clang-format off
-  ShadercCompiler*       (SYS_DECL* compiler_initialize)(void);
-  void                   (SYS_DECL* compiler_release)(ShadercCompiler*);
-  ShadercCompileOptions* (SYS_DECL* compile_options_initialize)(void);
-  void                   (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
-  void                   (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
-  void                   (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
-  void                   (SYS_DECL* compile_options_set_forced_version_profile)(ShadercCompileOptions*, int version, ShadercProfile);
-  void                   (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
-  void                   (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
-  void                   (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
-  void                   (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
-  void                   (SYS_DECL* compile_into_spv)(ShadercCompilationResult*, const ShadercCompiler*, const char* sourceText, size_t sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
-  void                   (SYS_DECL* result_release)(ShadercCompilationResult*);
+  ShadercCompiler*          (SYS_DECL* compiler_initialize)(void);
+  void                      (SYS_DECL* compiler_release)(ShadercCompiler*);
+  ShadercCompileOptions*    (SYS_DECL* compile_options_initialize)(void);
+  void                      (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
+  void                      (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
+  void                      (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
+  void                      (SYS_DECL* compile_options_set_forced_version_profile)(ShadercCompileOptions*, int version, ShadercProfile);
+  void                      (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
+  void                      (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
+  void                      (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
+  void                      (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
+  ShadercCompilationResult* (SYS_DECL* compile_into_spv)(const ShadercCompiler*, const char* sourceText, size_t sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
+  void                      (SYS_DECL* result_release)(ShadercCompilationResult*);
   // clang-format on
 };
 
@@ -94,9 +94,17 @@ static void ecs_destruct_glsl_load_comp(void* data) {
   asset_repo_source_close(comp->src);
 }
 
+static const char* to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
+
 typedef enum {
   GlslError_None = 0,
   GlslError_CompilerNotAvailable,
+  GlslError_CompilationFailed,
 
   GlslError_Count,
 } GlslError;
@@ -105,6 +113,7 @@ static String glsl_error_str(const GlslError res) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("No Glsl compiler available"),
+      string_static("Glsl compilation failed"),
   };
   ASSERT(array_elems(g_msgs) == GlslError_Count, "Incorrect number of glsl-error messages");
   return g_msgs[res];
@@ -200,12 +209,35 @@ Done:
   return env;
 }
 
+static bool glsl_compile(
+    const AssetGlslEnvComp* glslEnv,
+    const String            input,
+    const String            inputId,
+    const ShadercShaderKind inputKind) {
+  bool success = true;
+
+  ShadercCompilationResult* res = glslEnv->compile_into_spv(
+      glslEnv->compiler,
+      input.ptr,
+      input.size,
+      inputKind,
+      to_null_term_scratch(inputId),
+      "main" /* entry-point*/,
+      glslEnv->options);
+
+  glslEnv->result_release(res);
+  return success;
+}
+
 ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(AssetGlslEnvComp);
 }
 
-ecs_view_define(LoadView) { ecs_access_read(AssetGlslLoadComp); }
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetGlslLoadComp);
+}
 
 /**
  * Load glsl-shader assets.
@@ -225,10 +257,16 @@ ecs_system_define(LoadGlslAssetSys) {
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
+    const AssetGlslLoadComp* load   = ecs_view_read_t(itr, AssetGlslLoadComp);
+    const EcsEntityId        entity = ecs_view_entity(itr);
+    const String             id     = asset_id(ecs_view_read_t(itr, AssetComp));
 
     if (!glslEnv->compiler || !glslEnv->options) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
+      goto Error;
+    }
+    if (!glsl_compile(glslEnv, load->src->data, id, load->kind)) {
+      glsl_load_fail(world, entity, GlslError_CompilationFailed);
       goto Error;
     }
 
