@@ -875,7 +875,7 @@ void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, 
   data = spv_consume(data, 1); // Spv magic number.
   SpvVersion version;
   data = spv_read_version(data, &version);
-  if (version.major <= 1 && version.minor < 3) {
+  if (version.major != 1 || version.minor != 3) {
     spv_load_fail(world, entity, SpvError_UnsupportedVersion);
     goto Error;
   }

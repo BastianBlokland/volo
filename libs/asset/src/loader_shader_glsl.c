@@ -18,15 +18,22 @@
 #define glsl_shaderc_optimize true
 
 typedef enum {
-  GlslKind_Vertex,
-  GlslKind_Fragment,
-} GlslKind;
+  ShadercOptimization_None        = 0,
+  ShadercOptimization_Size        = 1,
+  ShadercOptimization_Performance = 2,
+} ShadercOptimization;
 
 typedef enum {
-  ShadercOptimization_None,
-  ShadercOptimization_Size,
-  ShadercOptimization_Performance,
-} ShadercOptimization;
+  ShadercTargetEnv_Vulkan = 0,
+} ShadercTargetEnv;
+
+typedef enum {
+  ShadercSpvVersion_1_3 = 0x010300u,
+} ShadercSpvVersion;
+
+typedef enum {
+  ShadercTargetEnvVersion_Vulkan_1_3 = (1u << 22) | (3 << 12),
+} ShadercTargetEnvVersion;
 
 typedef struct sShadercCompiler       ShadercCompiler;
 typedef struct sShadercCompileOptions ShadercCompileOptions;
@@ -34,17 +41,25 @@ typedef struct sShadercCompileOptions ShadercCompileOptions;
 ecs_comp_define(AssetGlslEnvComp) {
   DynLib*                shaderc;
   ShadercCompiler*       compiler;
-  ShadercCompileOptions* compileOptions;
+  ShadercCompileOptions* options;
 
   // clang-format off
   ShadercCompiler*       (SYS_DECL* compiler_initialize)(void);
   void                   (SYS_DECL* compiler_release)(ShadercCompiler*);
   ShadercCompileOptions* (SYS_DECL* compile_options_initialize)(void);
   void                   (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
+  void                   (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
+  void                   (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
+  void                   (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
   void                   (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
   void                   (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
   // clang-format on
 };
+
+typedef enum {
+  GlslKind_Vertex,
+  GlslKind_Fragment,
+} GlslKind;
 
 ecs_comp_define(AssetGlslLoadComp) {
   GlslKind     kind;
@@ -54,8 +69,8 @@ ecs_comp_define(AssetGlslLoadComp) {
 static void ecs_destruct_glsl_env_comp(void* data) {
   AssetGlslEnvComp* comp = data;
   if (comp->shaderc) {
-    if (comp->compileOptions) {
-      comp->compile_options_release(comp->compileOptions);
+    if (comp->options) {
+      comp->compile_options_release(comp->options);
     }
     if (comp->compiler) {
       comp->compiler_release(comp->compiler);
@@ -137,6 +152,9 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compiler_release);
   SHADERC_LOAD_SYM(compile_options_initialize);
   SHADERC_LOAD_SYM(compile_options_release);
+  SHADERC_LOAD_SYM(compile_options_set_target_env);
+  SHADERC_LOAD_SYM(compile_options_set_target_spirv);
+  SHADERC_LOAD_SYM(compile_options_set_warnings_as_errors);
   SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
   SHADERC_LOAD_SYM(compile_options_set_optimization_level);
 
@@ -145,16 +163,20 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
     log_e("Failed to initialize Shaderc compiler");
     goto Done;
   }
-  env->compileOptions = env->compile_options_initialize();
-  if (!env->compileOptions) {
+  env->options = env->compile_options_initialize();
+  if (!env->options) {
     log_e("Failed to initialize Shaderc compile-options");
     goto Done;
   }
+  env->compile_options_set_target_env(
+      env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_3);
+  env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
+  env->compile_options_set_warnings_as_errors(env->options);
 #if glsl_shaderc_debug_info
-  env->compile_options_set_generate_debug_info(env->compileOptions);
+  env->compile_options_set_generate_debug_info(env->options);
 #endif
 #if glsl_shaderc_optimize
-  env->compile_options_set_optimization_level(env->compileOptions, ShadercOptimization_Performance);
+  env->compile_options_set_optimization_level(env->options, ShadercOptimization_Performance);
 #endif
 
 Done:
@@ -188,7 +210,7 @@ ecs_system_define(LoadGlslAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
-    if (!glslEnv->compiler || !glslEnv->compileOptions) {
+    if (!glslEnv->compiler || !glslEnv->options) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
