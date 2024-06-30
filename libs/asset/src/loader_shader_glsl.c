@@ -13,11 +13,12 @@
  * Glsl (OpenGL Shading Language) loader using libshaderc (https://github.com/google/shaderc/).
  */
 
-#define glsl_shaderc_glsl_version 450
-#define glsl_shaderc_debug_info true
-#define glsl_shaderc_optimize true
+#define glsl_version 450
+#define glsl_debug_info true
+#define glsl_optimize true
 #define glsl_shaderc_names_max 4
-#define glsl_shaderc_id_chunk_size (4 * usize_kibibyte)
+#define glsl_id_chunk_size (4 * usize_kibibyte)
+#define glsl_include_watch_dependencies true
 
 typedef enum {
   ShadercOptimization_None        = 0,
@@ -65,6 +66,7 @@ typedef struct sShadercCompilationResult ShadercCompilationResult;
 
 typedef struct {
   EcsWorld*         world;
+  EcsEntityId       assetEntity;
   AssetManagerComp* assetManager;
 } GlslIncludeInvocation;
 
@@ -110,7 +112,7 @@ ecs_comp_define(AssetGlslLoadComp) {
 static GlslIncludeCtx* glsl_include_ctx_init(void) {
   GlslIncludeCtx* ctx = alloc_alloc_t(g_allocHeap, GlslIncludeCtx);
 
-  ctx->idAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, glsl_shaderc_id_chunk_size);
+  ctx->idAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, glsl_id_chunk_size);
 
   const usize resultSize  = sizeof(ShadercIncludeResult);
   const usize resultAlign = alignof(ShadercIncludeResult);
@@ -251,6 +253,13 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
   res->contentLength    = src->data.size;
   res->userData         = src;
 
+#if glsl_include_watch_dependencies
+  {
+    const EcsEntityId depEntity = asset_watch(ctx->invoc->world, ctx->invoc->assetManager, id);
+    asset_register_dep(ctx->invoc->world, ctx->invoc->assetEntity, depEntity);
+  }
+#endif
+
   return res;
 }
 
@@ -319,15 +328,15 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   env->compile_options_set_target_env(
       env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_3);
   env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
-  env->compile_options_set_forced_version_profile(env->options, glsl_shaderc_glsl_version, 0);
+  env->compile_options_set_forced_version_profile(env->options, glsl_version, 0);
   env->compile_options_set_warnings_as_errors(env->options);
   env->compile_options_set_preserve_bindings(env->options, true);
   env->compile_options_set_include_callbacks(
       env->options, glsl_include_resolve, glsl_include_release, env->includeCtx);
-#if glsl_shaderc_debug_info
+#if glsl_debug_info
   env->compile_options_set_generate_debug_info(env->options);
 #endif
-#if glsl_shaderc_optimize
+#if glsl_optimize
   env->compile_options_set_optimization_level(env->options, ShadercOptimization_Performance);
 #endif
 
@@ -407,6 +416,7 @@ ecs_system_define(LoadGlslAssetSys) {
 
     const GlslIncludeInvocation includeInvoc = {
         .world        = world,
+        .assetEntity  = entity,
         .assetManager = manager,
     };
 
