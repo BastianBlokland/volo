@@ -65,7 +65,11 @@ typedef struct sShadercCompilationResult ShadercCompilationResult;
 typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
-  Allocator*        resultAlloc; // Allocator for ShadercIncludeResult objects.
+} GlslIncludeInvocation;
+
+typedef struct {
+  const GlslIncludeInvocation* invoc;
+  Allocator*                   resultAlloc; // Allocator for ShadercIncludeResult objects.
 } GlslIncludeCtx;
 
 ecs_comp_define(AssetGlslEnvComp) {
@@ -107,7 +111,14 @@ static GlslIncludeCtx* glsl_include_ctx_init(void) {
   return ctx;
 }
 
-static void glsl_include_ctx_reset(GlslIncludeCtx* ctx) { alloc_reset(ctx->resultAlloc); }
+static void glsl_include_ctx_prepare(GlslIncludeCtx* ctx, const GlslIncludeInvocation* invoc) {
+  ctx->invoc = invoc;
+}
+
+static void glsl_include_ctx_clear(GlslIncludeCtx* ctx) {
+  alloc_reset(ctx->resultAlloc);
+  ctx->invoc = null;
+}
 
 static void glsl_include_ctx_destroy(GlslIncludeCtx* ctx) {
   alloc_block_destroy(ctx->resultAlloc);
@@ -182,32 +193,43 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
   return count;
 }
 
+static void glsl_include_error(ShadercIncludeResult* res, const String msg) {
+  *res = (ShadercIncludeResult){.content = msg.ptr, .contentLength = msg.size};
+}
+
 static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     void*                    userContext,
     const char*              requestedSource,
     const ShadercIncludeType type,
     const char*              requestingSource,
     const usize              includeDepth) {
-  GlslIncludeCtx*       ctx = userContext;
-  ShadercIncludeResult* res = alloc_alloc_t(ctx->resultAlloc, ShadercIncludeResult);
+  GlslIncludeCtx* ctx = userContext;
 
-  const String requestedId = string_from_null_term(requestedSource);
-  AssetSource* assetSource = asset_source_open(ctx->assetManager, requestedId);
-  if (UNLIKELY(!assetSource)) {
-    static const String g_notFoundMsg = string_lit("File not found");
-    *res                              = (ShadercIncludeResult){
-        .content       = g_notFoundMsg.ptr,
-        .contentLength = g_notFoundMsg.size,
-    };
+  (void)requestingSource;
+  (void)includeDepth;
+
+  ShadercIncludeResult* res = alloc_alloc_t(ctx->resultAlloc, ShadercIncludeResult);
+  if (UNLIKELY(type != ShadercIncludeType_Standard)) {
+    glsl_include_error(res, string_lit("Relative includes are not supported"));
     return res;
   }
 
-  res->userData = assetSource;
+  const Mem idBuffer  = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+  DynString idBuilder = dynstring_create_over(idBuffer);
 
-  (void)requestedSource;
-  (void)type;
-  (void)requestingSource;
-  (void)includeDepth;
+  path_append(&idBuilder, string_lit("shaders"));
+  path_append(&idBuilder, string_lit("include"));
+  path_append(&idBuilder, path_canonize_scratch(string_from_null_term(requestedSource)));
+
+  AssetSource* src = asset_source_open(ctx->invoc->assetManager, dynstring_view(&idBuilder));
+  if (UNLIKELY(!src)) {
+    glsl_include_error(res, string_lit("File not found"));
+    return res;
+  }
+
+  res->content       = src->data.ptr;
+  res->contentLength = src->data.size;
+  res->userData      = src;
 
   return res;
 }
@@ -292,17 +314,14 @@ Done:
 }
 
 static bool glsl_compile(
-    EcsWorld*               world,
-    AssetGlslEnvComp*       glslEnv,
-    AssetManagerComp*       assetManager,
-    const String            input,
-    const String            inputId,
-    const ShadercShaderKind inputKind) {
+    AssetGlslEnvComp*            glslEnv,
+    const GlslIncludeInvocation* includeInvoc,
+    const String                 input,
+    const String                 inputId,
+    const ShadercShaderKind      inputKind) {
   bool success = true;
 
-  glsl_include_ctx_reset(glslEnv->includeCtx);
-  glslEnv->includeCtx->world        = world;
-  glslEnv->includeCtx->assetManager = assetManager;
+  glsl_include_ctx_prepare(glslEnv->includeCtx, includeInvoc);
 
   ShadercCompilationResult* res = glslEnv->compile_into_spv(
       glslEnv->compiler,
@@ -325,6 +344,7 @@ static bool glsl_compile(
 
 Done:
   glslEnv->result_release(res);
+  glsl_include_ctx_clear(glslEnv->includeCtx);
   return success;
 }
 
@@ -359,11 +379,16 @@ ecs_system_define(LoadGlslAssetSys) {
     const EcsEntityId        entity = ecs_view_entity(itr);
     const String             id     = asset_id(ecs_view_read_t(itr, AssetComp));
 
+    const GlslIncludeInvocation includeInvoc = {
+        .world        = world,
+        .assetManager = manager,
+    };
+
     if (!glslEnv->compiler || !glslEnv->options) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
-    if (!glsl_compile(world, glslEnv, manager, load->src->data, id, load->kind)) {
+    if (!glsl_compile(glslEnv, &includeInvoc, load->src->data, id, load->kind)) {
       glsl_load_fail(world, entity, GlslError_CompilationFailed);
       goto Error;
     }
