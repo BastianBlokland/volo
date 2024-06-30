@@ -183,7 +183,16 @@ static String glsl_error_str(const GlslError res) {
 }
 
 static void glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const GlslError err) {
-  log_e("Failed to parse Glsl shader", log_param("error", fmt_text(glsl_error_str(err))));
+  log_e("Failed to load Glsl shader", log_param("error", fmt_text(glsl_error_str(err))));
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+}
+
+static void glsl_load_fail_msg(
+    EcsWorld* world, const EcsEntityId entity, const GlslError err, const String msg) {
+  log_e(
+      "Failed to load Glsl shader",
+      log_param("error", fmt_text(glsl_error_str(err))),
+      log_param("message", fmt_text(msg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
@@ -344,45 +353,6 @@ Done:
   return env;
 }
 
-static bool glsl_compile(
-    AssetGlslEnvComp*            glslEnv,
-    const GlslIncludeInvocation* includeInvoc,
-    const String                 input,
-    const String                 inputId,
-    const ShadercShaderKind      inputKind,
-    Mem*                         spvOut) {
-  bool success = true;
-
-  glsl_include_ctx_prepare(glslEnv->includeCtx, includeInvoc);
-
-  ShadercCompilationResult* res = glslEnv->compile_into_spv(
-      glslEnv->compiler,
-      input.ptr,
-      input.size,
-      inputKind,
-      to_null_term_scratch(inputId),
-      "main" /* entry-point*/,
-      glslEnv->options);
-
-  if (glslEnv->result_get_compilation_status(res) != ShadercCompilationStatus_Success) {
-    const String err = string_from_null_term(glslEnv->result_get_error_message(res));
-    log_e(
-        "Glsl compilation failed",
-        log_param("input", fmt_text(inputId)),
-        log_param("err", fmt_text(err)));
-    success = false;
-    goto Done;
-  }
-
-  const Mem resMem = mem_create(glslEnv->result_get_bytes(res), glslEnv->result_get_length(res));
-  *spvOut          = alloc_dup(g_allocHeap, resMem, alignof(u32));
-
-Done:
-  glslEnv->result_release(res);
-  glsl_include_ctx_clear(glslEnv->includeCtx);
-  return success;
-}
-
 ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(AssetGlslEnvComp);
@@ -419,30 +389,45 @@ ecs_system_define(LoadGlslAssetSys) {
         .assetEntity  = entity,
         .assetManager = manager,
     };
+    glsl_include_ctx_prepare(glslEnv->includeCtx, &includeInvoc);
 
     if (!glslEnv->compiler || !glslEnv->options) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
-      goto Error;
+      goto Done;
     }
-    Mem spvData;
-    if (!glsl_compile(glslEnv, &includeInvoc, load->src->data, id, load->kind, &spvData)) {
-      glsl_load_fail(world, entity, GlslError_CompilationFailed);
-      goto Error;
+
+    ShadercCompilationResult* res = glslEnv->compile_into_spv(
+        glslEnv->compiler,
+        load->src->data.ptr,
+        load->src->data.size,
+        load->kind,
+        to_null_term_scratch(id),
+        "main" /* entry-point*/,
+        glslEnv->options);
+
+    if (glslEnv->result_get_compilation_status(res) != ShadercCompilationStatus_Success) {
+      const String msg = string_from_null_term(glslEnv->result_get_error_message(res));
+      glsl_load_fail_msg(world, entity, GlslError_CompilationFailed, msg);
+      glslEnv->result_release(res);
+      goto Done;
     }
+
+    const Mem resMem  = mem_create(glslEnv->result_get_bytes(res), glslEnv->result_get_length(res));
+    const Mem spvData = alloc_dup(g_allocHeap, resMem, alignof(u32));
+
+    glslEnv->result_release(res);
 
     if (!asset_shader_spv_init_from_mem(world, entity, spvData)) {
       glsl_load_fail(world, entity, GlslError_InvalidSpv);
-      goto Error;
+      goto Done;
     }
 
     ecs_world_add_t(
         world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Memory, .srcMem = spvData);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-    ecs_world_remove_t(world, entity, AssetGlslLoadComp);
-    continue;
 
-  Error:
-    // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
+  Done:
+    glsl_include_ctx_clear(glslEnv->includeCtx);
     ecs_world_remove_t(world, entity, AssetGlslLoadComp);
   }
 }
