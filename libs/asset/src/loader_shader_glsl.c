@@ -13,12 +13,20 @@
  * Glsl (OpenGL Shading Language) loader using libshaderc (https://github.com/google/shaderc/).
  */
 
-#define GLSL_SHADERC_NAMES_MAX 4
+#define glsl_shaderc_names_max 4
+#define glsl_shaderc_debug_info true
+#define glsl_shaderc_optimize true
 
 typedef enum {
   GlslKind_Vertex,
   GlslKind_Fragment,
 } GlslKind;
+
+typedef enum {
+  ShadercOptimization_None,
+  ShadercOptimization_Size,
+  ShadercOptimization_Performance,
+} ShadercOptimization;
 
 typedef struct sShadercCompiler       ShadercCompiler;
 typedef struct sShadercCompileOptions ShadercCompileOptions;
@@ -33,6 +41,8 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                   (SYS_DECL* compiler_release)(ShadercCompiler*);
   ShadercCompileOptions* (SYS_DECL* compile_options_initialize)(void);
   void                   (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
+  void                   (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
+  void                   (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
   // clang-format on
 };
 
@@ -80,7 +90,7 @@ static void glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const Glsl
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(GLSL_SHADERC_NAMES_MAX)]) {
+static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_names_max)]) {
   const String vulkanSdkPath = env_var_scratch(string_lit("VULKAN_SDK"));
 
   u32 count = 0;
@@ -102,7 +112,7 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(GLSL_SHADERC_
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
   AssetGlslEnvComp* env = ecs_world_add_t(world, entity, AssetGlslEnvComp);
 
-  String    libNames[GLSL_SHADERC_NAMES_MAX];
+  String    libNames[glsl_shaderc_names_max];
   const u32 libNameCount = glsl_shaderc_lib_names(libNames);
 
   DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &env->shaderc);
@@ -127,6 +137,8 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compiler_release);
   SHADERC_LOAD_SYM(compile_options_initialize);
   SHADERC_LOAD_SYM(compile_options_release);
+  SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
+  SHADERC_LOAD_SYM(compile_options_set_optimization_level);
 
   env->compiler = env->compiler_initialize();
   if (!env->compiler) {
@@ -138,6 +150,12 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
     log_e("Failed to initialize Shaderc compile-options");
     goto Done;
   }
+#if glsl_shaderc_debug_info
+  env->compile_options_set_generate_debug_info(env->compileOptions);
+#endif
+#if glsl_shaderc_optimize
+  env->compile_options_set_optimization_level(env->compileOptions, ShadercOptimization_Performance);
+#endif
 
 Done:
   return env;
