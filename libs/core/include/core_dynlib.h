@@ -35,6 +35,7 @@ String dynlib_result_str(DynLibResult);
  * Destroy using 'dynlib_destroy()'.
  */
 DynLibResult dynlib_load(Allocator*, String name, DynLib** out);
+DynLibResult dynlib_load_first(Allocator*, const String names[], u32 nameCount, DynLib** out);
 
 /**
  * Destroy a dynamic-library handle.
