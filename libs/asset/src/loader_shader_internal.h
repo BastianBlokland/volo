@@ -3,4 +3,15 @@
 
 #include "repo_internal.h"
 
-ecs_comp_extern_public(AssetShaderSourceComp) { AssetSource* src; };
+typedef enum {
+  AssetShaderSource_Repository,
+  AssetShaderSource_Memory,
+} AssetShaderSourceType;
+
+ecs_comp_extern_public(AssetShaderSourceComp) {
+  AssetShaderSourceType type;
+  union {
+    AssetSource* srcRepo;
+    Mem          srcMem;
+  };
+};

@@ -900,7 +900,8 @@ void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, 
     // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
     goto Error;
   }
-  ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
+  ecs_world_add_t(
+      world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Repository, .srcRepo = src);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 
