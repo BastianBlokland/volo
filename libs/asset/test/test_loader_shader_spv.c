@@ -220,8 +220,11 @@ spec(loader_shader_spv) {
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_testData); ++i) {
-      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, records[i].id);
+      }
       asset_acquire(world, asset);
 
       asset_test_wait(runner);
@@ -258,10 +261,13 @@ spec(loader_shader_spv) {
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("shader.spv"));
-
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("shader.spv"));
+    }
     asset_acquire(world, asset);
+
     asset_test_wait(runner);
     check(ecs_world_has_t(world, asset, AssetShaderComp));
 
@@ -281,9 +287,13 @@ spec(loader_shader_spv) {
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
-      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, records[i].id);
+      }
       asset_acquire(world, asset);
+
       asset_test_wait(runner);
 
       check(ecs_world_has_t(world, asset, AssetFailedComp));

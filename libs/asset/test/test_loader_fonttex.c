@@ -138,9 +138,11 @@ spec(loader_fonttex) {
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.fonttex"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.fonttex"));
+    }
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -170,8 +172,11 @@ spec(loader_fonttex) {
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.fonttex"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.fonttex"));
+    }
 
     asset_acquire(world, asset);
     asset_test_wait(runner);
@@ -197,9 +202,13 @@ spec(loader_fonttex) {
     ecs_world_flush(world);
 
     array_for_t(g_errorTestData, AssetMemRecord, errRec) {
-      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, errRec->id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, errRec->id);
+      }
       asset_acquire(world, asset);
+
       asset_test_wait(runner);
 
       check(ecs_world_has_t(world, asset, AssetFailedComp));

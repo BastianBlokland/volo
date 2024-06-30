@@ -38,10 +38,12 @@ spec(loader_raw) {
   }
 
   it("can load raw assets") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
     array_for_t(g_records, AssetMemRecord, record) {
-      const EcsEntityId asset = asset_lookup(world, manager, record->id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, record->id);
+      }
       asset_acquire(world, asset);
 
       asset_test_wait(runner);
@@ -53,10 +55,11 @@ spec(loader_raw) {
   }
 
   it("can unload raw assets") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("a.raw"));
-
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, asset);
     asset_test_wait(runner);
     check(ecs_world_has_t(world, asset, AssetRawComp));

@@ -52,9 +52,11 @@ spec(loader_terrain) {
     asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.terrain"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.terrain"));
+    }
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -70,10 +72,13 @@ spec(loader_terrain) {
     asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.terrain"));
-
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.terrain"));
+    }
     asset_acquire(world, asset);
+
     asset_test_wait(runner);
 
     check(ecs_world_has_t(world, asset, AssetTerrainComp));
@@ -90,9 +95,13 @@ spec(loader_terrain) {
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
-      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, g_errorTestData[i].id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, g_errorTestData[i].id);
+      }
       asset_acquire(world, asset);
+
       asset_test_wait(runner);
 
       check(ecs_world_has_t(world, asset, AssetFailedComp));

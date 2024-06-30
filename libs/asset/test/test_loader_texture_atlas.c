@@ -76,9 +76,11 @@ spec(loader_texture_atlas) {
     asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.atlas"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.atlas"));
+    }
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -102,10 +104,13 @@ spec(loader_texture_atlas) {
     asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.atlas"));
-
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.atlas"));
+    }
     asset_acquire(world, asset);
+
     asset_test_wait(runner);
 
     check(ecs_world_has_t(world, asset, AssetAtlasComp));
@@ -123,9 +128,13 @@ spec(loader_texture_atlas) {
     ecs_world_flush(world);
 
     array_for_t(g_errorTestData, AssetMemRecord, errRec) {
-      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, errRec->id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, errRec->id);
+      }
       asset_acquire(world, asset);
+
       asset_test_wait(runner);
 
       check(ecs_world_has_t(world, asset, AssetFailedComp));
