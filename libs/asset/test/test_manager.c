@@ -52,8 +52,11 @@ spec(manager) {
   }
 
   it("loads assets when they are acquired") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -64,8 +67,11 @@ spec(manager) {
   }
 
   it("unloads assets when they are released") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -85,8 +91,11 @@ spec(manager) {
   }
 
   it("keeps assets loaded as long as any acquire is still active") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, asset);
     asset_acquire(world, asset);
 
@@ -107,8 +116,11 @@ spec(manager) {
   }
 
   it("ignores acquires immediately followed by releases") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, asset);
     asset_acquire(world, asset);
     asset_release(world, asset);
@@ -121,9 +133,12 @@ spec(manager) {
   }
 
   it("supports multiple simultaneous loads") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId assetA  = asset_lookup(world, manager, string_lit("a.raw"));
-    const EcsEntityId assetB  = asset_lookup(world, manager, string_lit("b.raw"));
+    EcsEntityId assetA, assetB;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      assetA                    = asset_lookup(world, manager, string_lit("a.raw"));
+      assetB                    = asset_lookup(world, manager, string_lit("b.raw"));
+    }
 
     asset_acquire(world, assetA);
     asset_acquire(world, assetB);
@@ -139,8 +154,11 @@ spec(manager) {
   }
 
   it("fails loads for non-existing assets") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId entity  = asset_lookup(world, manager, string_lit("non-existent"));
+    EcsEntityId entity;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      entity                    = asset_lookup(world, manager, string_lit("non-existent"));
+    }
 
     asset_acquire(world, entity);
 
@@ -152,9 +170,11 @@ spec(manager) {
   }
 
   it("can retrieve the identifier of loaded assets") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId entity = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId entity;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      entity                    = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     ecs_run_sync(runner);
 
     const AssetComp* comp = ecs_utils_read_t(world, AssetView, entity, AssetComp);
@@ -166,10 +186,11 @@ spec(manager) {
      * Regression test for when the asset cleanup systems runs in the same frame as the new load,
      * causing a crash due to duplicate component add.
      */
-
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId entity = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId entity;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      entity                    = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, entity);
     ecs_world_flush(world);
 
@@ -193,9 +214,11 @@ spec(manager) {
   }
 
   it("clears the dirty state after loading") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId entity = asset_lookup(world, manager, string_lit("a.raw"));
+    EcsEntityId entity;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      entity                    = asset_lookup(world, manager, string_lit("a.raw"));
+    }
     asset_acquire(world, entity);
     ecs_world_flush(world);
 

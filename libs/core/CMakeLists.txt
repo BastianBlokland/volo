@@ -30,6 +30,7 @@ add_library(lib_core STATIC
   src/dynlib.c
   src/dynstring.c
   src/env_pal.c
+  src/env.c
   src/file_iterator_pal.c
   src/file_iterator.c
   src/file_monitor_pal.c

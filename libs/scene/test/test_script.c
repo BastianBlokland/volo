@@ -56,10 +56,11 @@ spec(script) {
   }
 
   it("can set knowledge") {
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId scriptAssets[] = {
-        asset_lookup(world, manager, string_lit("set_knowledge.script")),
-    };
+    EcsEntityId scriptAssets[1];
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      scriptAssets[0]           = asset_lookup(world, manager, string_lit("set_knowledge.script"));
+    }
 
     const EcsEntityId e = ecs_world_entity_create(world);
     scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));

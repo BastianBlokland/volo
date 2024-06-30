@@ -43,6 +43,26 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   return res;
 }
 
+DynLibResult
+dynlib_load_first(Allocator* alloc, const String names[], const u32 nameCount, DynLib** out) {
+  if (UNLIKELY(!g_dynlibInitialized)) {
+    diag_crash_msg("dynlib: Not initialized");
+  }
+  for (u32 i = 0; i != nameCount; ++i) {
+    const DynLibResult res = dynlib_pal_load(alloc, names[i], out);
+    switch (res) {
+    case DynLibResult_Success:
+      thread_atomic_add_i64(&g_dynlibCount, 1);
+      return DynLibResult_Success;
+    case DynLibResult_LibraryNotFound:
+      continue; // Try the next name.
+    default:
+      return res; // Library failed to load; return error.
+    }
+  }
+  return DynLibResult_LibraryNotFound;
+}
+
 void dynlib_destroy(DynLib* lib) {
   dynlib_pal_destroy(lib);
   if (UNLIKELY(thread_atomic_sub_i64(&g_dynlibCount, 1) <= 0)) {

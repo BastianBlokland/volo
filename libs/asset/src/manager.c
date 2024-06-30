@@ -171,10 +171,24 @@ static bool asset_manager_load(
       log_param("size", fmt_size(source->data.size)));
 
   AssetLoader loader = asset_loader(source->format);
-  loader(world, asset->id, assetEntity, source);
+
+  bool success = true;
+  if (LIKELY(loader)) {
+    loader(world, asset->id, assetEntity, source);
+  } else {
+    log_e(
+        "Asset format cannot be loaded directly",
+        log_param("format", fmt_text(asset_format_str(source->format))),
+        log_param("id", fmt_path(asset->id)));
+    success = false;
+  }
 
   trace_end();
-  return true;
+
+  if (!success) {
+    asset_repo_source_close(source);
+  }
+  return success;
 }
 
 ecs_view_define(DirtyAssetView) {
@@ -371,7 +385,7 @@ ecs_system_define(AssetPollChangedSys) {
 }
 
 ecs_module_init(asset_manager_module) {
-  ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp);
+  ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp, .destructOrder = 30);
   ecs_register_comp(AssetComp);
   ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);
@@ -425,6 +439,7 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
   AssetEntry* entry = dynarray_find_or_insert_sorted(&manager->lookup, asset_compare_entry, &tgt);
 
   if (entry->idHash != tgt.idHash) {
+    diag_assert(!entry->idHash && !entry->asset);
     entry->idHash = tgt.idHash;
     entry->asset  = asset_entity_create(world, manager->idAlloc, id);
   }
@@ -505,4 +520,18 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
       AssetDependencyComp,
       .dependents.type   = AssetDependencyStorage_Single,
       .dependents.single = asset);
+}
+
+AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
+  return asset_repo_source_open(manager->repo, id);
+}
+
+EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String id) {
+  const EcsEntityId assetEntity = asset_lookup(world, manager, id);
+
+  if (manager->flags & AssetManagerFlags_TrackChanges) {
+    asset_repo_changes_watch(manager->repo, id, (u64)assetEntity);
+  }
+
+  return assetEntity;
 }

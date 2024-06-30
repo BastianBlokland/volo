@@ -102,52 +102,59 @@ spec(loader_graphic) {
     asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.graphic"));
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.graphic"));
+    }
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
 
-    check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
-    const AssetGraphicComp* graphic = ecs_utils_read_t(world, AssetView, asset, AssetGraphicComp);
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
+      const AssetGraphicComp* gra = ecs_utils_read_t(world, AssetView, asset, AssetGraphicComp);
 
-    check_require(graphic->shaders.count == 1);
-    check(
-        graphic->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
-    check_require(graphic->shaders.values[0].overrides.count == 1);
-    check_eq_string(graphic->shaders.values[0].overrides.values[0].name, string_lit("Test"));
-    check_eq_int(graphic->shaders.values[0].overrides.values[0].binding, 42);
-    check_eq_float(graphic->shaders.values[0].overrides.values[0].value, 1337.1337, 1e-8);
+      check_require(gra->shaders.count == 1);
+      check(gra->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
+      check_require(gra->shaders.values[0].overrides.count == 1);
+      check_eq_string(gra->shaders.values[0].overrides.values[0].name, string_lit("Test"));
+      check_eq_int(gra->shaders.values[0].overrides.values[0].binding, 42);
+      check_eq_float(gra->shaders.values[0].overrides.values[0].value, 1337.1337, 1e-8);
 
-    check_require(graphic->samplers.count == 2);
-    check(graphic->samplers.values[0].texture == asset_lookup(world, manager, string_lit("a.ppm")));
-    check_eq_int(graphic->samplers.values[0].wrap, AssetGraphicWrap_Clamp);
-    check_eq_int(graphic->samplers.values[0].filter, AssetGraphicFilter_Nearest);
-    check_eq_int(graphic->samplers.values[0].anisotropy, AssetGraphicAniso_x4);
+      check_require(gra->samplers.count == 2);
+      check(gra->samplers.values[0].texture == asset_lookup(world, manager, string_lit("a.ppm")));
+      check_eq_int(gra->samplers.values[0].wrap, AssetGraphicWrap_Clamp);
+      check_eq_int(gra->samplers.values[0].filter, AssetGraphicFilter_Nearest);
+      check_eq_int(gra->samplers.values[0].anisotropy, AssetGraphicAniso_x4);
 
-    check(graphic->samplers.values[1].texture == asset_lookup(world, manager, string_lit("b.ppm")));
-    check_eq_int(graphic->samplers.values[1].wrap, AssetGraphicWrap_Repeat);
-    check_eq_int(graphic->samplers.values[1].filter, AssetGraphicFilter_Linear);
-    check_eq_int(graphic->samplers.values[1].anisotropy, AssetGraphicAniso_None);
+      check(gra->samplers.values[1].texture == asset_lookup(world, manager, string_lit("b.ppm")));
+      check_eq_int(gra->samplers.values[1].wrap, AssetGraphicWrap_Repeat);
+      check_eq_int(gra->samplers.values[1].filter, AssetGraphicFilter_Linear);
+      check_eq_int(gra->samplers.values[1].anisotropy, AssetGraphicAniso_None);
 
-    check(graphic->mesh == asset_lookup(world, manager, string_lit("a.obj")));
-    check_eq_int(graphic->topology, AssetGraphicTopology_Triangles);
-    check_eq_int(graphic->rasterizer, AssetGraphicRasterizer_Fill);
-    check_eq_int(graphic->lineWidth, 42);
-    check_eq_int(graphic->blend, AssetGraphicBlend_None);
-    check_eq_int(graphic->depth, AssetGraphicDepth_Less);
-    check_eq_int(graphic->cull, AssetGraphicCull_Back);
+      check(gra->mesh == asset_lookup(world, manager, string_lit("a.obj")));
+      check_eq_int(gra->topology, AssetGraphicTopology_Triangles);
+      check_eq_int(gra->rasterizer, AssetGraphicRasterizer_Fill);
+      check_eq_int(gra->lineWidth, 42);
+      check_eq_int(gra->blend, AssetGraphicBlend_None);
+      check_eq_int(gra->depth, AssetGraphicDepth_Less);
+      check_eq_int(gra->cull, AssetGraphicCull_Back);
+    }
   }
 
   it("can unload graphic assets") {
     asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.graphic"));
-
+    EcsEntityId asset;
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      asset                     = asset_lookup(world, manager, string_lit("test.graphic"));
+    }
     asset_acquire(world, asset);
+
     asset_test_wait(runner);
 
     check(ecs_world_has_t(world, asset, AssetGraphicComp));
@@ -164,9 +171,13 @@ spec(loader_graphic) {
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
-      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, g_errorTestData[i].id);
+      EcsEntityId asset;
+      {
+        AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+        asset                     = asset_lookup(world, manager, g_errorTestData[i].id);
+      }
       asset_acquire(world, asset);
+
       asset_test_wait(runner);
 
       check(ecs_world_has_t(world, asset, AssetFailedComp));

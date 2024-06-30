@@ -121,13 +121,13 @@ void path_name_random(DynString*, Rng*, String prefix, String extension);
 String path_name_random_scratch(Rng*, String prefix, String extension);
 
 /**
- * Generate a timestampped file name.
+ * Generate a timestamped file name.
  * NOTE: Prefix and extension are optional.
  */
 void path_name_timestamp(DynString*, String prefix, String extension);
 
 /**
- * Generate a timestampped file name into a scratch buffer.
+ * Generate a timestamped file name into a scratch buffer.
  * NOTE: Prefix and extension are optional.
  */
 String path_name_timestamp_scratch(String prefix, String extension);

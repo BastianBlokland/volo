@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #define env_var_max_name_size 256
+#define env_var_max_value_size (usize_kibibyte * 32)
 
 bool env_var(String name, DynString* output) {
 
@@ -26,7 +27,12 @@ bool env_var(String name, DynString* output) {
   }
 
   if (output) {
-    dynstring_append(output, string_from_null_term(res));
+    const String resStr = string_from_null_term(res);
+    if (resStr.size > env_var_max_value_size) {
+      dynstring_append(output, string_slice(resStr, 0, env_var_max_value_size));
+    } else {
+      dynstring_append(output, resStr);
+    }
   }
 
   return true;
