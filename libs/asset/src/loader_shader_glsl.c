@@ -1,6 +1,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynlib.h"
+#include "core_env.h"
+#include "core_path.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -11,11 +13,7 @@
  * Glsl (OpenGL Shading Language) loader using libshaderc (https://github.com/google/shaderc/).
  */
 
-#ifdef VOLO_WIN32
-static const String g_glslShadercPath = string_static("shaderc_shared.dll");
-#else
-static const String g_glslShadercPath = string_static("libshaderc_shared.so.1");
-#endif
+#define GLSL_SHADERC_NAMES_MAX 4
 
 typedef enum {
   GlslKind_Vertex,
@@ -62,9 +60,29 @@ static void glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const Glsl
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
+static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(GLSL_SHADERC_NAMES_MAX)]) {
+  const String vulkanSdkPath = env_var_scratch(string_lit("VULKAN_SDK"));
+
+  u32 count = 0;
+#ifdef VOLO_WIN32
+  outPaths[count++] = string_lit("shaderc_shared.dll");
+  if (!string_is_empty(vulkanSdkPath)) {
+    outPaths[count++] = path_build_scratch(vulkanSdkPath, string_lit("Bin/shaderc_shared.dll"));
+  }
+#elif VOLO_LINUX
+  outPaths[count++] = string_lit("libshaderc_shared.so.1");
+#endif
+
+  return count;
+}
+
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
-  AssetGlslEnvComp*  env     = ecs_world_add_t(world, entity, AssetGlslEnvComp);
-  const DynLibResult loadRes = dynlib_load(g_allocHeap, g_glslShadercPath, &env->shadercLib);
+  AssetGlslEnvComp* env = ecs_world_add_t(world, entity, AssetGlslEnvComp);
+
+  String    libNames[GLSL_SHADERC_NAMES_MAX];
+  const u32 libNameCount = glsl_shaderc_lib_names(libNames);
+
+  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &env->shadercLib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load 'libshaderc' Glsl compiler", log_param("err", fmt_text(err)));
