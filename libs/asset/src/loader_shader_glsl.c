@@ -51,6 +51,7 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                   (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
   void                   (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
   void                   (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
+  void                   (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
   void                   (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
   void                   (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
   // clang-format on
@@ -155,6 +156,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compile_options_set_target_env);
   SHADERC_LOAD_SYM(compile_options_set_target_spirv);
   SHADERC_LOAD_SYM(compile_options_set_warnings_as_errors);
+  SHADERC_LOAD_SYM(compile_options_set_preserve_bindings);
   SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
   SHADERC_LOAD_SYM(compile_options_set_optimization_level);
 
@@ -172,6 +174,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
       env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_3);
   env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
   env->compile_options_set_warnings_as_errors(env->options);
+  env->compile_options_set_preserve_bindings(env->options, true);
 #if glsl_shaderc_debug_info
   env->compile_options_set_generate_debug_info(env->options);
 #endif
