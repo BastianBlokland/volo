@@ -1,21 +1,40 @@
+#include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynlib.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
 #include "loader_shader_internal.h"
 #include "manager_internal.h"
 
+/**
+ * Glsl (OpenGL Shading Language) loader using libshaderc (https://github.com/google/shaderc/).
+ */
+
+#ifdef VOLO_WIN32
+static const String g_glslShadercPath = string_static("libshaderc_shared.so.1");
+#else
+static const String g_glslShadercPath = string_static("libshaderc_shared.so.1");
+#endif
+
 typedef enum {
   GlslKind_Vertex,
   GlslKind_Fragment,
 } GlslKind;
 
-ecs_comp_define(AssetGlslEnvComp) { u32 dummy; };
+ecs_comp_define(AssetGlslEnvComp) { DynLib* shadercLib; };
 
 ecs_comp_define(AssetGlslLoadComp) {
   GlslKind     kind;
   AssetSource* src;
 };
+
+static void ecs_destruct_glsl_env_comp(void* data) {
+  AssetGlslEnvComp* comp = data;
+  if (comp->shadercLib) {
+    dynlib_destroy(comp->shadercLib);
+  }
+}
 
 static void ecs_destruct_glsl_load_comp(void* data) {
   AssetGlslLoadComp* comp = data;
@@ -44,7 +63,15 @@ static void glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const Glsl
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
-  return ecs_world_add_t(world, entity, AssetGlslEnvComp);
+  AssetGlslEnvComp*  env     = ecs_world_add_t(world, entity, AssetGlslEnvComp);
+  const DynLibResult loadRes = dynlib_load(g_allocHeap, g_glslShadercPath, &env->shadercLib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load 'libshaderc' Glsl compiler", log_param("err", fmt_text(err)));
+    return env;
+  }
+  log_i("Glsl compiler loaded", log_param("path", fmt_path(dynlib_path(env->shadercLib))));
+  return env;
 }
 
 ecs_view_define(GlobalView) {
@@ -75,7 +102,7 @@ ecs_system_define(LoadGlslAssetSys) {
     const EcsEntityId entity = ecs_view_entity(itr);
     (void)entity;
 
-    if (glslEnv->dummy) {
+    if (!glslEnv->shadercLib) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
@@ -92,6 +119,7 @@ ecs_system_define(LoadGlslAssetSys) {
 }
 
 ecs_module_init(asset_shader_glsl_module) {
+  ecs_register_comp(AssetGlslEnvComp, .destructor = ecs_destruct_glsl_env_comp);
   ecs_register_comp(AssetGlslLoadComp, .destructor = ecs_destruct_glsl_load_comp);
 
   ecs_register_view(GlobalView);
