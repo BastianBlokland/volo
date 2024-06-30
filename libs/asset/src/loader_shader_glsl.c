@@ -13,9 +13,10 @@
  * Glsl (OpenGL Shading Language) loader using libshaderc (https://github.com/google/shaderc/).
  */
 
-#define glsl_shaderc_names_max 4
+#define glsl_shaderc_glsl_version 450
 #define glsl_shaderc_debug_info true
 #define glsl_shaderc_optimize true
+#define glsl_shaderc_names_max 4
 
 typedef enum {
   ShadercOptimization_None        = 0,
@@ -40,6 +41,10 @@ typedef enum {
   ShadercShaderKind_Fragment = 1,
 } ShadercShaderKind;
 
+typedef enum {
+  ShadercProfile_Core = 1,
+} ShadercProfile;
+
 typedef struct sShadercCompiler          ShadercCompiler;
 typedef struct sShadercCompileOptions    ShadercCompileOptions;
 typedef struct sShadercCompilationResult ShadercCompilationResult;
@@ -56,6 +61,7 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                   (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
   void                   (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
   void                   (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
+  void                   (SYS_DECL* compile_options_set_forced_version_profile)(ShadercCompileOptions*, int version, ShadercProfile);
   void                   (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
   void                   (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
   void                   (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
@@ -158,6 +164,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compile_options_release);
   SHADERC_LOAD_SYM(compile_options_set_target_env);
   SHADERC_LOAD_SYM(compile_options_set_target_spirv);
+  SHADERC_LOAD_SYM(compile_options_set_forced_version_profile);
   SHADERC_LOAD_SYM(compile_options_set_warnings_as_errors);
   SHADERC_LOAD_SYM(compile_options_set_preserve_bindings);
   SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
@@ -178,6 +185,8 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   env->compile_options_set_target_env(
       env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_3);
   env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
+  env->compile_options_set_forced_version_profile(
+      env->options, glsl_shaderc_glsl_version, ShadercProfile_Core);
   env->compile_options_set_warnings_as_errors(env->options);
   env->compile_options_set_preserve_bindings(env->options, true);
 #if glsl_shaderc_debug_info
