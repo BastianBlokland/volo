@@ -97,6 +97,8 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                      (SYS_DECL* result_release)(ShadercCompilationResult*);
   ShadercCompilationStatus  (SYS_DECL* result_get_compilation_status)(const ShadercCompilationResult*);
   const char*               (SYS_DECL* result_get_error_message)(const ShadercCompilationResult*);
+  usize                     (SYS_DECL* result_get_length)(const ShadercCompilationResult*);
+  const char*               (SYS_DECL* result_get_bytes)(const ShadercCompilationResult*);
   // clang-format on
 };
 
@@ -299,6 +301,8 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(result_release);
   SHADERC_LOAD_SYM(result_get_compilation_status);
   SHADERC_LOAD_SYM(result_get_error_message);
+  SHADERC_LOAD_SYM(result_get_length);
+  SHADERC_LOAD_SYM(result_get_bytes);
 
   env->compiler = env->compiler_initialize();
   if (!env->compiler) {
@@ -357,6 +361,10 @@ static bool glsl_compile(
     success = false;
     goto Done;
   }
+
+  const Mem resMem    = mem_create(glslEnv->result_get_bytes(res), glslEnv->result_get_length(res));
+  const Mem outputMem = alloc_dup(g_allocHeap, resMem, alignof(u32));
+  (void)outputMem;
 
 Done:
   glslEnv->result_release(res);
