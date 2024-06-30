@@ -10,4 +10,5 @@
  *
  * Pre-condition: name.size < 256.
  */
-bool env_var(String name, DynString* output);
+bool   env_var(String name, DynString* output);
+String env_var_scratch(String name);
