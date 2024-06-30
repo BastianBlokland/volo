@@ -45,6 +45,11 @@ typedef enum {
   ShadercCompilationStatus_Success = 0,
 } ShadercCompilationStatus;
 
+typedef enum {
+  ShadercIncludeType_Relative, // #include "other"
+  ShadercIncludeType_Standard, // #include <other>
+} ShadercIncludeType;
+
 typedef struct {
   const char* sourceName; // Resolved absolute path.
   usize       sourceNameLength;
@@ -53,10 +58,9 @@ typedef struct {
   void*       userContext;
 } ShadercIncludeResult;
 
-typedef enum {
-  ShadercIncludeType_Relative, // #include "other"
-  ShadercIncludeType_Standard, // #include <other>
-} ShadercIncludeType;
+typedef struct {
+  u32 dummy;
+} ShadercIncludeContext;
 
 typedef struct sShadercCompiler          ShadercCompiler;
 typedef struct sShadercCompileOptions    ShadercCompileOptions;
@@ -66,6 +70,7 @@ ecs_comp_define(AssetGlslEnvComp) {
   DynLib*                shaderc;
   ShadercCompiler*       compiler;
   ShadercCompileOptions* options;
+  ShadercIncludeContext* includeCtx;
 
   // clang-format off
   ShadercCompiler*          (SYS_DECL* compiler_initialize)(void);
@@ -103,6 +108,7 @@ static void ecs_destruct_glsl_env_comp(void* data) {
     }
     dynlib_destroy(comp->shaderc);
   }
+  alloc_free_t(g_allocHeap, comp->includeCtx);
 }
 
 static void ecs_destruct_glsl_load_comp(void* data) {
@@ -179,7 +185,11 @@ static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResul
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
-  AssetGlslEnvComp* env = ecs_world_add_t(world, entity, AssetGlslEnvComp);
+  AssetGlslEnvComp* env = ecs_world_add_t(
+      world,
+      entity,
+      AssetGlslEnvComp,
+      .includeCtx = alloc_alloc_t(g_allocHeap, ShadercIncludeContext));
 
   String    libNames[glsl_shaderc_names_max];
   const u32 libNameCount = glsl_shaderc_lib_names(libNames);
@@ -236,7 +246,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   env->compile_options_set_warnings_as_errors(env->options);
   env->compile_options_set_preserve_bindings(env->options, true);
   env->compile_options_set_include_callbacks(
-      env->options, glsl_include_resolve, glsl_include_release, null);
+      env->options, glsl_include_resolve, glsl_include_release, env->includeCtx);
 #if glsl_shaderc_debug_info
   env->compile_options_set_generate_debug_info(env->options);
 #endif
