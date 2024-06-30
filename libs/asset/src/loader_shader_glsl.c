@@ -17,6 +17,7 @@
 #define glsl_shaderc_debug_info true
 #define glsl_shaderc_optimize true
 #define glsl_shaderc_names_max 4
+#define glsl_shaderc_include_max 128
 
 typedef enum {
   ShadercOptimization_None        = 0,
@@ -59,7 +60,8 @@ typedef struct {
 } ShadercIncludeResult;
 
 typedef struct {
-  u32 dummy;
+  ShadercIncludeResult results[glsl_shaderc_include_max];
+  u32                  resultCount;
 } ShadercIncludeContext;
 
 typedef struct sShadercCompiler          ShadercCompiler;
@@ -165,31 +167,53 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
   return count;
 }
 
+static void glsl_include_ctx_reset(ShadercIncludeContext* ctx) {
+  ctx->resultCount = 1; // Result 0 is used for fatal errors.
+}
+
+static ShadercIncludeContext* glsl_include_ctx_init(void) {
+  ShadercIncludeContext* ctx = alloc_alloc_t(g_allocHeap, ShadercIncludeContext);
+  glsl_include_ctx_reset(ctx);
+
+  // Setup fatal error result.
+  static const String g_fatalMsg = string_static("Fatal include error occurred");
+  ctx->results[0]                = (ShadercIncludeResult){
+      .content       = g_fatalMsg.ptr,
+      .contentLength = g_fatalMsg.size,
+  };
+  return ctx;
+}
+
+static ShadercIncludeResult* glsl_include_fatal_result(ShadercIncludeContext* ctx) {
+  return &ctx->results[0];
+}
+
 static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     void*                    userContext,
     const char*              requestedSource,
     const ShadercIncludeType type,
     const char*              requestingSource,
     const usize              includeDepth) {
-  (void)userContext;
+  ShadercIncludeContext* ctx = userContext;
+
   (void)requestedSource;
   (void)type;
   (void)requestingSource;
   (void)includeDepth;
-  return null;
+
+  return glsl_include_fatal_result(ctx);
 }
 
 static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
-  (void)userContext;
+  ShadercIncludeContext* ctx = userContext;
+
+  (void)ctx;
   (void)result;
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
-  AssetGlslEnvComp* env = ecs_world_add_t(
-      world,
-      entity,
-      AssetGlslEnvComp,
-      .includeCtx = alloc_alloc_t(g_allocHeap, ShadercIncludeContext));
+  AssetGlslEnvComp* env =
+      ecs_world_add_t(world, entity, AssetGlslEnvComp, .includeCtx = glsl_include_ctx_init());
 
   String    libNames[glsl_shaderc_names_max];
   const u32 libNameCount = glsl_shaderc_lib_names(libNames);
@@ -259,11 +283,13 @@ Done:
 }
 
 static bool glsl_compile(
-    const AssetGlslEnvComp* glslEnv,
+    AssetGlslEnvComp*       glslEnv,
     const String            input,
     const String            inputId,
     const ShadercShaderKind inputKind) {
   bool success = true;
+
+  glsl_include_ctx_reset(glslEnv->includeCtx);
 
   ShadercCompilationResult* res = glslEnv->compile_into_spv(
       glslEnv->compiler,
