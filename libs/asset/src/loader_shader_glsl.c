@@ -17,6 +17,7 @@
 #define glsl_shaderc_debug_info true
 #define glsl_shaderc_optimize true
 #define glsl_shaderc_names_max 4
+#define glsl_shaderc_id_chunk_size (4 * usize_kibibyte)
 
 typedef enum {
   ShadercOptimization_None        = 0,
@@ -69,6 +70,7 @@ typedef struct {
 
 typedef struct {
   const GlslIncludeInvocation* invoc;
+  Allocator*                   idAlloc;     // (chunked) bump allocator for include ids.
   Allocator*                   resultAlloc; // Allocator for ShadercIncludeResult objects.
 } GlslIncludeCtx;
 
@@ -104,10 +106,13 @@ ecs_comp_define(AssetGlslLoadComp) {
 };
 
 static GlslIncludeCtx* glsl_include_ctx_init(void) {
-  GlslIncludeCtx* ctx         = alloc_alloc_t(g_allocHeap, GlslIncludeCtx);
-  const usize     resultSize  = sizeof(ShadercIncludeResult);
-  const usize     resultAlign = alignof(ShadercIncludeResult);
-  ctx->resultAlloc            = alloc_block_create(g_allocHeap, resultSize, resultAlign);
+  GlslIncludeCtx* ctx = alloc_alloc_t(g_allocHeap, GlslIncludeCtx);
+
+  ctx->idAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, glsl_shaderc_id_chunk_size);
+
+  const usize resultSize  = sizeof(ShadercIncludeResult);
+  const usize resultAlign = alignof(ShadercIncludeResult);
+  ctx->resultAlloc        = alloc_block_create(g_allocHeap, resultSize, resultAlign);
   return ctx;
 }
 
@@ -116,11 +121,13 @@ static void glsl_include_ctx_prepare(GlslIncludeCtx* ctx, const GlslIncludeInvoc
 }
 
 static void glsl_include_ctx_clear(GlslIncludeCtx* ctx) {
+  alloc_reset(ctx->idAlloc);
   alloc_reset(ctx->resultAlloc);
   ctx->invoc = null;
 }
 
 static void glsl_include_ctx_destroy(GlslIncludeCtx* ctx) {
+  alloc_chunked_destroy(ctx->idAlloc);
   alloc_block_destroy(ctx->resultAlloc);
   alloc_free_t(g_allocHeap, ctx);
 }
@@ -221,15 +228,19 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
   path_append(&idBuilder, string_lit("include"));
   path_append(&idBuilder, path_canonize_scratch(string_from_null_term(requestedSource)));
 
-  AssetSource* src = asset_source_open(ctx->invoc->assetManager, dynstring_view(&idBuilder));
+  const String id = string_dup(ctx->idAlloc, dynstring_view(&idBuilder));
+
+  AssetSource* src = asset_source_open(ctx->invoc->assetManager, id);
   if (UNLIKELY(!src)) {
     glsl_include_error(res, string_lit("File not found"));
     return res;
   }
 
-  res->content       = src->data.ptr;
-  res->contentLength = src->data.size;
-  res->userData      = src;
+  res->sourceName       = id.ptr;
+  res->sourceNameLength = id.size;
+  res->content          = src->data.ptr;
+  res->contentLength    = src->data.size;
+  res->userData         = src;
 
   return res;
 }
