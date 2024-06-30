@@ -52,14 +52,16 @@ typedef enum {
 } ShadercIncludeType;
 
 typedef struct {
-  const char* sourceName; // Resolved absolute path.
+  const char* sourceName; // Resolved path.
   usize       sourceNameLength;
-  const char* content; // Contains the error message in-case of inclusion error.=
+  const char* content; // Contains the error message in-case of inclusion error.
   usize       contentLength;
-  void*       userContext;
+  void*       userData; // AssetSource*
 } ShadercIncludeResult;
 
 typedef struct {
+  EcsWorld*            world;
+  AssetManagerComp*    assetManager;
   ShadercIncludeResult results[glsl_shaderc_include_max];
   u32                  resultCount;
 } ShadercIncludeContext;
@@ -167,13 +169,8 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
   return count;
 }
 
-static void glsl_include_ctx_reset(ShadercIncludeContext* ctx) {
-  ctx->resultCount = 1; // Result 0 is used for fatal errors.
-}
-
 static ShadercIncludeContext* glsl_include_ctx_init(void) {
   ShadercIncludeContext* ctx = alloc_alloc_t(g_allocHeap, ShadercIncludeContext);
-  glsl_include_ctx_reset(ctx);
 
   // Setup fatal error result.
   static const String g_fatalMsg = string_static("Fatal include error occurred");
@@ -182,6 +179,13 @@ static ShadercIncludeContext* glsl_include_ctx_init(void) {
       .contentLength = g_fatalMsg.size,
   };
   return ctx;
+}
+
+static void glsl_include_ctx_reset(
+    ShadercIncludeContext* ctx, EcsWorld* world, AssetManagerComp* assetManager) {
+  ctx->world        = world;
+  ctx->assetManager = assetManager;
+  ctx->resultCount  = 1; // Result 0 is used for fatal errors.
 }
 
 static ShadercIncludeResult* glsl_include_result_alloc(ShadercIncludeContext* ctx) {
@@ -206,6 +210,18 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
   if (UNLIKELY(!res)) {
     return glsl_include_result_fatal(ctx);
   }
+  const String requestedId = string_from_null_term(requestedSource);
+  AssetSource* assetSource = asset_source_open(ctx->assetManager, requestedId);
+  if (UNLIKELY(!assetSource)) {
+    static const String g_notFoundMsg = string_lit("File not found");
+    *res                              = (ShadercIncludeResult){
+        .content       = g_notFoundMsg.ptr,
+        .contentLength = g_notFoundMsg.size,
+    };
+    return res;
+  }
+
+  res->userData = assetSource;
 
   (void)requestedSource;
   (void)type;
@@ -217,8 +233,9 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
 
 static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
   (void)userContext;
-  (void)result;
-  // NOTE: We do not re-use result object at the moment
+  if (result->userData) {
+    ((AssetSource*)result->userData)->close(result->userData);
+  }
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
@@ -293,13 +310,15 @@ Done:
 }
 
 static bool glsl_compile(
+    EcsWorld*               world,
     AssetGlslEnvComp*       glslEnv,
+    AssetManagerComp*       assetManager,
     const String            input,
     const String            inputId,
     const ShadercShaderKind inputKind) {
   bool success = true;
 
-  glsl_include_ctx_reset(glslEnv->includeCtx);
+  glsl_include_ctx_reset(glslEnv->includeCtx, world, assetManager);
 
   ShadercCompilationResult* res = glslEnv->compile_into_spv(
       glslEnv->compiler,
@@ -349,7 +368,6 @@ ecs_system_define(LoadGlslAssetSys) {
   if (!glslEnv) {
     glslEnv = glsl_env_init(world, ecs_world_global(world));
   }
-  (void)manager;
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
@@ -361,7 +379,7 @@ ecs_system_define(LoadGlslAssetSys) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
-    if (!glsl_compile(glslEnv, load->src->data, id, load->kind)) {
+    if (!glsl_compile(world, glslEnv, manager, load->src->data, id, load->kind)) {
       glsl_load_fail(world, entity, GlslError_CompilationFailed);
       goto Error;
     }
