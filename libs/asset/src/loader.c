@@ -2,49 +2,51 @@
 
 #include "loader_internal.h"
 
-#define asset_loader_name(_NAME_) asset_load_##_NAME_
+// clang-format off
 
-AssetLoader asset_loader(const AssetFormat format) {
-#define RET_LOADER(_NAME_)                                                                         \
-  void asset_loader_name(_NAME_)(EcsWorld*, String, EcsEntityId, AssetSource*);                    \
-  return &asset_loader_name(_NAME_)
+#define ASSET_FOREACH_LOADER(_X_)                                                                  \
+  _X_(AssetFormat_ArrayTex,   arraytex           )                                                 \
+  _X_(AssetFormat_Atlas,      atlas              )                                                 \
+  _X_(AssetFormat_Bin,        raw                )                                                 \
+  _X_(AssetFormat_Cursor,     cursor             )                                                 \
+  _X_(AssetFormat_Decal,      decal              )                                                 \
+  _X_(AssetFormat_FontTex,    fonttex            )                                                 \
+  _X_(AssetFormat_GlslFrag,   glsl_frag          )                                                 \
+  _X_(AssetFormat_GlslVert,   glsl_vert          )                                                 \
+  _X_(AssetFormat_Gltf,       gltf               )                                                 \
+  _X_(AssetFormat_Graphic,    graphic            )                                                 \
+  _X_(AssetFormat_Inputs,     inputs             )                                                 \
+  _X_(AssetFormat_Level,      level              )                                                 \
+  _X_(AssetFormat_Obj,        obj                )                                                 \
+  _X_(AssetFormat_Ppm,        ppm                )                                                 \
+  _X_(AssetFormat_Prefabs,    prefabs            )                                                 \
+  _X_(AssetFormat_ProcMesh,   procmesh           )                                                 \
+  _X_(AssetFormat_ProcTex,    proctex            )                                                 \
+  _X_(AssetFormat_Products,   products           )                                                 \
+  _X_(AssetFormat_R16,        r16                )                                                 \
+  _X_(AssetFormat_R32,        r32                )                                                 \
+  _X_(AssetFormat_Raw,        raw                )                                                 \
+  _X_(AssetFormat_Script,     script             )                                                 \
+  _X_(AssetFormat_Spv,        spv                )                                                 \
+  _X_(AssetFormat_Terrain,    terrain            )                                                 \
+  _X_(AssetFormat_Tga,        tga                )                                                 \
+  _X_(AssetFormat_Ttf,        ttf                )                                                 \
+  _X_(AssetFormat_Vfx,        vfx                )                                                 \
+  _X_(AssetFormat_Wav,        wav                )                                                 \
+  _X_(AssetFormat_Weapons,    weapons            )
 
-  // clang-format off
-  switch (format) {
-  case AssetFormat_ArrayTex:  { RET_LOADER(arraytex);   }
-  case AssetFormat_Atlas:     { RET_LOADER(atlas);      }
-  case AssetFormat_Bin:       { RET_LOADER(raw);        }
-  case AssetFormat_Cursor:    { RET_LOADER(cursor);     }
-  case AssetFormat_Decal:     { RET_LOADER(decal);      }
-  case AssetFormat_FontTex:   { RET_LOADER(fonttex);    }
-  case AssetFormat_GlslFrag:  { RET_LOADER(glsl_frag);  }
-  case AssetFormat_GlslVert:  { RET_LOADER(glsl_vert);  }
-  case AssetFormat_Gltf:      { RET_LOADER(gltf);       }
-  case AssetFormat_Graphic:   { RET_LOADER(graphic);    }
-  case AssetFormat_Inputs:    { RET_LOADER(inputs);     }
-  case AssetFormat_Level:     { RET_LOADER(level);      }
-  case AssetFormat_Obj:       { RET_LOADER(obj);        }
-  case AssetFormat_Ppm:       { RET_LOADER(ppm);        }
-  case AssetFormat_Prefabs:   { RET_LOADER(prefabs);    }
-  case AssetFormat_ProcMesh:  { RET_LOADER(procmesh);   }
-  case AssetFormat_ProcTex:   { RET_LOADER(proctex);    }
-  case AssetFormat_Products:  { RET_LOADER(products);   }
-  case AssetFormat_R16:       { RET_LOADER(r16);        }
-  case AssetFormat_R32:       { RET_LOADER(r32);        }
-  case AssetFormat_Raw:       { RET_LOADER(raw);        }
-  case AssetFormat_Script:    { RET_LOADER(script);     }
-  case AssetFormat_Spv:       { RET_LOADER(spv);        }
-  case AssetFormat_Terrain:   { RET_LOADER(terrain);    }
-  case AssetFormat_Tga:       { RET_LOADER(tga);        }
-  case AssetFormat_Ttf:       { RET_LOADER(ttf);        }
-  case AssetFormat_Vfx:       { RET_LOADER(vfx);        }
-  case AssetFormat_Wav:       { RET_LOADER(wav);        }
-  case AssetFormat_Weapons:   { RET_LOADER(weapons);    }
-  case AssetFormat_Count:
-    break;
-  }
-  // clang-format off
+#define ASSET_LOADER_DECLARE(_FORMAT_, _NAME_) void asset_load_##_NAME_(EcsWorld*, String, EcsEntityId, AssetSource*);
+ASSET_FOREACH_LOADER(ASSET_LOADER_DECLARE)
+#undef ASSET_LOADER_DECLARE
 
-#undef RET_LOADER
-  diag_crash_msg("No asset loader defined for format: {}", fmt_int(format));
-}
+static const AssetLoader g_assetLoaders[AssetFormat_Count] = {
+#define ASSET_LOADER_REGISTER(_FORMAT_, _NAME_) [_FORMAT_] = &asset_load_##_NAME_,
+    ASSET_FOREACH_LOADER(ASSET_LOADER_REGISTER)
+};
+#undef ASSET_LOADER_REGISTER
+
+#undef ASSET_FOREACH_LOADER
+
+// clang-format on
+
+AssetLoader asset_loader(const AssetFormat format) { return g_assetLoaders[format]; }
