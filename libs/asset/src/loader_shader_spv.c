@@ -849,7 +849,7 @@ static void spv_log_error(const SpvError err) {
   log_e("Failed to parse SpirV shader", log_param("error", fmt_text(spv_error_str(err))));
 }
 
-bool asset_init_spv_from_mem(EcsWorld* world, const EcsEntityId entity, const Mem input) {
+bool asset_shader_spv_init_from_mem(EcsWorld* world, const EcsEntityId entity, const Mem input) {
   /**
    * SpirV consists of 32 bit words so we interpret the file as a set of 32 bit words.
    * TODO: Convert to big-endian in case we're running on a big-endian system.
@@ -898,7 +898,7 @@ bool asset_init_spv_from_mem(EcsWorld* world, const EcsEntityId entity, const Me
 void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  if (asset_init_spv_from_mem(world, entity, src->data)) {
+  if (asset_shader_spv_init_from_mem(world, entity, src->data)) {
     ecs_world_add_t(
         world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Repository, .srcRepo = src);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);

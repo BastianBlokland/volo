@@ -16,4 +16,4 @@ ecs_comp_extern_public(AssetShaderSourceComp) {
   };
 };
 
-bool asset_init_spv_from_mem(EcsWorld*, EcsEntityId, Mem input);
+bool asset_shader_spv_init_from_mem(EcsWorld*, EcsEntityId, Mem input);

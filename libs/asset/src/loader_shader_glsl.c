@@ -430,7 +430,7 @@ ecs_system_define(LoadGlslAssetSys) {
       goto Error;
     }
 
-    if (!asset_init_spv_from_mem(world, entity, spvData)) {
+    if (!asset_shader_spv_init_from_mem(world, entity, spvData)) {
       glsl_load_fail(world, entity, GlslError_InvalidSpv);
       goto Error;
     }
