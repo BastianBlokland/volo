@@ -151,7 +151,7 @@ typedef enum {
   SpvError_Count,
 } SpvError;
 
-static String spv_error_str(SpvError res) {
+static String spv_error_str(const SpvError res) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Malformed SpirV data"),
