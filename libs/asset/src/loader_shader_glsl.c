@@ -89,12 +89,12 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                      (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
   void                      (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
+  void                      (SYS_DECL* compile_options_set_include_callbacks)(ShadercCompileOptions*, void* resolver, void* releaser, void* userContext);
   void                      (SYS_DECL* compile_options_set_forced_version_profile)(ShadercCompileOptions*, i32 version, i32 profile);
   void                      (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
   void                      (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
-  void                      (SYS_DECL* compile_options_set_include_callbacks)(ShadercCompileOptions*, void* resolver, void* releaser, void* userContext);
   ShadercCompilationResult* (SYS_DECL* compile_into_spv)(const ShadercCompiler*, const char* sourceText, usize sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
   void                      (SYS_DECL* result_release)(ShadercCompilationResult*);
   ShadercCompilationStatus  (SYS_DECL* result_get_compilation_status)(const ShadercCompilationResult*);
@@ -305,24 +305,33 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
     }                                                                                              \
   } while (false)
 
+#define SHADERC_LOAD_SYM_OPT(_NAME_)                                                               \
+  do {                                                                                             \
+    const String symName = string_lit("shaderc_" #_NAME_);                                         \
+    env->_NAME_          = dynlib_symbol(env->shaderc, symName);                                   \
+  } while (false)
+
   SHADERC_LOAD_SYM(compiler_initialize);
   SHADERC_LOAD_SYM(compiler_release);
   SHADERC_LOAD_SYM(compile_options_initialize);
   SHADERC_LOAD_SYM(compile_options_release);
   SHADERC_LOAD_SYM(compile_options_set_target_env);
   SHADERC_LOAD_SYM(compile_options_set_target_spirv);
-  SHADERC_LOAD_SYM(compile_options_set_forced_version_profile);
-  SHADERC_LOAD_SYM(compile_options_set_warnings_as_errors);
-  SHADERC_LOAD_SYM(compile_options_set_preserve_bindings);
-  SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
-  SHADERC_LOAD_SYM(compile_options_set_optimization_level);
   SHADERC_LOAD_SYM(compile_options_set_include_callbacks);
+  SHADERC_LOAD_SYM_OPT(compile_options_set_forced_version_profile);
+  SHADERC_LOAD_SYM_OPT(compile_options_set_warnings_as_errors);
+  SHADERC_LOAD_SYM_OPT(compile_options_set_preserve_bindings);
+  SHADERC_LOAD_SYM_OPT(compile_options_set_generate_debug_info);
+  SHADERC_LOAD_SYM_OPT(compile_options_set_optimization_level);
   SHADERC_LOAD_SYM(compile_into_spv);
   SHADERC_LOAD_SYM(result_release);
   SHADERC_LOAD_SYM(result_get_compilation_status);
   SHADERC_LOAD_SYM(result_get_error_message);
   SHADERC_LOAD_SYM(result_get_length);
   SHADERC_LOAD_SYM(result_get_bytes);
+
+#undef SHADERC_LOAD_SYM
+#undef SHADERC_LOAD_SYM_OPT
 
   env->compiler = env->compiler_initialize();
   if (!env->compiler) {
@@ -337,16 +346,27 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   env->compile_options_set_target_env(
       env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_3);
   env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
-  env->compile_options_set_forced_version_profile(env->options, glsl_version, 0);
-  env->compile_options_set_warnings_as_errors(env->options);
-  env->compile_options_set_preserve_bindings(env->options, true);
   env->compile_options_set_include_callbacks(
       env->options, glsl_include_resolve, glsl_include_release, env->includeCtx);
+
+  if (env->compile_options_set_forced_version_profile) {
+    env->compile_options_set_forced_version_profile(env->options, glsl_version, 0);
+  }
+  if (env->compile_options_set_warnings_as_errors) {
+    env->compile_options_set_warnings_as_errors(env->options);
+  }
+  if (env->compile_options_set_preserve_bindings) {
+    env->compile_options_set_preserve_bindings(env->options, true);
+  }
 #if glsl_debug_info
-  env->compile_options_set_generate_debug_info(env->options);
+  if (env->compile_options_set_generate_debug_info) {
+    env->compile_options_set_generate_debug_info(env->options);
+  }
 #endif
 #if glsl_optimize
-  env->compile_options_set_optimization_level(env->options, ShadercOptimization_Performance);
+  if (env->compile_options_set_optimization_level) {
+    env->compile_options_set_optimization_level(env->options, ShadercOptimization_Performance);
+  }
 #endif
 
 Done:
