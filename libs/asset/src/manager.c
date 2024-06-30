@@ -371,7 +371,7 @@ ecs_system_define(AssetPollChangedSys) {
 }
 
 ecs_module_init(asset_manager_module) {
-  ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp);
+  ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp, .destructOrder = 30);
   ecs_register_comp(AssetComp);
   ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);

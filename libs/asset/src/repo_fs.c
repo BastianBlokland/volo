@@ -11,17 +11,19 @@ typedef struct {
   AssetRepo    api;
   String       rootPath;
   FileMonitor* monitor;
+  Allocator*   sourceAlloc; // Allocator for AssetSourceFs objects.
 } AssetRepoFs;
 
 typedef struct {
-  AssetSource api;
-  File*       file;
+  AssetSource  api;
+  AssetRepoFs* repo;
+  File*        file;
 } AssetSourceFs;
 
 static void asset_source_fs_close(AssetSource* src) {
   AssetSourceFs* srcFs = (AssetSourceFs*)src;
   file_destroy(srcFs->file);
-  alloc_free_t(g_allocHeap, srcFs);
+  alloc_free_t(srcFs->repo->sourceAlloc, srcFs);
 }
 
 static bool asset_source_path(AssetRepo* repo, const String id, DynString* out) {
@@ -55,10 +57,11 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
     return null;
   }
 
-  AssetSourceFs* src = alloc_alloc_t(g_allocHeap, AssetSourceFs);
+  AssetSourceFs* src = alloc_alloc_t(repoFs->sourceAlloc, AssetSourceFs);
 
   *src = (AssetSourceFs){
       .api  = {.data = data, .format = fmt, .close = asset_source_fs_close},
+      .repo = repoFs,
       .file = file,
   };
 
@@ -205,6 +208,8 @@ static void asset_repo_fs_destroy(AssetRepo* repo) {
 
   string_free(g_allocHeap, repoFs->rootPath);
   file_monitor_destroy(repoFs->monitor);
+  alloc_block_destroy(repoFs->sourceAlloc);
+
   alloc_free_t(g_allocHeap, repoFs);
 }
 
@@ -222,8 +227,9 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
               .changesPoll  = asset_repo_fs_changes_poll,
               .query        = asset_repo_fs_query,
           },
-      .rootPath = string_dup(g_allocHeap, rootPath),
-      .monitor  = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
+      .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
+      .rootPath    = string_dup(g_allocHeap, rootPath),
+      .monitor     = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
   };
 
   return (AssetRepo*)repo;
