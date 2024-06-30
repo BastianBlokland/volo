@@ -164,6 +164,7 @@ typedef enum {
   GlslError_None = 0,
   GlslError_CompilerNotAvailable,
   GlslError_CompilationFailed,
+  GlslError_InvalidSpv,
 
   GlslError_Count,
 } GlslError;
@@ -173,6 +174,7 @@ static String glsl_error_str(const GlslError res) {
       string_static("None"),
       string_static("No Glsl compiler available"),
       string_static("Glsl compilation failed"),
+      string_static("Glsl compilation resulted in invalid SpirV"),
   };
   ASSERT(array_elems(g_msgs) == GlslError_Count, "Incorrect number of glsl-error messages");
   return g_msgs[res];
@@ -338,7 +340,8 @@ static bool glsl_compile(
     const GlslIncludeInvocation* includeInvoc,
     const String                 input,
     const String                 inputId,
-    const ShadercShaderKind      inputKind) {
+    const ShadercShaderKind      inputKind,
+    Mem*                         spvOut) {
   bool success = true;
 
   glsl_include_ctx_prepare(glslEnv->includeCtx, includeInvoc);
@@ -362,9 +365,8 @@ static bool glsl_compile(
     goto Done;
   }
 
-  const Mem resMem    = mem_create(glslEnv->result_get_bytes(res), glslEnv->result_get_length(res));
-  const Mem outputMem = alloc_dup(g_allocHeap, resMem, alignof(u32));
-  (void)outputMem;
+  const Mem resMem = mem_create(glslEnv->result_get_bytes(res), glslEnv->result_get_length(res));
+  *spvOut          = alloc_dup(g_allocHeap, resMem, alignof(u32));
 
 Done:
   glslEnv->result_release(res);
@@ -412,14 +414,21 @@ ecs_system_define(LoadGlslAssetSys) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
-    if (!glsl_compile(glslEnv, &includeInvoc, load->src->data, id, load->kind)) {
+    Mem spvData;
+    if (!glsl_compile(glslEnv, &includeInvoc, load->src->data, id, load->kind, &spvData)) {
       glsl_load_fail(world, entity, GlslError_CompilationFailed);
       goto Error;
     }
 
-    // TODO: Call into the spv loader to produce the shader meta.
-    ecs_world_remove_t(world, entity, AssetGlslLoadComp);
+    if (!asset_init_spv_from_mem(world, entity, spvData)) {
+      glsl_load_fail(world, entity, GlslError_InvalidSpv);
+      goto Error;
+    }
+
+    ecs_world_add_t(
+        world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Memory, .srcMem = spvData);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    ecs_world_remove_t(world, entity, AssetGlslLoadComp);
     continue;
 
   Error:
