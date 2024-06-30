@@ -20,15 +20,19 @@ typedef enum {
   GlslKind_Fragment,
 } GlslKind;
 
-typedef struct sShadercCompiler ShadercCompiler;
+typedef struct sShadercCompiler       ShadercCompiler;
+typedef struct sShadercCompileOptions ShadercCompileOptions;
 
 ecs_comp_define(AssetGlslEnvComp) {
-  DynLib*          shaderc;
-  ShadercCompiler* compiler;
+  DynLib*                shaderc;
+  ShadercCompiler*       compiler;
+  ShadercCompileOptions* compileOptions;
 
   // clang-format off
-  ShadercCompiler* (SYS_DECL* compiler_initialize)(void);
-  void             (SYS_DECL* compiler_release)(ShadercCompiler*);
+  ShadercCompiler*       (SYS_DECL* compiler_initialize)(void);
+  void                   (SYS_DECL* compiler_release)(ShadercCompiler*);
+  ShadercCompileOptions* (SYS_DECL* compile_options_initialize)(void);
+  void                   (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
   // clang-format on
 };
 
@@ -40,6 +44,9 @@ ecs_comp_define(AssetGlslLoadComp) {
 static void ecs_destruct_glsl_env_comp(void* data) {
   AssetGlslEnvComp* comp = data;
   if (comp->shaderc) {
+    if (comp->compileOptions) {
+      comp->compile_options_release(comp->compileOptions);
+    }
     if (comp->compiler) {
       comp->compiler_release(comp->compiler);
     }
@@ -118,10 +125,17 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
 
   SHADERC_LOAD_SYM(compiler_initialize);
   SHADERC_LOAD_SYM(compiler_release);
+  SHADERC_LOAD_SYM(compile_options_initialize);
+  SHADERC_LOAD_SYM(compile_options_release);
 
   env->compiler = env->compiler_initialize();
   if (!env->compiler) {
     log_e("Failed to initialize Shaderc compiler");
+    goto Done;
+  }
+  env->compileOptions = env->compile_options_initialize();
+  if (!env->compileOptions) {
+    log_e("Failed to initialize Shaderc compile-options");
     goto Done;
   }
 
@@ -156,7 +170,7 @@ ecs_system_define(LoadGlslAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
-    if (!glslEnv->compiler) {
+    if (!glslEnv->compiler || !glslEnv->compileOptions) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
