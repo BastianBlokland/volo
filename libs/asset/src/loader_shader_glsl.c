@@ -53,7 +53,7 @@ typedef enum {
 } ShadercIncludeType;
 
 typedef struct {
-  const char* sourceName; // Resolved path.
+  const char* sourceName;
   usize       sourceNameLength;
   const char* content; // Contains the error message in-case of inclusion error.
   usize       contentLength;
@@ -281,8 +281,8 @@ static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResul
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
-  AssetGlslEnvComp* env =
-      ecs_world_add_t(world, entity, AssetGlslEnvComp, .includeCtx = glsl_include_ctx_init());
+  AssetGlslEnvComp* env = ecs_world_add_t(world, entity, AssetGlslEnvComp);
+  env->includeCtx       = glsl_include_ctx_init();
 
   String    libNames[glsl_shaderc_names_max];
   const u32 libNameCount = glsl_shaderc_lib_names(libNames);
@@ -417,8 +417,10 @@ ecs_system_define(LoadGlslAssetSys) {
 
     glslEnv->result_release(res);
 
-    if (!asset_shader_spv_init_from_mem(world, entity, spvData)) {
-      glsl_load_fail(world, entity, GlslError_InvalidSpv);
+    const SpvError spvErr = spv_init(world, entity, spvData);
+    if (spvErr) {
+      const String msg = spv_err_str(spvErr);
+      glsl_load_fail_msg(world, entity, GlslError_InvalidSpv, msg);
       goto Done;
     }
 

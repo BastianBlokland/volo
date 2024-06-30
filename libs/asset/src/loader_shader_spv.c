@@ -128,54 +128,6 @@ typedef struct {
   u32               specBranchCount;
 } SpvProgram;
 
-typedef enum {
-  SpvError_None = 0,
-  SpvError_Malformed,
-  SpvError_MalformedIdOutOfBounds,
-  SpvError_MalformedDuplicateId,
-  SpvError_MalformedResourceWithoutSetAndId,
-  SpvError_MalformedDuplicateBinding,
-  SpvError_MalformedSpecWithoutBinding,
-  SpvError_UnsupportedVersion,
-  SpvError_UnsupportedMultipleEntryPoints,
-  SpvError_UnsupportedShaderResource,
-  SpvError_UnsupportedSpecConstantType,
-  SpvError_UnsupportedSetExceedsMax,
-  SpvError_UnsupportedBindingExceedsMax,
-  SpvError_UnsupportedInputExceedsMax,
-  SpvError_UnsupportedOutputExceedsMax,
-  SpvError_UnsupportedImageType,
-  SpvError_MultipleKillInstructions,
-  SpvError_TooManySpecConstBranches,
-
-  SpvError_Count,
-} SpvError;
-
-static String spv_error_str(const SpvError res) {
-  static const String g_msgs[] = {
-      string_static("None"),
-      string_static("Malformed SpirV data"),
-      string_static("SpirV id out of bounds"),
-      string_static("Duplicate SpirV id"),
-      string_static("SpirV shader resource without set and binding"),
-      string_static("SpirV shader resource binding already used in this set"),
-      string_static("SpirV shader specialization constant without a binding"),
-      string_static("Unsupported SpirV version, atleast 1.3 is required"),
-      string_static("Multiple SpirV entrypoints are not supported"),
-      string_static("Unsupported SpirV shader resource"),
-      string_static("Unsupported SpirV specialization constant type"),
-      string_static("SpirV shader resource set exceeds maximum"),
-      string_static("SpirV shader resource binding exceeds maximum"),
-      string_static("SpirV shader input binding exceeds maximum"),
-      string_static("SpirV shader output binding exceeds maximum"),
-      string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
-      string_static("SpirV shader uses multiple kill (aka discard) instructions"),
-      string_static("SpirV shader uses too many branches on specialization constants"),
-  };
-  ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
-  return g_msgs[res];
-}
-
 static SpvData spv_consume(const SpvData data, const u32 amount) {
   diag_assert(data.size >= amount);
   return (SpvData){
@@ -845,32 +797,53 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
   *err = SpvError_None;
 }
 
-static void spv_log_error(const SpvError err) {
-  log_e("Failed to parse SpirV shader", log_param("error", fmt_text(spv_error_str(err))));
+String spv_err_str(const SpvError res) {
+  static const String g_msgs[] = {
+      string_static("None"),
+      string_static("Malformed SpirV data"),
+      string_static("SpirV id out of bounds"),
+      string_static("Duplicate SpirV id"),
+      string_static("SpirV shader resource without set and binding"),
+      string_static("SpirV shader resource binding already used in this set"),
+      string_static("SpirV shader specialization constant without a binding"),
+      string_static("Unsupported SpirV version, atleast 1.3 is required"),
+      string_static("Multiple SpirV entrypoints are not supported"),
+      string_static("Unsupported SpirV shader resource"),
+      string_static("Unsupported SpirV specialization constant type"),
+      string_static("SpirV shader resource set exceeds maximum"),
+      string_static("SpirV shader resource binding exceeds maximum"),
+      string_static("SpirV shader input binding exceeds maximum"),
+      string_static("SpirV shader output binding exceeds maximum"),
+      string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
+      string_static("SpirV shader uses multiple kill (aka discard) instructions"),
+      string_static("SpirV shader uses too many branches on specialization constants"),
+  };
+  ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
+  return g_msgs[res];
 }
 
-bool asset_shader_spv_init_from_mem(EcsWorld* world, const EcsEntityId entity, const Mem input) {
+SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
   /**
    * SpirV consists of 32 bit words so we interpret the file as a set of 32 bit words.
    * TODO: Convert to big-endian in case we're running on a big-endian system.
    */
   if (UNLIKELY(!bits_aligned(input.size, sizeof(u32)))) {
-    return spv_log_error(SpvError_Malformed), false;
+    return SpvError_Malformed;
   }
   SpvData data = {.ptr = input.ptr, .size = (u32)input.size / sizeof(u32)};
   if (UNLIKELY(data.size < 5)) {
-    return spv_log_error(SpvError_Malformed), false;
+    return SpvError_Malformed;
   }
 
   // Read the header.
   if (UNLIKELY(*data.ptr != spv_magic)) {
-    return spv_log_error(SpvError_Malformed), false;
+    return SpvError_Malformed;
   }
   data = spv_consume(data, 1); // Spv magic number.
   SpvVersion version;
   data = spv_read_version(data, &version);
   if (UNLIKELY(version.major != 1 || version.minor != 3)) {
-    return spv_log_error(SpvError_UnsupportedVersion), false;
+    return SpvError_UnsupportedVersion;
   }
   data            = spv_consume(data, 1); // Generators magic number.
   const u32 maxId = *data.ptr;
@@ -881,29 +854,32 @@ bool asset_shader_spv_init_from_mem(EcsWorld* world, const EcsEntityId entity, c
   SpvProgram program;
   data = spv_read_program(data, maxId, &program, &err);
   if (UNLIKELY(err)) {
-    return spv_log_error(err), false;
+    return err;
   }
 
   // Create the asset.
   AssetShaderComp* asset = ecs_world_add_t(world, entity, AssetShaderComp);
   spv_asset_shader_create(&program, input, asset, &err);
-  if (err) {
+  if (UNLIKELY(err)) {
     // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
-    return spv_log_error(err), false;
+    return err;
   }
 
-  return true;
+  return SpvError_None;
 }
 
 void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  if (asset_shader_spv_init_from_mem(world, entity, src->data)) {
+  const SpvError err = spv_init(world, entity, src->data);
+  if (err) {
+    log_e("Failed to load SpirV shader", log_param("error", fmt_text(spv_err_str(err))));
+
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+  } else {
     ecs_world_add_t(
         world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Repository, .srcRepo = src);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  } else {
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
-    asset_repo_source_close(src);
   }
 }
