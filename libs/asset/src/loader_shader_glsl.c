@@ -248,7 +248,7 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
 static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
   GlslIncludeCtx* ctx = userContext;
   if (result->userData) {
-    ((AssetSource*)result->userData)->close(result->userData);
+    asset_repo_source_close(result->userData);
   }
   alloc_free_t(ctx->resultAlloc, result);
 }
