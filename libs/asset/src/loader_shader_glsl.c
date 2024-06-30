@@ -42,8 +42,8 @@ typedef enum {
 } ShadercShaderKind;
 
 typedef enum {
-  ShadercProfile_Core = 1,
-} ShadercProfile;
+  ShadercCompilationStatus_Success = 0,
+} ShadercCompilationStatus;
 
 typedef struct sShadercCompiler          ShadercCompiler;
 typedef struct sShadercCompileOptions    ShadercCompileOptions;
@@ -61,13 +61,15 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                      (SYS_DECL* compile_options_release)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_target_env)(ShadercCompileOptions*, ShadercTargetEnv, ShadercTargetEnvVersion);
   void                      (SYS_DECL* compile_options_set_target_spirv)(ShadercCompileOptions*, ShadercSpvVersion);
-  void                      (SYS_DECL* compile_options_set_forced_version_profile)(ShadercCompileOptions*, int version, ShadercProfile);
+  void                      (SYS_DECL* compile_options_set_forced_version_profile)(ShadercCompileOptions*, i32 version, i32 profile);
   void                      (SYS_DECL* compile_options_set_warnings_as_errors)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
   void                      (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
   void                      (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
-  ShadercCompilationResult* (SYS_DECL* compile_into_spv)(const ShadercCompiler*, const char* sourceText, size_t sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
+  ShadercCompilationResult* (SYS_DECL* compile_into_spv)(const ShadercCompiler*, const char* sourceText, usize sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
   void                      (SYS_DECL* result_release)(ShadercCompilationResult*);
+  ShadercCompilationStatus  (SYS_DECL* result_get_compilation_status)(const ShadercCompilationResult*);
+  const char*               (SYS_DECL* result_get_error_message)(const ShadercCompilationResult*);
   // clang-format on
 };
 
@@ -180,6 +182,8 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compile_options_set_optimization_level);
   SHADERC_LOAD_SYM(compile_into_spv);
   SHADERC_LOAD_SYM(result_release);
+  SHADERC_LOAD_SYM(result_get_compilation_status);
+  SHADERC_LOAD_SYM(result_get_error_message);
 
   env->compiler = env->compiler_initialize();
   if (!env->compiler) {
@@ -194,8 +198,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   env->compile_options_set_target_env(
       env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_3);
   env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
-  env->compile_options_set_forced_version_profile(
-      env->options, glsl_shaderc_glsl_version, ShadercProfile_Core);
+  env->compile_options_set_forced_version_profile(env->options, glsl_shaderc_glsl_version, 0);
   env->compile_options_set_warnings_as_errors(env->options);
   env->compile_options_set_preserve_bindings(env->options, true);
 #if glsl_shaderc_debug_info
@@ -225,6 +228,17 @@ static bool glsl_compile(
       "main" /* entry-point*/,
       glslEnv->options);
 
+  if (glslEnv->result_get_compilation_status(res) != ShadercCompilationStatus_Success) {
+    const String err = string_from_null_term(glslEnv->result_get_error_message(res));
+    log_e(
+        "Glsl compilation failed",
+        log_param("input", fmt_text(inputId)),
+        log_param("err", fmt_text(err)));
+    success = false;
+    goto Done;
+  }
+
+Done:
   glslEnv->result_release(res);
   return success;
 }
