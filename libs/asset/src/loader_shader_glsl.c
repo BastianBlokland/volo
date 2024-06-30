@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -19,6 +20,27 @@ ecs_comp_define(AssetGlslLoadComp) {
 static void ecs_destruct_glsl_load_comp(void* data) {
   AssetGlslLoadComp* comp = data;
   asset_repo_source_close(comp->src);
+}
+
+typedef enum {
+  GlslError_None = 0,
+  GlslError_CompilerNotAvailable,
+
+  GlslError_Count,
+} GlslError;
+
+static String glsl_error_str(const GlslError res) {
+  static const String g_msgs[] = {
+      string_static("None"),
+      string_static("No Glsl compiler available"),
+  };
+  ASSERT(array_elems(g_msgs) == GlslError_Count, "Incorrect number of glsl-error messages");
+  return g_msgs[res];
+}
+
+static void glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const GlslError err) {
+  log_e("Failed to parse Glsl shader", log_param("error", fmt_text(glsl_error_str(err))));
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
@@ -52,6 +74,20 @@ ecs_system_define(LoadGlslAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     (void)entity;
+
+    if (glslEnv->dummy) {
+      glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
+      goto Error;
+    }
+
+    // TODO: Call into the spv loader to produce the shader meta.
+    ecs_world_remove_t(world, entity, AssetGlslLoadComp);
+    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    continue;
+
+  Error:
+    // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
+    ecs_world_remove_t(world, entity, AssetGlslLoadComp);
   }
 }
 
