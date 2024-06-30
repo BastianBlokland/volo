@@ -20,7 +20,17 @@ typedef enum {
   GlslKind_Fragment,
 } GlslKind;
 
-ecs_comp_define(AssetGlslEnvComp) { DynLib* shadercLib; };
+typedef struct sShadercCompiler ShadercCompiler;
+
+ecs_comp_define(AssetGlslEnvComp) {
+  DynLib*          shaderc;
+  ShadercCompiler* compiler;
+
+  // clang-format off
+  ShadercCompiler* (SYS_DECL* compiler_initialize)(void);
+  void             (SYS_DECL* compiler_release)(ShadercCompiler*);
+  // clang-format on
+};
 
 ecs_comp_define(AssetGlslLoadComp) {
   GlslKind     kind;
@@ -29,8 +39,11 @@ ecs_comp_define(AssetGlslLoadComp) {
 
 static void ecs_destruct_glsl_env_comp(void* data) {
   AssetGlslEnvComp* comp = data;
-  if (comp->shadercLib) {
-    dynlib_destroy(comp->shadercLib);
+  if (comp->shaderc) {
+    if (comp->compiler) {
+      comp->compiler_release(comp->compiler);
+    }
+    dynlib_destroy(comp->shaderc);
   }
 }
 
@@ -85,13 +98,30 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   String    libNames[GLSL_SHADERC_NAMES_MAX];
   const u32 libNameCount = glsl_shaderc_lib_names(libNames);
 
-  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &env->shadercLib);
+  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &env->shaderc);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load 'libshaderc' Glsl compiler", log_param("err", fmt_text(err)));
-    return env;
+    goto Done;
   }
-  log_i("Glsl compiler loaded", log_param("path", fmt_path(dynlib_path(env->shadercLib))));
+  log_i("Glsl compiler loaded", log_param("path", fmt_path(dynlib_path(env->shaderc))));
+
+#define SHADERC_LOAD_SYM(_NAME_)                                                                   \
+  do {                                                                                             \
+    const String symName = string_lit("shaderc_" #_NAME_);                                         \
+    env->_NAME_          = dynlib_symbol(env->shaderc, symName);                                   \
+    if (!env->_NAME_) {                                                                            \
+      log_w("Shaderc symbol '{}' missing", log_param("sym", fmt_text(symName)));                   \
+      goto Done;                                                                                   \
+    }                                                                                              \
+  } while (false)
+
+  SHADERC_LOAD_SYM(compiler_initialize);
+  SHADERC_LOAD_SYM(compiler_release);
+
+  env->compiler = env->compiler_initialize();
+
+Done:
   return env;
 }
 
@@ -122,7 +152,7 @@ ecs_system_define(LoadGlslAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
-    if (!glslEnv->shadercLib) {
+    if (!glslEnv->compiler) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
       goto Error;
     }
