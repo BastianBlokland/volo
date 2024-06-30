@@ -17,6 +17,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Cursor:    { RET_LOADER(cursor);     }
   case AssetFormat_Decal:     { RET_LOADER(decal);      }
   case AssetFormat_FontTex:   { RET_LOADER(fonttex);    }
+  case AssetFormat_GlslFrag:  { RET_LOADER(glsl_frag);  }
+  case AssetFormat_GlslVert:  { RET_LOADER(glsl_vert);  }
   case AssetFormat_Gltf:      { RET_LOADER(gltf);       }
   case AssetFormat_Graphic:   { RET_LOADER(graphic);    }
   case AssetFormat_Inputs:    { RET_LOADER(inputs);     }

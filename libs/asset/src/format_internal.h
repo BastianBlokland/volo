@@ -8,6 +8,8 @@ typedef enum {
   AssetFormat_Cursor,
   AssetFormat_Decal,
   AssetFormat_FontTex,
+  AssetFormat_GlslFrag,
+  AssetFormat_GlslVert,
   AssetFormat_Gltf,
   AssetFormat_Graphic,
   AssetFormat_Inputs,
