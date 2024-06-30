@@ -100,7 +100,6 @@ ecs_system_define(LoadGlslAssetSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    (void)entity;
 
     if (!glslEnv->shadercLib) {
       glsl_load_fail(world, entity, GlslError_CompilerNotAvailable);
