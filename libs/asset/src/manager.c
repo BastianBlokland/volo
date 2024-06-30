@@ -171,10 +171,24 @@ static bool asset_manager_load(
       log_param("size", fmt_size(source->data.size)));
 
   AssetLoader loader = asset_loader(source->format);
-  loader(world, asset->id, assetEntity, source);
+
+  bool success = true;
+  if (LIKELY(loader)) {
+    loader(world, asset->id, assetEntity, source);
+  } else {
+    log_e(
+        "Asset format cannot be loaded directly",
+        log_param("format", fmt_text(asset_format_str(source->format))),
+        log_param("id", fmt_path(asset->id)));
+    success = false;
+  }
 
   trace_end();
-  return true;
+
+  if (!success) {
+    asset_repo_source_close(source);
+  }
+  return success;
 }
 
 ecs_view_define(DirtyAssetView) {
