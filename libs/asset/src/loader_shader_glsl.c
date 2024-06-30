@@ -35,8 +35,14 @@ typedef enum {
   ShadercTargetEnvVersion_Vulkan_1_3 = (1u << 22) | (3 << 12),
 } ShadercTargetEnvVersion;
 
-typedef struct sShadercCompiler       ShadercCompiler;
-typedef struct sShadercCompileOptions ShadercCompileOptions;
+typedef enum {
+  ShadercShaderKind_Vertex   = 0,
+  ShadercShaderKind_Fragment = 1,
+} ShadercShaderKind;
+
+typedef struct sShadercCompiler          ShadercCompiler;
+typedef struct sShadercCompileOptions    ShadercCompileOptions;
+typedef struct sShadercCompilationResult ShadercCompilationResult;
 
 ecs_comp_define(AssetGlslEnvComp) {
   DynLib*                shaderc;
@@ -54,17 +60,14 @@ ecs_comp_define(AssetGlslEnvComp) {
   void                   (SYS_DECL* compile_options_set_preserve_bindings)(ShadercCompileOptions*, bool);
   void                   (SYS_DECL* compile_options_set_generate_debug_info)(ShadercCompileOptions*);
   void                   (SYS_DECL* compile_options_set_optimization_level)(ShadercCompileOptions*, ShadercOptimization);
+  void                   (SYS_DECL* compile_into_spv)(ShadercCompilationResult*, const ShadercCompiler*, const char* sourceText, size_t sourceTextSize, ShadercShaderKind, const char* inputFileName, const char* entryPointName, const ShadercCompileOptions*);
+  void                   (SYS_DECL* result_release)(ShadercCompilationResult*);
   // clang-format on
 };
 
-typedef enum {
-  GlslKind_Vertex,
-  GlslKind_Fragment,
-} GlslKind;
-
 ecs_comp_define(AssetGlslLoadComp) {
-  GlslKind     kind;
-  AssetSource* src;
+  ShadercShaderKind kind;
+  AssetSource*      src;
 };
 
 static void ecs_destruct_glsl_env_comp(void* data) {
@@ -159,6 +162,8 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compile_options_set_preserve_bindings);
   SHADERC_LOAD_SYM(compile_options_set_generate_debug_info);
   SHADERC_LOAD_SYM(compile_options_set_optimization_level);
+  SHADERC_LOAD_SYM(compile_into_spv);
+  SHADERC_LOAD_SYM(result_release);
 
   env->compiler = env->compiler_initialize();
   if (!env->compiler) {
@@ -242,11 +247,11 @@ ecs_module_init(asset_shader_glsl_module) {
 void asset_load_glsl_vert(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
-  ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = GlslKind_Vertex, .src = src);
+  ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = ShadercShaderKind_Vertex, .src = src);
 }
 
 void asset_load_glsl_frag(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
-  ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = GlslKind_Fragment, .src = src);
+  ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = ShadercShaderKind_Fragment, .src = src);
 }
