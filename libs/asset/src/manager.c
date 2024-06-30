@@ -425,6 +425,7 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
   AssetEntry* entry = dynarray_find_or_insert_sorted(&manager->lookup, asset_compare_entry, &tgt);
 
   if (entry->idHash != tgt.idHash) {
+    diag_assert(!entry->idHash && !entry->asset);
     entry->idHash = tgt.idHash;
     entry->asset  = asset_entity_create(world, manager->idAlloc, id);
   }
