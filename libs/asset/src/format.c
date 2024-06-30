@@ -11,6 +11,7 @@ String asset_format_str(const AssetFormat fmt) {
       [AssetFormat_Cursor]   = string_static("cursor"),
       [AssetFormat_Decal]    = string_static("decal"),
       [AssetFormat_FontTex]  = string_static("fonttex"),
+      [AssetFormat_Glsl]     = string_static("glsl"),
       [AssetFormat_GlslFrag] = string_static("frag"),
       [AssetFormat_GlslVert] = string_static("vert"),
       [AssetFormat_Gltf]     = string_static("gltf"),

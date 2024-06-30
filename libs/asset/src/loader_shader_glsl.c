@@ -47,8 +47,8 @@ typedef enum {
 } ShadercCompilationStatus;
 
 typedef enum {
-  ShadercIncludeType_Relative, // #include "other"
-  ShadercIncludeType_Standard, // #include <other>
+  ShadercIncludeType_Relative,
+  ShadercIncludeType_Standard,
 } ShadercIncludeType;
 
 typedef struct {
@@ -233,6 +233,11 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
   AssetSource* src = asset_source_open(ctx->invoc->assetManager, id);
   if (UNLIKELY(!src)) {
     glsl_include_error(res, string_lit("File not found"));
+    return res;
+  }
+  if (UNLIKELY(src->format != AssetFormat_Glsl)) {
+    asset_repo_source_close(src);
+    glsl_include_error(res, string_lit("File has an invalid format"));
     return res;
   }
 
