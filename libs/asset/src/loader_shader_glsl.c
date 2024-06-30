@@ -17,7 +17,6 @@
 #define glsl_shaderc_debug_info true
 #define glsl_shaderc_optimize true
 #define glsl_shaderc_names_max 4
-#define glsl_shaderc_include_max 128
 
 typedef enum {
   ShadercOptimization_None        = 0,
@@ -59,22 +58,21 @@ typedef struct {
   void*       userData; // AssetSource*
 } ShadercIncludeResult;
 
-typedef struct {
-  EcsWorld*            world;
-  AssetManagerComp*    assetManager;
-  ShadercIncludeResult results[glsl_shaderc_include_max];
-  u32                  resultCount;
-} ShadercIncludeContext;
-
 typedef struct sShadercCompiler          ShadercCompiler;
 typedef struct sShadercCompileOptions    ShadercCompileOptions;
 typedef struct sShadercCompilationResult ShadercCompilationResult;
+
+typedef struct {
+  EcsWorld*         world;
+  AssetManagerComp* assetManager;
+  Allocator*        resultAlloc; // Allocator for ShadercIncludeResult objects.
+} GlslIncludeCtx;
 
 ecs_comp_define(AssetGlslEnvComp) {
   DynLib*                shaderc;
   ShadercCompiler*       compiler;
   ShadercCompileOptions* options;
-  ShadercIncludeContext* includeCtx;
+  GlslIncludeCtx*        includeCtx;
 
   // clang-format off
   ShadercCompiler*          (SYS_DECL* compiler_initialize)(void);
@@ -101,6 +99,21 @@ ecs_comp_define(AssetGlslLoadComp) {
   AssetSource*      src;
 };
 
+static GlslIncludeCtx* glsl_include_ctx_init(void) {
+  GlslIncludeCtx* ctx         = alloc_alloc_t(g_allocHeap, GlslIncludeCtx);
+  const usize     resultSize  = sizeof(ShadercIncludeResult);
+  const usize     resultAlign = alignof(ShadercIncludeResult);
+  ctx->resultAlloc            = alloc_block_create(g_allocHeap, resultSize, resultAlign);
+  return ctx;
+}
+
+static void glsl_include_ctx_reset(GlslIncludeCtx* ctx) { alloc_reset(ctx->resultAlloc); }
+
+static void glsl_include_ctx_destroy(GlslIncludeCtx* ctx) {
+  alloc_block_destroy(ctx->resultAlloc);
+  alloc_free_t(g_allocHeap, ctx);
+}
+
 static void ecs_destruct_glsl_env_comp(void* data) {
   AssetGlslEnvComp* comp = data;
   if (comp->shaderc) {
@@ -112,7 +125,7 @@ static void ecs_destruct_glsl_env_comp(void* data) {
     }
     dynlib_destroy(comp->shaderc);
   }
-  alloc_free_t(g_allocHeap, comp->includeCtx);
+  glsl_include_ctx_destroy(comp->includeCtx);
 }
 
 static void ecs_destruct_glsl_load_comp(void* data) {
@@ -169,47 +182,15 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
   return count;
 }
 
-static ShadercIncludeContext* glsl_include_ctx_init(void) {
-  ShadercIncludeContext* ctx = alloc_alloc_t(g_allocHeap, ShadercIncludeContext);
-
-  // Setup fatal error result.
-  static const String g_fatalMsg = string_static("Fatal include error occurred");
-  ctx->results[0]                = (ShadercIncludeResult){
-      .content       = g_fatalMsg.ptr,
-      .contentLength = g_fatalMsg.size,
-  };
-  return ctx;
-}
-
-static void glsl_include_ctx_reset(
-    ShadercIncludeContext* ctx, EcsWorld* world, AssetManagerComp* assetManager) {
-  ctx->world        = world;
-  ctx->assetManager = assetManager;
-  ctx->resultCount  = 1; // Result 0 is used for fatal errors.
-}
-
-static ShadercIncludeResult* glsl_include_result_alloc(ShadercIncludeContext* ctx) {
-  if (ctx->resultCount == array_elems(ctx->results)) {
-    return null;
-  }
-  return &ctx->results[ctx->resultCount++];
-}
-
-static ShadercIncludeResult* glsl_include_result_fatal(ShadercIncludeContext* ctx) {
-  return &ctx->results[0];
-}
-
 static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     void*                    userContext,
     const char*              requestedSource,
     const ShadercIncludeType type,
     const char*              requestingSource,
     const usize              includeDepth) {
-  ShadercIncludeContext* ctx = userContext;
-  ShadercIncludeResult*  res = glsl_include_result_alloc(ctx);
-  if (UNLIKELY(!res)) {
-    return glsl_include_result_fatal(ctx);
-  }
+  GlslIncludeCtx*       ctx = userContext;
+  ShadercIncludeResult* res = alloc_alloc_t(ctx->resultAlloc, ShadercIncludeResult);
+
   const String requestedId = string_from_null_term(requestedSource);
   AssetSource* assetSource = asset_source_open(ctx->assetManager, requestedId);
   if (UNLIKELY(!assetSource)) {
@@ -232,10 +213,11 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
 }
 
 static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
-  (void)userContext;
+  GlslIncludeCtx* ctx = userContext;
   if (result->userData) {
     ((AssetSource*)result->userData)->close(result->userData);
   }
+  alloc_free_t(ctx->resultAlloc, result);
 }
 
 static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity) {
@@ -318,7 +300,9 @@ static bool glsl_compile(
     const ShadercShaderKind inputKind) {
   bool success = true;
 
-  glsl_include_ctx_reset(glslEnv->includeCtx, world, assetManager);
+  glsl_include_ctx_reset(glslEnv->includeCtx);
+  glslEnv->includeCtx->world        = world;
+  glslEnv->includeCtx->assetManager = assetManager;
 
   ShadercCompilationResult* res = glslEnv->compile_into_spv(
       glslEnv->compiler,
