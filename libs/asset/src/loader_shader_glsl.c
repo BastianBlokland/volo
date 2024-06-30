@@ -120,6 +120,10 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
   SHADERC_LOAD_SYM(compiler_release);
 
   env->compiler = env->compiler_initialize();
+  if (!env->compiler) {
+    log_e("Failed to initialize Shaderc compiler");
+    goto Done;
+  }
 
 Done:
   return env;
