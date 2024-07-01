@@ -30,7 +30,7 @@ static FormatArg arg_style_dim(LogSinkPretty* sink) {
   return sink->style ? fmt_ttystyle(.flags = TtyStyleFlags_Faint) : fmt_nop();
 }
 
-static FormatArg arg_style_loglevel(LogSinkPretty* sink, LogLevel lvl) {
+static FormatArg arg_style_loglevel(LogSinkPretty* sink, const LogLevel lvl) {
   if (sink->style) {
     switch (lvl) {
     case LogLevel_Debug:
@@ -54,10 +54,10 @@ static FormatArg arg_style_reset(LogSinkPretty* sink) {
 
 static void log_sink_pretty_write(
     LogSink*        sink,
-    LogLevel        lvl,
-    SourceLoc       srcLoc,
-    TimeReal        timestamp,
-    String          message,
+    const LogLevel  lvl,
+    const SourceLoc srcLoc,
+    const TimeReal  timestamp,
+    const String    message,
     const LogParam* params) {
   (void)srcLoc;
   LogSinkPretty* prettySink = (LogSinkPretty*)sink;
@@ -112,19 +112,17 @@ static void log_sink_pretty_destroy(LogSink* sink) {
 LogSink*
 log_sink_pretty(Allocator* alloc, File* file, const LogMask mask, const LogSinkPrettyFlags flags) {
   LogSinkPretty* sink = alloc_alloc_t(alloc, LogSinkPretty);
-  *sink               = (LogSinkPretty){
-                    .api =
-          {
-                            .write   = log_sink_pretty_write,
-                            .destroy = log_sink_pretty_destroy,
-          },
-                    .alloc    = alloc,
-                    .file     = file,
-                    .mask     = mask,
-                    .style    = tty_isatty(file),
-                    .flags    = flags,
-                    .timezone = time_zone_current(),
+
+  *sink = (LogSinkPretty){
+      .api      = {.write = log_sink_pretty_write, .destroy = log_sink_pretty_destroy},
+      .alloc    = alloc,
+      .file     = file,
+      .mask     = mask,
+      .style    = tty_isatty(file),
+      .flags    = flags,
+      .timezone = time_zone_current(),
   };
+
   return (LogSink*)sink;
 }
 
