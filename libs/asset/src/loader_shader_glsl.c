@@ -430,7 +430,7 @@ ecs_system_define(LoadGlslAssetSys) {
 
     if (glslEnv->result_get_compilation_status(res) != ShadercCompilationStatus_Success) {
       const String msg = string_from_null_term(glslEnv->result_get_error_message(res));
-      glsl_load_fail_msg(world, entity, GlslError_CompilationFailed, msg);
+      glsl_load_fail_msg(world, entity, GlslError_CompilationFailed, string_trim_whitespace(msg));
       glslEnv->result_release(res);
       goto Done;
     }
