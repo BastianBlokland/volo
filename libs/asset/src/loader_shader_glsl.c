@@ -5,6 +5,7 @@
 #include "core_path.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "loader_shader_internal.h"
 #include "manager_internal.h"
@@ -404,6 +405,8 @@ ecs_system_define(LoadGlslAssetSys) {
     const EcsEntityId        entity = ecs_view_entity(itr);
     const String             id     = asset_id(ecs_view_read_t(itr, AssetComp));
 
+    trace_begin_msg("asset_glsl_build", TraceColor_Blue, "{}", fmt_text(path_filename(id)));
+
     const GlslIncludeInvocation includeInvoc = {
         .world        = world,
         .assetEntity  = entity,
@@ -452,6 +455,8 @@ ecs_system_define(LoadGlslAssetSys) {
   Done:
     glsl_include_ctx_clear(glslEnv->includeCtx);
     ecs_world_remove_t(world, entity, AssetGlslLoadComp);
+
+    trace_end();
   }
 }
 
