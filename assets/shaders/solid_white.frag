@@ -1,6 +1,3 @@
-#version 450
-#extension GL_GOOGLE_include_directive : enable
-
 #include "binding.glsl"
 
 bind_internal(0) out f32v4 out_color;
