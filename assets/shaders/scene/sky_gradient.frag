@@ -1,5 +1,3 @@
-#extension GL_GOOGLE_include_directive : enable
-
 #include "binding.glsl"
 
 /**

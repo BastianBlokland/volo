@@ -3,7 +3,6 @@
     "llvm-vs-code-extensions.vscode-clangd",
     "vadimcn.vscode-lldb",
     "twxs.cmake",
-    "editorconfig.editorconfig",
-    "dtoplak.vscode-glsllint"
+    "editorconfig.editorconfig"
   ]
 }

@@ -55,9 +55,5 @@
   ],
   "json.format.keepLines": true,
   "volo-lsp.trace.server": "off",
-  "glsllint.glslangValidatorArgs": [
-    "-V", "--enhanced-msgs", "--glsl-version", "450", "-Iassets/shaders/include"
-  ],
-  "glsllint.linkShader": false,
   "cSpell.enableFiletypes": [ "volo-script" ]
 }
