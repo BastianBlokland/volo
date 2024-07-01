@@ -36,7 +36,7 @@ typedef enum {
 } ShadercSpvVersion;
 
 typedef enum {
-  ShadercTargetEnvVersion_Vulkan_1_2 = (1u << 22) | (2 << 12),
+  ShadercTargetEnvVersion_Vulkan_1_1 = (1u << 22) | (1 << 12),
 } ShadercTargetEnvVersion;
 
 typedef enum {
@@ -345,7 +345,7 @@ static AssetGlslEnvComp* glsl_env_init(EcsWorld* world, const EcsEntityId entity
     goto Done;
   }
   env->compile_options_set_target_env(
-      env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_2);
+      env->options, ShadercTargetEnv_Vulkan, ShadercTargetEnvVersion_Vulkan_1_1);
   env->compile_options_set_target_spirv(env->options, ShadercSpvVersion_1_3);
   env->compile_options_set_include_callbacks(
       env->options, glsl_include_resolve, glsl_include_release, env->includeCtx);
