@@ -4,68 +4,6 @@
 
 message(STATUS "> assets")
 
-configure_shaders(volo_shaders
-  INCLUDE_DIR shaders/include
-  SOURCES
-    shaders/ambient_occlusion.frag
-    shaders/ambient.frag
-    shaders/bloom_down.frag
-    shaders/bloom_up.frag
-    shaders/blur.frag
-    shaders/debug/dyn_image_viewer_cube.frag
-    shaders/debug/dyn_image_viewer.frag
-    shaders/debug/dyn_image_viewer.vert
-    shaders/debug/dyn_mesh_viewer_skinned.vert
-    shaders/debug/dyn_mesh_viewer.vert
-    shaders/debug/grid.frag
-    shaders/debug/grid.vert
-    shaders/debug/shape_line.vert
-    shaders/debug/shape_mesh.vert
-    shaders/debug/shape.frag
-    shaders/debug/skinning.frag
-    shaders/debug/skinning.vert
-    shaders/dyn_depth_clip.frag
-    shaders/dyn_depth_standard_skinned.vert
-    shaders/dyn_depth_standard.vert
-    shaders/dyn_depth.frag
-    shaders/fog_vision.frag
-    shaders/fog_vision.vert
-    shaders/fog.frag
-    shaders/fullscreen.vert
-    shaders/hud/indicator_box.vert
-    shaders/hud/indicator_ring.vert
-    shaders/hud/indicator.frag
-    shaders/hud/minimap.frag
-    shaders/hud/minimap.vert
-    shaders/light/light_directional.frag
-    shaders/light/light_directional.vert
-    shaders/light/light_point_debug.frag
-    shaders/light/light_point.frag
-    shaders/light/light_point.vert
-    shaders/outline.frag
-    shaders/scene/sky_cubemap.frag
-    shaders/scene/sky_gradient.frag
-    shaders/scene/sky.vert
-    shaders/scene/terrain_position.vert
-    shaders/scene/terrain.frag
-    shaders/scene/terrain.vert
-    shaders/solid_black.frag
-    shaders/solid_white.frag
-    shaders/standard_skinned.vert
-    shaders/standard.frag
-    shaders/standard.vert
-    shaders/tonemapper.frag
-    shaders/ui/canvas.frag
-    shaders/ui/canvas.vert
-    shaders/vfx/decal_debug.frag
-    shaders/vfx/decal.frag
-    shaders/vfx/decal.vert
-    shaders/vfx/particle_depth.frag
-    shaders/vfx/particle_distortion.frag
-    shaders/vfx/particle_forward.frag
-    shaders/vfx/particle.vert
-  )
-
 if(${EXTERNAL_ASSETS})
   message(STATUS ">> Retrieving external assets, licensed seperatly: https://www.bastian.tech/assets/license.txt")
   download_external_files(
@@ -309,4 +247,3 @@ endif()
 
 add_custom_target(volo_assets)
 set_target_properties(volo_assets PROPERTIES path ${CMAKE_CURRENT_SOURCE_DIR})
-add_dependencies(volo_assets volo_shaders)

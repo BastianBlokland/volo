@@ -4,7 +4,6 @@
     "vadimcn.vscode-lldb",
     "twxs.cmake",
     "editorconfig.editorconfig",
-    "dtoplak.vscode-glsllint",
-    "emeraldwalk.runonsave"
+    "dtoplak.vscode-glsllint"
   ]
 }

@@ -38,7 +38,6 @@ include(cmake/debug.cmake)
 include(cmake/download.cmake)
 include(cmake/findpkg.cmake)
 include(cmake/platform.cmake)
-include(cmake/shader.cmake)
 include(cmake/test.cmake)
 
 # Setup global platform specific defines.
