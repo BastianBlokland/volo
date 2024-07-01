@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/dyn_depth_standard.vert.spv" },
-    { "shaderId": "shaders/dyn_depth_clip.frag.spv" }
+    { "shaderId": "shaders/dyn_depth_standard.vert" },
+    { "shaderId": "shaders/dyn_depth_clip.frag" }
   ],
   "depthClamp": true,
   "depthBiasConstant": -1,

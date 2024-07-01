@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/debug/dyn_mesh_viewer.vert.spv" },
-    { "shaderId": "shaders/solid_white.frag.spv" }
+    { "shaderId": "shaders/debug/dyn_mesh_viewer.vert" },
+    { "shaderId": "shaders/solid_white.frag" }
   ],
   "renderOrder": 1,
   "rasterizer": "Lines",

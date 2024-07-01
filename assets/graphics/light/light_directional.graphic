@@ -1,8 +1,8 @@
 {
   "shaders": [
-    { "shaderId": "shaders/light/light_directional.vert.spv" },
+    { "shaderId": "shaders/light/light_directional.vert" },
     {
-      "shaderId": "shaders/light/light_directional.frag.spv",
+      "shaderId": "shaders/light/light_directional.frag",
       "overrides": [
         { "name": "coverageScale", "binding": 0, "value": 100 },
         { "name": "coveragePanSpeedX", "binding": 1, "value": 1.5 },

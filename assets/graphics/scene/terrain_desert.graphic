@@ -1,8 +1,8 @@
 {
   "shaders": [
-    { "shaderId": "shaders/scene/terrain.vert.spv" },
+    { "shaderId": "shaders/scene/terrain.vert" },
     {
-      "shaderId": "shaders/scene/terrain.frag.spv",
+      "shaderId": "shaders/scene/terrain.frag",
       "overrides": [
         { "name": "splat1UvScale", "binding": 1, "value": 250 },
         { "name": "splat2UvScale", "binding": 2, "value": 75 }

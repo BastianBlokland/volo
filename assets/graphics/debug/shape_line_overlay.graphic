@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/debug/shape_line.vert.spv" },
-    { "shaderId": "shaders/debug/shape.frag.spv" }
+    { "shaderId": "shaders/debug/shape_line.vert" },
+    { "shaderId": "shaders/debug/shape.frag" }
   ],
   "vertexCount": 2,
   "renderOrder": 163,

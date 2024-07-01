@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/ui/canvas.vert.spv" },
-    { "shaderId": "shaders/ui/canvas.frag.spv" }
+    { "shaderId": "shaders/ui/canvas.vert" },
+    { "shaderId": "shaders/ui/canvas.frag" }
   ],
   "samplers": [
     { "textureId": "fonts/ui.fonttex" },

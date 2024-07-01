@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
-    { "shaderId": "shaders/fog.frag.spv" }
+    { "shaderId": "shaders/fullscreen.vert" },
+    { "shaderId": "shaders/fog.frag" }
   ],
   "vertexCount": 3,
   "renderOrder": 1000,

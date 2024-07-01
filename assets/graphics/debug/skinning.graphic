@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/debug/skinning.vert.spv" },
-    { "shaderId": "shaders/debug/skinning.frag.spv" }
+    { "shaderId": "shaders/debug/skinning.vert" },
+    { "shaderId": "shaders/debug/skinning.frag" }
   ],
   "renderOrder": 5,
   "blend": "Alpha",

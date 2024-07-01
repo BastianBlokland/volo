@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/scene/terrain_position.vert.spv" },
-    { "shaderId": "shaders/solid_white.frag.spv" }
+    { "shaderId": "shaders/scene/terrain_position.vert" },
+    { "shaderId": "shaders/solid_white.frag" }
   ],
   "meshId": "meshes/scene/terrain_patch.procmesh",
   "renderOrder": 10,

@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/standard_skinned.vert.spv" },
-    { "shaderId": "shaders/standard.frag.spv" }
+    { "shaderId": "shaders/standard_skinned.vert" },
+    { "shaderId": "shaders/standard.frag" }
   ],
   "samplers": [
     { "textureId": "external/pressure_plate/pressure_plate_3_color_rough.tga", "anisotropy": "x2" }

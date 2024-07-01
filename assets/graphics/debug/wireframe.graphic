@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/dyn_depth_standard.vert.spv" },
-    { "shaderId": "shaders/solid_white.frag.spv" }
+    { "shaderId": "shaders/dyn_depth_standard.vert" },
+    { "shaderId": "shaders/solid_white.frag" }
   ],
   "renderOrder": 10,
   "rasterizer": "Lines",
