@@ -45,10 +45,10 @@ static bool debug_log_msg_is_dup(const DebugLogMessage* msg, const String newMsg
 
 static void debug_log_sink_write(
     LogSink*        sink,
-    LogLevel        lvl,
-    SourceLoc       srcLoc,
-    TimeReal        timestamp,
-    String          message,
+    const LogLevel  lvl,
+    const SourceLoc srcLoc,
+    const TimeReal  timestamp,
+    const String    message,
     const LogParam* params) {
   (void)params;
   DebugLogSink* debugSink = (DebugLogSink*)sink;
