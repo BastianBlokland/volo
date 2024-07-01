@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
-    { "shaderId": "shaders/outline.frag.spv" }
+    { "shaderId": "shaders/fullscreen.vert" },
+    { "shaderId": "shaders/outline.frag" }
   ],
   "vertexCount": 3,
   "renderOrder": 1100,

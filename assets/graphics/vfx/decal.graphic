@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/vfx/decal.vert.spv" },
-    { "shaderId": "shaders/vfx/decal.frag.spv" }
+    { "shaderId": "shaders/vfx/decal.vert" },
+    { "shaderId": "shaders/vfx/decal.frag" }
   ],
   "samplers": [
     { "textureId": "textures/vfx/decal_color.atlas", "anisotropy": "x4", "mipBlending": true },

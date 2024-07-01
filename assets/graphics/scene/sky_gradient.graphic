@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/scene/sky.vert.spv" },
-    { "shaderId": "shaders/scene/sky_gradient.frag.spv" }
+    { "shaderId": "shaders/scene/sky.vert" },
+    { "shaderId": "shaders/scene/sky_gradient.frag" }
   ],
   "vertexCount": 3,
   "renderOrder": -1,

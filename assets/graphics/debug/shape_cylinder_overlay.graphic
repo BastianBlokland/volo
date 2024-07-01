@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/debug/shape_mesh.vert.spv" },
-    { "shaderId": "shaders/debug/shape.frag.spv" }
+    { "shaderId": "shaders/debug/shape_mesh.vert" },
+    { "shaderId": "shaders/debug/shape.frag" }
   ],
   "meshId": "meshes/debug/shape_cylinder.procmesh",
   "renderOrder": 162,

@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/standard_skinned.vert.spv" },
-    { "shaderId": "shaders/standard.frag.spv",
+    { "shaderId": "shaders/standard_skinned.vert" },
+    { "shaderId": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 }
       ]

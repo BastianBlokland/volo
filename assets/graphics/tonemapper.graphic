@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
-    { "shaderId": "shaders/tonemapper.frag.spv" }
+    { "shaderId": "shaders/fullscreen.vert" },
+    { "shaderId": "shaders/tonemapper.frag" }
   ],
   "vertexCount": 3,
   "renderOrder": -100,

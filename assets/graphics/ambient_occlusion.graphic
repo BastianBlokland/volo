@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
-    { "shaderId": "shaders/ambient_occlusion.frag.spv" }
+    { "shaderId": "shaders/fullscreen.vert" },
+    { "shaderId": "shaders/ambient_occlusion.frag" }
   ],
   "samplers": [
     { "textureId": "textures/ambient_occlusion_rot_noise.proctex", "wrap": "Repeat", "filter": "Nearest" }

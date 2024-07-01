@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/vfx/particle.vert.spv" },
-    { "shaderId": "shaders/vfx/particle_distortion.frag.spv" }
+    { "shaderId": "shaders/vfx/particle.vert" },
+    { "shaderId": "shaders/vfx/particle_distortion.frag" }
   ],
   "samplers": [
     { "textureId": "textures/vfx/particle.atlas" }

@@ -11,7 +11,7 @@ static const AssetMemRecord g_testData[] = {
         .id   = string_static("test.graphic"),
         .data = string_static("{"
                               "  \"shaders\": [{ "
-                              "    \"shaderId\": \"test.spv\","
+                              "    \"shaderId\": \"test.glsl\","
                               "    \"overrides\": [{ "
                               "      \"name\": \"Test\","
                               "      \"binding\": 42,"
@@ -117,7 +117,7 @@ spec(loader_graphic) {
       const AssetGraphicComp* gra = ecs_utils_read_t(world, AssetView, asset, AssetGraphicComp);
 
       check_require(gra->shaders.count == 1);
-      check(gra->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
+      check(gra->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.glsl")));
       check_require(gra->shaders.values[0].overrides.count == 1);
       check_eq_string(gra->shaders.values[0].overrides.values[0].name, string_lit("Test"));
       check_eq_int(gra->shaders.values[0].overrides.values[0].binding, 42);

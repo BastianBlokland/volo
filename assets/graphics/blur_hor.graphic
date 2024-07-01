@@ -1,8 +1,8 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
+    { "shaderId": "shaders/fullscreen.vert" },
     {
-      "shaderId": "shaders/blur.frag.spv",
+      "shaderId": "shaders/blur.frag",
       "overrides": [
         { "name": "horizontal", "binding": 0, "value": 1 }
       ]

@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fog_vision.vert.spv" },
-    { "shaderId": "shaders/fog_vision.frag.spv" }
+    { "shaderId": "shaders/fog_vision.vert" },
+    { "shaderId": "shaders/fog_vision.frag" }
   ],
   "meshId": "meshes/sphere.procmesh",
   "depth": "AlwaysNoWrite",

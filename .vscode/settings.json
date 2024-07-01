@@ -34,8 +34,7 @@
     "*.weapons": "json"
   },
   "files.exclude": {
-    ".cache": true,
-    "assets/**/*.spv": true
+    ".cache": true
   },
   "json.schemas": [
     { "fileMatch": [ "*.arraytex" ], "url": "./assets/schemas/arraytex.schema.json" },
@@ -56,15 +55,7 @@
   ],
   "json.format.keepLines": true,
   "volo-lsp.trace.server": "off",
-  "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
+  "glsllint.glslangValidatorArgs": [ "-Iassets/shaders/include", "-V" ],
   "glsllint.linkShader": false,
-  "cSpell.enableFiletypes": [ "volo-script" ],
-  "emeraldwalk.runonsave": {
-    "commands": [
-      {
-        "match": "\\.(?:vert|frag|glsl)$",
-        "cmd": "cmake --build build --target volo_shaders"
-      }
-    ]
-  }
+  "cSpell.enableFiletypes": [ "volo-script" ]
 }

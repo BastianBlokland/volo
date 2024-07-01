@@ -1,8 +1,8 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
+    { "shaderId": "shaders/fullscreen.vert" },
     {
-      "shaderId": "shaders/ambient.frag.spv",
+      "shaderId": "shaders/ambient.frag",
       "overrides": [
         { "name": "debug", "binding": 0, "value": 1 },
         { "name": "specIrradianceMips", "binding": 1, "value": 5 }

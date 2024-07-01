@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert.spv" },
-    { "shaderId": "shaders/bloom_down.frag.spv" }
+    { "shaderId": "shaders/fullscreen.vert" },
+    { "shaderId": "shaders/bloom_down.frag" }
   ],
   "vertexCount": 3,
   "depth": "AlwaysNoWrite",
