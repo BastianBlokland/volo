@@ -50,14 +50,14 @@ static bool debug_log_msg_is_dup(const DebugLogMessage* msg, const String newMsg
   return msg->length == newMsgText.size && mem_eq(mem_create(msg->data, msg->length), newMsgText);
 }
 
-static bool debug_log_msg_pos_free(DebugLogSink* debugSink, const u8* pos) {
+static bool debug_log_msg_free_until(DebugLogSink* debugSink, const u8* endPos) {
   if (!debugSink->msgHead) {
     return true; // No messages active; all are free.
   }
-  if (pos < (u8*)debugSink->msgHead) {
+  if (endPos <= (u8*)debugSink->msgHead) {
     return true;
   }
-  if (debugSink->msgTail >= debugSink->msgHead && pos > (u8*)debugSink->msgTail) {
+  if (debugSink->msgTail >= debugSink->msgHead && endPos > (u8*)debugSink->msgTail) {
     return true;
   }
   return false; // Pos overlaps with the message range.
@@ -92,7 +92,7 @@ static void debug_log_sink_write(
       diag_assert(bits_aligned_ptr(nextBufferPos, alignof(DebugLogMessage)));
 
       // Check if we have space for a new message, if not: drop the message.
-      if (debug_log_msg_pos_free(debugSink, nextBufferPos)) {
+      if (debug_log_msg_free_until(debugSink, nextBufferPos)) {
         DebugLogMessage* newMsg = (DebugLogMessage*)debugSink->msgBufferPos;
         newMsg->next            = null;
         newMsg->timestamp       = timestamp;
