@@ -7,7 +7,8 @@ typedef u64 UiId;
 ecs_comp_extern(UiCanvasComp);
 
 typedef enum {
-  UiScrollviewFlags_Active = 1 << 0,
+  UiScrollviewFlags_BlockInput = 1 << 0,
+  UiScrollviewFlags_Active     = 1 << 1,
 } UiScrollviewFlags;
 
 typedef struct {
