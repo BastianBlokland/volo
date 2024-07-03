@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
@@ -10,21 +11,24 @@
 #include "ui.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
-#define log_tracker_max_messages 1000
+#define log_tracker_buffer_size (8 * usize_kibibyte)
 #define log_tracker_max_message_size 64
 #define log_tracker_max_age time_seconds(10)
 
 ASSERT(log_tracker_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
 
-typedef struct {
-  TimeReal timestamp;
-  LogLevel lvl : 8;
-  u8       length;
-  u16      line;
-  u32      counter;
-  String   file;
-  u8       data[log_tracker_max_message_size];
-} DebugLogMessage;
+typedef struct sDebugLogMessage DebugLogMessage;
+
+struct sDebugLogMessage {
+  DebugLogMessage* next;
+  TimeReal         timestamp;
+  LogLevel         lvl : 8;
+  u8               length;
+  u16              line;
+  u32              counter;
+  String           file;
+  u8               data[log_tracker_max_message_size];
+};
 
 /**
  * Sink that will receive logger messages.
@@ -33,14 +37,30 @@ typedef struct {
  * to achieve this it has a basic ref-counter.
  */
 typedef struct {
-  LogSink        api;
-  i32            refCounter;
-  ThreadSpinLock messagesLock;
-  DynArray       messages; // DebugLogMessage[], sorted on timestamp.
+  LogSink          api;
+  i32              refCounter;
+  ThreadSpinLock   msgLock;
+  u8*              msgBuffer;    // Circular buffer of (dynamically sized) messages.
+  u8*              msgBufferPos; // Current write position.
+  DebugLogMessage* msgHead;
+  DebugLogMessage* msgTail;
 } DebugLogSink;
 
 static bool debug_log_msg_is_dup(const DebugLogMessage* msg, const String newMsgText) {
   return msg->length == newMsgText.size && mem_eq(mem_create(msg->data, msg->length), newMsgText);
+}
+
+static bool debug_log_msg_pos_free(DebugLogSink* debugSink, const u8* pos) {
+  if (!debugSink->msgHead) {
+    return true; // No messages active; all are free.
+  }
+  if (pos < (u8*)debugSink->msgHead) {
+    return true;
+  }
+  if (debugSink->msgTail >= debugSink->msgHead && pos > (u8*)debugSink->msgTail) {
+    return true;
+  }
+  return false; // Pos overlaps with the message range.
 }
 
 static void debug_log_sink_write(
@@ -55,61 +75,78 @@ static void debug_log_sink_write(
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
-  thread_spinlock_lock(&debugSink->messagesLock);
+  thread_spinlock_lock(&debugSink->msgLock);
   {
     bool duplicate = false;
-    if (debugSink->messages.size) {
-      DebugLogMessage* lastMsg = dynarray_end_t(&debugSink->messages, DebugLogMessage) - 1;
-      if (debug_log_msg_is_dup(lastMsg, message)) {
-        lastMsg->timestamp = timestamp;
-        ++lastMsg->counter;
-        duplicate = true;
-      }
+    if (debugSink->msgTail && debug_log_msg_is_dup(debugSink->msgTail, message)) {
+      debugSink->msgTail->timestamp = timestamp;
+      ++debugSink->msgTail->counter;
+      duplicate = true;
     }
 
-    if (!duplicate && LIKELY(debugSink->messages.size < log_tracker_max_messages)) {
-      DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
-      msg->timestamp       = timestamp;
-      msg->lvl             = lvl;
-      msg->length          = math_min((u8)message.size, log_tracker_max_message_size);
-      msg->counter         = 1;
-      msg->line            = (u16)math_min(srcLoc.line, u16_max);
-      msg->file            = srcLoc.file;
-      mem_cpy(mem_create(msg->data, msg->length), string_slice(message, 0, msg->length));
+    if (!duplicate) {
+      u8* nextBufferPos = debugSink->msgBufferPos + sizeof(DebugLogMessage);
+      if (nextBufferPos >= (debugSink->msgBuffer + log_tracker_buffer_size)) {
+        nextBufferPos = debugSink->msgBuffer; // Wrap around to the beginning.
+      }
+      diag_assert(bits_aligned_ptr(nextBufferPos, alignof(DebugLogMessage)));
+
+      // Check if we have space for a new message, if not: drop the message.
+      if (debug_log_msg_pos_free(debugSink, nextBufferPos)) {
+        DebugLogMessage* newMsg = (DebugLogMessage*)nextBufferPos;
+        newMsg->next            = null;
+        newMsg->timestamp       = timestamp;
+        newMsg->lvl             = lvl;
+        newMsg->length          = math_min((u8)message.size, log_tracker_max_message_size);
+        newMsg->counter         = 1;
+        newMsg->line            = (u16)math_min(srcLoc.line, u16_max);
+        newMsg->file            = srcLoc.file;
+        mem_cpy(mem_create(newMsg->data, newMsg->length), string_slice(message, 0, newMsg->length));
+
+        if (debugSink->msgTail) {
+          debugSink->msgTail->next = newMsg;
+        } else {
+          debugSink->msgHead = newMsg;
+        }
+        debugSink->msgTail      = newMsg;
+        debugSink->msgBufferPos = nextBufferPos;
+      }
     }
   }
-  thread_spinlock_unlock(&debugSink->messagesLock);
+  thread_spinlock_unlock(&debugSink->msgLock);
 }
 
 static void debug_log_sink_destroy(LogSink* sink) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
-    dynarray_destroy(&debugSink->messages);
+    alloc_free(g_allocHeap, mem_create(debugSink->msgBuffer, log_tracker_buffer_size));
     alloc_free_t(g_allocHeap, debugSink);
   }
 }
 
-static void debug_log_sink_prune_older(DebugLogSink* debugSink, const TimeReal timestamp) {
-  thread_spinlock_lock(&debugSink->messagesLock);
+static void debug_log_sink_prune_older(DebugLogSink* s, const TimeReal timestamp) {
+  thread_spinlock_lock(&s->msgLock);
   {
-    usize keepIndex = 0;
-    for (; keepIndex != debugSink->messages.size; ++keepIndex) {
-      if (dynarray_at_t(&debugSink->messages, keepIndex, DebugLogMessage)->timestamp >= timestamp) {
-        break;
-      }
+    for (; s->msgHead && s->msgHead->timestamp < timestamp; s->msgHead = s->msgHead->next)
+      ;
+    if (!s->msgHead) {
+      s->msgTail = null;
     }
-    dynarray_remove(&debugSink->messages, 0, keepIndex);
   }
-  thread_spinlock_unlock(&debugSink->messagesLock);
+  thread_spinlock_unlock(&s->msgLock);
 }
 
 DebugLogSink* debug_log_sink_create(void) {
   DebugLogSink* sink = alloc_alloc_t(g_allocHeap, DebugLogSink);
 
+  u8* msgBuffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogMessage)).ptr;
+
   *sink = (DebugLogSink){
-      .api      = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
-      .messages = dynarray_create_t(g_allocHeap, DebugLogMessage, 128),
+      .api          = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
+      .msgBuffer    = msgBuffer,
+      .msgBufferPos = msgBuffer,
   };
+
   return sink;
 }
 
@@ -199,16 +236,16 @@ static void debug_log_draw_messages(
 
   ui_style_outline(canvas, 0);
 
-  thread_spinlock_lock(&tracker->sink->messagesLock);
+  thread_spinlock_lock(&tracker->sink->msgLock);
   {
-    dynarray_for_t(&tracker->sink->messages, DebugLogMessage, msg) {
+    for (DebugLogMessage* msg = tracker->sink->msgHead; msg; msg = msg->next) {
       if (mask & (1 << msg->lvl)) {
         debug_log_draw_message(canvas, msg);
         ui_layout_next(canvas, Ui_Down, 0);
       }
     }
   }
-  thread_spinlock_unlock(&tracker->sink->messagesLock);
+  thread_spinlock_unlock(&tracker->sink->msgLock);
 }
 
 ecs_system_define(DebugLogDrawSys) {
