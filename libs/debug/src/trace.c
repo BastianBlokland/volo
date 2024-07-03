@@ -23,7 +23,7 @@ static const String g_messageNoStoreSink  = string_static("No store trace-sink f
 
 #define debug_trace_max_name_length 15
 #define debug_trace_max_threads 8
-#define debug_trace_max_depth 4
+#define debug_trace_default_depth 4
 
 typedef struct {
   ThreadId tid;
@@ -44,6 +44,7 @@ ecs_comp_define(DebugTracePanelComp) {
   UiScrollview      scrollview;
   bool              freeze, refresh;
   bool              hoverAny, panAny;
+  u32               eventDepth;
   TimeSteady        timeHead;
   TimeDuration      timeWindow;
   DebugTraceTrigger trigger;
@@ -254,6 +255,8 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 160);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
@@ -268,6 +271,14 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
         "Window: {}",
         fmt_duration(panel->timeWindow, .minIntDigits = 3, .minDecDigits = 1, .maxDecDigits = 1));
     ui_label(c, timeLabel);
+  }
+
+  ui_table_next_column(c, &table);
+  ui_label(c, string_lit("Depth:"));
+  ui_table_next_column(c, &table);
+  f64 depthVal = panel->eventDepth;
+  if (ui_numbox(c, &depthVal, .min = 1, .max = 8, .step = 1)) {
+    panel->eventDepth = (u32)depthVal;
   }
 
   ui_table_next_column(c, &table);
@@ -378,12 +389,12 @@ static void trace_data_events_draw(
   const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
   const f64 timeRight = (f64)panel->timeHead;
 
-  const f32 eventHeight = 1.0f / debug_trace_max_depth;
+  const f32 eventHeight = 1.0f / panel->eventDepth;
   dynarray_for_t(&data->events, TraceStoreEvent, evt) {
     const f64 fracLeft  = math_unlerp(timeLeft, timeRight, (f64)evt->timeStart);
     const f64 fracRight = math_unlerp(timeLeft, timeRight, (f64)(evt->timeStart + evt->timeDur));
 
-    if (fracRight <= 0.0 || fracLeft >= 1.0 || evt->stackDepth >= debug_trace_max_depth) {
+    if (fracRight <= 0.0 || fracLeft >= 1.0 || evt->stackDepth >= panel->eventDepth) {
       ui_canvas_id_skip(c, 4); // 4: +1 for bar, +1 for label, +2 for tooltip.
       continue;                // Event outside of the visible region.
     }
@@ -463,7 +474,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
     ui_layout_container_push(c, UiClip_None);
 
     static const UiVector g_tablePadding = {10, 5};
-    UiTable table = ui_table(.spacing = g_tablePadding, .rowHeight = 20 * debug_trace_max_depth);
+    UiTable table = ui_table(.spacing = g_tablePadding, .rowHeight = 20 * panel->eventDepth);
     ui_table_add_column(&table, UiTableColumn_Fixed, 125);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -600,7 +611,7 @@ ecs_module_init(debug_trace_module) {
 
 EcsEntityId
 debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const u32 panelHeight = math_min(100 + 20 * debug_trace_max_depth * g_jobsWorkerCount, 675);
+  const u32 panelHeight = math_min(100 + 20 * debug_trace_default_depth * g_jobsWorkerCount, 675);
 
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugTracePanelComp* tracePanel  = ecs_world_add_t(
@@ -609,6 +620,7 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       DebugTracePanelComp,
       .panel             = ui_panel(.size = ui_vector(800, panelHeight)),
       .scrollview        = ui_scrollview(),
+      .eventDepth        = debug_trace_default_depth,
       .timeHead          = time_steady_clock(),
       .timeWindow        = time_milliseconds(100),
       .trigger.eventId   = sentinel_u8,
