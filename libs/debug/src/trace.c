@@ -23,6 +23,7 @@ static const String g_messageNoStoreSink  = string_static("No store trace-sink f
 
 #define debug_trace_max_name_length 15
 #define debug_trace_max_threads 8
+#define debug_trace_max_depth 4
 
 typedef struct {
   ThreadId tid;
@@ -377,11 +378,12 @@ static void trace_data_events_draw(
   const f64 timeLeft  = (f64)(panel->timeHead - panel->timeWindow);
   const f64 timeRight = (f64)panel->timeHead;
 
+  const f32 eventHeight = 1.0f / debug_trace_max_depth;
   dynarray_for_t(&data->events, TraceStoreEvent, evt) {
     const f64 fracLeft  = math_unlerp(timeLeft, timeRight, (f64)evt->timeStart);
     const f64 fracRight = math_unlerp(timeLeft, timeRight, (f64)(evt->timeStart + evt->timeDur));
 
-    if (fracRight <= 0.0 || fracLeft >= 1.0) {
+    if (fracRight <= 0.0 || fracLeft >= 1.0 || evt->stackDepth >= debug_trace_max_depth) {
       ui_canvas_id_skip(c, 4); // 4: +1 for bar, +1 for label, +2 for tooltip.
       continue;                // Event outside of the visible region.
     }
@@ -389,7 +391,7 @@ static void trace_data_events_draw(
     const f64 fracRightClamped = math_min(fracRight, 1.0);
 
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
-    const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
+    const UiVector size      = {.width = (f32)fracWidth, .height = eventHeight};
     const UiVector pos       = {
         .x = (f32)fracLeftClamped,
         .y = 1.0f - size.height * (evt->stackDepth + 1),
@@ -461,7 +463,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
     ui_layout_container_push(c, UiClip_None);
 
     static const UiVector g_tablePadding = {10, 5};
-    UiTable               table          = ui_table(.spacing = g_tablePadding, .rowHeight = 100);
+    UiTable table = ui_table(.spacing = g_tablePadding, .rowHeight = 20 * debug_trace_max_depth);
     ui_table_add_column(&table, UiTableColumn_Fixed, 125);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -598,7 +600,7 @@ ecs_module_init(debug_trace_module) {
 
 EcsEntityId
 debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const u32 panelHeight = math_min(100 + 100 * g_jobsWorkerCount, 650);
+  const u32 panelHeight = math_min(100 + 20 * debug_trace_max_depth * g_jobsWorkerCount, 675);
 
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugTracePanelComp* tracePanel  = ecs_world_add_t(
