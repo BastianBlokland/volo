@@ -40,6 +40,7 @@ typedef struct {
 
 ecs_comp_define(DebugTracePanelComp) {
   UiPanel           panel;
+  UiScrollview      scrollview;
   bool              freeze, refresh;
   bool              hoverAny, panAny;
   TimeSteady        timeHead;
@@ -478,6 +479,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
       panel->panAny = false;
     }
 
+    ui_scrollview_begin(c, &panel->scrollview, ui_table_height(&table, g_jobsWorkerCount));
+
     const UiId threadsBeginId = ui_canvas_id_peek(c);
 
     array_for_t(panel->threads, DebugTraceData, data) {
@@ -497,11 +500,18 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
       trace_data_events_draw(c, panel, data, sinkStore);
     }
 
+    ui_scrollview_end(c, &panel->scrollview);
     ui_layout_container_pop(c);
     ui_layout_container_pop(c);
 
     const UiId threadsEndId = ui_canvas_id_peek(c);
     panel->hoverAny = ui_canvas_group_status(c, threadsBeginId, threadsEndId) == UiStatus_Hovered;
+
+    if (panel->hoverAny) {
+      panel->scrollview.flags |= UiScrollviewFlags_BlockInput;
+    } else {
+      panel->scrollview.flags &= ~UiScrollviewFlags_BlockInput;
+    }
 
   } else {
     panel->hoverAny = panel->panAny = false;
@@ -594,6 +604,7 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       panelEntity,
       DebugTracePanelComp,
       .panel             = ui_panel(.size = ui_vector(800, 100 + 100 * g_jobsWorkerCount)),
+      .scrollview        = ui_scrollview(),
       .timeHead          = time_steady_clock(),
       .timeWindow        = time_milliseconds(100),
       .trigger.eventId   = sentinel_u8,
