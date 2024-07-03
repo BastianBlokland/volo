@@ -70,7 +70,8 @@ static void ui_scrollview_update(
   /**
    * Allow scrolling when hovering over the viewport.
    */
-  if (status->flags & UiScrollviewStatus_HoveringViewport) {
+  const bool blockInput = (scrollview->flags & UiScrollviewFlags_BlockInput) != 0;
+  if (!blockInput && status->flags & UiScrollviewStatus_HoveringViewport) {
     scrollview->offset -= status->inputScroll.y * g_scrollSensitivity;
   }
 
