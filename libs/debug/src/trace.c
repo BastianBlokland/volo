@@ -598,12 +598,14 @@ ecs_module_init(debug_trace_module) {
 
 EcsEntityId
 debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+  const u32 panelHeight = math_min(100 + 100 * g_jobsWorkerCount, 650);
+
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugTracePanelComp* tracePanel  = ecs_world_add_t(
       world,
       panelEntity,
       DebugTracePanelComp,
-      .panel             = ui_panel(.size = ui_vector(800, 100 + 100 * g_jobsWorkerCount)),
+      .panel             = ui_panel(.size = ui_vector(800, panelHeight)),
       .scrollview        = ui_scrollview(),
       .timeHead          = time_steady_clock(),
       .timeWindow        = time_milliseconds(100),
