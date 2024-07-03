@@ -390,8 +390,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = 0.2f};
     const UiVector pos       = {
-              .x = (f32)fracLeftClamped,
-              .y = 1.0f - size.height * (evt->stackDepth + 1),
+        .x = (f32)fracLeftClamped,
+        .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
@@ -435,6 +435,7 @@ static void trace_data_events_draw(
       ui_canvas_id_skip(c, 1);
     }
   }
+  ui_canvas_id_block_next(c); // End on an consistent id in case of varying event counts.
 
   const f32 inputX = ui_canvas_input_pos(c).x;
   if (panel->hoverAny && inputX > bgRect.x && inputX < (bgRect.x + bgRect.width)) {
@@ -495,7 +496,6 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
           c, UiAlign_MiddleCenter, ui_vector(g_tablePadding.x * 2, 0), UiBase_Absolute, Ui_X);
       trace_data_events_draw(c, panel, data, sinkStore);
     }
-    ui_canvas_id_block_next(c); // End on an consistent id.
 
     ui_layout_container_pop(c);
     ui_layout_container_pop(c);
