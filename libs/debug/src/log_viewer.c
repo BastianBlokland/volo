@@ -27,7 +27,7 @@ struct sDebugLogMessage {
   u16              line;
   u32              counter;
   String           file;
-  u8               data[log_tracker_max_message_size];
+  u8               data[];
 };
 
 /**
@@ -85,11 +85,16 @@ static void debug_log_sink_write(
     }
 
     if (!duplicate) {
-      u8* nextBufferPos = debugSink->msgBufferPos + sizeof(DebugLogMessage);
-      if (nextBufferPos >= (debugSink->msgBuffer + log_tracker_buffer_size)) {
-        nextBufferPos = debugSink->msgBuffer; // Wrap around to the beginning.
+      debugSink->msgBufferPos = bits_align_ptr(debugSink->msgBufferPos, alignof(DebugLogMessage));
+
+      const u32 msgLength = math_min((u32)message.size, log_tracker_max_message_size);
+      const u32 entrySize = sizeof(DebugLogMessage) + msgLength;
+
+      u8* nextBufferPos = debugSink->msgBufferPos + entrySize;
+      if (nextBufferPos > (debugSink->msgBuffer + log_tracker_buffer_size)) {
+        debugSink->msgBufferPos = debugSink->msgBuffer; // Wrap around to the beginning.
+        nextBufferPos           = debugSink->msgBuffer + entrySize;
       }
-      diag_assert(bits_aligned_ptr(nextBufferPos, alignof(DebugLogMessage)));
 
       // Check if we have space for a new message, if not: drop the message.
       if (debug_log_msg_free_until(debugSink, nextBufferPos)) {
@@ -97,11 +102,11 @@ static void debug_log_sink_write(
         newMsg->next            = null;
         newMsg->timestamp       = timestamp;
         newMsg->lvl             = lvl;
-        newMsg->length          = math_min((u8)message.size, log_tracker_max_message_size);
+        newMsg->length          = msgLength;
         newMsg->counter         = 1;
         newMsg->line            = (u16)math_min(srcLoc.line, u16_max);
         newMsg->file            = srcLoc.file;
-        mem_cpy(mem_create(newMsg->data, newMsg->length), string_slice(message, 0, newMsg->length));
+        mem_cpy(mem_create(newMsg->data, msgLength), string_slice(message, 0, msgLength));
 
         if (debugSink->msgTail) {
           debugSink->msgTail->next = newMsg;
