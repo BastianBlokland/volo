@@ -93,7 +93,7 @@ static void debug_log_sink_write(
 
       // Check if we have space for a new message, if not: drop the message.
       if (debug_log_msg_pos_free(debugSink, nextBufferPos)) {
-        DebugLogMessage* newMsg = (DebugLogMessage*)nextBufferPos;
+        DebugLogMessage* newMsg = (DebugLogMessage*)debugSink->msgBufferPos;
         newMsg->next            = null;
         newMsg->timestamp       = timestamp;
         newMsg->lvl             = lvl;
