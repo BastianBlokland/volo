@@ -17,12 +17,18 @@ typedef struct {
 } JsonObjectData;
 
 typedef struct {
+  const u8*  data;
+  u32        length;
+  StringHash hash;
+} JsonStringData;
+
+typedef struct {
   u32     typeAndParent;
   JsonVal next;
   union {
     JsonArrayData  val_array;
     JsonObjectData val_object;
-    String         val_string;
+    JsonStringData val_string;
     f64            val_number;
     bool           val_bool;
   };
@@ -33,6 +39,10 @@ struct sJsonDoc {
   Allocator* allocString; // (chunked) bump allocator for string data.
   DynArray   values;      // JsonValData[]
 };
+
+INLINE_HINT static String json_data_str(const JsonStringData* data) {
+  return mem_create(data->data, data->length);
+}
 
 INLINE_HINT static JsonValData* json_val_data(const JsonDoc* doc, const JsonVal val) {
   diag_assert_msg(val < doc->values.size, "Out of bounds JsonVal");
@@ -89,12 +99,28 @@ JsonVal json_add_object(JsonDoc* doc) {
 }
 
 JsonVal json_add_string(JsonDoc* doc, const String string) {
+  diag_assert(string.size < u32_max);
   return json_add_data(
       doc,
       (JsonValData){
           .typeAndParent = JsonType_String,
           .next          = sentinel_u32,
-          .val_string    = string_maybe_dup(doc->allocString, string),
+          .val_string =
+              {
+                  .data   = string_maybe_dup(doc->allocString, string).ptr,
+                  .length = (u32)string.size,
+                  .hash   = string_hash(string),
+              },
+      });
+}
+
+JsonVal json_add_string_hash(JsonDoc* doc, const StringHash stringHash) {
+  return json_add_data(
+      doc,
+      (JsonValData){
+          .typeAndParent = JsonType_String,
+          .next          = sentinel_u32,
+          .val_string    = {.hash = stringHash},
       });
 }
 
@@ -154,19 +180,18 @@ bool json_add_field(JsonDoc* doc, const JsonVal object, const JsonVal name, cons
       object != name && object != val,
       "Objects cannot contain cycles"); // TODO: Detect indirect cycles.
   diag_assert_msg(json_parent(doc, name) == JsonParent_None, "Given name is already parented");
-  diag_assert_msg(!string_is_empty(json_string(doc, name)), "Field name cannot be empty");
+  diag_assert_msg(json_string_hash(doc, name) != string_hash_lit(""), "Field name cannot be empty");
   diag_assert_msg(json_parent(doc, val) == JsonParent_None, "Given value is already parented");
 
-  const String nameStr    = json_string(doc, name);
-  JsonValData* objectData = json_val_data(doc, object);
+  const JsonValData* nameData   = json_val_data(doc, name);
+  JsonValData*       objectData = json_val_data(doc, object);
 
   // Walk the linked-list of fields to check for duplicate names and to find the last link.
   JsonVal* link = &objectData->val_object.fieldHead;
   while (!sentinel_check(*link)) {
     const JsonValData* nameValData = json_val_data(doc, *link);
-    if (string_eq(nameValData->val_string, nameStr)) {
-      // Existing field found with the same name.
-      return false;
+    if (nameValData->val_string.hash == nameData->val_string.hash) {
+      return false; // Existing field found with the same name.
     }
     link = &json_val_data(doc, nameValData->next)->next;
   }
@@ -233,7 +258,7 @@ JsonVal json_elem_next(const JsonDoc* doc, const JsonVal elem) {
   return json_val_data(doc, elem)->next;
 }
 
-JsonVal json_field(const JsonDoc* doc, const JsonVal object, const String name) {
+JsonVal json_field(const JsonDoc* doc, const JsonVal object, const StringHash nameHash) {
   diag_assert_msg(json_type(doc, object) == JsonType_Object, "Invalid object value");
 
   JsonValData* objectData = json_val_data(doc, object);
@@ -242,7 +267,7 @@ JsonVal json_field(const JsonDoc* doc, const JsonVal object, const String name) 
   JsonVal link = objectData->val_object.fieldHead;
   while (!sentinel_check(link)) {
     const JsonValData* nameValData = json_val_data(doc, link);
-    if (string_eq(nameValData->val_string, name)) {
+    if (nameValData->val_string.hash == nameHash) {
       return nameValData->next;
     }
     link = json_val_data(doc, nameValData->next)->next;
@@ -262,26 +287,32 @@ JsonFieldItr json_field_begin(const JsonDoc* doc, const JsonVal object) {
 
   JsonValData* objectData = json_val_data(doc, object);
   if (sentinel_check(objectData->val_object.fieldHead)) {
-    return (JsonFieldItr){.name = string_empty, .value = sentinel_u32};
+    return (JsonFieldItr){.name = sentinel_u32, .value = sentinel_u32};
   }
-  JsonValData* nameData = json_val_data(doc, objectData->val_object.fieldHead);
-  return (JsonFieldItr){.name = nameData->val_string, .value = nameData->next};
+  const JsonVal fieldVal = objectData->val_object.fieldHead;
+  JsonValData*  nameData = json_val_data(doc, fieldVal);
+  return (JsonFieldItr){.name = fieldVal, .value = nameData->next};
 }
 
-JsonFieldItr json_field_next(const JsonDoc* doc, JsonVal fieldVal) {
+JsonFieldItr json_field_next(const JsonDoc* doc, const JsonVal fieldVal) {
   diag_assert_msg(json_parent(doc, fieldVal) == JsonParent_Object, "Invalid field value");
 
   JsonValData* itrValData = json_val_data(doc, fieldVal);
   if (sentinel_check(itrValData->next)) {
-    return (JsonFieldItr){.name = string_empty, .value = sentinel_u32};
+    return (JsonFieldItr){.name = sentinel_u32, .value = sentinel_u32};
   }
   JsonValData* nameData = json_val_data(doc, itrValData->next);
-  return (JsonFieldItr){.name = nameData->val_string, .value = nameData->next};
+  return (JsonFieldItr){.name = itrValData->next, .value = nameData->next};
 }
 
 String json_string(const JsonDoc* doc, const JsonVal val) {
   diag_assert_msg(json_type(doc, val) == JsonType_String, "Given JsonVal is not a string");
-  return json_val_data(doc, val)->val_string;
+  return json_data_str(&json_val_data(doc, val)->val_string);
+}
+
+StringHash json_string_hash(const JsonDoc* doc, const JsonVal val) {
+  diag_assert_msg(json_type(doc, val) == JsonType_String, "Given JsonVal is not a string");
+  return json_val_data(doc, val)->val_string.hash;
 }
 
 f64 json_number(const JsonDoc* doc, const JsonVal val) {

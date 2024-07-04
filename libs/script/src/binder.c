@@ -257,16 +257,16 @@ static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
     return script_mask_none;
   }
   if (json_type(d, v) == JsonType_String) {
-    if (string_eq(json_string(d, v), string_lit("any"))) {
+    if (json_string_hash(d, v) == string_hash_lit("any")) {
       return script_mask_any;
     }
-    return script_mask(script_val_type_from_hash(string_hash(json_string(d, v))));
+    return script_mask(script_val_type_from_hash(json_string_hash(d, v)));
   }
   if (json_type(d, v) == JsonType_Array) {
     ScriptMask ret = 0;
     json_for_elems(d, v, t) {
       if (json_type(d, t) == JsonType_String) {
-        ret |= script_mask(script_val_type_from_hash(string_hash(json_string(d, t))));
+        ret |= script_mask(script_val_type_from_hash(json_string_hash(d, t)));
       }
     }
     return ret;
@@ -277,9 +277,9 @@ static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
 static ScriptSigArg binder_arg_from_json(const JsonDoc* d, const JsonVal v) {
   ScriptSigArg arg = {0};
   if (!sentinel_check(v) && json_type(d, v) == JsonType_Object) {
-    arg.name = binder_string_from_json(d, json_field(d, v, string_lit("name")));
-    arg.mask = binder_mask_from_json(d, json_field(d, v, string_lit("mask")));
-    if (binder_bool_from_json(d, json_field(d, v, string_lit("multi")))) {
+    arg.name = binder_string_from_json(d, json_field_lit(d, v, "name"));
+    arg.mask = binder_mask_from_json(d, json_field_lit(d, v, "mask"));
+    if (binder_bool_from_json(d, json_field_lit(d, v, "multi"))) {
       arg.flags |= ScriptSigArgFlags_Multi;
     }
   }
@@ -291,9 +291,9 @@ static const ScriptSig* binder_sig_from_json(const JsonDoc* d, const JsonVal v) 
   ScriptSigArg args[script_sig_arg_count_max];
   u8           argCount = 0;
   if (!sentinel_check(v) && json_type(d, v) == JsonType_Object) {
-    ret = binder_mask_from_json(d, json_field(d, v, string_lit("ret")));
+    ret = binder_mask_from_json(d, json_field_lit(d, v, "ret"));
 
-    const JsonVal argsVal = json_field(d, v, string_lit("args"));
+    const JsonVal argsVal = json_field_lit(d, v, "args");
     if (!sentinel_check(argsVal) && json_type(d, argsVal) == JsonType_Array) {
       json_for_elems(d, argsVal, a) { args[argCount++] = binder_arg_from_json(d, a); }
     }
@@ -303,9 +303,9 @@ static const ScriptSig* binder_sig_from_json(const JsonDoc* d, const JsonVal v) 
 
 static void binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const JsonVal v) {
   if (!sentinel_check(v) && json_type(d, v) == JsonType_Object) {
-    const String     name = binder_string_from_json(d, json_field(d, v, string_lit("name")));
-    const String     doc  = binder_string_from_json(d, json_field(d, v, string_lit("doc")));
-    const ScriptSig* sig  = binder_sig_from_json(d, json_field(d, v, string_lit("sig")));
+    const String     name = binder_string_from_json(d, json_field_lit(d, v, "name"));
+    const String     doc  = binder_string_from_json(d, json_field_lit(d, v, "doc"));
+    const ScriptSig* sig  = binder_sig_from_json(d, json_field_lit(d, v, "sig"));
     script_binder_declare(out, name, doc, sig, null);
   }
 }
@@ -315,10 +315,10 @@ bool script_binder_read(ScriptBinder* out, const String str) {
   bool     success = false;
 
   JsonResult readRes;
-  json_read(doc, str, &readRes);
+  json_read(doc, str, JsonReadFlags_None, &readRes);
 
   if (readRes.type == JsonResultType_Success && json_type(doc, readRes.val) == JsonType_Object) {
-    const JsonVal funcsVal = json_field(doc, readRes.val, string_lit("functions"));
+    const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
     if (!sentinel_check(funcsVal) && json_type(doc, funcsVal) == JsonType_Array) {
       json_for_elems(doc, funcsVal, f) { binder_func_from_json(out, doc, f); }
     }

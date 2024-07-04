@@ -36,10 +36,9 @@ static void data_register_alloc(const ReadCtx* ctx, const Mem allocation) {
   *dynarray_push_t(ctx->allocations, Mem) = allocation;
 }
 
-static const DataDeclField* data_field_by_name(const DataDeclStruct* data, const String name) {
-  const StringHash nameHash = string_hash(name);
+static const DataDeclField* data_field_by_name(const DataDeclStruct* data, const StringHash name) {
   dynarray_for_t(&data->fields, DataDeclField, fieldDecl) {
-    if (fieldDecl->id.hash == nameHash) {
+    if (fieldDecl->id.hash == name) {
       return fieldDecl;
     }
   }
@@ -189,7 +188,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.name);
+    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.hash);
 
     if (sentinel_check(fieldVal)) {
       if (fieldDecl->meta.flags & DataFlags_Opt) {
@@ -223,8 +222,18 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
 
   if (UNLIKELY(fieldsRead != json_field_count(ctx->doc, ctx->val))) {
     json_for_fields(ctx->doc, ctx->val, field) {
-      if (!data_field_by_name(&decl->val_struct, field.name)) {
-        *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_text(field.name));
+      const StringHash nameHash = json_string_hash(ctx->doc, field.name);
+      if (!data_field_by_name(&decl->val_struct, nameHash)) {
+        String name = json_string(ctx->doc, field.name);
+        if (string_is_empty(name)) {
+          // Field uses a hash-only name; attempt to retrieve the name from the global string-table.
+          name = stringtable_lookup(g_stringtable, nameHash);
+        }
+        if (string_is_empty(name)) {
+          *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_int(nameHash));
+        } else {
+          *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_text(name));
+        }
         return;
       }
     }
@@ -236,7 +245,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
 
 static const DataDeclChoice* data_read_json_union_choice(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
-  const JsonVal   typeVal = json_field(ctx->doc, ctx->val, string_lit("$type"));
+  const JsonVal   typeVal = json_field_lit(ctx->doc, ctx->val, "$type");
 
   if (UNLIKELY(sentinel_check(typeVal))) {
     *res = result_fail(DataReadError_UnionTypeMissing, "Union is missing a '$type' field");
@@ -247,7 +256,7 @@ static const DataDeclChoice* data_read_json_union_choice(const ReadCtx* ctx, Dat
     return null;
   }
 
-  const StringHash valueHash = string_hash(json_string(ctx->doc, typeVal));
+  const StringHash valueHash = json_string_hash(ctx->doc, typeVal);
   dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
     if (choice->id.hash == valueHash) {
       *res = result_success();
@@ -277,7 +286,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
-  const JsonVal nameVal = json_field(ctx->doc, ctx->val, string_lit("$name"));
+  const JsonVal nameVal = json_field_lit(ctx->doc, ctx->val, "$name");
   if (!sentinel_check(nameVal)) {
     if (UNLIKELY(json_type(ctx->doc, nameVal) != JsonType_String)) {
       *res = result_fail(DataReadError_UnionInvalidName, "'$name' field has to be a string");
@@ -316,7 +325,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       data_read_json_struct(&choiceCtx, res, fieldsRead);
     } break;
     default: {
-      const JsonVal dataVal = json_field(ctx->doc, ctx->val, string_lit("$data"));
+      const JsonVal dataVal = json_field_lit(ctx->doc, ctx->val, "$data");
       if (UNLIKELY(sentinel_check(dataVal))) {
         *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
         return;
@@ -351,7 +360,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
 static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
-  const StringHash valueHash = string_hash(json_string(ctx->doc, ctx->val));
+  const StringHash valueHash = json_string_hash(ctx->doc, ctx->val);
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     if (constDecl->id.hash == valueHash) {
@@ -539,7 +548,7 @@ String data_read_json(
   DynArray allocations = dynarray_create_t(g_allocHeap, Mem, 64);
 
   JsonResult   jsonRes;
-  const String rem = json_read(doc, input, &jsonRes);
+  const String rem = json_read(doc, input, JsonReadFlags_HashOnlyFieldNames, &jsonRes);
   if (jsonRes.type != JsonResultType_Success) {
     *res = result_fail(
         DataReadError_Malformed,

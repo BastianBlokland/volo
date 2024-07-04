@@ -294,7 +294,7 @@ static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String 
   if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Object) {
     return sentinel_u32;
   }
-  return json_field(ctx->jDoc, val, fieldName);
+  return json_field(ctx->jDoc, val, string_hash(fieldName));
 }
 
 static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 index) {
@@ -1222,7 +1222,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    json_read(jDoc, content, &jsonResult);
+    json_read(jDoc, content, JsonReadFlags_None, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErr = json_error_str(jsonResult.error);
       file_write_sync(g_fileStdErr, fmt_write_scratch("lsp: Json-Error: {}\n", fmt_text(jsonErr)));

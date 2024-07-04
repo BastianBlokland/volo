@@ -39,7 +39,7 @@ typedef u32 JsonVal;
  * Iterator for iterating object fields.
  */
 typedef struct {
-  String  name;  // 'string_empty' when no field was found.
+  JsonVal name;  // 'sentinel_u32' when no field was found.
   JsonVal value; // 'sentinel_u32' when no field was found.
 } JsonFieldItr;
 
@@ -62,6 +62,14 @@ typedef struct {
 #define json_for_fields(_DOC_, _OBJECT_, _VAR_)                                                    \
   for (JsonFieldItr _VAR_ = json_field_begin((_DOC_), (_OBJECT_)); !sentinel_check(_VAR_.value);   \
                     _VAR_ = json_field_next((_DOC_), _VAR_.value))
+
+/**
+ * Lookup an object field by its name.
+ * Returns 'sentinel_u32' when no field was found with the given name.
+ *
+ * Pre-condition: object is a value of type JsonType_Object in the given document.
+ */
+#define json_field_lit(_DOC_, _OBJ_, _LIT_) json_field((_DOC_), (_OBJ_), string_hash_lit(_LIT_))
 
 /**
  * Add a new field to an object.
@@ -116,8 +124,16 @@ JsonVal json_add_object(JsonDoc*);
 
 /**
  * Add a new string to the document.
+ * Pre-condition: string.length < u32_max
  */
 JsonVal json_add_string(JsonDoc*, String);
+
+/**
+ * Add a hash-only string.
+ * Hash-only strings can be used as an optimization when the value of a string is not needed.
+ * NOTE: Documents with hash-only string cannot be serialized.
+ */
+JsonVal json_add_string_hash(JsonDoc*, StringHash);
 
 /**
  * Add a new number to the document.
@@ -166,6 +182,7 @@ bool json_add_field(JsonDoc*, JsonVal object, JsonVal name, JsonVal val);
  *
  * Pre-condition: object is a value of type JsonType_Object in the given document.
  * Pre-condition: !string_is_empty(name).
+ * Pre-condition: name.length < u32_max
  * Pre-condition: val is valid in the given document.
  * Pre-condition: val doesn't have a parent yet.
  * Pre-condition: Adding val to object does not create cycles.
@@ -223,12 +240,12 @@ JsonVal json_elem_begin(const JsonDoc*, JsonVal array);
 JsonVal json_elem_next(const JsonDoc*, JsonVal elem);
 
 /**
- * Lookup a object field by its name.
+ * Lookup an object field by the hash of its name.
  * Returns 'sentinel_u32' when no field was found with the given name.
  *
  * Pre-condition: object is a value of type JsonType_Object in the given document.
  */
-JsonVal json_field(const JsonDoc*, JsonVal object, String name);
+JsonVal json_field(const JsonDoc*, JsonVal object, StringHash nameHash);
 
 /**
  * Retrieve the amount of fields in an object.
@@ -255,10 +272,12 @@ JsonFieldItr json_field_next(const JsonDoc*, JsonVal fieldVal);
 
 /**
  * Retrieve the value of a string.
+ * NOTE: The value of a string cannot be retrieved if it was added as a hash-only string.
  *
  * Pre-condition: JsonVal is a value of type JsonType_String in the given document.
  */
-String json_string(const JsonDoc*, JsonVal);
+String     json_string(const JsonDoc*, JsonVal);
+StringHash json_string_hash(const JsonDoc*, JsonVal);
 
 /**
  * Retrieve the value of a number.

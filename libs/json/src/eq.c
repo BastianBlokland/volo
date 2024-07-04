@@ -39,18 +39,18 @@ static bool json_eq_object(JsonDoc* doc, JsonVal x, JsonVal y) {
    * More info: https://datatracker.ietf.org/doc/html/rfc7159#section-4
    */
 
-  JsonFieldItr xfieldItr = json_field_begin(doc, x);
-  JsonFieldItr yfieldItr = json_field_begin(doc, y);
+  JsonFieldItr xFieldItr = json_field_begin(doc, x);
+  JsonFieldItr yFieldItr = json_field_begin(doc, y);
   do {
-    if (!string_eq(xfieldItr.name, yfieldItr.name)) {
+    if (json_string_hash(doc, xFieldItr.name) != json_string_hash(doc, yFieldItr.name)) {
       return false;
     }
-    if (!json_eq(doc, xfieldItr.value, yfieldItr.value)) {
+    if (!json_eq(doc, xFieldItr.value, yFieldItr.value)) {
       return false;
     }
-    xfieldItr = json_field_next(doc, xfieldItr.value);
-    yfieldItr = json_field_next(doc, yfieldItr.value);
-  } while (!sentinel_check(xfieldItr.value));
+    xFieldItr = json_field_next(doc, xFieldItr.value);
+    yFieldItr = json_field_next(doc, yFieldItr.value);
+  } while (!sentinel_check(xFieldItr.value));
 
   return true;
 }
@@ -66,7 +66,7 @@ bool json_eq(JsonDoc* doc, JsonVal x, JsonVal y) {
   case JsonType_Object:
     return json_eq_object(doc, x, y);
   case JsonType_String:
-    return string_eq(json_string(doc, x), json_string(doc, y));
+    return json_string_hash(doc, x) == json_string_hash(doc, y);
   case JsonType_Number:
     return json_number(doc, x) == json_number(doc, y); // TODO: Should we add a diff threshold?
   case JsonType_Bool:

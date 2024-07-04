@@ -50,7 +50,7 @@ spec(read) {
 
     JsonResult res;
     for (usize i = 0; i != array_elems(data); ++i) {
-      const String rem = json_read(doc, data[i].input, &res);
+      const String rem = json_read(doc, data[i].input, JsonReadFlags_None, &res);
 
       check(string_is_empty(rem));
       check_require(res.type == JsonResultType_Success);
@@ -94,7 +94,7 @@ spec(read) {
 
     JsonResult res;
     for (usize i = 0; i != array_elems(data); ++i) {
-      const String rem = json_read(doc, data[i].input, &res);
+      const String rem = json_read(doc, data[i].input, JsonReadFlags_None, &res);
 
       check(string_is_empty(rem));
       check_require(res.type == JsonResultType_Success);
@@ -124,7 +124,7 @@ spec(read) {
 
     JsonResult res;
     for (usize i = 0; i != array_elems(data); ++i) {
-      const String rem = json_read(doc, data[i].input, &res);
+      const String rem = json_read(doc, data[i].input, JsonReadFlags_None, &res);
 
       check(string_is_empty(rem));
       check_require(res.type == JsonResultType_Success);
@@ -155,7 +155,7 @@ spec(read) {
 
     JsonResult res;
     for (usize i = 0; i != array_elems(data); ++i) {
-      const String rem = json_read(doc, data[i].input, &res);
+      const String rem = json_read(doc, data[i].input, JsonReadFlags_None, &res);
 
       check(string_is_empty(rem));
       check_require(res.type == JsonResultType_Success);
@@ -174,7 +174,7 @@ spec(read) {
 
     JsonResult res;
     for (usize i = 0; i != array_elems(data); ++i) {
-      const String rem = json_read(doc, data[i].input, &res);
+      const String rem = json_read(doc, data[i].input, JsonReadFlags_None, &res);
 
       check(string_is_empty(rem));
       check_require(res.type == JsonResultType_Success);
@@ -184,7 +184,7 @@ spec(read) {
 
   it("can read null") {
     JsonResult   res;
-    const String rem = json_read(doc, string_lit("null"), &res);
+    const String rem = json_read(doc, string_lit("null"), JsonReadFlags_None, &res);
 
     check(string_is_empty(rem));
     check_require(res.type == JsonResultType_Success);
@@ -198,7 +198,7 @@ spec(read) {
 
     while (!string_is_empty(input)) {
       JsonResult res;
-      input = json_read(doc, input, &res);
+      input = json_read(doc, input, JsonReadFlags_None, &res);
       check_require(res.type == JsonResultType_Success);
       *dynarray_push_t(&values, JsonVal) = res.val;
     }
@@ -243,7 +243,7 @@ spec(read) {
 
     JsonResult res;
     for (usize i = 0; i != array_elems(data); ++i) {
-      json_read(doc, data[i].input, &res);
+      json_read(doc, data[i].input, JsonReadFlags_None, &res);
 
       check_require(res.type == JsonResultType_Fail);
       check_eq_string(json_error_str(res.error), data[i].error);
@@ -257,7 +257,7 @@ spec(read) {
     dynstring_append_char(&input, '"');
 
     JsonResult res;
-    json_read(doc, dynstring_view(&input), &res);
+    json_read(doc, dynstring_view(&input), JsonReadFlags_None, &res);
 
     dynstring_destroy(&input);
 
@@ -271,7 +271,7 @@ spec(read) {
     dynstring_append_chars(&input, ']', 101);
 
     JsonResult res;
-    json_read(doc, dynstring_view(&input), &res);
+    json_read(doc, dynstring_view(&input), JsonReadFlags_None, &res);
 
     dynstring_destroy(&input);
 

@@ -135,7 +135,7 @@ static void json_state_write_object(JsonWriteState* s, DynString* str, const Jso
     }
     first = false;
 
-    json_state_write_string(s, str, field.name);
+    json_state_write_string(s, str, json_string(s->doc, field.name));
 
     const bool pretty = s->opts->mode != JsonWriteMode_Minimal;
     dynstring_append(str, pretty ? string_lit(": ") : string_lit(":"));

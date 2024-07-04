@@ -39,6 +39,11 @@ typedef struct {
   };
 } JsonResult;
 
+typedef enum {
+  JsonReadFlags_None               = 0,
+  JsonReadFlags_HashOnlyFieldNames = 1 << 0, // Do not store object field names as strings.
+} JsonReadFlags;
+
 /**
  * Return a textual representation of the given JsonError.
  */
@@ -53,4 +58,4 @@ String json_error_str(JsonError);
  *
  * Pre-condition: res != null.
  */
-String json_read(JsonDoc*, String, JsonResult* res);
+String json_read(JsonDoc*, String, JsonReadFlags, JsonResult* res);

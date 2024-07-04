@@ -118,7 +118,7 @@ spec(doc) {
     check_eq_int(json_field_count(doc, val), 0);
 
     // Check that there is no first field.
-    check_eq_string(json_field_begin(doc, val).name, string_empty);
+    check(sentinel_check(json_field_begin(doc, val).name));
     check(sentinel_check(json_field_begin(doc, val).value));
   }
 
@@ -135,7 +135,7 @@ spec(doc) {
 
     check_eq_int(json_type(doc, val), JsonType_Object);
     check_eq_int(json_field_count(doc, val), 1);
-    check_eq_string(json_field_begin(doc, val).name, string_lit("a"));
+    check_eq_string(json_string(doc, json_field_begin(doc, val).name), string_lit("a"));
     check_eq_int(json_field_begin(doc, val).value, field);
     check(
         sentinel_check(json_field_next(doc, field).value)); // Check that there is no second field.
@@ -152,11 +152,11 @@ spec(doc) {
     json_add_field_str(doc, val, string_lit("b"), fieldVal2);
     json_add_field_str(doc, val, string_lit("c"), fieldVal3);
 
-    check_eq_int(json_field(doc, val, string_lit("a")), fieldVal1);
-    check_eq_int(json_field(doc, val, string_lit("b")), fieldVal2);
-    check_eq_int(json_field(doc, val, string_lit("c")), fieldVal3);
-    check(sentinel_check(json_field(doc, val, string_lit("d"))));
-    check(sentinel_check(json_field(doc, val, string_empty)));
+    check_eq_int(json_field_lit(doc, val, "a"), fieldVal1);
+    check_eq_int(json_field_lit(doc, val, "b"), fieldVal2);
+    check_eq_int(json_field_lit(doc, val, "c"), fieldVal3);
+    check(sentinel_check(json_field_lit(doc, val, "d")));
+    check(sentinel_check(json_field_lit(doc, val, "")));
   }
 
   it("can iterate object fields") {
@@ -172,15 +172,15 @@ spec(doc) {
     json_for_fields(doc, val, itr) {
       switch (i++) {
       case 0:
-        check_eq_string(itr.name, string_lit("a"));
+        check_eq_string(json_string(doc, itr.name), string_lit("a"));
         check_eq_int(json_type(doc, itr.value), JsonType_String);
         break;
       case 1:
-        check_eq_string(itr.name, string_lit("b"));
+        check_eq_string(json_string(doc, itr.name), string_lit("b"));
         check_eq_int(json_type(doc, itr.value), JsonType_Bool);
         break;
       case 2:
-        check_eq_string(itr.name, string_lit("c"));
+        check_eq_string(json_string(doc, itr.name), string_lit("c"));
         check_eq_int(json_type(doc, itr.value), JsonType_Null);
         break;
       default:
@@ -228,16 +228,14 @@ spec(doc) {
 
         check(json_bool(doc, elem0));
         check(!json_bool(doc, elem1));
-        check_eq_int(json_type(doc, json_field(doc, elem2, string_lit("a"))), JsonType_Null);
-        check_eq_string(
-            json_string(doc, json_field(doc, elem2, string_lit("b"))), string_lit("Hello"));
+        check_eq_int(json_type(doc, json_field_lit(doc, elem2, "a")), JsonType_Null);
+        check_eq_string(json_string(doc, json_field_lit(doc, elem2, "b")), string_lit("Hello"));
       } break;
       case 1:
         check_eq_float(json_number(doc, rootItr.value), 42.0, .1e-32);
         break;
       case 2:
-        check_eq_int(
-            json_type(doc, json_field(doc, rootItr.value, string_lit("a"))), JsonType_Null);
+        check_eq_int(json_type(doc, json_field_lit(doc, rootItr.value, "a")), JsonType_Null);
         break;
       }
     }

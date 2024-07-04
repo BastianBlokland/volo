@@ -6,7 +6,7 @@
 
 static JsonVal test_find_event_by_name(const JsonDoc* jDoc, const JsonVal arr, const String name) {
   json_for_elems(jDoc, arr, evt) {
-    const JsonVal evtNameVal = json_field(jDoc, evt, string_lit("name"));
+    const JsonVal evtNameVal = json_field_lit(jDoc, evt, "name");
     if (string_eq(json_string(jDoc, evtNameVal), name)) {
       return evt;
     }
@@ -38,14 +38,14 @@ spec(dump_eventtrace) {
     trace_dump_eventtrace(storeSink, &buffer);
 
     JsonResult result;
-    json_read(jDoc, dynstring_view(&buffer), &result);
+    json_read(jDoc, dynstring_view(&buffer), JsonReadFlags_None, &result);
     check_eq_int(result.type, JsonResultType_Success);
 
-    const JsonVal evtArr = json_field(jDoc, result.val, string_lit("traceEvents"));
+    const JsonVal evtArr = json_field_lit(jDoc, result.val, "traceEvents");
     const JsonVal evt    = test_find_event_by_name(jDoc, evtArr, g_evtName);
 
-    check_eq_string(json_string(jDoc, json_field(jDoc, evt, string_lit("cat"))), g_evtName);
-    check_eq_string(json_string(jDoc, json_field(jDoc, evt, string_lit("ph"))), string_lit("X"));
+    check_eq_string(json_string(jDoc, json_field_lit(jDoc, evt, "cat")), g_evtName);
+    check_eq_string(json_string(jDoc, json_field_lit(jDoc, evt, "ph")), string_lit("X"));
   }
 
   teardown() {
