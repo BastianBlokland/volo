@@ -36,7 +36,7 @@ static void log_destroy_sinks(Logger* logger) {
   }
 }
 
-static String log_format_text_scratch(String str, const LogParam* params) {
+static String log_format_text_scratch(const String str, const LogParam* params) {
   FormatArg fmtArgs[log_params_max + 1];
   usize     i = 0;
   for (; params[i].arg.type && i != log_params_max; ++i) {
@@ -46,7 +46,7 @@ static String log_format_text_scratch(String str, const LogParam* params) {
   return format_write_formatted_scratch(str, fmtArgs);
 }
 
-String log_level_str(LogLevel level) {
+String log_level_str(const LogLevel level) {
   diag_assert(level < LogLevel_Count);
   return g_levelStrs[level];
 }

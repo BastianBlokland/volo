@@ -34,7 +34,7 @@ static JsonVal log_to_json(JsonDoc* doc, const FormatArg* arg) {
   case FormatArgType_Size:
     return json_add_number(doc, (f64)arg->value_size);
   case FormatArgType_List: {
-    JsonVal arr = json_add_array(doc);
+    const JsonVal arr = json_add_array(doc);
     for (const FormatArg* itr = arg->value_list; itr->type; ++itr) {
       json_add_elem(doc, arr, log_to_json(doc, itr));
     }
@@ -47,10 +47,10 @@ static JsonVal log_to_json(JsonDoc* doc, const FormatArg* arg) {
 
 static void log_sink_json_write(
     LogSink*        sink,
-    LogLevel        lvl,
-    SourceLoc       srcLoc,
-    TimeReal        timestamp,
-    String          message,
+    const LogLevel  lvl,
+    const SourceLoc srcLoc,
+    const TimeReal  timestamp,
+    const String    message,
     const LogParam* params) {
   LogSinkJson* jsonSink = (LogSinkJson*)sink;
   if (!log_mask_enabled(jsonSink->mask, lvl)) {
@@ -96,17 +96,15 @@ static void log_sink_json_destroy(LogSink* sink) {
 LogSink*
 log_sink_json(Allocator* alloc, File* file, const LogMask mask, const LogSinkJsonFlags flags) {
   LogSinkJson* sink = alloc_alloc_t(alloc, LogSinkJson);
-  *sink             = (LogSinkJson){
-                  .api =
-                      {
-                          .write   = log_sink_json_write,
-                          .destroy = log_sink_json_destroy,
-          },
-                  .alloc = alloc,
-                  .file  = file,
-                  .mask  = mask,
-                  .flags = flags,
+
+  *sink = (LogSinkJson){
+      .api   = {.write = log_sink_json_write, .destroy = log_sink_json_destroy},
+      .alloc = alloc,
+      .file  = file,
+      .mask  = mask,
+      .flags = flags,
   };
+
   return (LogSink*)sink;
 }
 
