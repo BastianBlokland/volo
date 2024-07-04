@@ -119,6 +119,8 @@ static void debug_log_sink_write(
         }
         debugSink->entryTail = entry;
         debugSink->bufferPos = nextBufferPos;
+
+        thread_atomic_fence_release(); // Synchronize with read-only observers.
       }
     }
   }
@@ -245,16 +247,23 @@ static void debug_log_draw_entries(
 
   ui_style_outline(canvas, 0);
 
-  thread_spinlock_lock(&tracker->sink->bufferLock);
-  {
-    for (DebugLogEntry* entry = tracker->sink->entryHead; entry; entry = entry->next) {
-      if (mask & (1 << entry->lvl)) {
-        debug_log_draw_entry(canvas, entry);
-        ui_layout_next(canvas, Ui_Down, 0);
-      }
+  /**
+   * Because 'debug_log_sink_write' only adds new entries (but never removes) and this system is
+   * never called in parallel with 'DebugLogUpdateSys' we can avoid taking the spinlock and instead
+   * iterate until the last fully written one.
+   */
+  thread_atomic_fence_acquire();
+  DebugLogEntry* last = tracker->sink->entryTail;
+
+  for (DebugLogEntry* entry = tracker->sink->entryHead; entry; entry = entry->next) {
+    if (mask & (1 << entry->lvl)) {
+      debug_log_draw_entry(canvas, entry);
+      ui_layout_next(canvas, Ui_Down, 0);
+    }
+    if (entry == last) {
+      break; // Reached the last written one when we synchronized with debug_log_sink_write.
     }
   }
-  thread_spinlock_unlock(&tracker->sink->bufferLock);
 }
 
 ecs_system_define(DebugLogDrawSys) {
