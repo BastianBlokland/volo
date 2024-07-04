@@ -89,12 +89,13 @@ static void log_sink_pretty_write(
   for (const LogParam* itr = params; itr->arg.type; ++itr) {
     fmt_write(
         &str,
-        "  {}: {}{}{}{}\n",
+        "  {}: {}{}",
         fmt_text(itr->name),
         fmt_padding((u16)(maxParamNameWidth - itr->name.size)),
-        arg_style_bold(prettySink),
-        fmt_text(format_write_arg_scratch(&itr->arg)),
-        arg_style_reset(prettySink));
+        arg_style_bold(prettySink));
+
+    format_write_arg(&str, &itr->arg);
+    fmt_write(&str, "{}\n", arg_style_reset(prettySink));
   }
 
   file_write_sync(prettySink->file, dynstring_view(&str));
