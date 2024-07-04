@@ -17,17 +17,17 @@
 
 ASSERT(log_tracker_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
 
-typedef struct sDebugLogMessage DebugLogMessage;
+typedef struct sDebugLogEntry DebugLogEntry;
 
-struct sDebugLogMessage {
-  DebugLogMessage* next;
-  TimeReal         timestamp;
-  LogLevel         lvl : 8;
-  u8               length;
-  u16              line;
-  u32              counter;
-  String           file;
-  u8               data[];
+struct sDebugLogEntry {
+  DebugLogEntry* next;
+  TimeReal       timestamp;
+  LogLevel       lvl : 8;
+  u8             msgLength;
+  u16            line;
+  u32            counter;
+  String         file;
+  u8             msgData[];
 };
 
 /**
@@ -37,30 +37,32 @@ struct sDebugLogMessage {
  * to achieve this it has a basic ref-counter.
  */
 typedef struct {
-  LogSink          api;
-  i32              refCounter;
-  ThreadSpinLock   msgLock;
-  u8*              msgBuffer;    // Circular buffer of (dynamically sized) messages.
-  u8*              msgBufferPos; // Current write position.
-  DebugLogMessage* msgHead;
-  DebugLogMessage* msgTail;
+  LogSink        api;
+  i32            refCounter;
+  ThreadSpinLock bufferLock;
+  u8*            buffer;    // Circular buffer of (dynamically sized) entries.
+  u8*            bufferPos; // Current write position.
+  DebugLogEntry *entryHead, *entryTail;
 } DebugLogSink;
 
-static bool debug_log_msg_is_dup(const DebugLogMessage* msg, const String newMsgText) {
-  return msg->length == newMsgText.size && mem_eq(mem_create(msg->data, msg->length), newMsgText);
+static bool debug_log_is_dup(const DebugLogEntry* entry, const String newMsg) {
+  if (entry->msgLength != newMsg.size) {
+    return false;
+  }
+  return mem_eq(mem_create(entry->msgData, entry->msgLength), newMsg);
 }
 
-static bool debug_log_msg_free_until(DebugLogSink* debugSink, const u8* endPos) {
-  if (!debugSink->msgHead) {
-    return true; // No messages active; all are free.
+static bool debug_log_buffer_free_until(DebugLogSink* debugSink, const u8* endPos) {
+  if (!debugSink->entryHead) {
+    return true; // No entries; all positions are free.
   }
-  if (endPos <= (u8*)debugSink->msgHead) {
+  if (endPos <= (u8*)debugSink->entryHead) {
     return true;
   }
-  if (debugSink->msgTail >= debugSink->msgHead && endPos > (u8*)debugSink->msgTail) {
+  if (debugSink->entryTail >= debugSink->entryHead && endPos > (u8*)debugSink->entryTail) {
     return true;
   }
-  return false; // Pos overlaps with the message range.
+  return false; // Pos overlaps with the range of entries.
 }
 
 static void debug_log_sink_write(
@@ -68,88 +70,88 @@ static void debug_log_sink_write(
     const LogLevel  lvl,
     const SourceLoc srcLoc,
     const TimeReal  timestamp,
-    const String    message,
+    const String    msg,
     const LogParam* params) {
   (void)params;
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
-  thread_spinlock_lock(&debugSink->msgLock);
+  thread_spinlock_lock(&debugSink->bufferLock);
   {
     bool duplicate = false;
-    if (debugSink->msgTail && debug_log_msg_is_dup(debugSink->msgTail, message)) {
-      debugSink->msgTail->timestamp = timestamp;
-      ++debugSink->msgTail->counter;
+    if (debugSink->entryTail && debug_log_is_dup(debugSink->entryTail, msg)) {
+      debugSink->entryTail->timestamp = timestamp;
+      ++debugSink->entryTail->counter;
       duplicate = true;
     }
 
     if (!duplicate) {
-      debugSink->msgBufferPos = bits_align_ptr(debugSink->msgBufferPos, alignof(DebugLogMessage));
+      debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
 
-      const u32 msgLength = math_min((u32)message.size, log_tracker_max_message_size);
-      const u32 entrySize = sizeof(DebugLogMessage) + msgLength;
+      const u32 msgLength = math_min((u32)msg.size, log_tracker_max_message_size);
+      const u32 entrySize = sizeof(DebugLogEntry) + msgLength;
 
-      u8* nextBufferPos = debugSink->msgBufferPos + entrySize;
-      if (nextBufferPos > (debugSink->msgBuffer + log_tracker_buffer_size)) {
-        debugSink->msgBufferPos = debugSink->msgBuffer; // Wrap around to the beginning.
-        nextBufferPos           = debugSink->msgBuffer + entrySize;
+      u8* nextBufferPos = debugSink->bufferPos + entrySize;
+      if (nextBufferPos > (debugSink->buffer + log_tracker_buffer_size)) {
+        debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
+        nextBufferPos        = debugSink->buffer + entrySize;
       }
 
       // Check if we have space for a new message, if not: drop the message.
-      if (debug_log_msg_free_until(debugSink, nextBufferPos)) {
-        DebugLogMessage* newMsg = (DebugLogMessage*)debugSink->msgBufferPos;
-        newMsg->next            = null;
-        newMsg->timestamp       = timestamp;
-        newMsg->lvl             = lvl;
-        newMsg->length          = msgLength;
-        newMsg->counter         = 1;
-        newMsg->line            = (u16)math_min(srcLoc.line, u16_max);
-        newMsg->file            = srcLoc.file;
-        mem_cpy(mem_create(newMsg->data, msgLength), string_slice(message, 0, msgLength));
+      if (debug_log_buffer_free_until(debugSink, nextBufferPos)) {
+        DebugLogEntry* entry = (DebugLogEntry*)debugSink->bufferPos;
+        entry->next          = null;
+        entry->timestamp     = timestamp;
+        entry->lvl           = lvl;
+        entry->msgLength     = msgLength;
+        entry->counter       = 1;
+        entry->line          = (u16)math_min(srcLoc.line, u16_max);
+        entry->file          = srcLoc.file;
+        mem_cpy(mem_create(entry->msgData, msgLength), string_slice(msg, 0, msgLength));
 
-        if (debugSink->msgTail) {
-          debugSink->msgTail->next = newMsg;
+        if (debugSink->entryTail) {
+          debugSink->entryTail->next = entry;
         } else {
-          debugSink->msgHead = newMsg;
+          debugSink->entryHead = entry;
         }
-        debugSink->msgTail      = newMsg;
-        debugSink->msgBufferPos = nextBufferPos;
+        debugSink->entryTail = entry;
+        debugSink->bufferPos = nextBufferPos;
       }
     }
   }
-  thread_spinlock_unlock(&debugSink->msgLock);
+  thread_spinlock_unlock(&debugSink->bufferLock);
 }
 
 static void debug_log_sink_destroy(LogSink* sink) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
-    alloc_free(g_allocHeap, mem_create(debugSink->msgBuffer, log_tracker_buffer_size));
+    alloc_free(g_allocHeap, mem_create(debugSink->buffer, log_tracker_buffer_size));
     alloc_free_t(g_allocHeap, debugSink);
   }
 }
 
 static void debug_log_sink_prune_older(DebugLogSink* s, const TimeReal timestamp) {
-  thread_spinlock_lock(&s->msgLock);
+  thread_spinlock_lock(&s->bufferLock);
   {
-    for (; s->msgHead && s->msgHead->timestamp < timestamp; s->msgHead = s->msgHead->next)
+    for (; s->entryHead && s->entryHead->timestamp < timestamp; s->entryHead = s->entryHead->next)
       ;
-    if (!s->msgHead) {
-      s->msgTail = null;
+    if (!s->entryHead) {
+      s->entryTail = null;
     }
   }
-  thread_spinlock_unlock(&s->msgLock);
+  thread_spinlock_unlock(&s->bufferLock);
 }
 
 DebugLogSink* debug_log_sink_create(void) {
   DebugLogSink* sink = alloc_alloc_t(g_allocHeap, DebugLogSink);
 
-  u8* msgBuffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogMessage)).ptr;
+  u8* buffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogEntry)).ptr;
 
   *sink = (DebugLogSink){
-      .api          = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
-      .msgBuffer    = msgBuffer,
-      .msgBufferPos = msgBuffer,
+      .api       = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
+      .buffer    = buffer,
+      .bufferPos = buffer,
   };
 
   return sink;
@@ -210,11 +212,11 @@ static UiColor debug_log_bg_color(const LogLevel lvl) {
   diag_crash();
 }
 
-static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* msg) {
-  const String str = mem_create(msg->data, msg->length);
+static void debug_log_draw_entry(UiCanvasComp* canvas, const DebugLogEntry* entry) {
+  const String msg = mem_create(entry->msgData, entry->msgLength);
 
   ui_style_push(canvas);
-  ui_style_color(canvas, debug_log_bg_color(msg->lvl));
+  ui_style_color(canvas, debug_log_bg_color(entry->lvl));
   const UiId bgId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
   ui_style_pop(canvas);
 
@@ -222,18 +224,18 @@ static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* 
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
 
   String text;
-  if (msg->counter > 1) {
-    text = fmt_write_scratch("x{} {}", fmt_int(msg->counter), fmt_text(str));
+  if (entry->counter > 1) {
+    text = fmt_write_scratch("x{} {}", fmt_int(entry->counter), fmt_text(msg));
   } else {
-    text = str;
+    text = msg;
   }
   ui_canvas_draw_text(canvas, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(canvas);
 
-  ui_tooltip(canvas, bgId, fmt_write_scratch("{}:{}", fmt_path(msg->file), fmt_int(msg->line)));
+  ui_tooltip(canvas, bgId, fmt_write_scratch("{}:{}", fmt_path(entry->file), fmt_int(entry->line)));
 }
 
-static void debug_log_draw_messages(
+static void debug_log_draw_entries(
     UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const LogMask mask) {
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(500, 0), UiBase_Absolute, Ui_X);
@@ -241,16 +243,16 @@ static void debug_log_draw_messages(
 
   ui_style_outline(canvas, 0);
 
-  thread_spinlock_lock(&tracker->sink->msgLock);
+  thread_spinlock_lock(&tracker->sink->bufferLock);
   {
-    for (DebugLogMessage* msg = tracker->sink->msgHead; msg; msg = msg->next) {
-      if (mask & (1 << msg->lvl)) {
-        debug_log_draw_message(canvas, msg);
+    for (DebugLogEntry* entry = tracker->sink->entryHead; entry; entry = entry->next) {
+      if (mask & (1 << entry->lvl)) {
+        debug_log_draw_entry(canvas, entry);
         ui_layout_next(canvas, Ui_Down, 0);
       }
     }
   }
-  thread_spinlock_unlock(&tracker->sink->msgLock);
+  thread_spinlock_unlock(&tracker->sink->bufferLock);
 }
 
 ecs_system_define(DebugLogDrawSys) {
@@ -266,7 +268,7 @@ ecs_system_define(DebugLogDrawSys) {
 
     ui_canvas_reset(canvas);
     ui_canvas_to_front(canvas); // Always draw logs on-top.
-    debug_log_draw_messages(canvas, trackerGlobal, viewer->mask);
+    debug_log_draw_entries(canvas, trackerGlobal, viewer->mask);
   }
 }
 
