@@ -52,17 +52,14 @@ static bool debug_log_is_dup(const DebugLogEntry* entry, const String newMsg) {
   return mem_eq(mem_create(entry->msgData, entry->msgLength), newMsg);
 }
 
-static bool debug_log_buffer_free_until(DebugLogSink* debugSink, const u8* endPos) {
+static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
   if (!debugSink->entryHead) {
-    return true; // No entries; all positions are free.
+    return mem_create(debugSink->buffer, log_tracker_buffer_size);
   }
-  if (endPos <= (u8*)debugSink->entryHead) {
-    return true;
+  if (debugSink->bufferPos > (const u8*)debugSink->entryHead) {
+    return mem_from_to(debugSink->bufferPos, debugSink->buffer + log_tracker_buffer_size);
   }
-  if (debugSink->entryTail >= debugSink->entryHead && endPos > (u8*)debugSink->entryTail) {
-    return true;
-  }
-  return false; // Position overlaps with the range of entries.
+  return mem_from_to(debugSink->bufferPos, debugSink->entryHead);
 }
 
 static void debug_log_sink_write(
@@ -92,16 +89,12 @@ static void debug_log_sink_write(
       const u32 msgLength = math_min((u32)msg.size, log_tracker_max_message_size);
       const u32 entrySize = sizeof(DebugLogEntry) + msgLength;
 
-      u8* nextBufferPos = debugSink->bufferPos + entrySize;
-      if (nextBufferPos > (debugSink->buffer + log_tracker_buffer_size)) {
-        debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
-        nextBufferPos        = debugSink->buffer + entrySize;
-      }
+    Retry:;
+      const Mem buffer = debug_log_buffer_remaining(debugSink);
+      if (buffer.size >= entrySize) {
+        DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
 
-      // Check if we have space for a new message, if not: drop the message.
-      if (debug_log_buffer_free_until(debugSink, nextBufferPos)) {
-        DebugLogEntry* entry = (DebugLogEntry*)debugSink->bufferPos;
-        *entry               = (DebugLogEntry){
+        *entry = (DebugLogEntry){
             .next      = null,
             .timestamp = timestamp,
             .lvl       = lvl,
@@ -118,9 +111,12 @@ static void debug_log_sink_write(
           debugSink->entryHead = entry;
         }
         debugSink->entryTail = entry;
-        debugSink->bufferPos = nextBufferPos;
+        debugSink->bufferPos += entrySize;
 
         thread_atomic_fence_release(); // Synchronize with read-only observers.
+      } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
+        debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
+        goto Retry;
       }
     }
   }
