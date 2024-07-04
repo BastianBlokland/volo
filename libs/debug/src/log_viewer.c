@@ -31,7 +31,7 @@ struct sDebugLogEntry {
 };
 
 /**
- * Sink that will receive logger messages.
+ * Sink that will receive log messages.
  * NOTE: Needs a stable pointer as it will be registered to the logger.
  * NOTE: Sink needs to stay alive as long as the logger still exists or the tracker still exists,
  * to achieve this it has a basic ref-counter.
@@ -62,7 +62,7 @@ static bool debug_log_buffer_free_until(DebugLogSink* debugSink, const u8* endPo
   if (debugSink->entryTail >= debugSink->entryHead && endPos > (u8*)debugSink->entryTail) {
     return true;
   }
-  return false; // Pos overlaps with the range of entries.
+  return false; // Position overlaps with the range of entries.
 }
 
 static void debug_log_sink_write(
@@ -101,13 +101,15 @@ static void debug_log_sink_write(
       // Check if we have space for a new message, if not: drop the message.
       if (debug_log_buffer_free_until(debugSink, nextBufferPos)) {
         DebugLogEntry* entry = (DebugLogEntry*)debugSink->bufferPos;
-        entry->next          = null;
-        entry->timestamp     = timestamp;
-        entry->lvl           = lvl;
-        entry->msgLength     = msgLength;
-        entry->counter       = 1;
-        entry->line          = (u16)math_min(srcLoc.line, u16_max);
-        entry->file          = srcLoc.file;
+        *entry               = (DebugLogEntry){
+            .next      = null,
+            .timestamp = timestamp,
+            .lvl       = lvl,
+            .msgLength = msgLength,
+            .counter   = 1,
+            .line      = (u16)math_min(srcLoc.line, u16_max),
+            .file      = srcLoc.file,
+        };
         mem_cpy(mem_create(entry->msgData, msgLength), string_slice(msg, 0, msgLength));
 
         if (debugSink->entryTail) {
