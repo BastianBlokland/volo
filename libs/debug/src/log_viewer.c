@@ -21,7 +21,8 @@ struct sDebugLogEntry {
   TimeReal       timestamp;
   LogLevel       lvl : 8;
   u16            line;
-  String         file;
+  u16            fileNameLen;
+  const u8*      fileNamePtr;
 };
 
 typedef struct {
@@ -80,10 +81,11 @@ static usize debug_log_entry_write(
 
   DebugLogEntry* ptr = (DebugLogEntry*)buffer.ptr;
   *ptr               = (DebugLogEntry){
-      .timestamp = timestamp,
-      .lvl       = lvl,
-      .line      = (u16)math_min(srcLoc.line, u16_max),
-      .file      = srcLoc.file,
+      .timestamp   = timestamp,
+      .lvl         = lvl,
+      .line        = (u16)math_min(srcLoc.line, u16_max),
+      .fileNameLen = (u16)math_min(srcLoc.file.size, u16_max),
+      .fileNamePtr = srcLoc.file.ptr,
   };
 
   buffer              = mem_consume(buffer, sizeof(DebugLogEntry));
@@ -258,7 +260,8 @@ static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, co
   ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(c);
 
-  ui_tooltip(c, bgId, fmt_write_scratch("{}:{}", fmt_path(entry->file), fmt_int(entry->line)));
+  const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
+  ui_tooltip(c, bgId, fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line)));
 }
 
 static void debug_log_draw_entries(
