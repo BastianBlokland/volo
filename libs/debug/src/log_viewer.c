@@ -240,6 +240,11 @@ static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
   return debug_log_str_eq(debug_log_entry_msg(a), debug_log_entry_msg(b));
 }
 
+static void debug_log_tooltip_draw(UiCanvasComp* c, const UiId id, const DebugLogEntry* entry) {
+  const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
+  ui_tooltip(c, id, fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line)));
+}
+
 static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, const u32 repeat) {
   const DebugLogEntryStr* msg = debug_log_entry_msg(entry);
 
@@ -260,8 +265,11 @@ static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, co
   ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(c);
 
-  const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
-  ui_tooltip(c, bgId, fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line)));
+  if (ui_canvas_elem_status(c, bgId) >= UiStatus_Hovered) {
+    debug_log_tooltip_draw(c, bgId, entry);
+  } else {
+    ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
+  }
 }
 
 static void debug_log_draw_entries(
