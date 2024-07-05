@@ -53,6 +53,7 @@ static bool debug_log_is_dup(const DebugLogEntry* entry, const String newMsg) {
 }
 
 static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
+  diag_assert(debugSink->bufferPos <= debugSink->buffer + log_tracker_buffer_size);
   if (!debugSink->entryHead) {
     return mem_create(debugSink->buffer, log_tracker_buffer_size);
   }
@@ -60,6 +61,37 @@ static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
     return mem_from_to(debugSink->bufferPos, debugSink->buffer + log_tracker_buffer_size);
   }
   return mem_from_to(debugSink->bufferPos, debugSink->entryHead);
+}
+
+static usize debug_log_entry_write(
+    const Mem       buffer,
+    const LogLevel  lvl,
+    const SourceLoc srcLoc,
+    const TimeReal  timestamp,
+    const String    msg) {
+  diag_assert(bits_aligned_ptr(buffer.ptr, alignof(DebugLogEntry)));
+
+  const u32 msgLength = math_min((u32)msg.size, log_tracker_max_message_size);
+  const u32 entrySize = sizeof(DebugLogEntry) + msgLength;
+
+  if (entrySize > buffer.size) {
+    return 0; // Not enough space.
+  }
+
+  DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
+
+  *entry = (DebugLogEntry){
+      .next      = null,
+      .timestamp = timestamp,
+      .lvl       = lvl,
+      .msgLength = msgLength,
+      .counter   = 1,
+      .line      = (u16)math_min(srcLoc.line, u16_max),
+      .file      = srcLoc.file,
+  };
+  mem_cpy(mem_create(entry->msgData, msgLength), string_slice(msg, 0, msgLength));
+
+  return entrySize;
 }
 
 static void debug_log_sink_write(
@@ -86,37 +118,23 @@ static void debug_log_sink_write(
     if (!duplicate) {
       debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
 
-      const u32 msgLength = math_min((u32)msg.size, log_tracker_max_message_size);
-      const u32 entrySize = sizeof(DebugLogEntry) + msgLength;
-
-    Retry:;
-      const Mem buffer = debug_log_buffer_remaining(debugSink);
-      if (buffer.size >= entrySize) {
+    Write:;
+      const Mem   buffer      = debug_log_buffer_remaining(debugSink);
+      const usize writtenSize = debug_log_entry_write(buffer, lvl, srcLoc, timestamp, msg);
+      if (writtenSize) {
         DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
-
-        *entry = (DebugLogEntry){
-            .next      = null,
-            .timestamp = timestamp,
-            .lvl       = lvl,
-            .msgLength = msgLength,
-            .counter   = 1,
-            .line      = (u16)math_min(srcLoc.line, u16_max),
-            .file      = srcLoc.file,
-        };
-        mem_cpy(mem_create(entry->msgData, msgLength), string_slice(msg, 0, msgLength));
-
         if (debugSink->entryTail) {
           debugSink->entryTail->next = entry;
         } else {
           debugSink->entryHead = entry;
         }
         debugSink->entryTail = entry;
-        debugSink->bufferPos += entrySize;
+        debugSink->bufferPos += writtenSize;
 
         thread_atomic_fence_release(); // Synchronize with read-only observers.
       } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
         debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
-        goto Retry;
+        goto Write;                               // Retry the write.
       }
     }
   }
