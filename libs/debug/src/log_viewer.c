@@ -11,7 +11,8 @@
 #include "ui.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
-#define log_tracker_buffer_size (8 * usize_kibibyte)
+#define log_tracker_buffer_size (16 * usize_kibibyte)
+#define log_tracker_entry_max_size (4 * usize_kibibyte)
 #define log_tracker_max_age time_seconds(10)
 
 typedef struct sDebugLogEntry DebugLogEntry;
@@ -56,31 +57,24 @@ static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
   return mem_from_to(debugSink->bufferPos, debugSink->entryHead);
 }
 
-static usize debug_log_str_write(const Mem buffer, const String str) {
-  const u8 len = (u8)math_min(u8_max, str.size);
-  if (buffer.size < (sizeof(DebugLogEntryStr) + len)) {
-    return 0; // Not enough space.
-  }
-  DebugLogEntryStr* ptr = (DebugLogEntryStr*)buffer.ptr;
-  ptr->length           = len;
-  mem_cpy(mem_create(ptr->data, len), string_slice(str, 0, len));
-  return sizeof(DebugLogEntryStr) + len;
+static void debug_log_str_write(DynString* out, const String str) {
+  DebugLogEntryStr* ptr = dynstring_push(out, sizeof(DebugLogEntryStr)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntryStr)));
+
+  ptr->length = (u8)math_min(u8_max, str.size);
+  dynstring_append(out, string_slice(str, 0, ptr->length));
 }
 
-static usize debug_log_entry_write(
-    Mem             buffer,
+static void debug_log_entry_write(
+    DynString*      out,
     const LogLevel  lvl,
     const SourceLoc srcLoc,
     const TimeReal  timestamp,
     const String    msg) {
-  diag_assert(bits_aligned_ptr(buffer.ptr, alignof(DebugLogEntry)));
+  DebugLogEntry* ptr = dynstring_push(out, sizeof(DebugLogEntry)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntry)));
 
-  if (buffer.size < sizeof(DebugLogEntry)) {
-    return 0; // Not enough space.
-  }
-
-  DebugLogEntry* ptr = (DebugLogEntry*)buffer.ptr;
-  *ptr               = (DebugLogEntry){
+  *ptr = (DebugLogEntry){
       .timestamp   = timestamp,
       .lvl         = lvl,
       .line        = (u16)math_min(srcLoc.line, u16_max),
@@ -88,13 +82,7 @@ static usize debug_log_entry_write(
       .fileNamePtr = srcLoc.file.ptr,
   };
 
-  buffer              = mem_consume(buffer, sizeof(DebugLogEntry));
-  const usize msgSize = debug_log_str_write(buffer, msg);
-  if (!msgSize) {
-    return 0; // Not enough space.
-  }
-
-  return sizeof(DebugLogEntry) + msgSize;
+  debug_log_str_write(out, msg);
 }
 
 static void debug_log_sink_write(
@@ -109,14 +97,18 @@ static void debug_log_sink_write(
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
+  const Mem scratchMem = alloc_alloc(g_allocScratch, log_tracker_entry_max_size, 1);
+  DynString scratchStr = dynstring_create_over(scratchMem);
+  debug_log_entry_write(&scratchStr, lvl, srcLoc, timestamp, msg);
+
   thread_spinlock_lock(&debugSink->bufferLock);
   {
     debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
-
   Write:;
-    const Mem   buffer      = debug_log_buffer_remaining(debugSink);
-    const usize writtenSize = debug_log_entry_write(buffer, lvl, srcLoc, timestamp, msg);
-    if (writtenSize) {
+    const Mem buffer = debug_log_buffer_remaining(debugSink);
+    if (buffer.size >= scratchStr.size) {
+      mem_cpy(buffer, dynstring_view(&scratchStr));
+
       DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
       if (debugSink->entryTail) {
         debugSink->entryTail->next = entry;
@@ -124,7 +116,7 @@ static void debug_log_sink_write(
         debugSink->entryHead = entry;
       }
       debugSink->entryTail = entry;
-      debugSink->bufferPos += writtenSize;
+      debugSink->bufferPos += scratchStr.size;
 
       thread_atomic_fence_release(); // Synchronize with read-only observers.
     } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
