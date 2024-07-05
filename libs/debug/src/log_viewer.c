@@ -21,6 +21,7 @@ struct sDebugLogEntry {
   DebugLogEntry* next;
   TimeReal       timestamp;
   LogLevel       lvl : 8;
+  u8             paramCount;
   u16            line;
   u16            fileNameLen;
   const u8*      fileNamePtr;
@@ -65,12 +66,22 @@ static void debug_log_str_write(DynString* out, const String str) {
   dynstring_append(out, string_slice(str, 0, ptr->length));
 }
 
+static void debug_log_str_write_arg(DynString* out, const FormatArg* arg) {
+  DebugLogEntryStr* ptr = dynstring_push(out, sizeof(DebugLogEntryStr)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntryStr)));
+
+  const usize sizeStart = out->size;
+  format_write_arg(out, arg);
+  ptr->length = (u8)math_min(u8_max, out->size - sizeStart);
+}
+
 static void debug_log_entry_write(
     DynString*      out,
     const LogLevel  lvl,
     const SourceLoc srcLoc,
     const TimeReal  timestamp,
-    const String    msg) {
+    const String    msg,
+    const LogParam* params) {
   DebugLogEntry* ptr = dynstring_push(out, sizeof(DebugLogEntry)).ptr;
   diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntry)));
 
@@ -83,6 +94,11 @@ static void debug_log_entry_write(
   };
 
   debug_log_str_write(out, msg);
+
+  for (const LogParam* itr = params; itr->arg.type; ++itr) {
+    debug_log_str_write(out, itr->name);
+    debug_log_str_write_arg(out, &itr->arg);
+  }
 }
 
 static void debug_log_sink_write(
@@ -99,7 +115,7 @@ static void debug_log_sink_write(
   }
   const Mem scratchMem = alloc_alloc(g_allocScratch, log_tracker_entry_max_size, 1);
   DynString scratchStr = dynstring_create_over(scratchMem);
-  debug_log_entry_write(&scratchStr, lvl, srcLoc, timestamp, msg);
+  debug_log_entry_write(&scratchStr, lvl, srcLoc, timestamp, msg, params);
 
   thread_spinlock_lock(&debugSink->bufferLock);
   {
