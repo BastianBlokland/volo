@@ -25,7 +25,6 @@ struct sDebugLogEntry {
   LogLevel       lvl : 8;
   u8             msgLength;
   u16            line;
-  u32            counter;
   String         file;
   u8             msgData[];
 };
@@ -44,13 +43,6 @@ typedef struct {
   u8*            bufferPos; // Current write position.
   DebugLogEntry *entryHead, *entryTail;
 } DebugLogSink;
-
-static bool debug_log_is_dup(const DebugLogEntry* entry, const String newMsg) {
-  if (entry->msgLength != newMsg.size) {
-    return false;
-  }
-  return mem_eq(mem_create(entry->msgData, entry->msgLength), newMsg);
-}
 
 static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
   diag_assert(debugSink->bufferPos <= debugSink->buffer + log_tracker_buffer_size);
@@ -85,7 +77,6 @@ static usize debug_log_entry_write(
       .timestamp = timestamp,
       .lvl       = lvl,
       .msgLength = msgLength,
-      .counter   = 1,
       .line      = (u16)math_min(srcLoc.line, u16_max),
       .file      = srcLoc.file,
   };
@@ -108,34 +99,25 @@ static void debug_log_sink_write(
   }
   thread_spinlock_lock(&debugSink->bufferLock);
   {
-    bool duplicate = false;
-    if (debugSink->entryTail && debug_log_is_dup(debugSink->entryTail, msg)) {
-      debugSink->entryTail->timestamp = timestamp;
-      ++debugSink->entryTail->counter;
-      duplicate = true;
-    }
+    debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
 
-    if (!duplicate) {
-      debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
-
-    Write:;
-      const Mem   buffer      = debug_log_buffer_remaining(debugSink);
-      const usize writtenSize = debug_log_entry_write(buffer, lvl, srcLoc, timestamp, msg);
-      if (writtenSize) {
-        DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
-        if (debugSink->entryTail) {
-          debugSink->entryTail->next = entry;
-        } else {
-          debugSink->entryHead = entry;
-        }
-        debugSink->entryTail = entry;
-        debugSink->bufferPos += writtenSize;
-
-        thread_atomic_fence_release(); // Synchronize with read-only observers.
-      } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
-        debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
-        goto Write;                               // Retry the write.
+  Write:;
+    const Mem   buffer      = debug_log_buffer_remaining(debugSink);
+    const usize writtenSize = debug_log_entry_write(buffer, lvl, srcLoc, timestamp, msg);
+    if (writtenSize) {
+      DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
+      if (debugSink->entryTail) {
+        debugSink->entryTail->next = entry;
+      } else {
+        debugSink->entryHead = entry;
       }
+      debugSink->entryTail = entry;
+      debugSink->bufferPos += writtenSize;
+
+      thread_atomic_fence_release(); // Synchronize with read-only observers.
+    } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
+      debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
+      goto Write;                               // Retry the write.
     }
   }
   thread_spinlock_unlock(&debugSink->bufferLock);
@@ -230,27 +212,34 @@ static UiColor debug_log_bg_color(const LogLevel lvl) {
   diag_crash();
 }
 
-static void debug_log_draw_entry(UiCanvasComp* canvas, const DebugLogEntry* entry) {
+static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
+  if (a->msgLength != b->msgLength) {
+    return false;
+  }
+  return mem_eq(mem_create(a->msgData, a->msgLength), mem_create(b->msgData, b->msgLength));
+}
+
+static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, const u32 repeat) {
   const String msg = mem_create(entry->msgData, entry->msgLength);
 
-  ui_style_push(canvas);
-  ui_style_color(canvas, debug_log_bg_color(entry->lvl));
-  const UiId bgId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
-  ui_style_pop(canvas);
+  ui_style_push(c);
+  ui_style_color(c, debug_log_bg_color(entry->lvl));
+  const UiId bgId = ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_Interactable);
+  ui_style_pop(c);
 
-  ui_layout_push(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+  ui_layout_push(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
 
   String text;
-  if (entry->counter > 1) {
-    text = fmt_write_scratch("x{} {}", fmt_int(entry->counter), fmt_text(msg));
+  if (repeat) {
+    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(msg));
   } else {
     text = msg;
   }
-  ui_canvas_draw_text(canvas, text, 15, UiAlign_MiddleLeft, UiFlags_None);
-  ui_layout_pop(canvas);
+  ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
+  ui_layout_pop(c);
 
-  ui_tooltip(canvas, bgId, fmt_write_scratch("{}:{}", fmt_path(entry->file), fmt_int(entry->line)));
+  ui_tooltip(c, bgId, fmt_write_scratch("{}:{}", fmt_path(entry->file), fmt_int(entry->line)));
 }
 
 static void debug_log_draw_entries(
@@ -269,10 +258,16 @@ static void debug_log_draw_entries(
   thread_atomic_fence_acquire();
   DebugLogEntry* last = tracker->sink->entryTail;
 
+  u32 repeat = 0;
   for (DebugLogEntry* entry = tracker->sink->entryHead; entry; entry = entry->next) {
     if (mask & (1 << entry->lvl)) {
-      debug_log_draw_entry(canvas, entry);
-      ui_layout_next(canvas, Ui_Down, 0);
+      if (entry != last && debug_log_is_dup(entry, entry->next)) {
+        ++repeat;
+      } else {
+        debug_log_draw_entry(canvas, entry, repeat);
+        repeat = 0;
+        ui_layout_next(canvas, Ui_Down, 0);
+      }
     }
     if (entry == last) {
       break; // Reached the last written one when we synchronized with debug_log_sink_write.
