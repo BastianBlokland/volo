@@ -12,10 +12,7 @@
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
 #define log_tracker_buffer_size (8 * usize_kibibyte)
-#define log_tracker_max_message_size 64
 #define log_tracker_max_age time_seconds(10)
-
-ASSERT(log_tracker_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
 
 typedef struct sDebugLogEntry DebugLogEntry;
 
@@ -23,11 +20,14 @@ struct sDebugLogEntry {
   DebugLogEntry* next;
   TimeReal       timestamp;
   LogLevel       lvl : 8;
-  u8             msgLength;
   u16            line;
   String         file;
-  u8             msgData[];
 };
+
+typedef struct {
+  u8 length;
+  u8 data[];
+} DebugLogEntryStr;
 
 /**
  * Sink that will receive log messages.
@@ -55,34 +55,44 @@ static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
   return mem_from_to(debugSink->bufferPos, debugSink->entryHead);
 }
 
+static usize debug_log_str_write(const Mem buffer, const String str) {
+  const u8 len = (u8)math_min(u8_max, str.size);
+  if (buffer.size < (sizeof(DebugLogEntryStr) + len)) {
+    return 0; // Not enough space.
+  }
+  DebugLogEntryStr* ptr = (DebugLogEntryStr*)buffer.ptr;
+  ptr->length           = len;
+  mem_cpy(mem_create(ptr->data, len), string_slice(str, 0, len));
+  return sizeof(DebugLogEntryStr) + len;
+}
+
 static usize debug_log_entry_write(
-    const Mem       buffer,
+    Mem             buffer,
     const LogLevel  lvl,
     const SourceLoc srcLoc,
     const TimeReal  timestamp,
     const String    msg) {
   diag_assert(bits_aligned_ptr(buffer.ptr, alignof(DebugLogEntry)));
 
-  const u32 msgLength = math_min((u32)msg.size, log_tracker_max_message_size);
-  const u32 entrySize = sizeof(DebugLogEntry) + msgLength;
-
-  if (entrySize > buffer.size) {
+  if (buffer.size < sizeof(DebugLogEntry)) {
     return 0; // Not enough space.
   }
 
-  DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
-
-  *entry = (DebugLogEntry){
-      .next      = null,
+  DebugLogEntry* ptr = (DebugLogEntry*)buffer.ptr;
+  *ptr               = (DebugLogEntry){
       .timestamp = timestamp,
       .lvl       = lvl,
-      .msgLength = msgLength,
       .line      = (u16)math_min(srcLoc.line, u16_max),
       .file      = srcLoc.file,
   };
-  mem_cpy(mem_create(entry->msgData, msgLength), string_slice(msg, 0, msgLength));
 
-  return entrySize;
+  buffer              = mem_consume(buffer, sizeof(DebugLogEntry));
+  const usize msgSize = debug_log_str_write(buffer, msg);
+  if (!msgSize) {
+    return 0; // Not enough space.
+  }
+
+  return sizeof(DebugLogEntry) + msgSize;
 }
 
 static void debug_log_sink_write(
@@ -212,15 +222,24 @@ static UiColor debug_log_bg_color(const LogLevel lvl) {
   diag_crash();
 }
 
+static const DebugLogEntryStr* debug_log_entry_msg(const DebugLogEntry* entry) {
+  return (const DebugLogEntryStr*)(entry + 1);
+}
+
+static String debug_log_str(const DebugLogEntryStr* str) {
+  return mem_create(str->data, str->length);
+}
+
+static bool debug_log_str_eq(const DebugLogEntryStr* a, const DebugLogEntryStr* b) {
+  return a->length == b->length && mem_eq(debug_log_str(a), debug_log_str(b));
+}
+
 static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
-  if (a->msgLength != b->msgLength) {
-    return false;
-  }
-  return mem_eq(mem_create(a->msgData, a->msgLength), mem_create(b->msgData, b->msgLength));
+  return debug_log_str_eq(debug_log_entry_msg(a), debug_log_entry_msg(b));
 }
 
 static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, const u32 repeat) {
-  const String msg = mem_create(entry->msgData, entry->msgLength);
+  const DebugLogEntryStr* msg = debug_log_entry_msg(entry);
 
   ui_style_push(c);
   ui_style_color(c, debug_log_bg_color(entry->lvl));
@@ -232,9 +251,9 @@ static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, co
 
   String text;
   if (repeat) {
-    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(msg));
+    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(debug_log_str(msg)));
   } else {
-    text = msg;
+    text = debug_log_str(msg);
   }
   ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(c);
