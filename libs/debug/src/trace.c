@@ -517,8 +517,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
     ui_layout_container_pop(c);
     ui_layout_container_pop(c);
 
-    const UiId threadsEndId = ui_canvas_id_peek(c);
-    panel->hoverAny = ui_canvas_group_status(c, threadsBeginId, threadsEndId) == UiStatus_Hovered;
+    const UiId threadsLastId = ui_canvas_id_peek(c) - 1;
+    panel->hoverAny = ui_canvas_group_status(c, threadsBeginId, threadsLastId) == UiStatus_Hovered;
 
     if (panel->hoverAny) {
       panel->scrollview.flags |= UiScrollviewFlags_BlockInput;
