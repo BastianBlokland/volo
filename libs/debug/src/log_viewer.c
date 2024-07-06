@@ -11,7 +11,7 @@
 #include "ui.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
-#define log_tracker_buffer_size (16 * usize_kibibyte)
+#define log_tracker_buffer_size (32 * usize_kibibyte)
 #define log_tracker_max_age time_seconds(10)
 
 typedef enum {
