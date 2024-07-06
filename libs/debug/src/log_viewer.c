@@ -6,7 +6,6 @@
 #include "core_time.h"
 #include "ecs_world.h"
 #include "log.h"
-#include "log_logger.h"
 #include "log_sink.h"
 #include "scene_time.h"
 #include "ui.h"
@@ -16,28 +15,46 @@
 #define log_tracker_max_age time_seconds(10)
 
 typedef enum {
-  DebugLogEntryFlags_Combine = 1 << 0,
-  DebugLogEntryFlags_Default = DebugLogEntryFlags_Combine,
-} DebugLogEntryFlags;
+  DebugLogFlags_Combine = 1 << 0,
+  DebugLogFlags_Default = DebugLogFlags_Combine,
+} DebugLogFlags;
+
+/**
+ * Log entries are stored (sorted on timestamp) in a circular buffer. The range of active entries is
+ * denoted by the 'entryHead' and 'entryTail' pointers, this range is contigious except for wrapping
+ * at the end of the buffer. To detect when the range is wrapped we store a 'entryWrapPoint' pointer
+ * which indicates that the next entry is at the beginning of the buffer.
+ *
+ * Entry memory layout:
+ * base:              DebugLogEntry (24 bytes)
+ * message-meta:      DebugLogStr   (1 byte)
+ * message-data       byte[]        (n bytes)
+ *
+ * Followed n log parameters:
+ * param-name-meta:   DebugLogStr   (1 byte)
+ * param-name-data:   byte[]        (n bytes)
+ * param-value-meta:  DebugLogStr   (1 byte)
+ * param-value-data:  byte[]        (n bytes)
+ */
 
 typedef struct sDebugLogEntry DebugLogEntry;
 
 struct sDebugLogEntry {
-  TimeReal           timestamp;
-  LogLevel           lvl : 8;
-  DebugLogEntryFlags flags : 8;
-  u8                 paramCount;
-  u16                line;
-  u16                fileNameLen;
-  const u8*          fileNamePtr;
+  TimeReal      timestamp;
+  LogLevel      lvl : 8;
+  DebugLogFlags flags : 8;
+  u8            paramCount;
+  u16           line;
+  u16           fileNameLen;
+  const u8*     fileNamePtr;
 };
 
 typedef struct {
   u8 length;
   u8 data[];
-} DebugLogEntryStr;
+} DebugLogStr;
 
-ASSERT(alignof(DebugLogEntryStr) == 1, "Log strings need to fit without padding");
+ASSERT(alignof(DebugLogStr) == 1, "Log strings need to fit without padding");
 
 /**
  * Sink that will receive log messages.
@@ -54,12 +71,22 @@ typedef struct {
   DebugLogEntry *entryHead, *entryTail, *entryWrapPoint;
 } DebugLogSink;
 
-static DebugLogEntryStr* debug_log_str_next(DebugLogEntryStr* str) {
-  return bits_ptr_offset(str, sizeof(DebugLogEntryStr) + str->length);
+static DebugLogStr* debug_log_str_next(DebugLogStr* str) {
+  return bits_ptr_offset(str, sizeof(DebugLogStr) + str->length);
 }
 
-static DebugLogEntryStr* debug_log_entry_msg(const DebugLogEntry* entry) {
+static String debug_log_text(const DebugLogStr* str) { return mem_create(str->data, str->length); }
+
+static bool debug_log_str_eq(DebugLogStr* a, DebugLogStr* b) {
+  return a->length == b->length && mem_eq(debug_log_text(a), debug_log_text(b));
+}
+
+static DebugLogStr* debug_log_msg(const DebugLogEntry* entry) {
   return bits_ptr_offset(entry, sizeof(DebugLogEntry));
+}
+
+static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
+  return debug_log_str_eq(debug_log_msg(a), debug_log_msg(b));
 }
 
 static DebugLogEntry* debug_log_next(DebugLogSink* s, DebugLogEntry* entry) {
@@ -69,7 +96,7 @@ static DebugLogEntry* debug_log_next(DebugLogSink* s, DebugLogEntry* entry) {
   if (entry == s->entryWrapPoint) {
     return (DebugLogEntry*)s->buffer; // Next entry is the beginning of the buffer.
   }
-  DebugLogEntryStr* strItr = debug_log_entry_msg(entry);
+  DebugLogStr* strItr = debug_log_msg(entry);
   for (u32 i = 0; i != entry->paramCount; ++i) {
     strItr = debug_log_str_next(strItr); // Param name.
     strItr = debug_log_str_next(strItr); // Param value.
@@ -78,29 +105,29 @@ static DebugLogEntry* debug_log_next(DebugLogSink* s, DebugLogEntry* entry) {
   return bits_align_ptr(strItr, alignof(DebugLogEntry));
 }
 
-static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
-  diag_assert(debugSink->bufferPos <= debugSink->buffer + log_tracker_buffer_size);
-  if (!debugSink->entryHead) {
-    return mem_create(debugSink->buffer, log_tracker_buffer_size); // whole buffer is free.
+static Mem debug_log_buffer_remaining(DebugLogSink* s) {
+  diag_assert(s->bufferPos <= s->buffer + log_tracker_buffer_size);
+  if (!s->entryHead) {
+    return mem_create(s->buffer, log_tracker_buffer_size); // Whole buffer is free.
   }
   // Check if the bufferPos is before or after the range of active entries in the buffer.
-  if (debugSink->bufferPos > (const u8*)debugSink->entryHead) {
-    return mem_from_to(debugSink->bufferPos, debugSink->buffer + log_tracker_buffer_size);
+  if (s->bufferPos > (const u8*)s->entryHead) {
+    return mem_from_to(s->bufferPos, s->buffer + log_tracker_buffer_size);
   }
-  return mem_from_to(debugSink->bufferPos, debugSink->entryHead);
+  return mem_from_to(s->bufferPos, s->entryHead);
 }
 
-static void debug_log_str_write(DynString* out, const String str) {
-  DebugLogEntryStr* ptr = dynstring_push(out, sizeof(DebugLogEntryStr)).ptr;
-  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntryStr)));
+static void debug_log_write_text(DynString* out, const String text) {
+  DebugLogStr* ptr = dynstring_push(out, sizeof(DebugLogStr)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogStr)));
 
-  ptr->length = (u8)math_min(u8_max, str.size);
-  dynstring_append(out, string_slice(str, 0, ptr->length));
+  ptr->length = (u8)math_min(u8_max, text.size);
+  dynstring_append(out, string_slice(text, 0, ptr->length));
 }
 
-static void debug_log_str_write_arg(DynString* out, const FormatArg* arg) {
-  DebugLogEntryStr* ptr = dynstring_push(out, sizeof(DebugLogEntryStr)).ptr;
-  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntryStr)));
+static void debug_log_write_arg(DynString* out, const FormatArg* arg) {
+  DebugLogStr* ptr = dynstring_push(out, sizeof(DebugLogStr)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogStr)));
 
   const usize sizeStart = out->size;
   format_write_arg(out, arg);
@@ -108,7 +135,7 @@ static void debug_log_str_write_arg(DynString* out, const FormatArg* arg) {
   out->size   = sizeStart + ptr->length; // Erase the part that did not fit.
 }
 
-static void debug_log_entry_write(
+static void debug_log_write_entry(
     DynString*      out,
     const LogLevel  lvl,
     const SourceLoc srcLoc,
@@ -121,73 +148,22 @@ static void debug_log_entry_write(
   *ptr = (DebugLogEntry){
       .timestamp   = timestamp,
       .lvl         = lvl,
-      .flags       = DebugLogEntryFlags_Default,
+      .flags       = DebugLogFlags_Default,
       .line        = (u16)math_min(srcLoc.line, u16_max),
       .fileNameLen = (u16)math_min(srcLoc.file.size, u16_max),
       .fileNamePtr = srcLoc.file.ptr,
   };
 
-  debug_log_str_write(out, msg);
+  debug_log_write_text(out, msg);
 
   for (const LogParam* itr = params; itr->arg.type; ++itr) {
-    debug_log_str_write(out, itr->name);
-    debug_log_str_write_arg(out, &itr->arg);
+    debug_log_write_text(out, itr->name);
+    debug_log_write_arg(out, &itr->arg);
     ++ptr->paramCount;
   }
 }
 
-static void debug_log_sink_write(
-    LogSink*        sink,
-    const LogLevel  lvl,
-    const SourceLoc srcLoc,
-    const TimeReal  timestamp,
-    const String    msg,
-    const LogParam* params) {
-  (void)params;
-  DebugLogSink* debugSink = (DebugLogSink*)sink;
-  if ((log_tracker_mask & (1 << lvl)) == 0) {
-    return;
-  }
-  const Mem scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
-  DynString scratchStr = dynstring_create_over(scratchMem);
-  debug_log_entry_write(&scratchStr, lvl, srcLoc, timestamp, msg, params);
-
-  thread_spinlock_lock(&debugSink->bufferLock);
-  {
-    debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
-
-  Write:;
-    const Mem buffer = debug_log_buffer_remaining(debugSink);
-    if (buffer.size >= scratchStr.size) {
-      mem_cpy(buffer, dynstring_view(&scratchStr));
-      debugSink->bufferPos += scratchStr.size;
-
-      DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
-      if (!debugSink->entryHead) {
-        debugSink->entryHead = entry;
-      }
-      debugSink->entryTail = entry;
-
-      thread_atomic_fence_release(); // Synchronize with read-only observers.
-    } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
-      debugSink->bufferPos      = debugSink->buffer;    // Wrap around to the beginning.
-      debugSink->entryWrapPoint = debugSink->entryTail; // Mark the last entry before the wrap.
-      goto Write;                                       // Retry the write.
-    }
-    // NOTE: Message gets dropped if there not enough space in the buffer.
-  }
-  thread_spinlock_unlock(&debugSink->bufferLock);
-}
-
-static void debug_log_sink_destroy(LogSink* sink) {
-  DebugLogSink* debugSink = (DebugLogSink*)sink;
-  if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
-    alloc_free(g_allocHeap, mem_create(debugSink->buffer, log_tracker_buffer_size));
-    alloc_free_t(g_allocHeap, debugSink);
-  }
-}
-
-static void debug_log_sink_prune_older(DebugLogSink* s, const TimeReal timestamp) {
+static void debug_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
   thread_spinlock_lock(&s->bufferLock);
   if (s->entryHead) {
     for (; s->entryHead->timestamp < timestamp;) {
@@ -203,6 +179,56 @@ static void debug_log_sink_prune_older(DebugLogSink* s, const TimeReal timestamp
     }
   }
   thread_spinlock_unlock(&s->bufferLock);
+}
+
+static void debug_log_sink_write(
+    LogSink*        sink,
+    const LogLevel  lvl,
+    const SourceLoc srcLoc,
+    const TimeReal  timestamp,
+    const String    msg,
+    const LogParam* params) {
+  DebugLogSink* debugSink = (DebugLogSink*)sink;
+  if ((log_tracker_mask & (1 << lvl)) == 0) {
+    return;
+  }
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
+  DynString scratchStr = dynstring_create_over(scratchMem);
+  debug_log_write_entry(&scratchStr, lvl, srcLoc, timestamp, msg, params);
+
+  thread_spinlock_lock(&debugSink->bufferLock);
+  {
+    debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
+
+  Write:;
+    const Mem buffer = debug_log_buffer_remaining(debugSink);
+    if (LIKELY(buffer.size >= scratchStr.size)) {
+      mem_cpy(buffer, dynstring_view(&scratchStr));
+      debugSink->bufferPos += scratchStr.size;
+
+      DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
+      if (!debugSink->entryHead) {
+        debugSink->entryHead = entry;
+      }
+      debugSink->entryTail = entry;
+
+      thread_atomic_fence_release(); // Synchronize with read-only observers.
+    } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
+      debugSink->bufferPos      = debugSink->buffer;    // Wrap around to the beginning.
+      debugSink->entryWrapPoint = debugSink->entryTail; // Mark the last entry before the wrap.
+      goto Write;                                       // Retry the write.
+    }
+    // NOTE: Message gets dropped if there is not enough space in the buffer.
+  }
+  thread_spinlock_unlock(&debugSink->bufferLock);
+}
+
+static void debug_log_sink_destroy(LogSink* sink) {
+  DebugLogSink* debugSink = (DebugLogSink*)sink;
+  if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
+    alloc_free(g_allocHeap, mem_create(debugSink->buffer, log_tracker_buffer_size));
+    alloc_free_t(g_allocHeap, debugSink);
+  }
 }
 
 DebugLogSink* debug_log_sink_create(void) {
@@ -269,32 +295,22 @@ static UiColor debug_log_bg_color(const LogLevel lvl) {
   diag_crash();
 }
 
-static String debug_log_str(DebugLogEntryStr* str) { return mem_create(str->data, str->length); }
-
-static bool debug_log_str_eq(DebugLogEntryStr* a, DebugLogEntryStr* b) {
-  return a->length == b->length && mem_eq(debug_log_str(a), debug_log_str(b));
-}
-
-static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
-  return debug_log_str_eq(debug_log_entry_msg(a), debug_log_entry_msg(b));
-}
-
 static void debug_log_tooltip_draw(
     UiCanvasComp* c, const UiId id, const DebugLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  DebugLogEntryStr* strItr = debug_log_entry_msg(entry);
-  fmt_write(&buffer, "\a.bmessage\ar: {}\n", fmt_text(debug_log_str(strItr)));
+  DebugLogStr* strItr = debug_log_msg(entry);
+  fmt_write(&buffer, "\a.bmessage\ar: {}\n", fmt_text(debug_log_text(strItr)));
 
   for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
-    DebugLogEntryStr* paramName = debug_log_str_next(strItr);
-    DebugLogEntryStr* paramVal  = debug_log_str_next(paramName);
+    DebugLogStr* paramName = debug_log_str_next(strItr);
+    DebugLogStr* paramVal  = debug_log_str_next(paramName);
     fmt_write(
         &buffer,
         "\a.b{}\ar: {}\n",
-        fmt_text(debug_log_str(paramName)),
-        fmt_text(debug_log_str(paramVal)));
+        fmt_text(debug_log_text(paramName)),
+        fmt_text(debug_log_text(paramVal)));
     strItr = paramVal;
   }
 
@@ -314,7 +330,7 @@ static void debug_log_tooltip_draw(
 
 static void debug_log_draw_entry(
     UiCanvasComp* c, const DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
-  DebugLogEntryStr* msg = debug_log_entry_msg(entry);
+  DebugLogStr* msg = debug_log_msg(entry);
 
   ui_style_push(c);
   ui_style_color(c, debug_log_bg_color(entry->lvl));
@@ -326,16 +342,16 @@ static void debug_log_draw_entry(
 
   String text;
   if (repeat) {
-    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(debug_log_str(msg)));
+    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(debug_log_text(msg)));
   } else {
-    text = debug_log_str(msg);
+    text = debug_log_text(msg);
   }
   ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(c);
 
   const UiStatus status = ui_canvas_elem_status(c, bgId);
   if (status == UiStatus_Pressed) {
-    entry->flags &= ~DebugLogEntryFlags_Combine;
+    entry->flags &= ~DebugLogFlags_Combine;
   }
   if (status >= UiStatus_Hovered) {
     debug_log_tooltip_draw(c, bgId, viewer, entry);
@@ -354,8 +370,8 @@ static void debug_log_draw_entries(
 
   /**
    * Because 'debug_log_sink_write' only adds new entries (but never removes) and this is never
-   * called in parallel with 'debug_log_sink_prune_older' we can avoid taking the spinlock and
-   * instead iterate until the last fully written one.
+   * called in parallel with 'debug_log_prune_older' we can avoid taking the spinlock and instead
+   * iterate up to the last fully written one.
    */
   thread_atomic_fence_acquire();
   DebugLogEntry* first = tracker->sink->entryHead;
@@ -367,7 +383,7 @@ static void debug_log_draw_entries(
     if (viewer->mask & (1 << itr->lvl)) {
       DebugLogEntry* entry  = itr;
       u32            repeat = 0;
-      if (entry->flags & DebugLogEntryFlags_Combine) {
+      if (entry->flags & DebugLogFlags_Combine) {
         for (;;) {
           if (itr == last) {
             break;
@@ -403,7 +419,7 @@ ecs_system_define(DebugLogUpdateSys) {
   }
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -(tracker->freezeTime + log_tracker_max_age));
-  debug_log_sink_prune_older(tracker->sink, oldestToKeep);
+  debug_log_prune_older(tracker->sink, oldestToKeep);
 
   tracker->freeze   = false;
   EcsView* drawView = ecs_world_view_t(world, LogDrawView);
