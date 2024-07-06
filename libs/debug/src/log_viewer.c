@@ -8,6 +8,7 @@
 #include "log.h"
 #include "log_logger.h"
 #include "log_sink.h"
+#include "scene_time.h"
 #include "ui.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
@@ -188,7 +189,11 @@ DebugLogSink* debug_log_sink_create(void) {
   return sink;
 }
 
-ecs_comp_define(DebugLogTrackerComp) { DebugLogSink* sink; };
+ecs_comp_define(DebugLogTrackerComp) {
+  bool          freeze;
+  TimeDuration  freezeTime;
+  DebugLogSink* sink;
+};
 ecs_comp_define(DebugLogViewerComp) { LogMask mask; };
 
 static void ecs_destruct_log_tracker(void* data) {
@@ -196,17 +201,14 @@ static void ecs_destruct_log_tracker(void* data) {
   debug_log_sink_destroy((LogSink*)comp->sink);
 }
 
-ecs_view_define(LogTrackerGlobalView) { ecs_access_write(DebugLogTrackerComp); }
-
-ecs_view_define(LogViewerDrawView) {
-  ecs_access_read(DebugLogViewerComp);
-  ecs_access_write(UiCanvasComp);
+ecs_view_define(LogGlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_write(DebugLogTrackerComp);
 }
 
-static DebugLogTrackerComp* debug_log_tracker_global(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, LogTrackerGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, DebugLogTrackerComp) : null;
+ecs_view_define(LogDrawView) {
+  ecs_access_read(DebugLogViewerComp);
+  ecs_access_write(UiCanvasComp);
 }
 
 static DebugLogTrackerComp*
@@ -344,24 +346,39 @@ static void debug_log_draw_entries(
     }
   }
 }
+#include "ui_canvas.h"
 
 ecs_system_define(DebugLogUpdateSys) {
-  DebugLogTrackerComp* trackerGlobal = debug_log_tracker_global(world);
-  if (!trackerGlobal) {
-    debug_log_tracker_create(world, ecs_world_global(world), g_logger);
-    return;
+  EcsView*     globalView = ecs_world_view_t(world, LogGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not ready.
   }
-  const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -log_tracker_max_age);
-  debug_log_sink_prune_older(trackerGlobal->sink, oldestToKeep);
+  DebugLogTrackerComp* tracker = ecs_view_write_t(globalItr, DebugLogTrackerComp);
+  const SceneTimeComp* time    = ecs_view_read_t(globalItr, SceneTimeComp);
+  if (tracker->freeze) {
+    tracker->freezeTime += time->realDelta;
+  }
+  const TimeReal now          = time_real_clock();
+  const TimeReal oldestToKeep = time_real_offset(now, -(tracker->freezeTime + log_tracker_max_age));
+  debug_log_sink_prune_older(tracker->sink, oldestToKeep);
 
-  EcsView* drawView = ecs_world_view_t(world, LogViewerDrawView);
+  tracker->freeze   = false;
+  EcsView* drawView = ecs_world_view_t(world, LogDrawView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const DebugLogViewerComp* viewer = ecs_view_read_t(itr, DebugLogViewerComp);
     UiCanvasComp*             canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     ui_canvas_to_front(canvas); // Always draw logs on-top.
-    debug_log_draw_entries(canvas, trackerGlobal, viewer->mask);
+
+    const UiId idFirst = ui_canvas_id_peek(canvas);
+    debug_log_draw_entries(canvas, tracker, viewer->mask);
+    const UiId idLast = ui_canvas_id_peek(canvas) - 1;
+
+    if (ui_canvas_group_status(canvas, idFirst, idLast) >= UiStatus_Hovered) {
+      tracker->freeze = true; // Don't remove entries while hovering any of the log entries.
+    }
   }
 }
 
@@ -369,11 +386,14 @@ ecs_module_init(debug_log_viewer_module) {
   ecs_register_comp(DebugLogTrackerComp, .destructor = ecs_destruct_log_tracker);
   ecs_register_comp(DebugLogViewerComp);
 
-  ecs_register_view(LogTrackerGlobalView);
-  ecs_register_view(LogViewerDrawView);
+  ecs_register_view(LogGlobalView);
+  ecs_register_view(LogDrawView);
 
-  ecs_register_system(
-      DebugLogUpdateSys, ecs_view_id(LogTrackerGlobalView), ecs_view_id(LogViewerDrawView));
+  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogDrawView));
+}
+
+void debug_log_tracker_init(EcsWorld* world, Logger* logger) {
+  debug_log_tracker_create(world, ecs_world_global(world), logger);
 }
 
 EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
