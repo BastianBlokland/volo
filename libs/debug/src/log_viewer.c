@@ -14,16 +14,22 @@
 #define log_tracker_buffer_size (16 * usize_kibibyte)
 #define log_tracker_max_age time_seconds(10)
 
+typedef enum {
+  DebugLogEntryFlags_Combine = 1 << 0,
+  DebugLogEntryFlags_Default = DebugLogEntryFlags_Combine,
+} DebugLogEntryFlags;
+
 typedef struct sDebugLogEntry DebugLogEntry;
 
 struct sDebugLogEntry {
-  DebugLogEntry* next;
-  TimeReal       timestamp;
-  LogLevel       lvl : 8;
-  u8             paramCount;
-  u16            line;
-  u16            fileNameLen;
-  const u8*      fileNamePtr;
+  DebugLogEntry*     next;
+  TimeReal           timestamp;
+  LogLevel           lvl : 8;
+  DebugLogEntryFlags flags : 8;
+  u8                 paramCount;
+  u16                line;
+  u16                fileNameLen;
+  const u8*          fileNamePtr;
 };
 
 typedef struct {
@@ -88,6 +94,7 @@ static void debug_log_entry_write(
   *ptr = (DebugLogEntry){
       .timestamp   = timestamp,
       .lvl         = lvl,
+      .flags       = DebugLogEntryFlags_Default,
       .line        = (u16)math_min(srcLoc.line, u16_max),
       .fileNameLen = (u16)math_min(srcLoc.file.size, u16_max),
       .fileNamePtr = srcLoc.file.ptr,
@@ -270,7 +277,7 @@ static void debug_log_tooltip_draw(UiCanvasComp* c, const UiId id, const DebugLo
   ui_tooltip(c, id, dynstring_view(&buffer), .maxSize = ui_vector(750, 750));
 }
 
-static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, const u32 repeat) {
+static void debug_log_draw_entry(UiCanvasComp* c, DebugLogEntry* entry, const u32 repeat) {
   const DebugLogEntryStr* msg = debug_log_entry_msg(entry);
 
   ui_style_push(c);
@@ -290,7 +297,11 @@ static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, co
   ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(c);
 
-  if (ui_canvas_elem_status(c, bgId) >= UiStatus_Hovered) {
+  const UiStatus status = ui_canvas_elem_status(c, bgId);
+  if (status == UiStatus_Pressed) {
+    entry->flags &= ~DebugLogEntryFlags_Combine;
+  }
+  if (status >= UiStatus_Hovered) {
     debug_log_tooltip_draw(c, bgId, entry);
   } else {
     ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
@@ -320,8 +331,10 @@ static void debug_log_draw_entries(
     if (mask & (1 << itr->lvl)) {
       DebugLogEntry* entry  = itr;
       u32            repeat = 0;
-      for (; itr != last && debug_log_is_dup(entry, itr->next); itr = itr->next) {
-        ++repeat;
+      if (entry->flags & DebugLogEntryFlags_Combine) {
+        for (; itr != last && debug_log_is_dup(entry, itr->next); itr = itr->next) {
+          ++repeat;
+        }
       }
       debug_log_draw_entry(canvas, entry, repeat);
       ui_layout_next(canvas, Ui_Down, 0);
