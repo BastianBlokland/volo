@@ -106,12 +106,8 @@ static DebugLogEntry* debug_log_next(DebugLogSink* s, DebugLogEntry* entry) {
 }
 
 static Mem debug_log_buffer_remaining(DebugLogSink* s) {
-  diag_assert(s->bufferPos <= s->buffer + log_tracker_buffer_size);
-  if (!s->entryHead) {
-    return mem_create(s->buffer, log_tracker_buffer_size); // Whole buffer is free.
-  }
   // Check if the bufferPos is before or after the range of active entries in the buffer.
-  if (s->bufferPos > (const u8*)s->entryHead) {
+  if (!s->entryHead || s->bufferPos > (const u8*)s->entryHead) {
     return mem_from_to(s->bufferPos, s->buffer + log_tracker_buffer_size);
   }
   return mem_from_to(s->bufferPos, s->entryHead);
