@@ -210,16 +210,6 @@ debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logg
   return ecs_world_add_t(world, entity, DebugLogTrackerComp, .sink = sink);
 }
 
-ecs_system_define(DebugLogUpdateSys) {
-  DebugLogTrackerComp* trackerGlobal = debug_log_tracker_global(world);
-  if (!trackerGlobal) {
-    debug_log_tracker_create(world, ecs_world_global(world), g_logger);
-    return;
-  }
-  const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -log_tracker_max_age);
-  debug_log_sink_prune_older(trackerGlobal->sink, oldestToKeep);
-}
-
 static UiColor debug_log_bg_color(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
@@ -316,9 +306,9 @@ static void debug_log_draw_entries(
   ui_style_outline(canvas, 0);
 
   /**
-   * Because 'debug_log_sink_write' only adds new entries (but never removes) and this system is
-   * never called in parallel with 'DebugLogUpdateSys' we can avoid taking the spinlock and instead
-   * iterate until the last fully written one.
+   * Because 'debug_log_sink_write' only adds new entries (but never removes) and this is never
+   * called in parallel with 'debug_log_sink_prune_older' we can avoid taking the spinlock and
+   * instead iterate until the last fully written one.
    */
   thread_atomic_fence_acquire();
   DebugLogEntry* last = tracker->sink->entryTail;
@@ -340,11 +330,14 @@ static void debug_log_draw_entries(
   }
 }
 
-ecs_system_define(DebugLogDrawSys) {
+ecs_system_define(DebugLogUpdateSys) {
   DebugLogTrackerComp* trackerGlobal = debug_log_tracker_global(world);
   if (!trackerGlobal) {
+    debug_log_tracker_create(world, ecs_world_global(world), g_logger);
     return;
   }
+  const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -log_tracker_max_age);
+  debug_log_sink_prune_older(trackerGlobal->sink, oldestToKeep);
 
   EcsView* drawView = ecs_world_view_t(world, LogViewerDrawView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
@@ -364,9 +357,8 @@ ecs_module_init(debug_log_viewer_module) {
   ecs_register_view(LogTrackerGlobalView);
   ecs_register_view(LogViewerDrawView);
 
-  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogTrackerGlobalView));
   ecs_register_system(
-      DebugLogDrawSys, ecs_view_id(LogTrackerGlobalView), ecs_view_id(LogViewerDrawView));
+      DebugLogUpdateSys, ecs_view_id(LogTrackerGlobalView), ecs_view_id(LogViewerDrawView));
 }
 
 EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
