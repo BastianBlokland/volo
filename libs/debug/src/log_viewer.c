@@ -311,20 +311,22 @@ static void debug_log_draw_entries(
    * instead iterate until the last fully written one.
    */
   thread_atomic_fence_acquire();
-  DebugLogEntry* last = tracker->sink->entryTail;
-
-  u32 repeat = 0;
-  for (DebugLogEntry* entry = tracker->sink->entryHead; entry; entry = entry->next) {
-    if (mask & (1 << entry->lvl)) {
-      if (entry != last && debug_log_is_dup(entry, entry->next)) {
+  DebugLogEntry* first = tracker->sink->entryHead;
+  DebugLogEntry* last  = tracker->sink->entryTail;
+  if (!first) {
+    return; // Buffer is emtpy.
+  }
+  for (DebugLogEntry* itr = first;; itr = itr->next) {
+    if (mask & (1 << itr->lvl)) {
+      DebugLogEntry* entry  = itr;
+      u32            repeat = 0;
+      for (; itr != last && debug_log_is_dup(entry, itr->next); itr = itr->next) {
         ++repeat;
-      } else {
-        debug_log_draw_entry(canvas, entry, repeat);
-        repeat = 0;
-        ui_layout_next(canvas, Ui_Down, 0);
       }
+      debug_log_draw_entry(canvas, entry, repeat);
+      ui_layout_next(canvas, Ui_Down, 0);
     }
-    if (entry == last) {
+    if (itr == last) {
       break; // Reached the last written one when we synchronized with debug_log_sink_write.
     }
   }
