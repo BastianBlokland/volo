@@ -25,6 +25,7 @@ typedef struct {
   const String* tabNames;
   const u32     tabCount;
   UiColor       topBarColor;
+  bool          pinnable;
 } UiPanelOpts;
 
 // clang-format off
@@ -47,6 +48,7 @@ typedef struct {
 #define ui_panel_begin(_CANVAS_, _PANEL_, ...) ui_panel_begin_with_opts((_CANVAS_), (_PANEL_),     \
   &((UiPanelOpts){                                                                                 \
     .topBarColor = ui_color(8, 8, 8, 240),                                                         \
+    .pinnable    = true,                                                                           \
     __VA_ARGS__}))
 
 // clang-format on
