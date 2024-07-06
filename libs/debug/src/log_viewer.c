@@ -313,7 +313,7 @@ static void debug_log_draw_entry(UiCanvasComp* c, DebugLogEntry* entry, const u3
 static void debug_log_draw_entries(
     UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const LogMask mask) {
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(500, 0), UiBase_Absolute, Ui_X);
+  ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
 
   ui_style_outline(canvas, 0);
@@ -346,7 +346,6 @@ static void debug_log_draw_entries(
     }
   }
 }
-#include "ui_canvas.h"
 
 ecs_system_define(DebugLogUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, LogGlobalView);
