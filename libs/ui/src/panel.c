@@ -289,7 +289,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts
     const UiId dragHandleId   = resizeHandleId + 1;
     ui_panel_update_drag_and_resize(c, panel, dragHandleId, resizeHandleId);
 
-    ui_layout_move(c, panel->position, UiBase_Canvas, Ui_XY);
+    ui_layout_set_pos(c, UiBase_Canvas, panel->position, UiBase_Canvas);
     ui_layout_resize(c, UiAlign_MiddleCenter, panel->size, UiBase_Absolute, Ui_XY);
 
     ui_panel_resize_handle(c);
