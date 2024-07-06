@@ -188,7 +188,7 @@ static void debug_log_sink_write(
     const TimeReal  timestamp,
     const String    msg,
     const LogParam* params) {
-  DebugLogSink* debugSink = (DebugLogSink*)sink;
+  DebugLogSink* s = (DebugLogSink*)sink;
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
@@ -196,31 +196,36 @@ static void debug_log_sink_write(
   DynString scratchStr = dynstring_create_over(scratchMem);
   debug_log_write_entry(&scratchStr, lvl, srcLoc, timestamp, msg, params);
 
-  thread_spinlock_lock(&debugSink->bufferLock);
+  thread_spinlock_lock(&s->bufferLock);
   {
-    debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
+    if (!s->entryHead) {
+      s->bufferPos = s->buffer; // Buffer is empty; start at the beginning.
+    } else {
+      // Start from the beginning of the last entry (with padding to satisfy alignment).
+      s->bufferPos = bits_align_ptr(s->bufferPos, alignof(DebugLogEntry));
+    }
 
   Write:;
-    const Mem buffer = debug_log_buffer_remaining(debugSink);
+    const Mem buffer = debug_log_buffer_remaining(s);
     if (LIKELY(buffer.size >= scratchStr.size)) {
       mem_cpy(buffer, dynstring_view(&scratchStr));
-      debugSink->bufferPos += scratchStr.size;
+      s->bufferPos += scratchStr.size;
 
       DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
-      if (!debugSink->entryHead) {
-        debugSink->entryHead = entry;
+      if (!s->entryHead) {
+        s->entryHead = entry;
       }
-      debugSink->entryTail = entry;
+      s->entryTail = entry;
 
       thread_atomic_fence_release(); // Synchronize with read-only observers.
-    } else if (debugSink->entryHead && buffer.ptr > (void*)debugSink->entryHead) {
-      debugSink->bufferPos      = debugSink->buffer;    // Wrap around to the beginning.
-      debugSink->entryWrapPoint = debugSink->entryTail; // Mark the last entry before the wrap.
-      goto Write;                                       // Retry the write.
+    } else if (s->entryHead && buffer.ptr > (void*)s->entryHead) {
+      s->bufferPos      = s->buffer;    // Wrap around to the beginning.
+      s->entryWrapPoint = s->entryTail; // Mark the last entry before the wrap.
+      goto Write;                       // Retry the write.
     }
     // NOTE: Message gets dropped if there is not enough space in the buffer.
   }
-  thread_spinlock_unlock(&debugSink->bufferLock);
+  thread_spinlock_unlock(&s->bufferLock);
 }
 
 static void debug_log_sink_destroy(LogSink* sink) {
@@ -234,12 +239,9 @@ static void debug_log_sink_destroy(LogSink* sink) {
 DebugLogSink* debug_log_sink_create(void) {
   DebugLogSink* sink = alloc_alloc_t(g_allocHeap, DebugLogSink);
 
-  u8* buffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogEntry)).ptr;
-
   *sink = (DebugLogSink){
-      .api       = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
-      .buffer    = buffer,
-      .bufferPos = buffer,
+      .api    = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
+      .buffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogEntry)).ptr,
   };
 
   return sink;
