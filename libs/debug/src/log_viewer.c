@@ -194,7 +194,11 @@ ecs_comp_define(DebugLogTrackerComp) {
   TimeDuration  freezeTime;
   DebugLogSink* sink;
 };
-ecs_comp_define(DebugLogViewerComp) { LogMask mask; };
+
+ecs_comp_define(DebugLogViewerComp) {
+  LogMask  mask;
+  TimeZone timezone;
+};
 
 static void ecs_destruct_log_tracker(void* data) {
   DebugLogTrackerComp* comp = data;
@@ -255,7 +259,8 @@ static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
   return debug_log_str_eq(debug_log_entry_msg(a), debug_log_entry_msg(b));
 }
 
-static void debug_log_tooltip_draw(UiCanvasComp* c, const UiId id, const DebugLogEntry* entry) {
+static void debug_log_tooltip_draw(
+    UiCanvasComp* c, const UiId id, const DebugLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -273,13 +278,22 @@ static void debug_log_tooltip_draw(UiCanvasComp* c, const UiId id, const DebugLo
     strItr = paramVal;
   }
 
+  fmt_write(
+      &buffer,
+      "\a.btime\ar: {}\n",
+      fmt_time(
+          entry->timestamp,
+          .terms    = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds,
+          .timezone = viewer->timezone));
+
   const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
   fmt_write(&buffer, "\a.bsource\ar: {}:{}\n", fmt_path(fileName), fmt_int(entry->line));
 
   ui_tooltip(c, id, dynstring_view(&buffer), .maxSize = ui_vector(750, 750));
 }
 
-static void debug_log_draw_entry(UiCanvasComp* c, DebugLogEntry* entry, const u32 repeat) {
+static void debug_log_draw_entry(
+    UiCanvasComp* c, const DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
   const DebugLogEntryStr* msg = debug_log_entry_msg(entry);
 
   ui_style_push(c);
@@ -304,14 +318,14 @@ static void debug_log_draw_entry(UiCanvasComp* c, DebugLogEntry* entry, const u3
     entry->flags &= ~DebugLogEntryFlags_Combine;
   }
   if (status >= UiStatus_Hovered) {
-    debug_log_tooltip_draw(c, bgId, entry);
+    debug_log_tooltip_draw(c, bgId, viewer, entry);
   } else {
     ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
   }
 }
 
 static void debug_log_draw_entries(
-    UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const LogMask mask) {
+    UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const DebugLogViewerComp* viewer) {
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
@@ -330,7 +344,7 @@ static void debug_log_draw_entries(
     return; // Buffer is emtpy.
   }
   for (DebugLogEntry* itr = first;; itr = itr->next) {
-    if (mask & (1 << itr->lvl)) {
+    if (viewer->mask & (1 << itr->lvl)) {
       DebugLogEntry* entry  = itr;
       u32            repeat = 0;
       if (entry->flags & DebugLogEntryFlags_Combine) {
@@ -338,7 +352,7 @@ static void debug_log_draw_entries(
           ++repeat;
         }
       }
-      debug_log_draw_entry(canvas, entry, repeat);
+      debug_log_draw_entry(canvas, viewer, entry, repeat);
       ui_layout_next(canvas, Ui_Down, 0);
     }
     if (itr == last) {
@@ -372,7 +386,7 @@ ecs_system_define(DebugLogUpdateSys) {
     ui_canvas_to_front(canvas); // Always draw logs on-top.
 
     const UiId idFirst = ui_canvas_id_peek(canvas);
-    debug_log_draw_entries(canvas, tracker, viewer->mask);
+    debug_log_draw_entries(canvas, tracker, viewer);
     const UiId idLast = ui_canvas_id_peek(canvas) - 1;
 
     if (ui_canvas_group_status(canvas, idFirst, idLast) >= UiStatus_Hovered) {
@@ -397,7 +411,8 @@ void debug_log_tracker_init(EcsWorld* world, Logger* logger) {
 
 EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
   const EcsEntityId viewerEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_t(world, viewerEntity, DebugLogViewerComp, .mask = mask);
+  ecs_world_add_t(
+      world, viewerEntity, DebugLogViewerComp, .mask = mask, .timezone = time_zone_current());
   return viewerEntity;
 }
 
