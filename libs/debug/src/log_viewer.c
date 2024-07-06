@@ -12,7 +12,6 @@
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
 #define log_tracker_buffer_size (16 * usize_kibibyte)
-#define log_tracker_entry_max_size (4 * usize_kibibyte)
 #define log_tracker_max_age time_seconds(10)
 
 typedef struct sDebugLogEntry DebugLogEntry;
@@ -98,6 +97,7 @@ static void debug_log_entry_write(
   for (const LogParam* itr = params; itr->arg.type; ++itr) {
     debug_log_str_write(out, itr->name);
     debug_log_str_write_arg(out, &itr->arg);
+    ++ptr->paramCount;
   }
 }
 
@@ -113,7 +113,7 @@ static void debug_log_sink_write(
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
-  const Mem scratchMem = alloc_alloc(g_allocScratch, log_tracker_entry_max_size, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString scratchStr = dynstring_create_over(scratchMem);
   debug_log_entry_write(&scratchStr, lvl, srcLoc, timestamp, msg, params);
 
@@ -236,6 +236,10 @@ static const DebugLogEntryStr* debug_log_entry_msg(const DebugLogEntry* entry) {
   return (const DebugLogEntryStr*)(entry + 1);
 }
 
+static const DebugLogEntryStr* debug_log_str_next(const DebugLogEntryStr* str) {
+  return bits_ptr_offset(str, sizeof(DebugLogEntryStr) + str->length);
+}
+
 static String debug_log_str(const DebugLogEntryStr* str) {
   return mem_create(str->data, str->length);
 }
@@ -249,8 +253,27 @@ static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
 }
 
 static void debug_log_tooltip_draw(UiCanvasComp* c, const UiId id, const DebugLogEntry* entry) {
+  Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  const DebugLogEntryStr* strItr = debug_log_entry_msg(entry);
+  fmt_write(&buffer, "\a.bmessage\ar: {}\n", fmt_text(debug_log_str(strItr)));
+
+  for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
+    const DebugLogEntryStr* paramName = debug_log_str_next(strItr);
+    const DebugLogEntryStr* paramVal  = debug_log_str_next(paramName);
+    fmt_write(
+        &buffer,
+        "\a.b{}\ar: {}\n",
+        fmt_text(debug_log_str(paramName)),
+        fmt_text(debug_log_str(paramVal)));
+    strItr = paramVal;
+  }
+
   const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
-  ui_tooltip(c, id, fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line)));
+  fmt_write(&buffer, "\a.bsource\ar: {}:{}\n", fmt_path(fileName), fmt_int(entry->line));
+
+  ui_tooltip(c, id, dynstring_view(&buffer), .maxSize = ui_vector(750, 750));
 }
 
 static void debug_log_draw_entry(UiCanvasComp* c, const DebugLogEntry* entry, const u32 repeat) {
