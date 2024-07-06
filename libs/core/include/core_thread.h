@@ -134,7 +134,7 @@ i64 thread_atomic_sub_i64(i64*, i64 value);
 void thread_atomic_fence(void);
 
 /**
- * Enforce a strong memory load / store order before before and after matching acquire / release
+ * Enforce a strong memory load / store order before and after matching acquire / release
  * pairs (or other atomic operations).
  */
 void thread_atomic_fence_acquire(void);

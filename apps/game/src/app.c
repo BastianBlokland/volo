@@ -614,6 +614,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
     return;
   }
+  debug_log_tracker_init(world, g_logger);
 
   const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
   AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
