@@ -49,8 +49,9 @@ typedef struct {
 static Mem debug_log_buffer_remaining(DebugLogSink* debugSink) {
   diag_assert(debugSink->bufferPos <= debugSink->buffer + log_tracker_buffer_size);
   if (!debugSink->entryHead) {
-    return mem_create(debugSink->buffer, log_tracker_buffer_size);
+    return mem_create(debugSink->buffer, log_tracker_buffer_size); // whole buffer is free.
   }
+  // Check if the bufferPos is before or after the range of active entries in the buffer.
   if (debugSink->bufferPos > (const u8*)debugSink->entryHead) {
     return mem_from_to(debugSink->bufferPos, debugSink->buffer + log_tracker_buffer_size);
   }
@@ -120,6 +121,7 @@ static void debug_log_sink_write(
   thread_spinlock_lock(&debugSink->bufferLock);
   {
     debugSink->bufferPos = bits_align_ptr(debugSink->bufferPos, alignof(DebugLogEntry));
+
   Write:;
     const Mem buffer = debug_log_buffer_remaining(debugSink);
     if (buffer.size >= scratchStr.size) {
@@ -139,6 +141,7 @@ static void debug_log_sink_write(
       debugSink->bufferPos = debugSink->buffer; // Wrap around to the beginning.
       goto Write;                               // Retry the write.
     }
+    // NOTE: Message gets dropped if there not enough space in the buffer.
   }
   thread_spinlock_unlock(&debugSink->bufferLock);
 }
@@ -153,11 +156,12 @@ static void debug_log_sink_destroy(LogSink* sink) {
 
 static void debug_log_sink_prune_older(DebugLogSink* s, const TimeReal timestamp) {
   thread_spinlock_lock(&s->bufferLock);
-  {
-    for (; s->entryHead && s->entryHead->timestamp < timestamp; s->entryHead = s->entryHead->next)
-      ;
-    if (!s->entryHead) {
-      s->entryTail = null;
+  if (s->entryHead) {
+    for (; s->entryHead->timestamp < timestamp; s->entryHead = s->entryHead->next) {
+      if (s->entryHead == s->entryTail) {
+        s->entryHead = s->entryTail = null; // Whole buffer became empty.
+        break;
+      }
     }
   }
   thread_spinlock_unlock(&s->bufferLock);
