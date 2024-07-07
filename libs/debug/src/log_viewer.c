@@ -359,12 +359,13 @@ static void debug_log_draw_entry(
 }
 
 static void debug_log_draw_entries(
-    UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const DebugLogViewerComp* viewer) {
-  ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
-  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
+    UiCanvasComp* c, const DebugLogTrackerComp* tracker, DebugLogViewerComp* viewer) {
+  ui_layout_move_to(c, UiBase_Container, UiAlign_TopRight, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
+  ui_layout_resize(c, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
 
-  ui_style_outline(canvas, 0);
+  ui_style_push(c);
+  ui_style_outline(c, 0);
 
   /**
    * Because 'debug_log_sink_write' only adds new entries (but never removes) and this is never
@@ -375,7 +376,7 @@ static void debug_log_draw_entries(
   DebugLogEntry* first = tracker->sink->entryHead;
   DebugLogEntry* last  = tracker->sink->entryTail;
   if (!first) {
-    return; // Buffer is emtpy.
+    goto End; // Buffer is emtpy.
   }
   for (DebugLogEntry* itr = first;; itr = debug_log_next(tracker->sink, itr)) {
     if (viewer->mask & (1 << itr->lvl)) {
@@ -395,13 +396,15 @@ static void debug_log_draw_entries(
           }
         }
       }
-      debug_log_draw_entry(canvas, viewer, entry, repeat);
-      ui_layout_next(canvas, Ui_Down, 0);
+      debug_log_draw_entry(c, viewer, entry, repeat);
+      ui_layout_next(c, Ui_Down, 0);
     }
     if (itr == last) {
       break; // Reached the last written one when we synchronized with debug_log_sink_write.
     }
   }
+End:
+  ui_style_pop(c);
 }
 
 ecs_system_define(DebugLogUpdateSys) {
