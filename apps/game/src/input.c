@@ -610,17 +610,18 @@ static void update_camera_interact(
     state->selectMode = InputSelectMode_Add;
   }
 
-  const bool selectActive = !placementActive && input_triggered_lit(input, "Select");
+  const bool         selectActive  = !placementActive && input_triggered_lit(input, "Select");
+  const InputBlocker inputBlockers = InputBlocker_HoveringUi | InputBlocker_HoveringGizmo;
   switch (state->selectState) {
   case InputSelectState_None:
-    if (input_blockers(input) & (InputBlocker_HoveringUi | InputBlocker_HoveringGizmo)) {
+    if (input_blockers(input) & inputBlockers) {
       state->selectState = InputSelectState_Blocked;
     } else if (selectActive) {
       select_start(state, input);
     }
     break;
   case InputSelectState_Blocked:
-    if (!selectActive) {
+    if (!(input_blockers(input) & inputBlockers)) {
       state->selectState = InputSelectState_None;
     }
     break;
