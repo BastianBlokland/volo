@@ -5,7 +5,6 @@
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs_world.h"
-#include "log.h"
 #include "log_sink.h"
 #include "scene_time.h"
 #include "ui.h"
@@ -54,7 +53,7 @@ typedef struct {
   u8 data[];
 } DebugLogStr;
 
-ASSERT(alignof(DebugLogStr) == 1, "Log strings need to fit without padding");
+ASSERT(alignof(DebugLogStr) == 1, "Log strings should not require padding");
 
 /**
  * Sink that will receive log messages.
@@ -264,8 +263,8 @@ ecs_view_define(LogGlobalView) {
   ecs_access_write(DebugLogTrackerComp);
 }
 
-ecs_view_define(LogDrawView) {
-  ecs_access_read(DebugLogViewerComp);
+ecs_view_define(LogViewerView) {
+  ecs_access_write(DebugLogViewerComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -277,23 +276,7 @@ debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logg
   return ecs_world_add_t(world, entity, DebugLogTrackerComp, .sink = sink);
 }
 
-static UiColor debug_log_bg_color(const LogLevel lvl) {
-  switch (lvl) {
-  case LogLevel_Debug:
-    return ui_color(0, 0, 48, 230);
-  case LogLevel_Info:
-    return ui_color(0, 48, 0, 230);
-  case LogLevel_Warn:
-    return ui_color(96, 96, 0, 230);
-  case LogLevel_Error:
-    return ui_color(48, 0, 0, 230);
-  case LogLevel_Count:
-    break;
-  }
-  diag_crash();
-}
-
-static void debug_log_tooltip_draw(
+static void debug_log_notif_tooltip(
     UiCanvasComp* c, const UiId id, const DebugLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
@@ -326,12 +309,28 @@ static void debug_log_tooltip_draw(
   ui_tooltip(c, id, dynstring_view(&buffer), .maxSize = ui_vector(750, 750));
 }
 
-static void debug_log_draw_entry(
+static UiColor debug_log_notif_bg_color(const LogLevel lvl) {
+  switch (lvl) {
+  case LogLevel_Debug:
+    return ui_color(0, 0, 48, 230);
+  case LogLevel_Info:
+    return ui_color(0, 48, 0, 230);
+  case LogLevel_Warn:
+    return ui_color(96, 96, 0, 230);
+  case LogLevel_Error:
+    return ui_color(48, 0, 0, 230);
+  case LogLevel_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static void debug_log_notif_draw_entry(
     UiCanvasComp* c, const DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
   DebugLogStr* msg = debug_log_msg(entry);
 
   ui_style_push(c);
-  ui_style_color(c, debug_log_bg_color(entry->lvl));
+  ui_style_color(c, debug_log_notif_bg_color(entry->lvl));
   const UiId bgId = ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_Interactable);
   ui_style_pop(c);
 
@@ -352,13 +351,13 @@ static void debug_log_draw_entry(
     entry->flags &= ~DebugLogFlags_Combine;
   }
   if (status >= UiStatus_Hovered) {
-    debug_log_tooltip_draw(c, bgId, viewer, entry);
+    debug_log_notif_tooltip(c, bgId, viewer, entry);
   } else {
     ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
   }
 }
 
-static void debug_log_draw_entries(
+static void debug_log_notif_draw(
     UiCanvasComp* c, const DebugLogTrackerComp* tracker, DebugLogViewerComp* viewer) {
   ui_layout_move_to(c, UiBase_Container, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(c, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
@@ -396,7 +395,7 @@ static void debug_log_draw_entries(
           }
         }
       }
-      debug_log_draw_entry(c, viewer, entry, repeat);
+      debug_log_notif_draw_entry(c, viewer, entry, repeat);
       ui_layout_next(c, Ui_Down, 0);
     }
     if (itr == last) {
@@ -423,20 +422,21 @@ ecs_system_define(DebugLogUpdateSys) {
   debug_log_prune_older(tracker->sink, oldestToKeep);
 
   tracker->freeze   = false;
-  EcsView* drawView = ecs_world_view_t(world, LogDrawView);
+  EcsView* drawView = ecs_world_view_t(world, LogViewerView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    const DebugLogViewerComp* viewer = ecs_view_read_t(itr, DebugLogViewerComp);
-    UiCanvasComp*             canvas = ecs_view_write_t(itr, UiCanvasComp);
+    DebugLogViewerComp* viewer = ecs_view_write_t(itr, DebugLogViewerComp);
+    UiCanvasComp*       canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     ui_canvas_to_front(canvas); // Always draw logs on-top.
 
+    // Draw notifications (new log entries).
     const UiId idFirst = ui_canvas_id_peek(canvas);
-    debug_log_draw_entries(canvas, tracker, viewer);
+    debug_log_notif_draw(canvas, tracker, viewer);
     const UiId idLast = ui_canvas_id_peek(canvas) - 1;
 
     if (ui_canvas_group_status(canvas, idFirst, idLast) >= UiStatus_Hovered) {
-      tracker->freeze = true; // Don't remove entries while hovering any of the log entries.
+      tracker->freeze = true; // Don't remove entries while hovering any of the notifications.
     }
   }
 }
@@ -446,9 +446,9 @@ ecs_module_init(debug_log_viewer_module) {
   ecs_register_comp(DebugLogViewerComp);
 
   ecs_register_view(LogGlobalView);
-  ecs_register_view(LogDrawView);
+  ecs_register_view(LogViewerView);
 
-  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogDrawView));
+  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogViewerView));
 }
 
 void debug_log_tracker_init(EcsWorld* world, Logger* logger) {
