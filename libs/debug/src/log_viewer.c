@@ -282,13 +282,13 @@ debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logg
 static String debug_log_inspect_title(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
-    return string_lit("Debug");
+    return fmt_write_scratch("{} Debug", fmt_ui_shape(Article));
   case LogLevel_Info:
-    return string_lit("Info");
+    return fmt_write_scratch("{} Info", fmt_ui_shape(Article));
   case LogLevel_Warn:
-    return string_lit("Warning");
+    return fmt_write_scratch("{} Warning", fmt_ui_shape(Error));
   case LogLevel_Error:
-    return string_lit("Error");
+    return fmt_write_scratch("{} Error", fmt_ui_shape(Error));
   case LogLevel_Count:
     break;
   }
