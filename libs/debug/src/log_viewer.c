@@ -330,7 +330,7 @@ static void debug_log_inspect_open(DebugLogViewerComp* viewer, DebugLogEntry* en
   const f32 height        = math_min(heightDesired, heightMax);
 
   viewer->inspectEntry      = entry;
-  viewer->inspectPanel      = ui_panel(.size = ui_vector(500, height));
+  viewer->inspectPanel      = ui_panel(.size = ui_vector(700, height));
   viewer->inspectScrollView = ui_scrollview();
 }
 
