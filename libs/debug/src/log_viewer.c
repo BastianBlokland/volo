@@ -319,9 +319,18 @@ static void debug_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k,
   ui_label(c, v, .selectable = true);
 }
 
+static f32 debug_log_inspect_desired_height(const DebugLogEntry* entry) {
+  UiTable table = ui_table(); // Dummy table.
+  return ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
+}
+
 static void debug_log_inspect_open(DebugLogViewerComp* viewer, DebugLogEntry* entry) {
+  const f32 heightDesired = debug_log_inspect_desired_height(entry);
+  const f32 heightMax     = 600.0f;
+  const f32 height        = math_min(heightDesired, heightMax);
+
   viewer->inspectEntry      = entry;
-  viewer->inspectPanel      = ui_panel(.size = ui_vector(500, 200));
+  viewer->inspectPanel      = ui_panel(.size = ui_vector(500, height));
   viewer->inspectScrollView = ui_scrollview();
 }
 
