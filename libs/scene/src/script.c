@@ -1837,7 +1837,7 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
 
   log_i(
       "script: {}",
-      log_param("message", fmt_text(dynstring_view(&buffer))),
+      log_param("text", fmt_text(dynstring_view(&buffer))),
       log_param("entity", fmt_int(ctx->instigator, .base = 16)),
       log_param("script", fmt_text(ctx->scriptId)));
 

@@ -98,7 +98,7 @@ static VkBool32 SYS_DECL rvk_message_func(
       logLevel,
       "Vulkan {} debug",
       log_param("type", fmt_text(typeLabel)),
-      log_param("message", fmt_text(message)));
+      log_param("text", fmt_text(message)));
 
   if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     diag_break(); // Halt when running in a debugger.

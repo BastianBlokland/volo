@@ -193,7 +193,7 @@ static void glsl_load_fail_msg(
   log_e(
       "Failed to load Glsl shader",
       log_param("error", fmt_text(glsl_error_str(err))),
-      log_param("message", fmt_text(msg)));
+      log_param("text", fmt_text(msg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
