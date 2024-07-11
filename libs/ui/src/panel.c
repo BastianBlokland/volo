@@ -169,9 +169,10 @@ static void ui_panel_topbar(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* 
     if (ui_panel_topbar_button(c, UiShape_Close, string_lit("Close this panel"))) {
       panel->flags |= UiPanelFlags_Close;
     }
-    ui_layout_move_dir(c, Ui_Left, 27, UiBase_Absolute);
-    ui_style_push(c);
-    {
+    if (opts->pinnable) {
+      ui_layout_move_dir(c, Ui_Left, 27, UiBase_Absolute);
+      ui_style_push(c);
+
       const bool pinned = (panel->flags & UiPanelFlags_Pinned) != 0;
       if (pinned) {
         ui_style_color(c, ui_color(16, 192, 0, 255));
@@ -180,8 +181,8 @@ static void ui_panel_topbar(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* 
       if (ui_panel_topbar_button(c, UiShape_PushPin, tooltip)) {
         panel->flags ^= UiPanelFlags_Pinned;
       }
+      ui_style_pop(c);
     }
-    ui_style_pop(c);
   }
   ui_layout_pop(c);
 
@@ -289,7 +290,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts
     const UiId dragHandleId   = resizeHandleId + 1;
     ui_panel_update_drag_and_resize(c, panel, dragHandleId, resizeHandleId);
 
-    ui_layout_move(c, panel->position, UiBase_Canvas, Ui_XY);
+    ui_layout_set_pos(c, UiBase_Canvas, panel->position, UiBase_Canvas);
     ui_layout_resize(c, UiAlign_MiddleCenter, panel->size, UiBase_Absolute, Ui_XY);
 
     ui_panel_resize_handle(c);

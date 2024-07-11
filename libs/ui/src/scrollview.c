@@ -55,13 +55,15 @@ ui_scrollview_query_status(UiCanvasComp* canvas, const UiScrollview* scrollview,
     status.flags |= UiScrollviewStatus_PressedBar;
   }
   status.viewport        = ui_canvas_elem_rect(canvas, status.bgId);
-  status.offscreenHeight = math_max(height - status.viewport.height, 0);
-  if (status.offscreenHeight > 0) {
+  status.offscreenHeight = math_max(height - status.viewport.height, 0.0f);
+  if (status.offscreenHeight > 0.0f) {
     status.offsetFrac = math_clamp_f32(scrollview->offset / status.offscreenHeight, 0, 1);
   }
-  status.viewportFrac = math_clamp_f32(status.viewport.height / height, 0, 1);
-  status.inputPos     = ui_canvas_input_pos(canvas);
-  status.inputScroll  = ui_canvas_input_scroll(canvas);
+  if (height > 0.0f) {
+    status.viewportFrac = math_clamp_f32(status.viewport.height / height, 0, 1);
+  }
+  status.inputPos    = ui_canvas_input_pos(canvas);
+  status.inputScroll = ui_canvas_input_scroll(canvas);
   return status;
 }
 
@@ -142,7 +144,7 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
 void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f32 height) {
   diag_assert_msg(
       !(scrollview->flags & UiScrollviewFlags_Active), "The given scrollview is already active");
-  diag_assert(height > 0);
+  diag_assert(height >= 0);
   scrollview->flags |= UiScrollviewFlags_Active;
 
   const UiScrollviewStatus status = ui_scrollview_query_status(canvas, scrollview, height);

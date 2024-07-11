@@ -66,7 +66,7 @@ static void output_test_finished(
     log(logOut->logger,
         LogLevel_Error,
         "Test check failure",
-        log_param("message", fmt_text(err->msg)),
+        log_param("text", fmt_text(err->msg)),
         log_param("source-file", fmt_path(err->source.file)),
         log_param("source-line", fmt_int(err->source.line)));
   }

@@ -5,7 +5,6 @@
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs_world.h"
-#include "log.h"
 #include "log_sink.h"
 #include "scene_time.h"
 #include "ui.h"
@@ -54,7 +53,7 @@ typedef struct {
   u8 data[];
 } DebugLogStr;
 
-ASSERT(alignof(DebugLogStr) == 1, "Log strings need to fit without padding");
+ASSERT(alignof(DebugLogStr) == 1, "Log strings should not require padding");
 
 /**
  * Sink that will receive log messages.
@@ -250,8 +249,11 @@ ecs_comp_define(DebugLogTrackerComp) {
 };
 
 ecs_comp_define(DebugLogViewerComp) {
-  LogMask  mask;
-  TimeZone timezone;
+  LogMask        mask;
+  TimeZone       timezone;
+  DebugLogEntry* inspectEntry;
+  UiPanel        inspectPanel;
+  UiScrollview   inspectScrollView;
 };
 
 static void ecs_destruct_log_tracker(void* data) {
@@ -264,8 +266,8 @@ ecs_view_define(LogGlobalView) {
   ecs_access_write(DebugLogTrackerComp);
 }
 
-ecs_view_define(LogDrawView) {
-  ecs_access_read(DebugLogViewerComp);
+ecs_view_define(LogViewerView) {
+  ecs_access_write(DebugLogViewerComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -277,23 +279,111 @@ debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logg
   return ecs_world_add_t(world, entity, DebugLogTrackerComp, .sink = sink);
 }
 
-static UiColor debug_log_bg_color(const LogLevel lvl) {
+static String debug_log_inspect_title(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
-    return ui_color(0, 0, 48, 230);
+    return fmt_write_scratch("{} Debug", fmt_ui_shape(Article));
   case LogLevel_Info:
-    return ui_color(0, 48, 0, 230);
+    return fmt_write_scratch("{} Info", fmt_ui_shape(Article));
   case LogLevel_Warn:
-    return ui_color(96, 96, 0, 230);
+    return fmt_write_scratch("{} Warning", fmt_ui_shape(Error));
   case LogLevel_Error:
-    return ui_color(48, 0, 0, 230);
+    return fmt_write_scratch("{} Error", fmt_ui_shape(Error));
   case LogLevel_Count:
     break;
   }
   diag_crash();
 }
 
-static void debug_log_tooltip_draw(
+static UiColor debug_log_inspect_title_color(const LogLevel lvl) {
+  switch (lvl) {
+  case LogLevel_Debug:
+    return ui_color(0, 0, 100, 192);
+  case LogLevel_Info:
+    return ui_color(0, 100, 0, 192);
+  case LogLevel_Warn:
+    return ui_color(128, 128, 0, 192);
+  case LogLevel_Error:
+    return ui_color(100, 0, 0, 192);
+  case LogLevel_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static void debug_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
+  ui_table_next_row(c, t);
+  ui_table_draw_row_bg(c, t, ui_color(48, 48, 48, 192));
+  ui_label(c, k);
+  ui_table_next_column(c, t);
+  ui_label(c, v, .selectable = true);
+}
+
+static f32 debug_log_inspect_desired_height(const DebugLogEntry* entry) {
+  UiTable table = ui_table(); // Dummy table.
+  return ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
+}
+
+static void debug_log_inspect_open(DebugLogViewerComp* viewer, DebugLogEntry* entry) {
+  const f32 heightDesired = debug_log_inspect_desired_height(entry);
+  const f32 heightMax     = 600.0f;
+  const f32 height        = math_min(heightDesired, heightMax);
+
+  viewer->inspectEntry      = entry;
+  viewer->inspectPanel      = ui_panel(.size = ui_vector(700, height));
+  viewer->inspectScrollView = ui_scrollview();
+}
+
+static void debug_log_inspect_close(DebugLogViewerComp* viewer) { viewer->inspectEntry = null; }
+
+static void debug_log_inspect_draw(UiCanvasComp* c, DebugLogViewerComp* viewer) {
+  const DebugLogEntry* entry = viewer->inspectEntry;
+
+  ui_panel_begin(
+      c,
+      &viewer->inspectPanel,
+      .title       = debug_log_inspect_title(entry->lvl),
+      .topBarColor = debug_log_inspect_title_color(entry->lvl),
+      .pinnable    = false);
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  const f32 totalHeight = ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
+  ui_scrollview_begin(c, &viewer->inspectScrollView, totalHeight);
+
+  DebugLogStr* strItr = debug_log_msg(entry);
+  debug_log_inspect_param(c, &table, string_lit("message"), debug_log_text(strItr));
+
+  for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
+    DebugLogStr* paramName = debug_log_str_next(strItr);
+    DebugLogStr* paramVal  = debug_log_str_next(paramName);
+    debug_log_inspect_param(c, &table, debug_log_text(paramName), debug_log_text(paramVal));
+    strItr = paramVal;
+  }
+
+  const FormatTimeTerms timeTerms = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds;
+  const String          timeVal   = fmt_write_scratch(
+      "{}", fmt_time(entry->timestamp, .terms = timeTerms, .timezone = viewer->timezone));
+  debug_log_inspect_param(c, &table, string_lit("time"), timeVal);
+
+  const String fileName  = mem_create(entry->fileNamePtr, entry->fileNameLen);
+  const String sourceVal = fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line));
+  debug_log_inspect_param(c, &table, string_lit("source"), sourceVal);
+
+  ui_scrollview_end(c, &viewer->inspectScrollView);
+  ui_panel_end(c, &viewer->inspectPanel);
+
+  if (ui_panel_closed(&viewer->inspectPanel)) {
+    debug_log_inspect_close(viewer); // Close when requested.
+  }
+  if (ui_canvas_input_any(c) && ui_canvas_status(c) == UiStatus_Idle) {
+    debug_log_inspect_close(viewer); // Close when clicking outside the panel.
+  }
+}
+
+static void debug_log_notif_tooltip(
     UiCanvasComp* c, const UiId id, const DebugLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
@@ -312,13 +402,11 @@ static void debug_log_tooltip_draw(
     strItr = paramVal;
   }
 
+  const FormatTimeTerms timeTerms = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds;
   fmt_write(
       &buffer,
       "\a.btime\ar: {}\n",
-      fmt_time(
-          entry->timestamp,
-          .terms    = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds,
-          .timezone = viewer->timezone));
+      fmt_time(entry->timestamp, .terms = timeTerms, .timezone = viewer->timezone));
 
   const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
   fmt_write(&buffer, "\a.bsource\ar: {}:{}\n", fmt_path(fileName), fmt_int(entry->line));
@@ -326,12 +414,28 @@ static void debug_log_tooltip_draw(
   ui_tooltip(c, id, dynstring_view(&buffer), .maxSize = ui_vector(750, 750));
 }
 
-static void debug_log_draw_entry(
-    UiCanvasComp* c, const DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
+static UiColor debug_log_notif_bg_color(const LogLevel lvl) {
+  switch (lvl) {
+  case LogLevel_Debug:
+    return ui_color(0, 0, 48, 230);
+  case LogLevel_Info:
+    return ui_color(0, 48, 0, 230);
+  case LogLevel_Warn:
+    return ui_color(96, 96, 0, 230);
+  case LogLevel_Error:
+    return ui_color(48, 0, 0, 230);
+  case LogLevel_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static void debug_log_notif_draw_entry(
+    UiCanvasComp* c, DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
   DebugLogStr* msg = debug_log_msg(entry);
 
   ui_style_push(c);
-  ui_style_color(c, debug_log_bg_color(entry->lvl));
+  ui_style_color(c, debug_log_notif_bg_color(entry->lvl));
   const UiId bgId = ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_Interactable);
   ui_style_pop(c);
 
@@ -348,23 +452,29 @@ static void debug_log_draw_entry(
   ui_layout_pop(c);
 
   const UiStatus status = ui_canvas_elem_status(c, bgId);
-  if (status == UiStatus_Pressed) {
-    entry->flags &= ~DebugLogFlags_Combine;
+  if (status == UiStatus_Activated) {
+    if (repeat) {
+      entry->flags &= ~DebugLogFlags_Combine;
+    } else {
+      debug_log_inspect_open(viewer, entry);
+    }
+    ui_canvas_sound(c, UiSoundType_Click);
   }
   if (status >= UiStatus_Hovered) {
-    debug_log_tooltip_draw(c, bgId, viewer, entry);
+    debug_log_notif_tooltip(c, bgId, viewer, entry);
   } else {
     ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
   }
 }
 
-static void debug_log_draw_entries(
-    UiCanvasComp* canvas, const DebugLogTrackerComp* tracker, const DebugLogViewerComp* viewer) {
-  ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
-  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
+static void debug_log_notif_draw(
+    UiCanvasComp* c, const DebugLogTrackerComp* tracker, DebugLogViewerComp* viewer) {
+  ui_layout_move_to(c, UiBase_Container, UiAlign_TopRight, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
+  ui_layout_resize(c, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
 
-  ui_style_outline(canvas, 0);
+  ui_style_push(c);
+  ui_style_outline(c, 0);
 
   /**
    * Because 'debug_log_sink_write' only adds new entries (but never removes) and this is never
@@ -375,7 +485,7 @@ static void debug_log_draw_entries(
   DebugLogEntry* first = tracker->sink->entryHead;
   DebugLogEntry* last  = tracker->sink->entryTail;
   if (!first) {
-    return; // Buffer is emtpy.
+    goto End; // Buffer is emtpy.
   }
   for (DebugLogEntry* itr = first;; itr = debug_log_next(tracker->sink, itr)) {
     if (viewer->mask & (1 << itr->lvl)) {
@@ -395,13 +505,15 @@ static void debug_log_draw_entries(
           }
         }
       }
-      debug_log_draw_entry(canvas, viewer, entry, repeat);
-      ui_layout_next(canvas, Ui_Down, 0);
+      debug_log_notif_draw_entry(c, viewer, entry, repeat);
+      ui_layout_next(c, Ui_Down, 0);
     }
     if (itr == last) {
       break; // Reached the last written one when we synchronized with debug_log_sink_write.
     }
   }
+End:
+  ui_style_pop(c);
 }
 
 ecs_system_define(DebugLogUpdateSys) {
@@ -420,20 +532,26 @@ ecs_system_define(DebugLogUpdateSys) {
   debug_log_prune_older(tracker->sink, oldestToKeep);
 
   tracker->freeze   = false;
-  EcsView* drawView = ecs_world_view_t(world, LogDrawView);
+  EcsView* drawView = ecs_world_view_t(world, LogViewerView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    const DebugLogViewerComp* viewer = ecs_view_read_t(itr, DebugLogViewerComp);
-    UiCanvasComp*             canvas = ecs_view_write_t(itr, UiCanvasComp);
+    DebugLogViewerComp* viewer = ecs_view_write_t(itr, DebugLogViewerComp);
+    UiCanvasComp*       canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     ui_canvas_to_front(canvas); // Always draw logs on-top.
 
-    const UiId idFirst = ui_canvas_id_peek(canvas);
-    debug_log_draw_entries(canvas, tracker, viewer);
-    const UiId idLast = ui_canvas_id_peek(canvas) - 1;
+    // Draw notifications (new log entries).
+    const UiId notifIdFirst = ui_canvas_id_peek(canvas);
+    debug_log_notif_draw(canvas, tracker, viewer);
+    const UiId notifIdLast = ui_canvas_id_peek(canvas) - 1;
+    if (ui_canvas_group_status(canvas, notifIdFirst, notifIdLast) >= UiStatus_Hovered) {
+      tracker->freeze = true; // Don't remove entries while hovering any of the notifications.
+    }
 
-    if (ui_canvas_group_status(canvas, idFirst, idLast) >= UiStatus_Hovered) {
-      tracker->freeze = true; // Don't remove entries while hovering any of the log entries.
+    // Draw inspector.
+    if (viewer->inspectEntry) {
+      tracker->freeze = true; // Don't remove entries while inspecting.
+      debug_log_inspect_draw(canvas, viewer);
     }
   }
 }
@@ -443,9 +561,9 @@ ecs_module_init(debug_log_viewer_module) {
   ecs_register_comp(DebugLogViewerComp);
 
   ecs_register_view(LogGlobalView);
-  ecs_register_view(LogDrawView);
+  ecs_register_view(LogViewerView);
 
-  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogDrawView));
+  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogViewerView));
 }
 
 void debug_log_tracker_init(EcsWorld* world, Logger* logger) {
