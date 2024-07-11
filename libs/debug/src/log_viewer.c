@@ -249,8 +249,11 @@ ecs_comp_define(DebugLogTrackerComp) {
 };
 
 ecs_comp_define(DebugLogViewerComp) {
-  LogMask  mask;
-  TimeZone timezone;
+  LogMask        mask;
+  TimeZone       timezone;
+  DebugLogEntry* inspectEntry;
+  UiPanel        inspectPanel;
+  UiScrollview   inspectScrollView;
 };
 
 static void ecs_destruct_log_tracker(void* data) {
@@ -276,6 +279,97 @@ debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logg
   return ecs_world_add_t(world, entity, DebugLogTrackerComp, .sink = sink);
 }
 
+static String debug_log_inspect_title(const LogLevel lvl) {
+  switch (lvl) {
+  case LogLevel_Debug:
+    return string_lit("Debug");
+  case LogLevel_Info:
+    return string_lit("Info");
+  case LogLevel_Warn:
+    return string_lit("Warning");
+  case LogLevel_Error:
+    return string_lit("Error");
+  case LogLevel_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static UiColor debug_log_inspect_title_color(const LogLevel lvl) {
+  switch (lvl) {
+  case LogLevel_Debug:
+    return ui_color(0, 0, 100, 192);
+  case LogLevel_Info:
+    return ui_color(0, 100, 0, 192);
+  case LogLevel_Warn:
+    return ui_color(128, 128, 0, 192);
+  case LogLevel_Error:
+    return ui_color(100, 0, 0, 192);
+  case LogLevel_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static void debug_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
+  ui_table_next_row(c, t);
+  ui_table_draw_row_bg(c, t, ui_color(48, 48, 48, 192));
+  ui_label(c, k);
+  ui_table_next_column(c, t);
+  ui_label(c, v, .selectable = true);
+}
+
+static void debug_log_inspect_open(DebugLogViewerComp* viewer, DebugLogEntry* entry) {
+  viewer->inspectEntry      = entry;
+  viewer->inspectPanel      = ui_panel(.size = ui_vector(500, 200));
+  viewer->inspectScrollView = ui_scrollview();
+}
+
+static void debug_log_inspect_close(DebugLogViewerComp* viewer) { viewer->inspectEntry = null; }
+
+static void debug_log_inspect_draw(UiCanvasComp* c, DebugLogViewerComp* viewer) {
+  const DebugLogEntry* entry = viewer->inspectEntry;
+
+  ui_panel_begin(
+      c,
+      &viewer->inspectPanel,
+      .title       = debug_log_inspect_title(entry->lvl),
+      .topBarColor = debug_log_inspect_title_color(entry->lvl),
+      .pinnable    = false);
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  DebugLogStr* strItr = debug_log_msg(entry);
+  debug_log_inspect_param(c, &table, string_lit("message"), debug_log_text(strItr));
+
+  for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
+    DebugLogStr* paramName = debug_log_str_next(strItr);
+    DebugLogStr* paramVal  = debug_log_str_next(paramName);
+    debug_log_inspect_param(c, &table, debug_log_text(paramName), debug_log_text(paramVal));
+    strItr = paramVal;
+  }
+
+  const FormatTimeTerms timeTerms = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds;
+  const String          timeVal   = fmt_write_scratch(
+      "{}", fmt_time(entry->timestamp, .terms = timeTerms, .timezone = viewer->timezone));
+  debug_log_inspect_param(c, &table, string_lit("time"), timeVal);
+
+  const String fileName  = mem_create(entry->fileNamePtr, entry->fileNameLen);
+  const String sourceVal = fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line));
+  debug_log_inspect_param(c, &table, string_lit("source"), sourceVal);
+
+  ui_panel_end(c, &viewer->inspectPanel);
+
+  if (ui_panel_closed(&viewer->inspectPanel)) {
+    debug_log_inspect_close(viewer); // Close when requested.
+  }
+  if (ui_canvas_input_any(c) && ui_canvas_status(c) == UiStatus_Idle) {
+    debug_log_inspect_close(viewer); // Close when clicking outside the panel.
+  }
+}
+
 static void debug_log_notif_tooltip(
     UiCanvasComp* c, const UiId id, const DebugLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
@@ -295,13 +389,11 @@ static void debug_log_notif_tooltip(
     strItr = paramVal;
   }
 
+  const FormatTimeTerms timeTerms = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds;
   fmt_write(
       &buffer,
       "\a.btime\ar: {}\n",
-      fmt_time(
-          entry->timestamp,
-          .terms    = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds,
-          .timezone = viewer->timezone));
+      fmt_time(entry->timestamp, .terms = timeTerms, .timezone = viewer->timezone));
 
   const String fileName = mem_create(entry->fileNamePtr, entry->fileNameLen);
   fmt_write(&buffer, "\a.bsource\ar: {}:{}\n", fmt_path(fileName), fmt_int(entry->line));
@@ -326,7 +418,7 @@ static UiColor debug_log_notif_bg_color(const LogLevel lvl) {
 }
 
 static void debug_log_notif_draw_entry(
-    UiCanvasComp* c, const DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
+    UiCanvasComp* c, DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
   DebugLogStr* msg = debug_log_msg(entry);
 
   ui_style_push(c);
@@ -347,8 +439,13 @@ static void debug_log_notif_draw_entry(
   ui_layout_pop(c);
 
   const UiStatus status = ui_canvas_elem_status(c, bgId);
-  if (status == UiStatus_Pressed) {
-    entry->flags &= ~DebugLogFlags_Combine;
+  if (status == UiStatus_Activated) {
+    if (repeat) {
+      entry->flags &= ~DebugLogFlags_Combine;
+    } else {
+      debug_log_inspect_open(viewer, entry);
+    }
+    ui_canvas_sound(c, UiSoundType_Click);
   }
   if (status >= UiStatus_Hovered) {
     debug_log_notif_tooltip(c, bgId, viewer, entry);
@@ -431,12 +528,17 @@ ecs_system_define(DebugLogUpdateSys) {
     ui_canvas_to_front(canvas); // Always draw logs on-top.
 
     // Draw notifications (new log entries).
-    const UiId idFirst = ui_canvas_id_peek(canvas);
+    const UiId notifIdFirst = ui_canvas_id_peek(canvas);
     debug_log_notif_draw(canvas, tracker, viewer);
-    const UiId idLast = ui_canvas_id_peek(canvas) - 1;
-
-    if (ui_canvas_group_status(canvas, idFirst, idLast) >= UiStatus_Hovered) {
+    const UiId notifIdLast = ui_canvas_id_peek(canvas) - 1;
+    if (ui_canvas_group_status(canvas, notifIdFirst, notifIdLast) >= UiStatus_Hovered) {
       tracker->freeze = true; // Don't remove entries while hovering any of the notifications.
+    }
+
+    // Draw inspector.
+    if (viewer->inspectEntry) {
+      tracker->freeze = true; // Don't remove entries while inspecting.
+      debug_log_inspect_draw(canvas, viewer);
     }
   }
 }
