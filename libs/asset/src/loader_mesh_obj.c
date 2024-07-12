@@ -398,13 +398,16 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
   }
 }
 
-static void obj_load_fail(EcsWorld* world, const EcsEntityId entity, const ObjError err) {
-  log_e("Failed to parse WaveFront Obj Mesh", log_param("error", fmt_text(obj_error_str(err))));
+static void
+obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const ObjError err) {
+  log_e(
+      "Failed to parse WaveFront Obj Mesh",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(obj_error_str(err))));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 void asset_load_obj(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
 
   ObjError          err     = ObjError_None;
   AssetMeshBuilder* builder = null;
@@ -419,18 +422,18 @@ void asset_load_obj(EcsWorld* world, const String id, const EcsEntityId entity, 
   obj_read_data(src->data, &data, &err);
   asset_repo_source_close(src);
   if (err) {
-    obj_load_fail(world, entity, err);
+    obj_load_fail(world, entity, id, err);
     goto Done;
   }
   if (!data.totalTris) {
-    obj_load_fail(world, entity, ObjError_NoFaces);
+    obj_load_fail(world, entity, id, ObjError_NoFaces);
     goto Done;
   }
 
   const u32 numVerts = data.totalTris * 3;
   // TODO: This check is very conservative as the index buffer could reuse many vertices.
   if (numVerts > asset_mesh_vertices_max) {
-    obj_load_fail(world, entity, ObjError_TooManyVertices);
+    obj_load_fail(world, entity, id, ObjError_TooManyVertices);
     goto Done;
   }
   builder = asset_mesh_builder_create(g_allocHeap, numVerts);

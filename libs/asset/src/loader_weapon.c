@@ -439,7 +439,11 @@ static void ecs_destruct_weapon_load_comp(void* data) {
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_read(AssetWeaponLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetWeaponLoadComp);
+}
 
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetWeaponMapComp);
@@ -458,6 +462,7 @@ ecs_system_define(LoadWeaponAssetSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
+    const String       id     = asset_id(ecs_view_read_t(itr, AssetComp));
     const AssetSource* src    = ecs_view_read_t(itr, AssetWeaponLoadComp)->src;
 
     DynArray weapons = dynarray_create_t(g_allocHeap, AssetWeapon, 64);
@@ -498,7 +503,10 @@ ecs_system_define(LoadWeaponAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load WeaponMap", log_param("error", fmt_text(errMsg)));
+    log_e(
+        "Failed to load WeaponMap",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(errMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:

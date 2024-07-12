@@ -66,25 +66,30 @@ static String htex_error_str(const HtexError err) {
   return g_msgs[err];
 }
 
-static void htex_load_fail(EcsWorld* world, const EcsEntityId e, const HtexError err) {
-  log_e("Failed to parse height texture", log_param("error", fmt_text(htex_error_str(err))));
-  ecs_world_add_empty_t(world, e, AssetFailedComp);
+static void
+htex_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const HtexError err) {
+  log_e(
+      "Failed to parse height texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(htex_error_str(err))));
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, const HtexType type) {
+static void htex_load(
+    EcsWorld* world, const EcsEntityId entity, const String id, String data, const HtexType type) {
   const usize pixelSize = htex_pixel_size(type);
   if (UNLIKELY(data.size % pixelSize)) {
-    htex_load_fail(world, entity, HtexError_Corrupt);
+    htex_load_fail(world, entity, id, HtexError_Corrupt);
     return;
   }
   const usize pixelCount = data.size / pixelSize;
   if (UNLIKELY(!pixelCount)) {
-    htex_load_fail(world, entity, HtexError_Empty);
+    htex_load_fail(world, entity, id, HtexError_Empty);
     return;
   }
   const u32 size = (u32)math_sqrt_f64(pixelCount);
   if (UNLIKELY(size * size != pixelCount)) {
-    htex_load_fail(world, entity, HtexError_NonPow2);
+    htex_load_fail(world, entity, id, HtexError_NonPow2);
     return;
   }
 
@@ -123,13 +128,11 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
 }
 
 void asset_load_r16(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
-  htex_load(world, entity, src->data, HtexType_U16);
+  htex_load(world, entity, id, src->data, HtexType_U16);
   asset_repo_source_close(src);
 }
 
 void asset_load_r32(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
-  htex_load(world, entity, src->data, HtexType_F32);
+  htex_load(world, entity, id, src->data, HtexType_F32);
   asset_repo_source_close(src);
 }

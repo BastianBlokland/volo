@@ -869,11 +869,13 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
 }
 
 void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
 
   const SpvError err = spv_init(world, entity, src->data);
   if (err) {
-    log_e("Failed to load SpirV shader", log_param("error", fmt_text(spv_err_str(err))));
+    log_e(
+        "Failed to load SpirV shader",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(spv_err_str(err))));
 
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);

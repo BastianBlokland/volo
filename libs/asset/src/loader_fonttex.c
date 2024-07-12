@@ -325,7 +325,12 @@ Error:
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetFontTexLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_write(AssetFontTexLoadComp);
+}
+
 ecs_view_define(FontView) { ecs_access_write(AssetFontComp); }
 
 /**
@@ -341,6 +346,7 @@ ecs_system_define(FontTexLoadAssetSys) {
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId     entity = ecs_view_entity(itr);
+    const String          id     = asset_id(ecs_view_read_t(itr, AssetComp));
     AssetFontTexLoadComp* load   = ecs_view_write_t(itr, AssetFontTexLoadComp);
     FontTexError          err;
 
@@ -386,7 +392,10 @@ ecs_system_define(FontTexLoadAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load font-texture", log_param("error", fmt_text(fonttex_error_str(err))));
+    log_e(
+        "Failed to load font-texture",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(fonttex_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
@@ -437,8 +446,6 @@ ecs_module_init(asset_fonttex_module) {
 
 void asset_load_fonttex(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
-
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
@@ -470,7 +477,10 @@ void asset_load_fonttex(
   return;
 
 Error:
-  log_e("Failed to load font-texture", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load font-texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(def));
   asset_repo_source_close(src);

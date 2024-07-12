@@ -188,7 +188,8 @@ void asset_load_decal(
   goto Cleanup;
 
 Error:
-  log_e("Failed to load Decal", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load Decal", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:

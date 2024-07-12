@@ -232,16 +232,22 @@ static String gltf_error_str(const GltfError err) {
 }
 
 static void gltf_load_fail_msg(
-    EcsWorld* world, const EcsEntityId entity, const GltfError err, const String msg) {
+    EcsWorld*         world,
+    const EcsEntityId entity,
+    const String      id,
+    const GltfError   err,
+    const String      msg) {
   log_e(
       "Failed to parse gltf mesh",
+      log_param("id", fmt_text(id)),
       log_param("code", fmt_int(err)),
       log_param("error", fmt_text(msg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static void gltf_load_fail(EcsWorld* world, const EcsEntityId entity, const GltfError err) {
-  gltf_load_fail_msg(world, entity, err, gltf_error_str(err));
+static void
+gltf_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const GltfError err) {
+  gltf_load_fail_msg(world, entity, id, err, gltf_error_str(err));
 }
 
 INLINE_HINT u32 gltf_comp_size(const GltfType type) {
@@ -1489,7 +1495,7 @@ ecs_system_define(GltfLoadAssetSys) {
     }
 
   Error:
-    gltf_load_fail(world, entity, err);
+    gltf_load_fail(world, entity, ld->assetId, err);
 
   Cleanup:
     for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
@@ -1522,13 +1528,13 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
   asset_repo_source_close(src);
 
   if (jsonRes.type != JsonResultType_Success) {
-    gltf_load_fail_msg(world, entity, GltfError_InvalidJson, json_error_str(jsonRes.error));
+    gltf_load_fail_msg(world, entity, id, GltfError_InvalidJson, json_error_str(jsonRes.error));
     json_destroy(jsonDoc);
     return;
   }
 
   if (json_type(jsonDoc, jsonRes.type) != JsonType_Object) {
-    gltf_load_fail(world, entity, GltfError_MalformedFile);
+    gltf_load_fail(world, entity, id, GltfError_MalformedFile);
     json_destroy(jsonDoc);
     return;
   }

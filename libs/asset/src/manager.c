@@ -178,8 +178,8 @@ static bool asset_manager_load(
   } else {
     log_e(
         "Asset format cannot be loaded directly",
-        log_param("format", fmt_text(asset_format_str(source->format))),
-        log_param("id", fmt_path(asset->id)));
+        log_param("id", fmt_path(asset->id)),
+        log_param("format", fmt_text(asset_format_str(source->format))));
     success = false;
   }
 
@@ -301,8 +301,6 @@ ecs_system_define(AssetUpdateDirtySys) {
       /**
        * Asset has failed loading.
        */
-
-      log_w("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
 
       if (dependencyComp) {
         /*

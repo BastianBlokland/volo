@@ -811,12 +811,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
@@ -894,7 +894,11 @@ static void ecs_destruct_prefab_load_comp(void* data) {
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_read(AssetPrefabLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetPrefabLoadComp);
+}
 
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetPrefabMapComp);
@@ -913,6 +917,7 @@ ecs_system_define(LoadPrefabAssetSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
+    const String       id     = asset_id(ecs_view_read_t(itr, AssetComp));
     const AssetSource* src    = ecs_view_read_t(itr, AssetPrefabLoadComp)->src;
 
     DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
@@ -964,7 +969,10 @@ ecs_system_define(LoadPrefabAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load PrefabMap", log_param("error", fmt_text(errMsg)));
+    log_e(
+        "Failed to load PrefabMap",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(errMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:

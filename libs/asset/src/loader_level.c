@@ -97,7 +97,6 @@ ecs_module_init(asset_level_module) {
 
 void asset_load_level(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
 
   AssetLevel     level;
   String         errMsg;
@@ -113,7 +112,8 @@ void asset_load_level(
   goto Cleanup;
 
 Error:
-  log_e("Failed to load Level", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load Level", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:

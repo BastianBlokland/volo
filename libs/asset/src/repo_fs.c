@@ -43,14 +43,14 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   FileResult        result;
   if ((result = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     log_w(
-        "AssetRepository: Failed to open file",
+        "Failed to open file",
         log_param("path", fmt_path(path)),
         log_param("result", fmt_text(file_result_str(result))));
     return null;
   }
   if ((result = file_map(file, &data))) {
     log_w(
-        "AssetRepository: Failed to map file",
+        "Failed to map file",
         log_param("path", fmt_path(path)),
         log_param("result", fmt_text(file_result_str(result))));
     file_destroy(file);
@@ -75,7 +75,7 @@ static bool asset_repo_fs_save(AssetRepo* repo, const String id, const String da
   const FileResult result = file_write_to_path_sync(path, data);
   if (result) {
     log_w(
-        "AssetRepository: Failed to save file",
+        "Failed to save file",
         log_param("path", fmt_path(path)),
         log_param("result", fmt_text(file_result_str(result))));
   }
@@ -88,7 +88,7 @@ static void asset_repo_fs_changes_watch(AssetRepo* repo, const String id, const 
   const FileMonitorResult res = file_monitor_watch(repoFs->monitor, id, userData);
   if (UNLIKELY(res != FileMonitorResult_Success && res != FileMonitorResult_AlreadyWatching)) {
     log_w(
-        "AssetRepository: Failed to watch file for changes",
+        "Failed to watch file for changes",
         log_param("id", fmt_path(id)),
         log_param("result", fmt_text(file_monitor_result_str(res))));
   }
@@ -119,7 +119,7 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
 
   if (UNLIKELY(directory.size) > 256) {
     // Sanity check the maximum directory length (relative to the repo root-path).
-    log_w("AssetRepository: Directory path length exceeds maximum");
+    log_w("Directory path length exceeds maximum");
     return AssetRepoQueryResult_ErrorWhileQuerying;
   }
 
@@ -161,7 +161,7 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
 
   if (UNLIKELY(itrResult != FileIteratorResult_End)) {
     log_w(
-        "AssetRepository: Error while performing file query",
+        "Error while performing file query",
         log_param("result", fmt_text(file_iterator_result_str(itrResult))));
     return AssetRepoQueryResult_ErrorWhileQuerying;
   }
@@ -181,7 +181,7 @@ static AssetRepoQueryResult asset_repo_fs_query(
      * Filtering in the directory part part is not supported at the moment.
      * Supporting this would require recursing from the first non-filtered directory.
      */
-    log_w("AssetRepository: Unsupported file query pattern");
+    log_w("Unsupported file query pattern");
     return AssetRepoQueryResult_ErrorPatternNotSupported;
   }
 

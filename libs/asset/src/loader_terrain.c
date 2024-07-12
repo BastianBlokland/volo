@@ -61,13 +61,19 @@ static void ecs_destruct_terrain_load_comp(void* data) {
   asset_repo_source_close(comp->src);
 }
 
-static void terrain_load_fail(EcsWorld* world, const EcsEntityId entity, const String msg) {
-  log_e("Failed to parse terrain", log_param("error", fmt_text(msg)));
+static void
+terrain_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const String msg) {
+  log_e(
+      "Failed to parse terrain", log_param("id", fmt_text(id)), log_param("error", fmt_text(msg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_read(AssetTerrainLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetTerrainLoadComp);
+}
 
 ecs_view_define(UnloadView) {
   ecs_access_read(AssetTerrainComp);
@@ -98,6 +104,7 @@ ecs_system_define(LoadTerrainAssetSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity      = ecs_view_entity(itr);
+    const String       id          = asset_id(ecs_view_read_t(itr, AssetComp));
     const AssetSource* src         = ecs_view_read_t(itr, AssetTerrainLoadComp)->src;
     AssetTerrainComp*  terrainComp = ecs_world_add_t(world, entity, AssetTerrainComp);
 
@@ -110,32 +117,33 @@ ecs_system_define(LoadTerrainAssetSys) {
         mem_create(terrainComp, sizeof(AssetTerrainComp)),
         &result);
     if (result.error) {
-      terrain_load_fail(world, entity, result.errorMsg);
+      terrain_load_fail(world, entity, id, result.errorMsg);
       goto Error;
     }
 
     if (!terrainComp->size || terrainComp->size > terrain_max_size) {
-      terrain_load_fail(world, entity, string_lit("Invalid terrain size"));
+      terrain_load_fail(world, entity, id, string_lit("Invalid terrain size"));
       goto Error;
     }
     if (!terrainComp->playSize || terrainComp->playSize > terrainComp->size) {
-      terrain_load_fail(world, entity, string_lit("Invalid terrain play size"));
+      terrain_load_fail(world, entity, id, string_lit("Invalid terrain play size"));
       goto Error;
     }
     if (terrainComp->playSize % 2) {
-      terrain_load_fail(world, entity, string_lit("Terrain play size has to be divisible by two"));
+      terrain_load_fail(
+          world, entity, id, string_lit("Terrain play size has to be divisible by two"));
       goto Error;
     }
     if (terrainComp->heightMax < 0.0f || terrainComp->heightMax > terrain_max_height) {
-      terrain_load_fail(world, entity, string_lit("Invalid terrain maximum height"));
+      terrain_load_fail(world, entity, id, string_lit("Invalid terrain maximum height"));
       goto Error;
     }
     if (!terrain_color_validate(&terrainComp->minimapColorLow)) {
-      terrain_load_fail(world, entity, string_lit("Invalid minimap color low"));
+      terrain_load_fail(world, entity, id, string_lit("Invalid minimap color low"));
       goto Error;
     }
     if (!terrain_color_validate(&terrainComp->minimapColorHigh)) {
-      terrain_load_fail(world, entity, string_lit("Invalid minimap color high"));
+      terrain_load_fail(world, entity, id, string_lit("Invalid minimap color high"));
       goto Error;
     }
 

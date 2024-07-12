@@ -296,7 +296,6 @@ ecs_module_init(asset_inputmap_module) {
 
 void asset_load_inputs(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
 
   DynArray actions  = dynarray_create_t(g_allocHeap, AssetInputAction, 64);
   DynArray bindings = dynarray_create_t(g_allocHeap, AssetInputBinding, 128);
@@ -334,7 +333,10 @@ void asset_load_inputs(
   goto Cleanup;
 
 Error:
-  log_e("Failed to load InputMap", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load InputMap",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:

@@ -170,8 +170,12 @@ ppm_read_pixels(String input, PixmapHeader* header, AssetTexturePixelB4* out, Pi
   return ppm_read_pixels_binary(input, header, out, err);
 }
 
-static void ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const PixmapError err) {
-  log_e("Failed to parse Pixmap texture", log_param("error", fmt_text(pixmap_error_str(err))));
+static void
+ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const PixmapError err) {
+  log_e(
+      "Failed to parse Pixmap texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(pixmap_error_str(err))));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
@@ -194,19 +198,19 @@ void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, 
   PixmapHeader header;
   input = ppm_read_header(input, &header);
   if (header.type == PixmapType_Unknown) {
-    ppm_load_fail(world, entity, PixmapError_MalformedType);
+    ppm_load_fail(world, entity, id, PixmapError_MalformedType);
     goto Error;
   }
   if (!header.width || !header.height) {
-    ppm_load_fail(world, entity, PixmapError_UnsupportedSize);
+    ppm_load_fail(world, entity, id, PixmapError_UnsupportedSize);
     goto Error;
   }
   if (header.width > ppm_max_width || header.height > ppm_max_height) {
-    ppm_load_fail(world, entity, PixmapError_UnsupportedSize);
+    ppm_load_fail(world, entity, id, PixmapError_UnsupportedSize);
     goto Error;
   }
   if (header.maxValue != 255) {
-    ppm_load_fail(world, entity, PixmapError_UnsupportedBitDepth);
+    ppm_load_fail(world, entity, id, PixmapError_UnsupportedBitDepth);
     goto Error;
   }
 
@@ -215,7 +219,7 @@ void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, 
   AssetTexturePixelB4* pixels = alloc_array_t(g_allocHeap, AssetTexturePixelB4, width * height);
   input                       = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
-    ppm_load_fail(world, entity, res);
+    ppm_load_fail(world, entity, id, res);
     alloc_free_array_t(g_allocHeap, pixels, width * height);
     goto Error;
   }

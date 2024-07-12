@@ -360,7 +360,6 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
 
 void asset_load_proctex(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
   proctex_datareg_init();
 
   String         errMsg;
@@ -394,7 +393,10 @@ void asset_load_proctex(
   return;
 
 Error:
-  log_e("Failed to load proc texture", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load proc texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_dataProcTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
