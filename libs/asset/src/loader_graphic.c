@@ -134,13 +134,21 @@ static void ecs_destruct_graphic_load_comp(void* data) {
   asset_repo_source_close(comp->src);
 }
 
-static void graphic_load_fail(EcsWorld* world, const EcsEntityId entity, const String msg) {
-  log_e("Failed to parse graphic", log_param("error", fmt_text(msg)));
+static void graphic_load_fail(
+    EcsWorld* world, const EcsEntityId entity, const String id, const String message) {
+  log_e(
+      "Failed to parse graphic",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(message)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_read(AssetGraphicLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetGraphicLoadComp);
+}
 
 ecs_view_define(UnloadView) {
   ecs_access_read(AssetGraphicComp);
@@ -158,6 +166,7 @@ ecs_system_define(LoadGraphicAssetSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity      = ecs_view_entity(itr);
+    const String       id          = asset_id(ecs_view_read_t(itr, AssetComp));
     const AssetSource* src         = ecs_view_read_t(itr, AssetGraphicLoadComp)->src;
     AssetGraphicComp*  graphicComp = ecs_world_add_t(world, entity, AssetGraphicComp);
 
@@ -170,7 +179,7 @@ ecs_system_define(LoadGraphicAssetSys) {
         mem_create(graphicComp, sizeof(AssetGraphicComp)),
         &result);
     if (result.error) {
-      graphic_load_fail(world, entity, result.errorMsg);
+      graphic_load_fail(world, entity, id, result.errorMsg);
       goto Error;
     }
 
@@ -186,7 +195,8 @@ ecs_system_define(LoadGraphicAssetSys) {
 
     // Resolve mesh reference.
     if (!string_is_empty(graphicComp->meshId) && graphicComp->vertexCount) {
-      graphic_load_fail(world, entity, string_lit("'meshId' can't be combined with 'vertexCount'"));
+      graphic_load_fail(
+          world, entity, id, string_lit("'meshId' can't be combined with 'vertexCount'"));
       goto Error;
     }
     if (!string_is_empty(graphicComp->meshId)) {

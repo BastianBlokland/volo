@@ -249,7 +249,12 @@ static void atlas_generate(
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetAtlasLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_write(AssetComp);
+  ecs_access_write(AssetAtlasLoadComp);
+}
+
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 /**
@@ -265,6 +270,7 @@ ecs_system_define(AtlasLoadAssetSys) {
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId   entity = ecs_view_entity(itr);
+    const String        id     = asset_id(ecs_view_read_t(itr, AssetComp));
     AssetAtlasLoadComp* load   = ecs_view_write_t(itr, AssetAtlasLoadComp);
     AtlasError          err;
 
@@ -313,7 +319,10 @@ ecs_system_define(AtlasLoadAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load atlas texture", log_param("error", fmt_text(atlas_error_str(err))));
+    log_e(
+        "Failed to load atlas texture",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(atlas_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
@@ -360,8 +369,6 @@ ecs_module_init(asset_atlas_module) {
 
 void asset_load_atlas(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
-
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
@@ -415,7 +422,10 @@ void asset_load_atlas(
   return;
 
 Error:
-  log_e("Failed to load atlas texture", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load atlas texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_dataAtlasDefMeta, mem_var(def));
   asset_repo_source_close(src);

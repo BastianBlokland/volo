@@ -263,7 +263,11 @@ static void ecs_destruct_product_load_comp(void* data) {
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_read(AssetProductLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetProductLoadComp);
+}
 
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetProductMapComp);
@@ -282,6 +286,7 @@ ecs_system_define(LoadProductAssetSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
+    const String       id     = asset_id(ecs_view_read_t(itr, AssetComp));
     const AssetSource* src    = ecs_view_read_t(itr, AssetProductLoadComp)->src;
 
     DynArray sets     = dynarray_create_t(g_allocHeap, AssetProductSet, 64);
@@ -322,7 +327,10 @@ ecs_system_define(LoadProductAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load ProductMap", log_param("error", fmt_text(errMsg)));
+    log_e(
+        "Failed to load ProductMap",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(errMsg)));
     dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_allocHeap, prod->name); }
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 

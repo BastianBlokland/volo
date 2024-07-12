@@ -159,7 +159,12 @@ static void asset_cursor_generate(
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetCursorLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_read(AssetComp);
+  ecs_access_write(AssetCursorLoadComp);
+}
+
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 ecs_view_define(UnloadView) {
@@ -181,6 +186,7 @@ ecs_system_define(LoadCursorAssetSys) {
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId    entity = ecs_view_entity(itr);
+    const String         id     = asset_id(ecs_view_read_t(itr, AssetComp));
     AssetCursorLoadComp* load   = ecs_view_write_t(itr, AssetCursorLoadComp);
     CursorError          err;
 
@@ -235,7 +241,10 @@ ecs_system_define(LoadCursorAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load cursor", log_param("error", fmt_text(cursor_error_str(err))));
+    log_e(
+        "Failed to load cursor",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(cursor_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
@@ -279,8 +288,6 @@ ecs_module_init(asset_cursor_module) {
 
 void asset_load_cursor(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
-
   CursorDef      cursorDef;
   String         errMsg;
   DataReadResult readRes;
@@ -295,7 +302,8 @@ void asset_load_cursor(
   goto Cleanup;
 
 Error:
-  log_e("Failed to load cursor", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load cursor", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_dataCursorDefMeta, mem_var(cursorDef));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 

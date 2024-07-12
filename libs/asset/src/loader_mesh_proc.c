@@ -573,7 +573,6 @@ static String procmesh_error_str(const ProcMeshError err) {
 
 void asset_load_procmesh(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
   procmesh_datareg_init();
 
   String            errMsg;
@@ -612,7 +611,10 @@ void asset_load_procmesh(
   goto Done;
 
 Error:
-  log_e("Failed to load procmesh mesh", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load procmesh mesh",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Done:

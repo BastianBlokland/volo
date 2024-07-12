@@ -572,7 +572,12 @@ static void arraytex_generate(
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetArrayLoadComp); }
+
+ecs_view_define(LoadView) {
+  ecs_access_write(AssetComp);
+  ecs_access_write(AssetArrayLoadComp);
+}
+
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 /**
@@ -616,6 +621,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId   entity = ecs_view_entity(itr);
+    const String        id     = asset_id(ecs_view_read_t(itr, AssetComp));
     AssetArrayLoadComp* load   = ecs_view_write_t(itr, AssetArrayLoadComp);
     ArrayTexError       err;
 
@@ -654,7 +660,10 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load array-texture", log_param("error", fmt_text(arraytex_error_str(err))));
+    log_e(
+        "Failed to load array-texture",
+        log_param("id", fmt_text(id)),
+        log_param("error", fmt_text(arraytex_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
@@ -724,7 +733,10 @@ void asset_load_arraytex(
   return;
 
 Error:
-  log_e("Failed to load array texture", log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load array texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def));
   asset_repo_source_close(src);

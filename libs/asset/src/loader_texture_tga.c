@@ -384,8 +384,12 @@ static Mem tga_pixels_read(
   return tga_pixels_read_uncompressed(pixels, channels, flags, width, height, input, outAlpha, err);
 }
 
-static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaError err) {
-  log_e("Failed to parse Tga texture", log_param("error", fmt_text(tga_error_str(err))));
+static void
+tga_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const TgaError err) {
+  log_e(
+      "Failed to parse Tga texture",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(tga_error_str(err))));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
@@ -399,36 +403,36 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
   TgaHeader header;
   data = tga_read_header(data, &header, &res);
   if (res) {
-    tga_load_fail(world, entity, res);
+    tga_load_fail(world, entity, id, res);
     goto Error;
   }
   if (header.colorMapType == TgaColorMapType_Present) {
-    tga_load_fail(world, entity, TgaError_UnsupportedColorMap);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedColorMap);
     goto Error;
   }
   const TgaChannels channels = tga_channels_from_bit_depth(header.imageSpec.bitsPerPixel);
   if (channels == TgaChannels_Invalid) {
-    tga_load_fail(world, entity, TgaError_UnsupportedBitDepth);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedBitDepth);
     goto Error;
   }
   if (channels == TgaChannels_RGBA && header.imageSpec.descriptor.attributeDepth != 8) {
-    tga_load_fail(world, entity, TgaError_UnsupportedAlphaChannelDepth);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedAlphaChannelDepth);
     goto Error;
   }
   if (header.imageSpec.descriptor.interleave != TgaInterleave_None) {
-    tga_load_fail(world, entity, TgaError_UnsupportedInterleaved);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedInterleaved);
     goto Error;
   }
   if (!tga_type_supported(header.imageType)) {
-    tga_load_fail(world, entity, TgaError_UnsupportedNonTrueColor);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedNonTrueColor);
     goto Error;
   }
   if (!header.imageSpec.width || !header.imageSpec.height) {
-    tga_load_fail(world, entity, TgaError_UnsupportedSize);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedSize);
     goto Error;
   }
   if (header.imageSpec.width > tga_max_width || header.imageSpec.height > tga_max_height) {
-    tga_load_fail(world, entity, TgaError_UnsupportedSize);
+    tga_load_fail(world, entity, id, TgaError_UnsupportedSize);
     goto Error;
   }
   if (header.imageType == TgaImageType_RleGrayscale ||
@@ -441,7 +445,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
 
   if (data.size <= header.idLength) {
-    tga_load_fail(world, entity, TgaError_Malformed);
+    tga_load_fail(world, entity, id, TgaError_Malformed);
     goto Error;
   }
   data = mem_consume(data, header.idLength); // Skip over the id field.
@@ -454,7 +458,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
   data          = tga_pixels_read(pixels, channels, flags, width, height, data, &hasAlpha, &res);
 
   if (res) {
-    tga_load_fail(world, entity, res);
+    tga_load_fail(world, entity, id, res);
     alloc_free(g_allocHeap, pixels);
     goto Error;
   }

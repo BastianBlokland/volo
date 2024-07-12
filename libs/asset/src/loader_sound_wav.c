@@ -213,14 +213,16 @@ static void wav_load_succeed(
       .samples       = samples);
 }
 
-static void wav_load_fail(EcsWorld* world, const EcsEntityId entity, const WavError err) {
-  log_e("Failed to parse Wave file", log_param("error", fmt_text(wav_error_str(err))));
+static void
+wav_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const WavError err) {
+  log_e(
+      "Failed to parse Wave file",
+      log_param("id", fmt_text(id)),
+      log_param("error", fmt_text(wav_error_str(err))));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
-
   WavError err        = WavError_None;
   DynArray chunks     = dynarray_create_t(g_allocHeap, WavChunk, 8);
   f32*     samples    = null;
@@ -228,45 +230,45 @@ void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, 
   WavChunk rootChunk;
   wav_consume_chunk(src->data, &rootChunk, &err);
   if (err) {
-    wav_load_fail(world, entity, err);
+    wav_load_fail(world, entity, id, err);
     goto End;
   }
   if (!string_eq(rootChunk.tag, string_lit("RIFF"))) {
-    wav_load_fail(world, entity, WavError_RiffUnsupportedRootChunk);
+    wav_load_fail(world, entity, id, WavError_RiffUnsupportedRootChunk);
     goto End;
   }
   wav_consume_chunk_list(rootChunk.data, &chunks, &err);
   if (err) {
-    wav_load_fail(world, entity, err);
+    wav_load_fail(world, entity, id, err);
     goto End;
   }
   WavFormat format;
   wav_read_format(&chunks, &format, &err);
   if (err) {
-    wav_load_fail(world, entity, err);
+    wav_load_fail(world, entity, id, err);
     goto End;
   }
   if (format.formatType != WavFormatType_PCM) {
-    wav_load_fail(world, entity, WavError_FormatTypeUnsupported);
+    wav_load_fail(world, entity, id, WavError_FormatTypeUnsupported);
     goto End;
   }
   if (format.channels > wav_channels_max) {
-    wav_load_fail(world, entity, WavError_ChannelCountExceedsMaximum);
+    wav_load_fail(world, entity, id, WavError_ChannelCountExceedsMaximum);
     goto End;
   }
   wav_read_frame_count(format, &chunks, &frameCount, &err);
   if (err) {
-    wav_load_fail(world, entity, err);
+    wav_load_fail(world, entity, id, err);
     goto End;
   }
   if (frameCount < wav_frames_min || frameCount > wav_frames_max) {
-    wav_load_fail(world, entity, WavError_FrameCountUnsupported);
+    wav_load_fail(world, entity, id, WavError_FrameCountUnsupported);
     goto End;
   }
   samples = alloc_array_t(g_allocHeap, f32, frameCount * format.channels);
   wav_read_samples(format, &chunks, frameCount, samples, &err);
   if (err) {
-    wav_load_fail(world, entity, err);
+    wav_load_fail(world, entity, id, err);
     goto End;
   }
 

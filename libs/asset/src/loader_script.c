@@ -818,7 +818,6 @@ ecs_module_init(asset_script_module) {
 
 void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
@@ -832,7 +831,7 @@ void asset_load_script(
   for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
     const String      msg  = script_diag_pretty_scratch(src->data, diag);
-    log_e("Script load error", log_param("error", fmt_text(msg)));
+    log_e("Script load error", log_param("id", fmt_text(id)), log_param("error", fmt_text(msg)));
   }
 
   script_diag_bag_destroy(diags);
