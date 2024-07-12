@@ -302,8 +302,6 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset has failed loading.
        */
 
-      log_w("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
-
       if (dependencyComp) {
         /*
          * Mark the assets that depend on this asset to be instantly unloaded (instead of waiting

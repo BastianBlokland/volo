@@ -29,7 +29,7 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
       &repoMem->entries, asset_compare_entry, mem_struct(RepoEntry, .idHash = idHash).ptr);
 
   if (!entry) {
-    log_w("AssetRepository: Failed to find entry", log_param("id", fmt_path(id)));
+    log_w("Failed to find entry", log_param("id", fmt_path(id)));
     return null;
   }
 
