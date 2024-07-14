@@ -63,6 +63,18 @@ static void ecs_destruct_texture_comp(void* data) {
   alloc_free(g_allocHeap, asset_texture_data(comp));
 }
 
+static usize asset_texture_format_pixel_size(const AssetTextureFormat format) {
+  static const usize g_pixelSize[AssetTextureFormat_Count] = {
+      [AssetTextureFormat_u8_r]     = sizeof(u8) * 1,
+      [AssetTextureFormat_u8_rgba]  = sizeof(u8) * 4,
+      [AssetTextureFormat_u16_r]    = sizeof(u16) * 1,
+      [AssetTextureFormat_u16_rgba] = sizeof(u16) * 4,
+      [AssetTextureFormat_f32_r]    = sizeof(f32) * 1,
+      [AssetTextureFormat_f32_rgba] = sizeof(f32) * 4,
+  };
+  return g_pixelSize[format];
+}
+
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetTextureComp);
   ecs_access_without(AssetLoadedComp);
@@ -87,94 +99,84 @@ ecs_module_init(asset_texture_module) {
   ecs_register_system(UnloadTextureAssetSys, ecs_view_id(UnloadView));
 }
 
-String asset_texture_type_str(const AssetTextureType type) {
-  static const String g_names[] = {
-      string_static("U8"),
-      string_static("U16"),
-      string_static("F32"),
+String asset_texture_format_str(const AssetTextureFormat format) {
+  static const String g_names[AssetTextureFormat_Count] = {
+      [AssetTextureFormat_u8_r]     = string_static("u8-r"),
+      [AssetTextureFormat_u8_rgba]  = string_static("u8-rgba"),
+      [AssetTextureFormat_u16_r]    = string_static("u16-r"),
+      [AssetTextureFormat_u16_rgba] = string_static("u16-rgba"),
+      [AssetTextureFormat_f32_r]    = string_static("f32-r"),
+      [AssetTextureFormat_f32_rgba] = string_static("f32-rgba"),
   };
-  ASSERT(array_elems(g_names) == AssetTextureType_Count, "Incorrect number of names");
-  return g_names[type];
+  return g_names[format];
+}
+
+usize asset_texture_format_channels(const AssetTextureFormat format) {
+  static const usize g_channels[AssetTextureFormat_Count] = {
+      [AssetTextureFormat_u8_r]     = 1,
+      [AssetTextureFormat_u8_rgba]  = 4,
+      [AssetTextureFormat_u16_r]    = 1,
+      [AssetTextureFormat_u16_rgba] = 4,
+      [AssetTextureFormat_f32_r]    = 1,
+      [AssetTextureFormat_f32_rgba] = 4,
+  };
+  return g_channels[format];
 }
 
 usize asset_texture_req_mip_size(
-    const AssetTextureType     type,
-    const AssetTextureChannels channels,
-    const u32                  width,
-    const u32                  height,
-    const u32                  layers,
-    const u32                  mipLevel) {
-  const u32 mipWidth  = math_max(width >> mipLevel, 1);
-  const u32 mipHeight = math_max(height >> mipLevel, 1);
-  switch (type) {
-  case AssetTextureType_U8:
-    return sizeof(u8) * channels * mipWidth * mipHeight * math_max(1, layers);
-  case AssetTextureType_U16:
-    return sizeof(u16) * channels * mipWidth * mipHeight * math_max(1, layers);
-  case AssetTextureType_F32:
-    return sizeof(f32) * channels * mipWidth * mipHeight * math_max(1, layers);
-  case AssetTextureType_Count:
+    const AssetTextureFormat format,
+    const u32                width,
+    const u32                height,
+    const u32                layers,
+    const u32                mipLevel) {
+  const u32 mipWidth   = math_max(width >> mipLevel, 1);
+  const u32 mipHeight  = math_max(height >> mipLevel, 1);
+  const u32 pixelCount = mipWidth * mipHeight * math_max(1, layers);
+  switch (format) {
+  case AssetTextureFormat_u8_r:
+    return sizeof(u8) * 1 * pixelCount;
+  case AssetTextureFormat_u8_rgba:
+    return sizeof(u8) * 4 * pixelCount;
+  case AssetTextureFormat_u16_r:
+    return sizeof(u16) * 1 * pixelCount;
+  case AssetTextureFormat_u16_rgba:
+    return sizeof(u16) * 4 * pixelCount;
+  case AssetTextureFormat_f32_r:
+    return sizeof(f32) * 1 * pixelCount;
+  case AssetTextureFormat_f32_rgba:
+    return sizeof(f32) * 4 * pixelCount;
+  case AssetTextureFormat_Count:
     UNREACHABLE
   }
   diag_crash();
 }
 
 usize asset_texture_req_size(
-    const AssetTextureType     type,
-    const AssetTextureChannels channels,
-    const u32                  width,
-    const u32                  height,
-    const u32                  layers,
-    const u32                  mipLevels) {
+    const AssetTextureFormat format,
+    const u32                width,
+    const u32                height,
+    const u32                layers,
+    const u32                mipLevels) {
   usize size = 0;
   for (u32 mipLevel = 0; mipLevel != math_max(mipLevels, 1); ++mipLevel) {
-    size += asset_texture_req_mip_size(type, channels, width, height, layers, mipLevel);
+    size += asset_texture_req_mip_size(format, width, height, layers, mipLevel);
   }
   return size;
 }
 
-usize asset_texture_req_align(const AssetTextureType type, const AssetTextureChannels channels) {
-  switch (type) {
-  case AssetTextureType_U8:
-    return sizeof(u8) * channels;
-  case AssetTextureType_U16:
-    return sizeof(u16) * channels;
-  case AssetTextureType_F32:
-    return sizeof(f32) * channels;
-  case AssetTextureType_Count:
-    UNREACHABLE
-  }
-  diag_crash();
-}
-
-usize asset_texture_pixel_size(const AssetTextureComp* texture) {
-  switch (texture->type) {
-  case AssetTextureType_U8:
-    return sizeof(u8) * texture->channels;
-  case AssetTextureType_U16:
-    return sizeof(u16) * texture->channels;
-  case AssetTextureType_F32:
-    return sizeof(f32) * texture->channels;
-  case AssetTextureType_Count:
-    UNREACHABLE
-  }
-  diag_crash();
+usize asset_texture_req_align(const AssetTextureFormat format) {
+  return asset_texture_format_pixel_size(format);
 }
 
 usize asset_texture_mip_size(const AssetTextureComp* texture, const u32 mipLevel) {
   diag_assert(mipLevel < math_max(texture->srcMipLevels, 1));
   return asset_texture_req_mip_size(
-      texture->type, texture->channels, texture->width, texture->height, texture->layers, mipLevel);
+      texture->format, texture->width, texture->height, texture->layers, mipLevel);
 }
 
 usize asset_texture_data_size(const AssetTextureComp* texture) {
   return asset_texture_req_size(
-      texture->type,
-      texture->channels,
-      texture->width,
-      texture->height,
-      texture->layers,
-      texture->srcMipLevels);
+      texture->format, texture->width, texture->height, texture->layers, texture->srcMipLevels);
 }
 
 Mem asset_texture_data(const AssetTextureComp* texture) {
@@ -183,81 +185,66 @@ Mem asset_texture_data(const AssetTextureComp* texture) {
 
 GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const usize index) {
   const usize pixelCount    = tex->width * tex->height;
-  const usize layerDataSize = pixelCount * asset_texture_pixel_size(tex);
+  const usize layerDataSize = pixelCount * asset_texture_format_pixel_size(tex->format);
   const void* pixelsMip0    = tex->pixelData + (layerDataSize * layer);
 
   /**
    * Follows the same to RGBA conversion rules as the Vulkan spec:
    * https://registry.khronos.org/vulkan/specs/1.0/html/chap16.html#textures-conversion-to-rgba
    */
+  static const f32 g_u8MaxInv  = 1.0f / u8_max;
+  static const f32 g_u16MaxInv = 1.0f / u16_max;
 
   GeoColor res;
-  switch (tex->type) {
-  // 8 bit unsigned pixels.
-  case AssetTextureType_U8: {
-    static const f32 g_u8MaxInv = 1.0f / u8_max;
-    switch (tex->channels) {
-    case AssetTextureChannels_One:
-      if (tex->flags & AssetTextureFlags_Srgb) {
-        res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index]];
-      } else {
-        res.r = ((const u8*)pixelsMip0)[index] * g_u8MaxInv;
-      }
-      res.g = 0.0f;
-      res.b = 0.0f;
-      res.a = 1.0f;
-      return res;
-    case AssetTextureChannels_Four:
-      if (tex->flags & AssetTextureFlags_Srgb) {
-        res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 0]];
-        res.g = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 1]];
-        res.b = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 2]];
-        res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
-      } else {
-        res.r = ((const u8*)pixelsMip0)[index * 4 + 0] * g_u8MaxInv;
-        res.g = ((const u8*)pixelsMip0)[index * 4 + 1] * g_u8MaxInv;
-        res.b = ((const u8*)pixelsMip0)[index * 4 + 2] * g_u8MaxInv;
-        res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
-      }
-      return res;
+  switch (tex->format) {
+  case AssetTextureFormat_u8_r:
+    if (tex->flags & AssetTextureFlags_Srgb) {
+      res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index]];
+    } else {
+      res.r = ((const u8*)pixelsMip0)[index] * g_u8MaxInv;
     }
-  }
-  // 16 bit unsigned pixels.
-  case AssetTextureType_U16: {
-    static const f32 g_u16MaxInv = 1.0f / u16_max;
-    switch (tex->channels) {
-    case AssetTextureChannels_One:
-      res.r = ((const u16*)pixelsMip0)[index] * g_u16MaxInv;
-      res.g = 0.0f;
-      res.b = 0.0f;
-      res.a = 1.0f;
-      return res;
-    case AssetTextureChannels_Four:
-      res.r = ((const u16*)pixelsMip0)[index * 4 + 0] * g_u16MaxInv;
-      res.g = ((const u16*)pixelsMip0)[index * 4 + 1] * g_u16MaxInv;
-      res.b = ((const u16*)pixelsMip0)[index * 4 + 2] * g_u16MaxInv;
-      res.a = ((const u16*)pixelsMip0)[index * 4 + 3] * g_u16MaxInv;
-      return res;
+    res.g = 0.0f;
+    res.b = 0.0f;
+    res.a = 1.0f;
+    return res;
+  case AssetTextureFormat_u8_rgba:
+    if (tex->flags & AssetTextureFlags_Srgb) {
+      res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 0]];
+      res.g = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 1]];
+      res.b = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 2]];
+      res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
+    } else {
+      res.r = ((const u8*)pixelsMip0)[index * 4 + 0] * g_u8MaxInv;
+      res.g = ((const u8*)pixelsMip0)[index * 4 + 1] * g_u8MaxInv;
+      res.b = ((const u8*)pixelsMip0)[index * 4 + 2] * g_u8MaxInv;
+      res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
     }
-  }
-  // 32 bit floating point pixels.
-  case AssetTextureType_F32: {
-    switch (tex->channels) {
-    case AssetTextureChannels_One:
-      res.r = ((const f32*)pixelsMip0)[index];
-      res.g = 0.0f;
-      res.b = 0.0f;
-      res.a = 1.0f;
-      return res;
-    case AssetTextureChannels_Four:
-      res.r = ((const f32*)pixelsMip0)[index * 4 + 0];
-      res.g = ((const f32*)pixelsMip0)[index * 4 + 1];
-      res.b = ((const f32*)pixelsMip0)[index * 4 + 2];
-      res.a = ((const f32*)pixelsMip0)[index * 4 + 3];
-      return res;
-    }
-  }
-  case AssetTextureType_Count:
+    return res;
+  case AssetTextureFormat_u16_r:
+    res.r = ((const u16*)pixelsMip0)[index] * g_u16MaxInv;
+    res.g = 0.0f;
+    res.b = 0.0f;
+    res.a = 1.0f;
+    return res;
+  case AssetTextureFormat_u16_rgba:
+    res.r = ((const u16*)pixelsMip0)[index * 4 + 0] * g_u16MaxInv;
+    res.g = ((const u16*)pixelsMip0)[index * 4 + 1] * g_u16MaxInv;
+    res.b = ((const u16*)pixelsMip0)[index * 4 + 2] * g_u16MaxInv;
+    res.a = ((const u16*)pixelsMip0)[index * 4 + 3] * g_u16MaxInv;
+    return res;
+  case AssetTextureFormat_f32_r:
+    res.r = ((const f32*)pixelsMip0)[index];
+    res.g = 0.0f;
+    res.b = 0.0f;
+    res.a = 1.0f;
+    return res;
+  case AssetTextureFormat_f32_rgba:
+    res.r = ((const f32*)pixelsMip0)[index * 4 + 0];
+    res.g = ((const f32*)pixelsMip0)[index * 4 + 1];
+    res.b = ((const f32*)pixelsMip0)[index * 4 + 2];
+    res.a = ((const f32*)pixelsMip0)[index * 4 + 3];
+    return res;
+  case AssetTextureFormat_Count:
     break;
   }
   UNREACHABLE
