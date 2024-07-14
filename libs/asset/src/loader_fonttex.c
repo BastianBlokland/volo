@@ -188,7 +188,7 @@ static void fonttex_generate_glyph(
     const AssetFontComp*  font,
     const AssetFontGlyph* glyph,
     const u32             index,
-    AssetTexturePixelB1*  out) {
+    u8*                   out) {
 
   const u32 texY = index * def->glyphSize / def->size * def->glyphSize;
   const u32 texX = index * def->glyphSize % def->size;
@@ -214,7 +214,7 @@ static void fonttex_generate_glyph(
 
       const usize texPixelY                  = texY + glyphPixelY;
       const usize texPixelX                  = texX + glyphPixelX;
-      out[texPixelY * def->size + texPixelX] = (AssetTexturePixelB1){value};
+      out[texPixelY * def->size + texPixelX] = value;
     }
   }
 }
@@ -234,7 +234,7 @@ static void fonttex_generate_font(
     u32                          maxGlyphs,
     u16*                         nextGlyphIndex,
     DynArray*                    outChars, // AssetFtxChar[]
-    AssetTexturePixelB1*         outPixels,
+    u8*                          outPixels,
     FontTexError*                err) {
 
   FontTexDefChar inputChars[fonttex_max_chars];
@@ -272,11 +272,11 @@ static void fonttex_generate(
     AssetTextureComp*             outTexture,
     FontTexError*                 err) {
 
-  Mem pixelMem = alloc_alloc(g_allocHeap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
+  Mem pixelMem = alloc_alloc(g_allocHeap, def->size * def->size, 1);
   mem_set(pixelMem, 0xFF); // Initialize to the maximum distance away from a glyph.
 
-  AssetTexturePixelB1* pixels = pixelMem.ptr;
-  DynArray             chars  = dynarray_create_t(g_allocHeap, AssetFontTexChar, 128);
+  u8*      pixels = pixelMem.ptr;
+  DynArray chars  = dynarray_create_t(g_allocHeap, AssetFontTexChar, 128);
 
   const u32 glyphsPerDim   = def->size / def->glyphSize;
   const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
@@ -308,7 +308,7 @@ static void fonttex_generate(
   *outTexture = (AssetTextureComp){
       .type         = AssetTextureType_U8,
       .channels     = AssetTextureChannels_One,
-      .pixelsB1     = pixels,
+      .pixelsRaw    = pixels,
       .width        = def->size,
       .height       = def->size,
       .layers       = 1,

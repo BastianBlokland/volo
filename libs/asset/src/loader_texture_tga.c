@@ -224,19 +224,17 @@ static Mem tga_pixels_alloc(Allocator* alloc, const TgaChannels ch, const u32 w,
 }
 
 static void tga_pixels_copy_at(
-    const Mem         pixels /* AssetTexturePixelB1* or AssetTexturePixelB4* */,
+    const Mem         pixels /* u8[width * height] or u8[width * height * 4] */,
     const TgaChannels channels,
     const usize       dst,
     const usize       src) {
   switch (channels) {
   case TgaChannels_R: {
-    AssetTexturePixelB1* pixelsB1 = (AssetTexturePixelB1*)pixels.ptr;
-    pixelsB1[dst]                 = pixelsB1[src];
+    ((u8*)pixels.ptr)[dst] = ((const u8*)pixels.ptr)[src];
   } break;
   case TgaChannels_RGB:
   case TgaChannels_RGBA: {
-    AssetTexturePixelB4* pixelsB4 = (AssetTexturePixelB4*)pixels.ptr;
-    pixelsB4[dst]                 = pixelsB4[src];
+    ((u32*)pixels.ptr)[dst] = ((const u32*)pixels.ptr)[src];
   } break;
   default:
     UNREACHABLE
@@ -244,7 +242,7 @@ static void tga_pixels_copy_at(
 }
 
 static void tga_pixels_read_at(
-    const Mem         pixels /* AssetTexturePixelB1* or AssetTexturePixelB4* */,
+    const Mem         pixels /* u8[width * height] or u8[width * height * 4] */,
     const TgaChannels channels,
     const u8*         data,
     const usize       index,
@@ -256,27 +254,18 @@ static void tga_pixels_read_at(
    */
 
   switch (channels) {
-  case TgaChannels_R: {
-    AssetTexturePixelB1* outPixelB1 = (AssetTexturePixelB1*)pixels.ptr + index;
-    outPixelB1->r                   = data[0];
-  } break;
-  case TgaChannels_RGB: {
-    AssetTexturePixelB4* outPixelB4 = (AssetTexturePixelB4*)pixels.ptr + index;
-    outPixelB4->b                   = data[0];
-    outPixelB4->g                   = data[1];
-    outPixelB4->r                   = data[2];
-    outPixelB4->a                   = 255;
-  } break;
-  case TgaChannels_RGBA: {
-    AssetTexturePixelB4* outPixelB4 = (AssetTexturePixelB4*)pixels.ptr + index;
-    outPixelB4->b                   = data[0];
-    outPixelB4->g                   = data[1];
-    outPixelB4->r                   = data[2];
-    outPixelB4->a                   = data[3];
-    if (outPixelB4->a != 255) {
+  case TgaChannels_R:
+    ((u8*)pixels.ptr)[index] = data[0];
+    break;
+  case TgaChannels_RGB:
+    ((u32*)pixels.ptr)[index] = (data[2] << 0) | (data[1] << 8) | (data[0] << 16) | (255 << 24);
+    break;
+  case TgaChannels_RGBA:
+    ((u32*)pixels.ptr)[index] = (data[2] << 0) | (data[1] << 8) | (data[0] << 16) | (data[3] << 24);
+    if (data[3] != 255) {
       *outAlpha = true;
     }
-  } break;
+    break;
   default:
     UNREACHABLE
   }

@@ -230,14 +230,13 @@ static CubePoint arraytex_cube_lookup(const GeoVector dir) {
   return res;
 }
 
-static AssetTexturePixelB4 arraytex_color_to_b4(const GeoColor color) {
+static void arraytex_color_to_b4(const GeoColor color, u8 out[PARAM_ARRAY_SIZE(4)]) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
-  return (AssetTexturePixelB4){
-      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
-      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
-      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
-      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
-  };
+
+  out[0] = (u8)(color.r * g_u8MaxPlusOneRoundDown);
+  out[1] = (u8)(color.g * g_u8MaxPlusOneRoundDown);
+  out[2] = (u8)(color.b * g_u8MaxPlusOneRoundDown);
+  out[3] = (u8)(color.a * g_u8MaxPlusOneRoundDown);
 }
 
 static GeoColor arraytex_sample_cube(const AssetTextureComp** textures, const GeoVector dir) {
@@ -287,8 +286,8 @@ static void arraytex_write_resample(
         if (srgb) {
           color = geo_color_linear_to_srgb(color);
         }
-        *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(color);
-        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        arraytex_color_to_b4(color, dest.ptr);
+        dest = mem_consume(dest, 4);
       }
     }
   }
@@ -375,8 +374,8 @@ static void arraytex_write_diff_irradiance_b4(
         const GeoVector dir        = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
         const GeoColor  irradiance = arraytex_diff_irradiance_convolve(textures, dir);
 
-        *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(irradiance);
-        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        arraytex_color_to_b4(irradiance, dest.ptr);
+        dest = mem_consume(dest, 4);
       }
     }
   }
@@ -456,8 +455,8 @@ static void arraytex_write_spec_irradiance_b4(
           const GeoColor  irr =
               arraytex_spec_irradiance_convolve(textures, dir, samples, sampleCount);
 
-          *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(irr);
-          dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+          arraytex_color_to_b4(irr, dest.ptr);
+          dest = mem_consume(dest, 4);
         }
       }
     }

@@ -7,10 +7,10 @@
 #include "utils_internal.h"
 
 static const struct {
-  String              id;
-  String              text;
-  AssetTexturePixelB4 pixels[16];
-  usize               pixelCount;
+  String id;
+  String text;
+  u8     pixels[16][4];
+  usize  pixelCount;
 } g_testData[] = {
     {
         .id   = string_static("p3_formatted.ppm"),
@@ -230,10 +230,10 @@ spec(loader_texture_ppm) {
       check_eq_int(tex->channels, 4);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {
-        check_eq_int(tex->pixelsB4[p].r, g_testData[i].pixels[p].r);
-        check_eq_int(tex->pixelsB4[p].g, g_testData[i].pixels[p].g);
-        check_eq_int(tex->pixelsB4[p].b, g_testData[i].pixels[p].b);
-        check_eq_int(tex->pixelsB4[p].a, g_testData[i].pixels[p].a);
+        check_eq_int(tex->pixelsRaw[p * 4 + 0], g_testData[i].pixels[p][0]);
+        check_eq_int(tex->pixelsRaw[p * 4 + 1], g_testData[i].pixels[p][1]);
+        check_eq_int(tex->pixelsRaw[p * 4 + 2], g_testData[i].pixels[p][2]);
+        check_eq_int(tex->pixelsRaw[p * 4 + 3], g_testData[i].pixels[p][3]);
       }
     };
   }

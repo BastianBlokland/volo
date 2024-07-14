@@ -5,14 +5,6 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
-typedef struct {
-  u8 r;
-} AssetTexturePixelB1;
-
-typedef struct {
-  u8 r, g, b, a;
-} AssetTexturePixelB4;
-
 typedef enum {
   AssetTextureType_U8,
   AssetTextureType_U16,
@@ -39,12 +31,8 @@ ecs_comp_extern_public(AssetTextureComp) {
   AssetTextureType     type;
   AssetTextureChannels channels;
   AssetTextureFlags    flags;
-  union {
-    const u8*                  pixelsRaw;
-    const AssetTexturePixelB1* pixelsB1;
-    const AssetTexturePixelB4* pixelsB4;
-  };
-  u32 width, height, layers, srcMipLevels, maxMipLevels;
+  const u8*            pixelsRaw;
+  u32                  width, height, layers, srcMipLevels, maxMipLevels;
 };
 
 String asset_texture_type_str(AssetTextureType);

@@ -199,9 +199,9 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
     switch (tex->channels) {
     case AssetTextureChannels_One:
       if (tex->flags & AssetTextureFlags_Srgb) {
-        res.r = g_textureSrgbToFloat[((AssetTexturePixelB1*)pixelsMip0)[index].r];
+        res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index]];
       } else {
-        res.r = ((AssetTexturePixelB1*)pixelsMip0)[index].r * g_u8MaxInv;
+        res.r = ((const u8*)pixelsMip0)[index] * g_u8MaxInv;
       }
       res.g = 0.0f;
       res.b = 0.0f;
@@ -209,15 +209,15 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
       return res;
     case AssetTextureChannels_Four:
       if (tex->flags & AssetTextureFlags_Srgb) {
-        res.r = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].r];
-        res.g = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].g];
-        res.b = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].b];
-        res.a = ((AssetTexturePixelB4*)pixelsMip0)[index].a * g_u8MaxInv;
+        res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 0]];
+        res.g = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 1]];
+        res.b = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 2]];
+        res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
       } else {
-        res.r = ((AssetTexturePixelB4*)pixelsMip0)[index].r * g_u8MaxInv;
-        res.g = ((AssetTexturePixelB4*)pixelsMip0)[index].g * g_u8MaxInv;
-        res.b = ((AssetTexturePixelB4*)pixelsMip0)[index].b * g_u8MaxInv;
-        res.a = ((AssetTexturePixelB4*)pixelsMip0)[index].a * g_u8MaxInv;
+        res.r = ((const u8*)pixelsMip0)[index * 4 + 0] * g_u8MaxInv;
+        res.g = ((const u8*)pixelsMip0)[index * 4 + 1] * g_u8MaxInv;
+        res.b = ((const u8*)pixelsMip0)[index * 4 + 2] * g_u8MaxInv;
+        res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
       }
       return res;
     }
