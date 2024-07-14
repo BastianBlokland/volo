@@ -13,14 +13,6 @@ typedef struct {
   u8 r, g, b, a;
 } AssetTexturePixelB4;
 
-typedef struct {
-  u16 r;
-} AssetTexturePixelU1;
-
-typedef struct {
-  u16 r, g, b, a;
-} AssetTexturePixelU4;
-
 typedef enum {
   AssetTextureType_U8,
   AssetTextureType_U16,
@@ -51,8 +43,6 @@ ecs_comp_extern_public(AssetTextureComp) {
     const u8*                  pixelsRaw;
     const AssetTexturePixelB1* pixelsB1;
     const AssetTexturePixelB4* pixelsB4;
-    const AssetTexturePixelU1* pixelsU1;
-    const AssetTexturePixelU4* pixelsU4;
   };
   u32 width, height, layers, srcMipLevels, maxMipLevels;
 };

@@ -227,16 +227,16 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
     static const f32 g_u16MaxInv = 1.0f / u16_max;
     switch (tex->channels) {
     case AssetTextureChannels_One:
-      res.r = ((AssetTexturePixelU1*)pixelsMip0)[index].r * g_u16MaxInv;
+      res.r = ((const u16*)pixelsMip0)[index] * g_u16MaxInv;
       res.g = 0.0f;
       res.b = 0.0f;
       res.a = 1.0f;
       return res;
     case AssetTextureChannels_Four:
-      res.r = ((AssetTexturePixelU4*)pixelsMip0)[index].r * g_u16MaxInv;
-      res.g = ((AssetTexturePixelU4*)pixelsMip0)[index].g * g_u16MaxInv;
-      res.b = ((AssetTexturePixelU4*)pixelsMip0)[index].b * g_u16MaxInv;
-      res.a = ((AssetTexturePixelU4*)pixelsMip0)[index].a * g_u16MaxInv;
+      res.r = ((const u16*)pixelsMip0)[index * 4 + 0] * g_u16MaxInv;
+      res.g = ((const u16*)pixelsMip0)[index * 4 + 1] * g_u16MaxInv;
+      res.b = ((const u16*)pixelsMip0)[index * 4 + 2] * g_u16MaxInv;
+      res.a = ((const u16*)pixelsMip0)[index * 4 + 3] * g_u16MaxInv;
       return res;
     }
   }
