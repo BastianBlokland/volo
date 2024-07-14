@@ -239,7 +239,7 @@ void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, 
       .flags        = ppm_texture_flags(isNormalmap),
       .width        = width,
       .height       = height,
-      .pixelsRaw    = pixels,
+      .pixelData    = pixels,
       .layers       = 1,
       .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);

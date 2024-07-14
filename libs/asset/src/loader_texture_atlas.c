@@ -237,7 +237,7 @@ static void atlas_generate(
       .type         = AssetTextureType_U8,
       .channels     = AssetTextureChannels_Four,
       .flags        = atlas_texture_flags(def, hasAlpha),
-      .pixelsRaw    = pixels,
+      .pixelData    = pixels,
       .width        = def->size,
       .height       = def->size,
       .layers       = 1,

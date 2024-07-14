@@ -148,7 +148,7 @@ static void asset_cursor_generate(
       }
     }
   } else {
-    mem_cpy(pixelMem, mem_create(texture->pixelsRaw, pixelMemSize));
+    mem_cpy(pixelMem, asset_texture_data(texture));
   }
 
   outCursor->width    = outWidth;

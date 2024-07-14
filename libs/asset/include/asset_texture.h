@@ -31,7 +31,7 @@ ecs_comp_extern_public(AssetTextureComp) {
   AssetTextureType     type;
   AssetTextureChannels channels;
   AssetTextureFlags    flags;
-  const u8*            pixelsRaw;
+  const void*          pixelData;
   u32                  width, height, layers, srcMipLevels, maxMipLevels;
 };
 

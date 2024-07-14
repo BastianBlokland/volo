@@ -350,7 +350,7 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
       .type         = def->pixelType,
       .channels     = def->channels,
       .flags        = flags,
-      .pixelsRaw    = pixels,
+      .pixelData    = pixels,
       .width        = size,
       .height       = size,
       .layers       = 1,

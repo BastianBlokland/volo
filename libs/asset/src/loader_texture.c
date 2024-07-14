@@ -178,13 +178,13 @@ usize asset_texture_data_size(const AssetTextureComp* texture) {
 }
 
 Mem asset_texture_data(const AssetTextureComp* texture) {
-  return mem_create(texture->pixelsRaw, asset_texture_data_size(texture));
+  return mem_create(texture->pixelData, asset_texture_data_size(texture));
 }
 
 GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const usize index) {
   const usize pixelCount    = tex->width * tex->height;
   const usize layerDataSize = pixelCount * asset_texture_pixel_size(tex);
-  const void* pixelsMip0    = tex->pixelsRaw + (layerDataSize * layer);
+  const void* pixelsMip0    = tex->pixelData + (layerDataSize * layer);
 
   /**
    * Follows the same to RGBA conversion rules as the Vulkan spec:

@@ -561,7 +561,7 @@ static void arraytex_generate(
       .type         = type,
       .channels     = channels,
       .flags        = arraytex_texture_flags(def, outSrgb, alpha),
-      .pixelsRaw    = pixelsMem.ptr,
+      .pixelData    = pixelsMem.ptr,
       .width        = outWidth,
       .height       = outHeight,
       .layers       = layers,

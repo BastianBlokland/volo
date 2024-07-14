@@ -12,10 +12,10 @@
  */
 
 static const struct {
-  String id;
-  String base64Data;
-  u8     pixels[16][4];
-  usize  pixelCount;
+  String   id;
+  String   base64Data;
+  GeoColor pixels[16];
+  usize    pixelCount;
 } g_testData[] = {
     {
         .id         = string_static("2x2_upper-left_uncompressed.tga"),
@@ -23,10 +23,10 @@ static const struct {
             "AAACAAAAAAAAAAIAAgACABggAAD/AP8A/wAA////AAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {255, 255, 255, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -36,10 +36,10 @@ static const struct {
             "AAACAAAAAAAAAAAAAgACABgA/wAA////AAD/AP8AAAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {255, 255, 255, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -49,10 +49,10 @@ static const struct {
             "AAACAAAAAAAAAAIAAgACACAoAAD//wD/AJP/AACT/////wAAAAAAAAAAVFJVRVZJU0lPTi1YRklMRS4A"),
         .pixels =
             {
-                {0, 0, 255, 147},
-                {255, 255, 255, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 147},
+                {0.0f, 0.0f, 1.0f, 0.576f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 0.576f},
             },
         .pixelCount = 4,
     },
@@ -62,10 +62,10 @@ static const struct {
             "AAACAAAAAAAAAAAAAgACACAI/wAAk/////8AAP//AP8AkwAAAAAAAAAAVFJVRVZJU0lPTi1YRklMRS4A"),
         .pixels =
             {
-                {0, 0, 255, 147},
-                {255, 255, 255, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 147},
+                {0.0f, 0.0f, 1.0f, 0.576f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 0.576f},
             },
         .pixelCount = 4,
     },
@@ -75,25 +75,25 @@ static const struct {
                                     "+BAAAAAAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
             {
-                {255, 255, 255, 255},
-                {255, 255, 255, 255},
-                {0, 0, 0, 255},
-                {0, 0, 0, 255},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
 
-                {0, 255, 0, 255},
-                {0, 0, 255, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
 
-                {0, 255, 0, 255},
-                {0, 255, 0, 255},
-                {0, 255, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
 
-                {255, 0, 0, 255},
-                {255, 0, 0, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 16,
     },
@@ -103,25 +103,25 @@ static const struct {
                                     "AIIAAP8AAP8AAAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
             {
-                {255, 255, 255, 255},
-                {255, 255, 255, 255},
-                {0, 0, 0, 255},
-                {0, 0, 0, 255},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
 
-                {0, 255, 0, 255},
-                {0, 0, 255, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
 
-                {0, 255, 0, 255},
-                {0, 255, 0, 255},
-                {0, 255, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
 
-                {255, 0, 0, 255},
-                {255, 0, 0, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 16,
     },
@@ -132,25 +132,25 @@ static const struct {
             "AP8A/wCTAwAA/5MAAP//AAD/kwD/AP8AAAAAAAAAAFRSVUVWSVNJT04tWEZJTEUuAA=="),
         .pixels =
             {
-                {255, 255, 255, 255},
-                {255, 255, 255, 168},
-                {0, 0, 0, 255},
-                {0, 0, 0, 147},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 1.0f, 1.0f, 0.658f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 0.576f},
 
-                {0, 255, 0, 147},
-                {0, 0, 255, 255},
-                {255, 0, 0, 147},
-                {0, 255, 0, 255},
+                {0.0f, 1.0f, 0.0f, 0.576f},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 0.576f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
 
-                {0, 255, 0, 255},
-                {0, 255, 0, 147},
-                {0, 255, 0, 255},
-                {0, 255, 0, 147},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 0.576f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 0.576f},
 
-                {255, 0, 0, 147},
-                {255, 0, 0, 255},
-                {255, 0, 0, 147},
-                {0, 255, 0, 255},
+                {1.0f, 0.0f, 0.0f, 0.576f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 0.576f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 16,
     },
@@ -216,10 +216,11 @@ spec(loader_texture_tga) {
       check_eq_int(tex->channels, 4);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {
-        check_eq_int(tex->pixelsRaw[p * 4 + 0], g_testData[i].pixels[p][0]);
-        check_eq_int(tex->pixelsRaw[p * 4 + 1], g_testData[i].pixels[p][1]);
-        check_eq_int(tex->pixelsRaw[p * 4 + 2], g_testData[i].pixels[p][2]);
-        check_eq_int(tex->pixelsRaw[p * 4 + 3], g_testData[i].pixels[p][3]);
+        const GeoColor colorSrgb = geo_color_linear_to_srgb(asset_texture_at(tex, 0, p));
+        check_eq_float(colorSrgb.r, g_testData[i].pixels[p].r, 1e-2);
+        check_eq_float(colorSrgb.g, g_testData[i].pixels[p].g, 1e-2);
+        check_eq_float(colorSrgb.b, g_testData[i].pixels[p].b, 1e-2);
+        check_eq_float(colorSrgb.a, g_testData[i].pixels[p].a, 1e-2);
       }
     };
 

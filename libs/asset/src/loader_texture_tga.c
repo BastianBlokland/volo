@@ -462,7 +462,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       .flags        = tga_texture_flags(channels, isNormalmap, hasAlpha),
       .width        = width,
       .height       = height,
-      .pixelsRaw    = pixels.ptr,
+      .pixelData    = pixels.ptr,
       .layers       = 1,
       .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);

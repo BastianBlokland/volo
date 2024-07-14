@@ -121,7 +121,7 @@ static void htex_load(
       .channels     = AssetTextureChannels_One,
       .width        = size,
       .height       = size,
-      .pixelsRaw    = outMem.ptr,
+      .pixelData    = outMem.ptr,
       .layers       = 1,
       .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
