@@ -234,8 +234,7 @@ static void atlas_generate(
       .entryCount    = entryCount,
   };
   *outTexture = (AssetTextureComp){
-      .type         = AssetTextureType_U8,
-      .channels     = AssetTextureChannels_Four,
+      .format       = AssetTextureFormat_u8_rgba,
       .flags        = atlas_texture_flags(def, hasAlpha),
       .pixelData    = pixels,
       .width        = def->size,

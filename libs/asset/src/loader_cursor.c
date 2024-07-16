@@ -58,11 +58,10 @@ static void cursor_datareg_init(void) {
 }
 
 typedef enum {
-  CursorError_None                   = 0,
-  CursorError_InvalidTexture         = 1,
-  CursorError_InvalidTextureType     = 2,
-  CursorError_InvalidTextureChannels = 3,
-  CursorError_InvalidTextureLayers   = 4,
+  CursorError_None,
+  CursorError_InvalidTexture,
+  CursorError_InvalidTextureFormat,
+  CursorError_InvalidTextureLayers,
 
   CursorError_Count,
 } CursorError;
@@ -71,8 +70,7 @@ static String cursor_error_str(const CursorError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Cursor specifies an invalid texture"),
-      string_static("Cursor uses an unsupported pixel type (only u8 supported)"),
-      string_static("Cursor uses an unsupported channel count (only 4 supported)"),
+      string_static("Cursor uses an unsupported pixel format (only u8_rgba supported)"),
       string_static("Cursor uses an unsupported layer count (only 1 supported)"),
   };
   ASSERT(array_elems(g_msgs) == CursorError_Count, "Incorrect number of error messages");
@@ -218,12 +216,8 @@ ecs_system_define(LoadCursorAssetSys) {
      * Validate cursor texture.
      */
     const AssetTextureComp* texture = ecs_view_read_t(textureItr, AssetTextureComp);
-    if (UNLIKELY(texture->type != AssetTextureType_U8)) {
-      err = CursorError_InvalidTextureType;
-      goto Error;
-    }
-    if (UNLIKELY(texture->channels != AssetTextureChannels_Four)) {
-      err = CursorError_InvalidTextureChannels;
+    if (UNLIKELY(texture->format != AssetTextureFormat_u8_rgba)) {
+      err = CursorError_InvalidTextureFormat;
       goto Error;
     }
     if (UNLIKELY(texture->layers > 1)) {

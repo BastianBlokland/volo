@@ -7,8 +7,8 @@
       "additionalProperties": false,
       "properties": {
         "type": { "title": "ProcTexType", "$ref": "#/$defs/ProcTexType" },
-        "pixelType": { "title": "AssetTextureType", "$ref": "#/$defs/AssetTextureType" },
-        "channels": { "title": "AssetTextureChannels", "$ref": "#/$defs/AssetTextureChannels" },
+        "format": { "title": "ProcTexFormat", "$ref": "#/$defs/ProcTexFormat" },
+        "channels": { "title": "ProcTexChannels", "$ref": "#/$defs/ProcTexChannels" },
         "mipmaps": { "title": "bool", "type": "boolean" },
         "uncompressed": { "title": "bool", "type": "boolean" },
         "size": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
@@ -40,10 +40,10 @@
         "BrdfIntegration"
       ]
     },
-    "AssetTextureType": {
-      "enum": [ "U8", "U16", "F32" ]
+    "ProcTexFormat": {
+      "enum": [ "u8", "u16", "f32" ]
     },
-    "AssetTextureChannels": {
+    "ProcTexChannels": {
       "enum": [ "One", "Four" ]
     }
   }

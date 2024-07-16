@@ -25,10 +25,10 @@ ecs_comp_define(SceneTerrainComp) {
   EcsEntityId terrainAsset;
   EcsEntityId graphicAsset;
 
-  EcsEntityId      heightmapAsset;
-  Mem              heightmapData;
-  u32              heightmapSize;
-  AssetTextureType heightmapType;
+  EcsEntityId        heightmapAsset;
+  Mem                heightmapData;
+  u32                heightmapSize;
+  AssetTextureFormat heightmapFormat;
 
   f32 size, sizeHalf, sizeInv;
   f32 playSize, playSizeHalf;
@@ -65,7 +65,7 @@ static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, 
   if (UNLIKELY(!t->heightmapData.size)) {
     return 0.0f; // No heightmap loaded at the moment.
   }
-  diag_assert(t->heightmapType == AssetTextureType_U16);
+  diag_assert(t->heightmapFormat == AssetTextureFormat_u16_r);
 
   static const f32 g_normMul = 1.0f / u16_max;
 
@@ -155,8 +155,8 @@ static TerrainLoadResult terrain_heightmap_load(TerrainLoadContext* ctx) {
     log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Srgb")));
     return TerrainLoadResult_Error;
   }
-  if (tex->channels != AssetTextureChannels_One) {
-    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("More then one channel")));
+  if (tex->format != AssetTextureFormat_u16_r) {
+    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Non u16-r format")));
     return TerrainLoadResult_Error;
   }
   if (tex->width != tex->height) {
@@ -167,17 +167,13 @@ static TerrainLoadResult terrain_heightmap_load(TerrainLoadContext* ctx) {
     log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Layer count greater than 1")));
     return TerrainLoadResult_Error;
   }
-  if (tex->type != AssetTextureType_U16) {
-    log_e("Unsupported heightmap", log_param("error", fmt_text_lit("Non-u16 format")));
-    return TerrainLoadResult_Error;
-  }
-  ctx->terrain->heightmapData = asset_texture_data(tex);
-  ctx->terrain->heightmapSize = tex->width;
-  ctx->terrain->heightmapType = tex->type;
+  ctx->terrain->heightmapData   = asset_texture_data(tex);
+  ctx->terrain->heightmapSize   = tex->width;
+  ctx->terrain->heightmapFormat = tex->format;
 
   log_d(
       "Terrain heightmap loaded",
-      log_param("type", fmt_text(asset_texture_type_str(tex->type))),
+      log_param("format", fmt_text(asset_texture_format_str(tex->format))),
       log_param("size", fmt_int(tex->width)));
 
   return TerrainLoadResult_Done;

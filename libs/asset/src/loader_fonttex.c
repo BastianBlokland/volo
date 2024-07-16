@@ -306,8 +306,7 @@ static void fonttex_generate(
       .characterCount = chars.size,
   };
   *outTexture = (AssetTextureComp){
-      .type         = AssetTextureType_U8,
-      .channels     = AssetTextureChannels_One,
+      .format       = AssetTextureFormat_u8_r,
       .pixelData    = pixels,
       .width        = def->size,
       .height       = def->size,

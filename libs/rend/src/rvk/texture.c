@@ -38,9 +38,6 @@ static RvkTextureCompress rvk_texture_compression(RvkDevice* dev, const AssetTex
   if (asset->flags & AssetTextureFlags_Uncompressed) {
     return RvkTextureCompress_None;
   }
-  if (asset->type != AssetTextureType_U8) {
-    return RvkTextureCompress_None;
-  }
   if (!bits_ispow2(asset->width) || !bits_ispow2(asset->height)) {
     /**
      * Requiring both sides to be powers of two makes mip-map generation easier as all levels are
@@ -56,19 +53,19 @@ static RvkTextureCompress rvk_texture_compression(RvkDevice* dev, const AssetTex
      */
     return RvkTextureCompress_None;
   }
-  if (asset->channels == AssetTextureChannels_One) {
+  if (asset->format == AssetTextureFormat_u8_r) {
     return RvkTextureCompress_Bc4;
   }
-  if (asset->channels == AssetTextureChannels_Four) {
+  if (asset->format == AssetTextureFormat_u8_rgba) {
     return asset->flags & AssetTextureFlags_Alpha ? RvkTextureCompress_Bc3 : RvkTextureCompress_Bc1;
   }
   return RvkTextureCompress_None;
 }
 
-static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const RvkTextureCompress c) {
+static VkFormat rvk_texture_format(const AssetTextureComp* asset, const RvkTextureCompress c) {
   const bool srgb = (asset->flags & AssetTextureFlags_Srgb) != 0;
-  switch (asset->channels) {
-  case AssetTextureChannels_One:
+  switch (asset->format) {
+  case AssetTextureFormat_u8_r:
     diag_assert_msg(!srgb, "Single channel srgb is not supported");
     switch (c) {
     case RvkTextureCompress_Bc4:
@@ -78,7 +75,7 @@ static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const Rvk
     default:
       diag_crash_msg("Unsupported compression '{}' for 1 channel textures", fmt_int(c));
     }
-  case AssetTextureChannels_Four:
+  case AssetTextureFormat_u8_rgba:
     switch (c) {
     case RvkTextureCompress_Bc1:
       return srgb ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
@@ -89,47 +86,23 @@ static VkFormat rvk_texture_format_byte(const AssetTextureComp* asset, const Rvk
     default:
       diag_crash_msg("Unsupported compression '{}' for 4 channel textures", fmt_int(c));
     }
-  }
-  diag_crash();
-}
-
-static VkFormat rvk_texture_format_u16(const AssetTextureComp* asset, const RvkTextureCompress c) {
-  diag_assert_msg(!(asset->flags & AssetTextureFlags_Srgb), "U16 srgb is not supported");
-  diag_assert_msg(c == RvkTextureCompress_None, "U16 compression is not supported");
-  (void)c;
-
-  switch (asset->channels) {
-  case AssetTextureChannels_One:
+  case AssetTextureFormat_u16_r:
+    diag_assert_msg(!srgb, "U16 srgb is not supported");
+    diag_assert_msg(c == RvkTextureCompress_None, "U16 compression is not supported");
     return VK_FORMAT_R16_UNORM;
-  case AssetTextureChannels_Four:
+  case AssetTextureFormat_u16_rgba:
+    diag_assert_msg(!srgb, "U16 srgb is not supported");
+    diag_assert_msg(c == RvkTextureCompress_None, "U16 compression is not supported");
     return VK_FORMAT_R16G16B16A16_UNORM;
-  }
-  diag_crash();
-}
-
-static VkFormat rvk_texture_format_f32(const AssetTextureComp* asset, const RvkTextureCompress c) {
-  diag_assert_msg(!(asset->flags & AssetTextureFlags_Srgb), "F32 srgb is not supported");
-  diag_assert_msg(c == RvkTextureCompress_None, "F32 compression is not supported");
-  (void)c;
-
-  switch (asset->channels) {
-  case AssetTextureChannels_One:
+  case AssetTextureFormat_f32_r:
+    diag_assert_msg(!srgb, "F32 srgb is not supported");
+    diag_assert_msg(c == RvkTextureCompress_None, "F32 compression is not supported");
     return VK_FORMAT_R32_SFLOAT;
-  case AssetTextureChannels_Four:
+  case AssetTextureFormat_f32_rgba:
+    diag_assert_msg(!srgb, "F32 srgb is not supported");
+    diag_assert_msg(c == RvkTextureCompress_None, "F32 compression is not supported");
     return VK_FORMAT_R32G32B32A32_SFLOAT;
-  }
-  diag_crash();
-}
-
-static VkFormat rvk_texture_format(const AssetTextureComp* asset, const RvkTextureCompress c) {
-  switch (asset->type) {
-  case AssetTextureType_U8:
-    return rvk_texture_format_byte(asset, c);
-  case AssetTextureType_U16:
-    return rvk_texture_format_u16(asset, c);
-  case AssetTextureType_F32:
-    return rvk_texture_format_f32(asset, c);
-  case AssetTextureType_Count:
+  case AssetTextureFormat_Count:
     UNREACHABLE
   }
   diag_crash();
@@ -186,8 +159,10 @@ static u32 rvk_texture_encode_block(const Bc0Block* b, const RvkTextureCompress 
 
 static void rvk_texture_encode(
     const AssetTextureComp* asset, const RvkTextureCompress compress, const Mem out) {
-  diag_assert(asset->type == AssetTextureType_U8);
-  diag_assert(asset->channels == 1 || asset->channels == 4);
+  const AssetTextureFormat format   = asset->format;
+  const usize              channels = asset_texture_format_channels(format);
+
+  diag_assert(format == AssetTextureFormat_u8_r || format == AssetTextureFormat_u8_rgba);
   diag_assert(compress != RvkTextureCompress_None);
   diag_assert(bits_aligned(asset->width, 4));
   diag_assert(bits_aligned(asset->height, 4));
@@ -200,9 +175,9 @@ static void rvk_texture_encode(
     const u32 mipWidth  = math_max(asset->width >> mip, 1);
     const u32 mipHeight = math_max(asset->height >> mip, 1);
     for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
-      for (u32 y = 0; y < mipHeight; y += 4, inPtr += mipWidth * 4 * asset->channels) {
+      for (u32 y = 0; y < mipHeight; y += 4, inPtr += mipWidth * 4 * channels) {
         for (u32 x = 0; x < mipWidth; x += 4) {
-          if (asset->channels == 1) {
+          if (channels == 1) {
             bc0_extract1(inPtr + x, mipWidth, &block);
           } else {
             bc0_extract4((const BcColor8888*)inPtr + x, mipWidth, &block);
@@ -220,9 +195,10 @@ static void rvk_texture_encode_gen_mips(
     const RvkTextureCompress comp,
     const u32                mipLevels,
     const Mem                out) {
+  const AssetTextureFormat format   = asset->format;
+  const usize              channels = asset_texture_format_channels(format);
   diag_assert(asset->srcMipLevels <= 1); // Cannot both generate mips and have source mips.
-  diag_assert(asset->type == AssetTextureType_U8);
-  diag_assert(asset->channels == 1 || asset->channels == 4);
+  diag_assert(format == AssetTextureFormat_u8_r || format == AssetTextureFormat_u8_rgba);
   diag_assert(comp != RvkTextureCompress_None);
   diag_assert(bits_aligned(asset->width, 4) && bits_ispow2(asset->width));
   diag_assert(bits_aligned(asset->height, 4) && bits_ispow2(asset->height));
@@ -238,9 +214,9 @@ static void rvk_texture_encode_gen_mips(
 
   // Extract 4x4 blocks from the source data and encode mip0.
   for (u32 l = 0; l != layerCount; ++l) {
-    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * asset->channels) {
+    for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * channels) {
       for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
-        if (asset->channels == 1) {
+        if (channels == 1) {
           bc0_extract1(inPtr + x, asset->width, blockPtr);
         } else {
           bc0_extract4((const BcColor8888*)inPtr + x, asset->width, blockPtr);

@@ -185,13 +185,13 @@ static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height
   return ((flags & TgaFlags_YFlip) ? (height - 1 - y) * width : y * width) + x;
 }
 
-static AssetTextureChannels tga_texture_channels(const TgaChannels channels) {
+static AssetTextureFormat tga_texture_format(const TgaChannels channels) {
   switch (channels) {
   case TgaChannels_R:
-    return AssetTextureChannels_One;
+    return AssetTextureFormat_u8_r;
   case TgaChannels_RGB:
   case TgaChannels_RGBA:
-    return AssetTextureChannels_Four;
+    return AssetTextureFormat_u8_rgba;
   case TgaChannels_Invalid:
     break;
   }
@@ -214,12 +214,11 @@ static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const bool nrm,
 }
 
 static Mem tga_pixels_alloc(Allocator* alloc, const TgaChannels ch, const u32 w, const u32 h) {
-  const AssetTextureType     texType   = AssetTextureType_U8;
-  const AssetTextureChannels texChan   = tga_texture_channels(ch);
-  const u32                  texLayers = 1;
-  const u32                  texMips   = 1;
-  const usize size  = asset_texture_req_size(texType, texChan, w, h, texLayers, texMips);
-  const usize align = asset_texture_req_align(texType, texChan);
+  const AssetTextureFormat texFormat = tga_texture_format(ch);
+  const u32                texLayers = 1;
+  const u32                texMips   = 1;
+  const usize              size      = asset_texture_req_size(texFormat, w, h, texLayers, texMips);
+  const usize              align     = asset_texture_req_align(texFormat);
   return alloc_alloc(alloc, size, align);
 }
 
@@ -457,8 +456,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       world,
       entity,
       AssetTextureComp,
-      .type         = AssetTextureType_U8,
-      .channels     = tga_texture_channels(channels),
+      .format       = tga_texture_format(channels),
       .flags        = tga_texture_flags(channels, isNormalmap, hasAlpha),
       .width        = width,
       .height       = height,
