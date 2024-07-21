@@ -11,7 +11,8 @@ static const u8 g_decodeTable[] = {
     62,  255, 255, 255, 63, 52, 53, 54, 55,  56,  57,  58,  59,  60,  61, 255, 255, 255, 255, 255,
     255, 255, 0,   1,   2,  3,  4,  5,  6,   7,   8,   9,   10,  11,  12, 13,  14,  15,  16,  17,
     18,  19,  20,  21,  22, 23, 24, 25, 255, 255, 255, 255, 255, 255, 26, 27,  28,  29,  30,  31,
-    32,  33,  34,  35,  36, 37, 38, 39, 40,  41,  42,  43,  44,  45,  46, 47,  48,  49,  50,  51};
+    32,  33,  34,  35,  36, 37, 38, 39, 40,  41,  42,  43,  44,  45,  46, 47,  48,  49,  50,  51,
+};
 ASSERT(sizeof(g_decodeTable) == 'z' - '+' + 1, "Incorrect decode table size");
 
 usize base64_decoded_size(String encoded) {
@@ -28,7 +29,7 @@ usize base64_decoded_size(String encoded) {
 
 void base64_decode(DynString* str, String encoded) {
   /**
-   * Implemention based on awnser of 'nunojpg' in the so question:
+   * Implementation based on answer of 'nunojpg' in the so question:
    * https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
    */
   u32 val     = 0;
@@ -46,7 +47,7 @@ void base64_decode(DynString* str, String encoded) {
     valBits += 6; // Indicate that we have 6 more bits 'available'.
     if (valBits >= 0) {
       // We have enough bits to form a byte.
-      dynstring_append_char(str, (u8)(val >> valBits)); // Shift-of any excess bits.
+      dynstring_append_char(str, (u8)(val >> valBits)); // Shift away any excess bits.
       valBits -= 8;
     }
   }

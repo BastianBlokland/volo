@@ -25,6 +25,6 @@ void base64_decode(DynString* str, String encoded);
 /**
  * Decode MIME Base64 encoded input in scratch memory.
  * Pre-condition: 'encoded' is validly encoded and padded base64.
- * Pre-condition: base64_decoded_size(encoded) < 8KiB.
+ * Pre-condition: base64_decoded_size(encoded) < 64KiB.
  */
 String base64_decode_scratch(String encoded);
