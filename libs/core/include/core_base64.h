@@ -17,6 +17,11 @@
 usize base64_decoded_size(String encoded);
 
 /**
+ * Calculate how many bytes the given data would take encoded as base64.
+ */
+usize base64_encoded_size(String data);
+
+/**
  * Decode MIME Base64 encoded input.
  * Pre-condition: 'encoded' is validly encoded and padded base64.
  */

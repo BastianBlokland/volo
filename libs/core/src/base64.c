@@ -20,11 +20,18 @@ usize base64_decoded_size(const String encoded) {
     return 0; // Needs atleast 2 base64 chars to represent a single byte.
   }
   // Check how many padding characters there are. Either 2, 1 or 0.
-  const u8 padding = *(string_end(encoded) - 2) == '='   ? 2
-                     : *(string_end(encoded) - 1) == '=' ? 1
-                                                         : 0;
+  u8 padding;
+  if (*(string_end(encoded) - 2) == '=') {
+    padding = 2;
+  } else if (*(string_end(encoded) - 1) == '=') {
+    padding = 1;
+  } else {
+    padding = 0;
+  }
   return encoded.size / 4 * 3 - padding;
 }
+
+usize base64_encoded_size(const String data) { return (data.size + 2) / 3 * 4; }
 
 void base64_decode(DynString* str, const String encoded) {
   /**
@@ -37,12 +44,13 @@ void base64_decode(DynString* str, const String encoded) {
     if (*itr < '+' || *itr > 'z') {
       break; // Non base64 characters found: abort.
     }
-    if (g_decodeTable[*itr - '+'] == 255) {
+    const u32 tableIndex = *itr - '+';
+    if (g_decodeTable[tableIndex] == 255) {
       break; // Non base64 character found: abort.
     }
     // Each Base64 digit contains 6 bits of data, shift the current value over by 6 and put the new
     // data in the least significant bits.
-    val = (val << 6) | g_decodeTable[*itr - '+'];
+    val = (val << 6) | g_decodeTable[tableIndex];
     valBits += 6; // Indicate that we have 6 more bits 'available'.
     if (valBits >= 8) {
       // We have enough bits to form a byte.
