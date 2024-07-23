@@ -42,13 +42,21 @@ static u32 data_hash_union(const HashCtx* ctx) {
   u32 hash = bits_hash_32_val((u32)decl->val_union.choices.size);
 
   dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
-    const HashCtx choiceCtx = {
-        .reg   = ctx->reg,
-        .flags = ctx->flags,
-        .meta  = choiceDecl->meta,
-    };
+    const bool emptyChoice = choiceDecl->meta.type == 0;
+
     const u32 choiceTagHash = bits_hash_32_val(choiceDecl->tag);
-    const u32 choiceValHash = data_hash_internal(&choiceCtx);
+
+    u32 choiceValHash;
+    if (emptyChoice) {
+      choiceValHash = 42;
+    } else {
+      const HashCtx choiceCtx = {
+          .reg   = ctx->reg,
+          .flags = ctx->flags,
+          .meta  = choiceDecl->meta,
+      };
+      choiceValHash = data_hash_internal(&choiceCtx);
+    }
 
     if (!(ctx->flags & DataHashFlags_ExcludeIds)) {
       hash = bits_hash_32_combine(hash, choiceDecl->id.hash);
