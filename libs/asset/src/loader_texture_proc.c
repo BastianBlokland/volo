@@ -25,6 +25,17 @@ static DataReg* g_dataReg;
 static DataMeta g_dataProcTexDefMeta;
 
 typedef enum {
+  ProcTexChannels_One  = 1,
+  ProcTexChannels_Four = 4,
+} ProcTexChannels;
+
+typedef enum {
+  ProcTexFormat_u8,
+  ProcTexFormat_u16,
+  ProcTexFormat_f32,
+} ProcTexFormat;
+
+typedef enum {
   ProcTexType_One,
   ProcTexType_Zero,
   ProcTexType_Checker,
@@ -36,14 +47,14 @@ typedef enum {
 } ProcTexType;
 
 typedef struct {
-  ProcTexType          type;
-  AssetTextureType     pixelType;
-  AssetTextureChannels channels;
-  bool                 mipmaps;
-  bool                 uncompressed;
-  u32                  size;
-  f32                  frequency, power;
-  u32                  seed;
+  ProcTexType     type;
+  ProcTexFormat   format;
+  ProcTexChannels channels;
+  bool            mipmaps;
+  bool            uncompressed;
+  u32             size;
+  f32             frequency, power;
+  u32             seed;
 } ProcTexDef;
 
 static void proctex_datareg_init(void) {
@@ -66,19 +77,19 @@ static void proctex_datareg_init(void) {
     data_reg_const_t(reg, ProcTexType, NoiseWhiteGauss);
     data_reg_const_t(reg, ProcTexType, BrdfIntegration);
 
-    data_reg_enum_t(reg, AssetTextureChannels);
-    data_reg_const_t(reg, AssetTextureChannels, One);
-    data_reg_const_t(reg, AssetTextureChannels, Four);
+    data_reg_enum_t(reg, ProcTexChannels);
+    data_reg_const_t(reg, ProcTexChannels, One);
+    data_reg_const_t(reg, ProcTexChannels, Four);
 
-    data_reg_enum_t(reg, AssetTextureType);
-    data_reg_const_t(reg, AssetTextureType, U8);
-    data_reg_const_t(reg, AssetTextureType, U16);
-    data_reg_const_t(reg, AssetTextureType, F32);
+    data_reg_enum_t(reg, ProcTexFormat);
+    data_reg_const_t(reg, ProcTexFormat, u8);
+    data_reg_const_t(reg, ProcTexFormat, u16);
+    data_reg_const_t(reg, ProcTexFormat, f32);
 
     data_reg_struct_t(reg, ProcTexDef);
     data_reg_field_t(reg, ProcTexDef, type, t_ProcTexType);
-    data_reg_field_t(reg, ProcTexDef, pixelType, t_AssetTextureType, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcTexDef, channels, t_AssetTextureChannels);
+    data_reg_field_t(reg, ProcTexDef, format, t_ProcTexFormat, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, ProcTexDef, channels, t_ProcTexChannels);
     data_reg_field_t(reg, ProcTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, ProcTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, ProcTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
@@ -266,15 +277,26 @@ static GeoColor proctex_sample(const ProcTexDef* def, const u32 x, const u32 y, 
 }
 
 static usize proctex_pixel_channel_size(const ProcTexDef* def) {
-  switch (def->pixelType) {
-  case AssetTextureType_U8:
+  switch (def->format) {
+  case ProcTexFormat_u8:
     return sizeof(u8);
-  case AssetTextureType_U16:
+  case ProcTexFormat_u16:
     return sizeof(u16);
-  case AssetTextureType_F32:
+  case ProcTexFormat_f32:
     return sizeof(f32);
-  case AssetTextureType_Count:
-    UNREACHABLE
+  }
+  diag_crash();
+}
+
+static AssetTextureFormat proctex_pixel_format(const ProcTexDef* def) {
+  const bool rgba = def->channels == ProcTexChannels_Four;
+  switch (def->format) {
+  case ProcTexFormat_u8:
+    return rgba ? AssetTextureFormat_u8_rgba : AssetTextureFormat_u8_r;
+  case ProcTexFormat_u16:
+    return rgba ? AssetTextureFormat_u16_rgba : AssetTextureFormat_u16_r;
+  case ProcTexFormat_f32:
+    return rgba ? AssetTextureFormat_f32_rgba : AssetTextureFormat_f32_r;
   }
   diag_crash();
 }
@@ -310,24 +332,22 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
       const GeoColor sample = proctex_sample(def, x, y, rng);
 
       Mem channelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
-      for (AssetTextureChannels channel = 0; channel != def->channels; ++channel) {
+      for (ProcTexChannels channel = 0; channel != def->channels; ++channel) {
         union {
           u8  u8;
           u16 u16;
           f32 f32;
         } value;
-        switch (def->pixelType) {
-        case AssetTextureType_U8:
+        switch (def->format) {
+        case ProcTexFormat_u8:
           value.u8 = (u8)(sample.data[channel] * 255.999f);
           break;
-        case AssetTextureType_U16:
+        case ProcTexFormat_u16:
           value.u16 = (u16)(sample.data[channel] * 65535.99f);
           break;
-        case AssetTextureType_F32:
+        case ProcTexFormat_f32:
           value.f32 = sample.data[channel];
           break;
-        case AssetTextureType_Count:
-          UNREACHABLE
         }
         mem_cpy(channelMem, mem_create(&value, pixelChannelSize));
         channelMem = mem_consume(channelMem, pixelChannelSize);
@@ -347,10 +367,9 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
     flags |= AssetTextureFlags_Uncompressed;
   }
   *outTexture = (AssetTextureComp){
-      .type         = def->pixelType,
-      .channels     = def->channels,
+      .format       = proctex_pixel_format(def),
       .flags        = flags,
-      .pixelsRaw    = pixels,
+      .pixelData    = pixels,
       .width        = size,
       .height       = size,
       .layers       = 1,

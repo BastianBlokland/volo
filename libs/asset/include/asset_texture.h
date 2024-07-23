@@ -5,42 +5,16 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
-typedef struct {
-  u8 r;
-} AssetTexturePixelB1;
-
-typedef struct {
-  u8 r, g, b, a;
-} AssetTexturePixelB4;
-
-typedef struct {
-  u16 r;
-} AssetTexturePixelU1;
-
-typedef struct {
-  u16 r, g, b, a;
-} AssetTexturePixelU4;
-
-typedef struct {
-  f32 r;
-} AssetTexturePixelF1;
-
-typedef struct {
-  f32 r, g, b, a;
-} AssetTexturePixelF4;
-
 typedef enum {
-  AssetTextureType_U8,
-  AssetTextureType_U16,
-  AssetTextureType_F32,
+  AssetTextureFormat_u8_r,
+  AssetTextureFormat_u8_rgba,
+  AssetTextureFormat_u16_r,
+  AssetTextureFormat_u16_rgba,
+  AssetTextureFormat_f32_r,
+  AssetTextureFormat_f32_rgba,
 
-  AssetTextureType_Count,
-} AssetTextureType;
-
-typedef enum {
-  AssetTextureChannels_One  = 1,
-  AssetTextureChannels_Four = 4,
-} AssetTextureChannels;
+  AssetTextureFormat_Count,
+} AssetTextureFormat;
 
 typedef enum {
   AssetTextureFlags_Srgb            = 1 << 0,
@@ -52,30 +26,20 @@ typedef enum {
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {
-  AssetTextureType     type;
-  AssetTextureChannels channels;
-  AssetTextureFlags    flags;
-  union {
-    const u8*                  pixelsRaw;
-    const AssetTexturePixelB1* pixelsB1;
-    const AssetTexturePixelB4* pixelsB4;
-    const AssetTexturePixelU1* pixelsU1;
-    const AssetTexturePixelU4* pixelsU4;
-    const AssetTexturePixelF1* pixelsF1;
-    const AssetTexturePixelF4* pixelsF4;
-  };
-  u32 width, height, layers, srcMipLevels, maxMipLevels;
+  AssetTextureFormat format;
+  AssetTextureFlags  flags;
+  const void*        pixelData;
+  u32                width, height, layers, srcMipLevels, maxMipLevels;
 };
 
-String asset_texture_type_str(AssetTextureType);
+String asset_texture_format_str(AssetTextureFormat);
+usize  asset_texture_format_channels(AssetTextureFormat);
 
 usize asset_texture_req_mip_size(
-    AssetTextureType, AssetTextureChannels, u32 width, u32 height, u32 layers, u32 mipLevel);
-usize asset_texture_req_size(
-    AssetTextureType, AssetTextureChannels, u32 width, u32 height, u32 layers, u32 mipLevels);
-usize asset_texture_req_align(AssetTextureType, AssetTextureChannels);
+    AssetTextureFormat, u32 width, u32 height, u32 layers, u32 mipLevel);
+usize asset_texture_req_size(AssetTextureFormat, u32 width, u32 height, u32 layers, u32 mipLevels);
+usize asset_texture_req_align(AssetTextureFormat);
 
-usize asset_texture_pixel_size(const AssetTextureComp*);
 usize asset_texture_mip_size(const AssetTextureComp*, u32 mipLevel);
 usize asset_texture_data_size(const AssetTextureComp*);
 Mem   asset_texture_data(const AssetTextureComp*);

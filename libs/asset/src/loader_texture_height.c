@@ -36,12 +36,12 @@ static usize htex_pixel_size(const HtexType type) {
 
 static usize htex_pixel_align(const HtexType type) { return htex_pixel_size(type); }
 
-static AssetTextureType htex_texture_type(const HtexType type) {
+static AssetTextureFormat htex_texture_format(const HtexType type) {
   switch (type) {
   case HtexType_U16:
-    return AssetTextureType_U16;
+    return AssetTextureFormat_u16_r;
   case HtexType_F32:
-    return AssetTextureType_F32;
+    return AssetTextureFormat_f32_r;
   }
   diag_crash();
 }
@@ -117,11 +117,10 @@ static void htex_load(
       world,
       entity,
       AssetTextureComp,
-      .type         = htex_texture_type(type),
-      .channels     = AssetTextureChannels_One,
+      .format       = htex_texture_format(type),
       .width        = size,
       .height       = size,
-      .pixelsRaw    = outMem.ptr,
+      .pixelData    = outMem.ptr,
       .layers       = 1,
       .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);

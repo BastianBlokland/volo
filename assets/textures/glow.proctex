@@ -1,6 +1,6 @@
 {
   "type": "Circle",
-  "pixelType": "F32",
+  "format": "f32",
   "channels": "Four",
   "size": 128,
   "frequency": 1,

@@ -134,14 +134,13 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def, const bool has
   return flags;
 }
 
-static AssetTexturePixelB4 atlas_color_to_b4(const GeoColor color) {
+static void atlas_color_to_b4(const GeoColor color, u8 out[PARAM_ARRAY_SIZE(4)]) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
-  return (AssetTexturePixelB4){
-      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
-      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
-      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
-      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
-  };
+
+  out[0] = (u8)(color.r * g_u8MaxPlusOneRoundDown);
+  out[1] = (u8)(color.g * g_u8MaxPlusOneRoundDown);
+  out[2] = (u8)(color.b * g_u8MaxPlusOneRoundDown);
+  out[3] = (u8)(color.a * g_u8MaxPlusOneRoundDown);
 }
 
 static f32 atlas_clamp01(const f32 val) {
@@ -158,7 +157,7 @@ static void atlas_generate_entry(
     const AtlasDef*         def,
     const AssetTextureComp* texture,
     const u32               index,
-    AssetTexturePixelB4*    out) {
+    u8*                     out /* u8[width * height * 4] */) {
 
   const u32 padding               = def->entryPadding;
   const u32 sizeWithPadding       = def->entrySize;
@@ -182,9 +181,9 @@ static void atlas_generate_entry(
         color = geo_color_linear_to_srgb(color);
       }
 
-      const usize outTexPixelY                     = texY + entryPixelY;
-      const usize outTexPixelX                     = texX + entryPixelX;
-      out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4(color);
+      const usize outTexPixelY = texY + entryPixelY;
+      const usize outTexPixelX = texX + entryPixelX;
+      atlas_color_to_b4(color, &out[outTexPixelY * def->size * 4 + outTexPixelX * 4]);
     }
   }
 }
@@ -205,7 +204,7 @@ static void atlas_generate(
   }
 
   // Allocate output texture.
-  Mem pixelMem = alloc_alloc(g_allocHeap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
+  Mem pixelMem = alloc_alloc(g_allocHeap, def->size * def->size * 4, 4);
   mem_set(pixelMem, 0); // Initialize to black.
   bool hasAlpha = false;
 
@@ -213,7 +212,7 @@ static void atlas_generate(
   AssetAtlasEntry* entries    = alloc_array_t(g_allocHeap, AssetAtlasEntry, entryCount);
 
   // Render entries into output texture.
-  AssetTexturePixelB4* pixels = pixelMem.ptr;
+  u8* pixels = pixelMem.ptr;
   for (u32 i = 0; i != def->entries.count; ++i) {
     if (textures[i]->flags & AssetTextureFlags_Alpha) {
       hasAlpha = true;
@@ -235,10 +234,9 @@ static void atlas_generate(
       .entryCount    = entryCount,
   };
   *outTexture = (AssetTextureComp){
-      .type         = AssetTextureType_U8,
-      .channels     = AssetTextureChannels_Four,
+      .format       = AssetTextureFormat_u8_rgba,
       .flags        = atlas_texture_flags(def, hasAlpha),
-      .pixelsB4     = pixels,
+      .pixelData    = pixels,
       .width        = def->size,
       .height       = def->size,
       .layers       = 1,

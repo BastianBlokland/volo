@@ -102,12 +102,11 @@ typedef enum {
   ArrayTexError_TooManyLayers,
   ArrayTexError_SizeTooBig,
   ArrayTexError_InvalidTexture,
-  ArrayTexError_MismatchType,
-  ArrayTexError_MismatchChannels,
+  ArrayTexError_MismatchFormat,
   ArrayTexError_MismatchEncoding,
   ArrayTexError_MismatchSize,
   ArrayTexError_InvalidCubeAspect,
-  ArrayTexError_UnsupportedInputTypeForResampling,
+  ArrayTexError_UnsupportedInputFormatForResampling,
   ArrayTexError_InvalidCubeTextureCount,
   ArrayTexError_InvalidCubeIrradianceInputType,
   ArrayTexError_InvalidCubeIrradianceOutputSize,
@@ -123,8 +122,7 @@ static String arraytex_error_str(const ArrayTexError err) {
       string_static("ArrayTex specifies more layers then are supported"),
       string_static("ArrayTex specifies a size larger then is supported"),
       string_static("ArrayTex specifies an invalid texture"),
-      string_static("ArrayTex textures have different types"),
-      string_static("ArrayTex textures have different channel counts"),
+      string_static("ArrayTex textures have different formats"),
       string_static("ArrayTex textures have different encodings"),
       string_static("ArrayTex textures have different sizes"),
       string_static("ArrayTex cube / cube-irradiance needs to be square"),
@@ -230,14 +228,13 @@ static CubePoint arraytex_cube_lookup(const GeoVector dir) {
   return res;
 }
 
-static AssetTexturePixelB4 arraytex_color_to_b4(const GeoColor color) {
+static void arraytex_color_to_b4(const GeoColor color, u8 out[PARAM_ARRAY_SIZE(4)]) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
-  return (AssetTexturePixelB4){
-      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
-      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
-      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
-      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
-  };
+
+  out[0] = (u8)(color.r * g_u8MaxPlusOneRoundDown);
+  out[1] = (u8)(color.g * g_u8MaxPlusOneRoundDown);
+  out[2] = (u8)(color.b * g_u8MaxPlusOneRoundDown);
+  out[3] = (u8)(color.a * g_u8MaxPlusOneRoundDown);
 }
 
 static GeoColor arraytex_sample_cube(const AssetTextureComp** textures, const GeoVector dir) {
@@ -287,8 +284,8 @@ static void arraytex_write_resample(
         if (srgb) {
           color = geo_color_linear_to_srgb(color);
         }
-        *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(color);
-        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        arraytex_color_to_b4(color, dest.ptr);
+        dest = mem_consume(dest, 4);
       }
     }
   }
@@ -375,8 +372,8 @@ static void arraytex_write_diff_irradiance_b4(
         const GeoVector dir        = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
         const GeoColor  irradiance = arraytex_diff_irradiance_convolve(textures, dir);
 
-        *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(irradiance);
-        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        arraytex_color_to_b4(irradiance, dest.ptr);
+        dest = mem_consume(dest, 4);
       }
     }
   }
@@ -419,14 +416,13 @@ static GeoColor arraytex_spec_irradiance_convolve(
  * NOTE: Supports differently sized input and output textures.
  */
 static void arraytex_write_spec_irradiance_b4(
-    const ArrayTexDef*         def,
-    const AssetTextureComp**   textures,
-    const AssetTextureType     type,
-    const AssetTextureChannels channels,
-    const u32                  size,
-    Mem                        dest) {
+    const ArrayTexDef*       def,
+    const AssetTextureComp** textures,
+    const AssetTextureFormat format,
+    const u32                size,
+    Mem                      dest) {
   // Mip 0 represents a perfect mirror so we can just copy the source.
-  const usize mip0Size = asset_texture_req_size(type, channels, size, size, 6, 1);
+  const usize mip0Size = asset_texture_req_size(format, size, size, 6, 1);
   arraytex_write_resample(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
   dest = mem_consume(dest, mip0Size);
 
@@ -456,8 +452,8 @@ static void arraytex_write_spec_irradiance_b4(
           const GeoColor  irr =
               arraytex_spec_irradiance_convolve(textures, dir, samples, sampleCount);
 
-          *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(irr);
-          dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+          arraytex_color_to_b4(irr, dest.ptr);
+          dest = mem_consume(dest, 4);
         }
       }
     }
@@ -471,16 +467,15 @@ static void arraytex_generate(
     AssetTextureComp*        outTexture,
     ArrayTexError*           err) {
 
-  const AssetTextureType     type     = textures[0]->type;
-  const AssetTextureChannels channels = textures[0]->channels;
-  const bool                 inSrgb   = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
-  const u32                  inWidth  = textures[0]->width;
-  const u32                  inHeight = textures[0]->height;
-  u32                        layers   = math_max(1, textures[0]->layers);
-  bool                       alpha    = false;
+  const AssetTextureFormat format   = textures[0]->format;
+  const bool               inSrgb   = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
+  const u32                inWidth  = textures[0]->width;
+  const u32                inHeight = textures[0]->height;
+  u32                      layers   = math_max(1, textures[0]->layers);
+  bool                     alpha    = false;
 
   const bool irradianceMap = arraytex_output_irradiance(def);
-  if (UNLIKELY(irradianceMap && type != AssetTextureType_U8)) {
+  if (UNLIKELY(irradianceMap && format != AssetTextureFormat_u8_rgba)) {
     // TODO: Support hdr input texture for cube-irradiance maps.
     *err = ArrayTexError_InvalidCubeIrradianceInputType;
     return;
@@ -491,12 +486,8 @@ static void arraytex_generate(
   }
 
   for (usize i = 1; i != def->textures.count; ++i) {
-    if (UNLIKELY(textures[i]->type != type)) {
-      *err = ArrayTexError_MismatchType;
-      return;
-    }
-    if (UNLIKELY(textures[i]->channels != channels)) {
-      *err = ArrayTexError_MismatchChannels;
+    if (UNLIKELY(textures[i]->format != format)) {
+      *err = ArrayTexError_MismatchFormat;
       return;
     }
     if (UNLIKELY(inSrgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
@@ -520,9 +511,9 @@ static void arraytex_generate(
   const u32  outWidth      = def->sizeX ? def->sizeX : inWidth;
   const u32  outHeight     = def->sizeY ? def->sizeY : inHeight;
   const bool needsResample = inWidth != outWidth || inHeight != outHeight;
-  if (UNLIKELY(needsResample && (type != AssetTextureType_U8 || channels != 4))) {
+  if (UNLIKELY(needsResample && format != AssetTextureFormat_u8_rgba)) {
     // TODO: Support resampling hdr input textures.
-    *err = ArrayTexError_UnsupportedInputTypeForResampling;
+    *err = ArrayTexError_UnsupportedInputFormatForResampling;
     return;
   }
   const bool isCubeMap = arraytex_output_cube(def);
@@ -536,8 +527,8 @@ static void arraytex_generate(
   }
 
   const u32   mips      = arraytex_output_mips(def);
-  const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
-  const usize dataAlign = asset_texture_req_align(type, channels);
+  const usize dataSize  = asset_texture_req_size(format, outWidth, outHeight, layers, mips);
+  const usize dataAlign = asset_texture_req_align(format);
   const Mem   pixelsMem = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
   bool outSrgb = irradianceMap ? false : inSrgb;
@@ -554,15 +545,14 @@ static void arraytex_generate(
     arraytex_write_diff_irradiance_b4(def, textures, outWidth, pixelsMem);
     break;
   case ArrayTexType_CubeSpecIrradiance:
-    arraytex_write_spec_irradiance_b4(def, textures, type, channels, outWidth, pixelsMem);
+    arraytex_write_spec_irradiance_b4(def, textures, format, outWidth, pixelsMem);
     break;
   }
 
   *outTexture = (AssetTextureComp){
-      .type         = type,
-      .channels     = channels,
+      .format       = format,
       .flags        = arraytex_texture_flags(def, outSrgb, alpha),
-      .pixelsRaw    = pixelsMem.ptr,
+      .pixelData    = pixelsMem.ptr,
       .width        = outWidth,
       .height       = outHeight,
       .layers       = layers,

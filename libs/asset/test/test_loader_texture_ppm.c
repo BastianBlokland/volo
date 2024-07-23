@@ -7,10 +7,10 @@
 #include "utils_internal.h"
 
 static const struct {
-  String              id;
-  String              text;
-  AssetTexturePixelB4 pixels[16];
-  usize               pixelCount;
+  String   id;
+  String   text;
+  GeoColor pixels[16];
+  usize    pixelCount;
 } g_testData[] = {
     {
         .id   = string_static("p3_formatted.ppm"),
@@ -22,10 +22,10 @@ static const struct {
                               "128 128 128\n"),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {128, 128, 128, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {0.5f, 0.5f, 0.5f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -39,10 +39,10 @@ static const struct {
                               "128\n128\n128\n"),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {128, 128, 128, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {0.5f, 0.5f, 0.5f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -51,10 +51,10 @@ static const struct {
         .text = string_static("P3 2 2 255 255 0 0 0 255 0 0 0 255 128 128 128"),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {128, 128, 128, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {0.5f, 0.5f, 0.5f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -68,10 +68,10 @@ static const struct {
                               "128 128 128# End of file\n"),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {128, 128, 128, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {0.5f, 0.5f, 0.5f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -86,10 +86,10 @@ static const struct {
                               "128 128 128\r\n"),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {128, 128, 128, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {0.5f, 0.5f, 0.5f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -100,10 +100,10 @@ static const struct {
                               "0 255 0"),
         .pixels =
             {
-                {0, 0, 0, 255},
-                {0, 0, 0, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -115,7 +115,7 @@ static const struct {
                               "0 0 255"),
         .pixels =
             {
-                {255, 0, 0, 255},
+                {1.0f, 0.0f, 0.0f, 1.0f},
             },
         .pixelCount = 1,
     },
@@ -128,10 +128,10 @@ static const struct {
                               "\x80\x80\x80"),
         .pixels =
             {
-                {0, 0, 255, 255},
-                {128, 128, 128, 255},
-                {255, 0, 0, 255},
-                {0, 255, 0, 255},
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {0.5f, 0.5f, 0.5f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -144,10 +144,10 @@ static const struct {
                               "\x1\x1\x1"),
         .pixels =
             {
-                {1, 1, 1, 255},
-                {1, 1, 1, 255},
-                {255, 1, 1, 255},
-                {1, 255, 1, 255},
+                {0.004f, 0.004f, 0.004f, 1.0f},
+                {0.004f, 0.004f, 0.004f, 1.0f},
+                {1.0f, 0.004f, 0.004f, 1.0f},
+                {0.004f, 1.0f, 0.004f, 1.0f},
             },
         .pixelCount = 4,
     },
@@ -159,7 +159,7 @@ static const struct {
                               "\x1\x1\xFF"),
         .pixels =
             {
-                {255, 1, 1, 255},
+                {1.0f, 0.004f, 0.004f, 1.0f},
             },
         .pixelCount = 1,
     },
@@ -226,14 +226,14 @@ spec(loader_texture_ppm) {
 
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
-      check_eq_int(tex->type, AssetTextureType_U8);
-      check_eq_int(tex->channels, 4);
+      check_eq_int(tex->format, AssetTextureFormat_u8_rgba);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {
-        check_eq_int(tex->pixelsB4[p].r, g_testData[i].pixels[p].r);
-        check_eq_int(tex->pixelsB4[p].g, g_testData[i].pixels[p].g);
-        check_eq_int(tex->pixelsB4[p].b, g_testData[i].pixels[p].b);
-        check_eq_int(tex->pixelsB4[p].a, g_testData[i].pixels[p].a);
+        const GeoColor colorSrgb = geo_color_linear_to_srgb(asset_texture_at(tex, 0, p));
+        check_eq_float(colorSrgb.r, g_testData[i].pixels[p].r, 1e-2);
+        check_eq_float(colorSrgb.g, g_testData[i].pixels[p].g, 1e-2);
+        check_eq_float(colorSrgb.b, g_testData[i].pixels[p].b, 1e-2);
+        check_eq_float(colorSrgb.a, g_testData[i].pixels[p].a, 1e-2);
       }
     };
   }
