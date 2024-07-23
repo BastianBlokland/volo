@@ -182,7 +182,7 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static usize data_read_json_mem_align(const usize size) {
-  const usize biggestPow2 = 1u << bits_ctz(size);
+  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
   return math_min(biggestPow2, data_type_mem_align_max);
 }
 
