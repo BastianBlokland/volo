@@ -10,6 +10,7 @@ add_library(lib_data STATIC
   src/registry.c
   src/utils_clone.c
   src/utils_destroy.c
+  src/utils_hash.c
   src/write_json.c
   )
 target_include_directories(lib_data PUBLIC include)
