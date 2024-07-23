@@ -99,6 +99,19 @@ u32 bits_hash_32_val(u32 hash) {
   return hash ^ (hash >> 16);
 }
 
+u64 bits_hash_64_val(u64 hash) {
+  /**
+   * SplitMix64 hash routine.
+   * Reference:
+   * - https://xorshift.di.unimi.it/splitmix64.c
+   * - http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+   */
+  hash = (hash ^ (hash >> 30)) * u64_lit(0xbf58476d1ce4e5b9);
+  hash = (hash ^ (hash >> 27)) * u64_lit(0x94d049bb133111eb);
+  hash = hash ^ (hash >> 31);
+  return hash;
+}
+
 u32 bits_hash_32_combine(const u32 x, const u32 y) {
   return x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
 }

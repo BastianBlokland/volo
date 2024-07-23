@@ -152,6 +152,7 @@ u64 bits_nextpow2_64(u64);
 u32 bits_hash_32(Mem);
 u32 bits_hash_32_val(u32);
 u32 bits_hash_32_combine(u32 x, u32 y);
+u64 bits_hash_64_val(u64);
 
 /**
  * Calculate the amount of padding required to reach the requested alignment.

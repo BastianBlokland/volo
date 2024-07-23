@@ -19,20 +19,6 @@ struct sAllocTracker {
   AllocTrackerSlot* slots;
 };
 
-/**
- * SplitMix64 hash routine.
- * Reference:
- * - https://xorshift.di.unimi.it/splitmix64.c
- * - http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
- */
-static u64 tracker_hash(const Mem mem) {
-  u64 hash = (uptr)mem.ptr;
-  hash     = (hash ^ (hash >> 30)) * u64_lit(0xbf58476d1ce4e5b9);
-  hash     = (hash ^ (hash >> 27)) * u64_lit(0x94d049bb133111eb);
-  hash     = hash ^ (hash >> 31);
-  return hash;
-}
-
 static bool tracker_slot_empty(const AllocTrackerSlot* slot) { return !mem_valid(slot->mem); }
 
 static bool tracker_should_grow(AllocTracker* tracker) {
@@ -51,7 +37,7 @@ static AllocTrackerSlot* tracker_slot(
   if (UNLIKELY(!mem_valid(mem))) {
     alloc_crash_with_msg("Invalid memory");
   }
-  const u64 hash   = tracker_hash(mem);
+  const u64 hash   = bits_hash_64_val((u64)mem.ptr);
   usize     bucket = (usize)(hash & (slotCount - 1));
   for (usize i = 0; i != slotCount; ++i) {
     AllocTrackerSlot* slot = &slots[bucket];
