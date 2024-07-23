@@ -1,6 +1,7 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_string.h"
@@ -186,7 +187,7 @@ Mem asset_texture_data(const AssetTextureComp* texture) {
 GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const usize index) {
   const usize pixelCount    = tex->width * tex->height;
   const usize layerDataSize = pixelCount * asset_texture_format_pixel_size(tex->format);
-  const void* pixelsMip0    = tex->pixelData + (layerDataSize * layer);
+  const void* pixelsMip0    = bits_ptr_offset(tex->pixelData, layerDataSize * layer);
 
   /**
    * Follows the same to RGBA conversion rules as the Vulkan spec:
