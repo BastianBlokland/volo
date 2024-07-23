@@ -146,6 +146,23 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_EmptyStringIsInvalid);
   }
 
+  it("can read raw memory as base64") {
+    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+
+    String val;
+    test_read_success(_testCtx, reg, string_lit("\"SGVsbG8gV29ybGQ=\""), meta, mem_var(val));
+    check_eq_string(val, string_lit("Hello World"));
+    string_free(g_allocHeap, val);
+
+    test_read_success(_testCtx, reg, string_lit("\"\""), meta, mem_var(val));
+    check_eq_string(val, string_empty);
+
+    test_read_fail(
+        _testCtx, reg, string_lit("\"SGVsbG8-gV29ybGQ\""), meta, DataReadError_Base64DataInvalid);
+
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
   it("can read a pointer") {
     const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_Pointer);
 
