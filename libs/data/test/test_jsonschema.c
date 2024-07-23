@@ -101,6 +101,20 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports raw memory") {
+    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"Mem\",\n"
+                   "  \"type\": \"string\",\n"
+                   "  \"contentEncoding\": \"base64\"\n"
+                   "}"));
+  }
+
   it("supports optional pointer") {
     const DataMeta meta = data_meta_t(data_prim_t(String), .container = DataContainer_Pointer);
 

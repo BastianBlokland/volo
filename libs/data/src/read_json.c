@@ -1,8 +1,10 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
+#include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "data_read.h"
 #include "json_read.h"
@@ -177,6 +179,43 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
     }
   }
   *res = result_success();
+}
+
+static usize data_read_json_mem_align(const usize size) {
+  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
+  return math_min(biggestPow2, data_type_mem_align_max);
+}
+
+static void data_read_json_mem(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
+    return;
+  }
+  const String jsonStr = json_string(ctx->doc, ctx->val);
+
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && string_is_empty(jsonStr))) {
+    *res = result_fail(DataReadError_EmptyStringIsInvalid, "Value cannot be an empty string");
+    return;
+  }
+
+  const usize decodedSize = base64_decoded_size(jsonStr);
+  if (!decodedSize) {
+    *mem_as_t(ctx->data, Mem) = mem_empty;
+    *res                      = result_success();
+    return;
+  }
+
+  const Mem mem = alloc_alloc(ctx->alloc, decodedSize, data_read_json_mem_align(decodedSize));
+
+  *mem_as_t(ctx->data, Mem) = mem;
+  data_register_alloc(ctx, mem);
+
+  DynString memStr = dynstring_create_over(mem);
+
+  if (base64_decode(&memStr, jsonStr)) {
+    *res = result_success();
+  } else {
+    *res = result_fail(DataReadError_Base64DataInvalid, "Value contains invalid base64 data");
+  }
 }
 
 static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 fieldsRead) {
@@ -432,6 +471,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataKind_String:
     data_read_json_string(ctx, res);
+    return;
+  case DataKind_Mem:
+    data_read_json_mem(ctx, res);
     return;
   case DataKind_Struct: {
     const u32 fieldsRead = 0;

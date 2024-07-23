@@ -45,6 +45,29 @@ spec(utils_clone) {
     check_eq_string(clone, string_empty);
   }
 
+  it("can clone raw memory") {
+    const Mem original = string_dup(g_allocHeap, string_lit("Hello World"));
+    const Mem clone    = {0};
+
+    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+
+    check_eq_string(clone, string_lit("Hello World"));
+
+    data_destroy(reg, g_allocHeap, meta, mem_var(original));
+    data_destroy(reg, g_allocHeap, meta, mem_var(clone));
+  }
+
+  it("can clone empty memory") {
+    const Mem original = mem_empty;
+    const Mem clone    = {0};
+
+    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+
+    check_eq_string(clone, string_empty);
+  }
+
   it("can clone a primitive pointer") {
     i32  original    = 42;
     i32* originalPtr = &original;

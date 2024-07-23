@@ -16,8 +16,10 @@ spec(file_iterator) {
     const String dirName = path_name_random_scratch(g_rng, string_lit("volo"), string_empty);
     dirPath              = path_build_scratch(g_pathTempDir, dirName);
 
-    if (file_create_dir_sync(dirPath) != FileResult_Success) {
-      diag_crash_msg("file_iterator: Failed to setup test directory");
+    const FileResult res = file_create_dir_sync(dirPath);
+    if (res != FileResult_Success) {
+      diag_crash_msg(
+          "file_iterator: Failed to setup test directory ({})", fmt_text(file_result_str(res)));
     }
   }
 

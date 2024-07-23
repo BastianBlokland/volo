@@ -1,6 +1,11 @@
 #pragma once
 #include "core_string.h"
 
+/**
+ * Largest supported alignment for mem data-type allocations.
+ */
+#define data_type_mem_align_max 16
+
 #define DATA_PRIMS                                                                                 \
   X(bool)                                                                                          \
   X(i8)                                                                                            \
@@ -13,7 +18,8 @@
   X(u64)                                                                                           \
   X(f32)                                                                                           \
   X(f64)                                                                                           \
-  X(String)
+  X(String)                                                                                        \
+  X(Mem)
 
 typedef u32 DataType;
 
