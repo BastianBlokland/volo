@@ -4,6 +4,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "data_read.h"
 #include "json_read.h"
@@ -180,6 +181,11 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
+static usize data_read_json_mem_align(const usize size) {
+  const usize biggestPow2 = 1u << bits_ctz(size);
+  return math_min(biggestPow2, data_type_mem_align_max);
+}
+
 static void data_read_json_mem(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
     return;
@@ -198,7 +204,7 @@ static void data_read_json_mem(const ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  const Mem mem = alloc_alloc(ctx->alloc, decodedSize, data_type_mem_align);
+  const Mem mem = alloc_alloc(ctx->alloc, decodedSize, data_read_json_mem_align(decodedSize));
 
   *mem_as_t(ctx->data, Mem) = mem;
   data_register_alloc(ctx, mem);

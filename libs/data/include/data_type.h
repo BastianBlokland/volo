@@ -2,9 +2,9 @@
 #include "core_string.h"
 
 /**
- * Mem data-type allocations will be aligned to this value.
+ * Largest supported alignment for mem data-type allocations.
  */
-#define data_type_mem_align 16
+#define data_type_mem_align_max 16
 
 #define DATA_PRIMS                                                                                 \
   X(bool)                                                                                          \

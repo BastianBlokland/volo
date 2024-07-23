@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "data_utils.h"
 
 #include "registry_internal.h"
@@ -23,10 +24,16 @@ static void data_clone_string(const CloneCtx* ctx) {
   }
 }
 
+static usize data_clone_mem_align(const usize size) {
+  const usize biggestPow2 = 1u << bits_ctz(size);
+  return math_min(biggestPow2, data_type_mem_align_max);
+}
+
 static void data_clone_mem(const CloneCtx* ctx) {
   const Mem originalMem = *mem_as_t(ctx->original, Mem);
   if (mem_valid(originalMem)) {
-    *mem_as_t(ctx->clone, Mem) = alloc_dup(ctx->alloc, originalMem, data_type_mem_align);
+    const usize align          = data_clone_mem_align(originalMem.size);
+    *mem_as_t(ctx->clone, Mem) = alloc_dup(ctx->alloc, originalMem, align);
   } else {
     *mem_as_t(ctx->clone, Mem) = mem_empty;
   }
