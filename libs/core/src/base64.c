@@ -69,7 +69,7 @@ void base64_encode(DynString* str, const String data) {
   dynstring_append_chars(str, '=', bits_padding_32(bytesWritten, 4));
 }
 
-void base64_decode(DynString* str, const String encoded) {
+bool base64_decode(DynString* str, const String encoded) {
   /**
    * Implementation based on answer of 'nunojpg' in the so question:
    * https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
@@ -77,12 +77,15 @@ void base64_decode(DynString* str, const String encoded) {
   u32 val     = 0;
   u32 valBits = 0; // 8 indicates we have a full value in 'val'.
   mem_for_u8(encoded, itr) {
+    if (*itr == '=') {
+      continue; // Padding character.
+    }
     if (*itr < '+' || *itr > 'z') {
-      break; // Non base64 characters found: abort.
+      return false; // Non base64 characters found: abort.
     }
     const u32 tableIndex = *itr - '+';
     if (g_decodeTable[tableIndex] == 255) {
-      break; // Non base64 character found: abort.
+      return false; // Non base64 character found: abort.
     }
     // Each Base64 digit contains 6 bits of data, shift the current value over by 6 and put the new
     // data in the least significant bits.
@@ -94,6 +97,7 @@ void base64_decode(DynString* str, const String encoded) {
       dynstring_append_char(str, (u8)(val >> valBits)); // Shift away excess bits.
     }
   }
+  return true;
 }
 
 String base64_encode_scratch(const String data) {
@@ -121,9 +125,13 @@ String base64_decode_scratch(const String encoded) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, decodedSize, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
-  base64_decode(&str, encoded);
+  String res;
+  if (base64_decode(&str, encoded)) {
+    res = dynstring_view(&str);
+  } else {
+    res = string_empty; // Invalid base64 data.
+  }
 
-  String res = dynstring_view(&str);
   dynstring_destroy(&str);
   return res;
 }

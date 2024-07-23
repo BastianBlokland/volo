@@ -70,9 +70,9 @@ spec(base64) {
     check_eq_string(encoded, base64_encode_scratch(decoded));
   }
 
-  it("stops decoding with an invalid character is encountered") {
+  it("returns an emtpy string when providing invalid base64 data") {
     const String decoded = base64_decode_scratch(string_lit("SGVsbG8-gV29ybGQ"));
-    check_eq_string(decoded, string_lit("Hello"));
+    check_eq_string(decoded, string_empty);
   }
 
   it("encodes an empty string to an empty string") {

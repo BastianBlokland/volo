@@ -30,7 +30,7 @@ void base64_encode(DynString* str, String data);
  * Decode MIME Base64 encoded input.
  * Pre-condition: 'encoded' is validly encoded and padded base64.
  */
-void base64_decode(DynString* str, String encoded);
+bool base64_decode(DynString* str, String encoded);
 
 /**
  * Encode the given data in MIME Base64.
