@@ -23,6 +23,15 @@ static void data_clone_string(const CloneCtx* ctx) {
   }
 }
 
+static void data_clone_mem(const CloneCtx* ctx) {
+  const Mem originalMem = *mem_as_t(ctx->original, Mem);
+  if (mem_valid(originalMem)) {
+    *mem_as_t(ctx->clone, Mem) = alloc_dup(ctx->alloc, originalMem, data_type_mem_align);
+  } else {
+    *mem_as_t(ctx->clone, Mem) = mem_empty;
+  }
+}
+
 static void data_clone_struct(const CloneCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
@@ -93,6 +102,9 @@ static void data_clone_single(const CloneCtx* ctx) {
     return;
   case DataKind_String:
     data_clone_string(ctx);
+    return;
+  case DataKind_Mem:
+    data_clone_mem(ctx);
     return;
   case DataKind_Struct:
     data_clone_struct(ctx);

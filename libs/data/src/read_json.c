@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
+#include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -175,6 +176,32 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
       data_register_alloc(ctx, str);
       *mem_as_t(ctx->data, String) = str;
     }
+  }
+  *res = result_success();
+}
+
+static void data_read_json_mem(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
+    return;
+  }
+  const String jsonStr = json_string(ctx->doc, ctx->val);
+
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && string_is_empty(jsonStr))) {
+    *res = result_fail(DataReadError_EmptyStringIsInvalid, "Value cannot be an empty string");
+    return;
+  }
+
+  const usize decodedSize = base64_decoded_size(jsonStr);
+  if (!decodedSize) {
+    *mem_as_t(ctx->data, Mem) = mem_empty;
+  } else {
+    const Mem mem    = alloc_alloc(ctx->alloc, decodedSize, data_type_mem_align);
+    DynString memStr = dynstring_create_over(mem);
+
+    base64_decode(&memStr, jsonStr);
+
+    data_register_alloc(ctx, mem);
+    *mem_as_t(ctx->data, Mem) = mem;
   }
   *res = result_success();
 }
@@ -432,6 +459,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataKind_String:
     data_read_json_string(ctx, res);
+    return;
+  case DataKind_Mem:
+    data_read_json_mem(ctx, res);
     return;
   case DataKind_Struct: {
     const u32 fieldsRead = 0;

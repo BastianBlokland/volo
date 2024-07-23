@@ -30,6 +30,11 @@ static JsonVal schema_default_string(const JsonSchemaCtx* ctx, const DataMeta me
   return json_add_string(ctx->doc, str);
 }
 
+static JsonVal schema_default_mem(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  (void)meta;
+  return json_add_string(ctx->doc, string_empty);
+}
+
 static JsonVal schema_default_struct(const JsonSchemaCtx* ctx, const DataMeta meta) {
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
   diag_assert(decl->kind == DataKind_Struct);
@@ -134,6 +139,8 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
       return schema_default_number(ctx, meta);
     case DataKind_String:
       return schema_default_string(ctx, meta);
+    case DataKind_Mem:
+      return schema_default_mem(ctx, meta);
     case DataKind_Struct:
       return schema_default_struct(ctx, meta);
     case DataKind_Union:
@@ -264,6 +271,12 @@ static void schema_add_string(const JsonSchemaCtx* ctx, const JsonVal obj, const
   if (meta.flags & DataFlags_NotEmpty) {
     json_add_field_lit(ctx->doc, obj, "minLength", json_add_number(ctx->doc, 1));
   }
+}
+
+static void schema_add_mem(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  (void)meta;
+  json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "string"));
+  json_add_field_lit(ctx->doc, obj, "contentEncoding", json_add_string_lit(ctx->doc, "base64"));
 }
 
 static void schema_add_struct(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
@@ -464,6 +477,9 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
       break;
     case DataKind_String:
       schema_add_string(ctx, obj, meta);
+      break;
+    case DataKind_Mem:
+      schema_add_mem(ctx, obj, meta);
       break;
     case DataKind_Struct:
     case DataKind_Union:

@@ -21,6 +21,13 @@ static void data_destroy_string(const DestroyCtx* ctx) {
   }
 }
 
+static void data_destroy_mem(const DestroyCtx* ctx) {
+  const Mem val = *mem_as_t(ctx->data, Mem);
+  if (mem_valid(val)) {
+    alloc_free(ctx->alloc, val);
+  }
+}
+
 static void data_destroy_struct(const DestroyCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
@@ -79,6 +86,9 @@ static void data_destroy_single(const DestroyCtx* ctx) {
     return;
   case DataKind_String:
     data_destroy_string(ctx);
+    return;
+  case DataKind_Mem:
+    data_destroy_mem(ctx);
     return;
   case DataKind_Struct:
     data_destroy_struct(ctx);

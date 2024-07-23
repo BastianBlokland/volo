@@ -1,6 +1,11 @@
 #pragma once
 #include "core_string.h"
 
+/**
+ * Mem data-type allocations will be aligned to this value.
+ */
+#define data_type_mem_align 16
+
 #define DATA_PRIMS                                                                                 \
   X(bool)                                                                                          \
   X(i8)                                                                                            \
@@ -13,7 +18,8 @@
   X(u64)                                                                                           \
   X(f32)                                                                                           \
   X(f64)                                                                                           \
-  X(String)
+  X(String)                                                                                        \
+  X(Mem)
 
 typedef u32 DataType;
 

@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "data_write.h"
@@ -58,6 +59,34 @@ static JsonVal data_write_json_string(const WriteCtx* ctx) {
     return sentinel_u32;
   }
   return json_add_string(ctx->doc, val);
+}
+
+static JsonVal data_write_json_mem(const WriteCtx* ctx) {
+  const Mem val = *mem_as_t(ctx->data, Mem);
+  if (!mem_valid(val)) {
+    if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt) {
+      return sentinel_u32;
+    }
+    return json_add_string(ctx->doc, string_empty);
+  }
+
+  /**
+   * Encode the memory as MIME base64 and add it as a string to the json document.
+   *
+   * TODO: Instead of 'json_add_string' copying the encoded data once again we could encode directly
+   * into a string owned by the json document.
+   */
+  const usize base64Size   = base64_encoded_size(val);
+  const bool  useScratch   = base64Size < (64 * usize_kibibyte);
+  Allocator*  bufferAlloc  = useScratch ? g_allocScratch : g_allocHeap;
+  const Mem   base64Buffer = alloc_alloc(bufferAlloc, base64Size, 1);
+  DynString   base64Str    = dynstring_create_over(base64Buffer);
+
+  base64_encode(&base64Str, val);
+
+  const JsonVal ret = json_add_string(ctx->doc, dynstring_view(&base64Str));
+  alloc_free(bufferAlloc, base64Buffer);
+  return ret;
 }
 
 static void data_write_json_struct_to_obj(const WriteCtx* ctx, const JsonVal jsonObj) {
@@ -157,6 +186,8 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
     return data_write_json_number(ctx);
   case DataKind_String:
     return data_write_json_string(ctx);
+  case DataKind_Mem:
+    return data_write_json_mem(ctx);
   case DataKind_Struct:
     return data_write_json_struct(ctx);
   case DataKind_Union:
