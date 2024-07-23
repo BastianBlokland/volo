@@ -10,19 +10,7 @@
 #include "core_simd.h"
 #endif
 
-/**
- * SplitMix32 hash routine.
- * References:
- * - Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. 2014.
- *   Fast splittable pseudorandom number generators.
- */
-static u32 splitmix_32(u32 hash) {
-  hash = (hash ^ (hash >> 16)) * 0x85ebca6b;
-  hash = (hash ^ (hash >> 13)) * 0xc2b2ae35;
-  return hash ^ (hash >> 16);
-}
-
-GeoColor geo_color_for(const u32 idx) { return geo_color_for_hash(splitmix_32(idx)); }
+GeoColor geo_color_for(const u32 idx) { return geo_color_for_hash(bits_hash_32_val(idx)); }
 
 GeoColor geo_color_for_hash(const u32 hash) {
   static const f32 g_u32MaxInv = 1.0f / u32_max;

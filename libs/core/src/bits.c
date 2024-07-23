@@ -87,6 +87,18 @@ u32 bits_hash_32(const Mem mem) {
   return hash;
 }
 
+u32 bits_hash_32_val(u32 hash) {
+  /**
+   * SplitMix32 hash routine.
+   * References:
+   * - Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. 2014.
+   *   Fast splittable pseudorandom number generators.
+   */
+  hash = (hash ^ (hash >> 16)) * 0x85ebca6b;
+  hash = (hash ^ (hash >> 13)) * 0xc2b2ae35;
+  return hash ^ (hash >> 16);
+}
+
 u32 bits_hash_32_combine(const u32 x, const u32 y) {
   return x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
 }
