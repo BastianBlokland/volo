@@ -3,7 +3,7 @@
 
 spec(base64) {
 
-  it("can decode helloworld") {
+  it("can encode/decode helloworld") {
     const String encoded = string_lit("SGVsbG8gV29ybGQ=");
     const String decoded = base64_decode_scratch(encoded);
 
@@ -11,9 +11,10 @@ spec(base64) {
     check_eq_int(base64_encoded_size(decoded), encoded.size);
 
     check_eq_string(decoded, string_lit("Hello World"));
+    check_eq_string(encoded, base64_encode_scratch(decoded));
   }
 
-  it("can decode the wikipedia base64 example") {
+  it("can encode/decode the wikipedia base64 example") {
     const String encoded =
         string_lit("TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz"
                    "IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg"
@@ -33,9 +34,10 @@ spec(base64) {
             "continued"
             " and indefatigable generation of knowledge, exceeds the short vehemence of any carnal "
             "pleasure."));
+    check_eq_string(encoded, base64_encode_scratch(decoded));
   }
 
-  it("can decode content with 2 padding characters") {
+  it("can encode/decode content with 2 padding characters") {
     const String encoded = string_lit("YW55IGNhcm5hbCBwbGVhc3VyZQ==");
     const String decoded = base64_decode_scratch(encoded);
 
@@ -43,9 +45,10 @@ spec(base64) {
     check_eq_int(base64_encoded_size(decoded), encoded.size);
 
     check_eq_string(decoded, string_lit("any carnal pleasure"));
+    check_eq_string(encoded, base64_encode_scratch(decoded));
   }
 
-  it("can decode content with 1 padding character") {
+  it("can encode/decode content with 1 padding character") {
     const String encoded = string_lit("YW55IGNhcm5hbCBwbGVhc3U=");
     const String decoded = base64_decode_scratch(encoded);
 
@@ -53,9 +56,10 @@ spec(base64) {
     check_eq_int(base64_encoded_size(decoded), encoded.size);
 
     check_eq_string(decoded, string_lit("any carnal pleasu"));
+    check_eq_string(encoded, base64_encode_scratch(decoded));
   }
 
-  it("can decode content with no padding characters") {
+  it("can encode/decode content with no padding characters") {
     const String encoded = string_lit("YW55IGNhcm5hbCBwbGVhc3Vy");
     const String decoded = base64_decode_scratch(encoded);
 
@@ -63,6 +67,7 @@ spec(base64) {
     check_eq_int(base64_encoded_size(decoded), encoded.size);
 
     check_eq_string(decoded, string_lit("any carnal pleasur"));
+    check_eq_string(encoded, base64_encode_scratch(decoded));
   }
 
   it("stops decoding with an invalid character is encountered") {
@@ -72,10 +77,11 @@ spec(base64) {
 
   it("encodes an empty string to an empty string") {
     check_eq_int(base64_encoded_size(string_empty), 0);
-    check_eq_int(base64_decoded_size(string_empty), 0);
+    check_eq_string(base64_encode_scratch(string_empty), string_empty);
   }
 
   it("returns an empty string when decoding an empty string") {
+    check_eq_int(base64_decoded_size(string_empty), 0);
     const String decoded = base64_decode_scratch(string_empty);
     check_eq_string(decoded, string_empty);
   }
