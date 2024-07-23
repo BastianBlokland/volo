@@ -79,5 +79,27 @@ spec(utils_hash) {
     check(hash != 0);
   }
 
+  it("can compute the hash excluding ids") {
+    typedef struct {
+      String a, b;
+    } CloneStructA;
+
+    data_reg_struct_t(reg, CloneStructA);
+    data_reg_field_t(reg, CloneStructA, a, data_prim_t(String));
+    data_reg_field_t(reg, CloneStructA, b, data_prim_t(String));
+
+    typedef struct {
+      String c, d;
+    } CloneStructB;
+
+    data_reg_struct_t(reg, CloneStructB);
+    data_reg_field_t(reg, CloneStructB, c, data_prim_t(String));
+    data_reg_field_t(reg, CloneStructB, d, data_prim_t(String));
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_CloneStructA), DataHashFlags_ExcludeIds);
+    const u32 hashB = data_hash(reg, data_meta_t(t_CloneStructB), DataHashFlags_ExcludeIds);
+    check_eq_int(hashA, hashB);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
