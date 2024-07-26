@@ -12,6 +12,7 @@ add_library(lib_data STATIC
   src/utils_destroy.c
   src/utils_equal.c
   src/utils_hash.c
+  src/write_bin.c
   src/write_json.c
   )
 target_include_directories(lib_data PUBLIC include)

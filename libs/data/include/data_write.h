@@ -17,3 +17,12 @@ typedef struct {
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
 void data_write_json(const DataReg*, DynString*, DataMeta, Mem data, const DataWriteJsonOpts*);
+
+/**
+ * Write a data value as a binary blob.
+ *
+ * Pre-condition: data memory contains an initialized value compatable with the given DataMeta.
+ * Pre-condition: data memory does not contain any cycles.
+ * Pre-condition: DataMeta definition is not modified in parallel with this call.
+ */
+void data_write_bin(const DataReg*, DynString*, DataMeta, Mem data);
