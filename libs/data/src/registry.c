@@ -92,6 +92,10 @@ void data_reg_destroy(DataReg* reg) {
 
 String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
 
+StringHash data_name_hash(const DataReg* reg, const DataType type) {
+  return data_decl(reg, type)->id.hash;
+}
+
 usize data_size(const DataReg* reg, const DataType type) { return data_decl(reg, type)->size; }
 
 usize data_align(const DataReg* reg, const DataType type) { return data_decl(reg, type)->align; }
