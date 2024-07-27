@@ -62,8 +62,8 @@ static JsonVal data_write_json_string(const WriteCtx* ctx) {
 }
 
 static JsonVal data_write_json_mem(const WriteCtx* ctx) {
-  const Mem val = *mem_as_t(ctx->data, Mem);
-  if (!mem_valid(val)) {
+  const DataMem val = *mem_as_t(ctx->data, DataMem);
+  if (!mem_valid(data_mem(val))) {
     if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt) {
       return sentinel_u32;
     }
@@ -76,13 +76,13 @@ static JsonVal data_write_json_mem(const WriteCtx* ctx) {
    * TODO: Instead of 'json_add_string' copying the encoded data once again we could encode directly
    * into a string owned by the json document.
    */
-  const usize base64Size   = base64_encoded_size(val);
+  const usize base64Size   = base64_encoded_size(data_mem(val));
   const bool  useScratch   = base64Size < (64 * usize_kibibyte);
   Allocator*  bufferAlloc  = useScratch ? g_allocScratch : g_allocHeap;
   const Mem   base64Buffer = alloc_alloc(bufferAlloc, base64Size, 1);
   DynString   base64Str    = dynstring_create_over(base64Buffer);
 
-  base64_encode(&base64Str, val);
+  base64_encode(&base64Str, data_mem(val));
 
   const JsonVal ret = json_add_string(ctx->doc, dynstring_view(&base64Str));
   alloc_free(bufferAlloc, base64Buffer);
@@ -186,7 +186,7 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
     return data_write_json_number(ctx);
   case DataKind_String:
     return data_write_json_string(ctx);
-  case DataKind_Mem:
+  case DataKind_DataMem:
     return data_write_json_mem(ctx);
   case DataKind_Struct:
     return data_write_json_struct(ctx);
@@ -208,10 +208,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-       .reg  = ctx->reg,
-       .doc  = ctx->doc,
-       .meta = data_meta_base(ctx->meta),
-       .data = mem_create(ptr, decl->size),
+      .reg  = ctx->reg,
+      .doc  = ctx->doc,
+      .meta = data_meta_base(ctx->meta),
+      .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }

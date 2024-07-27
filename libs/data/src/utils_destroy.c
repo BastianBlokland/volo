@@ -22,9 +22,9 @@ static void data_destroy_string(const DestroyCtx* ctx) {
 }
 
 static void data_destroy_mem(const DestroyCtx* ctx) {
-  const Mem val = *mem_as_t(ctx->data, Mem);
-  if (mem_valid(val)) {
-    alloc_free(ctx->alloc, val);
+  const DataMem val = *mem_as_t(ctx->data, DataMem);
+  if (mem_valid(data_mem(val))) {
+    alloc_free(ctx->alloc, data_mem(val));
   }
 }
 
@@ -87,7 +87,7 @@ static void data_destroy_single(const DestroyCtx* ctx) {
   case DataKind_String:
     data_destroy_string(ctx);
     return;
-  case DataKind_Mem:
+  case DataKind_DataMem:
     data_destroy_mem(ctx);
     return;
   case DataKind_Struct:

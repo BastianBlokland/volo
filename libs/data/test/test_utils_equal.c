@@ -21,11 +21,11 @@ spec(utils_equal) {
   }
 
   it("can compare raw memory") {
-    const Mem a = string_lit("Hello World");
-    const Mem b = string_lit("Hello World2");
-    const Mem c = string_empty;
+    const DataMem a = data_mem_create(string_lit("Hello World"));
+    const DataMem b = data_mem_create(string_lit("Hello World2"));
+    const DataMem c = data_mem_create(string_empty);
 
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     check(data_equal(reg, meta, mem_var(a), mem_var(a)));
     check(data_equal(reg, meta, mem_var(c), mem_var(c)));
     check(!data_equal(reg, meta, mem_var(a), mem_var(b)));

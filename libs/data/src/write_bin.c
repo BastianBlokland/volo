@@ -137,8 +137,10 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     bin_push_f64(ctx, *mem_as_t(ctx->data, f64));
     return;
   case DataKind_String:
-  case DataKind_Mem:
     bin_push_mem(ctx, *mem_as_t(ctx->data, Mem));
+    return;
+  case DataKind_DataMem:
+    bin_push_mem(ctx, data_mem(*mem_as_t(ctx->data, DataMem)));
     return;
   case DataKind_Struct:
     data_write_bin_struct(ctx);
@@ -162,10 +164,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-         .reg  = ctx->reg,
-         .out  = ctx->out,
-         .meta = data_meta_base(ctx->meta),
-         .data = mem_create(ptr, decl->size),
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }

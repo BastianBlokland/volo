@@ -215,8 +215,8 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
     return;
   }
   if (!val.size) {
-    *mem_as_t(ctx->data, Mem) = mem_empty;
-    *res                      = result_success();
+    *mem_as_t(ctx->data, DataMem) = data_mem_create(mem_empty);
+    *res                          = result_success();
     return;
   }
 
@@ -224,7 +224,8 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
   mem_cpy(mem, val);
 
   data_register_alloc(ctx, mem);
-  *mem_as_t(ctx->data, Mem) = mem;
+
+  *mem_as_t(ctx->data, DataMem) = data_mem_create(mem);
 
   *res = result_success();
 }
@@ -362,7 +363,7 @@ static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
   case DataKind_String:
     data_read_bin_string(ctx, res);
     return;
-  case DataKind_Mem:
+  case DataKind_DataMem:
     data_read_bin_mem(ctx, res);
     return;
   case DataKind_Struct:

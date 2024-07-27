@@ -139,7 +139,7 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
       return schema_default_number(ctx, meta);
     case DataKind_String:
       return schema_default_string(ctx, meta);
-    case DataKind_Mem:
+    case DataKind_DataMem:
       return schema_default_mem(ctx, meta);
     case DataKind_Struct:
       return schema_default_struct(ctx, meta);
@@ -478,7 +478,7 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
     case DataKind_String:
       schema_add_string(ctx, obj, meta);
       break;
-    case DataKind_Mem:
+    case DataKind_DataMem:
       schema_add_mem(ctx, obj, meta);
       break;
     case DataKind_Struct:

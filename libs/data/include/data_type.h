@@ -1,4 +1,5 @@
 #pragma once
+#include "core_annotation.h"
 #include "core_string.h"
 
 /**
@@ -19,7 +20,7 @@
   X(f32)                                                                                           \
   X(f64)                                                                                           \
   X(String)                                                                                        \
-  X(Mem)
+  X(DataMem)
 
 typedef u32 DataType;
 
@@ -27,6 +28,11 @@ typedef struct {
   void* values;
   usize count;
 } DataArray;
+
+typedef struct {
+  void* ptr;
+  usize size;
+} DataMem;
 
 // clang-format off
 
@@ -44,3 +50,11 @@ typedef enum {
 } DataKind;
 
 // clang-format on
+
+MAYBE_UNUSED INLINE_HINT static DataMem data_mem_create(const Mem mem) {
+  return (DataMem){.ptr = mem.ptr, .size = mem.size};
+}
+
+MAYBE_UNUSED INLINE_HINT static Mem data_mem(const DataMem dataMem) {
+  return mem_create(dataMem.ptr, dataMem.size);
+}
