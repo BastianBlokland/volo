@@ -56,7 +56,7 @@ static void bin_push_mem(const WriteCtx* ctx, const Mem mem) {
 static void bin_push_padding(const WriteCtx* ctx, const usize align) {
   const usize padding = bits_padding(ctx->out->size + 1, align);
   diag_assert(padding <= u8_max);
-  bin_push_u8(ctx, padding);
+  bin_push_u8(ctx, (u8)padding);
   mem_set(dynstring_push(ctx->out, padding), 0);
   diag_assert(bits_aligned(ctx->out->size, align));
 }
