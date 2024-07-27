@@ -101,5 +101,25 @@ spec(utils_hash) {
     check_eq_int(hashA, hashB);
   }
 
+  it("includes the not-empty flag in the hash") {
+    typedef struct {
+      u32 val;
+    } CloneStructA;
+
+    data_reg_struct_t(reg, CloneStructA);
+    data_reg_field_t(reg, CloneStructA, val, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+
+    typedef struct {
+      u32 val;
+    } CloneStructB;
+
+    data_reg_struct_t(reg, CloneStructB);
+    data_reg_field_t(reg, CloneStructB, val, data_prim_t(u32));
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_CloneStructA), DataHashFlags_None);
+    const u32 hashB = data_hash(reg, data_meta_t(t_CloneStructB), DataHashFlags_None);
+    check(hashA != hashB);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

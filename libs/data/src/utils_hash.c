@@ -115,9 +115,19 @@ static u32 data_hash_single(const HashCtx* ctx) {
   diag_crash();
 }
 
+static u32 data_hash_flags(const DataFlags flags) {
+  static const DataFlags g_hashedFlags = DataFlags_NotEmpty;
+  return bits_hash_32_val(flags & g_hashedFlags);
+}
+
 static u32 data_hash_internal(const HashCtx* ctx) {
   const u32 containerHash = bits_hash_32_val(ctx->meta.container);
-  return bits_hash_32_combine(containerHash, data_hash_single(ctx));
+  const u32 flagsHash     = data_hash_flags(ctx->meta.flags);
+
+  u32 res = data_hash_single(ctx);
+  res     = bits_hash_32_combine(res, containerHash);
+  res     = bits_hash_32_combine(res, flagsHash);
+  return res;
 }
 
 u32 data_hash(const DataReg* reg, const DataMeta meta, const DataHashFlags flags) {
