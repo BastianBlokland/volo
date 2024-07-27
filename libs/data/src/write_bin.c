@@ -84,6 +84,11 @@ static void data_write_bin_union(const WriteCtx* ctx) {
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
   diag_assert(choice);
 
+  const String* name = data_union_name(&decl->val_union, ctx->data);
+  if (name) {
+    bin_push_mem(ctx, *name);
+  }
+
   const bool emptyChoice = choice->meta.type == 0;
   if (!emptyChoice) {
     const WriteCtx choiceCtx = {
