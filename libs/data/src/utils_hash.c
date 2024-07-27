@@ -119,7 +119,7 @@ static u32 data_hash_single(const HashCtx* ctx) {
 }
 
 static u32 data_hash_flags(const DataFlags flags) {
-  static const DataFlags g_hashedFlags = DataFlags_NotEmpty;
+  static const DataFlags g_hashedFlags = DataFlags_NotEmpty | DataFlags_ExternalMemory;
   return bits_hash_32_val(flags & g_hashedFlags);
 }
 

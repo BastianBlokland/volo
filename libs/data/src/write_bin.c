@@ -155,10 +155,12 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     return;
   case DataKind_DataMem: {
     const DataMem dataMem = *mem_as_t(ctx->data, DataMem);
-    /**
-     * Align the output to support using it directly as external memory.
-     */
-    bin_push_padding(ctx, data_write_bin_mem_align(dataMem.size));
+    if (ctx->meta.flags & DataFlags_ExternalMemory) {
+      /**
+       * For supporting external-memory we need to make sure the output location is aligned.
+       */
+      bin_push_padding(ctx, data_write_bin_mem_align(dataMem.size));
+    }
     bin_push_mem(ctx, data_mem(dataMem));
     return;
   }

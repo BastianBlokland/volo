@@ -218,7 +218,7 @@ static usize data_read_bin_mem_align(const usize size) {
 }
 
 static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
-  if (UNLIKELY(!bin_pop_padding(ctx))) {
+  if (ctx->meta.flags & DataFlags_ExternalMemory && UNLIKELY(!bin_pop_padding(ctx))) {
     *res = result_fail_truncated();
     return;
   }
