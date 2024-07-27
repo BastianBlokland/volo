@@ -1,6 +1,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_math.h"
 #include "data_utils.h"
 #include "data_write.h"
 
@@ -50,6 +51,14 @@ static void bin_push_mem(const WriteCtx* ctx, const Mem mem) {
   } else {
     bin_push_u64(ctx, 0);
   }
+}
+
+static void bin_push_padding(const WriteCtx* ctx, const usize align) {
+  const usize padding = bits_padding(ctx->out->size + 1, align);
+  diag_assert(padding <= u8_max);
+  bin_push_u8(ctx, (u8)padding);
+  mem_set(dynstring_push(ctx->out, padding), 0);
+  diag_assert(bits_aligned(ctx->out->size, align));
 }
 
 static void data_write_bin_header(const WriteCtx* ctx) {
@@ -106,6 +115,11 @@ static void data_write_bin_enum(const WriteCtx* ctx) {
   bin_push_u32(ctx, (u32)val);
 }
 
+static usize data_write_bin_mem_align(const usize size) {
+  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
+  return math_min(biggestPow2, data_type_mem_align_max);
+}
+
 static void data_write_bin_val_single(const WriteCtx* ctx) {
   /**
    * NOTE: For signed values we assume the host system is using 2's complement integers.
@@ -137,9 +151,19 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     bin_push_f64(ctx, *mem_as_t(ctx->data, f64));
     return;
   case DataKind_String:
-  case DataKind_Mem:
     bin_push_mem(ctx, *mem_as_t(ctx->data, Mem));
     return;
+  case DataKind_DataMem: {
+    const DataMem dataMem = *mem_as_t(ctx->data, DataMem);
+    if (ctx->meta.flags & DataFlags_ExternalMemory) {
+      /**
+       * For supporting external-memory we need to make sure the output location is aligned.
+       */
+      bin_push_padding(ctx, data_write_bin_mem_align(dataMem.size));
+    }
+    bin_push_mem(ctx, data_mem(dataMem));
+    return;
+  }
   case DataKind_Struct:
     data_write_bin_struct(ctx);
     return;
@@ -162,10 +186,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-         .reg  = ctx->reg,
-         .out  = ctx->out,
-         .meta = data_meta_base(ctx->meta),
-         .data = mem_create(ptr, decl->size),
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }

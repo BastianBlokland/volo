@@ -102,14 +102,14 @@ spec(jsonschema) {
   }
 
   it("supports raw memory") {
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 
     test_jsonschema_write(
         _testCtx,
         reg,
         meta,
         string_lit("{\n"
-                   "  \"title\": \"Mem\",\n"
+                   "  \"title\": \"DataMem\",\n"
                    "  \"type\": \"string\",\n"
                    "  \"contentEncoding\": \"base64\"\n"
                    "}"));

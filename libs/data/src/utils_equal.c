@@ -18,9 +18,9 @@ static bool data_equal_string(const EqualCtx* ctx) {
 }
 
 static bool data_equal_mem(const EqualCtx* ctx) {
-  const Mem valA = *mem_as_t(ctx->a, Mem);
-  const Mem valB = *mem_as_t(ctx->b, Mem);
-  return mem_eq(valA, valB);
+  const DataMem valA = *mem_as_t(ctx->a, DataMem);
+  const DataMem valB = *mem_as_t(ctx->b, DataMem);
+  return mem_eq(data_mem(valA), data_mem(valB));
 }
 
 static bool data_equal_struct(const EqualCtx* ctx) {
@@ -95,7 +95,7 @@ static bool data_equal_single(const EqualCtx* ctx) {
     return mem_eq(ctx->a, ctx->b);
   case DataKind_String:
     return data_equal_string(ctx);
-  case DataKind_Mem:
+  case DataKind_DataMem:
     return data_equal_mem(ctx);
   case DataKind_Struct:
     return data_equal_struct(ctx);

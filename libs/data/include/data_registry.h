@@ -13,10 +13,11 @@ typedef enum {
 } DataContainer;
 
 typedef enum {
-  DataFlags_None     = 0,
-  DataFlags_Opt      = 1 << 0,
-  DataFlags_NotEmpty = 1 << 1,
-  DataFlags_Intern   = 1 << 2, // Intern the string in the global string-table.
+  DataFlags_None           = 0,
+  DataFlags_Opt            = 1 << 0,
+  DataFlags_NotEmpty       = 1 << 1,
+  DataFlags_Intern         = 1 << 2, // Intern the string in the global string-table.
+  DataFlags_ExternalMemory = 1 << 3, // Support external allocations on this memory type.
 } DataFlags;
 
 /**

@@ -147,15 +147,15 @@ spec(read_json) {
   }
 
   it("can read raw memory as base64") {
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 
-    String val;
+    DataMem val;
     test_read_success(_testCtx, reg, string_lit("\"SGVsbG8gV29ybGQ=\""), meta, mem_var(val));
-    check_eq_string(val, string_lit("Hello World"));
-    string_free(g_allocHeap, val);
+    check_eq_string(data_mem(val), string_lit("Hello World"));
+    data_destroy(reg, g_allocHeap, meta, mem_var(val));
 
     test_read_success(_testCtx, reg, string_lit("\"\""), meta, mem_var(val));
-    check_eq_string(val, string_empty);
+    check_eq_string(data_mem(val), string_empty);
 
     test_read_fail(
         _testCtx, reg, string_lit("\"SGVsbG8-gV29ybGQ\""), meta, DataReadError_Base64DataInvalid);

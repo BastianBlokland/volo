@@ -88,13 +88,13 @@ spec(write_json) {
     test_write(_testCtx, reg, meta, mem_var(val2), string_lit("\"\""));
   }
 
-  it("can write raw memory as base64") {
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+  it("can write memory as base64") {
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 
-    const Mem val1 = string_lit("Hello World");
+    const DataMem val1 = data_mem_create(string_lit("Hello World"));
     test_write(_testCtx, reg, meta, mem_var(val1), string_lit("\"SGVsbG8gV29ybGQ=\""));
 
-    const Mem val2 = string_empty;
+    const DataMem val2 = data_mem_create(mem_empty);
     test_write(_testCtx, reg, meta, mem_var(val2), string_lit("\"\""));
   }
 

@@ -199,20 +199,20 @@ static void data_read_json_mem(const ReadCtx* ctx, DataReadResult* res) {
 
   const usize decodedSize = base64_decoded_size(jsonStr);
   if (!decodedSize) {
-    *mem_as_t(ctx->data, Mem) = mem_empty;
-    *res                      = result_success();
+    *mem_as_t(ctx->data, DataMem) = data_mem_create(mem_empty);
+    *res                          = result_success();
     return;
   }
 
   const Mem mem = alloc_alloc(ctx->alloc, decodedSize, data_read_json_mem_align(decodedSize));
 
-  *mem_as_t(ctx->data, Mem) = mem;
   data_register_alloc(ctx, mem);
 
   DynString memStr = dynstring_create_over(mem);
 
   if (base64_decode(&memStr, jsonStr)) {
-    *res = result_success();
+    *mem_as_t(ctx->data, DataMem) = data_mem_create(mem);
+    *res                          = result_success();
   } else {
     *res = result_fail(DataReadError_Base64DataInvalid, "Value contains invalid base64 data");
   }
@@ -472,7 +472,7 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   case DataKind_String:
     data_read_json_string(ctx, res);
     return;
-  case DataKind_Mem:
+  case DataKind_DataMem:
     data_read_json_mem(ctx, res);
     return;
   case DataKind_Struct: {

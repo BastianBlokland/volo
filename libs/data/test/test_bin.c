@@ -69,13 +69,23 @@ spec(bin) {
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(val2));
   }
 
-  it("can serialize raw memory") {
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+  it("can serialize memory") {
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 
-    const Mem val1 = string_lit("Hello World");
+    const DataMem val1 = data_mem_create(string_lit("Hello World"));
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(val1));
 
-    const Mem val2 = string_empty;
+    const DataMem val2 = data_mem_create(mem_empty);
+    test_bin_roundtrip(_testCtx, reg, meta, mem_var(val2));
+  }
+
+  it("can serialize external memory") {
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+
+    const DataMem val1 = data_mem_create(string_lit("Hello World"));
+    test_bin_roundtrip(_testCtx, reg, meta, mem_var(val1));
+
+    const DataMem val2 = data_mem_create(mem_empty);
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(val2));
   }
 

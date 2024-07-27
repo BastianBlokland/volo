@@ -153,5 +153,25 @@ spec(utils_hash) {
     check(hashA != hashB);
   }
 
+  it("includes the external-memory flag in the hash") {
+    typedef struct {
+      DataMem v;
+    } HashStructA;
+
+    data_reg_struct_t(reg, HashStructA);
+    data_reg_field_t(reg, HashStructA, v, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+
+    typedef struct {
+      DataMem v;
+    } HashStructB;
+
+    data_reg_struct_t(reg, HashStructB);
+    data_reg_field_t(reg, HashStructB, v, data_prim_t(DataMem));
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_HashStructA), DataHashFlags_None);
+    const u32 hashB = data_hash(reg, data_meta_t(t_HashStructB), DataHashFlags_None);
+    check(hashA != hashB);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

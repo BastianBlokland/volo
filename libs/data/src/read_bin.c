@@ -101,6 +101,15 @@ static bool bin_pop_mem(ReadCtx* ctx, Mem* out) {
   return bin_pop_bytes(ctx, (usize)size, out);
 }
 
+static bool bin_pop_padding(ReadCtx* ctx) {
+  u8 padding;
+  if (UNLIKELY(!bin_pop_u8(ctx, &padding))) {
+    return false;
+  }
+  Mem paddingMem;
+  return bin_pop_bytes(ctx, padding, &paddingMem);
+}
+
 static void data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
   Mem inMagic;
   if (!bin_pop_bytes(ctx, g_dataBinMagic.size, &inMagic) || !mem_eq(inMagic, g_dataBinMagic)) {
@@ -209,22 +218,31 @@ static usize data_read_bin_mem_align(const usize size) {
 }
 
 static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
+  if (ctx->meta.flags & DataFlags_ExternalMemory && UNLIKELY(!bin_pop_padding(ctx))) {
+    *res = result_fail_truncated();
+    return;
+  }
   Mem val;
   if (UNLIKELY(!bin_pop_mem(ctx, &val))) {
     *res = result_fail_truncated();
     return;
   }
   if (!val.size) {
-    *mem_as_t(ctx->data, Mem) = mem_empty;
-    *res                      = result_success();
+    *mem_as_t(ctx->data, DataMem) = data_mem_create(mem_empty);
+    *res                          = result_success();
     return;
   }
 
-  const Mem mem = alloc_alloc(ctx->alloc, val.size, data_read_bin_mem_align(val.size));
-  mem_cpy(mem, val);
+  if (ctx->meta.flags & DataFlags_ExternalMemory) {
+    diag_assert(bits_aligned_ptr(val.ptr, data_read_bin_mem_align(val.size)));
+    *mem_as_t(ctx->data, DataMem) = data_mem_create_ext(val);
+  } else {
+    const Mem copy = alloc_alloc(ctx->alloc, val.size, data_read_bin_mem_align(val.size));
+    mem_cpy(copy, val);
 
-  data_register_alloc(ctx, mem);
-  *mem_as_t(ctx->data, Mem) = mem;
+    data_register_alloc(ctx, copy);
+    *mem_as_t(ctx->data, DataMem) = data_mem_create(copy);
+  }
 
   *res = result_success();
 }
@@ -362,7 +380,7 @@ static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
   case DataKind_String:
     data_read_bin_string(ctx, res);
     return;
-  case DataKind_Mem:
+  case DataKind_DataMem:
     data_read_bin_mem(ctx, res);
     return;
   case DataKind_Struct:

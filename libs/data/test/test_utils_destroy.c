@@ -29,17 +29,24 @@ spec(utils_destroy) {
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
-  it("can destroy raw memory") {
-    const Mem val = string_dup(g_allocHeap, string_lit("Hello World"));
+  it("can destroy memory") {
+    const DataMem val = data_mem_create(string_dup(g_allocHeap, string_lit("Hello World")));
 
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
+    data_destroy(reg, g_allocHeap, meta, mem_var(val));
+  }
+
+  it("can external memory") {
+    const DataMem val = data_mem_create_ext(string_lit("Hello World"));
+
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
   it("can destroy empty memory") {
-    const Mem val = mem_empty;
+    const DataMem val = data_mem_create(mem_empty);
 
-    const DataMeta meta = data_meta_t(data_prim_t(Mem));
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
@@ -113,9 +120,9 @@ spec(utils_destroy) {
 
     DestroyStructB* ptr = alloc_alloc_t(g_allocHeap, DestroyStructB);
     *ptr                = (DestroyStructB){
-                       .a = string_dup(g_allocHeap, string_lit("Some")),
-                       .b = string_dup(g_allocHeap, string_lit("New")),
-                       .c = string_dup(g_allocHeap, string_lit("Values")),
+        .a = string_dup(g_allocHeap, string_lit("Some")),
+        .b = string_dup(g_allocHeap, string_lit("New")),
+        .c = string_dup(g_allocHeap, string_lit("Values")),
     };
 
     const usize     arrayCount  = 4;
