@@ -2,6 +2,15 @@
 #include "data_registry.h"
 
 /**
+ * Perform a deep equality comparision of the given values.
+ *
+ * Pre-condition: 'a' and 'b' are initialized values compatible with the given DataMeta.
+ * Pre-condition: original memory does not contain any cycles.
+ * Pre-condition: DataMeta definition is not modified in parallel with this call.
+ */
+bool data_equal(const DataReg*, DataMeta, Mem a, Mem b);
+
+/**
  * Deep-copy the original value into the given data memory.
  *
  * Pre-condition: original.size == clone.size.
