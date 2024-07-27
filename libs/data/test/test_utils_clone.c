@@ -45,7 +45,7 @@ spec(utils_clone) {
     check_eq_string(clone, string_empty);
   }
 
-  it("can clone raw memory") {
+  it("can clone memory") {
     const DataMem original = data_mem_create(string_dup(g_allocHeap, string_lit("Hello World")));
     const DataMem clone    = {0};
 
@@ -56,6 +56,16 @@ spec(utils_clone) {
 
     data_destroy(reg, g_allocHeap, meta, mem_var(original));
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
+  }
+
+  it("can clone external memory") {
+    const DataMem original = data_mem_create_ext(string_lit("Hello World"));
+    const DataMem clone    = {0};
+
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+
+    check_eq_string(data_mem(clone), string_lit("Hello World"));
   }
 
   it("can clone empty memory") {

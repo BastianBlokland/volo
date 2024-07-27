@@ -23,7 +23,7 @@ static void data_destroy_string(const DestroyCtx* ctx) {
 
 static void data_destroy_mem(const DestroyCtx* ctx) {
   const DataMem val = *mem_as_t(ctx->data, DataMem);
-  if (mem_valid(data_mem(val))) {
+  if (!val.external && mem_valid(data_mem(val))) {
     alloc_free(ctx->alloc, data_mem(val));
   }
 }

@@ -32,9 +32,13 @@ static usize data_clone_mem_align(const usize size) {
 static void data_clone_mem(const CloneCtx* ctx) {
   const DataMem originalMem = *mem_as_t(ctx->original, DataMem);
   if (mem_valid(originalMem)) {
-    const usize align              = data_clone_mem_align(originalMem.size);
-    const Mem   dup                = alloc_dup(ctx->alloc, data_mem(originalMem), align);
-    *mem_as_t(ctx->clone, DataMem) = data_mem_create(dup);
+    if (originalMem.external) {
+      *mem_as_t(ctx->clone, DataMem) = originalMem;
+    } else {
+      const usize align              = data_clone_mem_align(originalMem.size);
+      const Mem   dup                = alloc_dup(ctx->alloc, data_mem(originalMem), align);
+      *mem_as_t(ctx->clone, DataMem) = data_mem_create(dup);
+    }
   } else {
     *mem_as_t(ctx->clone, DataMem) = data_mem_create(mem_empty);
   }

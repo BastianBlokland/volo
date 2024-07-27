@@ -29,8 +29,15 @@ spec(utils_destroy) {
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
-  it("can destroy raw memory") {
+  it("can destroy memory") {
     const DataMem val = data_mem_create(string_dup(g_allocHeap, string_lit("Hello World")));
+
+    const DataMeta meta = data_meta_t(data_prim_t(DataMem));
+    data_destroy(reg, g_allocHeap, meta, mem_var(val));
+  }
+
+  it("can external memory") {
+    const DataMem val = data_mem_create_ext(string_lit("Hello World"));
 
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     data_destroy(reg, g_allocHeap, meta, mem_var(val));

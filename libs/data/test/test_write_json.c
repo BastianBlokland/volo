@@ -88,7 +88,7 @@ spec(write_json) {
     test_write(_testCtx, reg, meta, mem_var(val2), string_lit("\"\""));
   }
 
-  it("can write raw memory as base64") {
+  it("can write memory as base64") {
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 
     const DataMem val1 = data_mem_create(string_lit("Hello World"));
