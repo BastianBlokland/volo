@@ -92,6 +92,10 @@ void data_reg_destroy(DataReg* reg) {
 
 String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
 
+StringHash data_name_hash(const DataReg* reg, const DataType type) {
+  return data_decl(reg, type)->id.hash;
+}
+
 usize data_size(const DataReg* reg, const DataType type) { return data_decl(reg, type)->size; }
 
 usize data_align(const DataReg* reg, const DataType type) { return data_decl(reg, type)->align; }
@@ -266,6 +270,13 @@ String* data_union_name(const DataDeclUnion* decl, const Mem unionMem) {
   return sentinel_check(decl->nameOffset)
              ? null
              : (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
+}
+
+bool data_union_has_name(const DataDeclUnion* decl) {
+  if (sentinel_check(decl->nameOffset)) {
+    return false;
+  }
+  return true;
 }
 
 const DataDeclChoice* data_choice_from_tag(const DataDeclUnion* unionDecl, const i32 tag) {

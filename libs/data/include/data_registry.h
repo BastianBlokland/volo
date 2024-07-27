@@ -46,7 +46,8 @@ void data_reg_destroy(DataReg*);
 /**
  * Retrieve the name of a registered type.
  */
-String data_name(const DataReg*, DataType);
+String     data_name(const DataReg*, DataType);
+StringHash data_name_hash(const DataReg*, DataType);
 
 /**
  * Retrieve the size (in bytes) of a registered type.

@@ -99,7 +99,7 @@ spec(write_json) {
   }
 
   it("can write a pointer") {
-    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_Pointer);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Pointer);
 
     i32  target = 42;
     i32* val1   = &target;
@@ -110,7 +110,7 @@ spec(write_json) {
   }
 
   it("can write an array") {
-    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
 
     i32             values[] = {1, 2, 3, 4, 5, 6, 7};
     const DataArray array1   = {.values = values, .count = array_elems(values)};

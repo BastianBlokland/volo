@@ -50,3 +50,16 @@ typedef String (*DataReader)(const DataReg*, String, Allocator*, DataMeta, Mem, 
  * Pre-condition: res != null.
  */
 String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);
+
+/**
+ * Read a data value from a binary blob.
+ * NOTE: Data is left uninitialized in case of an error (does not require cleanup by the caller).
+ *
+ * Returns the remaining input.
+ * The result is written to the given data memory.
+ *
+ * Pre-condition: data memory is big enough to hold a value with the given DataMeta.
+ * Pre-condition: DataMeta definition is not modified in parallel with this call.
+ * Pre-condition: res != null.
+ */
+String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);

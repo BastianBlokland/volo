@@ -41,6 +41,9 @@ static u32 data_hash_union(const HashCtx* ctx) {
 
   u32 hash = bits_hash_32_val((u32)decl->val_union.choices.size);
 
+  const bool hasName = data_union_has_name(&decl->val_union);
+  hash               = bits_hash_32_combine(hash, bits_hash_32_val(hasName));
+
   dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
     const bool emptyChoice = choiceDecl->meta.type == 0;
 
@@ -48,7 +51,7 @@ static u32 data_hash_union(const HashCtx* ctx) {
 
     u32 choiceValHash;
     if (emptyChoice) {
-      choiceValHash = 42;
+      choiceValHash = bits_hash_32_val(42);
     } else {
       const HashCtx choiceCtx = {
           .reg   = ctx->reg,
@@ -115,9 +118,19 @@ static u32 data_hash_single(const HashCtx* ctx) {
   diag_crash();
 }
 
+static u32 data_hash_flags(const DataFlags flags) {
+  static const DataFlags g_hashedFlags = DataFlags_NotEmpty;
+  return bits_hash_32_val(flags & g_hashedFlags);
+}
+
 static u32 data_hash_internal(const HashCtx* ctx) {
   const u32 containerHash = bits_hash_32_val(ctx->meta.container);
-  return bits_hash_32_combine(containerHash, data_hash_single(ctx));
+  const u32 flagsHash     = data_hash_flags(ctx->meta.flags);
+
+  u32 res = data_hash_single(ctx);
+  res     = bits_hash_32_combine(res, containerHash);
+  res     = bits_hash_32_combine(res, flagsHash);
+  return res;
 }
 
 u32 data_hash(const DataReg* reg, const DataMeta meta, const DataHashFlags flags) {

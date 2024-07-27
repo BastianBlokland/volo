@@ -13,92 +13,144 @@ spec(utils_hash) {
   it("can compute the hash of a structure") {
     typedef struct {
       String a, b, c;
-    } CloneStructA;
+    } HashStructA;
 
-    data_reg_struct_t(reg, CloneStructA);
-    data_reg_field_t(reg, CloneStructA, a, data_prim_t(String));
-    data_reg_field_t(reg, CloneStructA, b, data_prim_t(String));
-    data_reg_field_t(reg, CloneStructA, c, data_prim_t(String));
+    data_reg_struct_t(reg, HashStructA);
+    data_reg_field_t(reg, HashStructA, a, data_prim_t(String));
+    data_reg_field_t(reg, HashStructA, b, data_prim_t(String));
+    data_reg_field_t(reg, HashStructA, c, data_prim_t(String));
 
-    const u32 hash = data_hash(reg, data_meta_t(t_CloneStructA), DataHashFlags_None);
+    const u32 hash = data_hash(reg, data_meta_t(t_HashStructA), DataHashFlags_None);
     check(hash != 0);
   }
 
   it("can compute the hash of nested structures") {
     typedef struct {
       String a, b, c;
-    } CloneStructB;
+    } HashStructB;
 
     typedef struct {
-      CloneStructB  value;
-      CloneStructB* ptr;
+      HashStructB  value;
+      HashStructB* ptr;
       struct {
-        CloneStructB* values;
-        usize         count;
+        HashStructB* values;
+        usize        count;
       } array;
-    } CloneStructC;
+    } HashStructC;
 
-    data_reg_struct_t(reg, CloneStructB);
-    data_reg_field_t(reg, CloneStructB, a, data_prim_t(String));
-    data_reg_field_t(reg, CloneStructB, b, data_prim_t(String));
-    data_reg_field_t(reg, CloneStructB, c, data_prim_t(String));
+    data_reg_struct_t(reg, HashStructB);
+    data_reg_field_t(reg, HashStructB, a, data_prim_t(String));
+    data_reg_field_t(reg, HashStructB, b, data_prim_t(String));
+    data_reg_field_t(reg, HashStructB, c, data_prim_t(String));
 
-    data_reg_struct_t(reg, CloneStructC);
-    data_reg_field_t(reg, CloneStructC, value, t_CloneStructB);
-    data_reg_field_t(reg, CloneStructC, ptr, t_CloneStructB, .container = DataContainer_Pointer);
-    data_reg_field_t(reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_Array);
+    data_reg_struct_t(reg, HashStructC);
+    data_reg_field_t(reg, HashStructC, value, t_HashStructB);
+    data_reg_field_t(reg, HashStructC, ptr, t_HashStructB, .container = DataContainer_Pointer);
+    data_reg_field_t(reg, HashStructC, array, t_HashStructB, .container = DataContainer_Array);
 
-    const u32 hash = data_hash(reg, data_meta_t(t_CloneStructC), DataHashFlags_None);
+    const u32 hash = data_hash(reg, data_meta_t(t_HashStructC), DataHashFlags_None);
     check(hash != 0);
   }
 
   it("can compute the hash of a union") {
     typedef enum {
-      CloneUnionTag_Int,
-      CloneUnionTag_Float,
-      CloneUnionTag_String,
-      CloneUnionTag_Other,
-    } CloneUnionTag;
+      HashUnionTag_Int,
+      HashUnionTag_Float,
+      HashUnionTag_String,
+      HashUnionTag_Other,
+    } HashUnionTag;
 
     typedef struct {
-      CloneUnionTag tag;
+      HashUnionTag tag;
       union {
         i32    data_int;
         f32    data_float;
         String data_string;
       };
-    } CloneUnionA;
+    } HashUnionA;
 
-    data_reg_union_t(reg, CloneUnionA, tag);
-    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Int, data_int, data_prim_t(i32));
-    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Float, data_float, data_prim_t(f32));
-    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_String, data_string, data_prim_t(String));
-    data_reg_choice_empty(reg, CloneUnionA, CloneUnionTag_Other);
+    data_reg_union_t(reg, HashUnionA, tag);
+    data_reg_choice_t(reg, HashUnionA, HashUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, HashUnionA, HashUnionTag_Float, data_float, data_prim_t(f32));
+    data_reg_choice_t(reg, HashUnionA, HashUnionTag_String, data_string, data_prim_t(String));
+    data_reg_choice_empty(reg, HashUnionA, HashUnionTag_Other);
 
-    const u32 hash = data_hash(reg, data_meta_t(t_CloneUnionA), DataHashFlags_None);
+    const u32 hash = data_hash(reg, data_meta_t(t_HashUnionA), DataHashFlags_None);
     check(hash != 0);
+  }
+
+  it("includes wether a union has a name in the hash") {
+    typedef enum {
+      HashUnionTag_One,
+    } HashUnionTag;
+
+    typedef struct {
+      HashUnionTag tag;
+      String       name;
+      union {
+        u32 data_one;
+      };
+    } HashUnionA;
+
+    data_reg_union_t(reg, HashUnionA, tag);
+    data_reg_union_name_t(reg, HashUnionA, name);
+    data_reg_choice_t(reg, HashUnionA, HashUnionTag_One, data_one, data_prim_t(u32));
+
+    typedef struct {
+      HashUnionTag tag;
+      union {
+        u32 data_one;
+      };
+    } HashUnionB;
+
+    data_reg_union_t(reg, HashUnionB, tag);
+    data_reg_choice_t(reg, HashUnionB, HashUnionTag_One, data_one, data_prim_t(u32));
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_HashUnionA), DataHashFlags_None);
+    const u32 hashB = data_hash(reg, data_meta_t(t_HashUnionB), DataHashFlags_None);
+    check(hashA != hashB);
   }
 
   it("can compute the hash excluding ids") {
     typedef struct {
       String a, b;
-    } CloneStructA;
+    } HashStructA;
 
-    data_reg_struct_t(reg, CloneStructA);
-    data_reg_field_t(reg, CloneStructA, a, data_prim_t(String));
-    data_reg_field_t(reg, CloneStructA, b, data_prim_t(String));
+    data_reg_struct_t(reg, HashStructA);
+    data_reg_field_t(reg, HashStructA, a, data_prim_t(String));
+    data_reg_field_t(reg, HashStructA, b, data_prim_t(String));
 
     typedef struct {
       String c, d;
-    } CloneStructB;
+    } HashStructB;
 
-    data_reg_struct_t(reg, CloneStructB);
-    data_reg_field_t(reg, CloneStructB, c, data_prim_t(String));
-    data_reg_field_t(reg, CloneStructB, d, data_prim_t(String));
+    data_reg_struct_t(reg, HashStructB);
+    data_reg_field_t(reg, HashStructB, c, data_prim_t(String));
+    data_reg_field_t(reg, HashStructB, d, data_prim_t(String));
 
-    const u32 hashA = data_hash(reg, data_meta_t(t_CloneStructA), DataHashFlags_ExcludeIds);
-    const u32 hashB = data_hash(reg, data_meta_t(t_CloneStructB), DataHashFlags_ExcludeIds);
+    const u32 hashA = data_hash(reg, data_meta_t(t_HashStructA), DataHashFlags_ExcludeIds);
+    const u32 hashB = data_hash(reg, data_meta_t(t_HashStructB), DataHashFlags_ExcludeIds);
     check_eq_int(hashA, hashB);
+  }
+
+  it("includes the not-empty flag in the hash") {
+    typedef struct {
+      u32 val;
+    } HashStructA;
+
+    data_reg_struct_t(reg, HashStructA);
+    data_reg_field_t(reg, HashStructA, val, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+
+    typedef struct {
+      u32 val;
+    } HashStructB;
+
+    data_reg_struct_t(reg, HashStructB);
+    data_reg_field_t(reg, HashStructB, val, data_prim_t(u32));
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_HashStructA), DataHashFlags_None);
+    const u32 hashB = data_hash(reg, data_meta_t(t_HashStructB), DataHashFlags_None);
+    check(hashA != hashB);
   }
 
   teardown() { data_reg_destroy(reg); }
