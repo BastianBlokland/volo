@@ -22,6 +22,7 @@ target_link_libraries(lib_data PUBLIC lib_core)
 
 add_executable(test_lib_data
   test/config.c
+  test/test_bin.c
   test/test_jsonschema.c
   test/test_read_json.c
   test/test_registry.c
