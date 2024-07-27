@@ -41,6 +41,9 @@ static u32 data_hash_union(const HashCtx* ctx) {
 
   u32 hash = bits_hash_32_val((u32)decl->val_union.choices.size);
 
+  const bool hasName = data_union_has_name(&decl->val_union);
+  hash               = bits_hash_32_combine(hash, bits_hash_32_val(hasName));
+
   dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
     const bool emptyChoice = choiceDecl->meta.type == 0;
 
@@ -48,7 +51,7 @@ static u32 data_hash_union(const HashCtx* ctx) {
 
     u32 choiceValHash;
     if (emptyChoice) {
-      choiceValHash = 42;
+      choiceValHash = bits_hash_32_val(42);
     } else {
       const HashCtx choiceCtx = {
           .reg   = ctx->reg,
