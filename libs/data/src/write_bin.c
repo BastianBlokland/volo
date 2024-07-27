@@ -53,7 +53,7 @@ static void bin_push_mem(const WriteCtx* ctx, const Mem mem) {
 }
 
 static void data_write_bin_header(const WriteCtx* ctx) {
-  bin_push_mem(ctx, g_dataBinMagic);
+  mem_cpy(dynstring_push(ctx->out, g_dataBinMagic.size), g_dataBinMagic);
   bin_push_u32(ctx, g_dataBinVersion);
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
