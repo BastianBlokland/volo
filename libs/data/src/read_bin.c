@@ -125,6 +125,7 @@ static void data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
     *res = result_fail(DataReadError_Malformed, "Input mismatched type hash");
     return;
   }
+  *res = result_success();
 }
 
 static void data_read_bin_val(ReadCtx*, DataReadResult*);
@@ -326,6 +327,8 @@ static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
     }
     ctx->input = choiceCtx.input; // Consume data that was taken up by the choice.
   }
+
+  *res = result_success();
 }
 
 static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
@@ -335,6 +338,8 @@ static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
     return;
   }
   *mem_as_t(ctx->data, i32) = (i32)val;
+
+  *res = result_success();
 }
 
 static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
