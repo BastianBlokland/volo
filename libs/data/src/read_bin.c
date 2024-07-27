@@ -132,7 +132,7 @@ static void data_read_bin_val(ReadCtx*, DataReadResult*);
 /**
  * Track allocations so they can be undone in case of an error.
  */
-static void data_register_alloc(const ReadCtx* ctx, const Mem allocation) {
+static void data_register_alloc(ReadCtx* ctx, const Mem allocation) {
   *dynarray_push_t(ctx->allocations, Mem) = allocation;
 }
 
@@ -228,7 +228,7 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_struct(const ReadCtx* ctx, DataReadResult* res) {
+static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
@@ -251,6 +251,7 @@ static void data_read_bin_struct(const ReadCtx* ctx, DataReadResult* res) {
           fmt_text(res->errorMsg));
       return;
     }
+    ctx->input = fieldCtx.input; // Consume data that was taken up by the field.
   }
   *res = result_success();
 }
@@ -323,6 +324,7 @@ static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
           fmt_text(res->errorMsg));
       return;
     }
+    ctx->input = choiceCtx.input; // Consume data that was taken up by the choice.
   }
 }
 
@@ -400,6 +402,7 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
   };
   data_read_bin_val_single(&subCtx, res);
   *mem_as_t(ctx->data, void*) = mem.ptr;
+  ctx->input                  = subCtx.input; // Consume data that was taken up by the value.
 }
 
 static void data_read_bin_val_array(ReadCtx* ctx, DataReadResult* res) {
@@ -435,7 +438,8 @@ static void data_read_bin_val_array(ReadCtx* ctx, DataReadResult* res) {
     if (UNLIKELY(res->error)) {
       return;
     }
-    ptr = bits_ptr_offset(ptr, decl->size);
+    ptr        = bits_ptr_offset(ptr, decl->size);
+    ctx->input = elemCtx.input; // Consume data that was taken up by the element.
   }
   *res = result_success();
 }
