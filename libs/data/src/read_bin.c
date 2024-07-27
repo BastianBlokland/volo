@@ -101,6 +101,15 @@ static bool bin_pop_mem(ReadCtx* ctx, Mem* out) {
   return bin_pop_bytes(ctx, (usize)size, out);
 }
 
+static bool bin_pop_padding(ReadCtx* ctx) {
+  u8 padding;
+  if (UNLIKELY(!bin_pop_u8(ctx, &padding))) {
+    return false;
+  }
+  Mem paddingMem;
+  return bin_pop_bytes(ctx, padding, &paddingMem);
+}
+
 static void data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
   Mem inMagic;
   if (!bin_pop_bytes(ctx, g_dataBinMagic.size, &inMagic) || !mem_eq(inMagic, g_dataBinMagic)) {
@@ -209,6 +218,10 @@ static usize data_read_bin_mem_align(const usize size) {
 }
 
 static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!bin_pop_padding(ctx))) {
+    *res = result_fail_truncated();
+    return;
+  }
   Mem val;
   if (UNLIKELY(!bin_pop_mem(ctx, &val))) {
     *res = result_fail_truncated();

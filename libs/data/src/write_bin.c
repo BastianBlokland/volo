@@ -1,6 +1,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_math.h"
 #include "data_utils.h"
 #include "data_write.h"
 
@@ -50,6 +51,14 @@ static void bin_push_mem(const WriteCtx* ctx, const Mem mem) {
   } else {
     bin_push_u64(ctx, 0);
   }
+}
+
+static void bin_push_padding(const WriteCtx* ctx, const usize align) {
+  const usize padding = bits_padding(ctx->out->size + 1, align);
+  diag_assert(padding <= u8_max);
+  bin_push_u8(ctx, padding);
+  mem_set(dynstring_push(ctx->out, padding), 0);
+  diag_assert(bits_aligned(ctx->out->size, align));
 }
 
 static void data_write_bin_header(const WriteCtx* ctx) {
@@ -106,6 +115,11 @@ static void data_write_bin_enum(const WriteCtx* ctx) {
   bin_push_u32(ctx, (u32)val);
 }
 
+static usize data_write_bin_mem_align(const usize size) {
+  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
+  return math_min(biggestPow2, data_type_mem_align_max);
+}
+
 static void data_write_bin_val_single(const WriteCtx* ctx) {
   /**
    * NOTE: For signed values we assume the host system is using 2's complement integers.
@@ -139,9 +153,15 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
   case DataKind_String:
     bin_push_mem(ctx, *mem_as_t(ctx->data, Mem));
     return;
-  case DataKind_DataMem:
-    bin_push_mem(ctx, data_mem(*mem_as_t(ctx->data, DataMem)));
+  case DataKind_DataMem: {
+    const DataMem dataMem = *mem_as_t(ctx->data, DataMem);
+    /**
+     * Align the output to support using it directly as external memory.
+     */
+    bin_push_padding(ctx, data_write_bin_mem_align(dataMem.size));
+    bin_push_mem(ctx, data_mem(dataMem));
     return;
+  }
   case DataKind_Struct:
     data_write_bin_struct(ctx);
     return;
