@@ -7,7 +7,6 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_sort.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
 #include "data_schema.h"
@@ -35,33 +34,6 @@ typedef struct {
     usize          count;
   } entries;
 } AtlasDef;
-
-static void atlas_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataAtlasDefMeta.type)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataAtlasDefMeta.type) {
-    // clang-format off
-    data_reg_struct_t(g_dataReg, AtlasEntryDef);
-    data_reg_field_t(g_dataReg, AtlasEntryDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AtlasEntryDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
-
-    data_reg_struct_t(g_dataReg, AtlasDef);
-    data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AtlasDef, entryPadding, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
-    // clang-format on
-
-    g_dataAtlasDefMeta = data_meta_t(t_AtlasDef);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 ecs_comp_define_public(AssetAtlasComp);
 
@@ -346,8 +318,6 @@ ecs_system_define(AtlasUnloadAssetSys) {
 }
 
 ecs_module_init(asset_atlas_module) {
-  atlas_datareg_init();
-
   ecs_register_comp(AssetAtlasComp, .destructor = ecs_destruct_atlas_comp);
   ecs_register_comp(AssetAtlasLoadComp, .destructor = ecs_destruct_atlas_load_comp);
 
@@ -360,6 +330,25 @@ ecs_module_init(asset_atlas_module) {
       AtlasLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(TextureView));
 
   ecs_register_system(AtlasUnloadAssetSys, ecs_view_id(AtlasUnloadView));
+}
+
+void asset_data_init_atlas(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, AtlasEntryDef);
+  data_reg_field_t(g_dataReg, AtlasEntryDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AtlasEntryDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, AtlasDef);
+  data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AtlasDef, entryPadding, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+  // clang-format on
+
+  g_dataAtlasDefMeta = data_meta_t(t_AtlasDef);
 }
 
 void asset_load_atlas(
@@ -437,8 +426,6 @@ const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const Str
 }
 
 void asset_atlas_jsonschema_write(DynString* str) {
-  atlas_datareg_init();
-
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
   data_jsonschema_write(g_dataReg, str, g_dataAtlasDefMeta, schemaFlags);
 }

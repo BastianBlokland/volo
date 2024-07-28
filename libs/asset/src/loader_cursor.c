@@ -4,7 +4,6 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_math.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_schema.h"
 #include "ecs_utils.h"
@@ -25,34 +24,6 @@ typedef struct {
   f32             scale;
   CursorColorDef* color;
 } CursorDef;
-
-static void cursor_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataCursorDefMeta.type)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataCursorDefMeta.type) {
-
-    // clang-format off
-    data_reg_struct_t(g_dataReg, CursorColorDef);
-    data_reg_field_t(g_dataReg, CursorColorDef, r, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, CursorColorDef, g, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, CursorColorDef, b, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, CursorColorDef, a, data_prim_t(f32));
-
-    data_reg_struct_t(g_dataReg, CursorDef);
-    data_reg_field_t(g_dataReg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, CursorDef, hotspotX, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-    data_reg_field_t(g_dataReg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
-    // clang-format on
-
-    g_dataCursorDefMeta = data_meta_t(t_CursorDef);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 typedef enum {
   CursorError_None,
@@ -259,8 +230,6 @@ ecs_system_define(UnloadCursorAssetSys) {
 }
 
 ecs_module_init(asset_cursor_module) {
-  cursor_datareg_init();
-
   ecs_register_comp(AssetCursorComp, .destructor = ecs_destruct_cursor_comp);
   ecs_register_comp(AssetCursorLoadComp, .destructor = ecs_destruct_cursor_load_comp);
 
@@ -275,6 +244,25 @@ ecs_module_init(asset_cursor_module) {
       ecs_view_id(LoadView),
       ecs_view_id(TextureView));
   ecs_register_system(UnloadCursorAssetSys, ecs_view_id(UnloadView));
+}
+
+void asset_data_init_cursor(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, CursorColorDef);
+  data_reg_field_t(g_dataReg, CursorColorDef, r, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, CursorColorDef, g, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, CursorColorDef, b, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, CursorColorDef, a, data_prim_t(f32));
+
+  data_reg_struct_t(g_dataReg, CursorDef);
+  data_reg_field_t(g_dataReg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, CursorDef, hotspotX, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+  data_reg_field_t(g_dataReg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  // clang-format on
+
+  g_dataCursorDefMeta = data_meta_t(t_CursorDef);
 }
 
 void asset_load_cursor(
@@ -303,8 +291,6 @@ Cleanup:
 }
 
 void asset_cursor_jsonschema_write(DynString* str) {
-  cursor_datareg_init();
-
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
   data_jsonschema_write(g_dataReg, str, g_dataCursorDefMeta, schemaFlags);
 }

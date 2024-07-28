@@ -3,7 +3,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
 #include "data_schema.h"
@@ -51,34 +50,6 @@ typedef struct {
     usize   count;
   } textures;
 } ArrayTexDef;
-
-static void arraytex_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataArrayTexDefMeta.type)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataArrayTexDefMeta.type) {
-    // clang-format off
-    data_reg_enum_t(g_dataReg, ArrayTexType);
-    data_reg_const_t(g_dataReg, ArrayTexType, Array);
-    data_reg_const_t(g_dataReg, ArrayTexType, Cube);
-    data_reg_const_t(g_dataReg, ArrayTexType, CubeDiffIrradiance);
-    data_reg_const_t(g_dataReg, ArrayTexType, CubeSpecIrradiance);
-
-    data_reg_struct_t(g_dataReg, ArrayTexDef);
-    data_reg_field_t(g_dataReg, ArrayTexDef, type, t_ArrayTexType);
-    data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
-    // clang-format on
-
-    g_dataArrayTexDefMeta = data_meta_t(t_ArrayTexDef);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 ecs_comp_define(AssetArrayLoadComp) {
   ArrayTexDef def;
@@ -665,8 +636,6 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
 }
 
 ecs_module_init(asset_arraytex_module) {
-  arraytex_datareg_init();
-
   ecs_register_comp(AssetArrayLoadComp, .destructor = ecs_destruct_arraytex_load_comp);
 
   ecs_register_view(ManagerView);
@@ -675,6 +644,26 @@ ecs_module_init(asset_arraytex_module) {
 
   ecs_register_system(ArrayTexLoadAcquireSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
   ecs_register_system(ArrayTexLoadUpdateSys, ecs_view_id(LoadView), ecs_view_id(TextureView));
+}
+
+void asset_data_init_arraytex(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, ArrayTexType);
+  data_reg_const_t(g_dataReg, ArrayTexType, Array);
+  data_reg_const_t(g_dataReg, ArrayTexType, Cube);
+  data_reg_const_t(g_dataReg, ArrayTexType, CubeDiffIrradiance);
+  data_reg_const_t(g_dataReg, ArrayTexType, CubeSpecIrradiance);
+
+  data_reg_struct_t(g_dataReg, ArrayTexDef);
+  data_reg_field_t(g_dataReg, ArrayTexDef, type, t_ArrayTexType);
+  data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+  // clang-format on
+
+  g_dataArrayTexDefMeta = data_meta_t(t_ArrayTexDef);
 }
 
 void asset_load_arraytex(
@@ -729,8 +718,6 @@ Error:
 }
 
 void asset_texture_array_jsonschema_write(DynString* str) {
-  arraytex_datareg_init();
-
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
   data_jsonschema_write(g_dataReg, str, g_dataArrayTexDefMeta, schemaFlags);
 }

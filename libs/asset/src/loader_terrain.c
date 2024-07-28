@@ -1,6 +1,5 @@
 #include "asset_terrain.h"
 #include "core_alloc.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_schema.h"
 #include "ecs_utils.h"
@@ -14,35 +13,6 @@
 #define terrain_max_height 50.0f
 
 static DataMeta g_dataMeta;
-
-static void terrain_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataMeta.type)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataMeta.type) {
-    // clang-format off
-    data_reg_struct_t(g_dataReg, AssetTerrainColor);
-    data_reg_field_t(g_dataReg, AssetTerrainColor, r, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetTerrainColor, g, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetTerrainColor, b, data_prim_t(f32));
-    data_reg_comment_t(g_dataReg, AssetTerrainColor, "Srgb encoded color value");
-
-    data_reg_struct_t(g_dataReg, AssetTerrainComp);
-    data_reg_field_t(g_dataReg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetTerrainComp, size, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, AssetTerrainComp, playSize, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, AssetTerrainComp, heightMax, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorLow, t_AssetTerrainColor, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
-    // clang-format on
-
-    g_dataMeta = data_meta_t(t_AssetTerrainComp);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 ecs_comp_define_public(AssetTerrainComp);
 ecs_comp_define(AssetTerrainLoadComp) { AssetSource* src; };
@@ -169,8 +139,6 @@ ecs_system_define(UnloadTerrainAssetSys) {
 }
 
 ecs_module_init(asset_terrain_module) {
-  terrain_datareg_init();
-
   ecs_register_comp(AssetTerrainComp, .destructor = ecs_destruct_terrain_comp);
   ecs_register_comp(AssetTerrainLoadComp, .destructor = ecs_destruct_terrain_load_comp);
 
@@ -182,6 +150,27 @@ ecs_module_init(asset_terrain_module) {
   ecs_register_system(UnloadTerrainAssetSys, ecs_view_id(UnloadView));
 }
 
+void asset_data_init_terrain(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, AssetTerrainColor);
+  data_reg_field_t(g_dataReg, AssetTerrainColor, r, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetTerrainColor, g, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetTerrainColor, b, data_prim_t(f32));
+  data_reg_comment_t(g_dataReg, AssetTerrainColor, "Srgb encoded color value");
+
+  data_reg_struct_t(g_dataReg, AssetTerrainComp);
+  data_reg_field_t(g_dataReg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTerrainComp, size, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetTerrainComp, playSize, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetTerrainComp, heightMax, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorLow, t_AssetTerrainColor, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
+  // clang-format on
+
+  g_dataMeta = data_meta_t(t_AssetTerrainComp);
+}
+
 void asset_load_terrain(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
@@ -189,8 +178,6 @@ void asset_load_terrain(
 }
 
 void asset_terrain_jsonschema_write(DynString* str) {
-  terrain_datareg_init();
-
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
   data_jsonschema_write(g_dataReg, str, g_dataMeta, schemaFlags);
 }

@@ -8,7 +8,6 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_sort.h"
-#include "core_thread.h"
 #include "core_utf8.h"
 #include "data.h"
 #include "data_schema.h"
@@ -52,35 +51,6 @@ typedef struct {
     usize           count;
   } fonts;
 } FontTexDef;
-
-static void fonttex_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataFontTexDefMeta.type)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataFontTexDefMeta.type) {
-    // clang-format off
-    data_reg_struct_t(g_dataReg, FontTexDefFont);
-    data_reg_field_t(g_dataReg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
-
-    data_reg_struct_t(g_dataReg, FontTexDef);
-    data_reg_field_t(g_dataReg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, FontTexDef, border, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
-    // clang-format on
-
-    g_dataFontTexDefMeta = data_meta_t(t_FontTexDef);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 ecs_comp_define_public(AssetFontTexComp);
 
@@ -423,8 +393,6 @@ ecs_system_define(FontTexUnloadAssetSys) {
 }
 
 ecs_module_init(asset_fonttex_module) {
-  fonttex_datareg_init();
-
   ecs_register_comp(AssetFontTexComp, .destructor = ecs_destruct_fonttex_comp);
   ecs_register_comp(AssetFontTexLoadComp, .destructor = ecs_destruct_fonttex_load_comp);
 
@@ -437,6 +405,27 @@ ecs_module_init(asset_fonttex_module) {
       FontTexLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(FontView));
 
   ecs_register_system(FontTexUnloadAssetSys, ecs_view_id(FontTexUnloadView));
+}
+
+void asset_data_init_fonttex(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, FontTexDefFont);
+  data_reg_field_t(g_dataReg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, FontTexDef);
+  data_reg_field_t(g_dataReg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDef, border, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+  // clang-format on
+
+  g_dataFontTexDefMeta = data_meta_t(t_FontTexDef);
 }
 
 void asset_load_fonttex(
@@ -519,8 +508,6 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
 }
 
 void asset_fonttex_jsonschema_write(DynString* str) {
-  fonttex_datareg_init();
-
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
   data_jsonschema_write(g_dataReg, str, g_dataFontTexDefMeta, schemaFlags);
 }

@@ -2,7 +2,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_schema.h"
 #include "ecs_utils.h"
@@ -13,109 +12,6 @@
 #include "repo_internal.h"
 
 static DataMeta g_dataMeta;
-
-static void graphic_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataMeta.type)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataMeta.type) {
-    // clang-format off
-    data_reg_enum_t(g_dataReg, AssetGraphicTopology);
-    data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
-    data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleStrip);
-    data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleFan);
-    data_reg_const_t(g_dataReg, AssetGraphicTopology, Lines);
-    data_reg_const_t(g_dataReg, AssetGraphicTopology, LineStrip);
-    data_reg_const_t(g_dataReg, AssetGraphicTopology, Points);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicRasterizer);
-    data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Fill);
-    data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Lines);
-    data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Points);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicBlend);
-    data_reg_const_t(g_dataReg, AssetGraphicBlend, None);
-    data_reg_const_t(g_dataReg, AssetGraphicBlend, Alpha);
-    data_reg_const_t(g_dataReg, AssetGraphicBlend, AlphaConstant);
-    data_reg_const_t(g_dataReg, AssetGraphicBlend, Additive);
-    data_reg_const_t(g_dataReg, AssetGraphicBlend, PreMultiplied);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicWrap);
-    data_reg_const_t(g_dataReg, AssetGraphicWrap, Clamp);
-    data_reg_const_t(g_dataReg, AssetGraphicWrap, Repeat);
-    data_reg_const_t(g_dataReg, AssetGraphicWrap, Zero);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicFilter);
-    data_reg_const_t(g_dataReg, AssetGraphicFilter, Linear);
-    data_reg_const_t(g_dataReg, AssetGraphicFilter, Nearest);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicAniso);
-    data_reg_const_t(g_dataReg, AssetGraphicAniso, None);
-    data_reg_const_t(g_dataReg, AssetGraphicAniso, x2);
-    data_reg_const_t(g_dataReg, AssetGraphicAniso, x4);
-    data_reg_const_t(g_dataReg, AssetGraphicAniso, x8);
-    data_reg_const_t(g_dataReg, AssetGraphicAniso, x16);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicDepth);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, Less);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqual);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, Equal);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, Greater);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterOrEqual);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, Always);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, LessNoWrite);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqualNoWrite);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, EqualNoWrite);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterNoWrite);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterOrEqualNoWrite);
-    data_reg_const_t(g_dataReg, AssetGraphicDepth, AlwaysNoWrite);
-
-    data_reg_enum_t(g_dataReg, AssetGraphicCull);
-    data_reg_const_t(g_dataReg, AssetGraphicCull, None);
-    data_reg_const_t(g_dataReg, AssetGraphicCull, Back);
-    data_reg_const_t(g_dataReg, AssetGraphicCull, Front);
-
-    data_reg_struct_t(g_dataReg, AssetGraphicOverride);
-    data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u8));
-    data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
-
-    data_reg_struct_t(g_dataReg, AssetGraphicShader);
-    data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_Array, .flags = DataFlags_Opt);
-
-    data_reg_struct_t(g_dataReg, AssetGraphicSampler);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
-
-    data_reg_struct_t(g_dataReg, AssetGraphicComp);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u16), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, depthClamp, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, depthBiasConstant, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, depthBiasSlope, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, blendAux, t_AssetGraphicBlend, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, blendConstant, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);
-    // clang-format on
-
-    g_dataMeta = data_meta_t(t_AssetGraphicComp);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 ecs_comp_define_public(AssetGraphicComp);
 ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };
@@ -221,8 +117,6 @@ ecs_system_define(UnloadGraphicAssetSys) {
 }
 
 ecs_module_init(asset_graphic_module) {
-  graphic_datareg_init();
-
   ecs_register_comp(AssetGraphicComp, .destructor = ecs_destruct_graphic_comp);
   ecs_register_comp(AssetGraphicLoadComp, .destructor = ecs_destruct_graphic_load_comp);
 
@@ -234,6 +128,101 @@ ecs_module_init(asset_graphic_module) {
   ecs_register_system(UnloadGraphicAssetSys, ecs_view_id(UnloadView));
 }
 
+void asset_data_init_graphic(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, AssetGraphicTopology);
+  data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
+  data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleStrip);
+  data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleFan);
+  data_reg_const_t(g_dataReg, AssetGraphicTopology, Lines);
+  data_reg_const_t(g_dataReg, AssetGraphicTopology, LineStrip);
+  data_reg_const_t(g_dataReg, AssetGraphicTopology, Points);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicRasterizer);
+  data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Fill);
+  data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Lines);
+  data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Points);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicBlend);
+  data_reg_const_t(g_dataReg, AssetGraphicBlend, None);
+  data_reg_const_t(g_dataReg, AssetGraphicBlend, Alpha);
+  data_reg_const_t(g_dataReg, AssetGraphicBlend, AlphaConstant);
+  data_reg_const_t(g_dataReg, AssetGraphicBlend, Additive);
+  data_reg_const_t(g_dataReg, AssetGraphicBlend, PreMultiplied);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicWrap);
+  data_reg_const_t(g_dataReg, AssetGraphicWrap, Clamp);
+  data_reg_const_t(g_dataReg, AssetGraphicWrap, Repeat);
+  data_reg_const_t(g_dataReg, AssetGraphicWrap, Zero);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicFilter);
+  data_reg_const_t(g_dataReg, AssetGraphicFilter, Linear);
+  data_reg_const_t(g_dataReg, AssetGraphicFilter, Nearest);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicAniso);
+  data_reg_const_t(g_dataReg, AssetGraphicAniso, None);
+  data_reg_const_t(g_dataReg, AssetGraphicAniso, x2);
+  data_reg_const_t(g_dataReg, AssetGraphicAniso, x4);
+  data_reg_const_t(g_dataReg, AssetGraphicAniso, x8);
+  data_reg_const_t(g_dataReg, AssetGraphicAniso, x16);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicDepth);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, Less);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqual);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, Equal);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, Greater);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterOrEqual);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, Always);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, LessNoWrite);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqualNoWrite);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, EqualNoWrite);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterNoWrite);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterOrEqualNoWrite);
+  data_reg_const_t(g_dataReg, AssetGraphicDepth, AlwaysNoWrite);
+
+  data_reg_enum_t(g_dataReg, AssetGraphicCull);
+  data_reg_const_t(g_dataReg, AssetGraphicCull, None);
+  data_reg_const_t(g_dataReg, AssetGraphicCull, Back);
+  data_reg_const_t(g_dataReg, AssetGraphicCull, Front);
+
+  data_reg_struct_t(g_dataReg, AssetGraphicOverride);
+  data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u8));
+  data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
+
+  data_reg_struct_t(g_dataReg, AssetGraphicShader);
+  data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_Array, .flags = DataFlags_Opt);
+
+  data_reg_struct_t(g_dataReg, AssetGraphicSampler);
+  data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
+
+  data_reg_struct_t(g_dataReg, AssetGraphicComp);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u16), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, depthClamp, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, depthBiasConstant, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, depthBiasSlope, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, blendAux, t_AssetGraphicBlend, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, blendConstant, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);
+  // clang-format on
+
+  g_dataMeta = data_meta_t(t_AssetGraphicComp);
+}
+
 void asset_load_graphic(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
@@ -241,8 +230,6 @@ void asset_load_graphic(
 }
 
 void asset_graphic_jsonschema_write(DynString* str) {
-  graphic_datareg_init();
-
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
   data_jsonschema_write(g_dataReg, str, g_dataMeta, schemaFlags);
 }
