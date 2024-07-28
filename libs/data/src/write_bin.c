@@ -66,7 +66,7 @@ static void data_write_bin_header(const WriteCtx* ctx, const TimeReal timestamp)
   bin_push_u32(ctx, g_dataBinVersion);
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
-  bin_push_u64(ctx, (u64)timestamp);
+  bin_push_u64(ctx, (u64)timestamp); // NOTE: assumes 2's complement integers.
 }
 
 static void data_write_bin_val(const WriteCtx*);
