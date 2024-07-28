@@ -51,21 +51,17 @@ typedef struct {
 } PrefabStatusMaskDef;
 
 typedef struct {
-  f32 x, y, z;
-} AssetPrefabVec3Def;
-
-typedef struct {
-  AssetPrefabVec3Def offset;
-  f32                radius;
+  GeoVector offset;
+  f32       radius;
 } AssetPrefabShapeSphereDef;
 
 typedef struct {
-  AssetPrefabVec3Def offset;
-  f32                radius, height;
+  GeoVector offset;
+  f32       radius, height;
 } AssetPrefabShapeCapsuleDef;
 
 typedef struct {
-  AssetPrefabVec3Def min, max;
+  GeoVector min, max;
 } AssetPrefabShapeBoxDef;
 
 typedef struct {
@@ -88,7 +84,7 @@ typedef struct {
   union {
     f64                      data_number;
     bool                     data_bool;
-    AssetPrefabVec3Def       data_vector3;
+    GeoVector                data_vector3;
     GeoColor                 data_color;
     String                   data_string;
     String                   data_asset;
@@ -215,11 +211,11 @@ typedef struct {
 } AssetPrefabTraitVisionDef;
 
 typedef struct {
-  AssetPrefabVec3Def spawnPos, rallyPos;
-  String             rallySoundId;
-  f32                rallySoundGain;
-  String             productSetId;
-  f32                placementRadius;
+  GeoVector spawnPos, rallyPos;
+  String    rallySoundId;
+  f32       rallySoundGain;
+  String    productSetId;
+  f32       placementRadius;
 } AssetPrefabTraitProductionDef;
 
 typedef struct {
@@ -307,23 +303,19 @@ static u8 prefab_build_status_mask(const PrefabStatusMaskDef* def) {
   return mask;
 }
 
-static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
-  return geo_vector(def->x, def->y, def->z);
-}
-
 static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   switch (def->type) {
   case AssetPrefabShape_Sphere:
     return (AssetPrefabShape){
         .type               = AssetPrefabShape_Sphere,
-        .data_sphere.offset = prefab_build_vec3(&def->data_sphere.offset),
+        .data_sphere.offset = def->data_sphere.offset,
         .data_sphere.radius = def->data_sphere.radius,
     };
     break;
   case AssetPrefabShape_Capsule:
     return (AssetPrefabShape){
         .type                = AssetPrefabShape_Capsule,
-        .data_capsule.offset = prefab_build_vec3(&def->data_capsule.offset),
+        .data_capsule.offset = def->data_capsule.offset,
         .data_capsule.radius = def->data_capsule.radius,
         .data_capsule.height = def->data_capsule.height,
     };
@@ -331,8 +323,8 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   case AssetPrefabShape_Box:
     return (AssetPrefabShape){
         .type         = AssetPrefabShape_Box,
-        .data_box.min = prefab_build_vec3(&def->data_box.min),
-        .data_box.max = prefab_build_vec3(&def->data_box.max),
+        .data_box.min = def->data_box.min,
+        .data_box.max = def->data_box.max,
     };
     break;
   }
@@ -354,7 +346,7 @@ static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValue
     break;
   case AssetPrefabValue_Vector3:
     res.type         = AssetPrefabValue_Vector3;
-    res.data_vector3 = prefab_build_vec3(&def->data_vector3);
+    res.data_vector3 = def->data_vector3;
     break;
   case AssetPrefabValue_Color:
     res.type       = AssetPrefabValue_Color;
@@ -567,8 +559,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Location:
       outTrait->data_location = (AssetPrefabTraitLocation){
-          .aimTarget.min = prefab_build_vec3(&traitDef->data_location.aimTarget.min),
-          .aimTarget.max = prefab_build_vec3(&traitDef->data_location.aimTarget.max),
+          .aimTarget.min = traitDef->data_location.aimTarget.min,
+          .aimTarget.max = traitDef->data_location.aimTarget.max,
       };
       break;
     case AssetPrefabTrait_Status:
@@ -587,8 +579,8 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .spawnPos        = traitDef->data_production.spawnPos,
+          .rallyPos        = traitDef->data_production.rallyPos,
           .productSetId    = string_hash(traitDef->data_production.productSetId),
           .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
           .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
@@ -807,23 +799,18 @@ void asset_data_init_prefab(void) {
   data_reg_const_custom(g_dataReg, AssetPrefabNavLayer, Normal,  0);
   data_reg_const_custom(g_dataReg, AssetPrefabNavLayer, Large, 1);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabVec3Def);
-  data_reg_field_t(g_dataReg, AssetPrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
-
   data_reg_struct_t(g_dataReg, AssetPrefabShapeSphereDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabShapeCapsuleDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabShapeBoxDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, t_AssetPrefabVec3Def);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, t_AssetPrefabVec3Def);
+  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, g_assetGeoVec3Type);
+  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, g_assetGeoVec3Type);
 
   data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
@@ -838,7 +825,7 @@ void asset_data_init_prefab(void) {
   data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
+  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
@@ -938,8 +925,8 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitVisionDef, showInHud, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitProductionDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, spawnPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallyPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, spawnPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallyPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallySoundId, data_prim_t(String), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallySoundGain, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, productSetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
