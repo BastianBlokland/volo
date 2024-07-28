@@ -27,7 +27,6 @@
 #define fonttex_max_size (1024 * 16)
 #define fonttex_max_fonts 100
 
-static DataReg* g_dataReg;
 static DataMeta g_dataFontTexDefMeta;
 
 typedef enum {
@@ -56,32 +55,29 @@ typedef struct {
 
 static void fonttex_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataFontTexDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataFontTexDefMeta.type) {
     // clang-format off
-    data_reg_struct_t(reg, FontTexDefFont);
-    data_reg_field_t(reg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, FontTexDefFont);
+    data_reg_field_t(g_dataReg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, FontTexDef);
-    data_reg_field_t(reg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FontTexDef, border, data_prim_t(u32));
-    data_reg_field_t(reg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDef, baseline, data_prim_t(f32));
-    data_reg_field_t(reg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, FontTexDef);
+    data_reg_field_t(g_dataReg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FontTexDef, border, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     // clang-format on
 
     g_dataFontTexDefMeta = data_meta_t(t_FontTexDef);
-    g_dataReg            = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

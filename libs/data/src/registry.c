@@ -38,9 +38,14 @@ static DataType data_type_declare(DataReg* reg, const String name) {
   return data_type_alloc(reg, name);
 }
 
-void data_reg_global_init(void) {}
+DataReg* g_dataReg;
 
-void data_reg_global_teardown(void) {}
+void data_reg_global_init(void) { g_dataReg = data_reg_create(g_allocHeap); }
+
+void data_reg_global_teardown(void) {
+  data_reg_destroy(g_dataReg);
+  g_dataReg = null;
+}
 
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);

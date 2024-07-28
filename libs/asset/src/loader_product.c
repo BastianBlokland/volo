@@ -16,7 +16,6 @@
 
 #include "repo_internal.h"
 
-static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
@@ -71,54 +70,51 @@ typedef struct {
 
 static void product_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataMapDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataMapDefMeta.type) {
     // clang-format off
-    data_reg_struct_t(reg, AssetProductSoundDef);
-    data_reg_field_t(reg, AssetProductSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetProductSoundDef, gain, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetProductSoundDef);
+    data_reg_field_t(g_dataReg, AssetProductSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetProductSoundDef, gain, data_prim_t(f32), .flags = DataFlags_Opt);
 
-    data_reg_struct_t(reg, AssetProductMetaDef);
-    data_reg_field_t(reg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, iconImage, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, soundBuilding, t_AssetProductSoundDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, soundReady, t_AssetProductSoundDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, soundCancel, t_AssetProductSoundDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, soundSuccess, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetProductMetaDef);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, iconImage, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, soundBuilding, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, soundReady, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, soundCancel, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductMetaDef, soundSuccess, t_AssetProductSoundDef, .flags = DataFlags_Opt);
 
-    data_reg_struct_t(reg, AssetProductUnitDef);
-    data_reg_field_t(reg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
-    data_reg_field_t(reg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetProductUnitDef);
+    data_reg_field_t(g_dataReg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+    data_reg_field_t(g_dataReg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
-    data_reg_struct_t(reg, AssetProductPlacableDef);
-    data_reg_field_t(reg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
-    data_reg_field_t(reg, AssetProductPlacableDef, soundBlocked, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetProductPlacableDef);
+    data_reg_field_t(g_dataReg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+    data_reg_field_t(g_dataReg, AssetProductPlacableDef, soundBlocked, t_AssetProductSoundDef, .flags = DataFlags_Opt);
 
-    data_reg_union_t(reg, AssetProductDef, type);
-    data_reg_choice_t(reg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
-    data_reg_choice_t(reg, AssetProductDef, AssetProduct_Placable, data_placable, t_AssetProductPlacableDef);
+    data_reg_union_t(g_dataReg, AssetProductDef, type);
+    data_reg_choice_t(g_dataReg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
+    data_reg_choice_t(g_dataReg, AssetProductDef, AssetProduct_Placable, data_placable, t_AssetProductPlacableDef);
 
-    data_reg_struct_t(reg, AssetProductSetDef);
-    data_reg_field_t(reg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, AssetProductSetDef);
+    data_reg_field_t(g_dataReg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, AssetProductMapDef);
-    data_reg_field_t(reg, AssetProductMapDef, sets, t_AssetProductSetDef, .container = DataContainer_Array);
+    data_reg_struct_t(g_dataReg, AssetProductMapDef);
+    data_reg_field_t(g_dataReg, AssetProductMapDef, sets, t_AssetProductSetDef, .container = DataContainer_Array);
     // clang-format on
 
     g_dataMapDefMeta = data_meta_t(t_AssetProductMapDef);
-    g_dataReg        = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

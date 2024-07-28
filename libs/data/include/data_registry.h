@@ -34,6 +34,11 @@ typedef struct {
 #define data_prim_t(_PRIM_) ((DataType)DataKind_##_PRIM_)
 
 /**
+ * Global data registry.
+ */
+extern DataReg* g_dataReg;
+
+/**
  * Create a new data registry.
  * Destroy using 'data_reg_destroy()'.
  */

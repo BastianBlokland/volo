@@ -13,7 +13,6 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataReg* g_dataReg;
 static DataMeta g_dataCursorDefMeta;
 
 typedef struct {
@@ -29,30 +28,28 @@ typedef struct {
 
 static void cursor_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataCursorDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
+  if (!g_dataCursorDefMeta.type) {
 
     // clang-format off
-    data_reg_struct_t(reg, CursorColorDef);
-    data_reg_field_t(reg, CursorColorDef, r, data_prim_t(f32));
-    data_reg_field_t(reg, CursorColorDef, g, data_prim_t(f32));
-    data_reg_field_t(reg, CursorColorDef, b, data_prim_t(f32));
-    data_reg_field_t(reg, CursorColorDef, a, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, CursorColorDef);
+    data_reg_field_t(g_dataReg, CursorColorDef, r, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, CursorColorDef, g, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, CursorColorDef, b, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, CursorColorDef, a, data_prim_t(f32));
 
-    data_reg_struct_t(reg, CursorDef);
-    data_reg_field_t(reg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, CursorDef, hotspotX, data_prim_t(u32));
-    data_reg_field_t(reg, CursorDef, hotspotY, data_prim_t(u32));
-    data_reg_field_t(reg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-    data_reg_field_t(reg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, CursorDef);
+    data_reg_field_t(g_dataReg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, CursorDef, hotspotX, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(g_dataReg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataCursorDefMeta = data_meta_t(t_CursorDef);
-    g_dataReg           = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

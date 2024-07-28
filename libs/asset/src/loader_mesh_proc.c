@@ -20,7 +20,6 @@
 
 #define procmesh_max_subdivisions 400
 
-static DataReg* g_dataReg;
 static DataMeta g_dataProcMeshDefMeta;
 
 typedef enum {
@@ -60,56 +59,53 @@ typedef struct {
 
 static void procmesh_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataProcMeshDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataProcMeshDefMeta.type) {
     // clang-format off
-    data_reg_enum_t(reg, ProcMeshType);
-    data_reg_const_t(reg, ProcMeshType, Triangle);
-    data_reg_const_t(reg, ProcMeshType, Quad);
-    data_reg_const_t(reg, ProcMeshType, Cube);
-    data_reg_const_t(reg, ProcMeshType, Capsule);
-    data_reg_const_t(reg, ProcMeshType, Cone);
-    data_reg_const_t(reg, ProcMeshType, Cylinder);
-    data_reg_const_t(reg, ProcMeshType, Hemisphere);
+    data_reg_enum_t(g_dataReg, ProcMeshType);
+    data_reg_const_t(g_dataReg, ProcMeshType, Triangle);
+    data_reg_const_t(g_dataReg, ProcMeshType, Quad);
+    data_reg_const_t(g_dataReg, ProcMeshType, Cube);
+    data_reg_const_t(g_dataReg, ProcMeshType, Capsule);
+    data_reg_const_t(g_dataReg, ProcMeshType, Cone);
+    data_reg_const_t(g_dataReg, ProcMeshType, Cylinder);
+    data_reg_const_t(g_dataReg, ProcMeshType, Hemisphere);
 
-    data_reg_enum_t(reg, ProcMeshAxis);
-    data_reg_const_t(reg, ProcMeshAxis, Up);
-    data_reg_const_t(reg, ProcMeshAxis, Down);
-    data_reg_const_t(reg, ProcMeshAxis, Right);
-    data_reg_const_t(reg, ProcMeshAxis, Left);
-    data_reg_const_t(reg, ProcMeshAxis, Forward);
-    data_reg_const_t(reg, ProcMeshAxis, Backward);
+    data_reg_enum_t(g_dataReg, ProcMeshAxis);
+    data_reg_const_t(g_dataReg, ProcMeshAxis, Up);
+    data_reg_const_t(g_dataReg, ProcMeshAxis, Down);
+    data_reg_const_t(g_dataReg, ProcMeshAxis, Right);
+    data_reg_const_t(g_dataReg, ProcMeshAxis, Left);
+    data_reg_const_t(g_dataReg, ProcMeshAxis, Forward);
+    data_reg_const_t(g_dataReg, ProcMeshAxis, Backward);
 
-    data_reg_struct_t(reg, ProcMeshBounds);
-    data_reg_field_t(reg, ProcMeshBounds, minX, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, minY, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, minZ, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, maxX, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, maxY, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, maxZ, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, ProcMeshBounds);
+    data_reg_field_t(g_dataReg, ProcMeshBounds, minX, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, ProcMeshBounds, minY, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, ProcMeshBounds, minZ, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, ProcMeshBounds, maxX, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, ProcMeshBounds, maxY, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, ProcMeshBounds, maxZ, data_prim_t(f32));
 
-    data_reg_struct_t(reg, ProcMeshDef);
-    data_reg_field_t(reg, ProcMeshDef, type, t_ProcMeshType);
-    data_reg_field_t(reg, ProcMeshDef, axis, t_ProcMeshAxis);
-    data_reg_field_t(reg, ProcMeshDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcMeshDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcMeshDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcMeshDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, ProcMeshDef);
+    data_reg_field_t(g_dataReg, ProcMeshDef, type, t_ProcMeshType);
+    data_reg_field_t(g_dataReg, ProcMeshDef, axis, t_ProcMeshAxis);
+    data_reg_field_t(g_dataReg, ProcMeshDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ProcMeshDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ProcMeshDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, ProcMeshDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, ProcMeshDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, ProcMeshDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ProcMeshDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ProcMeshDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ProcMeshDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataProcMeshDefMeta = data_meta_t(t_ProcMeshDef);
-    g_dataReg             = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

@@ -12,7 +12,6 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataReg* g_dataReg;
 static DataMeta g_dataInputMapDefMeta;
 
 typedef struct {
@@ -49,13 +48,11 @@ typedef struct {
 
 static void inputmap_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataInputMapDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataInputMapDefMeta.type) {
     // clang-format off
     /**
      * Key bindings correspond to the 'GapKey' values as defined in 'gap_input.h'.
@@ -63,129 +60,128 @@ static void inputmap_datareg_init(void) {
      * undesired dependency on the gap library.
      * NOTE: This is a virtual data type, meaning there is no matching AssetInputKey C type.
      */
-    data_reg_enum_t(reg, AssetInputKey);
-    data_reg_const_custom(reg, AssetInputKey, MouseLeft,    0);
-    data_reg_const_custom(reg, AssetInputKey, MouseRight,   1);
-    data_reg_const_custom(reg, AssetInputKey, MouseMiddle,  2);
-    data_reg_const_custom(reg, AssetInputKey, MouseExtra1,  3);
-    data_reg_const_custom(reg, AssetInputKey, MouseExtra2,  4);
-    data_reg_const_custom(reg, AssetInputKey, MouseExtra3,  5);
-    data_reg_const_custom(reg, AssetInputKey, Shift,        6);
-    data_reg_const_custom(reg, AssetInputKey, Control,      7);
-    data_reg_const_custom(reg, AssetInputKey, Alt,          8);
-    data_reg_const_custom(reg, AssetInputKey, Backspace,    9);
-    data_reg_const_custom(reg, AssetInputKey, Delete,       10);
-    data_reg_const_custom(reg, AssetInputKey, Tab,          11);
-    data_reg_const_custom(reg, AssetInputKey, Tilde,        12);
-    data_reg_const_custom(reg, AssetInputKey, Return,       13);
-    data_reg_const_custom(reg, AssetInputKey, Escape,       14);
-    data_reg_const_custom(reg, AssetInputKey, Space,        15);
-    data_reg_const_custom(reg, AssetInputKey, Plus,         16);
-    data_reg_const_custom(reg, AssetInputKey, Minus,        17);
-    data_reg_const_custom(reg, AssetInputKey, Home,         18);
-    data_reg_const_custom(reg, AssetInputKey, End,          19);
-    data_reg_const_custom(reg, AssetInputKey, PageUp,       20);
-    data_reg_const_custom(reg, AssetInputKey, PageDown,     21);
-    data_reg_const_custom(reg, AssetInputKey, ArrowUp,      22);
-    data_reg_const_custom(reg, AssetInputKey, ArrowDown,    23);
-    data_reg_const_custom(reg, AssetInputKey, ArrowRight,   24);
-    data_reg_const_custom(reg, AssetInputKey, ArrowLeft,    25);
-    data_reg_const_custom(reg, AssetInputKey, BracketLeft,  26);
-    data_reg_const_custom(reg, AssetInputKey, BracketRight, 27);
-    data_reg_const_custom(reg, AssetInputKey, A,            28);
-    data_reg_const_custom(reg, AssetInputKey, B,            29);
-    data_reg_const_custom(reg, AssetInputKey, C,            30);
-    data_reg_const_custom(reg, AssetInputKey, D,            31);
-    data_reg_const_custom(reg, AssetInputKey, E,            32);
-    data_reg_const_custom(reg, AssetInputKey, F,            33);
-    data_reg_const_custom(reg, AssetInputKey, G,            34);
-    data_reg_const_custom(reg, AssetInputKey, H,            35);
-    data_reg_const_custom(reg, AssetInputKey, I,            36);
-    data_reg_const_custom(reg, AssetInputKey, J,            37);
-    data_reg_const_custom(reg, AssetInputKey, K,            38);
-    data_reg_const_custom(reg, AssetInputKey, L,            39);
-    data_reg_const_custom(reg, AssetInputKey, M,            40);
-    data_reg_const_custom(reg, AssetInputKey, N,            41);
-    data_reg_const_custom(reg, AssetInputKey, O,            42);
-    data_reg_const_custom(reg, AssetInputKey, P,            43);
-    data_reg_const_custom(reg, AssetInputKey, Q,            44);
-    data_reg_const_custom(reg, AssetInputKey, R,            45);
-    data_reg_const_custom(reg, AssetInputKey, S,            46);
-    data_reg_const_custom(reg, AssetInputKey, T,            47);
-    data_reg_const_custom(reg, AssetInputKey, U,            48);
-    data_reg_const_custom(reg, AssetInputKey, V,            49);
-    data_reg_const_custom(reg, AssetInputKey, W,            50);
-    data_reg_const_custom(reg, AssetInputKey, X,            51);
-    data_reg_const_custom(reg, AssetInputKey, Y,            52);
-    data_reg_const_custom(reg, AssetInputKey, Z,            53);
-    data_reg_const_custom(reg, AssetInputKey, Alpha0,       54);
-    data_reg_const_custom(reg, AssetInputKey, Alpha1,       55);
-    data_reg_const_custom(reg, AssetInputKey, Alpha2,       56);
-    data_reg_const_custom(reg, AssetInputKey, Alpha3,       57);
-    data_reg_const_custom(reg, AssetInputKey, Alpha4,       58);
-    data_reg_const_custom(reg, AssetInputKey, Alpha5,       59);
-    data_reg_const_custom(reg, AssetInputKey, Alpha6,       60);
-    data_reg_const_custom(reg, AssetInputKey, Alpha7,       61);
-    data_reg_const_custom(reg, AssetInputKey, Alpha8,       62);
-    data_reg_const_custom(reg, AssetInputKey, Alpha9,       63);
-    data_reg_const_custom(reg, AssetInputKey, F1,           64);
-    data_reg_const_custom(reg, AssetInputKey, F2,           65);
-    data_reg_const_custom(reg, AssetInputKey, F3,           66);
-    data_reg_const_custom(reg, AssetInputKey, F4,           67);
-    data_reg_const_custom(reg, AssetInputKey, F5,           68);
-    data_reg_const_custom(reg, AssetInputKey, F6,           69);
-    data_reg_const_custom(reg, AssetInputKey, F7,           70);
-    data_reg_const_custom(reg, AssetInputKey, F8,           71);
-    data_reg_const_custom(reg, AssetInputKey, F9,           72);
-    data_reg_const_custom(reg, AssetInputKey, F10,          73);
-    data_reg_const_custom(reg, AssetInputKey, F11,          74);
-    data_reg_const_custom(reg, AssetInputKey, F12,          75);
+    data_reg_enum_t(g_dataReg, AssetInputKey);
+    data_reg_const_custom(g_dataReg, AssetInputKey, MouseLeft,    0);
+    data_reg_const_custom(g_dataReg, AssetInputKey, MouseRight,   1);
+    data_reg_const_custom(g_dataReg, AssetInputKey, MouseMiddle,  2);
+    data_reg_const_custom(g_dataReg, AssetInputKey, MouseExtra1,  3);
+    data_reg_const_custom(g_dataReg, AssetInputKey, MouseExtra2,  4);
+    data_reg_const_custom(g_dataReg, AssetInputKey, MouseExtra3,  5);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Shift,        6);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Control,      7);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alt,          8);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Backspace,    9);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Delete,       10);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Tab,          11);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Tilde,        12);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Return,       13);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Escape,       14);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Space,        15);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Plus,         16);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Minus,        17);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Home,         18);
+    data_reg_const_custom(g_dataReg, AssetInputKey, End,          19);
+    data_reg_const_custom(g_dataReg, AssetInputKey, PageUp,       20);
+    data_reg_const_custom(g_dataReg, AssetInputKey, PageDown,     21);
+    data_reg_const_custom(g_dataReg, AssetInputKey, ArrowUp,      22);
+    data_reg_const_custom(g_dataReg, AssetInputKey, ArrowDown,    23);
+    data_reg_const_custom(g_dataReg, AssetInputKey, ArrowRight,   24);
+    data_reg_const_custom(g_dataReg, AssetInputKey, ArrowLeft,    25);
+    data_reg_const_custom(g_dataReg, AssetInputKey, BracketLeft,  26);
+    data_reg_const_custom(g_dataReg, AssetInputKey, BracketRight, 27);
+    data_reg_const_custom(g_dataReg, AssetInputKey, A,            28);
+    data_reg_const_custom(g_dataReg, AssetInputKey, B,            29);
+    data_reg_const_custom(g_dataReg, AssetInputKey, C,            30);
+    data_reg_const_custom(g_dataReg, AssetInputKey, D,            31);
+    data_reg_const_custom(g_dataReg, AssetInputKey, E,            32);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F,            33);
+    data_reg_const_custom(g_dataReg, AssetInputKey, G,            34);
+    data_reg_const_custom(g_dataReg, AssetInputKey, H,            35);
+    data_reg_const_custom(g_dataReg, AssetInputKey, I,            36);
+    data_reg_const_custom(g_dataReg, AssetInputKey, J,            37);
+    data_reg_const_custom(g_dataReg, AssetInputKey, K,            38);
+    data_reg_const_custom(g_dataReg, AssetInputKey, L,            39);
+    data_reg_const_custom(g_dataReg, AssetInputKey, M,            40);
+    data_reg_const_custom(g_dataReg, AssetInputKey, N,            41);
+    data_reg_const_custom(g_dataReg, AssetInputKey, O,            42);
+    data_reg_const_custom(g_dataReg, AssetInputKey, P,            43);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Q,            44);
+    data_reg_const_custom(g_dataReg, AssetInputKey, R,            45);
+    data_reg_const_custom(g_dataReg, AssetInputKey, S,            46);
+    data_reg_const_custom(g_dataReg, AssetInputKey, T,            47);
+    data_reg_const_custom(g_dataReg, AssetInputKey, U,            48);
+    data_reg_const_custom(g_dataReg, AssetInputKey, V,            49);
+    data_reg_const_custom(g_dataReg, AssetInputKey, W,            50);
+    data_reg_const_custom(g_dataReg, AssetInputKey, X,            51);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Y,            52);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Z,            53);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha0,       54);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha1,       55);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha2,       56);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha3,       57);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha4,       58);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha5,       59);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha6,       60);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha7,       61);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha8,       62);
+    data_reg_const_custom(g_dataReg, AssetInputKey, Alpha9,       63);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F1,           64);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F2,           65);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F3,           66);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F4,           67);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F5,           68);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F6,           69);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F7,           70);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F8,           71);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F9,           72);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F10,          73);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F11,          74);
+    data_reg_const_custom(g_dataReg, AssetInputKey, F12,          75);
 
     /**
      * Blockers correspond to the 'InputBlocker' values as defined in 'input_manager.h'.
      * NOTE: This is a virtual data type, meaning there is no matching AssetInputBlocker C type.
      */
-    data_reg_enum_t(reg, AssetInputBlocker);
-    data_reg_const_custom(reg, AssetInputBlocker, TextInput, 0);
-    data_reg_const_custom(reg, AssetInputBlocker, HoveringUi, 1);
-    data_reg_const_custom(reg, AssetInputBlocker, HoveringGizmo, 2);
-    data_reg_const_custom(reg, AssetInputBlocker, PrefabCreateMode, 3);
-    data_reg_const_custom(reg, AssetInputBlocker, CursorLocked, 4);
-    data_reg_const_custom(reg, AssetInputBlocker, CursorConfined, 5);
-    data_reg_const_custom(reg, AssetInputBlocker, WindowFullscreen, 6);
+    data_reg_enum_t(g_dataReg, AssetInputBlocker);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 0);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringGizmo, 2);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, PrefabCreateMode, 3);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 4);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorConfined, 5);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, WindowFullscreen, 6);
 
     /**
      * Modifiers correspond to the 'InputModifier' values as defined in 'input_manager.h'.
      * NOTE: This is a virtual data type, meaning there is no matching AssetInputModifier C type.
      */
-    data_reg_enum_t(reg, AssetInputModifier);
-    data_reg_const_custom(reg, AssetInputModifier, Shift, 0);
-    data_reg_const_custom(reg, AssetInputModifier, Control, 1);
-    data_reg_const_custom(reg, AssetInputModifier, Alt, 2);
+    data_reg_enum_t(g_dataReg, AssetInputModifier);
+    data_reg_const_custom(g_dataReg, AssetInputModifier, Shift, 0);
+    data_reg_const_custom(g_dataReg, AssetInputModifier, Control, 1);
+    data_reg_const_custom(g_dataReg, AssetInputModifier, Alt, 2);
 
-    data_reg_enum_t(reg, AssetInputType);
-    data_reg_const_t(reg, AssetInputType, Pressed);
-    data_reg_const_t(reg, AssetInputType, Released);
-    data_reg_const_t(reg, AssetInputType, Down);
+    data_reg_enum_t(g_dataReg, AssetInputType);
+    data_reg_const_t(g_dataReg, AssetInputType, Pressed);
+    data_reg_const_t(g_dataReg, AssetInputType, Released);
+    data_reg_const_t(g_dataReg, AssetInputType, Down);
 
-    data_reg_struct_t(reg, AssetInputBindingDef);
-    data_reg_field_t(reg, AssetInputBindingDef, type, t_AssetInputType);
-    data_reg_field_t(reg, AssetInputBindingDef, key, t_AssetInputKey);
-    data_reg_field_t(reg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetInputBindingDef);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, type, t_AssetInputType);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, key, t_AssetInputKey);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
-    data_reg_struct_t(reg, AssetInputActionDef);
-    data_reg_field_t(reg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetInputActionDef, blockers, t_AssetInputBlocker, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, AssetInputActionDef);
+    data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .container = DataContainer_Array, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, AssetInputMapDef);
-    data_reg_field_t(reg, AssetInputMapDef, layer, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_Array);
+    data_reg_struct_t(g_dataReg, AssetInputMapDef);
+    data_reg_field_t(g_dataReg, AssetInputMapDef, layer, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_Array);
     // clang-format on
 
     g_dataInputMapDefMeta = data_meta_t(t_AssetInputMapDef);
-    g_dataReg             = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

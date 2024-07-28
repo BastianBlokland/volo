@@ -32,7 +32,6 @@ static const GeoQuat g_cubeFaceRot[] = {
     {0, 1, 0, 0},                    // Forward to backward.
 };
 
-static DataReg* g_dataReg;
 static DataMeta g_dataArrayTexDefMeta;
 
 typedef enum {
@@ -55,31 +54,28 @@ typedef struct {
 
 static void arraytex_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataArrayTexDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataArrayTexDefMeta.type) {
     // clang-format off
-    data_reg_enum_t(reg, ArrayTexType);
-    data_reg_const_t(reg, ArrayTexType, Array);
-    data_reg_const_t(reg, ArrayTexType, Cube);
-    data_reg_const_t(reg, ArrayTexType, CubeDiffIrradiance);
-    data_reg_const_t(reg, ArrayTexType, CubeSpecIrradiance);
+    data_reg_enum_t(g_dataReg, ArrayTexType);
+    data_reg_const_t(g_dataReg, ArrayTexType, Array);
+    data_reg_const_t(g_dataReg, ArrayTexType, Cube);
+    data_reg_const_t(g_dataReg, ArrayTexType, CubeDiffIrradiance);
+    data_reg_const_t(g_dataReg, ArrayTexType, CubeSpecIrradiance);
 
-    data_reg_struct_t(reg, ArrayTexDef);
-    data_reg_field_t(reg, ArrayTexDef, type, t_ArrayTexType);
-    data_reg_field_t(reg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+    data_reg_struct_t(g_dataReg, ArrayTexDef);
+    data_reg_field_t(g_dataReg, ArrayTexDef, type, t_ArrayTexType);
+    data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
     g_dataArrayTexDefMeta = data_meta_t(t_ArrayTexDef);
-    g_dataReg             = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

@@ -60,7 +60,10 @@ void log_global_logger_init(void) {
   g_logger                   = &globalLogger;
 }
 
-void log_global_logger_teardown(void) { log_destroy_sinks(g_logger); }
+void log_global_logger_teardown(void) {
+  log_destroy_sinks(g_logger);
+  g_logger = null;
+}
 
 Logger* log_create(Allocator* alloc) {
   Logger* res = alloc_alloc_t(alloc, Logger);

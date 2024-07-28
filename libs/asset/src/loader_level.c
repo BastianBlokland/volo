@@ -9,54 +9,50 @@
 
 #include "repo_internal.h"
 
-static DataReg* g_dataReg;
 static DataMeta g_dataLevelMeta;
 
 static void level_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataLevelMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataLevelMeta.type) {
     // clang-format off
-    data_reg_struct_t(reg, GeoVector);
-    data_reg_field_t(reg, GeoVector, x, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, GeoVector, y, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, GeoVector, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, GeoVector);
+    data_reg_field_t(g_dataReg, GeoVector, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, GeoVector, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, GeoVector, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
-    data_reg_struct_t(reg, GeoQuat);
-    data_reg_field_t(reg, GeoQuat, x, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, GeoQuat, y, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, GeoQuat, z, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, GeoQuat);
+    data_reg_field_t(g_dataReg, GeoQuat, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, GeoQuat, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, GeoQuat, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
 
-    data_reg_enum_t(reg, AssetLevelFaction);
-    data_reg_const_t(reg, AssetLevelFaction, None);
-    data_reg_const_t(reg, AssetLevelFaction, A);
-    data_reg_const_t(reg, AssetLevelFaction, B);
-    data_reg_const_t(reg, AssetLevelFaction, C);
-    data_reg_const_t(reg, AssetLevelFaction, D);
+    data_reg_enum_t(g_dataReg, AssetLevelFaction);
+    data_reg_const_t(g_dataReg, AssetLevelFaction, None);
+    data_reg_const_t(g_dataReg, AssetLevelFaction, A);
+    data_reg_const_t(g_dataReg, AssetLevelFaction, B);
+    data_reg_const_t(g_dataReg, AssetLevelFaction, C);
+    data_reg_const_t(g_dataReg, AssetLevelFaction, D);
 
-    data_reg_struct_t(reg, AssetLevelObject);
-    data_reg_field_t(reg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetLevelObject, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
-    data_reg_field_t(reg, AssetLevelObject, faction, t_AssetLevelFaction, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetLevelObject, position, t_GeoVector);
-    data_reg_field_t(reg, AssetLevelObject, rotation, t_GeoQuat);
-    data_reg_field_t(reg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, AssetLevelObject);
+    data_reg_field_t(g_dataReg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetLevelObject, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+    data_reg_field_t(g_dataReg, AssetLevelObject, faction, t_AssetLevelFaction, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetLevelObject, position, t_GeoVector);
+    data_reg_field_t(g_dataReg, AssetLevelObject, rotation, t_GeoQuat);
+    data_reg_field_t(g_dataReg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, AssetLevel);
-    data_reg_field_t(reg, AssetLevel, name, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetLevel, terrainId, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetLevel, startpoint, t_GeoVector, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
+    data_reg_struct_t(g_dataReg, AssetLevel);
+    data_reg_field_t(g_dataReg, AssetLevel, name, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetLevel, terrainId, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetLevel, startpoint, t_GeoVector, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
     // clang-format on
 
     g_dataLevelMeta = data_meta_t(t_AssetLevel);
-    g_dataReg       = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

@@ -20,7 +20,6 @@
 
 #define atlas_max_size (1024 * 16)
 
-static DataReg* g_dataReg;
 static DataMeta g_dataAtlasDefMeta;
 
 typedef struct {
@@ -39,13 +38,11 @@ typedef struct {
 
 static void atlas_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataAtlasDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_allocPersist);
-
+  if (!g_dataAtlasDefMeta.type) {
     // clang-format off
     data_reg_struct_t(g_dataReg, AtlasEntryDef);
     data_reg_field_t(g_dataReg, AtlasEntryDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);

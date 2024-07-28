@@ -15,7 +15,6 @@
 #define decal_default_thickness 0.25f
 #define decal_default_spacing 1.0f
 
-static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
 
 typedef struct {
@@ -45,55 +44,52 @@ typedef struct {
 
 static void decal_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataDecalDefMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataDecalDefMeta.type) {
     // clang-format off
-    data_reg_enum_t(reg, AssetDecalAxis);
-    data_reg_const_t(reg, AssetDecalAxis, LocalY);
-    data_reg_const_t(reg, AssetDecalAxis, LocalZ);
-    data_reg_const_t(reg, AssetDecalAxis, WorldY);
+    data_reg_enum_t(g_dataReg, AssetDecalAxis);
+    data_reg_const_t(g_dataReg, AssetDecalAxis, LocalY);
+    data_reg_const_t(g_dataReg, AssetDecalAxis, LocalZ);
+    data_reg_const_t(g_dataReg, AssetDecalAxis, WorldY);
 
-    data_reg_enum_t(reg, AssetDecalNormal);
-    data_reg_const_t(reg, AssetDecalNormal, GBuffer);
-    data_reg_const_t(reg, AssetDecalNormal, DepthBuffer);
-    data_reg_const_t(reg, AssetDecalNormal, DecalTransform);
+    data_reg_enum_t(g_dataReg, AssetDecalNormal);
+    data_reg_const_t(g_dataReg, AssetDecalNormal, GBuffer);
+    data_reg_const_t(g_dataReg, AssetDecalNormal, DepthBuffer);
+    data_reg_const_t(g_dataReg, AssetDecalNormal, DecalTransform);
 
-    data_reg_enum_t(reg, AssetDecalMask);
-    data_reg_const_t(reg, AssetDecalMask, Geometry);
-    data_reg_const_t(reg, AssetDecalMask, Terrain);
-    data_reg_const_t(reg, AssetDecalMask, Unit);
+    data_reg_enum_t(g_dataReg, AssetDecalMask);
+    data_reg_const_t(g_dataReg, AssetDecalMask, Geometry);
+    data_reg_const_t(g_dataReg, AssetDecalMask, Terrain);
+    data_reg_const_t(g_dataReg, AssetDecalMask, Unit);
 
-    data_reg_struct_t(reg, DecalDef);
-    data_reg_field_t(reg, DecalDef, trail, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, spacing, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, projectionAxis, t_AssetDecalAxis);
-    data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, snapToTerrain, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, excludeMask, t_AssetDecalMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
-    data_reg_field_t(reg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, scaleMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, scaleMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, DecalDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, DecalDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, DecalDef);
+    data_reg_field_t(g_dataReg, DecalDef, trail, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, spacing, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, projectionAxis, t_AssetDecalAxis);
+    data_reg_field_t(g_dataReg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, snapToTerrain, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, excludeMask, t_AssetDecalMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, roughness, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, scaleMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, scaleMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, DecalDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, DecalDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataDecalDefMeta = data_meta_t(t_DecalDef);
-    g_dataReg          = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

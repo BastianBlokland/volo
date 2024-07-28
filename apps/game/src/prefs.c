@@ -19,34 +19,30 @@ const String g_gameQualityLabels[] = {
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
-static DataReg* g_dataReg;
 static DataMeta g_dataMeta;
 
 static void prefs_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
+  if (!g_dataMeta.type) {
+    data_reg_enum_t(g_dataReg, GameQuality);
+    data_reg_const_t(g_dataReg, GameQuality, VeryLow);
+    data_reg_const_t(g_dataReg, GameQuality, Low);
+    data_reg_const_t(g_dataReg, GameQuality, Medium);
+    data_reg_const_t(g_dataReg, GameQuality, High);
 
-    data_reg_enum_t(reg, GameQuality);
-    data_reg_const_t(reg, GameQuality, VeryLow);
-    data_reg_const_t(reg, GameQuality, Low);
-    data_reg_const_t(reg, GameQuality, Medium);
-    data_reg_const_t(reg, GameQuality, High);
-
-    data_reg_struct_t(reg, GamePrefsComp);
-    data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32));
-    data_reg_field_t(reg, GamePrefsComp, powerSaving, data_prim_t(bool));
-    data_reg_field_t(reg, GamePrefsComp, fullscreen, data_prim_t(bool));
-    data_reg_field_t(reg, GamePrefsComp, windowWidth, data_prim_t(u16));
-    data_reg_field_t(reg, GamePrefsComp, windowHeight, data_prim_t(u16));
-    data_reg_field_t(reg, GamePrefsComp, quality, t_GameQuality);
+    data_reg_struct_t(g_dataReg, GamePrefsComp);
+    data_reg_field_t(g_dataReg, GamePrefsComp, volume, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, GamePrefsComp, powerSaving, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, GamePrefsComp, fullscreen, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
+    data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
+    data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
 
     g_dataMeta = data_meta_t(t_GamePrefsComp);
-    g_dataReg  = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

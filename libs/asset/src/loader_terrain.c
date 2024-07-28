@@ -13,37 +13,33 @@
 #define terrain_max_size 1500
 #define terrain_max_height 50.0f
 
-static DataReg* g_dataReg;
 static DataMeta g_dataMeta;
 
 static void terrain_datareg_init(void) {
   static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
+  if (LIKELY(g_dataMeta.type)) {
     return;
   }
   thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
+  if (!g_dataMeta.type) {
     // clang-format off
-    data_reg_struct_t(reg, AssetTerrainColor);
-    data_reg_field_t(reg, AssetTerrainColor, r, data_prim_t(f32));
-    data_reg_field_t(reg, AssetTerrainColor, g, data_prim_t(f32));
-    data_reg_field_t(reg, AssetTerrainColor, b, data_prim_t(f32));
-    data_reg_comment_t(reg, AssetTerrainColor, "Srgb encoded color value");
+    data_reg_struct_t(g_dataReg, AssetTerrainColor);
+    data_reg_field_t(g_dataReg, AssetTerrainColor, r, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetTerrainColor, g, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetTerrainColor, b, data_prim_t(f32));
+    data_reg_comment_t(g_dataReg, AssetTerrainColor, "Srgb encoded color value");
 
-    data_reg_struct_t(reg, AssetTerrainComp);
-    data_reg_field_t(reg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetTerrainComp, size, data_prim_t(u32));
-    data_reg_field_t(reg, AssetTerrainComp, playSize, data_prim_t(u32));
-    data_reg_field_t(reg, AssetTerrainComp, heightMax, data_prim_t(f32));
-    data_reg_field_t(reg, AssetTerrainComp, minimapColorLow, t_AssetTerrainColor, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetTerrainComp);
+    data_reg_field_t(g_dataReg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetTerrainComp, size, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, AssetTerrainComp, playSize, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, AssetTerrainComp, heightMax, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorLow, t_AssetTerrainColor, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataMeta = data_meta_t(t_AssetTerrainComp);
-    g_dataReg  = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
