@@ -19,3 +19,5 @@ void asset_data_init_vfx(void);
 void asset_data_init_weapon(void);
 
 extern DataType g_assetGeoColorType;
+extern DataType g_assetGeoVec3Type;
+extern DataType g_assetGeoQuatType;
