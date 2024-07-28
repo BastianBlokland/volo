@@ -23,12 +23,6 @@ static const u32    g_dataBinVersion = 1;
   (DataReadResult) { .error = DataReadError_Malformed, .errorMsg = string_lit("Input truncated") }
 
 typedef struct {
-  u32      typeNameHash;   // Hash of the type's name.
-  u32      typeFormatHash; // Deep hash of the type's format ('data_hash()').
-  TimeReal timestamp;
-} DataBinHeader;
-
-typedef struct {
   const DataReg* reg;
   Allocator*     alloc;
   DynArray*      allocations;
@@ -116,34 +110,32 @@ static bool bin_pop_padding(ReadCtx* ctx) {
   return bin_pop_bytes(ctx, padding, &paddingMem);
 }
 
-static DataBinHeader data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
-  DataBinHeader header = {0};
-
+static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, DataReadResult* res) {
   Mem inMagic;
   if (!bin_pop_bytes(ctx, g_dataBinMagic.size, &inMagic) || !mem_eq(inMagic, g_dataBinMagic)) {
     *res = result_fail(DataReadError_Malformed, "Input mismatched magic");
-    return header;
+    return;
   }
   u32 inFormatVersion = 0;
   if (!bin_pop_u32(ctx, &inFormatVersion) || inFormatVersion != g_dataBinVersion) {
     *res = result_fail(
         DataReadError_Incompatible, "Input format {} is unsupported", fmt_int(inFormatVersion));
-    return header;
+    return;
   }
-  if (!bin_pop_u32(ctx, &header.typeNameHash)) {
+  if (!bin_pop_u32(ctx, &out->typeNameHash)) {
     *res = result_fail_truncated();
-    return header;
+    return;
   }
-  if (!bin_pop_u32(ctx, &header.typeFormatHash)) {
+  if (!bin_pop_u32(ctx, &out->typeFormatHash)) {
     *res = result_fail_truncated();
-    return header;
+    return;
   }
-  if (!bin_pop_u64(ctx, (u64*)&header.timestamp)) {
+  if (!bin_pop_u64(ctx, (u64*)&out->timestamp)) {
     *res = result_fail_truncated();
-    return header;
+    return;
   }
   *res = result_success();
-  return header;
+  return;
 }
 
 static void data_read_bin_val(ReadCtx*, DataReadResult*);
@@ -509,7 +501,8 @@ String data_read_bin(
       .meta        = meta,
       .data        = data,
   };
-  const DataBinHeader header = data_read_bin_header(&ctx, res);
+  DataBinHeader header;
+  data_read_bin_header_internal(&ctx, &header, res);
   if (UNLIKELY(res->error)) {
     goto Ret;
   }
@@ -533,5 +526,13 @@ Ret:
     mem_set(data, 0);
   }
   dynarray_destroy(&allocations);
+  return ctx.input;
+}
+
+String data_read_bin_header(const String input, DataBinHeader* out, DataReadResult* res) {
+  ReadCtx ctx = {
+      .input = input,
+  };
+  data_read_bin_header_internal(&ctx, out, res);
   return ctx.input;
 }
