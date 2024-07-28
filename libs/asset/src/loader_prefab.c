@@ -11,6 +11,7 @@
 #include "ecs_utils.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
@@ -54,10 +55,6 @@ typedef struct {
 } AssetPrefabVec3Def;
 
 typedef struct {
-  f32 r, g, b, a;
-} AssetPrefabColorDef;
-
-typedef struct {
   AssetPrefabVec3Def offset;
   f32                radius;
 } AssetPrefabShapeSphereDef;
@@ -92,7 +89,7 @@ typedef struct {
     f64                      data_number;
     bool                     data_bool;
     AssetPrefabVec3Def       data_vector3;
-    AssetPrefabColorDef      data_color;
+    AssetColor               data_color;
     String                   data_string;
     String                   data_asset;
     AssetPrefabValueSoundDef data_sound;
@@ -134,13 +131,13 @@ typedef struct {
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
-  AssetPrefabColorDef radiance;
-  f32                 radius;
+  AssetColor radiance;
+  f32        radius;
 } AssetPrefabTraitLightPointDef;
 
 typedef struct {
-  AssetPrefabColorDef radiance;
-  bool                shadows, coverage;
+  AssetColor radiance;
+  bool       shadows, coverage;
 } AssetPrefabTraitLightDirDef;
 
 typedef struct {
@@ -314,7 +311,7 @@ static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
 
-static GeoColor prefab_build_color(const AssetPrefabColorDef* def) {
+static GeoColor prefab_build_color(const AssetColor* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
@@ -594,12 +591,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
+          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId    = string_hash(traitDef->data_production.productSetId),
+          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+          .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
@@ -819,12 +816,6 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabColorDef);
-  data_reg_field_t(g_dataReg, AssetPrefabColorDef, r, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetPrefabColorDef, g, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetPrefabColorDef, b, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetPrefabColorDef, a, data_prim_t(f32));
-
   data_reg_struct_t(g_dataReg, AssetPrefabShapeSphereDef);
   data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -852,7 +843,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, t_AssetPrefabColorDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetColorType);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
@@ -882,11 +873,11 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPointDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radiance, t_AssetPrefabColorDef, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radiance, g_assetColorType, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightDirDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, radiance, t_AssetPrefabColorDef, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, radiance, g_assetColorType, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, shadows, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, coverage, data_prim_t(bool), .flags = DataFlags_Opt);
 

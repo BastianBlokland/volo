@@ -12,8 +12,8 @@
         "scale": { "title": "f32", "type": "number" },
         "color": {
           "anyOf": [
-            { "title": "CursorColorDef", "$ref": "#/$defs/CursorColorDef" },
-            { "const": null, "title": "CursorColorDef" }
+            { "title": "AssetColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/AssetColor" },
+            { "const": null, "title": "AssetColor" }
           ]
         }
       },
@@ -22,7 +22,7 @@
         { "label": "New", "body": "^{\n  \"texture\": \"placeholder\",\n  \"hotspotX\": 0,\n  \"hotspotY\": 0\n}" }
       ]
     },
-    "CursorColorDef": {
+    "AssetColor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

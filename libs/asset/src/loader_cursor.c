@@ -8,20 +8,17 @@
 #include "ecs_utils.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetCursorDataDef;
 
 typedef struct {
-  f32 r, g, b, a;
-} CursorColorDef;
-
-typedef struct {
-  String          texture;
-  u32             hotspotX, hotspotY;
-  f32             scale;
-  CursorColorDef* color;
+  String      texture;
+  u32         hotspotX, hotspotY;
+  f32         scale;
+  AssetColor* color;
 } CursorDef;
 
 typedef enum {
@@ -73,7 +70,7 @@ static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
   };
 }
 
-static GeoColor asset_cursor_color(const CursorColorDef* def) {
+static GeoColor asset_cursor_color(const AssetColor* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
@@ -247,18 +244,12 @@ ecs_module_init(asset_cursor_module) {
 
 void asset_data_init_cursor(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, CursorColorDef);
-  data_reg_field_t(g_dataReg, CursorColorDef, r, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, CursorColorDef, g, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, CursorColorDef, b, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, CursorColorDef, a, data_prim_t(f32));
-
   data_reg_struct_t(g_dataReg, CursorDef);
   data_reg_field_t(g_dataReg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, CursorDef, hotspotX, data_prim_t(u32));
   data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
   data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-  data_reg_field_t(g_dataReg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, CursorDef, color, g_assetColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
   g_assetCursorDataDef = data_meta_t(t_CursorDef);

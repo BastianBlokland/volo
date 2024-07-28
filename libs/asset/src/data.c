@@ -3,6 +3,19 @@
 
 #include "data_internal.h"
 
+DataType g_assetColorType;
+
+static void asset_data_init_types() {
+  data_reg_struct_t(g_dataReg, AssetColor);
+  data_reg_field_t(g_dataReg, AssetColor, r, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetColor, g, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetColor, b, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetColor, a, data_prim_t(f32));
+  data_reg_comment_t(g_dataReg, AssetColor, "HDR Color definition (components default to 0)");
+
+  g_assetColorType = t_AssetColor;
+}
+
 void asset_data_init(void) {
   static bool           g_init;
   static ThreadSpinLock g_initLock;
@@ -11,6 +24,8 @@ void asset_data_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_init) {
+    asset_data_init_types();
+
     asset_data_init_arraytex();
     asset_data_init_atlas();
     asset_data_init_cursor();

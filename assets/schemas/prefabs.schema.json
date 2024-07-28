@@ -107,7 +107,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightPoint" },
-            "radiance": { "title": "AssetPrefabColorDef", "$ref": "#/$defs/AssetPrefabColorDef" },
+            "radiance": { "title": "AssetColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/AssetColor" },
             "radius": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "radiance", "radius" ]
@@ -117,7 +117,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightDir" },
-            "radiance": { "title": "AssetPrefabColorDef", "$ref": "#/$defs/AssetPrefabColorDef" },
+            "radiance": { "title": "AssetColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/AssetColor" },
             "shadows": { "title": "bool", "type": "boolean" },
             "coverage": { "title": "bool", "type": "boolean" }
           },
@@ -325,7 +325,7 @@
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
     },
-    "AssetPrefabColorDef": {
+    "AssetColor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

@@ -9,6 +9,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
@@ -27,10 +28,6 @@ typedef struct {
 typedef struct {
   f32 x, y, z;
 } VfxRotDef;
-
-typedef struct {
-  f32 r, g, b, a;
-} VfxColorDef;
 
 typedef struct {
   f32        angle;
@@ -53,7 +50,7 @@ typedef struct {
 
 typedef struct {
   String         atlasEntry;
-  VfxColorDef*   color;
+  AssetColor*    color;
   AssetVfxBlend  blend;
   AssetVfxFacing facing;
   u16            flipbookCount;
@@ -65,10 +62,10 @@ typedef struct {
 } VfxSpriteDef;
 
 typedef struct {
-  VfxColorDef radiance;
-  f32         fadeInTime, fadeOutTime;
-  f32         radius;
-  f32         turbulenceFrequency;
+  AssetColor radiance;
+  f32        fadeInTime, fadeOutTime;
+  f32        radius;
+  f32        turbulenceFrequency;
 } VfxLightDef;
 
 typedef struct {
@@ -143,7 +140,7 @@ static GeoQuat vfx_build_rot(const VfxRotDef* def) {
   return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
 }
 
-static GeoColor vfx_build_color(const VfxColorDef* def) {
+static GeoColor vfx_build_color(const AssetColor* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
@@ -282,13 +279,6 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxRotDef, z, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, VfxRotDef, "3D Rotation (components default to 0)");
 
-  data_reg_struct_t(g_dataReg, VfxColorDef);
-  data_reg_field_t(g_dataReg, VfxColorDef, r, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, VfxColorDef, g, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, VfxColorDef, b, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, VfxColorDef, a, data_prim_t(f32));
-  data_reg_comment_t(g_dataReg, VfxColorDef, "HDR Color definition (components default to 0)");
-
   data_reg_struct_t(g_dataReg, VfxConeDef);
   data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -333,7 +323,7 @@ void asset_data_init_vfx(void) {
 
   data_reg_struct_t(g_dataReg, VfxSpriteDef);
   data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
@@ -349,7 +339,7 @@ void asset_data_init_vfx(void) {
   data_reg_comment_t(g_dataReg, VfxSpriteDef, "Optional sprite to render for each particle.");
 
   data_reg_struct_t(g_dataReg, VfxLightDef);
-  data_reg_field_t(g_dataReg, VfxLightDef, radiance, t_VfxColorDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxLightDef, radiance, g_assetColorType, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);

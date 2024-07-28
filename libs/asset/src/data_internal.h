@@ -1,4 +1,5 @@
 #include "asset_data.h"
+#include "data_registry.h"
 
 void asset_data_init_arraytex(void);
 void asset_data_init_atlas(void);
@@ -16,3 +17,9 @@ void asset_data_init_script(void);
 void asset_data_init_terrain(void);
 void asset_data_init_vfx(void);
 void asset_data_init_weapon(void);
+
+typedef struct {
+  f32 r, g, b, a;
+} AssetColor;
+
+extern DataType g_assetColorType;
