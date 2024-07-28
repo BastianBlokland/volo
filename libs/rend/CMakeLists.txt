@@ -29,7 +29,7 @@ add_library(lib_rend STATIC
   src/rvk/mem_pool.c
   src/rvk/mesh.c
   src/rvk/pass.c
-  src/rvk/psocache.c
+  src/rvk/pcache.c
   src/rvk/repository.c
   src/rvk/sampler.c
   src/rvk/shader.c

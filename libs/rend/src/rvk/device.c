@@ -9,7 +9,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
-#include "psocache_internal.h"
+#include "pcache_internal.h"
 #include "repository_internal.h"
 #include "sampler_internal.h"
 #include "transfer_internal.h"
@@ -309,10 +309,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
   queueCreateInfos[queueCreateInfoCount++]     = (VkDeviceQueueCreateInfo){
-          .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-          .queueFamilyIndex = dev->graphicsQueueIndex,
-          .queueCount       = 1,
-          .pQueuePriorities = &queuePriorities[0],
+      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .queueFamilyIndex = dev->graphicsQueueIndex,
+      .queueCount       = 1,
+      .pQueuePriorities = &queuePriorities[0],
   };
   if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
     queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
@@ -415,8 +415,8 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
   *dev           = (RvkDevice){
-                .vkAlloc          = rvk_mem_allocator(g_allocHeap),
-                .queueSubmitMutex = thread_mutex_create(g_allocHeap),
+      .vkAlloc          = rvk_mem_allocator(g_allocHeap),
+      .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
   if (settingsGlobal->flags & RendGlobalFlags_TextureCompression) {
     dev->flags |= RvkDeviceFlags_TextureCompression;
@@ -460,7 +460,7 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
     }
   }
 
-  dev->vkPipelineCache = rvk_psocache_load(dev);
+  dev->vkPipelineCache = rvk_pcache_load(dev);
   dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
   dev->descPool = rvk_desc_pool_create(dev);
   dev->samplerPool = rvk_sampler_pool_create(dev);
@@ -484,7 +484,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);
 
-  rvk_psocache_save(dev, dev->vkPipelineCache);
+  rvk_pcache_save(dev, dev->vkPipelineCache);
   vkDestroyPipelineCache(dev->vkDev, dev->vkPipelineCache, &dev->vkAlloc);
 
   rvk_repository_destroy(dev->repository);
