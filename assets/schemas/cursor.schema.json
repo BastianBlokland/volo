@@ -12,8 +12,8 @@
         "scale": { "title": "f32", "type": "number" },
         "color": {
           "anyOf": [
-            { "title": "CursorColorDef", "$ref": "#/$defs/CursorColorDef" },
-            { "const": null, "title": "CursorColorDef" }
+            { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
+            { "const": null, "title": "GeoColor" }
           ]
         }
       },
@@ -22,7 +22,7 @@
         { "label": "New", "body": "^{\n  \"texture\": \"placeholder\",\n  \"hotspotX\": 0,\n  \"hotspotY\": 0\n}" }
       ]
     },
-    "CursorColorDef": {
+    "GeoColor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -31,9 +31,9 @@
         "b": { "title": "f32", "type": "number" },
         "a": { "title": "f32", "type": "number" }
       },
-      "required": [ "r", "g", "b", "a" ],
+      "required": [],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
+        { "label": "New", "body": "^{}" }
       ]
     }
   }

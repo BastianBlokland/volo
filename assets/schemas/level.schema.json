@@ -8,7 +8,7 @@
       "properties": {
         "name": { "title": "String", "type": "string" },
         "terrainId": { "title": "String", "type": "string" },
-        "startpoint": { "title": "GeoVector", "$ref": "#/$defs/GeoVector" },
+        "startpoint": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
         "objects": {
           "type": "array",
           "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }
@@ -39,8 +39,8 @@
         "id": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
         "prefab": { "title": "String", "type": "string", "minLength": 1 },
         "faction": { "title": "AssetLevelFaction", "$ref": "#/$defs/AssetLevelFaction" },
-        "position": { "title": "GeoVector", "$ref": "#/$defs/GeoVector" },
-        "rotation": { "title": "GeoQuat", "$ref": "#/$defs/GeoQuat" },
+        "position": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
+        "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" },
         "scale": { "title": "f32", "type": "number" }
       },
       "required": [ "prefab", "position", "rotation" ],

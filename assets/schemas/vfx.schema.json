@@ -90,8 +90,8 @@
         "atlasEntry": { "title": "String", "type": "string", "minLength": 1 },
         "color": {
           "anyOf": [
-            { "title": "VfxColorDef", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/VfxColorDef" },
-            { "const": null, "title": "VfxColorDef" }
+            { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
+            { "const": null, "title": "GeoColor" }
           ]
         },
         "blend": { "title": "AssetVfxBlend", "description": "* None: Sprites are not blended.\n* Alpha: Sprites are interpolated based on the alpha.\n* World: Sprites are additively blended.", "$ref": "#/$defs/AssetVfxBlend" },
@@ -112,7 +112,7 @@
         { "label": "New", "body": "^{\n  \"atlasEntry\": \"placeholder\",\n  \"size\": {}\n}" }
       ]
     },
-    "VfxColorDef": {
+    "GeoColor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -121,9 +121,9 @@
         "b": { "title": "f32", "type": "number" },
         "a": { "title": "f32", "type": "number" }
       },
-      "required": [ "r", "g", "b", "a" ],
+      "required": [],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "AssetVfxBlend": {
@@ -148,7 +148,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "radiance": { "title": "VfxColorDef", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/VfxColorDef" },
+        "radiance": { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
         "fadeInTime": { "title": "f32", "type": "number" },
         "fadeOutTime": { "title": "f32", "type": "number" },
         "radius": { "title": "f32", "type": "number" },
