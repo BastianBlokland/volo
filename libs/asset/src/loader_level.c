@@ -8,14 +8,14 @@
 
 #include "repo_internal.h"
 
-static DataMeta g_dataLevelMeta;
+static DataMeta g_assetLevelDataDef;
 
 ecs_comp_define_public(AssetLevelComp);
 
 static void ecs_destruct_level_comp(void* data) {
   AssetLevelComp* comp  = data;
   AssetLevel*     level = &comp->level;
-  data_destroy(g_dataReg, g_allocHeap, g_dataLevelMeta, mem_create(level, sizeof(AssetLevel)));
+  data_destroy(g_dataReg, g_allocHeap, g_assetLevelDataDef, mem_create(level, sizeof(AssetLevel)));
 }
 
 ecs_view_define(LevelUnloadView) {
@@ -77,7 +77,7 @@ void asset_data_init_level(void) {
   data_reg_field_t(g_dataReg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
   // clang-format on
 
-  g_dataLevelMeta = data_meta_t(t_AssetLevel);
+  g_assetLevelDataDef = data_meta_t(t_AssetLevel);
 }
 
 void asset_load_level(
@@ -86,7 +86,7 @@ void asset_load_level(
   AssetLevel     level;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataLevelMeta, mem_var(level), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLevelDataDef, mem_var(level), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -122,7 +122,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
   const Mem               levelData = mem_create(level, sizeof(AssetLevel));
-  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, levelData, &jOpts);
+  data_write_json(g_dataReg, &dataBuffer, g_assetLevelDataDef, levelData, &jOpts);
 
   const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 
@@ -132,5 +132,5 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
 void asset_level_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataLevelMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetLevelDataDef, schemaFlags);
 }

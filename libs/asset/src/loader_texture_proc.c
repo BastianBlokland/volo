@@ -20,7 +20,7 @@
 
 #define proctex_max_size (1024 * 16)
 
-static DataMeta g_dataProcTexDefMeta;
+static DataMeta g_assetProcTexDataDef;
 
 typedef enum {
   ProcTexChannels_One  = 1,
@@ -361,7 +361,7 @@ void asset_data_init_proctex(void) {
   data_reg_field_t(g_dataReg, ProcTexDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   // clang-format on
 
-  g_dataProcTexDefMeta = data_meta_t(t_ProcTexDef);
+  g_assetProcTexDataDef = data_meta_t(t_ProcTexDef);
 }
 
 void asset_load_proctex(
@@ -369,7 +369,7 @@ void asset_load_proctex(
   String         errMsg;
   ProcTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataProcTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcTexDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -402,11 +402,11 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataProcTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetProcTexDataDef, mem_var(def));
   asset_repo_source_close(src);
 }
 
 void asset_texture_proc_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataProcTexDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetProcTexDataDef, schemaFlags);
 }

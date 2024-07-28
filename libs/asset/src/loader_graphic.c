@@ -11,14 +11,15 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_dataMeta;
+static DataMeta g_assetGraphicDataDef;
 
 ecs_comp_define_public(AssetGraphicComp);
 ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };
 
 static void ecs_destruct_graphic_comp(void* data) {
   AssetGraphicComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataMeta, mem_create(comp, sizeof(AssetGraphicComp)));
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetGraphicDataDef, mem_create(comp, sizeof(AssetGraphicComp)));
 }
 
 static void ecs_destruct_graphic_load_comp(void* data) {
@@ -67,7 +68,7 @@ ecs_system_define(LoadGraphicAssetSys) {
         g_dataReg,
         src->data,
         g_allocHeap,
-        g_dataMeta,
+        g_assetGraphicDataDef,
         mem_create(graphicComp, sizeof(AssetGraphicComp)),
         &result);
     if (result.error) {
@@ -220,7 +221,7 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);
   // clang-format on
 
-  g_dataMeta = data_meta_t(t_AssetGraphicComp);
+  g_assetGraphicDataDef = data_meta_t(t_AssetGraphicComp);
 }
 
 void asset_load_graphic(
@@ -231,5 +232,5 @@ void asset_load_graphic(
 
 void asset_graphic_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetGraphicDataDef, schemaFlags);
 }

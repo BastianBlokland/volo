@@ -11,7 +11,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_dataInputMapDefMeta;
+static DataMeta g_assetInputMapDataDef;
 
 typedef struct {
   u32*  values;
@@ -276,7 +276,7 @@ void asset_data_init_inputmap(void) {
   data_reg_field_t(g_dataReg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_Array);
   // clang-format on
 
-  g_dataInputMapDefMeta = data_meta_t(t_AssetInputMapDef);
+  g_assetInputMapDataDef = data_meta_t(t_AssetInputMapDef);
 }
 
 void asset_load_inputs(
@@ -288,7 +288,7 @@ void asset_load_inputs(
   AssetInputMapDef def;
   String           errMsg;
   DataReadResult   readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataInputMapDefMeta, mem_var(def), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetInputMapDataDef, mem_var(def), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -298,7 +298,7 @@ void asset_load_inputs(
 
   InputMapError buildErr;
   asset_inputmap_build(&def, &actions, &bindings, &buildErr);
-  data_destroy(g_dataReg, g_allocHeap, g_dataInputMapDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetInputMapDataDef, mem_var(def));
   if (buildErr) {
     errMsg = inputmap_error_str(buildErr);
     goto Error;
@@ -342,5 +342,5 @@ asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash)
 
 void asset_inputmap_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataInputMapDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetInputMapDataDef, schemaFlags);
 }

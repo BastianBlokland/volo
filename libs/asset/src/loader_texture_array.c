@@ -31,7 +31,7 @@ static const GeoQuat g_cubeFaceRot[] = {
     {0, 1, 0, 0},                    // Forward to backward.
 };
 
-static DataMeta g_dataArrayTexDefMeta;
+static DataMeta g_assetArrayTexDataDef;
 
 typedef enum {
   ArrayTexType_Array,
@@ -58,7 +58,7 @@ ecs_comp_define(AssetArrayLoadComp) {
 
 static void ecs_destruct_arraytex_load_comp(void* data) {
   AssetArrayLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetArrayTexDataDef, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -663,7 +663,7 @@ void asset_data_init_arraytex(void) {
   data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
   // clang-format on
 
-  g_dataArrayTexDefMeta = data_meta_t(t_ArrayTexDef);
+  g_assetArrayTexDataDef = data_meta_t(t_ArrayTexDef);
 }
 
 void asset_load_arraytex(
@@ -673,7 +673,7 @@ void asset_load_arraytex(
   String         errMsg;
   ArrayTexDef    def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetArrayTexDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -713,11 +713,11 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetArrayTexDataDef, mem_var(def));
   asset_repo_source_close(src);
 }
 
 void asset_texture_array_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataArrayTexDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetArrayTexDataDef, schemaFlags);
 }

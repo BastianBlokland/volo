@@ -15,7 +15,7 @@
 
 #include "repo_internal.h"
 
-static DataMeta g_dataMapDefMeta;
+static DataMeta g_assetProductDataDef;
 
 typedef struct {
   String assetId;
@@ -239,7 +239,8 @@ ecs_system_define(LoadProductAssetSys) {
     AssetProductMapDef def;
     String             errMsg;
     DataReadResult     readRes;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_dataMapDefMeta, mem_var(def), &readRes);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetProductDataDef, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -252,7 +253,7 @@ ecs_system_define(LoadProductAssetSys) {
 
     ProductError buildErr;
     productmap_build(&buildCtx, &def, &sets, &products, &buildErr);
-    data_destroy(g_dataReg, g_allocHeap, g_dataMapDefMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_assetProductDataDef, mem_var(def));
     if (buildErr) {
       errMsg = product_error_str(buildErr);
       goto Error;
@@ -348,7 +349,7 @@ void asset_data_init_product(void) {
   data_reg_field_t(g_dataReg, AssetProductMapDef, sets, t_AssetProductSetDef, .container = DataContainer_Array);
   // clang-format on
 
-  g_dataMapDefMeta = data_meta_t(t_AssetProductMapDef);
+  g_assetProductDataDef = data_meta_t(t_AssetProductMapDef);
 }
 
 void asset_load_products(
@@ -369,5 +370,5 @@ asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) 
 
 void asset_product_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetProductDataDef, schemaFlags);
 }

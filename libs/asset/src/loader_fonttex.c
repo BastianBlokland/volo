@@ -26,7 +26,7 @@
 #define fonttex_max_size (1024 * 16)
 #define fonttex_max_fonts 100
 
-static DataMeta g_dataFontTexDefMeta;
+static DataMeta g_assetFontTexDataDef;
 
 typedef enum {
   FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
@@ -63,7 +63,7 @@ static void ecs_destruct_fonttex_comp(void* data) {
 
 static void ecs_destruct_fonttex_load_comp(void* data) {
   AssetFontTexLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDataDef, mem_var(comp->def));
 }
 
 typedef enum {
@@ -425,7 +425,7 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
   // clang-format on
 
-  g_dataFontTexDefMeta = data_meta_t(t_FontTexDef);
+  g_assetFontTexDataDef = data_meta_t(t_FontTexDef);
 }
 
 void asset_load_fonttex(
@@ -433,7 +433,7 @@ void asset_load_fonttex(
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataFontTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetFontTexDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -466,7 +466,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDataDef, mem_var(def));
   asset_repo_source_close(src);
 }
 
@@ -509,5 +509,5 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
 
 void asset_fonttex_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataFontTexDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetFontTexDataDef, schemaFlags);
 }

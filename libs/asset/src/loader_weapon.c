@@ -15,7 +15,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_dataMapDefMeta;
+static DataMeta g_assetWeaponDataDef;
 
 typedef struct {
   u32*  values;
@@ -367,7 +367,7 @@ ecs_system_define(LoadWeaponAssetSys) {
     AssetWeaponMapDef def;
     String            errMsg;
     DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_dataMapDefMeta, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetWeaponDataDef, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -380,7 +380,7 @@ ecs_system_define(LoadWeaponAssetSys) {
 
     WeaponError buildErr;
     weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
-    data_destroy(g_dataReg, g_allocHeap, g_dataMapDefMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_assetWeaponDataDef, mem_var(def));
     if (buildErr) {
       errMsg = weapon_error_str(buildErr);
       goto Error;
@@ -523,7 +523,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
   // clang-format on
 
-  g_dataMapDefMeta = data_meta_t(t_AssetWeaponMapDef);
+  g_assetWeaponDataDef = data_meta_t(t_AssetWeaponMapDef);
 }
 
 void asset_load_weapons(
@@ -583,5 +583,5 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
 
 void asset_weapon_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetWeaponDataDef, schemaFlags);
 }

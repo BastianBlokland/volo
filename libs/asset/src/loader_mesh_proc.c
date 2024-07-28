@@ -19,7 +19,7 @@
 
 #define procmesh_max_subdivisions 400
 
-static DataMeta g_dataProcMeshDefMeta;
+static DataMeta g_assetProcMeshDataDef;
 
 typedef enum {
   ProcMeshAxis_Up,
@@ -555,7 +555,7 @@ void asset_data_init_procmesh(void) {
   data_reg_field_t(g_dataReg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
-  g_dataProcMeshDefMeta = data_meta_t(t_ProcMeshDef);
+  g_assetProcMeshDataDef = data_meta_t(t_ProcMeshDef);
 }
 
 void asset_load_procmesh(
@@ -564,7 +564,7 @@ void asset_load_procmesh(
   AssetMeshBuilder* builder = null;
   ProcMeshDef       def;
   DataReadResult    result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataProcMeshDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcMeshDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -606,11 +606,11 @@ Done:
   if (builder) {
     asset_mesh_builder_destroy(builder);
   }
-  data_destroy(g_dataReg, g_allocHeap, g_dataProcMeshDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetProcMeshDataDef, mem_var(def));
   asset_repo_source_close(src);
 }
 
 void asset_mesh_proc_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataProcMeshDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetProcMeshDataDef, schemaFlags);
 }

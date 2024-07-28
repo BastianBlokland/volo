@@ -14,7 +14,7 @@
 #define decal_default_thickness 0.25f
 #define decal_default_spacing 1.0f
 
-static DataMeta g_dataDecalDefMeta;
+static DataMeta g_assetDecalDataDef;
 
 typedef struct {
   AssetDecalMask* values;
@@ -144,7 +144,7 @@ void asset_data_init_decal(void) {
   data_reg_field_t(g_dataReg, DecalDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
   // clang-format on
 
-  g_dataDecalDefMeta = data_meta_t(t_DecalDef);
+  g_assetDecalDataDef = data_meta_t(t_DecalDef);
 }
 
 void asset_load_decal(
@@ -155,7 +155,7 @@ void asset_load_decal(
   String         errMsg;
   DataReadResult readRes;
   data_read_json(
-      g_dataReg, src->data, g_allocHeap, g_dataDecalDefMeta, mem_var(decalDef), &readRes);
+      g_dataReg, src->data, g_allocHeap, g_assetDecalDataDef, mem_var(decalDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -178,11 +178,11 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_dataDecalDefMeta, mem_var(decalDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDataDef, mem_var(decalDef));
   asset_repo_source_close(src);
 }
 
 void asset_decal_jsonschema_write(DynString* str) {
   const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataDecalDefMeta, schemaFlags);
+  data_jsonschema_write(g_dataReg, str, g_assetDecalDataDef, schemaFlags);
 }
