@@ -107,7 +107,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightPoint" },
-            "radiance": { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
+            "radiance": { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
             "radius": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "radiance", "radius" ]
@@ -117,7 +117,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightDir" },
-            "radiance": { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
+            "radiance": { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
             "shadows": { "title": "bool", "type": "boolean" },
             "coverage": { "title": "bool", "type": "boolean" }
           },

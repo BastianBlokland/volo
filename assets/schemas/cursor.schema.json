@@ -12,7 +12,7 @@
         "scale": { "title": "f32", "type": "number" },
         "color": {
           "anyOf": [
-            { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
+            { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
             { "const": null, "title": "GeoColor" }
           ]
         }

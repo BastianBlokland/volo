@@ -90,7 +90,7 @@
         "atlasEntry": { "title": "String", "type": "string", "minLength": 1 },
         "color": {
           "anyOf": [
-            { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
+            { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
             { "const": null, "title": "GeoColor" }
           ]
         },
@@ -148,7 +148,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "radiance": { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
+        "radiance": { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
         "fadeInTime": { "title": "f32", "type": "number" },
         "fadeOutTime": { "title": "f32", "type": "number" },
         "radius": { "title": "f32", "type": "number" },
