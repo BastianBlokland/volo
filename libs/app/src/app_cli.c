@@ -3,14 +3,17 @@
 #include "core_diag_except.h"
 #include "core_file.h"
 #include "core_init.h"
+#include "data_init.h"
 #include "log_init.h"
 
 int SYS_DECL main(const int argc, const char** argv) {
   core_init();
-  log_init();
 
   jmp_buf exceptAnchor;
   diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
+
+  log_init();
+  data_init();
 
   int exitCode = 0;
 
@@ -30,9 +33,11 @@ exit:
   cli_parse_destroy(invoc);
   cli_app_destroy(app);
 
+  data_teardown();
+  log_teardown();
+
   diag_except_disable();
 
-  log_teardown();
   core_teardown();
   return exitCode;
 }
