@@ -99,6 +99,8 @@ void data_reg_destroy(DataReg* reg) {
   alloc_free_t(reg->alloc, reg);
 }
 
+u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
+
 String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
 
 StringHash data_name_hash(const DataReg* reg, const DataType type) {
@@ -256,8 +258,6 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
       .value = value,
   };
 }
-
-u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
 DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
 

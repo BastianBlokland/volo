@@ -6,6 +6,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
+#include "data_registry.h"
 #include "debug_stats.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
@@ -515,6 +516,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
     stats_draw_val_entry(canvas, string_lit("Handles"), fmt_write_scratch("file: {<2} dynlib: {}", fmt_int(statsGlobal->fileCount), fmt_int(statsGlobal->dynlibCount)));
     stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
+    stats_draw_val_entry(canvas, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
     const TimeDuration maxFlushTime = (TimeDuration)(debug_plot_max(&statsGlobal->ecsFlushDurUs) * (f64)time_microsecond);
