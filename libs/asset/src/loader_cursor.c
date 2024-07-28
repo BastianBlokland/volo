@@ -12,7 +12,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_assetCursorDataDef;
+DataMeta g_assetCursorDataDef;
 
 typedef struct {
   f32 r, g, b, a;

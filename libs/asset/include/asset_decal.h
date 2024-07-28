@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "data_registry.h"
 #include "ecs_module.h"
 
 // Forward declare from 'core_dynstring.h'.
@@ -46,5 +47,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              scaleMin, scaleMax;
   f32              fadeInTimeInv, fadeOutTimeInv; // 1.0f / timeInSeconds.
 };
+
+extern DataMeta g_assetDecalDataDef;
 
 void asset_decal_jsonschema_write(DynString*);

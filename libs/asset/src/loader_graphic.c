@@ -11,7 +11,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_assetGraphicDataDef;
+DataMeta g_assetGraphicDataDef;
 
 ecs_comp_define_public(AssetGraphicComp);
 ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };

@@ -15,7 +15,7 @@
 
 #include "repo_internal.h"
 
-static DataMeta g_assetProductDataDef;
+DataMeta g_assetProductDataDef;
 
 typedef struct {
   String assetId;

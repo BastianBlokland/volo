@@ -26,7 +26,7 @@
 #define fonttex_max_size (1024 * 16)
 #define fonttex_max_fonts 100
 
-static DataMeta g_assetFontTexDataDef;
+DataMeta g_assetFontTexDataDef;
 
 typedef enum {
   FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.

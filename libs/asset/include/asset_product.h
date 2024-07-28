@@ -1,5 +1,6 @@
 #pragma once
 #include "core_unicode.h"
+#include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
@@ -59,6 +60,8 @@ ecs_comp_extern_public(AssetProductMapComp) {
   AssetProduct*    products;
   usize            productCount;
 };
+
+extern DataMeta g_assetProductDataDef;
 
 /**
  * Lookup a product-set by the hash of its name.

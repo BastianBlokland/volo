@@ -14,7 +14,7 @@
 #define decal_default_thickness 0.25f
 #define decal_default_spacing 1.0f
 
-static DataMeta g_assetDecalDataDef;
+DataMeta g_assetDecalDataDef;
 
 typedef struct {
   AssetDecalMask* values;

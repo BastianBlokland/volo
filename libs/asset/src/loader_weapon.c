@@ -15,7 +15,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_assetWeaponDataDef;
+DataMeta g_assetWeaponDataDef;
 
 typedef struct {
   u32*  values;

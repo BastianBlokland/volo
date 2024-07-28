@@ -20,7 +20,7 @@
 
 #define proctex_max_size (1024 * 16)
 
-static DataMeta g_assetProcTexDataDef;
+DataMeta g_assetProcTexDataDef;
 
 typedef enum {
   ProcTexChannels_One  = 1,

@@ -19,7 +19,7 @@
 
 #define procmesh_max_subdivisions 400
 
-static DataMeta g_assetProcMeshDataDef;
+DataMeta g_assetProcMeshDataDef;
 
 typedef enum {
   ProcMeshAxis_Up,

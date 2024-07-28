@@ -11,7 +11,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataMeta g_assetInputMapDataDef;
+DataMeta g_assetInputMapDataDef;
 
 typedef struct {
   u32*  values;

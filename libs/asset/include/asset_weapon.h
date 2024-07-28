@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
@@ -98,6 +99,8 @@ ecs_comp_extern_public(AssetWeaponMapComp) {
   AssetWeaponEffect* effects;
   usize              effectCount;
 };
+
+extern DataMeta g_assetWeaponDataDef;
 
 /**
  * Lookup weapon statistics.

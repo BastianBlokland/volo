@@ -17,7 +17,7 @@
 
 #define trait_movement_weight_min 0.1f
 
-static DataMeta g_assetPrefabMapDataDef;
+DataMeta g_assetPrefabMapDataDef;
 
 static struct {
   String           setName;

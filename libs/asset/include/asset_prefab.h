@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_color.h"
@@ -273,6 +274,8 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
   AssetPrefabValue* values;
   usize             valueCount;
 };
+
+extern DataMeta g_assetPrefabMapDataDef;
 
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);

@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 
 // Forward declare from 'core_dynstring.h'.
@@ -35,6 +36,8 @@ ecs_comp_extern_public(AssetInputMapComp) {
   AssetInputBinding* bindings;
   usize              bindingCount;
 };
+
+extern DataMeta g_assetInputMapDataDef;
 
 /**
  * Lookup an input action by the hash of its name.

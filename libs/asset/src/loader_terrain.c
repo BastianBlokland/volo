@@ -12,7 +12,7 @@
 #define terrain_max_size 1500
 #define terrain_max_height 50.0f
 
-static DataMeta g_assetTerrainDataDef;
+DataMeta g_assetTerrainDataDef;
 
 ecs_comp_define_public(AssetTerrainComp);
 ecs_comp_define(AssetTerrainLoadComp) { AssetSource* src; };

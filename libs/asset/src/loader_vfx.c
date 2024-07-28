@@ -15,7 +15,7 @@
 
 #define vfx_max_time time_days(9999)
 
-static DataMeta g_assetVfxDataDef;
+DataMeta g_assetVfxDataDef;
 
 typedef struct {
   f32 x, y;

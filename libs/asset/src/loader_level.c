@@ -8,7 +8,7 @@
 
 #include "repo_internal.h"
 
-static DataMeta g_assetLevelDataDef;
+DataMeta g_assetLevelDataDef;
 
 ecs_comp_define_public(AssetLevelComp);
 

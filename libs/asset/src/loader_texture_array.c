@@ -31,7 +31,7 @@ static const GeoQuat g_cubeFaceRot[] = {
     {0, 1, 0, 0},                    // Forward to backward.
 };
 
-static DataMeta g_assetArrayTexDataDef;
+DataMeta g_assetArrayTexDataDef;
 
 typedef enum {
   ArrayTexType_Array,

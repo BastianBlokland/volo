@@ -19,7 +19,7 @@
 
 #define atlas_max_size (1024 * 16)
 
-static DataMeta g_assetAtlasDataDef;
+DataMeta g_assetAtlasDataDef;
 
 typedef struct {
   String name;

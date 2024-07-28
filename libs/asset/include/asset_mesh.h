@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_box.h"
 #include "geo_matrix.h"
@@ -68,5 +69,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   u32                  animCount;
   Mem                  animData; // 16 bit aligned and the size is always a multiple of 16.
 };
+
+extern DataMeta g_assetProcMeshDataDef;
 
 void asset_mesh_proc_jsonschema_write(DynString*);

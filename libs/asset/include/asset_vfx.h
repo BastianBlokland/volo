@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 #include "geo_quat.h"
@@ -94,5 +95,7 @@ ecs_comp_extern_public(AssetVfxComp) {
   u32              emitterCount;
   AssetVfxEmitter* emitters;
 };
+
+extern DataMeta g_assetVfxDataDef;
 
 void asset_vfx_jsonschema_write(DynString*);

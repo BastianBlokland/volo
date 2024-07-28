@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 
@@ -31,6 +32,10 @@ ecs_comp_extern_public(AssetTextureComp) {
   const void*        pixelData;
   u32                width, height, layers, srcMipLevels, maxMipLevels;
 };
+
+extern DataMeta g_assetArrayTexDataDef;
+extern DataMeta g_assetAtlasDataDef;
+extern DataMeta g_assetProcTexDataDef;
 
 String asset_texture_format_str(AssetTextureFormat);
 usize  asset_texture_format_channels(AssetTextureFormat);

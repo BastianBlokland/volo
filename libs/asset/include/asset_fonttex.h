@@ -1,5 +1,6 @@
 #pragma once
 #include "core_unicode.h"
+#include "data_registry.h"
 #include "ecs_module.h"
 
 // Forward declare from 'core_dynstring.h'.
@@ -33,6 +34,8 @@ ecs_comp_extern_public(AssetFontTexComp) {
   AssetFontTexChar* characters; // Sorted on the unicode codepoint.
   usize             characterCount;
 };
+
+extern DataMeta g_assetFontTexDataDef;
 
 /**
  * Get a character based on a unicode codepoint.
