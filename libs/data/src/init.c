@@ -2,6 +2,8 @@
 #include "core_thread.h"
 #include "data_init.h"
 
+#include "registry_internal.h"
+
 static bool g_initalized;
 
 void data_init(void) {
@@ -10,7 +12,7 @@ void data_init(void) {
   if (!g_initalized) {
     g_initalized = true;
 
-    // TODO: Init.
+    data_reg_global_init();
   }
 }
 
@@ -20,6 +22,6 @@ void data_teardown(void) {
   if (g_initalized) {
     g_initalized = false;
 
-    // TODO: Teardown.
+    data_reg_global_teardown();
   }
 }

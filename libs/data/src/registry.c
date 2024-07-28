@@ -38,11 +38,15 @@ static DataType data_type_declare(DataReg* reg, const String name) {
   return data_type_alloc(reg, name);
 }
 
+void data_reg_global_init(void) {}
+
+void data_reg_global_teardown(void) {}
+
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \

@@ -51,6 +51,9 @@ typedef struct {
   };
 } DataDecl;
 
+void data_reg_global_init(void);
+void data_reg_global_teardown(void);
+
 /**
  * Retrieve the total number of registered types.
  */
