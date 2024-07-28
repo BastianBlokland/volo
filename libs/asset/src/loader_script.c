@@ -10,7 +10,7 @@
 
 #include "repo_internal.h"
 
-static ScriptBinder* g_assetScriptBinder;
+ScriptBinder* g_assetScriptBinder;
 
 static void bind(
     ScriptBinder*      binder,

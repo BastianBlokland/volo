@@ -4,6 +4,9 @@
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
+// Forward declare from 'script_binder.h'.
+typedef struct sScriptBinder ScriptBinder;
+
 // Forward declare from 'script_doc.h'.
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
@@ -16,5 +19,7 @@ ecs_comp_extern_public(AssetScriptComp) {
   const ScriptDoc* doc;
   ScriptExpr       expr;
 };
+
+extern ScriptBinder* g_assetScriptBinder;
 
 void asset_script_binder_write(DynString* str);
