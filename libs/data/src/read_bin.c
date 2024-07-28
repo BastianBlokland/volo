@@ -134,6 +134,11 @@ static void data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
     *res = result_fail(DataReadError_Malformed, "Input mismatched type hash");
     return;
   }
+  TimeReal timestamp;
+  if (!bin_pop_u64(ctx, (u64*)&timestamp)) {
+    *res = result_fail_truncated();
+    return;
+  }
   *res = result_success();
 }
 

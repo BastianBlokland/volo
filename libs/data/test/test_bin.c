@@ -7,7 +7,7 @@ static void test_bin_roundtrip(
     CheckTestContext* _testCtx, const DataReg* reg, const DataMeta meta, const Mem data) {
   Mem       writeBuffer = mem_stack(usize_kibibyte * 16);
   DynString writeStr    = dynstring_create_over(writeBuffer);
-  data_write_bin(reg, &writeStr, meta, data);
+  data_write_bin(reg, &writeStr, meta, data, 0);
 
   const String writeResult = dynstring_view(&writeStr);
 
