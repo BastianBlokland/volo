@@ -4,6 +4,7 @@
 typedef enum {
   DataReadError_None,
   DataReadError_Malformed,
+  DataReadError_Incompatible,
   DataReadError_MismatchedType,
   DataReadError_InvalidEnumEntry,
   DataReadError_FieldNotFound,
