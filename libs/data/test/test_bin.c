@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_time.h"
 #include "data.h"
 
 static void test_bin_roundtrip(
@@ -278,6 +279,28 @@ spec(bin) {
         .data_int = 42,
     };
     test_bin_roundtrip(_testCtx, reg, data_meta_t(t_WriteJsonUnion), mem_var(val));
+  }
+
+  it("can read the binary header") {
+    const DataMeta meta = data_meta_t(data_prim_t(bool));
+
+    const bool     val       = true;
+    const TimeReal timestamp = time_real_clock();
+
+    Mem       writeBuffer = mem_stack(usize_kibibyte * 16);
+    DynString writeStr    = dynstring_create_over(writeBuffer);
+    data_write_bin(reg, &writeStr, meta, mem_var(val), timestamp);
+
+    DataBinHeader  header;
+    DataReadResult headerRes;
+    const String   data = data_read_bin_header(dynstring_view(&writeStr), &header, &headerRes);
+
+    check_eq_int(data.size, sizeof(bool));
+
+    check_require(!headerRes.error);
+    check_eq_int(header.typeNameHash, data_name_hash(reg, meta.type));
+    check_eq_int(header.typeFormatHash, data_hash(reg, meta, DataHashFlags_ExcludeIds));
+    check_eq_int(header.timestamp, timestamp);
   }
 
   teardown() { data_reg_destroy(reg); }
