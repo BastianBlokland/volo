@@ -1,19 +1,5 @@
 #include "app_cli.h"
-#include "asset_atlas.h"
-#include "asset_cursor.h"
-#include "asset_decal.h"
-#include "asset_fonttex.h"
-#include "asset_graphic.h"
-#include "asset_inputmap.h"
-#include "asset_level.h"
-#include "asset_mesh.h"
-#include "asset_prefab.h"
-#include "asset_product.h"
-#include "asset_script.h"
-#include "asset_terrain.h"
-#include "asset_texture.h"
-#include "asset_vfx.h"
-#include "asset_weapon.h"
+#include "asset.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
@@ -101,6 +87,8 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  asset_data_init();
+
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
     return 0;
