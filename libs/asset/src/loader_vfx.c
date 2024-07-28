@@ -50,7 +50,7 @@ typedef struct {
 
 typedef struct {
   String         atlasEntry;
-  AssetColor*    color;
+  GeoColor*      color;
   AssetVfxBlend  blend;
   AssetVfxFacing facing;
   u16            flipbookCount;
@@ -62,10 +62,10 @@ typedef struct {
 } VfxSpriteDef;
 
 typedef struct {
-  AssetColor radiance;
-  f32        fadeInTime, fadeOutTime;
-  f32        radius;
-  f32        turbulenceFrequency;
+  GeoColor radiance;
+  f32      fadeInTime, fadeOutTime;
+  f32      radius;
+  f32      turbulenceFrequency;
 } VfxLightDef;
 
 typedef struct {
@@ -140,10 +140,6 @@ static GeoQuat vfx_build_rot(const VfxRotDef* def) {
   return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
 }
 
-static GeoColor vfx_build_color(const AssetColor* def) {
-  return geo_color(def->r, def->g, def->b, def->a);
-}
-
 static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
   return (AssetVfxCone){
       .angle    = def->angle * math_deg_to_rad,
@@ -181,7 +177,7 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
     return; // Sprites are optional.
   }
   out->atlasEntry      = string_hash(def->atlasEntry);
-  out->color           = def->color ? vfx_build_color(def->color) : geo_color_white;
+  out->color           = def->color ? *def->color : geo_color_white;
   out->blend           = def->blend;
   out->facing          = def->facing;
   out->flipbookCount   = math_max(1, def->flipbookCount);
@@ -202,7 +198,7 @@ static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
     *out = (AssetVfxLight){0};
     return; // Lights are optional.
   }
-  out->radiance            = vfx_build_color(&def->radiance);
+  out->radiance            = def->radiance;
   out->fadeInTimeInv       = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;
   out->fadeOutTimeInv      = (def->fadeOutTime > f32_epsilon) ? (1.0f / def->fadeOutTime) : f32_max;
   out->radius              = def->radius > f32_epsilon ? def->radius : 10.0f;
@@ -323,7 +319,7 @@ void asset_data_init_vfx(void) {
 
   data_reg_struct_t(g_dataReg, VfxSpriteDef);
   data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
@@ -339,7 +335,7 @@ void asset_data_init_vfx(void) {
   data_reg_comment_t(g_dataReg, VfxSpriteDef, "Optional sprite to render for each particle.");
 
   data_reg_struct_t(g_dataReg, VfxLightDef);
-  data_reg_field_t(g_dataReg, VfxLightDef, radiance, g_assetColorType, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxLightDef, radiance, g_assetGeoColorType, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);

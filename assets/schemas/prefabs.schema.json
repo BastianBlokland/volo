@@ -107,7 +107,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightPoint" },
-            "radiance": { "title": "AssetColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/AssetColor" },
+            "radiance": { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
             "radius": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "radiance", "radius" ]
@@ -117,7 +117,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightDir" },
-            "radiance": { "title": "AssetColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/AssetColor" },
+            "radiance": { "title": "GeoColor", "description": "HDR Color definition (components default to 0)", "$ref": "#/$defs/GeoColor" },
             "shadows": { "title": "bool", "type": "boolean" },
             "coverage": { "title": "bool", "type": "boolean" }
           },
@@ -307,8 +307,8 @@
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"assetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"assetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}" },
-        { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  },\n  \"radius\": 1\n}" },
-        { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {\n    \"r\": 0,\n    \"g\": 0,\n    \"b\": 0,\n    \"a\": 0\n  }\n}" },
+        { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {},\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {}\n}" },
         { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },
         { "label": "New AssetPrefabTrait_Lifetime", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Lifetime\",\n  \"duration\": 1\n}" },
         { "label": "New AssetPrefabTrait_Movement", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1,\n  \"weight\": 1\n}" },
@@ -325,7 +325,7 @@
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
     },
-    "AssetColor": {
+    "GeoColor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -334,9 +334,9 @@
         "b": { "title": "f32", "type": "number" },
         "a": { "title": "f32", "type": "number" }
       },
-      "required": [ "r", "g", "b", "a" ],
+      "required": [],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" }
+        { "label": "New", "body": "^{}" }
       ]
     },
     "AssetPrefabNavLayer": {
@@ -440,14 +440,7 @@
             "b": { "title": "f32", "type": "number" },
             "a": { "title": "f32", "type": "number" }
           },
-          "required": [
-            "$type",
-            "$name",
-            "r",
-            "g",
-            "b",
-            "a"
-          ]
+          "required": [ "$type", "$name" ]
         },
         {
           "type": "object",
@@ -485,7 +478,7 @@
         { "label": "New AssetPrefabValue_Number", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Number\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
         { "label": "New AssetPrefabValue_Bool", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
         { "label": "New AssetPrefabValue_Vector3", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\",\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}" },
+        { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPrefabValue_String", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
         { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
         { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}" }

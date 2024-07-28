@@ -89,7 +89,7 @@ typedef struct {
     f64                      data_number;
     bool                     data_bool;
     AssetPrefabVec3Def       data_vector3;
-    AssetColor               data_color;
+    GeoColor                 data_color;
     String                   data_string;
     String                   data_asset;
     AssetPrefabValueSoundDef data_sound;
@@ -131,13 +131,13 @@ typedef struct {
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
-  AssetColor radiance;
-  f32        radius;
+  GeoColor radiance;
+  f32      radius;
 } AssetPrefabTraitLightPointDef;
 
 typedef struct {
-  AssetColor radiance;
-  bool       shadows, coverage;
+  GeoColor radiance;
+  bool     shadows, coverage;
 } AssetPrefabTraitLightDirDef;
 
 typedef struct {
@@ -311,10 +311,6 @@ static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
 
-static GeoColor prefab_build_color(const AssetColor* def) {
-  return geo_color(def->r, def->g, def->b, def->a);
-}
-
 static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   switch (def->type) {
   case AssetPrefabShape_Sphere:
@@ -362,7 +358,7 @@ static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValue
     break;
   case AssetPrefabValue_Color:
     res.type       = AssetPrefabValue_Color;
-    res.data_color = prefab_build_color(&def->data_color);
+    res.data_color = def->data_color;
     break;
   case AssetPrefabValue_String:
     res.type        = AssetPrefabValue_String;
@@ -477,13 +473,13 @@ static void prefab_build(
     }
     case AssetPrefabTrait_LightPoint:
       outTrait->data_lightPoint = (AssetPrefabTraitLightPoint){
-          .radiance = prefab_build_color(&traitDef->data_lightPoint.radiance),
+          .radiance = traitDef->data_lightPoint.radiance,
           .radius   = math_max(0.01f, traitDef->data_lightPoint.radius),
       };
       break;
     case AssetPrefabTrait_LightDir:
       outTrait->data_lightDir = (AssetPrefabTraitLightDir){
-          .radiance = prefab_build_color(&traitDef->data_lightDir.radiance),
+          .radiance = traitDef->data_lightDir.radiance,
           .shadows  = traitDef->data_lightDir.shadows,
           .coverage = traitDef->data_lightDir.coverage,
       };
@@ -843,7 +839,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, t_AssetPrefabVec3Def);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetColorType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
@@ -873,11 +869,11 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPointDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radiance, g_assetColorType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightDirDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, radiance, g_assetColorType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, shadows, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, coverage, data_prim_t(bool), .flags = DataFlags_Opt);
 

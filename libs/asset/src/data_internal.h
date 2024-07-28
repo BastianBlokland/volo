@@ -18,8 +18,4 @@ void asset_data_init_terrain(void);
 void asset_data_init_vfx(void);
 void asset_data_init_weapon(void);
 
-typedef struct {
-  f32 r, g, b, a;
-} AssetColor;
-
-extern DataType g_assetColorType;
+extern DataType g_assetGeoColorType;

@@ -15,10 +15,10 @@
 DataMeta g_assetCursorDataDef;
 
 typedef struct {
-  String      texture;
-  u32         hotspotX, hotspotY;
-  f32         scale;
-  AssetColor* color;
+  String    texture;
+  u32       hotspotX, hotspotY;
+  f32       scale;
+  GeoColor* color;
 } CursorDef;
 
 typedef enum {
@@ -70,10 +70,6 @@ static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
   };
 }
 
-static GeoColor asset_cursor_color(const AssetColor* def) {
-  return geo_color(def->r, def->g, def->b, def->a);
-}
-
 static void asset_cursor_generate(
     const CursorDef* def, const AssetTextureComp* texture, AssetCursorComp* outCursor) {
 
@@ -88,7 +84,7 @@ static void asset_cursor_generate(
   const bool scaled  = outWidth != texture->width || outHeight != texture->height;
   const bool colored = def->color != null;
   if (scaled || colored || !(texture->flags & AssetTextureFlags_Srgb)) {
-    const GeoColor    colorMul     = def->color ? asset_cursor_color(def->color) : geo_color_white;
+    const GeoColor    colorMul     = def->color ? *def->color : geo_color_white;
     const f32         outWidthInv  = 1.0f / (f32)outWidth;
     const f32         outHeightInv = 1.0f / (f32)outHeight;
     AssetCursorPixel* outPixels    = pixelMem.ptr;
@@ -249,7 +245,7 @@ void asset_data_init_cursor(void) {
   data_reg_field_t(g_dataReg, CursorDef, hotspotX, data_prim_t(u32));
   data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
   data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-  data_reg_field_t(g_dataReg, CursorDef, color, g_assetColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, CursorDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
   g_assetCursorDataDef = data_meta_t(t_CursorDef);

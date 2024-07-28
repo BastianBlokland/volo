@@ -1,19 +1,20 @@
 #include "core_thread.h"
 #include "core_types.h"
+#include "geo_color.h"
 
 #include "data_internal.h"
 
-DataType g_assetColorType;
+DataType g_assetGeoColorType;
 
 static void asset_data_init_types() {
-  data_reg_struct_t(g_dataReg, AssetColor);
-  data_reg_field_t(g_dataReg, AssetColor, r, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetColor, g, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetColor, b, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetColor, a, data_prim_t(f32));
-  data_reg_comment_t(g_dataReg, AssetColor, "HDR Color definition (components default to 0)");
+  data_reg_struct_t(g_dataReg, GeoColor);
+  data_reg_field_t(g_dataReg, GeoColor, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor, a, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor, "HDR Color definition (components default to 0)");
 
-  g_assetColorType = t_AssetColor;
+  g_assetGeoColorType = t_GeoColor;
 }
 
 void asset_data_init(void) {
