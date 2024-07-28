@@ -1,13 +1,16 @@
+#include "core_thread.h"
 #include "core_types.h"
 
 #include "data_internal.h"
 
-static bool g_initalized;
-
 void asset_data_init(void) {
-  if (!g_initalized) {
-    g_initalized = true;
-
+  static bool           g_init;
+  static ThreadSpinLock g_initLock;
+  if (g_init) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_init) {
     asset_data_init_arraytex();
     asset_data_init_atlas();
     asset_data_init_cursor();
@@ -24,5 +27,8 @@ void asset_data_init(void) {
     asset_data_init_terrain();
     asset_data_init_vfx();
     asset_data_init_weapon();
+
+    g_init = true;
   }
+  thread_spinlock_unlock(&g_initLock);
 }

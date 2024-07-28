@@ -610,7 +610,6 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   debug_log_tracker_init(world, g_logger);
-  asset_data_init();
 
   const String assetPath = cli_read_string(invoc, g_optAssets, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {
