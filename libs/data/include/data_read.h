@@ -1,9 +1,13 @@
 #pragma once
 #include "data_registry.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeReal;
+
 typedef enum {
   DataReadError_None,
   DataReadError_Malformed,
+  DataReadError_Incompatible,
   DataReadError_MismatchedType,
   DataReadError_InvalidEnumEntry,
   DataReadError_FieldNotFound,
@@ -63,3 +67,20 @@ String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, Da
  * Pre-condition: res != null.
  */
 String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);
+
+typedef struct {
+  u32      typeNameHash;   // Hash of the type's name.
+  u32      typeFormatHash; // Deep hash of the type's format ('data_hash()').
+  TimeReal timestamp;
+} DataBinHeader;
+
+/**
+ * Read the header from a binary blob.
+ *
+ * Returns the remaining input.
+ * The result is written to the out pointer.
+ *
+ * Pre-condition: out != null.
+ * Pre-condition: res != null.
+ */
+String data_read_bin_header(String, DataBinHeader* out, DataReadResult*);

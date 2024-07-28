@@ -110,7 +110,7 @@ static bool bin_pop_padding(ReadCtx* ctx) {
   return bin_pop_bytes(ctx, padding, &paddingMem);
 }
 
-static void data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
+static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, DataReadResult* res) {
   Mem inMagic;
   if (!bin_pop_bytes(ctx, g_dataBinMagic.size, &inMagic) || !mem_eq(inMagic, g_dataBinMagic)) {
     *res = result_fail(DataReadError_Malformed, "Input mismatched magic");
@@ -119,22 +119,23 @@ static void data_read_bin_header(ReadCtx* ctx, DataReadResult* res) {
   u32 inFormatVersion = 0;
   if (!bin_pop_u32(ctx, &inFormatVersion) || inFormatVersion != g_dataBinVersion) {
     *res = result_fail(
-        DataReadError_Malformed, "Input format {} is unsupported", fmt_int(inFormatVersion));
+        DataReadError_Incompatible, "Input format {} is unsupported", fmt_int(inFormatVersion));
     return;
   }
-  const u32 typeNameHash   = data_name_hash(ctx->reg, ctx->meta.type);
-  u32       inTypeNameHash = 0;
-  if (!bin_pop_u32(ctx, &inTypeNameHash) || inTypeNameHash != typeNameHash) {
-    *res = result_fail(DataReadError_Malformed, "Input mismatched type");
+  if (!bin_pop_u32(ctx, &out->typeNameHash)) {
+    *res = result_fail_truncated();
     return;
   }
-  const u32 typeHash   = data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds);
-  u32       intypeHash = 0;
-  if (!bin_pop_u32(ctx, &intypeHash) || intypeHash != typeHash) {
-    *res = result_fail(DataReadError_Malformed, "Input mismatched type hash");
+  if (!bin_pop_u32(ctx, &out->typeFormatHash)) {
+    *res = result_fail_truncated();
+    return;
+  }
+  if (!bin_pop_u64(ctx, (u64*)&out->timestamp)) { // NOTE: assumes 2's complement integers.
+    *res = result_fail_truncated();
     return;
   }
   *res = result_success();
+  return;
 }
 
 static void data_read_bin_val(ReadCtx*, DataReadResult*);
@@ -500,8 +501,17 @@ String data_read_bin(
       .meta        = meta,
       .data        = data,
   };
-  data_read_bin_header(&ctx, res);
-  if (res->error) {
+  DataBinHeader header;
+  data_read_bin_header_internal(&ctx, &header, res);
+  if (UNLIKELY(res->error)) {
+    goto Ret;
+  }
+  if (UNLIKELY(header.typeNameHash != data_name_hash(reg, meta.type))) {
+    *res = result_fail(DataReadError_Incompatible, "Input mismatched type name");
+    goto Ret;
+  }
+  if (UNLIKELY(header.typeFormatHash != data_hash(reg, meta, DataHashFlags_ExcludeIds))) {
+    *res = result_fail(DataReadError_Incompatible, "Input mismatched type hash");
     goto Ret;
   }
   data_read_bin_val(&ctx, res);
@@ -516,5 +526,13 @@ Ret:
     mem_set(data, 0);
   }
   dynarray_destroy(&allocations);
+  return ctx.input;
+}
+
+String data_read_bin_header(const String input, DataBinHeader* out, DataReadResult* res) {
+  ReadCtx ctx = {
+      .input = input,
+  };
+  data_read_bin_header_internal(&ctx, out, res);
   return ctx.input;
 }
