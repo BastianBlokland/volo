@@ -6,9 +6,6 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 #define asset_vfx_max_emitters 5
 
 typedef enum {
@@ -97,5 +94,3 @@ ecs_comp_extern_public(AssetVfxComp) {
 };
 
 extern DataMeta g_assetVfxDataDef;
-
-void asset_vfx_jsonschema_write(DynString*);

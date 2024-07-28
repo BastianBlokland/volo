@@ -8,7 +8,6 @@
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -579,9 +578,4 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
       AssetWeapon,
       asset_weapon_compare,
       mem_struct(AssetWeapon, .nameHash = nameHash).ptr);
-}
-
-void asset_weapon_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetWeaponDataDef, schemaFlags);
 }

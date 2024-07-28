@@ -3,9 +3,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 typedef enum {
   AssetGraphicTopology_Triangles,     // Separate triangles with 3 vertices.
   AssetGraphicTopology_TriangleStrip, // Form a strip of triangles (triangle connected to the last.
@@ -137,5 +134,3 @@ ecs_comp_extern_public(AssetGraphicComp) {
 };
 
 extern DataMeta g_assetGraphicDataDef;
-
-void asset_graphic_jsonschema_write(DynString*);

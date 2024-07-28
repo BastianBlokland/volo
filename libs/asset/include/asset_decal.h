@@ -3,9 +3,6 @@
 #include "data_registry.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 typedef enum {
   AssetDecalAxis_LocalY,
   AssetDecalAxis_LocalZ,
@@ -49,5 +46,3 @@ ecs_comp_extern_public(AssetDecalComp) {
 };
 
 extern DataMeta g_assetDecalDataDef;
-
-void asset_decal_jsonschema_write(DynString*);

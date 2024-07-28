@@ -10,7 +10,6 @@
 #include "core_sort.h"
 #include "core_utf8.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -505,9 +504,4 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
   }
   // Return the 'missing' character, is guaranteed to exist.
   return &comp->characters[0];
-}
-
-void asset_fonttex_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetFontTexDataDef, schemaFlags);
 }

@@ -7,7 +7,6 @@
 #include "core_noise.h"
 #include "core_rng.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
 #include "log_logger.h"
@@ -404,9 +403,4 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_assetProcTexDataDef, mem_var(def));
   asset_repo_source_close(src);
-}
-
-void asset_texture_proc_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetProcTexDataDef, schemaFlags);
 }

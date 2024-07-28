@@ -9,7 +9,6 @@
 #include "core_sort.h"
 #include "data.h"
 #include "data_registry.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -423,9 +422,4 @@ const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const Str
       AssetAtlasEntry,
       atlas_compare_entry,
       &target);
-}
-
-void asset_atlas_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetAtlasDataDef, schemaFlags);
 }

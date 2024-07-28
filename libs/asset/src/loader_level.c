@@ -2,7 +2,6 @@
 #include "core_alloc.h"
 #include "core_path.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -128,9 +127,4 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
   dynstring_destroy(&dataBuffer);
   return res;
-}
-
-void asset_level_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetLevelDataDef, schemaFlags);
 }

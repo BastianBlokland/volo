@@ -5,7 +5,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -288,9 +287,4 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
-}
-
-void asset_cursor_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetCursorDataDef, schemaFlags);
 }

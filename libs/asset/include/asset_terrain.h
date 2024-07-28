@@ -3,9 +3,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 /**
  * NOTE: Colors are srgb encoded.
  */
@@ -25,5 +22,3 @@ ecs_comp_extern_public(AssetTerrainComp) {
 };
 
 extern DataMeta g_assetTerrainDataDef;
-
-void asset_terrain_jsonschema_write(DynString*);

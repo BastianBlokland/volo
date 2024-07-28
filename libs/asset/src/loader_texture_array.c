@@ -5,7 +5,6 @@
 #include "core_math.h"
 #include "data.h"
 #include "data_registry.h"
-#include "data_schema.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -715,9 +714,4 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_assetArrayTexDataDef, mem_var(def));
   asset_repo_source_close(src);
-}
-
-void asset_texture_array_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetArrayTexDataDef, schemaFlags);
 }

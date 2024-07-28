@@ -3,7 +3,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -228,9 +227,4 @@ void asset_load_graphic(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
-}
-
-void asset_graphic_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetGraphicDataDef, schemaFlags);
 }

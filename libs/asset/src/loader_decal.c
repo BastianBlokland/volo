@@ -4,7 +4,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -180,9 +179,4 @@ Error:
 Cleanup:
   data_destroy(g_dataReg, g_allocHeap, g_assetDecalDataDef, mem_var(decalDef));
   asset_repo_source_close(src);
-}
-
-void asset_decal_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetDecalDataDef, schemaFlags);
 }

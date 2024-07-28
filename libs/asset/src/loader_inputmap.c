@@ -4,7 +4,6 @@
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -338,9 +337,4 @@ asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash)
       AssetInputAction,
       asset_inputmap_compare_action,
       mem_struct(AssetInputAction, .nameHash = nameHash).ptr);
-}
-
-void asset_inputmap_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetInputMapDataDef, schemaFlags);
 }

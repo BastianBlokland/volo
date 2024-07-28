@@ -6,7 +6,6 @@
 #include "core_math.h"
 #include "core_time.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -408,9 +407,4 @@ Error:
 Cleanup:
   data_destroy(g_dataReg, g_allocHeap, g_assetVfxDataDef, mem_var(vfxDef));
   asset_repo_source_close(src);
-}
-
-void asset_vfx_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetVfxDataDef, schemaFlags);
 }

@@ -1,7 +1,6 @@
 #include "asset_terrain.h"
 #include "core_alloc.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -176,9 +175,4 @@ void asset_load_terrain(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetTerrainLoadComp, .src = src);
-}
-
-void asset_terrain_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetTerrainDataDef, schemaFlags);
 }

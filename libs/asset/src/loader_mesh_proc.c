@@ -5,7 +5,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "log_logger.h"
@@ -608,9 +607,4 @@ Done:
   }
   data_destroy(g_dataReg, g_allocHeap, g_assetProcMeshDataDef, mem_var(def));
   asset_repo_source_close(src);
-}
-
-void asset_mesh_proc_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetProcMeshDataDef, schemaFlags);
 }

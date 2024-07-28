@@ -4,9 +4,6 @@
 #include "geo_box.h"
 #include "geo_matrix.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 #define asset_mesh_vertices_max u16_max
 #define asset_mesh_joints_max 75
 ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
@@ -71,5 +68,3 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
 };
 
 extern DataMeta g_assetProcMeshDataDef;
-
-void asset_mesh_proc_jsonschema_write(DynString*);

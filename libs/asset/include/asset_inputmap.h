@@ -2,9 +2,6 @@
 #include "data_registry.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 /**
  * Input Map.
  * Maps actions (eg 'Jump") to a collection of bindings (eg press 'Space' or hold 'Up').
@@ -43,5 +40,3 @@ extern DataMeta g_assetInputMapDataDef;
  * Lookup an input action by the hash of its name.
  */
 const AssetInputAction* asset_inputmap_get(const AssetInputMapComp*, StringHash nameHash);
-
-void asset_inputmap_jsonschema_write(DynString*);

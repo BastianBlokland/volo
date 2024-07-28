@@ -8,7 +8,6 @@
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -1032,9 +1031,4 @@ const AssetPrefabTrait* asset_prefab_trait_get(
     }
   }
   return null;
-}
-
-void asset_prefab_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetPrefabMapDataDef, schemaFlags);
 }

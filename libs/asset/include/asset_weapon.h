@@ -4,9 +4,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 /**
  * Weapon database.
  */
@@ -112,5 +109,3 @@ u8  asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon
  * Lookup a weapon by the hash of its name.
  */
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp*, StringHash nameHash);
-
-void asset_weapon_jsonschema_write(DynString*);

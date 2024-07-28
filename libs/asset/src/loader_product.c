@@ -9,7 +9,6 @@
 #include "core_time.h"
 #include "core_utf8.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
@@ -366,9 +365,4 @@ asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) 
       AssetProductSet,
       asset_productset_compare,
       mem_struct(AssetProductSet, .nameHash = nameHash).ptr);
-}
-
-void asset_product_jsonschema_write(DynString* str) {
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_assetProductDataDef, schemaFlags);
 }
