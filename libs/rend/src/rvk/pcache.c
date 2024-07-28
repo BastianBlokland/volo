@@ -6,9 +6,9 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
-#include "psocache_internal.h"
+#include "pcache_internal.h"
 
-#define rvk_psocache_size_max (32 * usize_mebibyte)
+#define rvk_pcache_size_max (32 * usize_mebibyte)
 
 /**
  * Pipeline cache header.
@@ -19,10 +19,10 @@ typedef struct {
   u32 vendorId;
   u32 deviceId;
   u8  cacheId[VK_UUID_SIZE];
-} RvkPsoCacheHeader;
+} RvkPCacheHeader;
 
-static String rvk_psocache_path_scratch(void) {
-  const String fileName = fmt_write_scratch("{}.psoc", fmt_text(path_stem(g_pathExecutable)));
+static String rvk_pcache_path_scratch(void) {
+  const String fileName = fmt_write_scratch("{}.vkc", fmt_text(path_stem(g_pathExecutable)));
   return path_build_scratch(path_parent(g_pathExecutable), fileName);
 }
 
@@ -37,7 +37,7 @@ static VkPipelineCache rvk_vkcache_create(RvkDevice* dev, String data) {
   return result;
 }
 
-static bool rvk_psocache_verify(RvkDevice* dev, const RvkPsoCacheHeader* header) {
+static bool rvk_pcache_verify(RvkDevice* dev, const RvkPCacheHeader* header) {
   if (header->vendorId != dev->vkProperties.vendorID) {
     return false;
   }
@@ -47,7 +47,7 @@ static bool rvk_psocache_verify(RvkDevice* dev, const RvkPsoCacheHeader* header)
   return mem_eq(mem_var(header->cacheId), mem_var(dev->vkProperties.pipelineCacheUUID));
 }
 
-static bool rvk_psocache_header_load(Mem input, RvkPsoCacheHeader* out) {
+static bool rvk_pcache_header_load(Mem input, RvkPCacheHeader* out) {
   const usize expectedHeaderSize = 16 + VK_UUID_SIZE;
   if (input.size < expectedHeaderSize) {
     return false;
@@ -68,32 +68,31 @@ static bool rvk_psocache_header_load(Mem input, RvkPsoCacheHeader* out) {
   return true;
 }
 
-VkPipelineCache rvk_psocache_load(RvkDevice* dev) {
-  const String path = rvk_psocache_path_scratch();
+VkPipelineCache rvk_pcache_load(RvkDevice* dev) {
+  const String path = rvk_pcache_path_scratch();
   String       data = string_empty;
   File*        file = null;
   if (file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file)) {
-    log_i("Vulkan pipeline cache created", log_param("path", fmt_path(path)));
     goto Done;
   }
   if (file_map(file, &data)) {
     log_w("Failed to map Vulkan pipeline cache", log_param("path", fmt_path(path)));
     goto Done;
   }
-  RvkPsoCacheHeader header;
-  if (!rvk_psocache_header_load(data, &header)) {
+  RvkPCacheHeader header;
+  if (!rvk_pcache_header_load(data, &header)) {
     log_w("Vulkan pipeline cache corrupt", log_param("path", fmt_path(path)));
     data = string_empty;
     goto Done;
   }
-  if (!rvk_psocache_verify(dev, &header)) {
+  if (!rvk_pcache_verify(dev, &header)) {
     log_w("Vulkan pipeline cache incompatible", log_param("path", fmt_path(path)));
     data = string_empty;
     goto Done;
   }
 
   log_i(
-      "Vulkan Pipeline cache loaded",
+      "Vulkan pipeline cache loaded",
       log_param("path", fmt_path(path)),
       log_param("size", fmt_size(data.size)),
       log_param("vendor", fmt_text(rvk_vendor_str(header.vendorId))),
@@ -108,15 +107,15 @@ Done:
   return result;
 }
 
-void rvk_psocache_save(RvkDevice* dev, VkPipelineCache vkCache) {
+void rvk_pcache_save(RvkDevice* dev, VkPipelineCache vkCache) {
   usize size;
   vkGetPipelineCacheData(dev->vkDev, vkCache, &size, null);
-  size = math_min(size, rvk_psocache_size_max); // Limit the maximum cache size.
+  size = math_min(size, rvk_pcache_size_max); // Limit the maximum cache size.
 
   const Mem buffer = alloc_alloc(g_allocHeap, size, 1);
   vkGetPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
 
-  const String     path = rvk_psocache_path_scratch();
+  const String     path = rvk_pcache_path_scratch();
   const FileResult res  = file_write_to_path_sync(path, mem_create(buffer.ptr, size));
 
   alloc_free(g_allocHeap, buffer);
