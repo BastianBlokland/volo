@@ -1,8 +1,6 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 typedef struct {
   u8 r, g, b, a; // Srgb encoded.
@@ -14,4 +12,4 @@ ecs_comp_extern_public(AssetCursorComp) {
   const AssetCursorPixel* pixels;
 };
 
-void asset_cursor_jsonschema_write(DynString*);
+extern DataMeta g_assetCursorDataDef;

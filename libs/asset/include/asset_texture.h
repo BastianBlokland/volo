@@ -1,9 +1,7 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_color.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 typedef enum {
   AssetTextureFormat_u8_r,
@@ -32,6 +30,10 @@ ecs_comp_extern_public(AssetTextureComp) {
   u32                width, height, layers, srcMipLevels, maxMipLevels;
 };
 
+extern DataMeta g_assetArrayTexDataDef;
+extern DataMeta g_assetAtlasDataDef;
+extern DataMeta g_assetProcTexDataDef;
+
 String asset_texture_format_str(AssetTextureFormat);
 usize  asset_texture_format_channels(AssetTextureFormat);
 
@@ -55,6 +57,3 @@ GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
  * NOTE: Always samples mip-level 0.
  */
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);
-
-void asset_texture_proc_jsonschema_write(DynString*);
-void asset_texture_array_jsonschema_write(DynString*);

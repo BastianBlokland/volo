@@ -1,12 +1,10 @@
 #pragma once
 #include "core_time.h"
+#include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 #include "geo_vector.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 /**
  * Prefab database.
@@ -274,11 +272,11 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
   usize             valueCount;
 };
 
+extern DataMeta g_assetPrefabMapDataDef;
+
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index_from_user(const AssetPrefabMapComp*, u16 userIndex);
 
 const AssetPrefabTrait*
 asset_prefab_trait_get(const AssetPrefabMapComp*, const AssetPrefab*, AssetPrefabTraitType);
-
-void asset_prefab_jsonschema_write(DynString*);

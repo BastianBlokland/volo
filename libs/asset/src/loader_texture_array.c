@@ -3,10 +3,8 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
-#include "data_schema.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -32,8 +30,7 @@ static const GeoQuat g_cubeFaceRot[] = {
     {0, 1, 0, 0},                    // Forward to backward.
 };
 
-static DataReg* g_dataReg;
-static DataMeta g_dataArrayTexDefMeta;
+DataMeta g_assetArrayTexDataDef;
 
 typedef enum {
   ArrayTexType_Array,
@@ -53,37 +50,6 @@ typedef struct {
   } textures;
 } ArrayTexDef;
 
-static void arraytex_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    data_reg_enum_t(reg, ArrayTexType);
-    data_reg_const_t(reg, ArrayTexType, Array);
-    data_reg_const_t(reg, ArrayTexType, Cube);
-    data_reg_const_t(reg, ArrayTexType, CubeDiffIrradiance);
-    data_reg_const_t(reg, ArrayTexType, CubeSpecIrradiance);
-
-    data_reg_struct_t(reg, ArrayTexDef);
-    data_reg_field_t(reg, ArrayTexDef, type, t_ArrayTexType);
-    data_reg_field_t(reg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
-    // clang-format on
-
-    g_dataArrayTexDefMeta = data_meta_t(t_ArrayTexDef);
-    g_dataReg             = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
-
 ecs_comp_define(AssetArrayLoadComp) {
   ArrayTexDef def;
   DynArray    textures; // EcsEntityId[].
@@ -91,7 +57,7 @@ ecs_comp_define(AssetArrayLoadComp) {
 
 static void ecs_destruct_arraytex_load_comp(void* data) {
   AssetArrayLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetArrayTexDataDef, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -669,8 +635,6 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
 }
 
 ecs_module_init(asset_arraytex_module) {
-  arraytex_datareg_init();
-
   ecs_register_comp(AssetArrayLoadComp, .destructor = ecs_destruct_arraytex_load_comp);
 
   ecs_register_view(ManagerView);
@@ -681,6 +645,26 @@ ecs_module_init(asset_arraytex_module) {
   ecs_register_system(ArrayTexLoadUpdateSys, ecs_view_id(LoadView), ecs_view_id(TextureView));
 }
 
+void asset_data_init_arraytex(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, ArrayTexType);
+  data_reg_const_t(g_dataReg, ArrayTexType, Array);
+  data_reg_const_t(g_dataReg, ArrayTexType, Cube);
+  data_reg_const_t(g_dataReg, ArrayTexType, CubeDiffIrradiance);
+  data_reg_const_t(g_dataReg, ArrayTexType, CubeSpecIrradiance);
+
+  data_reg_struct_t(g_dataReg, ArrayTexDef);
+  data_reg_field_t(g_dataReg, ArrayTexDef, type, t_ArrayTexType);
+  data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+  // clang-format on
+
+  g_assetArrayTexDataDef = data_meta_t(t_ArrayTexDef);
+}
+
 void asset_load_arraytex(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
@@ -688,7 +672,7 @@ void asset_load_arraytex(
   String         errMsg;
   ArrayTexDef    def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetArrayTexDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -728,13 +712,6 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataArrayTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetArrayTexDataDef, mem_var(def));
   asset_repo_source_close(src);
-}
-
-void asset_texture_array_jsonschema_write(DynString* str) {
-  arraytex_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataArrayTexDefMeta, schemaFlags);
 }

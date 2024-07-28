@@ -7,10 +7,8 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_sort.h"
-#include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -20,8 +18,7 @@
 
 #define atlas_max_size (1024 * 16)
 
-static DataReg* g_dataReg;
-static DataMeta g_dataAtlasDefMeta;
+DataMeta g_assetAtlasDataDef;
 
 typedef struct {
   String name;
@@ -36,35 +33,6 @@ typedef struct {
     usize          count;
   } entries;
 } AtlasDef;
-
-static void atlas_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    data_reg_struct_t(g_dataReg, AtlasEntryDef);
-    data_reg_field_t(g_dataReg, AtlasEntryDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AtlasEntryDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
-
-    data_reg_struct_t(g_dataReg, AtlasDef);
-    data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AtlasDef, entryPadding, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
-    // clang-format on
-
-    g_dataAtlasDefMeta = data_meta_t(t_AtlasDef);
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 ecs_comp_define_public(AssetAtlasComp);
 
@@ -81,7 +49,7 @@ static void ecs_destruct_atlas_comp(void* data) {
 
 static void ecs_destruct_atlas_load_comp(void* data) {
   AssetAtlasLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataAtlasDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDataDef, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -349,8 +317,6 @@ ecs_system_define(AtlasUnloadAssetSys) {
 }
 
 ecs_module_init(asset_atlas_module) {
-  atlas_datareg_init();
-
   ecs_register_comp(AssetAtlasComp, .destructor = ecs_destruct_atlas_comp);
   ecs_register_comp(AssetAtlasLoadComp, .destructor = ecs_destruct_atlas_load_comp);
 
@@ -365,12 +331,31 @@ ecs_module_init(asset_atlas_module) {
   ecs_register_system(AtlasUnloadAssetSys, ecs_view_id(AtlasUnloadView));
 }
 
+void asset_data_init_atlas(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, AtlasEntryDef);
+  data_reg_field_t(g_dataReg, AtlasEntryDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AtlasEntryDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, AtlasDef);
+  data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AtlasDef, entryPadding, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+  // clang-format on
+
+  g_assetAtlasDataDef = data_meta_t(t_AtlasDef);
+}
+
 void asset_load_atlas(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataAtlasDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetAtlasDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -425,7 +410,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataAtlasDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDataDef, mem_var(def));
   asset_repo_source_close(src);
 }
 
@@ -437,11 +422,4 @@ const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const Str
       AssetAtlasEntry,
       atlas_compare_entry,
       &target);
-}
-
-void asset_atlas_jsonschema_write(DynString* str) {
-  atlas_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataAtlasDefMeta, schemaFlags);
 }

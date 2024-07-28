@@ -4,17 +4,14 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_math.h"
-#include "core_thread.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataReg* g_dataReg;
-static DataMeta g_dataCursorDefMeta;
+DataMeta g_assetCursorDataDef;
 
 typedef struct {
   f32 r, g, b, a;
@@ -26,36 +23,6 @@ typedef struct {
   f32             scale;
   CursorColorDef* color;
 } CursorDef;
-
-static void cursor_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    data_reg_struct_t(reg, CursorColorDef);
-    data_reg_field_t(reg, CursorColorDef, r, data_prim_t(f32));
-    data_reg_field_t(reg, CursorColorDef, g, data_prim_t(f32));
-    data_reg_field_t(reg, CursorColorDef, b, data_prim_t(f32));
-    data_reg_field_t(reg, CursorColorDef, a, data_prim_t(f32));
-
-    data_reg_struct_t(reg, CursorDef);
-    data_reg_field_t(reg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, CursorDef, hotspotX, data_prim_t(u32));
-    data_reg_field_t(reg, CursorDef, hotspotY, data_prim_t(u32));
-    data_reg_field_t(reg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-    data_reg_field_t(reg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
-    // clang-format on
-
-    g_dataCursorDefMeta = data_meta_t(t_CursorDef);
-    g_dataReg           = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 typedef enum {
   CursorError_None,
@@ -93,7 +60,7 @@ static void ecs_destruct_cursor_comp(void* data) {
 
 static void ecs_destruct_cursor_load_comp(void* data) {
   AssetCursorLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataCursorDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetCursorDataDef, mem_var(comp->def));
 }
 
 static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
@@ -262,8 +229,6 @@ ecs_system_define(UnloadCursorAssetSys) {
 }
 
 ecs_module_init(asset_cursor_module) {
-  cursor_datareg_init();
-
   ecs_register_comp(AssetCursorComp, .destructor = ecs_destruct_cursor_comp);
   ecs_register_comp(AssetCursorLoadComp, .destructor = ecs_destruct_cursor_load_comp);
 
@@ -280,13 +245,32 @@ ecs_module_init(asset_cursor_module) {
   ecs_register_system(UnloadCursorAssetSys, ecs_view_id(UnloadView));
 }
 
+void asset_data_init_cursor(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, CursorColorDef);
+  data_reg_field_t(g_dataReg, CursorColorDef, r, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, CursorColorDef, g, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, CursorColorDef, b, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, CursorColorDef, a, data_prim_t(f32));
+
+  data_reg_struct_t(g_dataReg, CursorDef);
+  data_reg_field_t(g_dataReg, CursorDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, CursorDef, hotspotX, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+  data_reg_field_t(g_dataReg, CursorDef, color, t_CursorColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  // clang-format on
+
+  g_assetCursorDataDef = data_meta_t(t_CursorDef);
+}
+
 void asset_load_cursor(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   CursorDef      cursorDef;
   String         errMsg;
   DataReadResult readRes;
   data_read_json(
-      g_dataReg, src->data, g_allocHeap, g_dataCursorDefMeta, mem_var(cursorDef), &readRes);
+      g_dataReg, src->data, g_allocHeap, g_assetCursorDataDef, mem_var(cursorDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -298,16 +282,9 @@ void asset_load_cursor(
 Error:
   log_e(
       "Failed to load cursor", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
-  data_destroy(g_dataReg, g_allocHeap, g_dataCursorDefMeta, mem_var(cursorDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetCursorDataDef, mem_var(cursorDef));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
   asset_repo_source_close(src);
-}
-
-void asset_cursor_jsonschema_write(DynString* str) {
-  cursor_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataCursorDefMeta, schemaFlags);
 }

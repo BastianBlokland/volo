@@ -2,7 +2,11 @@
 #include "asset_register.h"
 #include "ecs_def.h"
 
+#include "data_internal.h"
+
 void asset_register(EcsDef* def) {
+  asset_data_init();
+
   ecs_register_module(def, asset_arraytex_module);
   ecs_register_module(def, asset_atlas_module);
   ecs_register_module(def, asset_cursor_module);

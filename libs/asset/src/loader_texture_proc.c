@@ -6,9 +6,7 @@
 #include "core_math.h"
 #include "core_noise.h"
 #include "core_rng.h"
-#include "core_thread.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
 #include "log_logger.h"
@@ -21,8 +19,7 @@
 
 #define proctex_max_size (1024 * 16)
 
-static DataReg* g_dataReg;
-static DataMeta g_dataProcTexDefMeta;
+DataMeta g_assetProcTexDataDef;
 
 typedef enum {
   ProcTexChannels_One  = 1,
@@ -56,53 +53,6 @@ typedef struct {
   f32             frequency, power;
   u32             seed;
 } ProcTexDef;
-
-static void proctex_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    data_reg_enum_t(reg, ProcTexType);
-    data_reg_const_t(reg, ProcTexType, One);
-    data_reg_const_t(reg, ProcTexType, Zero);
-    data_reg_const_t(reg, ProcTexType, Checker);
-    data_reg_const_t(reg, ProcTexType, Circle);
-    data_reg_const_t(reg, ProcTexType, NoisePerlin);
-    data_reg_const_t(reg, ProcTexType, NoiseWhite);
-    data_reg_const_t(reg, ProcTexType, NoiseWhiteGauss);
-    data_reg_const_t(reg, ProcTexType, BrdfIntegration);
-
-    data_reg_enum_t(reg, ProcTexChannels);
-    data_reg_const_t(reg, ProcTexChannels, One);
-    data_reg_const_t(reg, ProcTexChannels, Four);
-
-    data_reg_enum_t(reg, ProcTexFormat);
-    data_reg_const_t(reg, ProcTexFormat, u8);
-    data_reg_const_t(reg, ProcTexFormat, u16);
-    data_reg_const_t(reg, ProcTexFormat, f32);
-
-    data_reg_struct_t(reg, ProcTexDef);
-    data_reg_field_t(reg, ProcTexDef, type, t_ProcTexType);
-    data_reg_field_t(reg, ProcTexDef, format, t_ProcTexFormat, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcTexDef, channels, t_ProcTexChannels);
-    data_reg_field_t(reg, ProcTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcTexDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcTexDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcTexDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    // clang-format on
-
-    g_dataProcTexDefMeta = data_meta_t(t_ProcTexDef);
-    g_dataReg            = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 typedef enum {
   ProcTexError_None = 0,
@@ -377,14 +327,48 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
   };
 }
 
+void asset_data_init_proctex(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, ProcTexType);
+  data_reg_const_t(g_dataReg, ProcTexType, One);
+  data_reg_const_t(g_dataReg, ProcTexType, Zero);
+  data_reg_const_t(g_dataReg, ProcTexType, Checker);
+  data_reg_const_t(g_dataReg, ProcTexType, Circle);
+  data_reg_const_t(g_dataReg, ProcTexType, NoisePerlin);
+  data_reg_const_t(g_dataReg, ProcTexType, NoiseWhite);
+  data_reg_const_t(g_dataReg, ProcTexType, NoiseWhiteGauss);
+  data_reg_const_t(g_dataReg, ProcTexType, BrdfIntegration);
+
+  data_reg_enum_t(g_dataReg, ProcTexChannels);
+  data_reg_const_t(g_dataReg, ProcTexChannels, One);
+  data_reg_const_t(g_dataReg, ProcTexChannels, Four);
+
+  data_reg_enum_t(g_dataReg, ProcTexFormat);
+  data_reg_const_t(g_dataReg, ProcTexFormat, u8);
+  data_reg_const_t(g_dataReg, ProcTexFormat, u16);
+  data_reg_const_t(g_dataReg, ProcTexFormat, f32);
+
+  data_reg_struct_t(g_dataReg, ProcTexDef);
+  data_reg_field_t(g_dataReg, ProcTexDef, type, t_ProcTexType);
+  data_reg_field_t(g_dataReg, ProcTexDef, format, t_ProcTexFormat, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcTexDef, channels, t_ProcTexChannels);
+  data_reg_field_t(g_dataReg, ProcTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ProcTexDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ProcTexDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ProcTexDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  // clang-format on
+
+  g_assetProcTexDataDef = data_meta_t(t_ProcTexDef);
+}
+
 void asset_load_proctex(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  proctex_datareg_init();
-
   String         errMsg;
   ProcTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataProcTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcTexDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -417,13 +401,6 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataProcTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetProcTexDataDef, mem_var(def));
   asset_repo_source_close(src);
-}
-
-void asset_texture_proc_jsonschema_write(DynString* str) {
-  proctex_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataProcTexDefMeta, schemaFlags);
 }

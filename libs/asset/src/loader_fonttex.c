@@ -8,10 +8,8 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_sort.h"
-#include "core_thread.h"
 #include "core_utf8.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -27,8 +25,7 @@
 #define fonttex_max_size (1024 * 16)
 #define fonttex_max_fonts 100
 
-static DataReg* g_dataReg;
-static DataMeta g_dataFontTexDefMeta;
+DataMeta g_assetFontTexDataDef;
 
 typedef enum {
   FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
@@ -54,38 +51,6 @@ typedef struct {
   } fonts;
 } FontTexDef;
 
-static void fonttex_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    data_reg_struct_t(reg, FontTexDefFont);
-    data_reg_field_t(reg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
-
-    data_reg_struct_t(reg, FontTexDef);
-    data_reg_field_t(reg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FontTexDef, border, data_prim_t(u32));
-    data_reg_field_t(reg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FontTexDef, baseline, data_prim_t(f32));
-    data_reg_field_t(reg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
-    // clang-format on
-
-    g_dataFontTexDefMeta = data_meta_t(t_FontTexDef);
-    g_dataReg            = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
-
 ecs_comp_define_public(AssetFontTexComp);
 
 ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
@@ -97,7 +62,7 @@ static void ecs_destruct_fonttex_comp(void* data) {
 
 static void ecs_destruct_fonttex_load_comp(void* data) {
   AssetFontTexLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDataDef, mem_var(comp->def));
 }
 
 typedef enum {
@@ -427,8 +392,6 @@ ecs_system_define(FontTexUnloadAssetSys) {
 }
 
 ecs_module_init(asset_fonttex_module) {
-  fonttex_datareg_init();
-
   ecs_register_comp(AssetFontTexComp, .destructor = ecs_destruct_fonttex_comp);
   ecs_register_comp(AssetFontTexLoadComp, .destructor = ecs_destruct_fonttex_load_comp);
 
@@ -443,12 +406,33 @@ ecs_module_init(asset_fonttex_module) {
   ecs_register_system(FontTexUnloadAssetSys, ecs_view_id(FontTexUnloadView));
 }
 
+void asset_data_init_fonttex(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, FontTexDefFont);
+  data_reg_field_t(g_dataReg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, FontTexDef);
+  data_reg_field_t(g_dataReg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDef, border, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+  // clang-format on
+
+  g_assetFontTexDataDef = data_meta_t(t_FontTexDef);
+}
+
 void asset_load_fonttex(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataFontTexDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetFontTexDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -481,7 +465,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_dataFontTexDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDataDef, mem_var(def));
   asset_repo_source_close(src);
 }
 
@@ -520,11 +504,4 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
   }
   // Return the 'missing' character, is guaranteed to exist.
   return &comp->characters[0];
-}
-
-void asset_fonttex_jsonschema_write(DynString* str) {
-  fonttex_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataFontTexDefMeta, schemaFlags);
 }

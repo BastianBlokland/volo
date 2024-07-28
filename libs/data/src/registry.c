@@ -38,11 +38,20 @@ static DataType data_type_declare(DataReg* reg, const String name) {
   return data_type_alloc(reg, name);
 }
 
+DataReg* g_dataReg;
+
+void data_reg_global_init(void) { g_dataReg = data_reg_create(g_allocHeap); }
+
+void data_reg_global_teardown(void) {
+  data_reg_destroy(g_dataReg);
+  g_dataReg = null;
+}
+
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -89,6 +98,8 @@ void data_reg_destroy(DataReg* reg) {
 
   alloc_free_t(reg->alloc, reg);
 }
+
+u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
 String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
 
@@ -247,8 +258,6 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
       .value = value,
   };
 }
-
-u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
 DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
 

@@ -51,10 +51,8 @@ typedef struct {
   };
 } DataDecl;
 
-/**
- * Retrieve the total number of registered types.
- */
-u32 data_type_count(const DataReg*);
+void data_reg_global_init(void);
+void data_reg_global_teardown(void);
 
 /**
  * Strip off any container or other special attributes from the meta.

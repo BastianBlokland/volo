@@ -7,17 +7,14 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
-#include "core_thread.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
 
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-static DataReg* g_dataReg;
-static DataMeta g_dataMapDefMeta;
+DataMeta g_assetWeaponDataDef;
 
 typedef struct {
   u32*  values;
@@ -104,108 +101,6 @@ typedef struct {
     usize           count;
   } weapons;
 } AssetWeaponMapDef;
-
-static void weapon_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    /**
-     * Status indices correspond to the 'SceneStatusType' values as defined in 'scene_status.h'.
-     * NOTE: Unfortunately we cannot reference the SceneStatusType enum directly as that would
-     * require an undesired dependency on the scene library.
-     * NOTE: This is a virtual data type, meaning there is no matching AssetWeaponStatusMask C type.
-     */
-    data_reg_enum_t(reg, AssetWeaponStatusMask);
-    data_reg_const_custom(reg, AssetWeaponStatusMask, Burning,  1 << 0);
-    data_reg_const_custom(reg, AssetWeaponStatusMask, Bleeding, 1 << 1);
-    data_reg_const_custom(reg, AssetWeaponStatusMask, Healing,  1 << 2);
-    data_reg_const_custom(reg, AssetWeaponStatusMask, Veteran,  1 << 3);
-
-    data_reg_struct_t(reg, AssetWeaponEffectProjDef);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, projectilePrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
-
-    data_reg_struct_t(reg, AssetWeaponEffectDmgDef);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
-
-    data_reg_struct_t(reg, AssetWeaponEffectAnimDef);
-    data_reg_field_t(reg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectAnimDef, allowEarlyInterrupt, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectAnimDef, durationMax, data_prim_t(f32), .flags = DataFlags_Opt);
-
-    data_reg_struct_t(reg, AssetWeaponEffectVfxDef);
-    data_reg_field_t(reg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectVfxDef, waitUntilFinished, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
-
-    data_reg_struct_t(reg, AssetWeaponEffectSoundDef);
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, duration, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-
-    data_reg_union_t(reg, AssetWeaponEffectDef, type);
-    data_reg_choice_t(reg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProjDef);
-    data_reg_choice_t(reg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmgDef);
-    data_reg_choice_t(reg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnimDef);
-    data_reg_choice_t(reg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
-    data_reg_choice_t(reg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSoundDef);
-
-    data_reg_struct_t(reg, AssetWeaponDef);
-    data_reg_field_t(reg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponDef, intervalMin, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponDef, intervalMax, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponDef, readySpeed, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponDef, readyWhileMoving, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_Array);
-
-    data_reg_struct_t(reg, AssetWeaponMapDef);
-    data_reg_field_t(reg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
-    // clang-format on
-
-    g_dataMapDefMeta = data_meta_t(t_AssetWeaponMapDef);
-    g_dataReg        = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 static i8 asset_weapon_compare(const void* a, const void* b) {
   return compare_stringhash(
@@ -471,7 +366,7 @@ ecs_system_define(LoadWeaponAssetSys) {
     AssetWeaponMapDef def;
     String            errMsg;
     DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_dataMapDefMeta, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetWeaponDataDef, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -484,7 +379,7 @@ ecs_system_define(LoadWeaponAssetSys) {
 
     WeaponError buildErr;
     weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
-    data_destroy(g_dataReg, g_allocHeap, g_dataMapDefMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_assetWeaponDataDef, mem_var(def));
     if (buildErr) {
       errMsg = weapon_error_str(buildErr);
       goto Error;
@@ -528,8 +423,6 @@ ecs_system_define(UnloadWeaponAssetSys) {
 }
 
 ecs_module_init(asset_weapon_module) {
-  weapon_datareg_init();
-
   ecs_register_comp(AssetWeaponMapComp, .destructor = ecs_destruct_weaponmap_comp);
   ecs_register_comp(AssetWeaponLoadComp, .destructor = ecs_destruct_weapon_load_comp);
 
@@ -539,6 +432,97 @@ ecs_module_init(asset_weapon_module) {
 
   ecs_register_system(LoadWeaponAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
   ecs_register_system(UnloadWeaponAssetSys, ecs_view_id(UnloadView));
+}
+
+void asset_data_init_weapon(void) {
+  // clang-format off
+  /**
+    * Status indices correspond to the 'SceneStatusType' values as defined in 'scene_status.h'.
+    * NOTE: Unfortunately we cannot reference the SceneStatusType enum directly as that would
+    * require an undesired dependency on the scene library.
+    * NOTE: This is a virtual data type, meaning there is no matching AssetWeaponStatusMask C type.
+    */
+  data_reg_enum_t(g_dataReg, AssetWeaponStatusMask);
+  data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Burning,  1 << 0);
+  data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Bleeding, 1 << 1);
+  data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Healing,  1 << 2);
+  data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Veteran,  1 << 3);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectProjDef);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, projectilePrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectDmgDef);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectAnimDef);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, allowEarlyInterrupt, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, durationMax, data_prim_t(f32), .flags = DataFlags_Opt);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, waitUntilFinished, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectSoundDef);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, duration, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+
+  data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProjDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmgDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnimDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSoundDef);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponDef);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMax, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, readySpeed, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, readyWhileMoving, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_Array);
+
+  data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
+  data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
+  // clang-format on
+
+  g_assetWeaponDataDef = data_meta_t(t_AssetWeaponMapDef);
 }
 
 void asset_load_weapons(
@@ -594,11 +578,4 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
       AssetWeapon,
       asset_weapon_compare,
       mem_struct(AssetWeapon, .nameHash = nameHash).ptr);
-}
-
-void asset_weapon_jsonschema_write(DynString* str) {
-  weapon_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataMapDefMeta, schemaFlags);
 }

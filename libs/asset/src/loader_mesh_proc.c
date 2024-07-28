@@ -4,9 +4,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
-#include "core_thread.h"
 #include "data.h"
-#include "data_schema.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "log_logger.h"
@@ -20,8 +18,7 @@
 
 #define procmesh_max_subdivisions 400
 
-static DataReg* g_dataReg;
-static DataMeta g_dataProcMeshDefMeta;
+DataMeta g_assetProcMeshDataDef;
 
 typedef enum {
   ProcMeshAxis_Up,
@@ -57,62 +54,6 @@ typedef struct {
   bool            uncapped;
   ProcMeshBounds* bounds;
 } ProcMeshDef;
-
-static void procmesh_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    // clang-format off
-    data_reg_enum_t(reg, ProcMeshType);
-    data_reg_const_t(reg, ProcMeshType, Triangle);
-    data_reg_const_t(reg, ProcMeshType, Quad);
-    data_reg_const_t(reg, ProcMeshType, Cube);
-    data_reg_const_t(reg, ProcMeshType, Capsule);
-    data_reg_const_t(reg, ProcMeshType, Cone);
-    data_reg_const_t(reg, ProcMeshType, Cylinder);
-    data_reg_const_t(reg, ProcMeshType, Hemisphere);
-
-    data_reg_enum_t(reg, ProcMeshAxis);
-    data_reg_const_t(reg, ProcMeshAxis, Up);
-    data_reg_const_t(reg, ProcMeshAxis, Down);
-    data_reg_const_t(reg, ProcMeshAxis, Right);
-    data_reg_const_t(reg, ProcMeshAxis, Left);
-    data_reg_const_t(reg, ProcMeshAxis, Forward);
-    data_reg_const_t(reg, ProcMeshAxis, Backward);
-
-    data_reg_struct_t(reg, ProcMeshBounds);
-    data_reg_field_t(reg, ProcMeshBounds, minX, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, minY, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, minZ, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, maxX, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, maxY, data_prim_t(f32));
-    data_reg_field_t(reg, ProcMeshBounds, maxZ, data_prim_t(f32));
-
-    data_reg_struct_t(reg, ProcMeshDef);
-    data_reg_field_t(reg, ProcMeshDef, type, t_ProcMeshType);
-    data_reg_field_t(reg, ProcMeshDef, axis, t_ProcMeshAxis);
-    data_reg_field_t(reg, ProcMeshDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcMeshDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcMeshDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(reg, ProcMeshDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
-    // clang-format on
-
-    g_dataProcMeshDefMeta = data_meta_t(t_ProcMeshDef);
-    g_dataReg             = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
 
 typedef struct {
   const ProcMeshDef* def;
@@ -571,15 +512,58 @@ static String procmesh_error_str(const ProcMeshError err) {
   return g_msgs[err];
 }
 
+void asset_data_init_procmesh(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, ProcMeshType);
+  data_reg_const_t(g_dataReg, ProcMeshType, Triangle);
+  data_reg_const_t(g_dataReg, ProcMeshType, Quad);
+  data_reg_const_t(g_dataReg, ProcMeshType, Cube);
+  data_reg_const_t(g_dataReg, ProcMeshType, Capsule);
+  data_reg_const_t(g_dataReg, ProcMeshType, Cone);
+  data_reg_const_t(g_dataReg, ProcMeshType, Cylinder);
+  data_reg_const_t(g_dataReg, ProcMeshType, Hemisphere);
+
+  data_reg_enum_t(g_dataReg, ProcMeshAxis);
+  data_reg_const_t(g_dataReg, ProcMeshAxis, Up);
+  data_reg_const_t(g_dataReg, ProcMeshAxis, Down);
+  data_reg_const_t(g_dataReg, ProcMeshAxis, Right);
+  data_reg_const_t(g_dataReg, ProcMeshAxis, Left);
+  data_reg_const_t(g_dataReg, ProcMeshAxis, Forward);
+  data_reg_const_t(g_dataReg, ProcMeshAxis, Backward);
+
+  data_reg_struct_t(g_dataReg, ProcMeshBounds);
+  data_reg_field_t(g_dataReg, ProcMeshBounds, minX, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, ProcMeshBounds, minY, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, ProcMeshBounds, minZ, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, ProcMeshBounds, maxX, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, ProcMeshBounds, maxY, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, ProcMeshBounds, maxZ, data_prim_t(f32));
+
+  data_reg_struct_t(g_dataReg, ProcMeshDef);
+  data_reg_field_t(g_dataReg, ProcMeshDef, type, t_ProcMeshType);
+  data_reg_field_t(g_dataReg, ProcMeshDef, axis, t_ProcMeshAxis);
+  data_reg_field_t(g_dataReg, ProcMeshDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ProcMeshDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ProcMeshDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ProcMeshDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  // clang-format on
+
+  g_assetProcMeshDataDef = data_meta_t(t_ProcMeshDef);
+}
+
 void asset_load_procmesh(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  procmesh_datareg_init();
-
   String            errMsg;
   AssetMeshBuilder* builder = null;
   ProcMeshDef       def;
   DataReadResult    result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_dataProcMeshDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcMeshDataDef, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -621,13 +605,6 @@ Done:
   if (builder) {
     asset_mesh_builder_destroy(builder);
   }
-  data_destroy(g_dataReg, g_allocHeap, g_dataProcMeshDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetProcMeshDataDef, mem_var(def));
   asset_repo_source_close(src);
-}
-
-void asset_mesh_proc_jsonschema_write(DynString* str) {
-  procmesh_datareg_init();
-
-  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
-  data_jsonschema_write(g_dataReg, str, g_dataProcMeshDefMeta, schemaFlags);
 }

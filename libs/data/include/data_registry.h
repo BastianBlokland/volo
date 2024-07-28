@@ -34,6 +34,11 @@ typedef struct {
 #define data_prim_t(_PRIM_) ((DataType)DataKind_##_PRIM_)
 
 /**
+ * Global data registry.
+ */
+extern DataReg* g_dataReg;
+
+/**
  * Create a new data registry.
  * Destroy using 'data_reg_destroy()'.
  */
@@ -43,6 +48,11 @@ DataReg* data_reg_create(Allocator*);
  * Destroy a data registry.
  */
 void data_reg_destroy(DataReg*);
+
+/**
+ * Retrieve the total number of registered types.
+ */
+u32 data_type_count(const DataReg*);
 
 /**
  * Retrieve the name of a registered type.

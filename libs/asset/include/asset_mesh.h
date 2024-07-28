@@ -1,10 +1,8 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_box.h"
 #include "geo_matrix.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 #define asset_mesh_vertices_max u16_max
 #define asset_mesh_joints_max 75
@@ -69,4 +67,4 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   Mem                  animData; // 16 bit aligned and the size is always a multiple of 16.
 };
 
-void asset_mesh_proc_jsonschema_write(DynString*);
+extern DataMeta g_assetProcMeshDataDef;

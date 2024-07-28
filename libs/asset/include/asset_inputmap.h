@@ -1,8 +1,6 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 /**
  * Input Map.
@@ -36,9 +34,9 @@ ecs_comp_extern_public(AssetInputMapComp) {
   usize              bindingCount;
 };
 
+extern DataMeta g_assetInputMapDataDef;
+
 /**
  * Lookup an input action by the hash of its name.
  */
 const AssetInputAction* asset_inputmap_get(const AssetInputMapComp*, StringHash nameHash);
-
-void asset_inputmap_jsonschema_write(DynString*);

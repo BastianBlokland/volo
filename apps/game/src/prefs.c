@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_file.h"
 #include "core_path.h"
-#include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -19,43 +18,33 @@ const String g_gameQualityLabels[] = {
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
-static DataReg* g_dataReg;
-static DataMeta g_dataMeta;
+static DataMeta g_gamePrefsDataDef;
 
-static void prefs_datareg_init(void) {
-  static ThreadSpinLock g_initLock;
-  if (LIKELY(g_dataReg)) {
-    return;
+static void prefs_data_init(void) {
+  if (!g_gamePrefsDataDef.type) {
+    data_reg_enum_t(g_dataReg, GameQuality);
+    data_reg_const_t(g_dataReg, GameQuality, VeryLow);
+    data_reg_const_t(g_dataReg, GameQuality, Low);
+    data_reg_const_t(g_dataReg, GameQuality, Medium);
+    data_reg_const_t(g_dataReg, GameQuality, High);
+
+    data_reg_struct_t(g_dataReg, GamePrefsComp);
+    data_reg_field_t(g_dataReg, GamePrefsComp, volume, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, GamePrefsComp, powerSaving, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, GamePrefsComp, fullscreen, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
+    data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
+    data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
+
+    g_gamePrefsDataDef = data_meta_t(t_GamePrefsComp);
   }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_dataReg) {
-    DataReg* reg = data_reg_create(g_allocPersist);
-
-    data_reg_enum_t(reg, GameQuality);
-    data_reg_const_t(reg, GameQuality, VeryLow);
-    data_reg_const_t(reg, GameQuality, Low);
-    data_reg_const_t(reg, GameQuality, Medium);
-    data_reg_const_t(reg, GameQuality, High);
-
-    data_reg_struct_t(reg, GamePrefsComp);
-    data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32));
-    data_reg_field_t(reg, GamePrefsComp, powerSaving, data_prim_t(bool));
-    data_reg_field_t(reg, GamePrefsComp, fullscreen, data_prim_t(bool));
-    data_reg_field_t(reg, GamePrefsComp, windowWidth, data_prim_t(u16));
-    data_reg_field_t(reg, GamePrefsComp, windowHeight, data_prim_t(u16));
-    data_reg_field_t(reg, GamePrefsComp, quality, t_GameQuality);
-
-    g_dataMeta = data_meta_t(t_GamePrefsComp);
-    g_dataReg  = reg;
-  }
-  thread_spinlock_unlock(&g_initLock);
 }
 
 ecs_comp_define_public(GamePrefsComp);
 
 static void ecs_destruct_prefs_comp(void* data) {
   GamePrefsComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_dataMeta, mem_create(comp, sizeof(GamePrefsComp)));
+  data_destroy(g_dataReg, g_allocHeap, g_gamePrefsDataDef, mem_create(comp, sizeof(GamePrefsComp)));
 }
 
 static String prefs_path_scratch(void) {
@@ -77,7 +66,7 @@ static void prefs_save(const GamePrefsComp* prefs) {
 
   // Serialize the preferences to json.
   const DataWriteJsonOpts writeOpts = data_write_json_opts();
-  data_write_json(g_dataReg, &dataBuffer, g_dataMeta, mem_var(*prefs), &writeOpts);
+  data_write_json(g_dataReg, &dataBuffer, g_gamePrefsDataDef, mem_var(*prefs), &writeOpts);
 
   // Save the data to disk.
   const String     filePath = prefs_path_scratch();
@@ -101,8 +90,6 @@ ecs_system_define(GamePrefsSaveSys) {
 }
 
 ecs_module_init(game_prefs_module) {
-  prefs_datareg_init();
-
   ecs_register_comp(GamePrefsComp, .destructor = ecs_destruct_prefs_comp);
 
   ecs_register_view(PrefsView);
@@ -111,6 +98,8 @@ ecs_module_init(game_prefs_module) {
 }
 
 GamePrefsComp* prefs_init(EcsWorld* world) {
+  prefs_data_init();
+
   GamePrefsComp* prefs = ecs_world_add_t(world, ecs_world_global(world), GamePrefsComp);
 
   // Open the file handle.
@@ -134,7 +123,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
   // Parse the json.
   DataReadResult result;
   const Mem      outMem = mem_create(prefs, sizeof(GamePrefsComp));
-  data_read_json(g_dataReg, fileData, g_allocHeap, g_dataMeta, outMem, &result);
+  data_read_json(g_dataReg, fileData, g_allocHeap, g_gamePrefsDataDef, outMem, &result);
   if (UNLIKELY(result.error)) {
     log_e("Failed to parse preference file", log_param("err", fmt_text(result.errorMsg)));
     goto RetDefault;

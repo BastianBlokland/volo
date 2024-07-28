@@ -609,12 +609,13 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
+  debug_log_tracker_init(world, g_logger);
+
   const String assetPath = cli_read_string(invoc, g_optAssets, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
     return;
   }
-  debug_log_tracker_init(world, g_logger);
 
   const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
   AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);

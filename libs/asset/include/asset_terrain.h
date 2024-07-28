@@ -1,9 +1,7 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 /**
  * NOTE: Colors are srgb encoded.
@@ -23,4 +21,4 @@ ecs_comp_extern_public(AssetTerrainComp) {
   AssetTerrainColor minimapColorLow, minimapColorHigh;
 };
 
-void asset_terrain_jsonschema_write(DynString*);
+extern DataMeta g_assetTerrainDataDef;

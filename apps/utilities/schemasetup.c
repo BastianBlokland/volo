@@ -1,24 +1,11 @@
 #include "app_cli.h"
-#include "asset_atlas.h"
-#include "asset_cursor.h"
-#include "asset_decal.h"
-#include "asset_fonttex.h"
-#include "asset_graphic.h"
-#include "asset_inputmap.h"
-#include "asset_level.h"
-#include "asset_mesh.h"
-#include "asset_prefab.h"
-#include "asset_product.h"
-#include "asset_script.h"
-#include "asset_terrain.h"
-#include "asset_texture.h"
-#include "asset_vfx.h"
-#include "asset_weapon.h"
+#include "asset.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
 #include "data_schema.h"
 #include "log.h"
+#include "script_binder.h"
 
 /**
  * SchemaSetup - Utility to generate schema's for various asset formats used in Volo.
@@ -26,34 +13,48 @@
  * Types of schemas:
  * - JsonSchema:   Validation schema supported for all of the json asset types.
  *                 https://json-schema.org/specification.html
- * - ScriptBinder: Used for script Ide support.
+ * - ScriptBinder: Used for script ide support.
  */
 
-typedef void (*SchemaWriter)(DynString*);
+typedef void (*SchemaWriter)(DynString*, const void* context);
 
 typedef struct {
   String       pattern;
   SchemaWriter writer;
+  const void*  context;
 } SchemaConfig;
+
+static void schema_writer_data(DynString* str, const void* context) {
+  const DataMeta* typeMeta = context;
+
+  const DataJsonSchemaFlags schemaFlags = DataJsonSchemaFlags_Compact;
+  data_jsonschema_write(g_dataReg, str, *typeMeta, schemaFlags);
+}
+
+static void schema_writer_script(DynString* str, const void* context) {
+  const ScriptBinder* const* binder = context;
+
+  script_binder_write(str, *binder);
+}
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("arraytex.schema.json"), .writer = asset_texture_array_jsonschema_write, },
-    {.pattern = string_static("atlas.schema.json"),    .writer = asset_atlas_jsonschema_write,         },
-    {.pattern = string_static("cursor.schema.json"),   .writer = asset_cursor_jsonschema_write,         },
-    {.pattern = string_static("decal.schema.json"),    .writer = asset_decal_jsonschema_write,         },
-    {.pattern = string_static("fonttex.schema.json"),  .writer = asset_fonttex_jsonschema_write,       },
-    {.pattern = string_static("graphic.schema.json"),  .writer = asset_graphic_jsonschema_write,       },
-    {.pattern = string_static("inputs.schema.json"),   .writer = asset_inputmap_jsonschema_write,      },
-    {.pattern = string_static("level.schema.json"),    .writer = asset_level_jsonschema_write,         },
-    {.pattern = string_static("prefabs.schema.json"),  .writer = asset_prefab_jsonschema_write,        },
-    {.pattern = string_static("procmesh.schema.json"), .writer = asset_mesh_proc_jsonschema_write,     },
-    {.pattern = string_static("proctex.schema.json"),  .writer = asset_texture_proc_jsonschema_write,  },
-    {.pattern = string_static("products.schema.json"), .writer = asset_product_jsonschema_write,       },
-    {.pattern = string_static("terrain.schema.json"),  .writer = asset_terrain_jsonschema_write,       },
-    {.pattern = string_static("vfx.schema.json"),      .writer = asset_vfx_jsonschema_write,           },
-    {.pattern = string_static("weapons.schema.json"),  .writer = asset_weapon_jsonschema_write,        },
-    {.pattern = string_static("script_binder.json"),   .writer = asset_script_binder_write,            },
+    {.pattern = string_static("arraytex.schema.json"), .context = &g_assetArrayTexDataDef,  .writer = schema_writer_data   },
+    {.pattern = string_static("atlas.schema.json"),    .context = &g_assetAtlasDataDef,     .writer = schema_writer_data   },
+    {.pattern = string_static("cursor.schema.json"),   .context = &g_assetCursorDataDef,    .writer = schema_writer_data   },
+    {.pattern = string_static("decal.schema.json"),    .context = &g_assetDecalDataDef,     .writer = schema_writer_data   },
+    {.pattern = string_static("fonttex.schema.json"),  .context = &g_assetFontTexDataDef,   .writer = schema_writer_data   },
+    {.pattern = string_static("graphic.schema.json"),  .context = &g_assetGraphicDataDef,   .writer = schema_writer_data   },
+    {.pattern = string_static("inputs.schema.json"),   .context = &g_assetInputMapDataDef,  .writer = schema_writer_data   },
+    {.pattern = string_static("level.schema.json"),    .context = &g_assetLevelDataDef,     .writer = schema_writer_data   },
+    {.pattern = string_static("prefabs.schema.json"),  .context = &g_assetPrefabMapDataDef, .writer = schema_writer_data   },
+    {.pattern = string_static("procmesh.schema.json"), .context = &g_assetProcMeshDataDef,  .writer = schema_writer_data   },
+    {.pattern = string_static("proctex.schema.json"),  .context = &g_assetProcTexDataDef,   .writer = schema_writer_data   },
+    {.pattern = string_static("products.schema.json"), .context = &g_assetProductDataDef,   .writer = schema_writer_data   },
+    {.pattern = string_static("terrain.schema.json"),  .context = &g_assetTerrainDataDef,   .writer = schema_writer_data   },
+    {.pattern = string_static("vfx.schema.json"),      .context = &g_assetVfxDataDef,       .writer = schema_writer_data   },
+    {.pattern = string_static("weapons.schema.json"),  .context = &g_assetWeaponDataDef,    .writer = schema_writer_data   },
+    {.pattern = string_static("script_binder.json"),   .context = &g_assetScriptBinder,     .writer = schema_writer_script },
 };
 // clang-format on
 
@@ -72,7 +73,7 @@ bool scheme_validate_path(const String input) { return scheme_for_path(input) !=
 static bool schema_write(const SchemaConfig* config, const String path) {
   DynString dynString = dynstring_create(g_allocHeap, 64 * usize_kibibyte);
 
-  config->writer(&dynString);
+  config->writer(&dynString, config->context);
 
   FileResult res;
   if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {
@@ -101,6 +102,8 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  asset_data_init();
+
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
     return 0;

@@ -1,9 +1,7 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
 
 typedef enum {
   AssetGraphicTopology_Triangles,     // Separate triangles with 3 vertices.
@@ -135,4 +133,4 @@ ecs_comp_extern_public(AssetGraphicComp) {
   f32 blendConstant;
 };
 
-void asset_graphic_jsonschema_write(DynString*);
+extern DataMeta g_assetGraphicDataDef;
