@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
 #include "core_path.h"
+#include "core_time.h"
 #include "log_logger.h"
 
 #include "repo_internal.h"
@@ -13,6 +14,7 @@ typedef struct {
 
 typedef struct {
   AssetRepo api;
+  TimeReal  createTime;
   DynArray  entries; // RepoEntry[], sorted on idHash
 } AssetRepoMem;
 
@@ -34,7 +36,11 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
   }
 
   AssetSource* src = alloc_alloc_t(g_allocHeap, AssetSource);
-  *src             = (AssetSource){.data = entry->data, .format = fmt};
+  *src             = (AssetSource){
+      .data    = entry->data,
+      .format  = fmt,
+      .modTime = repoMem->createTime,
+  };
   return src;
 }
 
@@ -75,7 +81,8 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
               .changesPoll  = null,
               .query        = asset_repo_mem_query,
           },
-      .entries = dynarray_create_t(g_allocHeap, RepoEntry, recordCount),
+      .createTime = time_real_clock(),
+      .entries    = dynarray_create_t(g_allocHeap, RepoEntry, recordCount),
   };
 
   for (usize i = 0; i != recordCount; ++i) {
