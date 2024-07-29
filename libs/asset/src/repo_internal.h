@@ -3,6 +3,9 @@
 
 #include "format_internal.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeReal;
+
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
@@ -34,6 +37,8 @@ struct sAssetRepo {
 struct sAssetSource {
   String      data;
   AssetFormat format;
+  TimeReal    modTime;
+
   void (*close)(AssetSource*);
 };
 

@@ -48,6 +48,12 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
         log_param("result", fmt_text(file_result_str(result))));
     return null;
   }
+  const FileInfo fileInfo = file_stat_sync(file);
+  if (fileInfo.type != FileType_Regular) {
+    log_w("Invalid source file", log_param("path", fmt_path(path)));
+    file_destroy(file);
+    return null;
+  }
   if ((result = file_map(file, &data))) {
     log_w(
         "Failed to map file",
@@ -60,7 +66,13 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   AssetSourceFs* src = alloc_alloc_t(repoFs->sourceAlloc, AssetSourceFs);
 
   *src = (AssetSourceFs){
-      .api  = {.data = data, .format = fmt, .close = asset_source_fs_close},
+      .api =
+          {
+              .data    = data,
+              .format  = fmt,
+              .modTime = fileInfo.modTime,
+              .close   = asset_source_fs_close,
+          },
       .repo = repoFs,
       .file = file,
   };
