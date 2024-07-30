@@ -15,6 +15,7 @@ typedef enum {
 } AssetTextureFormat;
 
 typedef enum {
+  AssetTextureFlags_None            = 0,
   AssetTextureFlags_Srgb            = 1 << 0,
   AssetTextureFlags_GenerateMipMaps = 1 << 1,
   AssetTextureFlags_CubeMap         = 1 << 2,

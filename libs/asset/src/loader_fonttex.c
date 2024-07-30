@@ -1,6 +1,5 @@
 #include "asset_font.h"
 #include "asset_fonttex.h"
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -14,6 +13,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
@@ -248,7 +248,7 @@ static void fonttex_generate(
   u16       nextGlyphIndex = 0;
   if (UNLIKELY(!maxGlyphs)) {
     *err = FontTexError_TooManyGlyphs;
-    goto Error;
+    goto Ret;
   }
 
   for (u32 i = 0; i != fontCount; ++i) {
@@ -256,7 +256,7 @@ static void fonttex_generate(
 
     fonttex_generate_font(def, fonts[i], genFlags, maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
     if (UNLIKELY(*err)) {
-      goto Error;
+      goto Ret;
     }
   }
 
@@ -270,22 +270,21 @@ static void fonttex_generate(
       .characters     = dynarray_copy_as_new(&chars, g_allocHeap),
       .characterCount = chars.size,
   };
-  *outTexture = (AssetTextureComp){
-      .format       = AssetTextureFormat_u8_r,
-      .pixelData    = pixels,
-      .width        = def->size,
-      .height       = def->size,
-      .layers       = 1,
-      .srcMipLevels = 1,
-  };
-  dynarray_destroy(&chars);
-  *err = FontTexError_None;
-  return;
+  *outTexture = asset_texture_create(
+      pixelMem,
+      def->size,
+      def->size,
+      1 /* channels */,
+      1 /* layers */,
+      1 /* mips */,
+      AssetTextureType_u8,
+      AssetTextureFlags_None);
 
-Error:
-  diag_assert(*err);
+  *err = FontTexError_None;
+
+Ret:
   dynarray_destroy(&chars);
-  alloc_free_array_t(g_allocHeap, pixels, def->size * def->size);
+  alloc_free(g_allocHeap, pixelMem);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
