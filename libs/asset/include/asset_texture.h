@@ -26,7 +26,7 @@ typedef enum {
 ecs_comp_extern_public(AssetTextureComp) {
   AssetTextureFormat format;
   AssetTextureFlags  flags;
-  const void*        pixelData;
+  void*              pixelData;
   u32                width, height, layers, srcMipLevels, maxMipLevels;
 };
 
