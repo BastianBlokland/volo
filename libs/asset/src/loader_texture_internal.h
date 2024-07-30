@@ -1,6 +1,5 @@
 #pragma once
 #include "asset_texture.h"
-#include "ecs_entity.h"
 
 /**
  * Check if the given asset-id is a normalmap.
@@ -23,9 +22,7 @@ typedef enum {
  * Pre-condition: layers > 0
  * Pre-condition: mips > 0
  */
-AssetTextureComp* asset_texture_create(
-    EcsWorld*,
-    EcsEntityId,
+AssetTextureComp asset_texture_create(
     Mem in,
     u32 width,
     u32 height,

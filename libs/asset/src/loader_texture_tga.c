@@ -431,8 +431,8 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
   const AssetTextureType  texType   = AssetTextureType_u8;
   const AssetTextureFlags texFlags  = tga_texture_flags(channels, isNormalmap);
 
-  asset_texture_create(
-      world, entity, pixels, width, height, channels, texLayers, texMips, texType, texFlags);
+  *ecs_world_add_t(world, entity, AssetTextureComp) =
+      asset_texture_create(pixels, width, height, channels, texLayers, texMips, texType, texFlags);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
 Ret:

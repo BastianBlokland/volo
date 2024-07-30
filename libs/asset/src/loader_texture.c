@@ -483,9 +483,7 @@ bool asset_texture_is_normalmap(const String id) {
   return false;
 }
 
-AssetTextureComp* asset_texture_create(
-    EcsWorld*              world,
-    const EcsEntityId      entity,
+AssetTextureComp asset_texture_create(
     const Mem              in,
     const u32              width,
     const u32              height,
@@ -505,27 +503,25 @@ AssetTextureComp* asset_texture_create(
   const usize              dataSize   = tex_pixel_count(width, height, layers, mips) * dataStride;
   const Mem                data       = alloc_alloc(g_allocHeap, dataSize, dataStride);
 
-  AssetTextureComp* tex = ecs_world_add_t(
-      world,
-      entity,
-      AssetTextureComp,
+  AssetTextureComp tex = {
       .format       = format,
       .flags        = flags,
       .width        = width,
       .height       = height,
       .pixelData    = data.ptr,
       .layers       = layers,
-      .srcMipLevels = mips);
+      .srcMipLevels = mips,
+  };
 
   switch (type) {
   case AssetTextureType_u8:
-    tex_load_u8(tex, in, channels, layers, mips);
+    tex_load_u8(&tex, in, channels, layers, mips);
     break;
   case AssetTextureType_u16:
-    tex_load_u16(tex, in, channels, layers, mips);
+    tex_load_u16(&tex, in, channels, layers, mips);
     break;
   case AssetTextureType_f32:
-    tex_load_f32(tex, in, channels, layers, mips);
+    tex_load_f32(&tex, in, channels, layers, mips);
     break;
   default:
     diag_crash();
