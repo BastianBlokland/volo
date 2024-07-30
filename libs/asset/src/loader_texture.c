@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_string.h"
 #include "ecs_world.h"
@@ -64,6 +65,18 @@ static void ecs_destruct_texture_comp(void* data) {
   alloc_free(g_allocHeap, asset_texture_data(comp));
 }
 
+static u32 tex_type_size(const AssetTextureType type) {
+  switch (type) {
+  case AssetTextureType_u8:
+    return 1;
+  case AssetTextureType_u16:
+    return 2;
+  case AssetTextureType_f32:
+    return 4;
+  }
+  diag_crash();
+}
+
 static u32 tex_pixel_count_mip(const u32 width, const u32 height, const u32 layers, const u32 mip) {
   const u32 mipWidth  = math_max(width >> mip, 1);
   const u32 mipHeight = math_max(height >> mip, 1);
@@ -112,6 +125,53 @@ static AssetTextureFormat tex_format_pick(const AssetTextureType type, const u32
     return channels <= 1 ? AssetTextureFormat_f32_r : AssetTextureFormat_f32_rgba;
   }
   diag_crash();
+}
+
+static bool tex_has_alpha(
+    const Mem              in,
+    const u32              inWidth,
+    const u32              inHeight,
+    const u32              inChannels,
+    const u32              inLayers,
+    const u32              inMips,
+    const AssetTextureType inType) {
+  if (inChannels < 4) {
+    return false;
+  }
+  const void* inPtr    = in.ptr;
+  const u32   inStride = inChannels * tex_type_size(inType);
+
+  static const f32 g_f32AlphaThreshold = 1.0f - f32_epsilon;
+
+  for (u32 mip = 0; mip != inMips; ++mip) {
+    const u32 mipWidth  = math_max(inWidth >> mip, 1);
+    const u32 mipHeight = math_max(inHeight >> mip, 1);
+    for (u32 l = 0; l != inLayers; ++l) {
+      for (u32 y = 0; y != mipHeight; ++y) {
+        for (u32 x = 0; x < mipWidth; ++x) {
+          switch (inType) {
+          case AssetTextureType_u8:
+            if (((const u8*)inPtr)[3] != u8_max) {
+              return true;
+            }
+            break;
+          case AssetTextureType_u16:
+            if (((const u16*)inPtr)[3] != u16_max) {
+              return true;
+            }
+            break;
+          case AssetTextureType_f32:
+            if (((const f32*)inPtr)[3] >= g_f32AlphaThreshold) {
+              return true;
+            }
+            break;
+          }
+          inPtr = bits_ptr_offset(inPtr, inStride);
+        }
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -424,17 +484,21 @@ bool asset_texture_is_normalmap(const String id) {
 }
 
 AssetTextureComp* asset_texture_create(
-    EcsWorld*               world,
-    const EcsEntityId       entity,
-    const Mem               in,
-    const u32               width,
-    const u32               height,
-    const u32               channels,
-    const u32               layers,
-    const u32               mips,
-    const AssetTextureType  type,
-    const AssetTextureFlags flags) {
+    EcsWorld*              world,
+    const EcsEntityId      entity,
+    const Mem              in,
+    const u32              width,
+    const u32              height,
+    const u32              channels,
+    const u32              layers,
+    const u32              mips,
+    const AssetTextureType type,
+    AssetTextureFlags      flags) {
   diag_assert(width && height && channels && layers && mips);
+
+  if (tex_has_alpha(in, width, height, channels, layers, mips, type)) {
+    flags |= AssetTextureFlags_Alpha;
+  }
 
   const AssetTextureFormat format     = tex_format_pick(type, channels);
   const usize              dataStride = tex_format_stride(format);
