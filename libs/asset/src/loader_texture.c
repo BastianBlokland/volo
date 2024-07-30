@@ -80,12 +80,12 @@ static u32 tex_type_size(const AssetTextureType type) {
 static u32 tex_pixel_count_mip(const u32 width, const u32 height, const u32 layers, const u32 mip) {
   const u32 mipWidth  = math_max(width >> mip, 1);
   const u32 mipHeight = math_max(height >> mip, 1);
-  return mipWidth * mipHeight * math_max(1, layers);
+  return mipWidth * mipHeight * layers;
 }
 
 static u32 tex_pixel_count(const u32 width, const u32 height, const u32 layers, const u32 mips) {
   u32 pixels = 0;
-  for (u32 mip = 0; mip != math_max(mips, 1); ++mip) {
+  for (u32 mip = 0; mip != mips; ++mip) {
     pixels += tex_pixel_count_mip(width, height, layers, mip);
   }
   return pixels;
@@ -371,7 +371,7 @@ usize asset_texture_req_size(
 usize asset_texture_req_align(const AssetTextureFormat format) { return tex_format_stride(format); }
 
 usize asset_texture_mip_size(const AssetTextureComp* t, const u32 mipLevel) {
-  diag_assert(mipLevel < math_max(t->srcMipLevels, 1));
+  diag_assert(mipLevel < t->srcMipLevels);
   const u32 count = tex_pixel_count_mip(t->width, t->height, t->layers, mipLevel);
   return count * tex_format_stride(t->format);
 }
@@ -452,7 +452,7 @@ GeoColor
 asset_texture_sample(const AssetTextureComp* t, const f32 xNorm, const f32 yNorm, const u32 layer) {
   diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
   diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
-  diag_assert(layer < math_max(1, t->layers));
+  diag_assert(layer < t->layers);
 
   const f32 x = xNorm * (t->width - 1), y = yNorm * (t->height - 1);
 
