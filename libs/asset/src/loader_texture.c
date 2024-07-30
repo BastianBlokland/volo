@@ -78,8 +78,20 @@ static u32 tex_pixel_count(const u32 width, const u32 height, const u32 layers, 
   return pixels;
 }
 
+static u32 tex_format_channels(const AssetTextureFormat format) {
+  static const u32 g_channels[AssetTextureFormat_Count] = {
+      [AssetTextureFormat_u8_r]     = 1,
+      [AssetTextureFormat_u8_rgba]  = 4,
+      [AssetTextureFormat_u16_r]    = 1,
+      [AssetTextureFormat_u16_rgba] = 4,
+      [AssetTextureFormat_f32_r]    = 1,
+      [AssetTextureFormat_f32_rgba] = 4,
+  };
+  return g_channels[format];
+}
+
 static usize tex_format_stride(const AssetTextureFormat format) {
-  static const usize g_pixelSize[AssetTextureFormat_Count] = {
+  static const usize g_stride[AssetTextureFormat_Count] = {
       [AssetTextureFormat_u8_r]     = sizeof(u8) * 1,
       [AssetTextureFormat_u8_rgba]  = sizeof(u8) * 4,
       [AssetTextureFormat_u16_r]    = sizeof(u16) * 1,
@@ -87,7 +99,7 @@ static usize tex_format_stride(const AssetTextureFormat format) {
       [AssetTextureFormat_f32_r]    = sizeof(f32) * 1,
       [AssetTextureFormat_f32_rgba] = sizeof(f32) * 4,
   };
-  return g_pixelSize[format];
+  return g_stride[format];
 }
 
 static AssetTextureFormat tex_format_pick(const AssetTextureType type, const u32 channels) {
@@ -115,11 +127,10 @@ static void tex_load_u8(
     const u32         inMips) {
   diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
 
-  const usize inStride     = inChannels * sizeof(u8);
   const u8* restrict inPtr = in.ptr;
-  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inStride);
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
 
-  const usize outStride = tex_format_stride(tex->format);
+  const u32 outChannels = tex_format_channels(tex->format);
   u8* restrict outPtr   = tex->pixelData;
 
   for (u32 mip = 0; mip != inMips; ++mip) {
@@ -142,8 +153,8 @@ static void tex_load_u8(
             diag_crash();
           }
 
-          inPtr += inStride;
-          outPtr += outStride;
+          inPtr += inChannels;
+          outPtr += outChannels;
         }
       }
     }
@@ -159,11 +170,10 @@ static void tex_load_u16(
     const u32         inMips) {
   diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
 
-  const usize inStride      = inChannels * sizeof(u16);
   const u16* restrict inPtr = in.ptr;
-  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inStride);
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
 
-  const usize outStride = tex_format_stride(tex->format);
+  const u32 outChannels = tex_format_channels(tex->format);
   u16* restrict outPtr  = tex->pixelData;
 
   for (u32 mip = 0; mip != inMips; ++mip) {
@@ -186,8 +196,8 @@ static void tex_load_u16(
             diag_crash();
           }
 
-          inPtr += inStride;
-          outPtr += outStride;
+          inPtr += inChannels;
+          outPtr += outChannels;
         }
       }
     }
@@ -203,11 +213,10 @@ static void tex_load_f32(
     const u32         inMips) {
   diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
 
-  const usize inStride      = inChannels * sizeof(f32);
   const f32* restrict inPtr = in.ptr;
-  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inStride);
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
 
-  const usize outStride = tex_format_stride(tex->format);
+  const u32 outChannels = tex_format_channels(tex->format);
   f32* restrict outPtr  = tex->pixelData;
 
   for (u32 mip = 0; mip != inMips; ++mip) {
@@ -230,8 +239,8 @@ static void tex_load_f32(
             diag_crash();
           }
 
-          inPtr += inStride;
-          outPtr += outStride;
+          inPtr += inChannels;
+          outPtr += outChannels;
         }
       }
     }
@@ -276,15 +285,7 @@ String asset_texture_format_str(const AssetTextureFormat format) {
 }
 
 usize asset_texture_format_channels(const AssetTextureFormat format) {
-  static const usize g_channels[AssetTextureFormat_Count] = {
-      [AssetTextureFormat_u8_r]     = 1,
-      [AssetTextureFormat_u8_rgba]  = 4,
-      [AssetTextureFormat_u16_r]    = 1,
-      [AssetTextureFormat_u16_rgba] = 4,
-      [AssetTextureFormat_f32_r]    = 1,
-      [AssetTextureFormat_f32_rgba] = 4,
-  };
-  return g_channels[format];
+  return tex_format_channels(format);
 }
 
 usize asset_texture_req_mip_size(
