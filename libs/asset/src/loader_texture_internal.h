@@ -1,5 +1,5 @@
 #pragma once
-#include "core_string.h"
+#include "asset_texture.h"
 
 /**
  * Check if the given asset-id is a normalmap.

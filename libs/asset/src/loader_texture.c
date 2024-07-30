@@ -1,4 +1,3 @@
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -8,6 +7,7 @@
 #include "ecs_world.h"
 #include "geo_vector.h"
 
+#include "loader_texture_internal.h"
 #include "repo_internal.h"
 
 static const f32 g_textureSrgbToFloat[] = {
@@ -64,7 +64,21 @@ static void ecs_destruct_texture_comp(void* data) {
   alloc_free(g_allocHeap, asset_texture_data(comp));
 }
 
-static usize asset_texture_format_pixel_size(const AssetTextureFormat format) {
+static u32 tex_pixel_count_mip(const u32 width, const u32 height, const u32 layers, const u32 mip) {
+  const u32 mipWidth  = math_max(width >> mip, 1);
+  const u32 mipHeight = math_max(height >> mip, 1);
+  return mipWidth * mipHeight * math_max(1, layers);
+}
+
+static u32 tex_pixel_count(const u32 width, const u32 height, const u32 layers, const u32 mips) {
+  u32 pixels = 0;
+  for (u32 mip = 0; mip != math_max(mips, 1); ++mip) {
+    pixels += tex_pixel_count_mip(width, height, layers, mip);
+  }
+  return pixels;
+}
+
+static usize tex_format_stride(const AssetTextureFormat format) {
   static const usize g_pixelSize[AssetTextureFormat_Count] = {
       [AssetTextureFormat_u8_r]     = sizeof(u8) * 1,
       [AssetTextureFormat_u8_rgba]  = sizeof(u8) * 4,
@@ -157,37 +171,32 @@ usize asset_texture_req_size(
     const u32                width,
     const u32                height,
     const u32                layers,
-    const u32                mipLevels) {
-  usize size = 0;
-  for (u32 mipLevel = 0; mipLevel != math_max(mipLevels, 1); ++mipLevel) {
-    size += asset_texture_req_mip_size(format, width, height, layers, mipLevel);
-  }
-  return size;
+    const u32                mips) {
+  const u32 count = tex_pixel_count(width, height, layers, mips);
+  return count * tex_format_stride(format);
 }
 
-usize asset_texture_req_align(const AssetTextureFormat format) {
-  return asset_texture_format_pixel_size(format);
+usize asset_texture_req_align(const AssetTextureFormat format) { return tex_format_stride(format); }
+
+usize asset_texture_mip_size(const AssetTextureComp* t, const u32 mipLevel) {
+  diag_assert(mipLevel < math_max(t->srcMipLevels, 1));
+  const u32 count = tex_pixel_count_mip(t->width, t->height, t->layers, mipLevel);
+  return count * tex_format_stride(t->format);
 }
 
-usize asset_texture_mip_size(const AssetTextureComp* texture, const u32 mipLevel) {
-  diag_assert(mipLevel < math_max(texture->srcMipLevels, 1));
-  return asset_texture_req_mip_size(
-      texture->format, texture->width, texture->height, texture->layers, mipLevel);
+usize asset_texture_data_size(const AssetTextureComp* t) {
+  const u32 count = tex_pixel_count(t->width, t->height, t->layers, t->srcMipLevels);
+  return count * tex_format_stride(t->format);
 }
 
-usize asset_texture_data_size(const AssetTextureComp* texture) {
-  return asset_texture_req_size(
-      texture->format, texture->width, texture->height, texture->layers, texture->srcMipLevels);
+Mem asset_texture_data(const AssetTextureComp* t) {
+  return mem_create(t->pixelData, asset_texture_data_size(t));
 }
 
-Mem asset_texture_data(const AssetTextureComp* texture) {
-  return mem_create(texture->pixelData, asset_texture_data_size(texture));
-}
-
-GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const usize index) {
-  const usize pixelCount    = tex->width * tex->height;
-  const usize layerDataSize = pixelCount * asset_texture_format_pixel_size(tex->format);
-  const void* pixelsMip0    = bits_ptr_offset(tex->pixelData, layerDataSize * layer);
+GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usize index) {
+  const usize pixelCount    = t->width * t->height;
+  const usize layerDataSize = pixelCount * tex_format_stride(t->format);
+  const void* pixelsMip0    = bits_ptr_offset(t->pixelData, layerDataSize * layer);
 
   /**
    * Follows the same to RGBA conversion rules as the Vulkan spec:
@@ -197,9 +206,9 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
   static const f32 g_u16MaxInv = 1.0f / u16_max;
 
   GeoColor res;
-  switch (tex->format) {
+  switch (t->format) {
   case AssetTextureFormat_u8_r:
-    if (tex->flags & AssetTextureFlags_Srgb) {
+    if (t->flags & AssetTextureFlags_Srgb) {
       res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index]];
     } else {
       res.r = ((const u8*)pixelsMip0)[index] * g_u8MaxInv;
@@ -209,7 +218,7 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
     res.a = 1.0f;
     return res;
   case AssetTextureFormat_u8_rgba:
-    if (tex->flags & AssetTextureFlags_Srgb) {
+    if (t->flags & AssetTextureFlags_Srgb) {
       res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 0]];
       res.g = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 1]];
       res.b = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 2]];
@@ -251,22 +260,22 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
   UNREACHABLE
 }
 
-GeoColor asset_texture_sample(
-    const AssetTextureComp* tex, const f32 xNorm, const f32 yNorm, const u32 layer) {
+GeoColor
+asset_texture_sample(const AssetTextureComp* t, const f32 xNorm, const f32 yNorm, const u32 layer) {
   diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
   diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
-  diag_assert(layer < math_max(1, tex->layers));
+  diag_assert(layer < math_max(1, t->layers));
 
-  const f32 x = xNorm * (tex->width - 1), y = yNorm * (tex->height - 1);
+  const f32 x = xNorm * (t->width - 1), y = yNorm * (t->height - 1);
 
-  const f32 corner1x = math_min(tex->width - 2, math_round_down_f32(x));
-  const f32 corner1y = math_min(tex->height - 2, math_round_down_f32(y));
+  const f32 corner1x = math_min(t->width - 2, math_round_down_f32(x));
+  const f32 corner1y = math_min(t->height - 2, math_round_down_f32(y));
   const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
 
-  const GeoColor c1 = asset_texture_at(tex, layer, (usize)corner1y * tex->width + (usize)corner1x);
-  const GeoColor c2 = asset_texture_at(tex, layer, (usize)corner1y * tex->width + (usize)corner2x);
-  const GeoColor c3 = asset_texture_at(tex, layer, (usize)corner2y * tex->width + (usize)corner1x);
-  const GeoColor c4 = asset_texture_at(tex, layer, (usize)corner2y * tex->width + (usize)corner2x);
+  const GeoColor c1 = asset_texture_at(t, layer, (usize)corner1y * t->width + (usize)corner1x);
+  const GeoColor c2 = asset_texture_at(t, layer, (usize)corner1y * t->width + (usize)corner2x);
+  const GeoColor c3 = asset_texture_at(t, layer, (usize)corner2y * t->width + (usize)corner1x);
+  const GeoColor c4 = asset_texture_at(t, layer, (usize)corner2y * t->width + (usize)corner2x);
 
   return geo_color_bilerp(c1, c2, c3, c4, x - corner1x, y - corner1y);
 }
