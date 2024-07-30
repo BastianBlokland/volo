@@ -143,27 +143,9 @@ usize asset_texture_req_mip_size(
     const u32                width,
     const u32                height,
     const u32                layers,
-    const u32                mipLevel) {
-  const u32 mipWidth   = math_max(width >> mipLevel, 1);
-  const u32 mipHeight  = math_max(height >> mipLevel, 1);
-  const u32 pixelCount = mipWidth * mipHeight * math_max(1, layers);
-  switch (format) {
-  case AssetTextureFormat_u8_r:
-    return sizeof(u8) * 1 * pixelCount;
-  case AssetTextureFormat_u8_rgba:
-    return sizeof(u8) * 4 * pixelCount;
-  case AssetTextureFormat_u16_r:
-    return sizeof(u16) * 1 * pixelCount;
-  case AssetTextureFormat_u16_rgba:
-    return sizeof(u16) * 4 * pixelCount;
-  case AssetTextureFormat_f32_r:
-    return sizeof(f32) * 1 * pixelCount;
-  case AssetTextureFormat_f32_rgba:
-    return sizeof(f32) * 4 * pixelCount;
-  case AssetTextureFormat_Count:
-    UNREACHABLE
-  }
-  diag_crash();
+    const u32                mip) {
+  const u32 count = tex_pixel_count_mip(width, height, layers, mip);
+  return count * tex_format_stride(format);
 }
 
 usize asset_texture_req_size(
