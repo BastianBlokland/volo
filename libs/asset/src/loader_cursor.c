@@ -24,8 +24,6 @@ typedef struct {
 typedef enum {
   CursorError_None,
   CursorError_InvalidTexture,
-  CursorError_InvalidTextureFormat,
-  CursorError_InvalidTextureLayers,
 
   CursorError_Count,
 } CursorError;
@@ -34,8 +32,6 @@ static String cursor_error_str(const CursorError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Cursor specifies an invalid texture"),
-      string_static("Cursor uses an unsupported pixel format (only u8_rgba supported)"),
-      string_static("Cursor uses an unsupported layer count (only 1 supported)"),
   };
   ASSERT(array_elems(g_msgs) == CursorError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -81,32 +77,27 @@ static void asset_cursor_generate(
   const usize pixelMemSize = sizeof(AssetCursorPixel) * pixelCount;
   const Mem   pixelMem     = alloc_alloc(g_allocHeap, pixelMemSize, sizeof(AssetCursorPixel));
 
-  const bool scaled  = outWidth != texture->width || outHeight != texture->height;
-  const bool colored = def->color != null;
-  if (scaled || colored || !(texture->flags & AssetTextureFlags_Srgb)) {
-    const GeoColor    colorMul     = def->color ? *def->color : geo_color_white;
-    const f32         outWidthInv  = 1.0f / (f32)outWidth;
-    const f32         outHeightInv = 1.0f / (f32)outHeight;
-    AssetCursorPixel* outPixels    = pixelMem.ptr;
-    for (u32 y = 0; y != outHeight; ++y) {
-      const f32 yNorm = (f32)(y + 0.5f) * outHeightInv;
-      for (u32 x = 0; x != outWidth; ++x) {
-        const f32 xNorm = (f32)(x + 0.5f) * outWidthInv;
+  const bool        colored      = def->color != null;
+  const GeoColor    colorMul     = def->color ? *def->color : geo_color_white;
+  const f32         outWidthInv  = 1.0f / (f32)outWidth;
+  const f32         outHeightInv = 1.0f / (f32)outHeight;
+  AssetCursorPixel* outPixels    = pixelMem.ptr;
+  for (u32 y = 0; y != outHeight; ++y) {
+    const f32 yNorm = (f32)(y + 0.5f) * outHeightInv;
+    for (u32 x = 0; x != outWidth; ++x) {
+      const f32 xNorm = (f32)(x + 0.5f) * outWidthInv;
 
-        const u32 layer       = 0;
-        GeoColor  colorLinear = asset_texture_sample(texture, xNorm, yNorm, layer);
+      const u32 layer       = 0;
+      GeoColor  colorLinear = asset_texture_sample(texture, xNorm, yNorm, layer);
 
-        if (colored) {
-          colorLinear = geo_color_mul_comps(colorLinear, colorMul);
-          colorLinear = geo_color_clamp_comps(colorLinear, geo_color_clear, geo_color_white);
-        }
-
-        // Always output Srgb encoded pixels.
-        outPixels[y * outWidth + x] = asset_cursor_pixel(geo_color_linear_to_srgb(colorLinear));
+      if (colored) {
+        colorLinear = geo_color_mul_comps(colorLinear, colorMul);
+        colorLinear = geo_color_clamp_comps(colorLinear, geo_color_clear, geo_color_white);
       }
+
+      // Always output Srgb encoded pixels.
+      outPixels[y * outWidth + x] = asset_cursor_pixel(geo_color_linear_to_srgb(colorLinear));
     }
-  } else {
-    mem_cpy(pixelMem, asset_texture_data(texture));
   }
 
   outCursor->width    = outWidth;
@@ -173,22 +164,10 @@ ecs_system_define(LoadCursorAssetSys) {
     }
 
     /**
-     * Validate cursor texture.
-     */
-    const AssetTextureComp* texture = ecs_view_read_t(textureItr, AssetTextureComp);
-    if (UNLIKELY(texture->format != AssetTextureFormat_u8_rgba)) {
-      err = CursorError_InvalidTextureFormat;
-      goto Error;
-    }
-    if (UNLIKELY(texture->layers > 1)) {
-      err = CursorError_InvalidTextureLayers;
-      goto Error;
-    }
-
-    /**
      * Build cursor.
      */
-    AssetCursorComp* cursor = ecs_world_add_t(world, entity, AssetCursorComp);
+    const AssetTextureComp* texture = ecs_view_read_t(textureItr, AssetTextureComp);
+    AssetCursorComp*        cursor  = ecs_world_add_t(world, entity, AssetCursorComp);
     asset_cursor_generate(&load->def, texture, cursor);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
