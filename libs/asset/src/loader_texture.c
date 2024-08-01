@@ -446,6 +446,17 @@ asset_texture_sample(const AssetTextureComp* t, const f32 xNorm, const f32 yNorm
   return geo_color_bilerp(c1, c2, c3, c4, x - corner1x, y - corner1y);
 }
 
+GeoColor asset_texture_sample_nearest(
+    const AssetTextureComp* t, const f32 xNorm, const f32 yNorm, const u32 layer) {
+  diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
+  diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
+  diag_assert(layer < t->layers);
+
+  const usize x = (usize)math_round_nearest_f32(xNorm * (t->width - 1));
+  const usize y = (usize)math_round_nearest_f32(yNorm * (t->height - 1));
+  return asset_texture_at(t, layer, y * t->width + x);
+}
+
 bool asset_texture_is_normalmap(const String id) {
   static const String g_patterns[] = {
       string_static("*_nrm.*"),

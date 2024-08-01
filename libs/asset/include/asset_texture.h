@@ -53,3 +53,4 @@ GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
  * NOTE: Always samples mip-level 0.
  */
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);
+GeoColor asset_texture_sample_nearest(const AssetTextureComp*, f32 x, f32 y, u32 layer);
