@@ -348,28 +348,6 @@ usize asset_texture_format_channels(const AssetTextureFormat format) {
   return tex_format_channels(format);
 }
 
-usize asset_texture_req_mip_size(
-    const AssetTextureFormat format,
-    const u32                width,
-    const u32                height,
-    const u32                layers,
-    const u32                mip) {
-  const u32 count = tex_pixel_count_mip(width, height, layers, mip);
-  return count * tex_format_stride(format);
-}
-
-usize asset_texture_req_size(
-    const AssetTextureFormat format,
-    const u32                width,
-    const u32                height,
-    const u32                layers,
-    const u32                mips) {
-  const u32 count = tex_pixel_count(width, height, layers, mips);
-  return count * tex_format_stride(format);
-}
-
-usize asset_texture_req_align(const AssetTextureFormat format) { return tex_format_stride(format); }
-
 usize asset_texture_mip_size(const AssetTextureComp* t, const u32 mipLevel) {
   diag_assert(mipLevel < t->srcMipLevels);
   const u32 count = tex_pixel_count_mip(t->width, t->height, t->layers, mipLevel);
