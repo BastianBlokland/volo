@@ -1,5 +1,6 @@
 {
   "type": "CubeDiffIrradiance",
+  "channels": "Three",
   "mipmaps": false,
   "uncompressed": true,
   "sizeX": 16, "sizeY": 16,

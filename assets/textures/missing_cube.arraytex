@@ -1,5 +1,6 @@
 {
   "type": "Cube",
+  "channels": "One",
   "mipmaps": false,
   "textures": [
     "textures/missing.proctex",

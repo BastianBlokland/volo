@@ -1,5 +1,6 @@
 {
   "type": "CubeSpecIrradiance",
+  "channels": "Three",
   "mipmaps": false,
   "sizeX": 128, "sizeY": 128,
   "textures": [

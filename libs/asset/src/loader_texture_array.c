@@ -1,6 +1,6 @@
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "data.h"
@@ -12,11 +12,11 @@
 #include "geo_quat.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
 #define arraytex_max_textures 100
-#define arraytex_max_layers 256
 #define arraytex_max_size 2048
 #define arraytex_max_generates_per_tick 1
 #define arraytex_spec_irradiance_mips 5
@@ -39,11 +39,18 @@ typedef enum {
   ArrayTexType_CubeSpecIrradiance,
 } ArrayTexType;
 
+typedef enum {
+  ArrayTexChannels_One   = 1,
+  ArrayTexChannels_Two   = 2,
+  ArrayTexChannels_Three = 3,
+  ArrayTexChannels_Four  = 4,
+} ArrayTexChannels;
+
 typedef struct {
-  ArrayTexType type;
-  bool         mipmaps;
-  bool         uncompressed;
-  u32          sizeX, sizeY;
+  ArrayTexType     type;
+  ArrayTexChannels channels;
+  bool             mipmaps, srgb, uncompressed;
+  u32              sizeX, sizeY;
   struct {
     String* values;
     usize   count;
@@ -65,14 +72,10 @@ typedef enum {
   ArrayTexError_None = 0,
   ArrayTexError_NoTextures,
   ArrayTexError_TooManyTextures,
-  ArrayTexError_TooManyLayers,
   ArrayTexError_SizeTooBig,
+  ArrayTexError_TooFewChannelsForSrgb,
   ArrayTexError_InvalidTexture,
-  ArrayTexError_MismatchFormat,
-  ArrayTexError_MismatchEncoding,
-  ArrayTexError_MismatchSize,
   ArrayTexError_InvalidCubeAspect,
-  ArrayTexError_UnsupportedInputFormatForResampling,
   ArrayTexError_InvalidCubeTextureCount,
   ArrayTexError_InvalidCubeIrradianceInputType,
   ArrayTexError_InvalidCubeIrradianceOutputSize,
@@ -85,47 +88,16 @@ static String arraytex_error_str(const ArrayTexError err) {
       string_static("None"),
       string_static("ArrayTex does not specify any textures"),
       string_static("ArrayTex specifies more textures then are supported"),
-      string_static("ArrayTex specifies more layers then are supported"),
       string_static("ArrayTex specifies a size larger then is supported"),
+      string_static("ArrayTex specifies Srgb with less then 3 channels"),
       string_static("ArrayTex specifies an invalid texture"),
-      string_static("ArrayTex textures have different formats"),
-      string_static("ArrayTex textures have different encodings"),
-      string_static("ArrayTex textures have different sizes"),
       string_static("ArrayTex cube / cube-irradiance needs to be square"),
-      string_static("ArrayTex resampling is only supported for rgba 8bit input textures"),
       string_static("ArrayTex cube / cube-irradiance needs 6 textures"),
       string_static("ArrayTex cube-irradiance needs rgba 8bit input textures"),
       string_static("ArrayTex specifies a size smaller then is supported for spec irradiance"),
   };
   ASSERT(array_elems(g_msgs) == ArrayTexError_Count, "Incorrect number of array-error messages");
   return g_msgs[err];
-}
-
-static AssetTextureFlags
-arraytex_texture_flags(const ArrayTexDef* def, const bool srgb, const bool alpha) {
-  AssetTextureFlags flags = 0;
-  switch (def->type) {
-  case ArrayTexType_Array:
-    break;
-  case ArrayTexType_Cube:
-  case ArrayTexType_CubeDiffIrradiance:
-  case ArrayTexType_CubeSpecIrradiance:
-    flags |= AssetTextureFlags_CubeMap;
-    break;
-  }
-  if (def->mipmaps) {
-    flags |= AssetTextureFlags_GenerateMipMaps;
-  }
-  if (def->uncompressed) {
-    flags |= AssetTextureFlags_Uncompressed;
-  }
-  if (srgb) {
-    flags |= AssetTextureFlags_Srgb;
-  }
-  if (alpha) {
-    flags |= AssetTextureFlags_Alpha;
-  }
-  return flags;
 }
 
 static bool arraytex_output_cube(const ArrayTexDef* def) {
@@ -152,16 +124,21 @@ static u32 arraytex_output_mips(const ArrayTexDef* def) {
   diag_crash();
 }
 
-static bool arraytex_output_irradiance(const ArrayTexDef* def) {
-  switch (def->type) {
-  case ArrayTexType_Array:
-  case ArrayTexType_Cube:
-    return false;
-  case ArrayTexType_CubeDiffIrradiance:
-  case ArrayTexType_CubeSpecIrradiance:
-    return true;
+static AssetTextureFlags arraytex_output_flags(const ArrayTexDef* def) {
+  AssetTextureFlags flags = 0;
+  if (arraytex_output_cube(def)) {
+    flags |= AssetTextureFlags_CubeMap;
   }
-  diag_crash();
+  if (def->mipmaps) {
+    flags |= AssetTextureFlags_GenerateMipMaps;
+  }
+  if (def->uncompressed) {
+    flags |= AssetTextureFlags_Uncompressed;
+  }
+  if (def->srgb) {
+    flags |= AssetTextureFlags_Srgb;
+  }
+  return flags;
 }
 
 typedef struct {
@@ -194,40 +171,35 @@ static CubePoint arraytex_cube_lookup(const GeoVector dir) {
   return res;
 }
 
-static void arraytex_color_to_b4(const GeoColor color, u8 out[PARAM_ARRAY_SIZE(4)]) {
+static void arraytex_color_write(const ArrayTexDef* def, const GeoColor color, u8* out) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
 
-  out[0] = (u8)(color.r * g_u8MaxPlusOneRoundDown);
-  out[1] = (u8)(color.g * g_u8MaxPlusOneRoundDown);
-  out[2] = (u8)(color.b * g_u8MaxPlusOneRoundDown);
-  out[3] = (u8)(color.a * g_u8MaxPlusOneRoundDown);
+  switch (def->channels) {
+  case ArrayTexChannels_Four:
+    out[3] = (u8)(color.a * g_u8MaxPlusOneRoundDown);
+    // Fallthrough.
+  case ArrayTexChannels_Three:
+    out[2] = (u8)(color.b * g_u8MaxPlusOneRoundDown);
+    // Fallthrough.
+  case ArrayTexChannels_Two:
+    out[1] = (u8)(color.g * g_u8MaxPlusOneRoundDown);
+    // Fallthrough.
+  case ArrayTexChannels_One:
+    out[0] = (u8)(color.r * g_u8MaxPlusOneRoundDown);
+    break;
+  }
 }
 
 static GeoColor arraytex_sample_cube(const AssetTextureComp** textures, const GeoVector dir) {
-  CubePoint               point = arraytex_cube_lookup(dir);
+  const CubePoint         point = arraytex_cube_lookup(dir);
   const AssetTextureComp* tex   = textures[point.face];
   return asset_texture_sample(tex, point.coordX, point.coordY, 0);
 }
 
 /**
- * Copy all pixel data to the output.
- * NOTE: Requires all input textures as well as the output textures to have matching sizes.
+ * Sample all pixels from all textures from the input textures.
  */
-static void
-arraytex_write_simple(const ArrayTexDef* def, const AssetTextureComp** textures, Mem dest) {
-  for (usize i = 0; i != def->textures.count; ++i) {
-    const Mem texMem = asset_texture_data(textures[i]);
-    mem_cpy(dest, texMem);
-    dest = mem_consume(dest, texMem.size);
-  }
-  diag_assert(!dest.size); // Verify we filled the entire output.
-}
-
-/**
- * Sample all pixels on all textures from the input textures.
- * NOTE: Supports differently sized input and output textures.
- */
-static void arraytex_write_resample(
+static void arraytex_write_simple(
     const ArrayTexDef*       def,
     const AssetTextureComp** textures,
     const u32                width,
@@ -238,20 +210,18 @@ static void arraytex_write_resample(
   const f32 invHeight = 1.0f / height;
   for (usize texIndex = 0; texIndex != def->textures.count; ++texIndex) {
     const AssetTextureComp* tex = textures[texIndex];
-    // TODO: Support input textures with multiple layers.
-    diag_assert(tex->layers <= 1);
 
     for (u32 y = 0; y != height; ++y) {
       const f32 yFrac = (y + 0.5f) * invHeight;
       for (u32 x = 0; x != width; ++x) {
         const f32 xFrac = (x + 0.5f) * invWidth;
-        GeoColor  color = asset_texture_sample(tex, xFrac, yFrac, 0);
+        GeoColor  color = asset_texture_sample(tex, xFrac, yFrac, 0 /* layer */);
 
         if (srgb) {
           color = geo_color_linear_to_srgb(color);
         }
-        arraytex_color_to_b4(color, dest.ptr);
-        dest = mem_consume(dest, 4);
+        arraytex_color_write(def, color, dest.ptr);
+        dest = mem_consume(dest, def->channels);
       }
     }
   }
@@ -323,7 +293,6 @@ arraytex_diff_irradiance_convolve(const AssetTextureComp** textures, const GeoVe
 
 /**
  * Generate a diffuse irradiance map.
- * NOTE: Supports differently sized input and output textures.
  */
 static void arraytex_write_diff_irradiance_b4(
     const ArrayTexDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
@@ -338,8 +307,8 @@ static void arraytex_write_diff_irradiance_b4(
         const GeoVector dir        = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
         const GeoColor  irradiance = arraytex_diff_irradiance_convolve(textures, dir);
 
-        arraytex_color_to_b4(irradiance, dest.ptr);
-        dest = mem_consume(dest, 4);
+        arraytex_color_write(def, irradiance, dest.ptr);
+        dest = mem_consume(dest, def->channels);
       }
     }
   }
@@ -379,17 +348,13 @@ static GeoColor arraytex_spec_irradiance_convolve(
 /**
  * Generate a specular irradiance map (aka 'environment map').
  * Lowest mip represents roughness == 0 and the highest represents roughness == 1.
- * NOTE: Supports differently sized input and output textures.
  */
 static void arraytex_write_spec_irradiance_b4(
-    const ArrayTexDef*       def,
-    const AssetTextureComp** textures,
-    const AssetTextureFormat format,
-    const u32                size,
-    Mem                      dest) {
+    const ArrayTexDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
   // Mip 0 represents a perfect mirror so we can just copy the source.
-  const usize mip0Size = asset_texture_req_size(format, size, size, 6, 1);
-  arraytex_write_resample(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
+  const usize mip0Size =
+      asset_texture_type_mip_size(AssetTextureType_u8, def->channels, size, size, 6, 0);
+  arraytex_write_simple(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
   dest = mem_consume(dest, mip0Size);
 
   // Other mip-levels represent rougher specular irradiance so we convolve the incoming radiance.
@@ -418,8 +383,8 @@ static void arraytex_write_spec_irradiance_b4(
           const GeoColor  irr =
               arraytex_spec_irradiance_convolve(textures, dir, samples, sampleCount);
 
-          arraytex_color_to_b4(irr, dest.ptr);
-          dest = mem_consume(dest, 4);
+          arraytex_color_write(def, irr, dest.ptr);
+          dest = mem_consume(dest, def->channels);
         }
       }
     }
@@ -433,57 +398,16 @@ static void arraytex_generate(
     AssetTextureComp*        outTexture,
     ArrayTexError*           err) {
 
-  const AssetTextureFormat format   = textures[0]->format;
-  const bool               inSrgb   = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
-  const u32                inWidth  = textures[0]->width;
-  const u32                inHeight = textures[0]->height;
-  u32                      layers   = math_max(1, textures[0]->layers);
-  bool                     alpha    = false;
-
-  const bool irradianceMap = arraytex_output_irradiance(def);
-  if (UNLIKELY(irradianceMap && format != AssetTextureFormat_u8_rgba)) {
-    // TODO: Support hdr input texture for cube-irradiance maps.
-    *err = ArrayTexError_InvalidCubeIrradianceInputType;
-    return;
-  }
   if (UNLIKELY(def->type == ArrayTexType_CubeSpecIrradiance && def->sizeX < 64)) {
     *err = ArrayTexError_InvalidCubeIrradianceOutputSize;
     return;
   }
 
-  for (usize i = 1; i != def->textures.count; ++i) {
-    if (UNLIKELY(textures[i]->format != format)) {
-      *err = ArrayTexError_MismatchFormat;
-      return;
-    }
-    if (UNLIKELY(inSrgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
-      *err = ArrayTexError_MismatchEncoding;
-      return;
-    }
-    if (UNLIKELY(textures[i]->width != inWidth || textures[i]->height != inHeight)) {
-      *err = ArrayTexError_MismatchSize;
-      return;
-    }
-    if (textures[i]->flags & AssetTextureFlags_Alpha) {
-      alpha = true;
-    }
-    layers += math_max(1, textures[i]->layers);
-  }
-  if (UNLIKELY(layers > arraytex_max_layers)) {
-    *err = ArrayTexError_TooManyLayers;
-    return;
-  }
-
-  const u32  outWidth      = def->sizeX ? def->sizeX : inWidth;
-  const u32  outHeight     = def->sizeY ? def->sizeY : inHeight;
-  const bool needsResample = inWidth != outWidth || inHeight != outHeight;
-  if (UNLIKELY(needsResample && format != AssetTextureFormat_u8_rgba)) {
-    // TODO: Support resampling hdr input textures.
-    *err = ArrayTexError_UnsupportedInputFormatForResampling;
-    return;
-  }
+  const u32  layers    = (u32)def->textures.count;
+  const u32  width     = def->sizeX ? def->sizeX : textures[0]->width;
+  const u32  height    = def->sizeY ? def->sizeY : textures[0]->height;
   const bool isCubeMap = arraytex_output_cube(def);
-  if (UNLIKELY(isCubeMap && outWidth != outHeight)) {
+  if (UNLIKELY(isCubeMap && width != height)) {
     *err = ArrayTexError_InvalidCubeAspect;
     return;
   }
@@ -492,39 +416,30 @@ static void arraytex_generate(
     return;
   }
 
-  const u32   mips      = arraytex_output_mips(def);
-  const usize dataSize  = asset_texture_req_size(format, outWidth, outHeight, layers, mips);
-  const usize dataAlign = asset_texture_req_align(format);
+  const u32   mips     = arraytex_output_mips(def);
+  const usize dataSize = bits_align(
+      asset_texture_type_size(AssetTextureType_u8, def->channels, width, height, layers, mips), 4);
+  const usize dataAlign = 4;
   const Mem   pixelsMem = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
-  bool outSrgb = irradianceMap ? false : inSrgb;
   switch (def->type) {
   case ArrayTexType_Array:
   case ArrayTexType_Cube:
-    if (needsResample) {
-      arraytex_write_resample(def, textures, outWidth, outHeight, outSrgb, pixelsMem);
-    } else {
-      arraytex_write_simple(def, textures, pixelsMem);
-    }
+    arraytex_write_simple(def, textures, width, height, def->srgb, pixelsMem);
     break;
   case ArrayTexType_CubeDiffIrradiance:
-    arraytex_write_diff_irradiance_b4(def, textures, outWidth, pixelsMem);
+    arraytex_write_diff_irradiance_b4(def, textures, width, pixelsMem);
     break;
   case ArrayTexType_CubeSpecIrradiance:
-    arraytex_write_spec_irradiance_b4(def, textures, format, outWidth, pixelsMem);
+    arraytex_write_spec_irradiance_b4(def, textures, width, pixelsMem);
     break;
   }
 
-  *outTexture = (AssetTextureComp){
-      .format       = format,
-      .flags        = arraytex_texture_flags(def, outSrgb, alpha),
-      .pixelData    = pixelsMem.ptr,
-      .width        = outWidth,
-      .height       = outHeight,
-      .layers       = layers,
-      .srcMipLevels = mips,
-  };
+  AssetTextureFlags flags = arraytex_output_flags(def);
+  *outTexture             = asset_texture_create(
+      pixelsMem, width, height, def->channels, layers, mips, AssetTextureType_u8, flags);
   *err = ArrayTexError_None;
+  alloc_free(g_allocHeap, pixelsMem);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -653,9 +568,17 @@ void asset_data_init_arraytex(void) {
   data_reg_const_t(g_dataReg, ArrayTexType, CubeDiffIrradiance);
   data_reg_const_t(g_dataReg, ArrayTexType, CubeSpecIrradiance);
 
+  data_reg_enum_t(g_dataReg, ArrayTexChannels);
+  data_reg_const_t(g_dataReg, ArrayTexChannels, One);
+  data_reg_const_t(g_dataReg, ArrayTexChannels, Two);
+  data_reg_const_t(g_dataReg, ArrayTexChannels, Three);
+  data_reg_const_t(g_dataReg, ArrayTexChannels, Four);
+
   data_reg_struct_t(g_dataReg, ArrayTexDef);
   data_reg_field_t(g_dataReg, ArrayTexDef, type, t_ArrayTexType);
+  data_reg_field_t(g_dataReg, ArrayTexDef, channels, t_ArrayTexChannels);
   data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
@@ -690,6 +613,11 @@ void asset_load_arraytex(
     errMsg = arraytex_error_str(ArrayTexError_SizeTooBig);
     goto Error;
   }
+  if (UNLIKELY(def.srgb && def.channels < ArrayTexChannels_Three)) {
+    errMsg = arraytex_error_str(ArrayTexError_TooFewChannelsForSrgb);
+    goto Error;
+  }
+
   array_ptr_for_t(def.textures, String, texName) {
     if (UNLIKELY(string_is_empty(*texName))) {
       errMsg = arraytex_error_str(ArrayTexError_InvalidTexture);
