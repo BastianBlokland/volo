@@ -496,6 +496,9 @@ AssetTextureComp asset_texture_create(
     AssetTextureFlags      flags) {
   diag_assert(width && height && channels && layers && mips);
 
+  if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
+    diag_crash_msg("Srgb requires at least 3 channels");
+  }
   if (tex_has_alpha(in, width, height, channels, layers, mips, type)) {
     flags |= AssetTextureFlags_Alpha;
   }
