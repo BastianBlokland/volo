@@ -454,9 +454,16 @@ static void arraytex_generate(
   }
 
   // Create texture.
-  AssetTextureFlags flags = arraytex_output_flags(def);
-  *outTexture             = asset_texture_create(
-      pixelsMem, width, height, def->channels, layers, mips, AssetTextureType_u8, flags);
+  *outTexture = asset_texture_create(
+      pixelsMem,
+      width,
+      height,
+      def->channels,
+      layers,
+      mips,
+      0 /* mipsMax */,
+      AssetTextureType_u8,
+      arraytex_output_flags(def));
 
   // Cleanup.
   *err = ArrayTexError_None;

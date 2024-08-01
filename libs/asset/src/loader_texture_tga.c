@@ -426,13 +426,16 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto Ret;
   }
 
-  const u32               texLayers = 1;
-  const u32               texMips   = 1;
-  const AssetTextureType  texType   = AssetTextureType_u8;
-  const AssetTextureFlags texFlags  = tga_texture_flags(channels, isNormalmap);
-
-  *ecs_world_add_t(world, entity, AssetTextureComp) =
-      asset_texture_create(pixels, width, height, channels, texLayers, texMips, texType, texFlags);
+  *ecs_world_add_t(world, entity, AssetTextureComp) = asset_texture_create(
+      pixels,
+      width,
+      height,
+      channels,
+      1 /* layers */,
+      1 /* mipsSrc */,
+      0 /* mipsMax */,
+      AssetTextureType_u8,
+      tga_texture_flags(channels, isNormalmap));
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
 Ret:

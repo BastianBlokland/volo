@@ -26,7 +26,7 @@ usize asset_texture_type_size(
  * Pre-condition: height > 0
  * Pre-condition: channels > 0
  * Pre-condition: layers > 0
- * Pre-condition: mips > 0
+ * Pre-condition: mipsSrc > 0
  */
 AssetTextureComp asset_texture_create(
     Mem in,
@@ -34,6 +34,7 @@ AssetTextureComp asset_texture_create(
     u32 height,
     u32 channels,
     u32 layers,
-    u32 mips,
+    u32 mipsSrc,
+    u32 mipsMax,
     AssetTextureType,
     AssetTextureFlags);

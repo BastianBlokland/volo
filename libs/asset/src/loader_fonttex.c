@@ -276,7 +276,8 @@ static void fonttex_generate(
       def->size,
       1 /* channels */,
       1 /* layers */,
-      1 /* mips */,
+      1 /* mipsSrc */,
+      0 /* mipsMax */,
       AssetTextureType_u8,
       AssetTextureFlags_None);
 

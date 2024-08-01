@@ -502,22 +502,23 @@ AssetTextureComp asset_texture_create(
     const u32              height,
     const u32              channels,
     const u32              layers,
-    const u32              mips,
+    const u32              mipsSrc,
+    const u32              mipsMax,
     const AssetTextureType type,
     AssetTextureFlags      flags) {
-  diag_assert(width && height && channels && layers && mips);
+  diag_assert(width && height && channels && layers && mipsSrc);
 
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
   }
-  if (tex_has_alpha(in, width, height, channels, layers, mips, type)) {
+  if (tex_has_alpha(in, width, height, channels, layers, mipsSrc, type)) {
     flags |= AssetTextureFlags_Alpha;
   }
 
   const AssetTextureFormat format     = tex_format_pick(type, channels);
   const usize              dataStride = tex_format_stride(format);
-  const usize              dataSize   = tex_pixel_count(width, height, layers, mips) * dataStride;
-  const Mem                data       = alloc_alloc(g_allocHeap, dataSize, dataStride);
+  const usize              dataSize = tex_pixel_count(width, height, layers, mipsSrc) * dataStride;
+  const Mem                data     = alloc_alloc(g_allocHeap, dataSize, dataStride);
 
   AssetTextureComp tex = {
       .format       = format,
@@ -526,18 +527,19 @@ AssetTextureComp asset_texture_create(
       .height       = height,
       .pixelData    = data.ptr,
       .layers       = layers,
-      .srcMipLevels = mips,
+      .srcMipLevels = mipsSrc,
+      .maxMipLevels = mipsMax,
   };
 
   switch (type) {
   case AssetTextureType_u8:
-    tex_load_u8(&tex, in, channels, layers, mips);
+    tex_load_u8(&tex, in, channels, layers, mipsSrc);
     break;
   case AssetTextureType_u16:
-    tex_load_u16(&tex, in, channels, layers, mips);
+    tex_load_u16(&tex, in, channels, layers, mipsSrc);
     break;
   case AssetTextureType_f32:
-    tex_load_f32(&tex, in, channels, layers, mips);
+    tex_load_f32(&tex, in, channels, layers, mipsSrc);
     break;
   default:
     diag_crash();
