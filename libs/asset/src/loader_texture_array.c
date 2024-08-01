@@ -75,6 +75,7 @@ typedef enum {
   ArrayTexError_SizeTooBig,
   ArrayTexError_TooFewChannelsForSrgb,
   ArrayTexError_InvalidTexture,
+  ArrayTexError_InvalidTextureLayerCount,
   ArrayTexError_InvalidCubeAspect,
   ArrayTexError_InvalidCubeTextureCount,
   ArrayTexError_InvalidCubeIrradianceInputType,
@@ -91,6 +92,7 @@ static String arraytex_error_str(const ArrayTexError err) {
       string_static("ArrayTex specifies a size larger then is supported"),
       string_static("ArrayTex specifies Srgb with less then 3 channels"),
       string_static("ArrayTex specifies an invalid texture"),
+      string_static("ArrayTex specifies a texture with too many layers"),
       string_static("ArrayTex cube / cube-irradiance needs to be square"),
       string_static("ArrayTex cube / cube-irradiance needs 6 textures"),
       string_static("ArrayTex cube-irradiance needs rgba 8bit input textures"),
@@ -403,14 +405,19 @@ static void arraytex_generate(
     AssetTextureComp*        outTexture,
     ArrayTexError*           err) {
 
-  if (UNLIKELY(def->type == ArrayTexType_CubeSpecIrradiance && def->sizeX < 64)) {
-    *err = ArrayTexError_InvalidCubeIrradianceOutputSize;
-    return;
+  // Validate textures.
+  for (u32 i = 0; i != def->textures.count; ++i) {
+    if (UNLIKELY(textures[i]->layers > 1)) {
+      *err = ArrayTexError_InvalidTextureLayerCount;
+      return;
+    }
   }
 
-  const u32  layers    = (u32)def->textures.count;
-  const u32  width     = def->sizeX ? def->sizeX : textures[0]->width;
-  const u32  height    = def->sizeY ? def->sizeY : textures[0]->height;
+  const u32 layers = (u32)def->textures.count;
+  const u32 width  = def->sizeX ? def->sizeX : textures[0]->width;
+  const u32 height = def->sizeY ? def->sizeY : textures[0]->height;
+
+  // Validate settings.
   const bool isCubeMap = arraytex_output_cube(def);
   if (UNLIKELY(isCubeMap && width != height)) {
     *err = ArrayTexError_InvalidCubeAspect;
@@ -420,13 +427,19 @@ static void arraytex_generate(
     *err = ArrayTexError_InvalidCubeTextureCount;
     return;
   }
+  if (UNLIKELY(def->type == ArrayTexType_CubeSpecIrradiance && width < 64)) {
+    *err = ArrayTexError_InvalidCubeIrradianceOutputSize;
+    return;
+  }
 
+  // Allocate pixel memory.
   const u32   mips     = arraytex_output_mips(def);
   const usize dataSize = bits_align(
       asset_texture_type_size(AssetTextureType_u8, def->channels, width, height, layers, mips), 4);
   const usize dataAlign = 4;
   const Mem   pixelsMem = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
+  // Fill pixels.
   switch (def->type) {
   case ArrayTexType_Array:
   case ArrayTexType_Cube:
@@ -440,9 +453,12 @@ static void arraytex_generate(
     break;
   }
 
+  // Create texture.
   AssetTextureFlags flags = arraytex_output_flags(def);
   *outTexture             = asset_texture_create(
       pixelsMem, width, height, def->channels, layers, mips, AssetTextureType_u8, flags);
+
+  // Cleanup.
   *err = ArrayTexError_None;
   alloc_free(g_allocHeap, pixelsMem);
 }
