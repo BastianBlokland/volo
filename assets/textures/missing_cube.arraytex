@@ -2,6 +2,7 @@
   "type": "Cube",
   "channels": "One",
   "mipmaps": false,
+  "nearest": true,
   "textures": [
     "textures/missing.proctex",
     "textures/missing.proctex",

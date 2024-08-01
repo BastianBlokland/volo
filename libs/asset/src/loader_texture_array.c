@@ -49,7 +49,7 @@ typedef enum {
 typedef struct {
   ArrayTexType     type;
   ArrayTexChannels channels;
-  bool             mipmaps, srgb, uncompressed;
+  bool             mipmaps, srgb, uncompressed, nearest;
   u32              sizeX, sizeY;
   struct {
     String* values;
@@ -215,7 +215,12 @@ static void arraytex_write_simple(
       const f32 yFrac = (y + 0.5f) * invHeight;
       for (u32 x = 0; x != width; ++x) {
         const f32 xFrac = (x + 0.5f) * invWidth;
-        GeoColor  color = asset_texture_sample(tex, xFrac, yFrac, 0 /* layer */);
+        GeoColor  color;
+        if (def->nearest) {
+          color = asset_texture_sample_nearest(tex, xFrac, yFrac, 0 /* layer */);
+        } else {
+          color = asset_texture_sample(tex, xFrac, yFrac, 0 /* layer */);
+        }
 
         if (srgb) {
           color = geo_color_linear_to_srgb(color);
@@ -580,6 +585,7 @@ void asset_data_init_arraytex(void) {
   data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
