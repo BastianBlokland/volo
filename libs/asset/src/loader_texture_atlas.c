@@ -27,7 +27,7 @@ typedef struct {
 
 typedef struct {
   u32  size, entrySize, entryPadding, maxMipMaps;
-  bool mipmaps, srgb;
+  bool mipmaps, srgb, uncompressed, nearest;
   struct {
     AtlasEntryDef* values;
     usize          count;
@@ -93,6 +93,9 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
+  if (def->uncompressed) {
+    flags |= AssetTextureFlags_Uncompressed;
+  }
   if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
   }
@@ -138,10 +141,14 @@ static void atlas_generate_entry(
   for (u32 entryPixelY = 0; entryPixelY != sizeWithPadding; ++entryPixelY) {
     const f32 yNorm = atlas_clamp01((entryPixelY - padding + 0.5f) * sizeWithoutPaddingInv);
     for (u32 entryPixelX = 0; entryPixelX != sizeWithPadding; ++entryPixelX) {
-      const u32 layer = 0;
       const f32 xNorm = atlas_clamp01((entryPixelX - padding + 0.5f) * sizeWithoutPaddingInv);
 
-      GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
+      GeoColor color;
+      if (def->nearest) {
+        color = asset_texture_sample_nearest(texture, xNorm, yNorm, 0 /* layer */);
+      } else {
+        color = asset_texture_sample(texture, xNorm, yNorm, 0 /* layer */);
+      }
       if (def->srgb) {
         color = geo_color_linear_to_srgb(color);
       }
@@ -341,6 +348,8 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
   // clang-format on
 
