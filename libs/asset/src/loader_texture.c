@@ -68,11 +68,11 @@ static void ecs_destruct_texture_comp(void* data) {
 static u32 tex_type_size(const AssetTextureType type) {
   switch (type) {
   case AssetTextureType_u8:
-    return 1;
+    return sizeof(u8);
   case AssetTextureType_u16:
-    return 2;
+    return sizeof(u16);
   case AssetTextureType_f32:
-    return 4;
+    return sizeof(f32);
   }
   diag_crash();
 }
@@ -461,24 +461,28 @@ bool asset_texture_is_normalmap(const String id) {
   return false;
 }
 
-usize asset_texture_type_stride(const AssetTextureType type) { return tex_type_size(type); }
+usize asset_texture_type_stride(const AssetTextureType type, const u32 channels) {
+  return channels * tex_type_size(type);
+}
 
 usize asset_texture_type_mip_size(
     const AssetTextureType type,
+    const u32              channels,
     const u32              width,
     const u32              height,
     const u32              layers,
     const u32              mip) {
-  return tex_pixel_count_mip(width, height, layers, mip) * tex_type_size(type);
+  return tex_pixel_count_mip(width, height, layers, mip) * channels * tex_type_size(type);
 }
 
 usize asset_texture_type_size(
     const AssetTextureType type,
+    const u32              channels,
     const u32              width,
     const u32              height,
     const u32              layers,
     const u32              mips) {
-  return tex_pixel_count(width, height, layers, mips) * tex_type_size(type);
+  return tex_pixel_count(width, height, layers, mips) * channels * tex_type_size(type);
 }
 
 AssetTextureComp asset_texture_create(
