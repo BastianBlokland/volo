@@ -13,6 +13,10 @@ typedef enum {
   AssetTextureType_f32,
 } AssetTextureType;
 
+usize asset_texture_type_stride(AssetTextureType);
+usize asset_texture_type_mip_size(AssetTextureType, u32 width, u32 height, u32 layers, u32 mip);
+usize asset_texture_type_size(AssetTextureType, u32 width, u32 height, u32 layers, u32 mips);
+
 /**
  * Create a new texture from the given input pixels.
  *

@@ -483,6 +483,26 @@ bool asset_texture_is_normalmap(const String id) {
   return false;
 }
 
+usize asset_texture_type_stride(const AssetTextureType type) { return tex_type_size(type); }
+
+usize asset_texture_type_mip_size(
+    const AssetTextureType type,
+    const u32              width,
+    const u32              height,
+    const u32              layers,
+    const u32              mip) {
+  return tex_pixel_count_mip(width, height, layers, mip) * tex_type_size(type);
+}
+
+usize asset_texture_type_size(
+    const AssetTextureType type,
+    const u32              width,
+    const u32              height,
+    const u32              layers,
+    const u32              mips) {
+  return tex_pixel_count(width, height, layers, mips) * tex_type_size(type);
+}
+
 AssetTextureComp asset_texture_create(
     const Mem              in,
     const u32              width,
