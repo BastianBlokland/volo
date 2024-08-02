@@ -191,7 +191,7 @@ static void tex_load_u8(
   diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
 
   const u32 outChannels = tex_format_channels(tex->format);
-  u8* restrict outPtr   = tex->pixelData;
+  u8* restrict outPtr   = tex->pixelData.ptr;
 
   for (u32 mip = 0; mip != inMips; ++mip) {
     const u32 mipWidth  = math_max(tex->width >> mip, 1);
@@ -236,7 +236,7 @@ static void tex_load_u16(
   diag_assert(in.size == pixelCount * sizeof(u16) * inChannels);
 
   const u32 outChannels = tex_format_channels(tex->format);
-  u16* restrict outPtr  = tex->pixelData;
+  u16* restrict outPtr  = tex->pixelData.ptr;
 
   for (u32 mip = 0; mip != inMips; ++mip) {
     const u32 mipWidth  = math_max(tex->width >> mip, 1);
@@ -281,7 +281,7 @@ static void tex_load_f32(
   diag_assert(in.size == pixelCount * sizeof(f32) * inChannels);
 
   const u32 outChannels = tex_format_channels(tex->format);
-  f32* restrict outPtr  = tex->pixelData;
+  f32* restrict outPtr  = tex->pixelData.ptr;
 
   for (u32 mip = 0; mip != inMips; ++mip) {
     const u32 mipWidth  = math_max(tex->width >> mip, 1);
@@ -363,14 +363,12 @@ usize asset_texture_data_size(const AssetTextureComp* t) {
   return count * tex_format_stride(t->format);
 }
 
-Mem asset_texture_data(const AssetTextureComp* t) {
-  return mem_create(t->pixelData, asset_texture_data_size(t));
-}
+Mem asset_texture_data(const AssetTextureComp* t) { return data_mem(t->pixelData); }
 
 GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usize index) {
   const usize pixelCount    = t->width * t->height;
   const usize layerDataSize = pixelCount * tex_format_stride(t->format);
-  const void* pixelsMip0    = bits_ptr_offset(t->pixelData, layerDataSize * layer);
+  const void* pixelsMip0    = bits_ptr_offset(t->pixelData.ptr, layerDataSize * layer);
 
   static const f32 g_u8MaxInv  = 1.0f / u8_max;
   static const f32 g_u16MaxInv = 1.0f / u16_max;
@@ -529,7 +527,7 @@ AssetTextureComp asset_texture_create(
       .flags        = flags,
       .width        = width,
       .height       = height,
-      .pixelData    = data.ptr,
+      .pixelData    = data_mem_create(data),
       .layers       = layers,
       .srcMipLevels = mipsSrc,
       .maxMipLevels = mipsMax,
