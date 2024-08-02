@@ -1,4 +1,3 @@
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -11,6 +10,7 @@
 #include "geo_vector.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -226,62 +226,34 @@ static GeoColor proctex_sample(const ProcTexDef* def, const u32 x, const u32 y, 
   diag_crash();
 }
 
-static usize proctex_pixel_channel_size(const ProcTexDef* def) {
+static AssetTextureType proctex_texture_type(const ProcTexDef* def) {
   switch (def->format) {
   case ProcTexFormat_u8:
-    return sizeof(u8);
+    return AssetTextureType_u8;
   case ProcTexFormat_u16:
-    return sizeof(u16);
+    return AssetTextureType_u16;
   case ProcTexFormat_f32:
-    return sizeof(f32);
-  }
-  diag_crash();
-}
-
-static AssetTextureFormat proctex_pixel_format(const ProcTexDef* def) {
-  const bool rgba = def->channels == ProcTexChannels_Four;
-  switch (def->format) {
-  case ProcTexFormat_u8:
-    return rgba ? AssetTextureFormat_u8_rgba : AssetTextureFormat_u8_r;
-  case ProcTexFormat_u16:
-    return rgba ? AssetTextureFormat_u16_rgba : AssetTextureFormat_u16_r;
-  case ProcTexFormat_f32:
-    return rgba ? AssetTextureFormat_f32_rgba : AssetTextureFormat_f32_r;
-  }
-  diag_crash();
-}
-
-static bool proctex_pixel_has_alpha(const ProcTexDef* def) {
-  if (def->channels != 4) {
-    return false;
-  }
-  switch (def->type) {
-  case ProcTexType_Zero:
-  case ProcTexType_Circle:
-  case ProcTexType_NoisePerlin:
-  case ProcTexType_NoiseWhite:
-  case ProcTexType_NoiseWhiteGauss:
-    return true;
-  case ProcTexType_One:
-  case ProcTexType_Checker:
-  case ProcTexType_BrdfIntegration:
-    return false;
+    return AssetTextureType_f32;
+    ;
   }
   diag_crash();
 }
 
 static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture) {
-  const u32   size             = def->size;
-  const usize pixelChannelSize = proctex_pixel_channel_size(def);
-  const usize pixelDataSize    = pixelChannelSize * def->channels;
-  u8*         pixels = alloc_alloc(g_allocHeap, size * size * pixelDataSize, pixelDataSize).ptr;
+  const u32              size             = def->size;
+  const AssetTextureType textureType      = proctex_texture_type(def);
+  const usize            pixelChannelSize = asset_texture_type_stride(textureType, 1);
+  const usize            pixelStride      = pixelChannelSize * def->channels;
+
+  const Mem pixelMem = alloc_alloc(g_allocHeap, size * size * pixelStride, pixelChannelSize);
+  u8*       pixels   = pixelMem.ptr;
 
   Rng* rng = rng_create_xorwow(g_allocHeap, def->seed);
   for (u32 y = 0; y != size; ++y) {
     for (u32 x = 0; x != size; ++x) {
       const GeoColor sample = proctex_sample(def, x, y, rng);
 
-      Mem channelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
+      Mem channelMem = mem_create(&pixels[(y * size + x) * pixelStride], pixelStride);
       for (ProcTexChannels channel = 0; channel != def->channels; ++channel) {
         union {
           u8  u8;
@@ -310,21 +282,21 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
-  if (proctex_pixel_has_alpha(def)) {
-    flags |= AssetTextureFlags_Alpha;
-  }
   if (def->uncompressed) {
     flags |= AssetTextureFlags_Uncompressed;
   }
-  *outTexture = (AssetTextureComp){
-      .format       = proctex_pixel_format(def),
-      .flags        = flags,
-      .pixelData    = pixels,
-      .width        = size,
-      .height       = size,
-      .layers       = 1,
-      .srcMipLevels = 1,
-  };
+  *outTexture = asset_texture_create(
+      pixelMem,
+      size,
+      size,
+      def->channels,
+      1 /* layers */,
+      1 /* mips */,
+      0 /* mipsMax */,
+      textureType,
+      flags);
+
+  alloc_free(g_allocHeap, pixelMem);
 }
 
 void asset_data_init_proctex(void) {
