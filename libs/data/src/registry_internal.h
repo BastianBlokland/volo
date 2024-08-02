@@ -36,6 +36,7 @@ typedef struct {
 } DataDeclConst;
 
 typedef struct {
+  bool     multi;  // Multiple constants can be active at the same time.
   DynArray consts; // DataDeclConst[]
 } DataDeclEnum;
 

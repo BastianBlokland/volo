@@ -185,6 +185,23 @@ spec(registry) {
     check_eq_int(data_align(reg, t_MyCustomEnum), alignof(MyCustomEnum));
   }
 
+  it("can register custom multi enums") {
+    typedef enum {
+      MyCustomFlags_A = 1 << 0,
+      MyCustomFlags_B = 1 << 2,
+      MyCustomFlags_C = 1 << 3,
+    } MyCustomFlags;
+
+    data_reg_enum_multi_t(reg, MyCustomFlags);
+    data_reg_const_t(reg, MyCustomFlags, A);
+    data_reg_const_t(reg, MyCustomFlags, B);
+    data_reg_const_t(reg, MyCustomFlags, C);
+
+    check_eq_string(data_name(reg, t_MyCustomFlags), string_lit("MyCustomFlags"));
+    check_eq_int(data_size(reg, t_MyCustomFlags), sizeof(MyCustomFlags));
+    check_eq_int(data_align(reg, t_MyCustomFlags), alignof(MyCustomFlags));
+  }
+
   it("can register comments to types") {
     check_eq_string(data_comment(reg, data_prim_t(f32)), string_empty);
 

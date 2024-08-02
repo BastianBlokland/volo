@@ -146,15 +146,18 @@ void data_reg_union_name(DataReg*, DataType, usize nameOffset);
 void data_reg_choice(DataReg*, DataType parent, String name, i32 tag, usize offset, DataMeta);
 
 /**
- * Register a new Enum type.
+ * Register a new Enum type (optionally supporting multiple values, aka flags).
  */
 #define data_reg_enum_t(_REG_, _T_)                                                                \
-  MAYBE_UNUSED const DataType t_##_T_ = data_reg_enum((_REG_), string_lit(#_T_))
+  MAYBE_UNUSED const DataType t_##_T_ = data_reg_enum((_REG_), string_lit(#_T_), false)
 
-DataType data_reg_enum(DataReg*, String name);
+#define data_reg_enum_multi_t(_REG_, _T_)                                                          \
+  MAYBE_UNUSED const DataType t_##_T_ = data_reg_enum((_REG_), string_lit(#_T_), true)
+
+DataType data_reg_enum(DataReg*, String name, bool multi);
 
 /**
- * Register a new constant for an Enum,
+ * Register a new constant for an Enum.
  */
 #define data_reg_const_t(_REG_, _PARENT_, _ENTRY_)                                                 \
   data_reg_const((_REG_), t_##_PARENT_, string_lit(#_ENTRY_), _PARENT_##_##_ENTRY_)

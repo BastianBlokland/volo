@@ -234,7 +234,7 @@ void data_reg_choice(
   };
 }
 
-DataType data_reg_enum(DataReg* reg, const String name) {
+DataType data_reg_enum(DataReg* reg, const String name, const bool multi) {
   diag_assert_msg(name.size, "Type name cannot be empty");
 
   const DataType type = data_type_declare(reg, name);
@@ -243,7 +243,10 @@ DataType data_reg_enum(DataReg* reg, const String name) {
   decl->kind     = DataKind_Enum;
   decl->size     = sizeof(i32);
   decl->align    = alignof(i32);
-  decl->val_enum = (DataDeclEnum){.consts = dynarray_create_t(reg->alloc, DataDeclConst, 8)};
+  decl->val_enum = (DataDeclEnum){
+      .multi  = multi,
+      .consts = dynarray_create_t(reg->alloc, DataDeclConst, 8),
+  };
   return type;
 }
 
