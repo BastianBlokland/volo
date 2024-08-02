@@ -96,7 +96,7 @@ static String ppm_read_header(String input, PixmapHeader* out) {
 }
 
 static String ppm_read_pixels_ascii(
-    String input, PixmapHeader* header, u8* out /* u8[width * height * 4] */, PixmapError* err) {
+    String input, PixmapHeader* header, u8* out /* u8[width * height * 3] */, PixmapError* err) {
   u64 r, g, b;
 
   /**
@@ -116,10 +116,9 @@ static String ppm_read_pixels_ascii(
 
       const u32 index = y * (u32)header->height + x;
 
-      out[index * 4 + 0] = (u8)r;
-      out[index * 4 + 1] = (u8)g;
-      out[index * 4 + 2] = (u8)b;
-      out[index * 4 + 3] = 255;
+      out[index * 3 + 0] = (u8)r;
+      out[index * 3 + 1] = (u8)g;
+      out[index * 3 + 2] = (u8)b;
     }
   }
   *err = PixmapError_None;
@@ -127,7 +126,7 @@ static String ppm_read_pixels_ascii(
 }
 
 static String ppm_read_pixels_binary(
-    String input, PixmapHeader* header, u8* out /* u8[width * height * 4] */, PixmapError* err) {
+    String input, PixmapHeader* header, u8* out /* u8[width * height * 3] */, PixmapError* err) {
 
   const u32 pixelCount = (u32)(header->width * header->height);
   if (input.size <= pixelCount * 3) {
@@ -155,10 +154,9 @@ static String ppm_read_pixels_binary(
     for (u32 x = 0; x != header->width; ++x) {
       const u32 index = y * (u32)header->height + x;
 
-      out[index * 4 + 0] = data[0];
-      out[index * 4 + 1] = data[1];
-      out[index * 4 + 2] = data[2];
-      out[index * 4 + 3] = 255;
+      out[index * 3 + 0] = data[0];
+      out[index * 3 + 1] = data[1];
+      out[index * 3 + 2] = data[2];
 
       data += 3;
     }
@@ -219,29 +217,32 @@ void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto Error;
   }
 
-  const u32 width  = (u32)header.width;
-  const u32 height = (u32)header.height;
-  u8*       pixels = alloc_alloc(g_allocHeap, width * height * 4, 4).ptr;
-  input            = ppm_read_pixels(input, &header, pixels, &res);
+  const u32 width    = (u32)header.width;
+  const u32 height   = (u32)header.height;
+  const Mem pixelMem = alloc_alloc(g_allocHeap, width * height * 3, sizeof(u8));
+  u8*       pixels   = pixelMem.ptr;
+  input              = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
     ppm_load_fail(world, entity, id, res);
-    alloc_free_array_t(g_allocHeap, pixels, width * height);
+    alloc_free(g_allocHeap, pixelMem);
     goto Error;
   }
 
   asset_repo_source_close(src);
-  ecs_world_add_t(
-      world,
-      entity,
-      AssetTextureComp,
-      .format       = AssetTextureFormat_u8_rgba,
-      .flags        = ppm_texture_flags(isNormalmap),
-      .width        = width,
-      .height       = height,
-      .pixelData    = pixels,
-      .layers       = 1,
-      .srcMipLevels = 1);
+
+  *ecs_world_add_t(world, entity, AssetTextureComp) = asset_texture_create(
+      pixelMem,
+      width,
+      height,
+      3 /* channels */,
+      1 /* layers */,
+      1 /* mips */,
+      0 /* mipsMax */,
+      AssetTextureType_u8,
+      ppm_texture_flags(isNormalmap));
+
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  alloc_free(g_allocHeap, pixelMem);
   return;
 
 Error:

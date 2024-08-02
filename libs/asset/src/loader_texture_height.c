@@ -1,4 +1,3 @@
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -6,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -24,24 +24,12 @@ typedef enum {
   HtexType_F32, // 32 bit IEEE-754 signed floats.
 } HtexType;
 
-static usize htex_pixel_size(const HtexType type) {
+static AssetTextureType htex_texture_type(const HtexType type) {
   switch (type) {
   case HtexType_U16:
-    return sizeof(u16);
+    return AssetTextureType_u16;
   case HtexType_F32:
-    return sizeof(f32);
-  }
-  diag_crash();
-}
-
-static usize htex_pixel_align(const HtexType type) { return htex_pixel_size(type); }
-
-static AssetTextureFormat htex_texture_format(const HtexType type) {
-  switch (type) {
-  case HtexType_U16:
-    return AssetTextureFormat_u16_r;
-  case HtexType_F32:
-    return AssetTextureFormat_f32_r;
+    return AssetTextureType_f32;
   }
   diag_crash();
 }
@@ -77,7 +65,8 @@ htex_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const
 
 static void htex_load(
     EcsWorld* world, const EcsEntityId entity, const String id, String data, const HtexType type) {
-  const usize pixelSize = htex_pixel_size(type);
+  const AssetTextureType pixelType = htex_texture_type(type);
+  const usize            pixelSize = asset_texture_type_stride(pixelType, 1);
   if (UNLIKELY(data.size % pixelSize)) {
     htex_load_fail(world, entity, id, HtexError_Corrupt);
     return;
@@ -93,37 +82,39 @@ static void htex_load(
     return;
   }
 
-  Mem outMem = alloc_alloc(g_allocHeap, pixelSize * pixelCount, htex_pixel_align(type));
+  Mem pixelMem = alloc_alloc(g_allocHeap, pixelSize * pixelCount, pixelSize);
 
   /**
-   * Read the pixels into the output memory.
+   * Read the pixels.
    * NOTE: Iterate y backwards because we're using y0 to mean the bottom of the texture and most
    * authoring tools use y0 to mean the top.
    */
   const usize rowStride = size * pixelSize;
   for (u32 y = size; y-- != 0;) {
-    const usize outRowIndex = y * (usize)size;
-    const Mem   outRowMem   = mem_slice(outMem, outRowIndex * pixelSize, rowStride);
+    const usize pixelRowIndex = y * (usize)size;
+    const Mem   pixelRowMem   = mem_slice(pixelMem, pixelRowIndex * pixelSize, rowStride);
 
     // Copy the pixel data.
     // NOTE: Assumes values written in the same endianess as the host.
-    mem_cpy(outRowMem, mem_slice(data, 0, rowStride));
+    mem_cpy(pixelRowMem, mem_slice(data, 0, rowStride));
 
     // Advance input data.
     data = mem_consume(data, rowStride);
   }
 
-  ecs_world_add_t(
-      world,
-      entity,
-      AssetTextureComp,
-      .format       = htex_texture_format(type),
-      .width        = size,
-      .height       = size,
-      .pixelData    = outMem.ptr,
-      .layers       = 1,
-      .srcMipLevels = 1);
+  *ecs_world_add_t(world, entity, AssetTextureComp) = asset_texture_create(
+      pixelMem,
+      size,
+      size,
+      1 /* channels */,
+      1 /* layers */,
+      1 /* mips */,
+      0 /* mipsMax */,
+      pixelType,
+      AssetTextureFlags_None);
+
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  alloc_free(g_allocHeap, pixelMem);
 }
 
 void asset_load_r16(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {

@@ -44,7 +44,7 @@
       "enum": [ "u8", "u16", "f32" ]
     },
     "ProcTexChannels": {
-      "enum": [ "One", "Four" ]
+      "enum": [ "One", "Two", "Three", "Four" ]
     }
   }
 }

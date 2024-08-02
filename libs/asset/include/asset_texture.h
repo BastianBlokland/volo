@@ -15,6 +15,7 @@ typedef enum {
 } AssetTextureFormat;
 
 typedef enum {
+  AssetTextureFlags_None            = 0,
   AssetTextureFlags_Srgb            = 1 << 0,
   AssetTextureFlags_GenerateMipMaps = 1 << 1,
   AssetTextureFlags_CubeMap         = 1 << 2,
@@ -26,8 +27,8 @@ typedef enum {
 ecs_comp_extern_public(AssetTextureComp) {
   AssetTextureFormat format;
   AssetTextureFlags  flags;
-  const void*        pixelData;
   u32                width, height, layers, srcMipLevels, maxMipLevels;
+  DataMem            pixelData;
 };
 
 extern DataMeta g_assetArrayTexDataDef;
@@ -36,11 +37,6 @@ extern DataMeta g_assetProcTexDataDef;
 
 String asset_texture_format_str(AssetTextureFormat);
 usize  asset_texture_format_channels(AssetTextureFormat);
-
-usize asset_texture_req_mip_size(
-    AssetTextureFormat, u32 width, u32 height, u32 layers, u32 mipLevel);
-usize asset_texture_req_size(AssetTextureFormat, u32 width, u32 height, u32 layers, u32 mipLevels);
-usize asset_texture_req_align(AssetTextureFormat);
 
 usize asset_texture_mip_size(const AssetTextureComp*, u32 mipLevel);
 usize asset_texture_data_size(const AssetTextureComp*);
@@ -57,3 +53,4 @@ GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
  * NOTE: Always samples mip-level 0.
  */
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);
+GeoColor asset_texture_sample_nearest(const AssetTextureComp*, f32 x, f32 y, u32 layer);

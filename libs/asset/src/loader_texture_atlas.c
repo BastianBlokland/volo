@@ -1,5 +1,4 @@
 #include "asset_atlas.h"
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -13,6 +12,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
@@ -27,7 +27,7 @@ typedef struct {
 
 typedef struct {
   u32  size, entrySize, entryPadding, maxMipMaps;
-  bool mipmaps, srgb;
+  bool mipmaps, srgb, uncompressed, nearest;
   struct {
     AtlasEntryDef* values;
     usize          count;
@@ -88,16 +88,16 @@ static i8 atlas_compare_entry(const void* a, const void* b) {
       field_ptr(a, AssetAtlasEntry, name), field_ptr(b, AssetAtlasEntry, name));
 }
 
-static AssetTextureFlags atlas_texture_flags(const AtlasDef* def, const bool hasAlpha) {
+static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
+  if (def->uncompressed) {
+    flags |= AssetTextureFlags_Uncompressed;
+  }
   if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
-  }
-  if (hasAlpha) {
-    flags |= AssetTextureFlags_Alpha;
   }
   return flags;
 }
@@ -141,10 +141,14 @@ static void atlas_generate_entry(
   for (u32 entryPixelY = 0; entryPixelY != sizeWithPadding; ++entryPixelY) {
     const f32 yNorm = atlas_clamp01((entryPixelY - padding + 0.5f) * sizeWithoutPaddingInv);
     for (u32 entryPixelX = 0; entryPixelX != sizeWithPadding; ++entryPixelX) {
-      const u32 layer = 0;
       const f32 xNorm = atlas_clamp01((entryPixelX - padding + 0.5f) * sizeWithoutPaddingInv);
 
-      GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
+      GeoColor color;
+      if (def->nearest) {
+        color = asset_texture_sample_nearest(texture, xNorm, yNorm, 0 /* layer */);
+      } else {
+        color = asset_texture_sample(texture, xNorm, yNorm, 0 /* layer */);
+      }
       if (def->srgb) {
         color = geo_color_linear_to_srgb(color);
       }
@@ -171,20 +175,16 @@ static void atlas_generate(
     }
   }
 
-  // Allocate output texture.
-  Mem pixelMem = alloc_alloc(g_allocHeap, def->size * def->size * 4, 4);
+  // Allocate pixel memory.
+  Mem pixelMem = alloc_alloc(g_allocHeap, def->size * def->size * 4, sizeof(u8));
   mem_set(pixelMem, 0); // Initialize to black.
-  bool hasAlpha = false;
 
   const u32        entryCount = (u32)def->entries.count;
   AssetAtlasEntry* entries    = alloc_array_t(g_allocHeap, AssetAtlasEntry, entryCount);
 
-  // Render entries into output texture.
+  // Render entries into the pixels.
   u8* pixels = pixelMem.ptr;
   for (u32 i = 0; i != def->entries.count; ++i) {
-    if (textures[i]->flags & AssetTextureFlags_Alpha) {
-      hasAlpha = true;
-    }
     atlas_generate_entry(def, textures[i], i, pixels);
     entries[i] = (AssetAtlasEntry){
         .name       = string_hash(def->entries.values[i].name),
@@ -195,23 +195,27 @@ static void atlas_generate(
   // Sort the entries on their name hash.
   sort_quicksort_t(entries, entries + entryCount, AssetAtlasEntry, atlas_compare_entry);
 
+  // Create texture.
   *outAtlas = (AssetAtlasComp){
       .entriesPerDim = def->size / def->entrySize,
       .entryPadding  = def->entryPadding / (f32)def->size,
       .entries       = entries,
       .entryCount    = entryCount,
   };
-  *outTexture = (AssetTextureComp){
-      .format       = AssetTextureFormat_u8_rgba,
-      .flags        = atlas_texture_flags(def, hasAlpha),
-      .pixelData    = pixels,
-      .width        = def->size,
-      .height       = def->size,
-      .layers       = 1,
-      .srcMipLevels = 1,
-      .maxMipLevels = def->maxMipMaps,
-  };
+  *outTexture = asset_texture_create(
+      pixelMem,
+      def->size,
+      def->size,
+      4 /* channels */,
+      1 /* layers */,
+      1 /* mipsSrc */,
+      def->maxMipMaps,
+      AssetTextureType_u8,
+      atlas_texture_flags(def));
+
+  // Cleanup.
   *err = AtlasError_None;
+  alloc_free(g_allocHeap, pixelMem);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -344,6 +348,8 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
   // clang-format on
 

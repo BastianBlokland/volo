@@ -7,8 +7,11 @@
       "additionalProperties": false,
       "properties": {
         "type": { "title": "ArrayTexType", "$ref": "#/$defs/ArrayTexType" },
+        "channels": { "title": "ArrayTexChannels", "$ref": "#/$defs/ArrayTexChannels" },
         "mipmaps": { "title": "bool", "type": "boolean" },
+        "srgb": { "title": "bool", "type": "boolean" },
         "uncompressed": { "title": "bool", "type": "boolean" },
+        "nearest": { "title": "bool", "type": "boolean" },
         "sizeX": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "sizeY": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "textures": {
@@ -17,13 +20,16 @@
           "items": { "title": "String", "type": "string" }
         }
       },
-      "required": [ "type", "textures" ],
+      "required": [ "type", "channels", "textures" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"type\": \"Array\",\n  \"textures\": [\n    \"\"\n  ]\n}" }
+        { "label": "New", "body": "^{\n  \"type\": \"Array\",\n  \"channels\": \"One\",\n  \"textures\": [\n    \"\"\n  ]\n}" }
       ]
     },
     "ArrayTexType": {
       "enum": [ "Array", "Cube", "CubeDiffIrradiance", "CubeSpecIrradiance" ]
+    },
+    "ArrayTexChannels": {
+      "enum": [ "One", "Two", "Three", "Four" ]
     }
   }
 }

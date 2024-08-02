@@ -1,6 +1,8 @@
 {
   "type": "Cube",
+  "channels": "Three",
   "mipmaps": false,
+  "srgb": true,
   "textures": [
     "external/skybox/teide_small_right.tga",
     "external/skybox/teide_small_left.tga",
