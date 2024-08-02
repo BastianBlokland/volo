@@ -230,8 +230,10 @@ static void tex_load_u16(
     const u32         inMips) {
   diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
 
+  const usize pixelCount = tex_pixel_count(tex->width, tex->height, inLayers, inMips);
+
   const u16* restrict inPtr = in.ptr;
-  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
+  diag_assert(in.size == pixelCount * sizeof(u16) * inChannels);
 
   const u32 outChannels = tex_format_channels(tex->format);
   u16* restrict outPtr  = tex->pixelData;
@@ -273,8 +275,10 @@ static void tex_load_f32(
     const u32         inMips) {
   diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
 
+  const usize pixelCount = tex_pixel_count(tex->width, tex->height, inLayers, inMips);
+
   const f32* restrict inPtr = in.ptr;
-  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
+  diag_assert(in.size == pixelCount * sizeof(f32) * inChannels);
 
   const u32 outChannels = tex_format_channels(tex->format);
   f32* restrict outPtr  = tex->pixelData;
