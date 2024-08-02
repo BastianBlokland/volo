@@ -152,6 +152,68 @@ spec(write_json) {
     test_write(_testCtx, reg, meta, mem_var(val4), string_lit("41"));
   }
 
+  it("can write a multi enum") {
+    typedef enum {
+      WriteJsonTestFlags_None = 0,
+      WriteJsonTestFlags_A    = 1 << 0,
+      WriteJsonTestFlags_B    = 1 << 1,
+      WriteJsonTestFlags_C    = 1 << 2,
+    } WriteJsonTestFlags;
+
+    data_reg_enum_multi_t(reg, WriteJsonTestFlags);
+    data_reg_const_t(reg, WriteJsonTestFlags, A);
+    data_reg_const_t(reg, WriteJsonTestFlags, B);
+    data_reg_const_t(reg, WriteJsonTestFlags, C);
+
+    const DataMeta meta = data_meta_t(t_WriteJsonTestFlags);
+
+    WriteJsonTestFlags val1 = WriteJsonTestFlags_None;
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("[]"));
+
+    WriteJsonTestFlags val2 = WriteJsonTestFlags_A;
+    test_write(
+        _testCtx,
+        reg,
+        meta,
+        mem_var(val2),
+        string_lit("[\n"
+                   "  \"A\"\n"
+                   "]"));
+
+    WriteJsonTestFlags val3 = WriteJsonTestFlags_A | WriteJsonTestFlags_B;
+    test_write(
+        _testCtx,
+        reg,
+        meta,
+        mem_var(val3),
+        string_lit("[\n"
+                   "  \"A\",\n"
+                   "  \"B\"\n"
+                   "]"));
+
+    WriteJsonTestFlags val4 = WriteJsonTestFlags_A | WriteJsonTestFlags_B | WriteJsonTestFlags_C;
+    test_write(
+        _testCtx,
+        reg,
+        meta,
+        mem_var(val4),
+        string_lit("[\n"
+                   "  \"A\",\n"
+                   "  \"B\",\n"
+                   "  \"C\"\n"
+                   "]"));
+
+    WriteJsonTestFlags val5 = 1 << 3;
+    test_write(
+        _testCtx,
+        reg,
+        meta,
+        mem_var(val5),
+        string_lit("[\n"
+                   "  8\n"
+                   "]"));
+  }
+
   it("can write a structure") {
     typedef struct {
       i32    valA;

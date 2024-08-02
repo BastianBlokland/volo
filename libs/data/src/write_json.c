@@ -161,6 +161,21 @@ static JsonVal data_write_json_enum(const WriteCtx* ctx) {
     return sentinel_u32;
   }
 
+  if (decl->val_enum.multi) {
+    const JsonVal jsonArray = json_add_array(ctx->doc);
+
+    bitset_for(bitset_from_var(val), bit) {
+      const DataDeclConst* bitConst = data_const_from_val(&decl->val_enum, 1 << bit);
+      if (bitConst) {
+        json_add_elem(ctx->doc, jsonArray, json_add_string(ctx->doc, bitConst->id.name));
+      } else {
+        json_add_elem(ctx->doc, jsonArray, json_add_number(ctx->doc, 1 << bit));
+      }
+    }
+
+    return jsonArray;
+  }
+
   const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, val);
   if (constDecl) {
     return json_add_string(ctx->doc, constDecl->id.name);
