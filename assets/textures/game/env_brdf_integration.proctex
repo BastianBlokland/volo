@@ -1,7 +1,7 @@
 {
   "type": "BrdfIntegration",
   "format": "f32",
-  "channels": "Four",
+  "channels": "Two",
   "size": 128,
   "frequency": 1,
   "power": 1,

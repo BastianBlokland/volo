@@ -22,8 +22,10 @@
 DataMeta g_assetProcTexDataDef;
 
 typedef enum {
-  ProcTexChannels_One  = 1,
-  ProcTexChannels_Four = 4,
+  ProcTexChannels_One   = 1,
+  ProcTexChannels_Two   = 2,
+  ProcTexChannels_Three = 3,
+  ProcTexChannels_Four  = 4,
 } ProcTexChannels;
 
 typedef enum {
@@ -313,6 +315,8 @@ void asset_data_init_proctex(void) {
 
   data_reg_enum_t(g_dataReg, ProcTexChannels);
   data_reg_const_t(g_dataReg, ProcTexChannels, One);
+  data_reg_const_t(g_dataReg, ProcTexChannels, Two);
+  data_reg_const_t(g_dataReg, ProcTexChannels, Three);
   data_reg_const_t(g_dataReg, ProcTexChannels, Four);
 
   data_reg_enum_t(g_dataReg, ProcTexFormat);
