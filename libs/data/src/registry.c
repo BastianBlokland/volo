@@ -259,6 +259,12 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
   };
 }
 
+void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
+  DataDecl* decl = data_decl_mutable(reg, type);
+  string_maybe_free(reg->alloc, decl->comment);
+  decl->comment = string_maybe_dup(reg->alloc, comment);
+}
+
 DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
 
 const DataDecl* data_decl(const DataReg* reg, const DataType type) {
@@ -304,10 +310,4 @@ Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem 
 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {
   return mem_create(bits_ptr_offset(array->values, decl->size * index), decl->size);
-}
-
-void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
-  DataDecl* decl = data_decl_mutable(reg, type);
-  string_maybe_free(reg->alloc, decl->comment);
-  decl->comment = string_maybe_dup(reg->alloc, comment);
 }
