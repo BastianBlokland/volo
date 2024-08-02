@@ -219,7 +219,7 @@ void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, 
 
   const u32 width    = (u32)header.width;
   const u32 height   = (u32)header.height;
-  const Mem pixelMem = alloc_alloc(g_allocHeap, width * height * 3, 1);
+  const Mem pixelMem = alloc_alloc(g_allocHeap, width * height * 3, sizeof(u8));
   u8*       pixels   = pixelMem.ptr;
   input              = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {

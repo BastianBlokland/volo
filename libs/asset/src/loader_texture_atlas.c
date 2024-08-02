@@ -176,7 +176,7 @@ static void atlas_generate(
   }
 
   // Allocate pixel memory.
-  Mem pixelMem = alloc_alloc(g_allocHeap, def->size * def->size * 4, 4);
+  Mem pixelMem = alloc_alloc(g_allocHeap, def->size * def->size * 4, sizeof(u8));
   mem_set(pixelMem, 0); // Initialize to black.
 
   const u32        entryCount = (u32)def->entries.count;

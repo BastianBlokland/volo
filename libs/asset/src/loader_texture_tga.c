@@ -1,4 +1,3 @@
-#include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -417,7 +416,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
 
   const u32 width  = header.imageSpec.width;
   const u32 height = header.imageSpec.height;
-  pixels = alloc_alloc(g_allocHeap, bits_align(width * height * channels * sizeof(u8), 4), 4);
+  pixels           = alloc_alloc(g_allocHeap, width * height * channels * sizeof(u8), sizeof(u8));
 
   data = tga_pixels_read(pixels.ptr, channels, flags, width, height, data, &res);
 

@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "data.h"
@@ -433,11 +432,10 @@ static void arraytex_generate(
   }
 
   // Allocate pixel memory.
-  const u32   mips     = arraytex_output_mips(def);
-  const usize dataSize = bits_align(
-      asset_texture_type_size(AssetTextureType_u8, def->channels, width, height, layers, mips), 4);
-  const usize dataAlign = 4;
-  const Mem   pixelsMem = alloc_alloc(g_allocHeap, dataSize, dataAlign);
+  const u32   mips = arraytex_output_mips(def);
+  const usize dataSize =
+      asset_texture_type_size(AssetTextureType_u8, def->channels, width, height, layers, mips);
+  const Mem pixelsMem = alloc_alloc(g_allocHeap, dataSize, sizeof(u8));
 
   // Fill pixels.
   switch (def->type) {
