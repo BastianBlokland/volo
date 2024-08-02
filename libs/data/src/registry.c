@@ -311,3 +311,21 @@ Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {
   return mem_create(bits_ptr_offset(array->values, decl->size * index), decl->size);
 }
+
+const DataDeclConst* data_const_from_id(const DataDeclEnum* decl, const StringHash id) {
+  dynarray_for_t(&decl->consts, DataDeclConst, constDecl) {
+    if (constDecl->id.hash == id) {
+      return constDecl;
+    }
+  }
+  return null;
+}
+
+const DataDeclConst* data_const_from_val(const DataDeclEnum* decl, const i32 val) {
+  dynarray_for_t(&decl->consts, DataDeclConst, constDecl) {
+    if (constDecl->value == val) {
+      return constDecl;
+    }
+  }
+  return null;
+}

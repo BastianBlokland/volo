@@ -401,12 +401,11 @@ static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) 
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
   const StringHash valueHash = json_string_hash(ctx->doc, ctx->val);
 
-  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
-    if (constDecl->id.hash == valueHash) {
-      *mem_as_t(ctx->data, i32) = constDecl->value;
-      *res                      = result_success();
-      return;
-    }
+  const DataDeclConst* constDecl = data_const_from_id(&decl->val_enum, valueHash);
+  if (constDecl) {
+    *mem_as_t(ctx->data, i32) = constDecl->value;
+    *res                      = result_success();
+    return;
   }
 
   *res = result_fail(
@@ -420,12 +419,11 @@ static void data_read_json_enum_number(const ReadCtx* ctx, DataReadResult* res) 
   const DataDecl* decl  = data_decl(ctx->reg, ctx->meta.type);
   const i32       value = (i32)json_number(ctx->doc, ctx->val);
 
-  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
-    if (constDecl->value == value) {
-      *mem_as_t(ctx->data, i32) = constDecl->value;
-      *res                      = result_success();
-      return;
-    }
+  const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, value);
+  if (constDecl) {
+    *mem_as_t(ctx->data, i32) = constDecl->value;
+    *res                      = result_success();
+    return;
   }
 
   *res = result_fail(

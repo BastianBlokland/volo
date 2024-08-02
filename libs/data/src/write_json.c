@@ -161,11 +161,11 @@ static JsonVal data_write_json_enum(const WriteCtx* ctx) {
     return sentinel_u32;
   }
 
-  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
-    if (constDecl->value == val) {
-      return json_add_string(ctx->doc, constDecl->id.name);
-    }
+  const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, val);
+  if (constDecl) {
+    return json_add_string(ctx->doc, constDecl->id.name);
   }
+
   return json_add_number(ctx->doc, val);
 }
 
@@ -208,10 +208,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-      .reg  = ctx->reg,
-      .doc  = ctx->doc,
-      .meta = data_meta_base(ctx->meta),
-      .data = mem_create(ptr, decl->size),
+       .reg  = ctx->reg,
+       .doc  = ctx->doc,
+       .meta = data_meta_base(ctx->meta),
+       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }
