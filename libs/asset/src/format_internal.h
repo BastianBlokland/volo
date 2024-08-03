@@ -4,7 +4,6 @@
 typedef enum {
   AssetFormat_ArrayTex,
   AssetFormat_Atlas,
-  AssetFormat_Bin,
   AssetFormat_Cursor,
   AssetFormat_Decal,
   AssetFormat_FontTex,

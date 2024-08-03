@@ -7,7 +7,6 @@
 static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_ArrayTex] = string_static("arraytex"),
     [AssetFormat_Atlas]    = string_static("atlas"),
-    [AssetFormat_Bin]      = string_static("bin"),
     [AssetFormat_Cursor]   = string_static("cursor"),
     [AssetFormat_Decal]    = string_static("decal"),
     [AssetFormat_FontTex]  = string_static("fonttex"),
@@ -40,7 +39,6 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
 static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_ArrayTex] = string_static("ArrayTex"),
     [AssetFormat_Atlas]    = string_static("Atlas"),
-    [AssetFormat_Bin]      = string_static("Bin"),
     [AssetFormat_Cursor]   = string_static("Cursor"),
     [AssetFormat_Decal]    = string_static("Decal"),
     [AssetFormat_FontTex]  = string_static("FontTex"),
