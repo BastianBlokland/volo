@@ -162,7 +162,7 @@ static bool data_equal_internal(const EqualCtx* ctx) {
     return data_equal_single(ctx);
   case DataContainer_Pointer:
     return data_equal_pointer(ctx);
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     return data_equal_array(ctx);
   }
   diag_crash();

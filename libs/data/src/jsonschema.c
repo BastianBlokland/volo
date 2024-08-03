@@ -164,7 +164,7 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
       UNREACHABLE
     }
   } break;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     return schema_default_array(ctx, meta);
   }
   UNREACHABLE
@@ -521,7 +521,7 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
   case DataContainer_Pointer:
     schema_add_pointer(ctx, obj, meta);
     break;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     schema_add_array(ctx, obj, meta);
     break;
   }

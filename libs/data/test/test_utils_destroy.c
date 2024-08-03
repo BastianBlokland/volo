@@ -59,7 +59,7 @@ spec(utils_destroy) {
   }
 
   it("can destroy an array of primitives") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
 
     const struct {
       i32*  values;
@@ -116,7 +116,7 @@ spec(utils_destroy) {
     data_reg_field_t(
         reg, DestroyStructC, ptr, t_DestroyStructB, .container = DataContainer_Pointer);
     data_reg_field_t(
-        reg, DestroyStructC, array, t_DestroyStructB, .container = DataContainer_Array);
+        reg, DestroyStructC, array, t_DestroyStructB, .container = DataContainer_DataArray);
 
     DestroyStructB* ptr = alloc_alloc_t(g_allocHeap, DestroyStructB);
     *ptr                = (DestroyStructB){

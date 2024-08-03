@@ -9,7 +9,7 @@ typedef struct sDataReg DataReg;
 typedef enum {
   DataContainer_None,
   DataContainer_Pointer,
-  DataContainer_Array,
+  DataContainer_DataArray,
 } DataContainer;
 
 typedef enum {

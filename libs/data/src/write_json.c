@@ -255,7 +255,7 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
     return data_write_json_val_single(ctx);
   case DataContainer_Pointer:
     return data_write_json_val_pointer(ctx);
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     return data_write_json_val_array(ctx);
   }
   diag_crash();

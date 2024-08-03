@@ -189,7 +189,7 @@ static void data_clone_internal(const CloneCtx* ctx) {
   case DataContainer_Pointer:
     data_clone_pointer(ctx);
     return;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     data_clone_array(ctx);
     return;
   }

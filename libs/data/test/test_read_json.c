@@ -190,7 +190,7 @@ spec(read_json) {
   }
 
   it("can read an array") {
-    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_DataArray);
 
     struct {
       u32*  ptr;
@@ -217,7 +217,7 @@ spec(read_json) {
 
   it("fails when an array value cannot be empty") {
     const DataMeta meta = data_meta_t(
-        data_prim_t(u32), .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+        data_prim_t(u32), .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
 
     test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_EmptyArrayIsInvalid);
   }

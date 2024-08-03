@@ -186,10 +186,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-         .reg  = ctx->reg,
-         .out  = ctx->out,
-         .meta = data_meta_base(ctx->meta),
-         .data = mem_create(ptr, decl->size),
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }
@@ -220,7 +220,7 @@ static void data_write_bin_val(const WriteCtx* ctx) {
   case DataContainer_Pointer:
     data_write_bin_val_pointer(ctx);
     return;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     data_write_bin_val_array(ctx);
     return;
   }

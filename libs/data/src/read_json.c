@@ -653,7 +653,7 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
   case DataContainer_Pointer:
     data_read_json_val_pointer(ctx, res);
     return;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     data_read_json_val_array(ctx, res);
     return;
   }

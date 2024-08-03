@@ -37,7 +37,7 @@ spec(registry) {
   }
 
   it("can lookup the size of a array value") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*) + sizeof(usize));
   }
 
@@ -72,7 +72,7 @@ spec(registry) {
     data_reg_field_t(reg, RegStructA, valA, data_prim_t(i32));
     data_reg_field_t(reg, RegStructA, valB, data_prim_t(String));
     data_reg_field_t(reg, RegStructA, valC, data_prim_t(f32));
-    data_reg_field_t(reg, RegStructA, values, t_RegStructA, .container = DataContainer_Array);
+    data_reg_field_t(reg, RegStructA, values, t_RegStructA, .container = DataContainer_DataArray);
     data_reg_field_t(reg, RegStructA, next, t_RegStructA, .container = DataContainer_Pointer);
 
     check_eq_string(data_name(reg, t_RegStructA), string_lit("RegStructA"));
@@ -105,7 +105,7 @@ spec(registry) {
 
     data_reg_struct_t(reg, RegStructB);
     data_reg_field_t(reg, RegStructB, valA, t_NestedStruct);
-    data_reg_field_t(reg, RegStructB, valB, t_NestedStruct, .container = DataContainer_Array);
+    data_reg_field_t(reg, RegStructB, valB, t_NestedStruct, .container = DataContainer_DataArray);
     data_reg_field_t(reg, RegStructB, valC, t_NestedStruct, .container = DataContainer_Pointer);
 
     check_eq_string(data_name(reg, t_RegStructB), string_lit("RegStructB"));

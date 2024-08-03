@@ -55,7 +55,7 @@ spec(utils_equal) {
     const PrimArray arrayA = {.values = valuesA, .count = array_elems(valuesA)};
     const PrimArray arrayB = {.values = valuesB, .count = array_elems(valuesB)};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayA)));
     check(!data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
   }
@@ -69,7 +69,7 @@ spec(utils_equal) {
     const PrimArray arrayA = {0};
     const PrimArray arrayB = {0};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
   }
 
@@ -118,7 +118,8 @@ spec(utils_equal) {
     data_reg_struct_t(reg, CloneStructC);
     data_reg_field_t(reg, CloneStructC, value, t_CloneStructB);
     data_reg_field_t(reg, CloneStructC, ptr, t_CloneStructB, .container = DataContainer_Pointer);
-    data_reg_field_t(reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_Array);
+    data_reg_field_t(
+        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_DataArray);
 
     CloneStructB ptrValueA = {
         .a = string_lit("Some"),

@@ -103,7 +103,7 @@ spec(utils_clone) {
     const PrimArray original = {.values = originalValues, .count = array_elems(originalValues)};
     const PrimArray clone    = {0};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     for (usize i = 0; i != original.count; ++i) {
@@ -122,7 +122,7 @@ spec(utils_clone) {
     const PrimArray original = {0};
     const PrimArray clone    = {0};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
   }
 
@@ -173,7 +173,8 @@ spec(utils_clone) {
     data_reg_struct_t(reg, CloneStructC);
     data_reg_field_t(reg, CloneStructC, value, t_CloneStructB);
     data_reg_field_t(reg, CloneStructC, ptr, t_CloneStructB, .container = DataContainer_Pointer);
-    data_reg_field_t(reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_Array);
+    data_reg_field_t(
+        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_DataArray);
 
     CloneStructB originalPtrValue = {
         .a = string_lit("Some"),

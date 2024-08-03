@@ -149,7 +149,7 @@ static void data_destroy_internal(const DestroyCtx* ctx) {
   case DataContainer_Pointer:
     data_destroy_pointer(ctx);
     return;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     data_destroy_array(ctx);
     return;
   }
