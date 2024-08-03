@@ -5,12 +5,14 @@
 #include "core_path.h"
 #include "log_logger.h"
 
+#include "cache_internal.h"
 #include "repo_internal.h"
 
 typedef struct {
   AssetRepo    api;
   String       rootPath;
   FileMonitor* monitor;
+  AssetCache*  cache;
   Allocator*   sourceAlloc; // Allocator for AssetSourceFs objects.
 } AssetRepoFs;
 
@@ -220,6 +222,7 @@ static void asset_repo_fs_destroy(AssetRepo* repo) {
 
   string_free(g_allocHeap, repoFs->rootPath);
   file_monitor_destroy(repoFs->monitor);
+  asset_cache_destroy(repoFs->cache);
   alloc_block_destroy(repoFs->sourceAlloc);
 
   alloc_free_t(g_allocHeap, repoFs);
@@ -242,6 +245,7 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),
       .monitor     = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
+      .cache       = asset_cache_create(g_allocHeap),
   };
 
   return (AssetRepo*)repo;
