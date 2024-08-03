@@ -5,6 +5,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_string.h"
+#include "data.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
 
@@ -64,7 +65,8 @@ ecs_comp_define_public(AssetTextureComp);
 
 static void ecs_destruct_texture_comp(void* data) {
   AssetTextureComp* comp = data;
-  alloc_free(g_allocHeap, asset_texture_data(comp));
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetTexDataDef, mem_create(comp, sizeof(AssetTextureComp)));
 }
 
 static u32 tex_type_size(const AssetTextureType type) {
