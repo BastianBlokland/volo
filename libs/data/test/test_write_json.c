@@ -210,7 +210,7 @@ spec(write_json) {
         meta,
         mem_var(val5),
         string_lit("[\n"
-                   "  8\n"
+                   "  3\n"
                    "]"));
   }
 

@@ -456,14 +456,14 @@ static void data_read_json_enum_multi_array(const ReadCtx* ctx, DataReadResult* 
     } break;
     case JsonType_Number: {
       const i32            elemVal   = (i32)json_number(ctx->doc, elem);
-      const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, elemVal);
+      const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, 1 << elemVal);
       if (LIKELY(constDecl)) {
         val |= constDecl->value;
       } else {
         *res = result_fail(
             DataReadError_InvalidEnumEntry,
             "Invalid enum entry '{}' for type {}",
-            fmt_float(json_number(ctx->doc, elem)),
+            fmt_float(elemVal),
             fmt_text(decl->id.name));
         return;
       }

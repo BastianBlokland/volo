@@ -169,7 +169,7 @@ static JsonVal data_write_json_enum(const WriteCtx* ctx) {
       if (bitConst) {
         json_add_elem(ctx->doc, jsonArray, json_add_string(ctx->doc, bitConst->id.name));
       } else {
-        json_add_elem(ctx->doc, jsonArray, json_add_number(ctx->doc, 1 << bit));
+        json_add_elem(ctx->doc, jsonArray, json_add_number(ctx->doc, bit));
       }
     }
 
@@ -223,10 +223,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-       .reg  = ctx->reg,
-       .doc  = ctx->doc,
-       .meta = data_meta_base(ctx->meta),
-       .data = mem_create(ptr, decl->size),
+      .reg  = ctx->reg,
+      .doc  = ctx->doc,
+      .meta = data_meta_base(ctx->meta),
+      .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }
