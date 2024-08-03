@@ -241,6 +241,7 @@ spec(jsonschema) {
                    "  \"$defs\": {\n"
                    "    \"TestEnumFlags\": {\n"
                    "      \"type\": \"array\",\n"
+                   "      \"uniqueItems\": true,\n"
                    "      \"items\": {\n"
                    "        \"enum\": [\n"
                    "          \"A\",\n"

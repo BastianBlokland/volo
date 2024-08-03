@@ -160,6 +160,7 @@
     },
     "AssetWeaponStatusMask": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "enum": [ "Burning", "Bleeding", "Healing", "Veteran" ]
       }
