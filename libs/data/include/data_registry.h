@@ -72,10 +72,6 @@ StringHash data_name_hash(const DataReg*, DataType);
  * Retrieve the size (in bytes) of a registered type.
  */
 usize data_size(const DataReg*, DataType);
-
-/**
- * Retrieve the alignment requirement (in bytes) of a registered type.
- */
 usize data_align(const DataReg*, DataType);
 
 /**
@@ -88,6 +84,7 @@ String data_comment(const DataReg*, DataType);
  * Get the size (in bytes) that a value with the given DataMeta occupies.
  */
 usize data_meta_size(const DataReg*, DataMeta);
+usize data_meta_align(const DataReg*, DataMeta);
 
 /**
  * Declare a type without defining it yet.
