@@ -281,6 +281,20 @@ FileResult file_map(File* file, String* output) {
   return FileResult_Success;
 }
 
+FileResult file_unmap(File* file) {
+  diag_assert_msg(file->mapping, "File not mapped");
+
+  FileMapping* mapping = file->mapping;
+  const int    res     = munmap(mapping->addr, mapping->size);
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
+  }
+
+  alloc_free(file->alloc, mem_create(file->mapping, sizeof(FileMapping)));
+  file->mapping = null;
+  return FileResult_Success;
+}
+
 FileResult file_pal_create_dir_single_sync(String path) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
