@@ -163,8 +163,14 @@ static AssetCacheEntry* cache_registry_add(AssetCache* cache, const String id) {
   AssetCacheEntry* res =
       dynarray_find_or_insert_sorted(&cache->reg.entries, cache_compare_entry, &key);
 
-  res->id     = string_dup(cache->alloc, id);
-  res->idHash = idHash;
+  if (res->idHash == idHash) {
+    // Existing entry.
+    diag_assert_msg(string_eq(res->id, id), "Asset id hash collision detected");
+  } else {
+    // New entry.
+    res->id     = string_dup(cache->alloc, id);
+    res->idHash = idHash;
+  }
 
   return res;
 }
