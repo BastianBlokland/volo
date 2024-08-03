@@ -14,6 +14,8 @@
   _X_(AssetFormat_GlslVert,   glsl_vert          )                                                 \
   _X_(AssetFormat_Gltf,       gltf               )                                                 \
   _X_(AssetFormat_Graphic,    graphic            )                                                 \
+  _X_(AssetFormat_Height16,   height16           )                                                 \
+  _X_(AssetFormat_Height32,   height32           )                                                 \
   _X_(AssetFormat_Inputs,     inputs             )                                                 \
   _X_(AssetFormat_Level,      level              )                                                 \
   _X_(AssetFormat_Obj,        obj                )                                                 \
@@ -22,8 +24,6 @@
   _X_(AssetFormat_ProcMesh,   procmesh           )                                                 \
   _X_(AssetFormat_ProcTex,    proctex            )                                                 \
   _X_(AssetFormat_Products,   products           )                                                 \
-  _X_(AssetFormat_R16,        r16                )                                                 \
-  _X_(AssetFormat_R32,        r32                )                                                 \
   _X_(AssetFormat_Raw,        raw                )                                                 \
   _X_(AssetFormat_Script,     script             )                                                 \
   _X_(AssetFormat_Spv,        spv                )                                                 \
