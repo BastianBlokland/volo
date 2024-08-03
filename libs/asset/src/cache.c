@@ -11,7 +11,11 @@ static const String g_assetCachePath    = string_static(".cache");
 static const String g_assetCacheRegName = string_static("registry.blob");
 
 typedef struct {
-  u32 dummy;
+  String id;
+} AssetCacheEntry;
+
+typedef struct {
+  DynArray entries;
 } AssetCacheRegistry;
 
 struct sAssetCache {
@@ -119,7 +123,9 @@ static bool cache_registry_create(AssetCache* cache) {
     return false;
   }
 
-  cache->reg = (AssetCacheRegistry){.dummy = 42};
+  cache->reg = (AssetCacheRegistry){
+      .entries = dynarray_create_t(cache->alloc, AssetCacheEntry, 32),
+  };
 
   return cache_registry_save(cache);
 }
@@ -133,8 +139,11 @@ static bool cache_registry_open_or_create(AssetCache* cache) {
 
 void asset_data_init_cache(void) {
   // clang-format off
+  data_reg_struct_t(g_dataReg, AssetCacheEntry);
+  data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
+
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
-  data_reg_field_t(g_dataReg, AssetCacheRegistry, dummy, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
   // clang-format on
 
   g_assetCacheDataDef = data_meta_t(t_AssetCacheRegistry);
