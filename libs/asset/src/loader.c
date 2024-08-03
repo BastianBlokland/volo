@@ -11,8 +11,8 @@
   _X_(AssetFormat_Cursor,     cursor             )                                                 \
   _X_(AssetFormat_Decal,      decal              )                                                 \
   _X_(AssetFormat_FontTex,    fonttex            )                                                 \
-  _X_(AssetFormat_GlslFrag,   glsl_frag          )                                                 \
-  _X_(AssetFormat_GlslVert,   glsl_vert          )                                                 \
+  _X_(AssetFormat_GlslFrag,   shader_glsl_frag   )                                                 \
+  _X_(AssetFormat_GlslVert,   shader_glsl_vert   )                                                 \
   _X_(AssetFormat_Gltf,       mesh_gltf          )                                                 \
   _X_(AssetFormat_Graphic,    graphic            )                                                 \
   _X_(AssetFormat_Height16,   tex_height16       )                                                 \
@@ -27,7 +27,7 @@
   _X_(AssetFormat_Products,   products           )                                                 \
   _X_(AssetFormat_Raw,        raw                )                                                 \
   _X_(AssetFormat_Script,     script             )                                                 \
-  _X_(AssetFormat_Spv,        spv                )                                                 \
+  _X_(AssetFormat_Spv,        shader_spv         )                                                 \
   _X_(AssetFormat_Terrain,    terrain            )                                                 \
   _X_(AssetFormat_Tga,        tex_tga            )                                                 \
   _X_(AssetFormat_Ttf,        ttf                )                                                 \
