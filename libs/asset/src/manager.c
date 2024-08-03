@@ -78,9 +78,9 @@ ecs_comp_define(AssetDependencyComp) {
 };
 
 ecs_comp_define(AssetCacheRequest) {
-  DataMeta dataMeta;
-  usize    dataSize;
-  Mem      dataMem;
+  DataMeta blobMeta;
+  usize    blobSize;
+  Mem      blobMem;
 };
 
 static void ecs_destruct_manager_comp(void* data) {
@@ -133,7 +133,7 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
 
 static void ecs_destruct_cache_request_comp(void* data) {
   AssetCacheRequest* comp = data;
-  alloc_free(g_allocHeap, comp->dataMem);
+  alloc_free(g_allocHeap, comp->blobMem);
 }
 
 static i8 asset_compare_entry(const void* a, const void* b) {
@@ -570,14 +570,14 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
 
 void asset_cache(
     EcsWorld* world, const EcsEntityId asset, const DataMeta dataMeta, const Mem data) {
-  DynString buffer = dynstring_create(g_allocHeap, 256);
-  data_write_bin(g_dataReg, &buffer, dataMeta, data);
+  DynString blobBuffer = dynstring_create(g_allocHeap, 256);
+  data_write_bin(g_dataReg, &blobBuffer, dataMeta, data);
 
   ecs_world_add_t(
       world,
       asset,
       AssetCacheRequest,
-      .dataMeta = dataMeta,
-      .dataSize = buffer.size,
-      .dataMem  = buffer.data);
+      .blobMeta = dataMeta,
+      .blobSize = blobBuffer.size,
+      .blobMem  = blobBuffer.data);
 }
