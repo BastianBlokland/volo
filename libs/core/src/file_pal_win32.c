@@ -334,6 +334,20 @@ FileResult file_map(File* file, String* output) {
   return FileResult_Success;
 }
 
+FileResult file_unmap(File* file) {
+  diag_assert_msg(file->mapping, "File not mapped");
+
+  FileMapping* mapping = file->mapping;
+  const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle(mapping->mappingObj);
+  if (UNLIKELY(!success)) {
+    diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
+  }
+
+  alloc_free(file->alloc, mem_create(file->mapping, sizeof(FileMapping)));
+  file->mapping = null;
+  return FileResult_Success;
+}
+
 FileResult file_pal_create_dir_single_sync(String path) {
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(path);
