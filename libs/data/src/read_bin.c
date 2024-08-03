@@ -425,6 +425,28 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
   ctx->input                  = subCtx.input; // Consume data that was taken up by the value.
 }
 
+static void data_read_bin_elems(ReadCtx* ctx, const usize count, void* out, DataReadResult* res) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  for (u64 i = 0; i != count; ++i) {
+    ReadCtx elemCtx = {
+        .reg         = ctx->reg,
+        .alloc       = ctx->alloc,
+        .allocations = ctx->allocations,
+        .input       = ctx->input,
+        .meta        = data_meta_base(ctx->meta),
+        .data        = mem_create(out, decl->size),
+    };
+    data_read_bin_val_single(&elemCtx, res);
+    if (UNLIKELY(res->error)) {
+      return;
+    }
+    out        = bits_ptr_offset(out, decl->size);
+    ctx->input = elemCtx.input; // Consume data that was taken up by the element.
+  }
+  *res = result_success();
+}
+
 static void data_read_bin_val_array(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
@@ -445,23 +467,29 @@ static void data_read_bin_val_array(ReadCtx* ctx, DataReadResult* res) {
   void* ptr                       = arrayMem.ptr;
   *mem_as_t(ctx->data, DataArray) = (DataArray){.values = arrayMem.ptr, .count = count};
 
-  for (u64 i = 0; i != count; ++i) {
-    ReadCtx elemCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .input       = ctx->input,
-        .meta        = data_meta_base(ctx->meta),
-        .data        = mem_create(ptr, decl->size),
-    };
-    data_read_bin_val_single(&elemCtx, res);
-    if (UNLIKELY(res->error)) {
-      return;
-    }
-    ptr        = bits_ptr_offset(ptr, decl->size);
-    ctx->input = elemCtx.input; // Consume data that was taken up by the element.
+  data_read_bin_elems(ctx, count, ptr, res);
+}
+
+static void data_read_bin_val_dynarray(ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  u64 count;
+  if (UNLIKELY(!bin_pop_u64(ctx, &count))) {
+    *res = result_fail_truncated();
+    return;
   }
-  *res = result_success();
+
+  DynArray* out = mem_as_t(ctx->data, DynArray);
+  *out          = dynarray_create(ctx->alloc, (u32)decl->size, (u16)decl->align, 0);
+
+  if (!count) {
+    *res = result_success();
+    return;
+  }
+  dynarray_resize(out, count);
+  data_register_alloc(ctx, out->data);
+
+  data_read_bin_elems(ctx, count, out->data.ptr, res);
 }
 
 static void data_read_bin_val(ReadCtx* ctx, DataReadResult* res) {
@@ -474,6 +502,9 @@ static void data_read_bin_val(ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataContainer_DataArray:
     data_read_bin_val_array(ctx, res);
+    return;
+  case DataContainer_DynArray:
+    data_read_bin_val_dynarray(ctx, res);
     return;
   }
   diag_crash();

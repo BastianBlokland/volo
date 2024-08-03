@@ -212,6 +212,22 @@ static void data_write_bin_val_array(const WriteCtx* ctx) {
   }
 }
 
+static void data_write_bin_val_dynarray(const WriteCtx* ctx) {
+  const DynArray* array = mem_as_t(ctx->data, DynArray);
+
+  bin_push_u64(ctx, array->size);
+
+  for (usize i = 0; i != array->size; ++i) {
+    const WriteCtx elemCtx = {
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = dynarray_at(array, i, 1),
+    };
+    data_write_bin_val_single(&elemCtx);
+  }
+}
+
 static void data_write_bin_val(const WriteCtx* ctx) {
   switch (ctx->meta.container) {
   case DataContainer_None:
@@ -222,6 +238,9 @@ static void data_write_bin_val(const WriteCtx* ctx) {
     return;
   case DataContainer_DataArray:
     data_write_bin_val_array(ctx);
+    return;
+  case DataContainer_DynArray:
+    data_write_bin_val_dynarray(ctx);
     return;
   }
   diag_crash();
