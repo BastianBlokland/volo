@@ -222,6 +222,30 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_EmptyArrayIsInvalid);
   }
 
+  it("can read an dyn-array") {
+    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_DynArray);
+
+    DynArray val;
+
+    test_read_success(_testCtx, reg, string_lit("[]"), meta, mem_var(val));
+    check_eq_int(val.size, 0);
+
+    test_read_success(_testCtx, reg, string_lit("[42]"), meta, mem_var(val));
+    check_eq_int(val.size, 1);
+    check_eq_int(*dynarray_at_t(&val, 0, i32), 42);
+    dynarray_destroy(&val);
+
+    test_read_success(_testCtx, reg, string_lit("[1, 2, 3]"), meta, mem_var(val));
+    check_eq_int(val.size, 3);
+    check_eq_int(*dynarray_at_t(&val, 0, i32), 1);
+    check_eq_int(*dynarray_at_t(&val, 1, i32), 2);
+    check_eq_int(*dynarray_at_t(&val, 2, i32), 3);
+    dynarray_destroy(&val);
+
+    test_read_fail(_testCtx, reg, string_lit("42"), meta, DataReadError_MismatchedType);
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
   it("can read an enum") {
     typedef enum {
       ReadJsonTestEnum_A = -42,
