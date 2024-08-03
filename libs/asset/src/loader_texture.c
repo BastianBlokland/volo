@@ -5,8 +5,11 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_string.h"
+#include "data.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
+#include "log_logger.h"
 
 #include "loader_texture_internal.h"
 #include "repo_internal.h"
@@ -58,11 +61,21 @@ static const f32 g_textureSrgbToFloat[] = {
 };
 ASSERT(array_elems(g_textureSrgbToFloat) == 256, "Incorrect srgb lut size");
 
+DataMeta g_assetTexDataDef;
+
 ecs_comp_define_public(AssetTextureComp);
+
+ecs_comp_define(AssetTextureSourceComp) { AssetSource* src; };
 
 static void ecs_destruct_texture_comp(void* data) {
   AssetTextureComp* comp = data;
-  alloc_free(g_allocHeap, asset_texture_data(comp));
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetTexDataDef, mem_create(comp, sizeof(AssetTextureComp)));
+}
+
+static void ecs_destruct_texture_source_comp(void* data) {
+  AssetTextureSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
 }
 
 static u32 tex_type_size(const AssetTextureType type) {
@@ -327,15 +340,73 @@ ecs_system_define(UnloadTextureAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetTextureComp);
+    ecs_utils_maybe_remove_t(world, entity, AssetTextureSourceComp);
   }
 }
 
 ecs_module_init(asset_texture_module) {
   ecs_register_comp(AssetTextureComp, .destructor = ecs_destruct_texture_comp);
+  ecs_register_comp(AssetTextureSourceComp, .destructor = ecs_destruct_texture_source_comp);
 
   ecs_register_view(UnloadView);
 
   ecs_register_system(UnloadTextureAssetSys, ecs_view_id(UnloadView));
+}
+
+void asset_data_init_tex(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, AssetTextureFormat);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u8_r);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u8_rgba);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u16_r);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u16_rgba);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, f32_r);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, f32_rgba);
+
+  data_reg_enum_multi_t(g_dataReg, AssetTextureFlags);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMipMaps);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, NormalMap);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Uncompressed);
+
+  data_reg_struct_t(g_dataReg, AssetTextureComp);
+  data_reg_field_t(g_dataReg, AssetTextureComp, format, t_AssetTextureFormat);
+  data_reg_field_t(g_dataReg, AssetTextureComp, flags, t_AssetTextureFlags, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTextureComp, width, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, height, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, layers, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, srcMipLevels, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, maxMipLevels, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTextureComp, pixelData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+  // clang-format on
+
+  g_assetTexDataDef = data_meta_t(t_AssetTextureComp);
+}
+
+void asset_load_tex_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetTextureComp tex;
+  DataReadResult   result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetTexDataDef, mem_var(tex), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary texture",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
+  ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 
 String asset_texture_format_str(const AssetTextureFormat format) {

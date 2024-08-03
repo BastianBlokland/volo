@@ -557,7 +557,7 @@ void asset_data_init_procmesh(void) {
   g_assetProcMeshDataDef = data_meta_t(t_ProcMeshDef);
 }
 
-void asset_load_procmesh(
+void asset_load_mesh_proc(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String            errMsg;
   AssetMeshBuilder* builder = null;

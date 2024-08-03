@@ -61,12 +61,11 @@ static void bin_push_padding(const WriteCtx* ctx, const usize align) {
   diag_assert(bits_aligned(ctx->out->size, align));
 }
 
-static void data_write_bin_header(const WriteCtx* ctx, const TimeReal timestamp) {
+static void data_write_bin_header(const WriteCtx* ctx) {
   mem_cpy(dynstring_push(ctx->out, g_dataBinMagic.size), g_dataBinMagic);
   bin_push_u32(ctx, g_dataBinVersion);
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
-  bin_push_u64(ctx, (u64)timestamp); // NOTE: assumes 2's complement integers.
 }
 
 static void data_write_bin_val(const WriteCtx*);
@@ -228,18 +227,13 @@ static void data_write_bin_val(const WriteCtx* ctx) {
   diag_crash();
 }
 
-void data_write_bin(
-    const DataReg* reg,
-    DynString*     str,
-    const DataMeta meta,
-    const Mem      data,
-    const TimeReal timestamp) {
+void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
   const WriteCtx ctx = {
       .reg  = reg,
       .out  = str,
       .meta = meta,
       .data = data,
   };
-  data_write_bin_header(&ctx, timestamp);
+  data_write_bin_header(&ctx);
   data_write_bin_val(&ctx);
 }

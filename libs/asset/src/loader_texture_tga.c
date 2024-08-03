@@ -356,7 +356,8 @@ tga_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_tex_tga(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   const bool isNormalmap = asset_texture_is_normalmap(id);
 
   Mem      data   = src->data;

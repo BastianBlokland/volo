@@ -868,7 +868,8 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
   return SpvError_None;
 }
 
-void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_shader_spv(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
   const SpvError err = spv_init(world, entity, src->data);
   if (err) {

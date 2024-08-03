@@ -615,7 +615,7 @@ void asset_data_init_arraytex(void) {
   g_assetArrayTexDataDef = data_meta_t(t_ArrayTexDef);
 }
 
-void asset_load_arraytex(
+void asset_load_tex_array(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 

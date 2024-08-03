@@ -1,9 +1,6 @@
 #pragma once
 #include "data_registry.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
 typedef enum {
   DataReadError_None,
   DataReadError_Malformed,
@@ -70,9 +67,8 @@ String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, Da
 String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);
 
 typedef struct {
-  u32      typeNameHash;   // Hash of the type's name.
-  u32      typeFormatHash; // Deep hash of the type's format ('data_hash()').
-  TimeReal timestamp;
+  u32 typeNameHash;   // Hash of the type's name.
+  u32 typeFormatHash; // Deep hash of the type's format ('data_hash()').
 } DataBinHeader;
 
 /**

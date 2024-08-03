@@ -260,7 +260,7 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     glsl_include_error(res, string_lit("File not found"));
     return res;
   }
-  if (UNLIKELY(src->format != AssetFormat_Glsl)) {
+  if (UNLIKELY(src->format != AssetFormat_ShaderGlsl)) {
     asset_repo_source_close(src);
     glsl_include_error(res, string_lit("File has an invalid format"));
     return res;
@@ -480,13 +480,13 @@ ecs_module_init(asset_shader_glsl_module) {
   ecs_register_system(LoadGlslAssetSys, ecs_view_id(GlobalView), ecs_view_id(LoadView));
 }
 
-void asset_load_glsl_vert(
+void asset_load_shader_glsl_vert(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = ShadercShaderKind_Vertex, .src = src);
 }
 
-void asset_load_glsl_frag(
+void asset_load_shader_glsl_frag(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = ShadercShaderKind_Fragment, .src = src);

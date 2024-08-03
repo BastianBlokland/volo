@@ -2,9 +2,6 @@
 #include "core_dynstring.h"
 #include "data_registry.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
 typedef struct {
   u8   numberMaxDecDigits;
   bool compact;
@@ -28,4 +25,4 @@ void data_write_json(const DataReg*, DynString*, DataMeta, Mem data, const DataW
  * Pre-condition: data memory does not contain any cycles.
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
-void data_write_bin(const DataReg*, DynString*, DataMeta, Mem data, TimeReal timestamp);
+void data_write_bin(const DataReg*, DynString*, DataMeta, Mem data);

@@ -339,7 +339,7 @@ void asset_data_init_proctex(void) {
   g_assetProcTexDataDef = data_meta_t(t_ProcTexDef);
 }
 
-void asset_load_proctex(
+void asset_load_tex_proc(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
   ProcTexDef     def;
