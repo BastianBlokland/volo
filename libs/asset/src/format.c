@@ -25,7 +25,6 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_ProcMesh] = string_static("procmesh"),
     [AssetFormat_ProcTex]  = string_static("proctex"),
     [AssetFormat_Products] = string_static("products"),
-    [AssetFormat_Raw]      = string_static("raw"),
     [AssetFormat_Script]   = string_static("script"),
     [AssetFormat_Spv]      = string_static("spv"),
     [AssetFormat_Terrain]  = string_static("terrain"),
