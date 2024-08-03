@@ -1,4 +1,3 @@
-#include "asset_manager.h"
 #include "asset_register.h"
 #include "core_alloc.h"
 #include "core_diag.h"
@@ -6,12 +5,14 @@
 #include "core_path.h"
 #include "core_search.h"
 #include "core_time.h"
+#include "data_write.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 
 #include "loader_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 #define asset_max_load_time_per_task time_milliseconds(2)
@@ -76,6 +77,12 @@ ecs_comp_define(AssetDependencyComp) {
   } dependents;
 };
 
+ecs_comp_define(AssetCacheRequest) {
+  DataMeta dataMeta;
+  usize    dataSize;
+  Mem      dataMem;
+};
+
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
   asset_repo_destroy(comp->repo);
@@ -122,6 +129,11 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
     dynarray_destroy(&compB->dependents.many);
     break;
   }
+}
+
+static void ecs_destruct_cache_request_comp(void* data) {
+  AssetCacheRequest* comp = data;
+  alloc_free(g_allocHeap, comp->dataMem);
 }
 
 static i8 asset_compare_entry(const void* a, const void* b) {
@@ -398,6 +410,7 @@ ecs_module_init(asset_manager_module) {
       AssetDependencyComp,
       .destructor = ecs_destruct_asset_dependency,
       .combinator = ecs_combine_asset_dependency);
+  ecs_register_comp(AssetCacheRequest, .destructor = ecs_destruct_cache_request_comp);
 
   ecs_register_view(DirtyAssetView);
   ecs_register_view(AssetDependencyView);
@@ -536,4 +549,18 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
   }
 
   return assetEntity;
+}
+
+void asset_cache(
+    EcsWorld* world, const EcsEntityId asset, const DataMeta dataMeta, const Mem data) {
+  DynString buffer = dynstring_create(g_allocHeap, 256);
+  data_write_bin(g_dataReg, &buffer, dataMeta, data);
+
+  ecs_world_add_t(
+      world,
+      asset,
+      AssetCacheRequest,
+      .dataMeta = dataMeta,
+      .dataSize = buffer.size,
+      .dataMem  = buffer.data);
 }
