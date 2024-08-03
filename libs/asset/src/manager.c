@@ -398,6 +398,21 @@ ecs_system_define(AssetPollChangedSys) {
   }
 }
 
+ecs_view_define(AssetCacheView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetCacheRequest);
+}
+
+ecs_system_define(AssetCacheSys) {
+  EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
+
+  for (EcsIterator* itr = ecs_view_itr(cacheView); ecs_view_walk(itr);) {
+    const EcsEntityId assetEntity = ecs_view_entity(itr);
+    // TODO: Write to repo.
+    ecs_world_remove_t(world, assetEntity, AssetCacheRequest);
+  }
+}
+
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp, .destructOrder = 30);
   ecs_register_comp(AssetComp);
@@ -422,6 +437,8 @@ ecs_module_init(asset_manager_module) {
 
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
+
+  ecs_register_system(AssetCacheSys, ecs_register_view(AssetCacheView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }
