@@ -477,6 +477,11 @@ static void data_read_json_enum_multi_array(const ReadCtx* ctx, DataReadResult* 
     }
   }
 
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && val == 0)) {
+    *res = result_fail(DataReadError_EmptyArrayIsInvalid, "At least one value needs to be set");
+    return;
+  }
+
   *mem_as_t(ctx->data, i32) = val;
   *res                      = result_success();
 }
