@@ -123,6 +123,8 @@ usize data_meta_size(const DataReg* reg, const DataMeta meta) {
     return sizeof(void*);
   case DataContainer_DataArray:
     return sizeof(DataArray);
+  case DataContainer_DynArray:
+    return sizeof(DynArray);
   }
   diag_crash();
 }

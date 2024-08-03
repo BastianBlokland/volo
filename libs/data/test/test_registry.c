@@ -36,9 +36,14 @@ spec(registry) {
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*));
   }
 
-  it("can lookup the size of a array value") {
+  it("can lookup the size of an array value") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*) + sizeof(usize));
+  }
+
+  it("can lookup the size of a dynarray value") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DynArray);
+    check_eq_int(data_meta_size(reg, meta), sizeof(DynArray));
   }
 
   it("can forward declare types") {
@@ -65,6 +70,7 @@ spec(registry) {
       String              valB;
       f32                 valC;
       DataArray           values;
+      DynArray            valuesDyn;
       struct sRegStructA* next;
     } RegStructA;
 
@@ -73,6 +79,7 @@ spec(registry) {
     data_reg_field_t(reg, RegStructA, valB, data_prim_t(String));
     data_reg_field_t(reg, RegStructA, valC, data_prim_t(f32));
     data_reg_field_t(reg, RegStructA, values, t_RegStructA, .container = DataContainer_DataArray);
+    data_reg_field_t(reg, RegStructA, valuesDyn, t_RegStructA, .container = DataContainer_DynArray);
     data_reg_field_t(reg, RegStructA, next, t_RegStructA, .container = DataContainer_Pointer);
 
     check_eq_string(data_name(reg, t_RegStructA), string_lit("RegStructA"));

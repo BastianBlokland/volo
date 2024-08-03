@@ -10,6 +10,7 @@ typedef enum {
   DataContainer_None,
   DataContainer_Pointer,
   DataContainer_DataArray,
+  DataContainer_DynArray,
 } DataContainer;
 
 typedef enum {
