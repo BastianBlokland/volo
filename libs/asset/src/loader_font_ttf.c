@@ -1070,7 +1070,8 @@ ttf_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_ttf(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_font_ttf(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   TtfError            err                = TtfError_None;
   DynArray            characters         = dynarray_create_t(g_allocHeap, AssetFontChar, 128);
   DynArray            points             = dynarray_create_t(g_allocHeap, AssetFontPoint, 1024);

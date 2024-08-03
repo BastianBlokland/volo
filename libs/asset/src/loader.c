@@ -30,7 +30,7 @@
   _X_(AssetFormat_Spv,        shader_spv         )                                                 \
   _X_(AssetFormat_Terrain,    terrain            )                                                 \
   _X_(AssetFormat_Tga,        tex_tga            )                                                 \
-  _X_(AssetFormat_Ttf,        ttf                )                                                 \
+  _X_(AssetFormat_Ttf,        font_ttf           )                                                 \
   _X_(AssetFormat_Vfx,        vfx                )                                                 \
   _X_(AssetFormat_Wav,        wav                )                                                 \
   _X_(AssetFormat_Weapons,    weapons            )
