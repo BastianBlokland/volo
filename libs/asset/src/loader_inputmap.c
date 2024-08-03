@@ -21,10 +21,7 @@ typedef struct {
 
 typedef struct {
   String name;
-  struct {
-    u32*  values;
-    usize count;
-  } blockers;
+  u32    blockers;
   struct {
     AssetInputBindingDef* values;
     usize                 count;
@@ -60,12 +57,6 @@ static String inputmap_error_str(const InputMapError err) {
   return g_msgs[err];
 }
 
-static u32 asset_inputmap_blocker_bits(const AssetInputActionDef* def) {
-  u32 bits = 0;
-  array_ptr_for_t(def->blockers, u32, blockerIndex) { bits |= 1 << *blockerIndex; }
-  return bits;
-}
-
 static void asset_inputmap_build(
     const AssetInputMapDef* def,
     DynArray*               outActions,  // AssetInputAction[], needs to be already initialized.
@@ -76,7 +67,7 @@ static void asset_inputmap_build(
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
         .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-        .blockerBits  = asset_inputmap_blocker_bits(actionDef),
+        .blockerBits  = actionDef->blockers,
         .bindingIndex = (u16)outBindings->size,
         .bindingCount = (u16)bindingCount,
     };
@@ -225,14 +216,14 @@ void asset_data_init_inputmap(void) {
     * Blockers correspond to the 'InputBlocker' values as defined in 'input_manager.h'.
     * NOTE: This is a virtual data type, meaning there is no matching AssetInputBlocker C type.
     */
-  data_reg_enum_t(g_dataReg, AssetInputBlocker);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 0);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringGizmo, 2);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, PrefabCreateMode, 3);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 4);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorConfined, 5);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, WindowFullscreen, 6);
+  data_reg_enum_multi_t(g_dataReg, AssetInputBlocker);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 1 << 0);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1 << 1);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringGizmo, 1 << 2);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, PrefabCreateMode, 1 << 3);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 1 << 4);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorConfined, 1 << 5);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, WindowFullscreen, 1 << 6);
 
   /**
     * Modifiers correspond to the 'InputModifier' values as defined in 'input_manager.h'.
@@ -256,7 +247,7 @@ void asset_data_init_inputmap(void) {
 
   data_reg_struct_t(g_dataReg, AssetInputActionDef);
   data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetInputMapDef);
