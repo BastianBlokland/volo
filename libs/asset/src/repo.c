@@ -68,3 +68,9 @@ AssetRepoQueryResult asset_repo_query(
   }
   return AssetRepoQueryResult_ErrorNotSupported;
 }
+
+void asset_repo_cache(AssetRepo* repo, const String id, const DataMeta blobMeta, const Mem blob) {
+  if (repo->cache) {
+    repo->cache(repo, id, blobMeta, blob);
+  }
+}

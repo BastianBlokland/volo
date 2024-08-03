@@ -404,11 +404,22 @@ ecs_view_define(AssetCacheView) {
 }
 
 ecs_system_define(AssetCacheSys) {
+  const AssetManagerComp* manager = asset_manager_readonly(world);
+  if (!manager) {
+    return;
+  }
   EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
 
   for (EcsIterator* itr = ecs_view_itr(cacheView); ecs_view_walk(itr);) {
-    const EcsEntityId assetEntity = ecs_view_entity(itr);
-    // TODO: Write to repo.
+    const EcsEntityId        assetEntity = ecs_view_entity(itr);
+    const AssetComp*         assetComp   = ecs_view_read_t(itr, AssetComp);
+    const AssetCacheRequest* request     = ecs_view_read_t(itr, AssetCacheRequest);
+
+    diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
+
+    const Mem blob = mem_slice(request->blobMem, 0, request->blobSize);
+    asset_repo_cache(manager->repo, assetComp->id, request->blobMeta, blob);
+
     ecs_world_remove_t(world, assetEntity, AssetCacheRequest);
   }
 }
@@ -438,7 +449,7 @@ ecs_module_init(asset_manager_module) {
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
 
-  ecs_register_system(AssetCacheSys, ecs_register_view(AssetCacheView));
+  ecs_register_system(AssetCacheSys, ecs_register_view(AssetCacheView), ecs_view_id(GlobalView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }

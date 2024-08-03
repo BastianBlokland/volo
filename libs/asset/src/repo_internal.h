@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_manager.h"
+#include "data_registry.h"
 
 #include "format_internal.h"
 
@@ -32,6 +33,7 @@ struct sAssetRepo {
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
   AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
+  void (*cache)(AssetRepo*, String id, DataMeta, Mem blob);
 };
 
 struct sAssetSource {
@@ -56,3 +58,5 @@ void         asset_repo_source_close(AssetSource*);
 void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
 AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
+
+void asset_repo_cache(AssetRepo*, String id, DataMeta, Mem blob);
