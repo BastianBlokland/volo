@@ -356,7 +356,7 @@ void asset_data_init_atlas(void) {
   g_assetAtlasDataDef = data_meta_t(t_AtlasDef);
 }
 
-void asset_load_atlas(
+void asset_load_tex_atlas(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
   AtlasDef       def;

@@ -117,13 +117,13 @@ static void htex_load(
   alloc_free(g_allocHeap, pixelMem);
 }
 
-void asset_load_height16(
+void asset_load_tex_height16(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   htex_load(world, entity, id, src->data, HtexType_U16);
   asset_repo_source_close(src);
 }
 
-void asset_load_height32(
+void asset_load_tex_height32(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   htex_load(world, entity, id, src->data, HtexType_F32);
   asset_repo_source_close(src);

@@ -192,7 +192,8 @@ static AssetTextureFlags ppm_texture_flags(const bool isNormalmap) {
   return flags;
 }
 
-void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_tex_ppm(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   const bool isNormalmap = asset_texture_is_normalmap(id);
 
   String      input = src->data;
