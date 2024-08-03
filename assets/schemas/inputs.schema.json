@@ -36,6 +36,7 @@
     },
     "AssetInputBlocker": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "enum": [
           "TextInput",
@@ -147,6 +148,7 @@
     },
     "AssetInputModifier": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "enum": [ "Shift", "Control", "Alt" ]
       }

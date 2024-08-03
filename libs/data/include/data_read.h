@@ -10,6 +10,7 @@ typedef enum {
   DataReadError_Incompatible,
   DataReadError_MismatchedType,
   DataReadError_InvalidEnumEntry,
+  DataReadError_DuplicateEnumEntry,
   DataReadError_FieldNotFound,
   DataReadError_InvalidField,
   DataReadError_UnknownField,

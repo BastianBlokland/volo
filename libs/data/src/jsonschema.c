@@ -397,6 +397,7 @@ static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const D
 
   if (decl->val_enum.multi) {
     json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "array"));
+    json_add_field_lit(ctx->doc, obj, "uniqueItems", json_add_bool(ctx->doc, true));
 
     if (meta.flags & DataFlags_NotEmpty) {
       json_add_field_lit(ctx->doc, obj, "minItems", json_add_number(ctx->doc, 1));
