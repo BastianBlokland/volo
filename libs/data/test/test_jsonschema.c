@@ -184,6 +184,22 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports dyn-arrays") {
+    const DataMeta meta = data_meta_t(data_prim_t(String), .container = DataContainer_DynArray);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"type\": \"array\",\n"
+                   "  \"items\": {\n"
+                   "    \"title\": \"String\",\n"
+                   "    \"type\": \"string\"\n"
+                   "  }\n"
+                   "}"));
+  }
+
   it("supports enums") {
     enum TestEnum {
       TestEnum_A = -42,
