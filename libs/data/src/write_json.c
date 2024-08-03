@@ -249,6 +249,23 @@ static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
   return jsonArray;
 }
 
+static JsonVal data_write_json_val_dynarray(const WriteCtx* ctx) {
+  const JsonVal   jsonArray = json_add_array(ctx->doc);
+  const DynArray* array     = mem_as_t(ctx->data, DynArray);
+
+  for (usize i = 0; i != array->size; ++i) {
+    const WriteCtx elemCtx = {
+        .reg  = ctx->reg,
+        .doc  = ctx->doc,
+        .meta = data_meta_base(ctx->meta),
+        .data = dynarray_at(array, i, 1),
+    };
+    const JsonVal elemVal = data_write_json_val_single(&elemCtx);
+    json_add_elem(ctx->doc, jsonArray, elemVal);
+  }
+  return jsonArray;
+}
+
 static JsonVal data_write_json_val(const WriteCtx* ctx) {
   switch (ctx->meta.container) {
   case DataContainer_None:
@@ -257,6 +274,8 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
     return data_write_json_val_pointer(ctx);
   case DataContainer_DataArray:
     return data_write_json_val_array(ctx);
+  case DataContainer_DynArray:
+    return data_write_json_val_dynarray(ctx);
   }
   diag_crash();
 }
