@@ -32,7 +32,7 @@
   _X_(AssetFormat_Tga,        tex_tga            )                                                 \
   _X_(AssetFormat_Ttf,        font_ttf           )                                                 \
   _X_(AssetFormat_Vfx,        vfx                )                                                 \
-  _X_(AssetFormat_Wav,        wav                )                                                 \
+  _X_(AssetFormat_Wav,        sound_wav          )                                                 \
   _X_(AssetFormat_Weapons,    weapons            )
 
 #define ASSET_LOADER_DECLARE(_FORMAT_, _NAME_) void asset_load_##_NAME_(EcsWorld*, String, EcsEntityId, AssetSource*);

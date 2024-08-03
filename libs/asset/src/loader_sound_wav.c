@@ -222,7 +222,8 @@ wav_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_sound_wav(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   WavError err        = WavError_None;
   DynArray chunks     = dynarray_create_t(g_allocHeap, WavChunk, 8);
   f32*     samples    = null;
