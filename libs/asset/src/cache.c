@@ -12,11 +12,12 @@ static const String g_assetCachePath    = string_static(".cache");
 static const String g_assetCacheRegName = string_static("registry.blob");
 
 typedef struct {
-  String id;
+  String     id;
+  StringHash idHash;
 } AssetCacheEntry;
 
 typedef struct {
-  DynArray entries;
+  DynArray entries; // AssetCacheEntry[], sorted on idHash.
 } AssetCacheRegistry;
 
 struct sAssetCache {
@@ -29,6 +30,12 @@ struct sAssetCache {
 };
 
 DataMeta g_assetCacheDataDef;
+
+static i8 cache_compare_entry(const void* a, const void* b) {
+  const AssetCacheEntry* entryA = a;
+  const AssetCacheEntry* entryB = b;
+  return compare_stringhash(&entryA->idHash, &entryB->idHash);
+}
 
 static bool cache_ensure_dir(AssetCache* cache) {
   const FileResult createRes = file_create_dir_sync(cache->rootPath);
@@ -102,6 +109,12 @@ static bool cache_registry_open(AssetCache* cache) {
     cache->regFile = null;
     return false;
   }
+
+  // Compute entry hash (which are not serialized) and resort.
+  dynarray_for_t(&cache->reg.entries, AssetCacheEntry, entry) {
+    entry->idHash = string_hash(entry->id);
+  }
+  dynarray_sort(&cache->reg.entries, cache_compare_entry);
 
   log_i("Opened asset cache registry", log_param("path", fmt_path(path)));
 
