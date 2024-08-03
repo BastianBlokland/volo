@@ -444,6 +444,14 @@ static void data_read_json_enum_multi_array(const ReadCtx* ctx, DataReadResult* 
       const StringHash     elemId    = json_string_hash(ctx->doc, elem);
       const DataDeclConst* constDecl = data_const_from_id(&decl->val_enum, elemId);
       if (LIKELY(constDecl)) {
+        if (UNLIKELY(val & constDecl->value)) {
+          *res = result_fail(
+              DataReadError_DuplicateEnumEntry,
+              "Duplicate enum entry '{}' for type {}",
+              fmt_text(constDecl->id.name),
+              fmt_text(decl->id.name));
+          return;
+        }
         val |= constDecl->value;
       } else {
         *res = result_fail(
@@ -458,12 +466,20 @@ static void data_read_json_enum_multi_array(const ReadCtx* ctx, DataReadResult* 
       const i32            elemVal   = (i32)json_number(ctx->doc, elem);
       const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, 1 << elemVal);
       if (LIKELY(constDecl)) {
+        if (UNLIKELY(val & constDecl->value)) {
+          *res = result_fail(
+              DataReadError_DuplicateEnumEntry,
+              "Duplicate enum entry '{}' for type {}",
+              fmt_int(elemVal),
+              fmt_text(decl->id.name));
+          return;
+        }
         val |= constDecl->value;
       } else {
         *res = result_fail(
             DataReadError_InvalidEnumEntry,
             "Invalid enum entry '{}' for type {}",
-            fmt_float(elemVal),
+            fmt_int(elemVal),
             fmt_text(decl->id.name));
         return;
       }

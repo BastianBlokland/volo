@@ -301,6 +301,9 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("[\"D\"]"), meta, DataReadError_InvalidEnumEntry);
     test_read_fail(_testCtx, reg, string_lit("[-1]"), meta, DataReadError_InvalidEnumEntry);
     test_read_fail(_testCtx, reg, string_lit("[3]"), meta, DataReadError_InvalidEnumEntry);
+    test_read_fail(
+        _testCtx, reg, string_lit("[\"A\", \"A\"]"), meta, DataReadError_DuplicateEnumEntry);
+    test_read_fail(_testCtx, reg, string_lit("[2, 2]"), meta, DataReadError_DuplicateEnumEntry);
   }
 
   it("can read a structure") {
