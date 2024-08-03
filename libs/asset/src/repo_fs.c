@@ -217,6 +217,13 @@ static AssetRepoQueryResult asset_repo_fs_query(
   return asset_repo_fs_query_iteration(repoFs, directory, pattern, flags, context, handler);
 }
 
+static void
+asset_repo_fs_cache(AssetRepo* repo, const String id, const DataMeta blobMeta, const Mem blob) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  asset_cache_add(repoFs->cache, id, blobMeta, blob);
+}
+
 static void asset_repo_fs_destroy(AssetRepo* repo) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
@@ -241,6 +248,7 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
               .changesWatch = asset_repo_fs_changes_watch,
               .changesPoll  = asset_repo_fs_changes_poll,
               .query        = asset_repo_fs_query,
+              .cache        = asset_repo_fs_cache,
           },
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),
