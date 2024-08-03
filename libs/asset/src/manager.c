@@ -46,12 +46,13 @@ ecs_comp_define(AssetManagerComp) {
 };
 
 ecs_comp_define(AssetComp) {
-  String     id;
-  u16        refCount;
-  u16        loadCount; // NOTE: Only used for debug purposes.
-  AssetFlags flags : 16;
-  u16        unloadTicks;
-  TimeReal   modTime; // Last known modification time of the asset (0 if unknown).
+  String      id;
+  u16         refCount;
+  u16         loadCount;
+  u16         unloadTicks;
+  AssetFlags  flags : 8;
+  AssetFormat loadFormat : 8; // Source format of the last load (valid if loadCount > 0).
+  TimeReal    loadModTime;    // Source modification of the last load (valid if loadCount > 0).
 };
 
 ecs_comp_define(AssetLoadedComp);
@@ -164,7 +165,8 @@ static bool asset_manager_load(
   }
 
   ++asset->loadCount;
-  asset->modTime = source->modTime;
+  asset->loadFormat  = source->format;
+  asset->loadModTime = source->modTime;
 
   log_d(
       "Asset load started",
