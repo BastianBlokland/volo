@@ -260,7 +260,7 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     glsl_include_error(res, string_lit("File not found"));
     return res;
   }
-  if (UNLIKELY(src->format != AssetFormat_Glsl)) {
+  if (UNLIKELY(src->format != AssetFormat_ShaderGlsl)) {
     asset_repo_source_close(src);
     glsl_include_error(res, string_lit("File has an invalid format"));
     return res;
