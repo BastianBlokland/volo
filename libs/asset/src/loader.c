@@ -7,6 +7,7 @@
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
   _X_(AssetFormat_ArrayTex,   arraytex           )                                                 \
   _X_(AssetFormat_Atlas,      atlas              )                                                 \
+  _X_(AssetFormat_BinTex,     tex_bin            )                                                 \
   _X_(AssetFormat_Cursor,     cursor             )                                                 \
   _X_(AssetFormat_Decal,      decal              )                                                 \
   _X_(AssetFormat_FontTex,    fonttex            )                                                 \
