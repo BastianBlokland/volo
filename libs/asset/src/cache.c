@@ -14,6 +14,7 @@ static const String g_assetCacheRegName = string_static("registry.blob");
 typedef struct {
   String     id;
   StringHash idHash;
+  u32        typeFormatHash;
 } AssetCacheEntry;
 
 typedef struct {
@@ -152,10 +153,27 @@ static bool cache_registry_open_or_create(AssetCache* cache) {
   return cache_registry_create(cache);
 }
 
+/**
+ * Pre-condition: cache->regMutex is held by this thread.
+ */
+static AssetCacheEntry* cache_registry_add(AssetCache* cache, const String id) {
+  const StringHash      idHash = string_hash(id);
+  const AssetCacheEntry key    = {.idHash = idHash};
+
+  AssetCacheEntry* res =
+      dynarray_find_or_insert_sorted(&cache->reg.entries, cache_compare_entry, &key);
+
+  res->id     = string_dup(cache->alloc, id);
+  res->idHash = idHash;
+
+  return res;
+}
+
 void asset_data_init_cache(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, typeFormatHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
@@ -200,4 +218,18 @@ void asset_cache_destroy(AssetCache* cache) {
 
   string_free(cache->alloc, cache->rootPath);
   alloc_free_t(cache->alloc, cache);
+}
+
+void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta, const Mem blob) {
+  const u32 typeFormatHash = data_hash(g_dataReg, blobMeta, DataHashFlags_ExcludeIds);
+
+  thread_mutex_lock(cache->regMutex);
+  {
+    AssetCacheEntry* entry = cache_registry_add(cache, id);
+    entry->typeFormatHash  = typeFormatHash;
+  }
+  thread_mutex_unlock(cache->regMutex);
+
+  // TODO: Save blob to disk.
+  (void)blob;
 }

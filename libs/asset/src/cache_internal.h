@@ -11,3 +11,4 @@ extern DataMeta g_assetCacheDataDef;
 
 AssetCache* asset_cache_create(Allocator*, String rootPath);
 void        asset_cache_destroy(AssetCache*);
+void        asset_cache_add(AssetCache*, String id, DataMeta blobMeta, Mem blob);
