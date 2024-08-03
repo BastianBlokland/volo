@@ -107,7 +107,7 @@ spec(utils_clone) {
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     for (usize i = 0; i != original.count; ++i) {
-      check_eq_int(original.values[i], (i32)i);
+      check_eq_int(clone.values[i], original.values[i]);
     }
 
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
@@ -124,6 +124,27 @@ spec(utils_clone) {
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+  }
+
+  it("can clone dynamic-arrays") {
+    DynArray original                = dynarray_create_t(g_allocHeap, i32, 4);
+    *dynarray_push_t(&original, i32) = 0;
+    *dynarray_push_t(&original, i32) = 1;
+    *dynarray_push_t(&original, i32) = 2;
+    *dynarray_push_t(&original, i32) = 3;
+
+    DynArray clone;
+
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DynArray);
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+
+    check_eq_int(original.size, clone.size);
+    for (usize i = 0; i != original.size; ++i) {
+      check_eq_int(*dynarray_at_t(&original, i, i32), *dynarray_at_t(&clone, i, i32));
+    }
+
+    dynarray_destroy(&original);
+    dynarray_destroy(&clone);
   }
 
   it("can clone a structure") {
