@@ -38,6 +38,7 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
 static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_ArrayTex] = string_static("ArrayTex"),
     [AssetFormat_Atlas]    = string_static("Atlas"),
+    [AssetFormat_BinTex]   = string_static("BinTex"),
     [AssetFormat_Cursor]   = string_static("Cursor"),
     [AssetFormat_Decal]    = string_static("Decal"),
     [AssetFormat_FontTex]  = string_static("FontTex"),
