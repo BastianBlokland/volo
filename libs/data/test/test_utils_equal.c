@@ -73,6 +73,27 @@ spec(utils_equal) {
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
   }
 
+  it("can compare dynarray's") {
+    DynArray arrayA                = dynarray_create_t(g_allocHeap, i32, 4);
+    *dynarray_push_t(&arrayA, i32) = 0;
+    *dynarray_push_t(&arrayA, i32) = 1;
+    *dynarray_push_t(&arrayA, i32) = 2;
+    *dynarray_push_t(&arrayA, i32) = 3;
+
+    DynArray arrayB                = dynarray_create_t(g_allocHeap, i32, 4);
+    *dynarray_push_t(&arrayB, i32) = 0;
+    *dynarray_push_t(&arrayB, i32) = 1;
+    *dynarray_push_t(&arrayB, i32) = 3;
+    *dynarray_push_t(&arrayB, i32) = 2;
+
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DynArray);
+    check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayA)));
+    check(!data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
+
+    dynarray_destroy(&arrayA);
+    dynarray_destroy(&arrayB);
+  }
+
   it("can compare structures") {
     typedef struct {
       String a, b, c;

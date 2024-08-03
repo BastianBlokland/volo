@@ -140,14 +140,32 @@ static bool data_equal_array(const EqualCtx* ctx) {
   }
 
   for (usize i = 0; i != arrayA->count; ++i) {
-    const Mem elemA = data_elem_mem(decl, arrayA, i);
-    const Mem elemB = data_elem_mem(decl, arrayB, i);
-
     const EqualCtx elemCtx = {
         .reg  = ctx->reg,
         .meta = data_meta_base(ctx->meta),
-        .a    = elemA,
-        .b    = elemB,
+        .a    = data_elem_mem(decl, arrayA, i),
+        .b    = data_elem_mem(decl, arrayB, i),
+    };
+    if (!data_equal_single(&elemCtx)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool data_equal_dynarray(const EqualCtx* ctx) {
+  const DynArray* arrayA = mem_as_t(ctx->a, DynArray);
+  const DynArray* arrayB = mem_as_t(ctx->b, DynArray);
+  if (arrayA->size != arrayB->size) {
+    return false;
+  }
+
+  for (usize i = 0; i != arrayA->size; ++i) {
+    const EqualCtx elemCtx = {
+        .reg  = ctx->reg,
+        .meta = data_meta_base(ctx->meta),
+        .a    = dynarray_at(arrayA, i, 1),
+        .b    = dynarray_at(arrayB, i, 1),
     };
     if (!data_equal_single(&elemCtx)) {
       return false;
@@ -164,6 +182,8 @@ static bool data_equal_internal(const EqualCtx* ctx) {
     return data_equal_pointer(ctx);
   case DataContainer_DataArray:
     return data_equal_array(ctx);
+  case DataContainer_DynArray:
+    return data_equal_dynarray(ctx);
   }
   diag_crash();
 }
