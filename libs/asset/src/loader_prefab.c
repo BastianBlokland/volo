@@ -46,11 +46,6 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  u32*  values;
-  usize count;
-} PrefabStatusMaskDef;
-
-typedef struct {
   GeoVector offset;
   f32       radius;
 } AssetPrefabShapeSphereDef;
@@ -201,8 +196,8 @@ typedef struct {
 } AssetPrefabTraitLocationDef;
 
 typedef struct {
-  PrefabStatusMaskDef supportedStatus;
-  String              effectJoint;
+  u32    supportedStatus;
+  String effectJoint;
 } AssetPrefabTraitStatusDef;
 
 typedef struct {
@@ -296,12 +291,6 @@ typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
 } BuildCtx;
-
-static u8 prefab_build_status_mask(const PrefabStatusMaskDef* def) {
-  u8 mask = 0;
-  array_ptr_for_t(*def, u32, val) { mask |= *val; }
-  return mask;
-}
 
 static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   switch (def->type) {
@@ -565,7 +554,7 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Status:
       outTrait->data_status = (AssetPrefabTraitStatus){
-          .supportedStatusMask = prefab_build_status_mask(&traitDef->data_status.supportedStatus),
+          .supportedStatusMask = traitDef->data_status.supportedStatus,
           .effectJoint         = string_maybe_hash(traitDef->data_status.effectJoint),
       };
       break;
@@ -786,7 +775,7 @@ void asset_data_init_prefab(void) {
     * require an undesired dependency on the scene library.
     * NOTE: This is a virtual data type, meaning there is no matching AssetPrefabStatusMask C type.
     */
-  data_reg_enum_t(g_dataReg, AssetPrefabStatusMask);
+  data_reg_enum_multi_t(g_dataReg, AssetPrefabStatusMask);
   data_reg_const_custom(g_dataReg, AssetPrefabStatusMask, Burning,  1 << 0);
   data_reg_const_custom(g_dataReg, AssetPrefabStatusMask, Bleeding, 1 << 1);
   data_reg_const_custom(g_dataReg, AssetPrefabStatusMask, Healing,  1 << 2);
@@ -917,7 +906,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitStatusDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, supportedStatus, t_AssetPrefabStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, supportedStatus, t_AssetPrefabStatusMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitVisionDef);
