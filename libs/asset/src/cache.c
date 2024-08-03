@@ -14,7 +14,7 @@ static const String g_assetCacheRegName = string_static("registry.blob");
 typedef struct {
   String     id;
   StringHash idHash;
-  u32        typeFormatHash;
+  u32        formatHash;
 } AssetCacheEntry;
 
 typedef struct {
@@ -50,13 +50,13 @@ static bool cache_ensure_dir(AssetCache* cache) {
   return true;
 }
 
-static bool cache_registry_save(AssetCache* cache) {
+static bool cache_reg_save(AssetCache* c) {
   bool result = true;
 
-  DynString blobBuffer = dynstring_create(cache->alloc, 256);
-  data_write_bin(g_dataReg, &blobBuffer, g_assetCacheDataDef, mem_var(cache->reg));
+  DynString blobBuffer = dynstring_create(c->alloc, 256);
+  data_write_bin(g_dataReg, &blobBuffer, g_assetCacheDataDef, mem_var(c->reg));
 
-  const FileResult fileRes = file_write_sync(cache->regFile, dynstring_view(&blobBuffer));
+  const FileResult fileRes = file_write_sync(c->regFile, dynstring_view(&blobBuffer));
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_w(
         "Failed to save asset cache registry",
@@ -68,14 +68,14 @@ static bool cache_registry_save(AssetCache* cache) {
   return result;
 }
 
-static bool cache_registry_open(AssetCache* cache) {
-  diag_assert(!cache->regFile);
+static bool cache_reg_open(AssetCache* c) {
+  diag_assert(!c->regFile);
 
-  const String path = path_build_scratch(cache->rootPath, g_assetCachePath, g_assetCacheRegName);
+  const String path = path_build_scratch(c->rootPath, g_assetCachePath, g_assetCacheRegName);
   const FileAccessFlags access = FileAccess_Read | FileAccess_Write;
 
   FileResult fileRes;
-  fileRes = file_create(cache->alloc, path, FileMode_Open, access, &cache->regFile);
+  fileRes = file_create(c->alloc, path, FileMode_Open, access, &c->regFile);
   if (fileRes == FileResult_NotFound) {
     return false;
   }
@@ -88,49 +88,49 @@ static bool cache_registry_open(AssetCache* cache) {
   }
 
   String data;
-  fileRes = file_map(cache->regFile, &data);
+  fileRes = file_map(c->regFile, &data);
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_w(
         "Failed to map asset cache registry",
         log_param("path", fmt_path(path)),
         log_param("error", fmt_text(file_result_str(fileRes))));
-    file_destroy(cache->regFile);
-    cache->regFile = null;
+    file_destroy(c->regFile);
+    c->regFile = null;
     return false;
   }
 
   DataReadResult readRes;
-  data_read_bin(g_dataReg, data, cache->alloc, g_assetCacheDataDef, mem_var(cache->reg), &readRes);
+  data_read_bin(g_dataReg, data, c->alloc, g_assetCacheDataDef, mem_var(c->reg), &readRes);
   if (UNLIKELY(readRes.error)) {
     log_w(
         "Failed to read asset cache registry",
         log_param("path", fmt_path(path)),
         log_param("error", fmt_text(readRes.errorMsg)));
-    file_destroy(cache->regFile);
-    cache->regFile = null;
+    file_destroy(c->regFile);
+    c->regFile = null;
     return false;
   }
 
-  // Compute entry hash (which are not serialized) and resort.
-  dynarray_for_t(&cache->reg.entries, AssetCacheEntry, entry) {
-    entry->idHash = string_hash(entry->id);
-  }
-  dynarray_sort(&cache->reg.entries, cache_compare_entry);
+  /**
+   * Sort by idHash.
+   * NOTE: Technically not necessary assuming the file was not tampered with.
+   */
+  dynarray_sort(&c->reg.entries, cache_compare_entry);
 
   log_i("Opened asset cache registry", log_param("path", fmt_path(path)));
 
-  file_unmap(cache->regFile);
+  file_unmap(c->regFile);
   return true;
 }
 
-static bool cache_registry_create(AssetCache* cache) {
-  diag_assert(!cache->regFile);
+static bool cache_reg_create(AssetCache* c) {
+  diag_assert(!c->regFile);
 
-  const String path = path_build_scratch(cache->rootPath, g_assetCachePath, g_assetCacheRegName);
+  const String path = path_build_scratch(c->rootPath, g_assetCachePath, g_assetCacheRegName);
   const FileAccessFlags access = FileAccess_Read | FileAccess_Write;
 
   FileResult fileRes;
-  fileRes = file_create(cache->alloc, path, FileMode_Create, access, &cache->regFile);
+  fileRes = file_create(c->alloc, path, FileMode_Create, access, &c->regFile);
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_e(
         "Failed to create asset cache registry",
@@ -139,36 +139,34 @@ static bool cache_registry_create(AssetCache* cache) {
     return false;
   }
 
-  cache->reg = (AssetCacheRegistry){
-      .entries = dynarray_create_t(cache->alloc, AssetCacheEntry, 32),
+  c->reg = (AssetCacheRegistry){
+      .entries = dynarray_create_t(c->alloc, AssetCacheEntry, 32),
   };
 
-  return cache_registry_save(cache);
+  return cache_reg_save(c);
 }
 
-static bool cache_registry_open_or_create(AssetCache* cache) {
-  if (cache_registry_open(cache)) {
+static bool cache_reg_open_or_create(AssetCache* c) {
+  if (cache_reg_open(c)) {
     return true;
   }
-  return cache_registry_create(cache);
+  return cache_reg_create(c);
 }
 
 /**
  * Pre-condition: cache->regMutex is held by this thread.
  */
-static AssetCacheEntry* cache_registry_add(AssetCache* cache, const String id) {
-  const StringHash      idHash = string_hash(id);
-  const AssetCacheEntry key    = {.idHash = idHash};
+static AssetCacheEntry* cache_reg_add(AssetCache* c, const String id, const StringHash idHash) {
+  const AssetCacheEntry key = {.idHash = idHash};
 
-  AssetCacheEntry* res =
-      dynarray_find_or_insert_sorted(&cache->reg.entries, cache_compare_entry, &key);
+  AssetCacheEntry* res = dynarray_find_or_insert_sorted(&c->reg.entries, cache_compare_entry, &key);
 
   if (res->idHash == idHash) {
     // Existing entry.
     diag_assert_msg(string_eq(res->id, id), "Asset id hash collision detected");
   } else {
     // New entry.
-    res->id     = string_dup(cache->alloc, id);
+    res->id     = string_dup(c->alloc, id);
     res->idHash = idHash;
   }
 
@@ -179,7 +177,8 @@ void asset_data_init_cache(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, typeFormatHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, formatHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
@@ -203,7 +202,7 @@ AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
     cache->error = true;
     goto Ret;
   }
-  if (UNLIKELY(!cache_registry_open_or_create(cache))) {
+  if (UNLIKELY(!cache_reg_open_or_create(cache))) {
     cache->error = true;
     goto Ret;
   }
@@ -214,7 +213,7 @@ Ret:
 
 void asset_cache_destroy(AssetCache* cache) {
   if (!cache->error) {
-    cache_registry_save(cache);
+    cache_reg_save(cache);
   }
   if (cache->regFile) {
     file_destroy(cache->regFile);
@@ -230,17 +229,28 @@ void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta
   if (UNLIKELY(cache->error)) {
     return;
   }
-  const u32 typeFormatHash = data_hash(g_dataReg, blobMeta, DataHashFlags_ExcludeIds);
+  const StringHash idHash     = string_hash(id);
+  const u32        formatHash = data_hash(g_dataReg, blobMeta, DataHashFlags_ExcludeIds);
 
+  // Save the blob to disk.
+  const String     blobName     = fmt_write_scratch("{}.blob", fmt_int(idHash));
+  const String     blobPath     = path_build_scratch(cache->rootPath, g_assetCachePath, blobName);
+  const FileResult blobWriteRes = file_write_to_path_sync(blobPath, blob);
+  if (UNLIKELY(blobWriteRes != FileResult_Success)) {
+    log_w(
+        "Failed to cache blob",
+        log_param("path", fmt_path(blobPath)),
+        log_param("error", fmt_text(file_result_str(blobWriteRes))));
+    return;
+  }
+
+  // Add an entry to the registry.
   thread_mutex_lock(cache->regMutex);
   {
-    AssetCacheEntry* entry = cache_registry_add(cache, id);
-    entry->typeFormatHash  = typeFormatHash;
+    AssetCacheEntry* entry = cache_reg_add(cache, id, idHash);
+    entry->formatHash      = formatHash;
   }
   thread_mutex_unlock(cache->regMutex);
-
-  // TODO: Save blob to disk.
-  (void)blob;
 }
 
 void asset_cache_flush(AssetCache* cache) {
@@ -249,7 +259,7 @@ void asset_cache_flush(AssetCache* cache) {
   }
   thread_mutex_lock(cache->regMutex);
 
-  cache_registry_save(cache);
+  cache_reg_save(cache);
 
   thread_mutex_unlock(cache->regMutex);
 }
