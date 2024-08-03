@@ -154,11 +154,18 @@ FileResult file_delete_dir_sync(String path);
 /**
  * Memory map the given file.
  * On success the mapped memory will be assigned to the output pointer. Memory mappings are
- * automatically closed when the file-handle is destroyed.
+ * automatically closed when the file-handle is destroyed (or when calling 'file_unmap()').
  *
  * Pre-condition: file has not been mapped yet.
  */
 FileResult file_map(File*, String* output);
+
+/**
+ * Release the memory of the given file.
+ *
+ * Pre-condition: file has been mapped.
+ */
+FileResult file_unmap(File*);
 
 /**
  * Synchronously create a new file-system directory.
