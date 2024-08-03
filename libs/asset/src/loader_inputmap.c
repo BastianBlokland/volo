@@ -13,15 +13,10 @@
 DataMeta g_assetInputMapDataDef;
 
 typedef struct {
-  u32*  values;
-  usize count;
-} AssetInputModifierArray;
-
-typedef struct {
-  AssetInputType          type;
-  u32                     key;
-  AssetInputModifierArray requiredModifiers;
-  AssetInputModifierArray illegalModifiers;
+  AssetInputType type;
+  u32            key;
+  u32            requiredModifiers;
+  u32            illegalModifiers;
 } AssetInputBindingDef;
 
 typedef struct {
@@ -71,12 +66,6 @@ static u32 asset_inputmap_blocker_bits(const AssetInputActionDef* def) {
   return bits;
 }
 
-static u32 asset_inputmap_modifier_bits(const AssetInputModifierArray* array) {
-  u32 bits = 0;
-  array_ptr_for_t(*array, u32, modifierIndex) { bits |= 1 << *modifierIndex; }
-  return bits;
-}
-
 static void asset_inputmap_build(
     const AssetInputMapDef* def,
     DynArray*               outActions,  // AssetInputAction[], needs to be already initialized.
@@ -86,10 +75,10 @@ static void asset_inputmap_build(
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-              .blockerBits  = asset_inputmap_blocker_bits(actionDef),
-              .bindingIndex = (u16)outBindings->size,
-              .bindingCount = (u16)bindingCount,
+        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+        .blockerBits  = asset_inputmap_blocker_bits(actionDef),
+        .bindingIndex = (u16)outBindings->size,
+        .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -102,8 +91,8 @@ static void asset_inputmap_build(
       *dynarray_push_t(outBindings, AssetInputBinding) = (AssetInputBinding){
           .type                 = bindingDef->type,
           .key                  = bindingDef->key,
-          .requiredModifierBits = asset_inputmap_modifier_bits(&bindingDef->requiredModifiers),
-          .illegalModifierBits  = asset_inputmap_modifier_bits(&bindingDef->illegalModifiers),
+          .requiredModifierBits = bindingDef->requiredModifiers,
+          .illegalModifierBits  = bindingDef->illegalModifiers,
       };
     }
   }
@@ -249,10 +238,10 @@ void asset_data_init_inputmap(void) {
     * Modifiers correspond to the 'InputModifier' values as defined in 'input_manager.h'.
     * NOTE: This is a virtual data type, meaning there is no matching AssetInputModifier C type.
     */
-  data_reg_enum_t(g_dataReg, AssetInputModifier);
-  data_reg_const_custom(g_dataReg, AssetInputModifier, Shift, 0);
-  data_reg_const_custom(g_dataReg, AssetInputModifier, Control, 1);
-  data_reg_const_custom(g_dataReg, AssetInputModifier, Alt, 2);
+  data_reg_enum_multi_t(g_dataReg, AssetInputModifier);
+  data_reg_const_custom(g_dataReg, AssetInputModifier, Shift, 1 << 0);
+  data_reg_const_custom(g_dataReg, AssetInputModifier, Control, 1 << 1);
+  data_reg_const_custom(g_dataReg, AssetInputModifier, Alt, 1 <<  2);
 
   data_reg_enum_t(g_dataReg, AssetInputType);
   data_reg_const_t(g_dataReg, AssetInputType, Pressed);
@@ -262,8 +251,8 @@ void asset_data_init_inputmap(void) {
   data_reg_struct_t(g_dataReg, AssetInputBindingDef);
   data_reg_field_t(g_dataReg, AssetInputBindingDef, type, t_AssetInputType);
   data_reg_field_t(g_dataReg, AssetInputBindingDef, key, t_AssetInputKey);
-  data_reg_field_t(g_dataReg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetInputActionDef);
   data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);

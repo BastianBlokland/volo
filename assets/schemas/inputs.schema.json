@@ -54,14 +54,8 @@
       "properties": {
         "type": { "title": "AssetInputType", "$ref": "#/$defs/AssetInputType" },
         "key": { "title": "AssetInputKey", "$ref": "#/$defs/AssetInputKey" },
-        "requiredModifiers": {
-          "type": "array",
-          "items": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
-        },
-        "illegalModifiers": {
-          "type": "array",
-          "items": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
-        }
+        "requiredModifiers": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" },
+        "illegalModifiers": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
       },
       "required": [ "type", "key" ],
       "defaultSnippets": [
@@ -152,7 +146,10 @@
       ]
     },
     "AssetInputModifier": {
-      "enum": [ "Shift", "Control", "Alt" ]
+      "type": "array",
+      "items": {
+        "enum": [ "Shift", "Control", "Alt" ]
+      }
     }
   }
 }
