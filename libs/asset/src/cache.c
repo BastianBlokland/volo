@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_thread.h"
 #include "data.h"
 #include "log_logger.h"
 
@@ -23,6 +24,7 @@ struct sAssetCache {
   bool               error;
   String             rootPath;
   AssetCacheRegistry reg;
+  ThreadMutex        regMutex;
   File*              regFile;
 };
 
@@ -157,6 +159,7 @@ AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
   *cache = (AssetCache){
       .alloc    = alloc,
       .rootPath = string_dup(alloc, rootPath),
+      .regMutex = thread_mutex_create(alloc),
   };
 
   if (UNLIKELY(!cache_ensure_dir(cache))) {
@@ -180,6 +183,7 @@ void asset_cache_destroy(AssetCache* cache) {
     file_destroy(cache->regFile);
   }
   data_destroy(g_dataReg, cache->alloc, g_assetCacheDataDef, mem_var(cache->reg));
+  thread_mutex_destroy(cache->regMutex);
 
   string_free(cache->alloc, cache->rootPath);
   alloc_free_t(cache->alloc, cache);
