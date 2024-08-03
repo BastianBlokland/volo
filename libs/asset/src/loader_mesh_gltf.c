@@ -1521,7 +1521,8 @@ ecs_module_init(asset_gltf_module) {
       GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(BufferView));
 }
 
-void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_mesh_gltf(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
   json_read(jsonDoc, src->data, JsonReadFlags_HashOnlyFieldNames, &jsonRes);

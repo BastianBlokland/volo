@@ -13,16 +13,16 @@
   _X_(AssetFormat_FontTex,    fonttex            )                                                 \
   _X_(AssetFormat_GlslFrag,   glsl_frag          )                                                 \
   _X_(AssetFormat_GlslVert,   glsl_vert          )                                                 \
-  _X_(AssetFormat_Gltf,       gltf               )                                                 \
+  _X_(AssetFormat_Gltf,       mesh_gltf          )                                                 \
   _X_(AssetFormat_Graphic,    graphic            )                                                 \
   _X_(AssetFormat_Height16,   tex_height16       )                                                 \
   _X_(AssetFormat_Height32,   tex_height32       )                                                 \
   _X_(AssetFormat_Inputs,     inputs             )                                                 \
   _X_(AssetFormat_Level,      level              )                                                 \
-  _X_(AssetFormat_Obj,        obj                )                                                 \
+  _X_(AssetFormat_Obj,        mesh_obj           )                                                 \
   _X_(AssetFormat_Ppm,        tex_ppm            )                                                 \
   _X_(AssetFormat_Prefabs,    prefabs            )                                                 \
-  _X_(AssetFormat_ProcMesh,   procmesh           )                                                 \
+  _X_(AssetFormat_ProcMesh,   mesh_proc          )                                                 \
   _X_(AssetFormat_ProcTex,    tex_proc           )                                                 \
   _X_(AssetFormat_Products,   products           )                                                 \
   _X_(AssetFormat_Raw,        raw                )                                                 \

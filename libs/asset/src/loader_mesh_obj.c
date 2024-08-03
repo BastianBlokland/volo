@@ -407,7 +407,8 @@ obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_obj(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_mesh_obj(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
   ObjError          err     = ObjError_None;
   AssetMeshBuilder* builder = null;
