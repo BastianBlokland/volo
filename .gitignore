@@ -15,6 +15,7 @@
 
 # Temporary files.
 /.cache/
+/assets/.cache/
 
 # Downloaded files.
 /assets/external/
