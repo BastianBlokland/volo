@@ -7,6 +7,7 @@
 
 #include "cache_internal.h"
 
+static const String g_assetCachePath    = string_static(".cache");
 static const String g_assetCacheRegName = string_static("registry.blob");
 
 typedef struct {
@@ -15,8 +16,8 @@ typedef struct {
 
 struct sAssetCache {
   Allocator*         alloc;
-  String             path;
   bool               error;
+  String             rootPath;
   AssetCacheRegistry reg;
   File*              regFile;
 };
@@ -24,11 +25,11 @@ struct sAssetCache {
 DataMeta g_assetCacheDataDef;
 
 static bool cache_ensure_dir(AssetCache* cache) {
-  const FileResult createRes = file_create_dir_sync(cache->path);
+  const FileResult createRes = file_create_dir_sync(cache->rootPath);
   if (UNLIKELY(createRes != FileResult_Success && createRes != FileResult_AlreadyExists)) {
     log_e(
         "Failed to create asset cache dir",
-        log_param("path", fmt_path(cache->path)),
+        log_param("path", fmt_path(cache->rootPath)),
         log_param("error", fmt_text(file_result_str(createRes))));
     return false;
   }
@@ -56,18 +57,18 @@ static bool cache_registry_save(AssetCache* cache) {
 static bool cache_registry_open(AssetCache* cache) {
   diag_assert(!cache->regFile);
 
-  const String          regPath   = path_build_scratch(cache->path, g_assetCacheRegName);
-  const FileAccessFlags regAccess = FileAccess_Read | FileAccess_Write;
+  const String path = path_build_scratch(cache->rootPath, g_assetCachePath, g_assetCacheRegName);
+  const FileAccessFlags access = FileAccess_Read | FileAccess_Write;
 
   FileResult fileRes;
-  fileRes = file_create(cache->alloc, regPath, FileMode_Open, regAccess, &cache->regFile);
+  fileRes = file_create(cache->alloc, path, FileMode_Open, access, &cache->regFile);
   if (fileRes == FileResult_NotFound) {
     return false;
   }
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_w(
         "Failed to open asset cache registry",
-        log_param("path", fmt_path(regPath)),
+        log_param("path", fmt_path(path)),
         log_param("error", fmt_text(file_result_str(fileRes))));
     return false;
   }
@@ -77,7 +78,7 @@ static bool cache_registry_open(AssetCache* cache) {
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_w(
         "Failed to map asset cache registry",
-        log_param("path", fmt_path(regPath)),
+        log_param("path", fmt_path(path)),
         log_param("error", fmt_text(file_result_str(fileRes))));
     file_destroy(cache->regFile);
     cache->regFile = null;
@@ -89,14 +90,14 @@ static bool cache_registry_open(AssetCache* cache) {
   if (UNLIKELY(readRes.error)) {
     log_w(
         "Failed to read asset cache registry",
-        log_param("path", fmt_path(regPath)),
+        log_param("path", fmt_path(path)),
         log_param("error", fmt_text(readRes.errorMsg)));
     file_destroy(cache->regFile);
     cache->regFile = null;
     return false;
   }
 
-  log_i("Opened asset cache registry", log_param("path", fmt_path(regPath)));
+  log_i("Opened asset cache registry", log_param("path", fmt_path(path)));
 
   file_unmap(cache->regFile);
   return true;
@@ -105,15 +106,15 @@ static bool cache_registry_open(AssetCache* cache) {
 static bool cache_registry_create(AssetCache* cache) {
   diag_assert(!cache->regFile);
 
-  const String          regPath   = path_build_scratch(cache->path, g_assetCacheRegName);
-  const FileAccessFlags regAccess = FileAccess_Read | FileAccess_Write;
+  const String path = path_build_scratch(cache->rootPath, g_assetCachePath, g_assetCacheRegName);
+  const FileAccessFlags access = FileAccess_Read | FileAccess_Write;
 
   FileResult fileRes;
-  fileRes = file_create(cache->alloc, regPath, FileMode_Create, regAccess, &cache->regFile);
+  fileRes = file_create(cache->alloc, path, FileMode_Create, access, &cache->regFile);
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_e(
         "Failed to create asset cache registry",
-        log_param("path", fmt_path(regPath)),
+        log_param("path", fmt_path(path)),
         log_param("error", fmt_text(file_result_str(fileRes))));
     return false;
   }
@@ -139,14 +140,14 @@ void asset_data_init_cache(void) {
   g_assetCacheDataDef = data_meta_t(t_AssetCacheRegistry);
 }
 
-AssetCache* asset_cache_create(Allocator* alloc, const String path) {
-  diag_assert(!string_is_empty(path));
+AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
+  diag_assert(!string_is_empty(rootPath));
 
   AssetCache* cache = alloc_alloc_t(alloc, AssetCache);
 
   *cache = (AssetCache){
-      .alloc = alloc,
-      .path  = string_dup(alloc, path),
+      .alloc    = alloc,
+      .rootPath = string_dup(alloc, rootPath),
   };
 
   if (UNLIKELY(!cache_ensure_dir(cache))) {
@@ -171,6 +172,6 @@ void asset_cache_destroy(AssetCache* cache) {
   }
   data_destroy(g_dataReg, cache->alloc, g_assetCacheDataDef, mem_var(cache->reg));
 
-  string_free(cache->alloc, cache->path);
+  string_free(cache->alloc, cache->rootPath);
   alloc_free_t(cache->alloc, cache);
 }

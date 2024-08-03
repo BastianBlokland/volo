@@ -9,5 +9,5 @@ typedef struct sAssetCache AssetCache;
 
 extern DataMeta g_assetCacheDataDef;
 
-AssetCache* asset_cache_create(Allocator*, String path);
+AssetCache* asset_cache_create(Allocator*, String rootPath);
 void        asset_cache_destroy(AssetCache*);

@@ -231,8 +231,6 @@ static void asset_repo_fs_destroy(AssetRepo* repo) {
 AssetRepo* asset_repo_create_fs(const String rootPath) {
   AssetRepoFs* repo = alloc_alloc_t(g_allocHeap, AssetRepoFs);
 
-  const String cachePathScratch = path_build_scratch(rootPath, string_lit(".cache"));
-
   *repo = (AssetRepoFs){
       .api =
           {
@@ -247,7 +245,7 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),
       .monitor     = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
-      .cache       = asset_cache_create(g_allocHeap, cachePathScratch),
+      .cache       = asset_cache_create(g_allocHeap, rootPath),
   };
 
   return (AssetRepo*)repo;
