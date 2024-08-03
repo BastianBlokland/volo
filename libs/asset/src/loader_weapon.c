@@ -17,33 +17,28 @@
 DataMeta g_assetWeaponDataDef;
 
 typedef struct {
-  u32*  values;
-  usize count;
-} WeaponStatusMaskDef;
-
-typedef struct {
-  String              originJoint;
-  bool                launchTowardsTarget, seekTowardsTarget;
-  WeaponStatusMaskDef applyStatus;
-  f32                 delay;
-  f32                 spreadAngle;
-  f32                 speed;
-  f32                 damage, damageRadius;
-  f32                 destroyDelay;
-  String              projectilePrefab;
-  String              impactPrefab; // Optional, empty if unused.
+  String originJoint;
+  bool   launchTowardsTarget, seekTowardsTarget;
+  u32    applyStatus;
+  f32    delay;
+  f32    spreadAngle;
+  f32    speed;
+  f32    damage, damageRadius;
+  f32    destroyDelay;
+  String projectilePrefab;
+  String impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectProjDef;
 
 typedef struct {
-  bool                continuous;
-  String              originJoint;
-  f32                 delay;
-  f32                 radius, radiusEnd;
-  f32                 length;
-  f32                 lengthGrowTime;
-  f32                 damage;
-  WeaponStatusMaskDef applyStatus;
-  String              impactPrefab; // Optional, empty if unused.
+  bool   continuous;
+  String originJoint;
+  f32    delay;
+  f32    radius, radiusEnd;
+  f32    length;
+  f32    lengthGrowTime;
+  f32    damage;
+  u32    applyStatus;
+  String impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
@@ -130,12 +125,6 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static u8 weapon_status_mask_build(const WeaponStatusMaskDef* def) {
-  u8 mask = 0;
-  array_ptr_for_t(*def, u32, val) { mask |= *val; }
-  return mask;
-}
-
 static void weapon_effect_proj_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectProjDef* def,
@@ -146,7 +135,7 @@ static void weapon_effect_proj_build(
       .originJoint         = string_hash(def->originJoint),
       .launchTowardsTarget = def->launchTowardsTarget,
       .seekTowardsTarget   = def->seekTowardsTarget,
-      .applyStatusMask     = weapon_status_mask_build(&def->applyStatus),
+      .applyStatusMask     = (u8)def->applyStatus,
       .delay               = (TimeDuration)time_seconds(def->delay),
       .spreadAngle         = def->spreadAngle,
       .speed               = def->speed,
@@ -174,7 +163,7 @@ static void weapon_effect_dmg_build(
       .radiusEnd       = def->radiusEnd,
       .length          = def->length,
       .lengthGrowTime  = (TimeDuration)time_seconds(def->lengthGrowTime),
-      .applyStatusMask = weapon_status_mask_build(&def->applyStatus),
+      .applyStatusMask = (u8)def->applyStatus,
       .impactPrefab    = string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
@@ -442,7 +431,7 @@ void asset_data_init_weapon(void) {
     * require an undesired dependency on the scene library.
     * NOTE: This is a virtual data type, meaning there is no matching AssetWeaponStatusMask C type.
     */
-  data_reg_enum_t(g_dataReg, AssetWeaponStatusMask);
+  data_reg_enum_multi_t(g_dataReg, AssetWeaponStatusMask);
   data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Burning,  1 << 0);
   data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Bleeding, 1 << 1);
   data_reg_const_custom(g_dataReg, AssetWeaponStatusMask, Healing,  1 << 2);
@@ -452,7 +441,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -471,7 +460,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectAnimDef);
