@@ -15,7 +15,12 @@ static void test_read_success(
   const String   remaining = data_read_json(reg, input, g_allocHeap, meta, data, &res);
 
   check_eq_string(remaining, string_empty);
-  check_require(res.error == DataReadError_None);
+  check_require_msg(
+      res.error == DataReadError_None,
+      "{} == {} ({})",
+      fmt_int(res.error),
+      fmt_int(DataReadError_None),
+      fmt_text(res.errorMsg));
 }
 
 static void test_read_fail(
@@ -255,6 +260,47 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("0"), meta, DataReadError_InvalidEnumEntry);
     test_read_fail(_testCtx, reg, string_lit("41"), meta, DataReadError_InvalidEnumEntry);
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("can read a multi enum") {
+    typedef enum {
+      ReadJsonTestFlags_A = 1 << 0,
+      ReadJsonTestFlags_B = 1 << 1,
+      ReadJsonTestFlags_C = 1 << 2,
+    } ReadJsonTestFlags;
+
+    data_reg_enum_multi_t(reg, ReadJsonTestFlags);
+    data_reg_const_t(reg, ReadJsonTestFlags, A);
+    data_reg_const_t(reg, ReadJsonTestFlags, B);
+    data_reg_const_t(reg, ReadJsonTestFlags, C);
+
+    const DataMeta meta = data_meta_t(t_ReadJsonTestFlags);
+
+    ReadJsonTestFlags val;
+
+    test_read_success(_testCtx, reg, string_lit("[]"), meta, mem_var(val));
+    check_eq_int(val, 0);
+
+    test_read_success(_testCtx, reg, string_lit("[\"A\"]"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestFlags_A);
+
+    test_read_success(_testCtx, reg, string_lit("[\"A\", \"B\"]"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestFlags_A | ReadJsonTestFlags_B);
+
+    test_read_success(_testCtx, reg, string_lit("[\"A\", \"B\", \"C\"]"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestFlags_A | ReadJsonTestFlags_B | ReadJsonTestFlags_C);
+
+    test_read_success(_testCtx, reg, string_lit("[0]"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestFlags_A);
+
+    test_read_success(_testCtx, reg, string_lit("[0, 2]"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestFlags_A | ReadJsonTestFlags_C);
+
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+    test_read_fail(_testCtx, reg, string_lit("\"A\""), meta, DataReadError_MismatchedType);
+    test_read_fail(_testCtx, reg, string_lit("[\"D\"]"), meta, DataReadError_InvalidEnumEntry);
+    test_read_fail(_testCtx, reg, string_lit("[-1]"), meta, DataReadError_InvalidEnumEntry);
+    test_read_fail(_testCtx, reg, string_lit("[3]"), meta, DataReadError_InvalidEnumEntry);
   }
 
   it("can read a structure") {
