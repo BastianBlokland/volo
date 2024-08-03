@@ -56,6 +56,13 @@ void data_reg_destroy(DataReg*);
 u32 data_type_count(const DataReg*);
 
 /**
+ * Lookup a type by name.
+ * NOTE: Returns 0 if no type was found with a matching name.
+ */
+DataType data_type_from_name(const DataReg*, String name);
+DataType data_type_from_name_hash(const DataReg*, StringHash nameHash);
+
+/**
  * Retrieve the name of a registered type.
  */
 String     data_name(const DataReg*, DataType);

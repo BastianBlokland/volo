@@ -101,6 +101,19 @@ void data_reg_destroy(DataReg* reg) {
 
 u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
+DataType data_type_from_name(const DataReg* reg, const String name) {
+  return data_type_from_name_hash(reg, string_hash(name));
+}
+
+DataType data_type_from_name_hash(const DataReg* reg, const StringHash nameHash) {
+  for (DataType type = 1; type != (reg->types.size + 1); ++type) {
+    if (data_decl(reg, type)->id.hash == nameHash) {
+      return type;
+    }
+  }
+  return 0;
+}
+
 String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
 
 StringHash data_name_hash(const DataReg* reg, const DataType type) {

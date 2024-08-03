@@ -223,5 +223,21 @@ spec(registry) {
     check_eq_string(data_comment(reg, data_prim_t(f32)), string_empty);
   }
 
+  it("can lookup a type by name") {
+    typedef struct {
+      i32    valA;
+      String valB;
+      f32    valC;
+    } RegStructA;
+
+    data_reg_struct_t(reg, RegStructA);
+    data_reg_field_t(reg, RegStructA, valA, data_prim_t(i32));
+    data_reg_field_t(reg, RegStructA, valB, data_prim_t(String));
+    data_reg_field_t(reg, RegStructA, valC, data_prim_t(f32));
+
+    const DataType type = data_type_from_name(reg, string_lit("RegStructA"));
+    check_eq_int(t_RegStructA, type);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
