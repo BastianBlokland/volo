@@ -55,7 +55,7 @@ spec(utils_equal) {
     const PrimArray arrayA = {.values = valuesA, .count = array_elems(valuesA)};
     const PrimArray arrayB = {.values = valuesB, .count = array_elems(valuesB)};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayA)));
     check(!data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
   }
@@ -69,8 +69,29 @@ spec(utils_equal) {
     const PrimArray arrayA = {0};
     const PrimArray arrayB = {0};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
+  }
+
+  it("can compare dynarray's") {
+    DynArray arrayA                = dynarray_create_t(g_allocHeap, i32, 4);
+    *dynarray_push_t(&arrayA, i32) = 0;
+    *dynarray_push_t(&arrayA, i32) = 1;
+    *dynarray_push_t(&arrayA, i32) = 2;
+    *dynarray_push_t(&arrayA, i32) = 3;
+
+    DynArray arrayB                = dynarray_create_t(g_allocHeap, i32, 4);
+    *dynarray_push_t(&arrayB, i32) = 0;
+    *dynarray_push_t(&arrayB, i32) = 1;
+    *dynarray_push_t(&arrayB, i32) = 3;
+    *dynarray_push_t(&arrayB, i32) = 2;
+
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DynArray);
+    check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayA)));
+    check(!data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
+
+    dynarray_destroy(&arrayA);
+    dynarray_destroy(&arrayB);
   }
 
   it("can compare structures") {
@@ -118,7 +139,8 @@ spec(utils_equal) {
     data_reg_struct_t(reg, CloneStructC);
     data_reg_field_t(reg, CloneStructC, value, t_CloneStructB);
     data_reg_field_t(reg, CloneStructC, ptr, t_CloneStructB, .container = DataContainer_Pointer);
-    data_reg_field_t(reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_Array);
+    data_reg_field_t(
+        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_DataArray);
 
     CloneStructB ptrValueA = {
         .a = string_lit("Some"),

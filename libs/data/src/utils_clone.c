@@ -167,15 +167,33 @@ static void data_clone_array(const CloneCtx* ctx) {
   *newArray              = (DataArray){.values = newArrayMem.ptr, .count = count};
 
   for (usize i = 0; i != count; ++i) {
-    const Mem originalElemMem = data_elem_mem(decl, originalArray, i);
-    const Mem newElemMem      = data_elem_mem(decl, newArray, i);
-
     const CloneCtx elemCtx = {
         .reg      = ctx->reg,
         .alloc    = ctx->alloc,
         .meta     = data_meta_base(ctx->meta),
-        .original = originalElemMem,
-        .clone    = newElemMem,
+        .original = data_elem_mem(decl, originalArray, i),
+        .clone    = data_elem_mem(decl, newArray, i),
+    };
+    data_clone_single(&elemCtx);
+  }
+}
+
+static void data_clone_dynarray(const CloneCtx* ctx) {
+  const DataDecl* decl          = data_decl(ctx->reg, ctx->meta.type);
+  const DynArray* originalArray = mem_as_t(ctx->original, DynArray);
+
+  DynArray* newArray = mem_as_t(ctx->clone, DynArray);
+  *newArray          = dynarray_create(ctx->alloc, (u32)decl->size, (u16)decl->align, 0);
+
+  dynarray_resize(newArray, originalArray->size);
+
+  for (usize i = 0; i != originalArray->size; ++i) {
+    const CloneCtx elemCtx = {
+        .reg      = ctx->reg,
+        .alloc    = ctx->alloc,
+        .meta     = data_meta_base(ctx->meta),
+        .original = dynarray_at(originalArray, i, 1),
+        .clone    = dynarray_at(newArray, i, 1),
     };
     data_clone_single(&elemCtx);
   }
@@ -189,8 +207,11 @@ static void data_clone_internal(const CloneCtx* ctx) {
   case DataContainer_Pointer:
     data_clone_pointer(ctx);
     return;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     data_clone_array(ctx);
+    return;
+  case DataContainer_DynArray:
+    data_clone_dynarray(ctx);
     return;
   }
   diag_crash();

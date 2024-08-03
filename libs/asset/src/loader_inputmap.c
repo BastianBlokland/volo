@@ -248,11 +248,11 @@ void asset_data_init_inputmap(void) {
   data_reg_struct_t(g_dataReg, AssetInputActionDef);
   data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetInputMapDef);
   data_reg_field_t(g_dataReg, AssetInputMapDef, layer, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_Array);
+  data_reg_field_t(g_dataReg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_DataArray);
   // clang-format on
 
   g_assetInputMapDataDef = data_meta_t(t_AssetInputMapDef);

@@ -50,8 +50,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -121,8 +121,10 @@ usize data_meta_size(const DataReg* reg, const DataMeta meta) {
     return data_decl(reg, meta.type)->size;
   case DataContainer_Pointer:
     return sizeof(void*);
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     return sizeof(DataArray);
+  case DataContainer_DynArray:
+    return sizeof(DynArray);
   }
   diag_crash();
 }

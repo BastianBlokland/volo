@@ -110,7 +110,7 @@ spec(write_json) {
   }
 
   it("can write an array") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
 
     i32             values[] = {1, 2, 3, 4, 5, 6, 7};
     const DataArray array1   = {.values = values, .count = array_elems(values)};
@@ -123,6 +123,24 @@ spec(write_json) {
 
     const DataArray array2 = {0};
     test_write(_testCtx, reg, meta, mem_var(array2), string_lit("[]"));
+  }
+
+  it("can write a dynarray") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DynArray);
+
+    DynArray arr                = dynarray_create_t(g_allocHeap, i32, 4);
+    *dynarray_push_t(&arr, i32) = 1;
+    *dynarray_push_t(&arr, i32) = 2;
+    *dynarray_push_t(&arr, i32) = 3;
+    *dynarray_push_t(&arr, i32) = 4;
+
+    test_write(_testCtx, reg, meta, mem_var(arr), string_lit("[\n  1,\n  2,\n  3,\n  4\n]"));
+
+    dynarray_clear(&arr);
+
+    test_write(_testCtx, reg, meta, mem_var(arr), string_lit("[]"));
+
+    dynarray_destroy(&arr);
   }
 
   it("can write an enum") {

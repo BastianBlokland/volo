@@ -421,7 +421,7 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, FontTexDef, border, data_prim_t(u32));
   data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
   // clang-format on
 
   g_assetFontTexDataDef = data_meta_t(t_FontTexDef);

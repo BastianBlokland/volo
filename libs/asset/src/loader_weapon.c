@@ -505,10 +505,10 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_Array);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_DataArray);
 
   data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
-  data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
+  data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_DataArray);
   // clang-format on
 
   g_assetWeaponDataDef = data_meta_t(t_AssetWeaponMapDef);

@@ -603,6 +603,29 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
   *mem_as_t(ctx->data, void*) = mem.ptr;
 }
 
+static void data_read_json_val_elems(const ReadCtx* ctx, void* out, DataReadResult* res) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  json_for_elems(ctx->doc, ctx->val, elem) {
+    const ReadCtx elemCtx = {
+        .reg         = ctx->reg,
+        .alloc       = ctx->alloc,
+        .allocations = ctx->allocations,
+        .doc         = ctx->doc,
+        .val         = elem,
+        .meta        = data_meta_base(ctx->meta),
+        .data        = mem_create(out, decl->size),
+    };
+    data_read_json_val_single(&elemCtx, res);
+    if (UNLIKELY(res->error)) {
+      return;
+    }
+    out = bits_ptr_offset(out, decl->size);
+  }
+
+  *res = result_success();
+}
+
 static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
@@ -625,24 +648,32 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   void* ptr                       = arrayMem.ptr;
   *mem_as_t(ctx->data, DataArray) = (DataArray){.values = arrayMem.ptr, .count = count};
 
-  json_for_elems(ctx->doc, ctx->val, elem) {
-    const ReadCtx elemCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .doc         = ctx->doc,
-        .val         = elem,
-        .meta        = data_meta_base(ctx->meta),
-        .data        = mem_create(ptr, decl->size),
-    };
-    data_read_json_val_single(&elemCtx, res);
-    if (UNLIKELY(res->error)) {
-      return;
+  data_read_json_val_elems(ctx, ptr, res);
+}
+
+static void data_read_json_val_dynarray(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
+    return;
+  }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  DynArray* out = mem_as_t(ctx->data, DynArray);
+  *out          = dynarray_create(ctx->alloc, (u32)decl->size, (u16)decl->align, 0);
+
+  const usize count = json_elem_count(ctx->doc, ctx->val);
+  if (!count) {
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
+      *res = result_fail(DataReadError_EmptyArrayIsInvalid, "Value cannot be an empty array");
+    } else {
+      *res = result_success();
     }
-    ptr = bits_ptr_offset(ptr, decl->size);
+    return;
   }
 
-  *res = result_success();
+  dynarray_resize(out, count);
+  data_register_alloc(ctx, out->data);
+
+  data_read_json_val_elems(ctx, out->data.ptr, res);
 }
 
 static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
@@ -653,8 +684,11 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
   case DataContainer_Pointer:
     data_read_json_val_pointer(ctx, res);
     return;
-  case DataContainer_Array:
+  case DataContainer_DataArray:
     data_read_json_val_array(ctx, res);
+    return;
+  case DataContainer_DynArray:
+    data_read_json_val_dynarray(ctx, res);
     return;
   }
   diag_crash();

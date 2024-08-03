@@ -63,7 +63,7 @@ void asset_data_init_level(void) {
   data_reg_field_t(g_dataReg, AssetLevel, name, data_prim_t(String), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevel, terrainId, data_prim_t(String), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevel, startpoint, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
+  data_reg_field_t(g_dataReg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_DataArray);
   // clang-format on
 
   g_assetLevelDataDef = data_meta_t(t_AssetLevel);
