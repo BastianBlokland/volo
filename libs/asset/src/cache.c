@@ -35,7 +35,27 @@ static bool cache_ensure_dir(AssetCache* cache) {
   return true;
 }
 
+static bool cache_registry_save(AssetCache* cache) {
+  bool result = true;
+
+  DynString blobBuffer = dynstring_create(cache->alloc, 256);
+  data_write_bin(g_dataReg, &blobBuffer, g_assetCacheDataDef, mem_var(cache->reg));
+
+  const FileResult fileRes = file_write_sync(cache->regFile, dynstring_view(&blobBuffer));
+  if (UNLIKELY(fileRes != FileResult_Success)) {
+    log_w(
+        "Failed to save asset cache registry",
+        log_param("error", fmt_text(file_result_str(fileRes))));
+    result = false;
+  }
+
+  dynstring_destroy(&blobBuffer);
+  return result;
+}
+
 static bool cache_registry_open(AssetCache* cache) {
+  diag_assert(!cache->regFile);
+
   const String          regPath   = path_build_scratch(cache->path, g_assetCacheRegName);
   const FileAccessFlags regAccess = FileAccess_Read | FileAccess_Write;
 
@@ -60,6 +80,7 @@ static bool cache_registry_open(AssetCache* cache) {
         log_param("path", fmt_path(regPath)),
         log_param("error", fmt_text(file_result_str(fileRes))));
     file_destroy(cache->regFile);
+    cache->regFile = null;
     return false;
   }
 
@@ -71,11 +92,40 @@ static bool cache_registry_open(AssetCache* cache) {
         log_param("path", fmt_path(regPath)),
         log_param("error", fmt_text(readRes.errorMsg)));
     file_destroy(cache->regFile);
+    cache->regFile = null;
     return false;
   }
 
   file_unmap(cache->regFile);
   return true;
+}
+
+static bool cache_registry_create(AssetCache* cache) {
+  diag_assert(!cache->regFile);
+
+  const String          regPath   = path_build_scratch(cache->path, g_assetCacheRegName);
+  const FileAccessFlags regAccess = FileAccess_Read | FileAccess_Write;
+
+  FileResult fileRes;
+  fileRes = file_create(cache->alloc, regPath, FileMode_Create, regAccess, &cache->regFile);
+  if (UNLIKELY(fileRes != FileResult_Success)) {
+    log_e(
+        "Failed to create asset cache registry",
+        log_param("path", fmt_path(regPath)),
+        log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+
+  cache->reg = (AssetCacheRegistry){.dummy = 42};
+
+  return cache_registry_save(cache);
+}
+
+static bool cache_registry_open_or_create(AssetCache* cache) {
+  if (cache_registry_open(cache)) {
+    return true;
+  }
+  return cache_registry_create(cache);
 }
 
 void asset_data_init_cache(void) {
@@ -97,11 +147,11 @@ AssetCache* asset_cache_create(Allocator* alloc, const String path) {
       .path  = string_dup(alloc, path),
   };
 
-  if (!cache_ensure_dir(cache)) {
+  if (UNLIKELY(!cache_ensure_dir(cache))) {
     cache->error = true;
     goto Ret;
   }
-  if (!cache_registry_open(cache)) {
+  if (UNLIKELY(!cache_registry_open_or_create(cache))) {
     cache->error = true;
     goto Ret;
   }
@@ -111,8 +161,10 @@ Ret:
 }
 
 void asset_cache_destroy(AssetCache* cache) {
+  if (!cache->error) {
+    cache_registry_save(cache);
+  }
   if (cache->regFile) {
-    // TODO: Flush changes.
     file_destroy(cache->regFile);
   }
   data_destroy(g_dataReg, cache->alloc, g_assetCacheDataDef, mem_var(cache->reg));
