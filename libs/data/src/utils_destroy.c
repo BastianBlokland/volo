@@ -141,6 +141,22 @@ static void data_destroy_array(const DestroyCtx* ctx) {
   alloc_free(ctx->alloc, mem_create(array->values, decl->size * array->count));
 }
 
+static void data_destroy_dynarray(const DestroyCtx* ctx) {
+  DynArray* array = mem_as_t(ctx->data, DynArray);
+
+  for (usize i = 0; i != array->size; ++i) {
+    const DestroyCtx elemCtx = {
+        .reg   = ctx->reg,
+        .alloc = ctx->alloc,
+        .meta  = data_meta_base(ctx->meta),
+        .data  = dynarray_at(array, i, 1),
+    };
+    data_destroy_single(&elemCtx);
+  }
+
+  dynarray_destroy(array);
+}
+
 static void data_destroy_internal(const DestroyCtx* ctx) {
   switch (ctx->meta.container) {
   case DataContainer_None:
@@ -151,6 +167,9 @@ static void data_destroy_internal(const DestroyCtx* ctx) {
     return;
   case DataContainer_DataArray:
     data_destroy_array(ctx);
+    return;
+  case DataContainer_DynArray:
+    data_destroy_dynarray(ctx);
     return;
   }
   diag_crash();

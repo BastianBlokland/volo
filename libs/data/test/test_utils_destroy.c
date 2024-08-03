@@ -74,6 +74,17 @@ spec(utils_destroy) {
     data_destroy(reg, g_allocHeap, meta, mem_var(array2));
   }
 
+  it("can destroy a dynarray") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DynArray);
+
+    DynArray array1 = dynarray_create_t(g_allocHeap, i32, 0);
+    data_destroy(reg, g_allocHeap, meta, mem_var(array1));
+
+    DynArray array2                = dynarray_create_t(g_allocHeap, i32, 0);
+    *dynarray_push_t(&array2, i32) = 42;
+    data_destroy(reg, g_allocHeap, meta, mem_var(array2));
+  }
+
   it("can destroy a structure") {
     typedef struct {
       String a, b, c;
