@@ -99,6 +99,20 @@ spec(file) {
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
+  it("can unmap files") {
+    file_write_sync(tmpFile, string_lit("Hello World!"));
+
+    String mapping1;
+    check_eq_int(file_map(tmpFile, &mapping1), FileResult_Success);
+    check_eq_string(mapping1, string_lit("Hello World!"));
+
+    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+
+    String mapping2;
+    check_eq_int(file_map(tmpFile, &mapping2), FileResult_Success);
+    check_eq_string(mapping2, string_lit("Hello World!"));
+  }
+
   it("can check if a file exists") {
     const String existingPath    = g_pathExecutable;
     const String nonExistingPath = string_lit("path_to_non_existent_file_42");
