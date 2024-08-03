@@ -227,6 +227,9 @@ void asset_cache_destroy(AssetCache* cache) {
 }
 
 void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta, const Mem blob) {
+  if (UNLIKELY(cache->error)) {
+    return;
+  }
   const u32 typeFormatHash = data_hash(g_dataReg, blobMeta, DataHashFlags_ExcludeIds);
 
   thread_mutex_lock(cache->regMutex);
@@ -238,4 +241,15 @@ void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta
 
   // TODO: Save blob to disk.
   (void)blob;
+}
+
+void asset_cache_flush(AssetCache* cache) {
+  if (UNLIKELY(cache->error)) {
+    return;
+  }
+  thread_mutex_lock(cache->regMutex);
+
+  cache_registry_save(cache);
+
+  thread_mutex_unlock(cache->regMutex);
 }
