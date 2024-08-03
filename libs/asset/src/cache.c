@@ -38,12 +38,13 @@ static i8 cache_compare_entry(const void* a, const void* b) {
   return compare_stringhash(&entryA->idHash, &entryB->idHash);
 }
 
-static bool cache_ensure_dir(AssetCache* cache) {
-  const FileResult createRes = file_create_dir_sync(cache->rootPath);
+static bool cache_ensure_dir(AssetCache* c) {
+  const String     path      = path_build_scratch(c->rootPath, g_assetCachePath);
+  const FileResult createRes = file_create_dir_sync(path);
   if (UNLIKELY(createRes != FileResult_Success && createRes != FileResult_AlreadyExists)) {
     log_e(
         "Failed to create asset cache dir",
-        log_param("path", fmt_path(cache->rootPath)),
+        log_param("path", fmt_path(path)),
         log_param("error", fmt_text(file_result_str(createRes))));
     return false;
   }
