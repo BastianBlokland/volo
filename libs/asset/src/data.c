@@ -48,6 +48,7 @@ void asset_data_init(void) {
 
     asset_data_init_arraytex();
     asset_data_init_atlas();
+    asset_data_init_cache();
     asset_data_init_cursor();
     asset_data_init_decal();
     asset_data_init_fonttex();
