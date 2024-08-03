@@ -96,6 +96,8 @@ static bool cache_registry_open(AssetCache* cache) {
     return false;
   }
 
+  log_i("Opened asset cache registry", log_param("path", fmt_path(regPath)));
+
   file_unmap(cache->regFile);
   return true;
 }
