@@ -36,6 +36,7 @@ typedef struct {
 } DataDeclConst;
 
 typedef struct {
+  bool     multi;  // Multiple constants can be active at the same time.
   DynArray consts; // DataDeclConst[]
 } DataDeclEnum;
 
@@ -95,3 +96,9 @@ Mem data_choice_mem(const DataReg*, const DataDeclChoice*, Mem unionMem);
  * Create a memory view over an element in the given array.
  */
 Mem data_elem_mem(const DataDecl*, const DataArray*, usize index);
+
+/**
+ * Find a constant in the enum with the given id/value.
+ */
+const DataDeclConst* data_const_from_id(const DataDeclEnum*, StringHash id);
+const DataDeclConst* data_const_from_val(const DataDeclEnum*, i32 val);

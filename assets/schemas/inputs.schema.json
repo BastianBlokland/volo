@@ -22,10 +22,7 @@
       "additionalProperties": false,
       "properties": {
         "name": { "title": "String", "type": "string", "minLength": 1 },
-        "blockers": {
-          "type": "array",
-          "items": { "title": "AssetInputBlocker", "$ref": "#/$defs/AssetInputBlocker" }
-        },
+        "blockers": { "title": "AssetInputBlocker", "$ref": "#/$defs/AssetInputBlocker" },
         "bindings": {
           "type": "array",
           "minItems": 1,
@@ -38,15 +35,18 @@
       ]
     },
     "AssetInputBlocker": {
-      "enum": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "PrefabCreateMode",
-        "CursorLocked",
-        "CursorConfined",
-        "WindowFullscreen"
-      ]
+      "type": "array",
+      "items": {
+        "enum": [
+          "TextInput",
+          "HoveringUi",
+          "HoveringGizmo",
+          "PrefabCreateMode",
+          "CursorLocked",
+          "CursorConfined",
+          "WindowFullscreen"
+        ]
+      }
     },
     "AssetInputBindingDef": {
       "type": "object",
@@ -54,14 +54,8 @@
       "properties": {
         "type": { "title": "AssetInputType", "$ref": "#/$defs/AssetInputType" },
         "key": { "title": "AssetInputKey", "$ref": "#/$defs/AssetInputKey" },
-        "requiredModifiers": {
-          "type": "array",
-          "items": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
-        },
-        "illegalModifiers": {
-          "type": "array",
-          "items": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
-        }
+        "requiredModifiers": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" },
+        "illegalModifiers": { "title": "AssetInputModifier", "$ref": "#/$defs/AssetInputModifier" }
       },
       "required": [ "type", "key" ],
       "defaultSnippets": [
@@ -152,7 +146,10 @@
       ]
     },
     "AssetInputModifier": {
-      "enum": [ "Shift", "Control", "Alt" ]
+      "type": "array",
+      "items": {
+        "enum": [ "Shift", "Control", "Alt" ]
+      }
     }
   }
 }

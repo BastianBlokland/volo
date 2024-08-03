@@ -104,6 +104,18 @@ static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta
   diag_assert(decl->kind == DataKind_Enum);
 
   const DynArray* consts = &decl->val_enum.consts;
+
+  if (decl->val_enum.multi) {
+    const JsonVal arr = json_add_array(ctx->doc);
+    if (meta.flags & DataFlags_NotEmpty && dynarray_size(consts)) {
+      json_add_elem(
+          ctx->doc,
+          arr,
+          json_add_string(ctx->doc, dynarray_at_t(consts, 0, DataDeclConst)->id.name));
+    }
+    return arr;
+  }
+
   if (!dynarray_size(consts)) {
     return json_add_null(ctx->doc);
   }
@@ -378,10 +390,24 @@ static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const D
   diag_assert(decl->kind == DataKind_Enum);
 
   const JsonVal enumKeysArr = json_add_array(ctx->doc);
-  json_add_field_lit(ctx->doc, obj, "enum", enumKeysArr);
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     json_add_elem(ctx->doc, enumKeysArr, json_add_string(ctx->doc, constDecl->id.name));
+  }
+
+  if (decl->val_enum.multi) {
+    json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "array"));
+
+    if (meta.flags & DataFlags_NotEmpty) {
+      json_add_field_lit(ctx->doc, obj, "minItems", json_add_number(ctx->doc, 1));
+    }
+
+    const JsonVal itemsObj = json_add_object(ctx->doc);
+    json_add_field_lit(ctx->doc, obj, "items", itemsObj);
+
+    json_add_field_lit(ctx->doc, itemsObj, "enum", enumKeysArr);
+  } else {
+    json_add_field_lit(ctx->doc, obj, "enum", enumKeysArr);
   }
 }
 

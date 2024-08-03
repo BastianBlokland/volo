@@ -397,16 +397,15 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
   }
 }
 
-static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) {
+static void data_read_json_enum_single_string(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
   const StringHash valueHash = json_string_hash(ctx->doc, ctx->val);
 
-  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
-    if (constDecl->id.hash == valueHash) {
-      *mem_as_t(ctx->data, i32) = constDecl->value;
-      *res                      = result_success();
-      return;
-    }
+  const DataDeclConst* constDecl = data_const_from_id(&decl->val_enum, valueHash);
+  if (constDecl) {
+    *mem_as_t(ctx->data, i32) = constDecl->value;
+    *res                      = result_success();
+    return;
   }
 
   *res = result_fail(
@@ -416,16 +415,15 @@ static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) 
       fmt_text(decl->id.name));
 }
 
-static void data_read_json_enum_number(const ReadCtx* ctx, DataReadResult* res) {
+static void data_read_json_enum_single_number(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl  = data_decl(ctx->reg, ctx->meta.type);
   const i32       value = (i32)json_number(ctx->doc, ctx->val);
 
-  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
-    if (constDecl->value == value) {
-      *mem_as_t(ctx->data, i32) = constDecl->value;
-      *res                      = result_success();
-      return;
-    }
+  const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, value);
+  if (constDecl) {
+    *mem_as_t(ctx->data, i32) = constDecl->value;
+    *res                      = result_success();
+    return;
   }
 
   *res = result_fail(
@@ -435,19 +433,87 @@ static void data_read_json_enum_number(const ReadCtx* ctx, DataReadResult* res) 
       fmt_text(decl->id.name));
 }
 
+static void data_read_json_enum_multi_array(const ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  i32 val = 0;
+  json_for_elems(ctx->doc, ctx->val, elem) {
+    const JsonType elemType = json_type(ctx->doc, elem);
+    switch (elemType) {
+    case JsonType_String: {
+      const StringHash     elemId    = json_string_hash(ctx->doc, elem);
+      const DataDeclConst* constDecl = data_const_from_id(&decl->val_enum, elemId);
+      if (LIKELY(constDecl)) {
+        val |= constDecl->value;
+      } else {
+        *res = result_fail(
+            DataReadError_InvalidEnumEntry,
+            "Invalid enum entry '{}' for type {}",
+            fmt_text(json_string(ctx->doc, elem)),
+            fmt_text(decl->id.name));
+        return;
+      }
+    } break;
+    case JsonType_Number: {
+      const i32            elemVal   = (i32)json_number(ctx->doc, elem);
+      const DataDeclConst* constDecl = data_const_from_val(&decl->val_enum, 1 << elemVal);
+      if (LIKELY(constDecl)) {
+        val |= constDecl->value;
+      } else {
+        *res = result_fail(
+            DataReadError_InvalidEnumEntry,
+            "Invalid enum entry '{}' for type {}",
+            fmt_float(elemVal),
+            fmt_text(decl->id.name));
+        return;
+      }
+    } break;
+    default:
+      *res = result_fail(
+          DataReadError_MismatchedType,
+          "Expected json string or number got {}",
+          fmt_text(json_type_str(elemType)));
+      return;
+    }
+  }
+
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && val == 0)) {
+    *res = result_fail(DataReadError_EmptyArrayIsInvalid, "At least one value needs to be set");
+    return;
+  }
+
+  *mem_as_t(ctx->data, i32) = val;
+  *res                      = result_success();
+}
+
 static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
-  switch (json_type(ctx->doc, ctx->val)) {
+  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+  const JsonType  valType = json_type(ctx->doc, ctx->val);
+
+  if (decl->val_enum.multi) {
+    if (LIKELY(valType == JsonType_Array)) {
+      data_read_json_enum_multi_array(ctx, res);
+    } else {
+      *res = result_fail(
+          DataReadError_MismatchedType,
+          "Expected json array got {}",
+          fmt_text(json_type_str(valType)));
+    }
+    return;
+  }
+
+  switch (valType) {
   case JsonType_String:
-    data_read_json_enum_string(ctx, res);
+    data_read_json_enum_single_string(ctx, res);
     break;
   case JsonType_Number:
-    data_read_json_enum_number(ctx, res);
+    data_read_json_enum_single_number(ctx, res);
     break;
   default:
     *res = result_fail(
         DataReadError_MismatchedType,
         "Expected json string or number got {}",
-        fmt_text(json_type_str(json_type(ctx->doc, ctx->val))));
+        fmt_text(json_type_str(valType)));
     break;
   }
 }

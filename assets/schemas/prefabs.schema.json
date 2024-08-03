@@ -259,10 +259,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Status" },
-            "supportedStatus": {
-              "type": "array",
-              "items": { "title": "AssetPrefabStatusMask", "$ref": "#/$defs/AssetPrefabStatusMask" }
-            },
+            "supportedStatus": { "title": "AssetPrefabStatusMask", "$ref": "#/$defs/AssetPrefabStatusMask" },
             "effectJoint": { "title": "String", "type": "string", "minLength": 1 }
           },
           "required": [ "$type" ]
@@ -497,7 +494,10 @@
       ]
     },
     "AssetPrefabStatusMask": {
-      "enum": [ "Burning", "Bleeding", "Healing", "Veteran" ]
+      "type": "array",
+      "items": {
+        "enum": [ "Burning", "Bleeding", "Healing", "Veteran" ]
+      }
     }
   }
 }

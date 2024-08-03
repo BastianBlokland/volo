@@ -234,7 +234,7 @@ void data_reg_choice(
   };
 }
 
-DataType data_reg_enum(DataReg* reg, const String name) {
+DataType data_reg_enum(DataReg* reg, const String name, const bool multi) {
   diag_assert_msg(name.size, "Type name cannot be empty");
 
   const DataType type = data_type_declare(reg, name);
@@ -243,7 +243,10 @@ DataType data_reg_enum(DataReg* reg, const String name) {
   decl->kind     = DataKind_Enum;
   decl->size     = sizeof(i32);
   decl->align    = alignof(i32);
-  decl->val_enum = (DataDeclEnum){.consts = dynarray_create_t(reg->alloc, DataDeclConst, 8)};
+  decl->val_enum = (DataDeclEnum){
+      .multi  = multi,
+      .consts = dynarray_create_t(reg->alloc, DataDeclConst, 8),
+  };
   return type;
 }
 
@@ -257,6 +260,12 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
       .id    = data_id_create(reg->alloc, name),
       .value = value,
   };
+}
+
+void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
+  DataDecl* decl = data_decl_mutable(reg, type);
+  string_maybe_free(reg->alloc, decl->comment);
+  decl->comment = string_maybe_dup(reg->alloc, comment);
 }
 
 DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
@@ -306,8 +315,20 @@ Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize inde
   return mem_create(bits_ptr_offset(array->values, decl->size * index), decl->size);
 }
 
-void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
-  DataDecl* decl = data_decl_mutable(reg, type);
-  string_maybe_free(reg->alloc, decl->comment);
-  decl->comment = string_maybe_dup(reg->alloc, comment);
+const DataDeclConst* data_const_from_id(const DataDeclEnum* decl, const StringHash id) {
+  dynarray_for_t(&decl->consts, DataDeclConst, constDecl) {
+    if (constDecl->id.hash == id) {
+      return constDecl;
+    }
+  }
+  return null;
+}
+
+const DataDeclConst* data_const_from_val(const DataDeclEnum* decl, const i32 val) {
+  dynarray_for_t(&decl->consts, DataDeclConst, constDecl) {
+    if (constDecl->value == val) {
+      return constDecl;
+    }
+  }
+  return null;
 }

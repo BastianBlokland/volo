@@ -75,6 +75,7 @@ static u32 data_hash_enum(const HashCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
   u32 hash = bits_hash_32_val((u32)decl->val_enum.consts.size);
+  hash     = bits_hash_32_combine(hash, bits_hash_32_val(decl->val_enum.multi));
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     const u32 constValHash = bits_hash_32_val((u32)constDecl->value);

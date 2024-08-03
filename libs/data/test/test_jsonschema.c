@@ -217,6 +217,42 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports multi enums") {
+    enum TestEnumFlags {
+      TestEnumFlags_A = 1 << 0,
+      TestEnumFlags_B = 1 << 1,
+      TestEnumFlags_C = 1 << 2,
+    };
+
+    data_reg_enum_multi_t(reg, TestEnumFlags);
+    data_reg_const_t(reg, TestEnumFlags, A);
+    data_reg_const_t(reg, TestEnumFlags, B);
+    data_reg_const_t(reg, TestEnumFlags, C);
+
+    const DataMeta meta = data_meta_t(t_TestEnumFlags);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"TestEnumFlags\",\n"
+                   "  \"$ref\": \"#/$defs/TestEnumFlags\",\n"
+                   "  \"$defs\": {\n"
+                   "    \"TestEnumFlags\": {\n"
+                   "      \"type\": \"array\",\n"
+                   "      \"items\": {\n"
+                   "        \"enum\": [\n"
+                   "          \"A\",\n"
+                   "          \"B\",\n"
+                   "          \"C\"\n"
+                   "        ]\n"
+                   "      }\n"
+                   "    }\n"
+                   "  }\n"
+                   "}"));
+  }
+
   it("supports structures") {
     typedef struct {
       bool   valA;
