@@ -1,14 +1,13 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_time.h"
 #include "data.h"
 
 static void test_bin_roundtrip(
     CheckTestContext* _testCtx, const DataReg* reg, const DataMeta meta, const Mem data) {
   Mem       writeBuffer = mem_stack(usize_kibibyte * 16);
   DynString writeStr    = dynstring_create_over(writeBuffer);
-  data_write_bin(reg, &writeStr, meta, data, 0);
+  data_write_bin(reg, &writeStr, meta, data);
 
   const String writeResult = dynstring_view(&writeStr);
 
@@ -284,12 +283,11 @@ spec(bin) {
   it("can read the binary header") {
     const DataMeta meta = data_meta_t(data_prim_t(bool));
 
-    const bool     val       = true;
-    const TimeReal timestamp = time_real_clock();
+    const bool val = true;
 
     Mem       writeBuffer = mem_stack(usize_kibibyte * 16);
     DynString writeStr    = dynstring_create_over(writeBuffer);
-    data_write_bin(reg, &writeStr, meta, mem_var(val), timestamp);
+    data_write_bin(reg, &writeStr, meta, mem_var(val));
 
     DataBinHeader  header;
     DataReadResult headerRes;
@@ -300,7 +298,6 @@ spec(bin) {
     check_require(!headerRes.error);
     check_eq_int(header.typeNameHash, data_name_hash(reg, meta.type));
     check_eq_int(header.typeFormatHash, data_hash(reg, meta, DataHashFlags_ExcludeIds));
-    check_eq_int(header.timestamp, timestamp);
   }
 
   teardown() { data_reg_destroy(reg); }

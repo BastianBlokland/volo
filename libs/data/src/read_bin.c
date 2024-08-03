@@ -130,10 +130,6 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
     *res = result_fail_truncated();
     return;
   }
-  if (!bin_pop_u64(ctx, (u64*)&out->timestamp)) { // NOTE: assumes 2's complement integers.
-    *res = result_fail_truncated();
-    return;
-  }
   *res = result_success();
   return;
 }
