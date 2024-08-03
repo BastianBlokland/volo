@@ -58,6 +58,8 @@ static const f32 g_textureSrgbToFloat[] = {
 };
 ASSERT(array_elems(g_textureSrgbToFloat) == 256, "Incorrect srgb lut size");
 
+DataMeta g_assetTexDataDef;
+
 ecs_comp_define_public(AssetTextureComp);
 
 static void ecs_destruct_texture_comp(void* data) {
@@ -336,6 +338,38 @@ ecs_module_init(asset_texture_module) {
   ecs_register_view(UnloadView);
 
   ecs_register_system(UnloadTextureAssetSys, ecs_view_id(UnloadView));
+}
+
+void asset_data_init_tex(void) {
+  // clang-format off
+  data_reg_enum_t(g_dataReg, AssetTextureFormat);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u8_r);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u8_rgba);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u16_r);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, u16_rgba);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, f32_r);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, f32_rgba);
+
+  data_reg_enum_multi_t(g_dataReg, AssetTextureFlags);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMipMaps);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, NormalMap);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Uncompressed);
+
+  data_reg_struct_t(g_dataReg, AssetTextureComp);
+  data_reg_field_t(g_dataReg, AssetTextureComp, format, t_AssetTextureFormat);
+  data_reg_field_t(g_dataReg, AssetTextureComp, flags, t_AssetTextureFlags, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTextureComp, width, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, height, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, layers, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, srcMipLevels, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, maxMipLevels, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTextureComp, pixelData, data_prim_t(DataMem));
+  // clang-format on
+
+  g_assetTexDataDef = data_meta_t(t_AssetTextureComp);
 }
 
 String asset_texture_format_str(const AssetTextureFormat format) {
