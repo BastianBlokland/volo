@@ -554,6 +554,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
 
     *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_cache(world, entity, g_assetTexDataDef, mem_var(texture));
     goto Cleanup;
 
   Error:

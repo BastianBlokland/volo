@@ -11,6 +11,7 @@
 #include "log_logger.h"
 
 #include "loader_texture_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -368,6 +369,8 @@ void asset_load_tex_proc(
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_cache(world, entity, g_assetTexDataDef, mem_var(texture));
+
   asset_repo_source_close(src);
   return;
 

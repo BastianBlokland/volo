@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "loader_texture_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -231,7 +232,8 @@ void asset_load_tex_ppm(
 
   asset_repo_source_close(src);
 
-  *ecs_world_add_t(world, entity, AssetTextureComp) = asset_texture_create(
+  AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
+  *texComp                  = asset_texture_create(
       pixelMem,
       width,
       height,
@@ -243,6 +245,8 @@ void asset_load_tex_ppm(
       ppm_texture_flags(isNormalmap));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_cache(world, entity, g_assetTexDataDef, mem_create(texComp, sizeof(AssetTextureComp)));
+
   alloc_free(g_allocHeap, pixelMem);
   return;
 
