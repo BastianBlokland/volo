@@ -27,6 +27,7 @@ struct sAssetCache {
   String             rootPath;
   AssetCacheRegistry reg;
   ThreadMutex        regMutex;
+  bool               regDirty;
   File*              regFile;
 };
 
@@ -213,7 +214,7 @@ Ret:
 }
 
 void asset_cache_destroy(AssetCache* cache) {
-  if (!cache->error) {
+  if (cache->regDirty && !cache->error) {
     cache_reg_save(cache);
   }
   if (cache->regFile) {
@@ -250,6 +251,8 @@ void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta
   {
     AssetCacheEntry* entry = cache_reg_add(cache, id, idHash);
     entry->formatHash      = formatHash;
+
+    cache->regDirty = true;
   }
   thread_mutex_unlock(cache->regMutex);
 }
@@ -259,8 +262,11 @@ void asset_cache_flush(AssetCache* cache) {
     return;
   }
   thread_mutex_lock(cache->regMutex);
-
-  cache_reg_save(cache);
-
+  {
+    if (cache->regDirty) {
+      cache_reg_save(cache);
+      cache->regDirty = false;
+    }
+  }
   thread_mutex_unlock(cache->regMutex);
 }
