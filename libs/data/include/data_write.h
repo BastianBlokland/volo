@@ -12,8 +12,8 @@ typedef struct {
 #define data_write_json_opts(...)                                                                  \
   ((DataWriteJsonOpts){                                                                            \
       .numberMaxDecDigits    = 10,                                                                 \
-      .numberExpThresholdPos = 1e10,                                                               \
-      .numberExpThresholdNeg = 1e-10,                                                              \
+      .numberExpThresholdPos = 1e20,                                                               \
+      .numberExpThresholdNeg = 1e-5,                                                               \
       __VA_ARGS__})
 
 /**

@@ -34,8 +34,8 @@ typedef struct {
       .mode                  = JsonWriteMode_Minimal,                                              \
       .flags                 = JsonWriteFlags_None,                                                \
       .numberMaxDecDigits    = 10,                                                                 \
-      .numberExpThresholdPos = 1e10,                                                               \
-      .numberExpThresholdNeg = 1e-10,                                                              \
+      .numberExpThresholdPos = 1e20,                                                               \
+      .numberExpThresholdNeg = 1e-5,                                                               \
       .indent                = string_lit("  "),                                                   \
       .newline               = string_lit("\n"),                                                   \
       __VA_ARGS__})
