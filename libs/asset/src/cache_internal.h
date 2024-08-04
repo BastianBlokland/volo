@@ -13,8 +13,6 @@ typedef struct sFile File;
 // Forward declare from 'core_time.h'.
 typedef i64 TimeReal;
 
-#define asset_cache_deps_max 256
-
 typedef struct sAssetCache AssetCache;
 
 extern DataMeta g_assetCacheDataDef;
@@ -55,4 +53,4 @@ bool asset_cache_get(AssetCache*, String id, AssetCacheRecord* out);
  * NOTE: Dependency ids are allocated in scratch memory; should not be stored.
  */
 usize asset_cache_deps(
-    AssetCache*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_cache_deps_max)]);
+    AssetCache*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);

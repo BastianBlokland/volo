@@ -448,7 +448,7 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
 }
 
 usize asset_cache_deps(
-    AssetCache* c, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_cache_deps_max)]) {
+    AssetCache* c, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]) {
   const StringHash idHash = string_hash(id);
 
   usize result = 0;
@@ -456,7 +456,7 @@ usize asset_cache_deps(
   {
     const AssetCacheEntry* entry = cache_reg_get(c, idHash);
     if (entry) {
-      result = math_min(entry->dependencies.count, asset_cache_deps_max);
+      result = math_min(entry->dependencies.count, asset_repo_cache_deps_max);
       for (usize i = 0; i != result; ++i) {
         out[i] = (AssetRepoDep){
             .id      = string_dup(g_allocScratch, entry->dependencies.values[i].id),

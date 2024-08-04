@@ -81,3 +81,13 @@ void asset_repo_cache(
     repo->cache(repo, id, blobMeta, blobModTime, blob, deps, depCount);
   }
 }
+
+usize asset_repo_cache_deps(
+    AssetRepo*   repo,
+    const String id,
+    AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]) {
+  if (repo->cacheDeps) {
+    return repo->cacheDeps(repo, id, out);
+  }
+  return 0;
+}

@@ -271,6 +271,15 @@ static void asset_repo_fs_cache(
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 
+static usize asset_repo_fs_cache_deps(
+    AssetRepo*   repo,
+    const String id,
+    AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  return asset_cache_deps(repoFs->cache, id, out);
+}
+
 static void asset_repo_fs_destroy(AssetRepo* repo) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
@@ -296,6 +305,7 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
               .changesPoll  = asset_repo_fs_changes_poll,
               .query        = asset_repo_fs_query,
               .cache        = asset_repo_fs_cache,
+              .cacheDeps    = asset_repo_fs_cache_deps,
           },
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),

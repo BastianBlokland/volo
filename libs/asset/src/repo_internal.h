@@ -7,6 +7,8 @@
 // Forward declare from 'core_time.h'.
 typedef i64 TimeReal;
 
+#define asset_repo_cache_deps_max 256
+
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
@@ -46,6 +48,8 @@ struct sAssetRepo {
       Mem                 blob,
       const AssetRepoDep* deps,
       usize               depCount);
+  usize (*cacheDeps)(
+      AssetRepo*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);
 };
 
 typedef enum {
@@ -85,3 +89,6 @@ void asset_repo_cache(
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);
+
+usize asset_repo_cache_deps(
+    AssetRepo*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);
