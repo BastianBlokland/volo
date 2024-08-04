@@ -169,7 +169,7 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
   AssetDependencyComp* compA = dataA;
   AssetDependencyComp* compB = dataB;
 
-  asset_dep_combine(&compA->dependents, &compB->dependencies);
+  asset_dep_combine(&compA->dependencies, &compB->dependencies);
   asset_dep_combine(&compA->dependents, &compB->dependents);
 }
 
