@@ -183,6 +183,10 @@ spec(format) {
         {1.7050897056e15,
          format_opts_float(.maxDecDigits = 25),
          string_lit("1.705089705600000512e15")},
+        {42.12345678987654321,
+         format_opts_float(.maxDecDigits = 0, .expThresholdPos = 1e20, .expThresholdNeg = 1e-5),
+         string_lit("42")},
+
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
