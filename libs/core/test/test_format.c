@@ -180,6 +180,9 @@ spec(format) {
         {1e255, format_opts_float(), string_lit("1e255")},
         {1e-255, format_opts_float(), string_lit("1e-255")},
         {f64_epsilon, format_opts_float(), string_lit("1e-16")},
+        {1.7050897056e15,
+         format_opts_float(.maxDecDigits = 25),
+         string_lit("1.705089705600000512e15")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
