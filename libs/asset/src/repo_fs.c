@@ -222,6 +222,7 @@ asset_repo_fs_cache(AssetRepo* repo, const String id, const DataMeta blobMeta, c
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
   asset_cache_add(repoFs->cache, id, blobMeta, blob);
+  asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 
 static void asset_repo_fs_destroy(AssetRepo* repo) {
