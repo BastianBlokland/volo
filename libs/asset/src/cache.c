@@ -322,8 +322,7 @@ void asset_cache_flush(AssetCache* c) {
   }
   thread_mutex_lock(c->regMutex);
   {
-    if (c->regDirty) {
-      cache_reg_save(c);
+    if (c->regDirty && cache_reg_save(c)) {
       c->regDirty = false;
     }
   }
