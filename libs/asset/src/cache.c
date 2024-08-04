@@ -64,10 +64,16 @@ static bool cache_reg_save(AssetCache* c) {
   DynString blobBuffer = dynstring_create(c->alloc, 256);
   data_write_bin(g_dataReg, &blobBuffer, g_assetCacheDataDef, mem_var(c->reg));
 
-  const FileResult fileRes = file_write_sync(c->regFile, dynstring_view(&blobBuffer));
-  if (UNLIKELY(fileRes != FileResult_Success)) {
+  FileResult fileRes;
+  if ((fileRes = file_seek_sync(c->regFile, 0))) {
     log_w(
-        "Failed to save asset cache registry",
+        "Failed to rewind asset cache registry file",
+        log_param("error", fmt_text(file_result_str(fileRes))));
+    result = false;
+  }
+  if ((fileRes = file_write_sync(c->regFile, dynstring_view(&blobBuffer)))) {
+    log_w(
+        "Failed to write asset cache registry",
         log_param("error", fmt_text(file_result_str(fileRes))));
     result = false;
   }
