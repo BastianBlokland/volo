@@ -122,14 +122,27 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
         DataReadError_Incompatible, "Input format {} is unsupported", fmt_int(inFormatVersion));
     return;
   }
-  if (!bin_pop_u32(ctx, &out->typeNameHash)) {
+  if (!bin_pop_u32(ctx, &out->metaTypeNameHash)) {
     *res = result_fail_truncated();
     return;
   }
-  if (!bin_pop_u32(ctx, &out->typeFormatHash)) {
+  if (!bin_pop_u32(ctx, &out->metaFormatHash)) {
     *res = result_fail_truncated();
     return;
   }
+
+  u8 metaContainerVal, metaFlagsVal;
+  if (!bin_pop_u8(ctx, &metaContainerVal)) {
+    *res = result_fail_truncated();
+    return;
+  }
+  if (!bin_pop_u8(ctx, &metaFlagsVal)) {
+    *res = result_fail_truncated();
+    return;
+  }
+  out->metaContainer = (DataContainer)metaContainerVal;
+  out->metaFlags     = (DataFlags)metaFlagsVal;
+
   *res = result_success();
   return;
 }
@@ -538,12 +551,12 @@ String data_read_bin(
   if (UNLIKELY(res->error)) {
     goto Ret;
   }
-  if (UNLIKELY(header.typeNameHash != data_name_hash(reg, meta.type))) {
+  if (UNLIKELY(header.metaTypeNameHash != data_name_hash(reg, meta.type))) {
     *res = result_fail(DataReadError_Incompatible, "Input mismatched type name");
     goto Ret;
   }
-  if (UNLIKELY(header.typeFormatHash != data_hash(reg, meta, DataHashFlags_ExcludeIds))) {
-    *res = result_fail(DataReadError_Incompatible, "Input mismatched type hash");
+  if (UNLIKELY(header.metaFormatHash != data_hash(reg, meta, DataHashFlags_ExcludeIds))) {
+    *res = result_fail(DataReadError_Incompatible, "Input mismatched format hash");
     goto Ret;
   }
   data_read_bin_val(&ctx, res);

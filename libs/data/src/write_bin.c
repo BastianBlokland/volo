@@ -66,6 +66,8 @@ static void data_write_bin_header(const WriteCtx* ctx) {
   bin_push_u32(ctx, g_dataBinVersion);
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
+  bin_push_u8(ctx, (u8)ctx->meta.container);
+  bin_push_u8(ctx, (u8)ctx->meta.flags);
 }
 
 static void data_write_bin_val(const WriteCtx*);

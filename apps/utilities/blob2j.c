@@ -32,16 +32,20 @@ static i32 blob2j_run(File* inputFile, File* outputFile) {
     goto Ret;
   }
 
-  const DataType dataType = data_type_from_name_hash(g_dataReg, dataHeader.typeNameHash);
-  if (!dataType) {
+  const DataMeta dataMeta = {
+      .type      = data_type_from_name_hash(g_dataReg, dataHeader.metaTypeNameHash),
+      .container = dataHeader.metaContainer,
+      .flags     = dataHeader.metaFlags,
+  };
+  if (!dataMeta.type) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Unknown input type.\n"));
     exitCode = 1;
     goto Ret;
   }
-  const DataMeta dataMeta  = data_meta_t(dataType);
-  const usize    dataSize  = data_meta_size(g_dataReg, dataMeta);
-  const usize    dataAlign = data_meta_align(g_dataReg, dataMeta);
-  data                     = alloc_alloc(g_allocHeap, dataSize, dataAlign);
+
+  const usize dataSize  = data_meta_size(g_dataReg, dataMeta);
+  const usize dataAlign = data_meta_align(g_dataReg, dataMeta);
+  data                  = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
   data_read_bin(g_dataReg, input, g_allocHeap, dataMeta, data, &readRes);
   if (readRes.error) {

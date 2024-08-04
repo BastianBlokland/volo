@@ -68,8 +68,10 @@ String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, Da
 String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);
 
 typedef struct {
-  u32 typeNameHash;   // Hash of the type's name.
-  u32 typeFormatHash; // Deep hash of the type's format ('data_hash()').
+  u32           metaTypeNameHash; // Hash of the type's name.
+  u32           metaFormatHash;   // Deep hash of the type's format ('data_hash()').
+  DataContainer metaContainer;
+  DataFlags     metaFlags;
 } DataBinHeader;
 
 /**
