@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_path.h"
@@ -192,18 +193,17 @@ static bool cache_reg_open_or_create(AssetCache* c) {
  */
 static AssetCacheEntry* cache_reg_add(AssetCache* c, const String id, const StringHash idHash) {
   const AssetCacheEntry key = {.idHash = idHash};
-
   AssetCacheEntry* res = dynarray_find_or_insert_sorted(&c->reg.entries, cache_compare_entry, &key);
-
   if (res->idHash == idHash) {
     // Existing entry.
     diag_assert_msg(string_eq(res->id, id), "Asset id hash collision detected");
   } else {
     // New entry.
-    res->id     = string_dup(c->alloc, id);
-    res->idHash = idHash;
+    *res = (AssetCacheEntry){
+        .id     = string_dup(c->alloc, id),
+        .idHash = idHash,
+    };
   }
-
   return res;
 }
 
@@ -215,17 +215,29 @@ static const AssetCacheEntry* cache_reg_get(AssetCache* c, const StringHash idHa
   return dynarray_search_binary(&c->reg.entries, cache_compare_entry, &key);
 }
 
-/**
- * Pre-condition: cache->regMutex is held by this thread.
- */
-static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry) {
-  const String   sourcePath = path_build_scratch(c->rootPath, entry->id);
+static bool cache_reg_validate_file(const AssetCache* c, const String id, const TimeReal modTime) {
+  const String   sourcePath = path_build_scratch(c->rootPath, id);
   const FileInfo sourceInfo = file_stat_path_sync(sourcePath);
   if (sourceInfo.type != FileType_Regular) {
     return false; // Source file has been deleted.
   }
-  if (sourceInfo.modTime > entry->modTime) {
+  if (sourceInfo.modTime > modTime) {
     return false; // Source file has been modified.
+  }
+  return true;
+}
+
+/**
+ * Pre-condition: cache->regMutex is held by this thread.
+ */
+static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry) {
+  if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
+    return false;
+  }
+  array_ptr_for_t(entry->dependencies, AssetCacheDependency, dep) {
+    if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
+      return false;
+    }
   }
   return true;
 }
@@ -361,9 +373,16 @@ void asset_cache_set(
   // Add an entry to the registry.
   thread_mutex_lock(c->regMutex);
   {
-    AssetCacheEntry* entry     = cache_reg_add(c, id, idHash);
-    entry->meta                = cacheMeta;
-    entry->modTime             = blobModTime;
+    AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
+    entry->meta            = cacheMeta;
+    entry->modTime         = blobModTime;
+    if (entry->dependencies.count) {
+      // Cleanup the old dependencies.
+      array_ptr_for_t(entry->dependencies, AssetCacheDependency, dep) {
+        string_free(c->alloc, dep->id);
+      }
+      alloc_free_array_t(c->alloc, entry->dependencies.values, entry->dependencies.count);
+    }
     entry->dependencies.values = cacheDependencies;
     entry->dependencies.count  = depCount;
 
