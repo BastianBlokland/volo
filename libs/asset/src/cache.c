@@ -143,12 +143,6 @@ static bool cache_reg_open(AssetCache* c) {
     return false;
   }
 
-  /**
-   * Sort by idHash.
-   * NOTE: Technically not necessary assuming the file was not tampered with.
-   */
-  dynarray_sort(&c->reg.entries, cache_compare_entry);
-
   log_i(
       "Opened asset cache registry",
       log_param("path", fmt_path(path)),
