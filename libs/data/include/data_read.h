@@ -56,6 +56,7 @@ String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, Da
 /**
  * Read a data value from a binary blob.
  * NOTE: Data is left uninitialized in case of an error (does not require cleanup by the caller).
+ * NOTE: Input needs to be at least 16 byte aligned to support external memory.
  *
  * Returns the remaining input.
  * The result is written to the given data memory.

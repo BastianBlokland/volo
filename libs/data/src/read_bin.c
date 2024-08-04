@@ -230,11 +230,16 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  if (ctx->meta.flags & DataFlags_ExternalMemory) {
-    diag_assert(bits_aligned_ptr(val.ptr, data_read_bin_mem_align(val.size)));
+  const usize reqAlign = data_read_bin_mem_align(val.size);
+  /**
+   * NOTE: Even though we've padded the data it not be aligned if the data start was not
+   * sufficiently aligned.
+   */
+  const bool valIsAligned = bits_aligned_ptr(val.ptr, reqAlign);
+  if (ctx->meta.flags & DataFlags_ExternalMemory && valIsAligned) {
     *mem_as_t(ctx->data, DataMem) = data_mem_create_ext(val);
   } else {
-    const Mem copy = alloc_alloc(ctx->alloc, val.size, data_read_bin_mem_align(val.size));
+    const Mem copy = alloc_alloc(ctx->alloc, val.size, reqAlign);
     mem_cpy(copy, val);
 
     data_register_alloc(ctx, copy);
