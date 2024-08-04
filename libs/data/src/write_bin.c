@@ -53,12 +53,12 @@ static void bin_push_mem(const WriteCtx* ctx, const Mem mem) {
   }
 }
 
-static void bin_push_padding(const WriteCtx* ctx, const usize align) {
-  const usize padding = bits_padding(ctx->out->size + 1, align);
+static void bin_push_padding(const WriteCtx* ctx, const usize offset, const usize align) {
+  const usize padding = bits_padding(ctx->out->size + offset + 1, align);
   diag_assert(padding <= u8_max);
   bin_push_u8(ctx, (u8)padding);
   mem_set(dynstring_push(ctx->out, padding), 0);
-  diag_assert(bits_aligned(ctx->out->size, align));
+  diag_assert(bits_aligned(ctx->out->size + offset, align));
 }
 
 static void data_write_bin_header(const WriteCtx* ctx) {
@@ -160,8 +160,9 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     if (ctx->meta.flags & DataFlags_ExternalMemory) {
       /**
        * For supporting external-memory we need to make sure the output location is aligned.
+       * NOTE: Offset by sizeof(u64) as the memory is prefixed by the size.
        */
-      bin_push_padding(ctx, data_write_bin_mem_align(dataMem.size));
+      bin_push_padding(ctx, sizeof(u64), data_write_bin_mem_align(dataMem.size));
     }
     bin_push_mem(ctx, data_mem(dataMem));
     return;
