@@ -223,10 +223,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-      .reg  = ctx->reg,
-      .doc  = ctx->doc,
-      .meta = data_meta_base(ctx->meta),
-      .data = mem_create(ptr, decl->size),
+       .reg  = ctx->reg,
+       .doc  = ctx->doc,
+       .meta = data_meta_base(ctx->meta),
+       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }
@@ -296,10 +296,12 @@ void data_write_json(
   };
   const JsonVal val = data_write_json_val(&ctx);
 
-  const JsonWriteMode jMode      = opts->compact ? JsonWriteMode_Compact : JsonWriteMode_Verbose;
-  const u8            jMaxDigits = opts->numberMaxDecDigits;
+  const JsonWriteOpts jsonOpts = json_write_opts(
+          .numberMaxDecDigits    = opts->numberMaxDecDigits,
+          .numberExpThresholdPos = opts->numberExpThresholdPos,
+          .numberExpThresholdNeg = opts->numberExpThresholdNeg,
+          .mode                  = opts->compact ? JsonWriteMode_Compact : JsonWriteMode_Verbose);
 
-  const JsonWriteOpts jsonOpts = json_write_opts(.numberMaxDecDigits = jMaxDigits, .mode = jMode);
   json_write(str, doc, val, &jsonOpts);
   json_destroy(doc);
 }

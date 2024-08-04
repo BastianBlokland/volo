@@ -4,10 +4,17 @@
 
 typedef struct {
   u8   numberMaxDecDigits;
+  f64  numberExpThresholdPos;
+  f64  numberExpThresholdNeg;
   bool compact;
 } DataWriteJsonOpts;
 
-#define data_write_json_opts(...) ((DataWriteJsonOpts){.numberMaxDecDigits = 10, __VA_ARGS__})
+#define data_write_json_opts(...)                                                                  \
+  ((DataWriteJsonOpts){                                                                            \
+      .numberMaxDecDigits    = 10,                                                                 \
+      .numberExpThresholdPos = 1e10,                                                               \
+      .numberExpThresholdNeg = 1e-10,                                                              \
+      __VA_ARGS__})
 
 /**
  * Write a data value as a json string.
