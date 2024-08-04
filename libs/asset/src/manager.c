@@ -261,10 +261,10 @@ ecs_view_define(DirtyAssetView) {
 
 ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
 
-ecs_view_define(GlobalView) { ecs_access_read(AssetManagerComp); }
+ecs_view_define(GlobalReadView) { ecs_access_read(AssetManagerComp); }
 
 static const AssetManagerComp* asset_manager_readonly(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalReadView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_read_t(globalItr, AssetManagerComp) : null;
 }
@@ -519,20 +519,21 @@ ecs_module_init(asset_manager_module) {
 
   ecs_register_view(DirtyAssetView);
   ecs_register_view(AssetDependencyView);
-  ecs_register_view(GlobalView);
+  ecs_register_view(GlobalReadView);
 
-  ecs_register_system(AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
+  ecs_register_system(
+      AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalReadView));
   ecs_parallel(AssetUpdateDirtySys, asset_num_load_tasks);
   ecs_order(AssetUpdateDirtySys, AssetOrder_Update);
 
   ecs_register_system(
-      AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
+      AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalReadView));
 
   ecs_register_system(
       AssetCacheSys,
       ecs_register_view(AssetCacheView),
       ecs_register_view(AssetDepView),
-      ecs_view_id(GlobalView));
+      ecs_view_id(GlobalReadView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }
