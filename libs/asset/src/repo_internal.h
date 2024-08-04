@@ -33,7 +33,7 @@ struct sAssetRepo {
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
   AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
-  void (*cache)(AssetRepo*, String id, DataMeta blobMeta, Mem blob);
+  void (*cache)(AssetRepo*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
 };
 
 struct sAssetSource {
@@ -59,4 +59,4 @@ void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userDat
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
 AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
 
-void asset_repo_cache(AssetRepo*, String id, DataMeta blobMeta, Mem blob);
+void asset_repo_cache(AssetRepo*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);

@@ -217,11 +217,15 @@ static AssetRepoQueryResult asset_repo_fs_query(
   return asset_repo_fs_query_iteration(repoFs, directory, pattern, flags, context, handler);
 }
 
-static void
-asset_repo_fs_cache(AssetRepo* repo, const String id, const DataMeta blobMeta, const Mem blob) {
+static void asset_repo_fs_cache(
+    AssetRepo*     repo,
+    const String   id,
+    const DataMeta blobMeta,
+    const TimeReal blobModTime,
+    const Mem      blob) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  asset_cache_add(repoFs->cache, id, blobMeta, blob);
+  asset_cache_add(repoFs->cache, id, blobMeta, blobModTime, blob);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 

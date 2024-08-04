@@ -417,8 +417,9 @@ ecs_system_define(AssetCacheSys) {
 
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
-    const Mem blob = mem_slice(request->blobMem, 0, request->blobSize);
-    asset_repo_cache(manager->repo, assetComp->id, request->blobMeta, blob);
+    const Mem      blob        = mem_slice(request->blobMem, 0, request->blobSize);
+    const TimeReal blobModTime = assetComp->loadModTime;
+    asset_repo_cache(manager->repo, assetComp->id, request->blobMeta, blobModTime, blob);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequest);
   }

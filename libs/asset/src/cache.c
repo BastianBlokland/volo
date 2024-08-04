@@ -15,6 +15,7 @@ typedef struct {
   String     id;
   StringHash idHash;
   u32        formatHash;
+  TimeReal   modTime;
 } AssetCacheEntry;
 
 typedef struct {
@@ -198,6 +199,7 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, formatHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
@@ -244,7 +246,12 @@ void asset_cache_destroy(AssetCache* c) {
   alloc_free_t(c->alloc, c);
 }
 
-void asset_cache_add(AssetCache* c, const String id, const DataMeta blobMeta, const Mem blob) {
+void asset_cache_add(
+    AssetCache*    c,
+    const String   id,
+    const DataMeta blobMeta,
+    const TimeReal blobModTime,
+    const Mem      blob) {
   if (UNLIKELY(c->error)) {
     return;
   }
@@ -267,6 +274,7 @@ void asset_cache_add(AssetCache* c, const String id, const DataMeta blobMeta, co
   {
     AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
     entry->formatHash      = formatHash;
+    entry->modTime         = blobModTime;
 
     c->regDirty = true;
   }
