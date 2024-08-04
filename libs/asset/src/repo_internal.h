@@ -59,4 +59,16 @@ void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userDat
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
 AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
 
-void asset_repo_cache(AssetRepo*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
+typedef struct {
+  String   id;
+  TimeReal modTime;
+} AssetRepoDep;
+
+void asset_repo_cache(
+    AssetRepo*,
+    String              id,
+    DataMeta            blobMeta,
+    TimeReal            blobModTime,
+    Mem                 blob,
+    const AssetRepoDep* deps,
+    usize               depCount);

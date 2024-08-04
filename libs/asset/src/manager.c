@@ -408,8 +408,11 @@ ecs_system_define(AssetCacheSys) {
   if (!manager) {
     return;
   }
-  EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
 
+  AssetRepoDep deps[256];
+  usize        depCount = 0;
+
+  EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
   for (EcsIterator* itr = ecs_view_itr(cacheView); ecs_view_walk(itr);) {
     const EcsEntityId        assetEntity = ecs_view_entity(itr);
     const AssetComp*         assetComp   = ecs_view_read_t(itr, AssetComp);
@@ -417,9 +420,16 @@ ecs_system_define(AssetCacheSys) {
 
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
-    const Mem      blob        = mem_slice(request->blobMem, 0, request->blobSize);
-    const TimeReal blobModTime = assetComp->loadModTime;
-    asset_repo_cache(manager->repo, assetComp->id, request->blobMeta, blobModTime, blob);
+    // Collect asset data.
+    const String   id      = assetComp->id;
+    const Mem      blob    = mem_slice(request->blobMem, 0, request->blobSize);
+    const TimeReal modTime = assetComp->loadModTime;
+
+    // Collect asset dependencies.
+    depCount = 0;
+
+    // Save the asset in the repo cache.
+    asset_repo_cache(manager->repo, id, request->blobMeta, modTime, blob, deps, depCount);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequest);
   }

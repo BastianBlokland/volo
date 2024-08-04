@@ -70,11 +70,15 @@ AssetRepoQueryResult asset_repo_query(
 }
 
 void asset_repo_cache(
-    AssetRepo*     repo,
-    const String   id,
-    const DataMeta blobMeta,
-    const TimeReal blobModTime,
-    const Mem      blob) {
+    AssetRepo*          repo,
+    const String        id,
+    const DataMeta      blobMeta,
+    const TimeReal      blobModTime,
+    const Mem           blob,
+    const AssetRepoDep* deps,
+    usize               depCount) {
+  (void)deps;
+  (void)depCount;
   if (repo->cache) {
     repo->cache(repo, id, blobMeta, blobModTime, blob);
   }
