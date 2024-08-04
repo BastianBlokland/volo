@@ -10,6 +10,11 @@ typedef i64 TimeReal;
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
+typedef struct {
+  String   id;
+  TimeReal modTime;
+} AssetRepoDep;
+
 typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
 
 typedef enum {
@@ -33,7 +38,14 @@ struct sAssetRepo {
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
   AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
-  void (*cache)(AssetRepo*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
+  void (*cache)(
+      AssetRepo*,
+      String              id,
+      DataMeta            blobMeta,
+      TimeReal            blobModTime,
+      Mem                 blob,
+      const AssetRepoDep* deps,
+      usize               depCount);
 };
 
 struct sAssetSource {
@@ -58,11 +70,6 @@ void         asset_repo_source_close(AssetSource*);
 void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
 AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
-
-typedef struct {
-  String   id;
-  TimeReal modTime;
-} AssetRepoDep;
 
 void asset_repo_cache(
     AssetRepo*,

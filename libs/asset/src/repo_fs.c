@@ -256,12 +256,17 @@ static AssetRepoQueryResult asset_repo_fs_query(
 }
 
 static void asset_repo_fs_cache(
-    AssetRepo*     repo,
-    const String   id,
-    const DataMeta blobMeta,
-    const TimeReal blobModTime,
-    const Mem      blob) {
+    AssetRepo*          repo,
+    const String        id,
+    const DataMeta      blobMeta,
+    const TimeReal      blobModTime,
+    const Mem           blob,
+    const AssetRepoDep* deps,
+    const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  (void)deps;
+  (void)depCount;
 
   asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blob);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.

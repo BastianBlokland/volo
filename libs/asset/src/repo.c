@@ -76,10 +76,8 @@ void asset_repo_cache(
     const TimeReal      blobModTime,
     const Mem           blob,
     const AssetRepoDep* deps,
-    usize               depCount) {
-  (void)deps;
-  (void)depCount;
+    const usize         depCount) {
   if (repo->cache) {
-    repo->cache(repo, id, blobMeta, blobModTime, blob);
+    repo->cache(repo, id, blobMeta, blobModTime, blob, deps, depCount);
   }
 }
