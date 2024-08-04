@@ -331,9 +331,6 @@ void asset_cache_set(
   if (UNLIKELY(c->error)) {
     return;
   }
-  (void)deps;
-  (void)depCount;
-
   const StringHash     idHash    = string_hash(id);
   const AssetCacheMeta cacheMeta = cache_meta_create(g_dataReg, blobMeta);
 
