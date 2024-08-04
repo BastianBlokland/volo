@@ -332,6 +332,7 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
   }
   const StringHash idHash = string_hash(id);
 
+  // Lookup an entry in the registry.
   bool success = false;
   thread_mutex_lock(c->regMutex);
   {
@@ -340,15 +341,26 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
       diag_assert_msg(string_eq(entry->id, id), "Asset id hash collision detected");
 
       if (cache_meta_resolve(g_dataReg, &entry->meta, &out->meta)) {
-        out->filePath = cache_blob_path_scratch(c, idHash);
-        out->modTime  = entry->modTime;
-        success       = true;
+        out->modTime = entry->modTime;
+        success      = true;
       } else {
         // Cache entry not compatible.
       }
     }
   }
   thread_mutex_unlock(c->regMutex);
+
+  // Open the blob file.
+  if (success) {
+    const String path = cache_blob_path_scratch(c, idHash);
+    FileResult   fileRes;
+    if ((fileRes = file_create(c->alloc, path, FileMode_Open, FileAccess_Read, &out->blobFile))) {
+      log_w(
+          "Failed to open asset cache blob",
+          log_param("error", fmt_text(file_result_str(fileRes))));
+      success = false;
+    }
+  }
 
   return success;
 }
