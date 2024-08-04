@@ -339,7 +339,7 @@ static FormatF64Parts format_f64_decompose(const f64 val, const FormatOptsFloat*
   FormatF64Parts res;
   res.expPart   = exp.exp;
   res.decDigits = math_min(opts->maxDecDigits, 19);
-  res.intPart   = (u64)exp.remaining;
+  res.intPart   = exp.remaining < u64_max ? (u64)exp.remaining : u64_max;
 
   const u64 maxDecPart = math_pow10_u64(res.decDigits);
   f64       remainder  = (exp.remaining - (f64)res.intPart) * (f64)maxDecPart;
