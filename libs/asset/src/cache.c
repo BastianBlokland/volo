@@ -332,6 +332,19 @@ void asset_cache_destroy(AssetCache* c) {
   alloc_free_t(c->alloc, c);
 }
 
+void asset_cache_flush(AssetCache* c) {
+  if (UNLIKELY(c->error)) {
+    return;
+  }
+  thread_mutex_lock(c->regMutex);
+  {
+    if (c->regDirty && cache_reg_save(c)) {
+      c->regDirty = false;
+    }
+  }
+  thread_mutex_unlock(c->regMutex);
+}
+
 void asset_cache_set(
     AssetCache*         c,
     const String        id,
@@ -431,17 +444,4 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
   }
 
   return success;
-}
-
-void asset_cache_flush(AssetCache* c) {
-  if (UNLIKELY(c->error)) {
-    return;
-  }
-  thread_mutex_lock(c->regMutex);
-  {
-    if (c->regDirty && cache_reg_save(c)) {
-      c->regDirty = false;
-    }
-  }
-  thread_mutex_unlock(c->regMutex);
 }
