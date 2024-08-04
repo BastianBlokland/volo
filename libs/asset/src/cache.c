@@ -119,7 +119,11 @@ static bool cache_reg_open(AssetCache* c) {
    */
   dynarray_sort(&c->reg.entries, cache_compare_entry);
 
-  log_i("Opened asset cache registry", log_param("path", fmt_path(path)));
+  log_i(
+      "Opened asset cache registry",
+      log_param("path", fmt_path(path)),
+      log_param("size", fmt_size(data.size)),
+      log_param("entries", fmt_int(c->reg.entries.size)));
 
   file_unmap(c->regFile);
   return true;
@@ -192,43 +196,43 @@ void asset_data_init_cache(void) {
 AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
   diag_assert(!string_is_empty(rootPath));
 
-  AssetCache* cache = alloc_alloc_t(alloc, AssetCache);
+  AssetCache* c = alloc_alloc_t(alloc, AssetCache);
 
-  *cache = (AssetCache){
+  *c = (AssetCache){
       .alloc    = alloc,
       .rootPath = string_dup(alloc, rootPath),
       .regMutex = thread_mutex_create(alloc),
   };
 
-  if (UNLIKELY(!cache_ensure_dir(cache))) {
-    cache->error = true;
+  if (UNLIKELY(!cache_ensure_dir(c))) {
+    c->error = true;
     goto Ret;
   }
-  if (UNLIKELY(!cache_reg_open_or_create(cache))) {
-    cache->error = true;
+  if (UNLIKELY(!cache_reg_open_or_create(c))) {
+    c->error = true;
     goto Ret;
   }
 
 Ret:
-  return cache;
+  return c;
 }
 
-void asset_cache_destroy(AssetCache* cache) {
-  if (cache->regDirty && !cache->error) {
-    cache_reg_save(cache);
+void asset_cache_destroy(AssetCache* c) {
+  if (c->regDirty && !c->error) {
+    cache_reg_save(c);
   }
-  if (cache->regFile) {
-    file_destroy(cache->regFile);
+  if (c->regFile) {
+    file_destroy(c->regFile);
   }
-  data_destroy(g_dataReg, cache->alloc, g_assetCacheDataDef, mem_var(cache->reg));
-  thread_mutex_destroy(cache->regMutex);
+  data_destroy(g_dataReg, c->alloc, g_assetCacheDataDef, mem_var(c->reg));
+  thread_mutex_destroy(c->regMutex);
 
-  string_free(cache->alloc, cache->rootPath);
-  alloc_free_t(cache->alloc, cache);
+  string_free(c->alloc, c->rootPath);
+  alloc_free_t(c->alloc, c);
 }
 
-void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta, const Mem blob) {
-  if (UNLIKELY(cache->error)) {
+void asset_cache_add(AssetCache* c, const String id, const DataMeta blobMeta, const Mem blob) {
+  if (UNLIKELY(c->error)) {
     return;
   }
   const StringHash idHash     = string_hash(id);
@@ -236,7 +240,7 @@ void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta
 
   // Save the blob to disk.
   const String     blobName     = fmt_write_scratch("{}.blob", fmt_int(idHash));
-  const String     blobPath     = path_build_scratch(cache->rootPath, g_assetCachePath, blobName);
+  const String     blobPath     = path_build_scratch(c->rootPath, g_assetCachePath, blobName);
   const FileResult blobWriteRes = file_write_to_path_sync(blobPath, blob);
   if (UNLIKELY(blobWriteRes != FileResult_Success)) {
     log_w(
@@ -247,26 +251,26 @@ void asset_cache_add(AssetCache* cache, const String id, const DataMeta blobMeta
   }
 
   // Add an entry to the registry.
-  thread_mutex_lock(cache->regMutex);
+  thread_mutex_lock(c->regMutex);
   {
-    AssetCacheEntry* entry = cache_reg_add(cache, id, idHash);
+    AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
     entry->formatHash      = formatHash;
 
-    cache->regDirty = true;
+    c->regDirty = true;
   }
-  thread_mutex_unlock(cache->regMutex);
+  thread_mutex_unlock(c->regMutex);
 }
 
-void asset_cache_flush(AssetCache* cache) {
-  if (UNLIKELY(cache->error)) {
+void asset_cache_flush(AssetCache* c) {
+  if (UNLIKELY(c->error)) {
     return;
   }
-  thread_mutex_lock(cache->regMutex);
+  thread_mutex_lock(c->regMutex);
   {
-    if (cache->regDirty) {
-      cache_reg_save(cache);
-      cache->regDirty = false;
+    if (c->regDirty) {
+      cache_reg_save(c);
+      c->regDirty = false;
     }
   }
-  thread_mutex_unlock(cache->regMutex);
+  thread_mutex_unlock(c->regMutex);
 }
