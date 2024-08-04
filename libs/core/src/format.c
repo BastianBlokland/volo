@@ -249,7 +249,7 @@ String format_write_arg_scratch(const FormatArg* arg) {
 void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
   diag_assert(opts->base > 1 && opts->base <= 16);
 
-  Mem buffer = mem_stack(64);
+  Mem buffer = mem_stack(256);
   u8* ptr    = mem_end(buffer);
 
   const char* chars         = "0123456789ABCDEF";
