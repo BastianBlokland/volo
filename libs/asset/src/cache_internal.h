@@ -2,6 +2,8 @@
 #include "core_string.h"
 #include "data_registry.h"
 
+#include "repo_internal.h"
+
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
@@ -23,7 +25,14 @@ void        asset_cache_flush(AssetCache*);
  * Save the given blob in the cache.
  * NOTE: Overwrites any existing blobs with the same id.
  */
-void asset_cache_set(AssetCache*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
+void asset_cache_set(
+    AssetCache*,
+    String              id,
+    DataMeta            blobMeta,
+    TimeReal            blobModTime,
+    Mem                 blob,
+    const AssetRepoDep* deps,
+    usize               depCount);
 
 typedef struct {
   File*    blobFile; // NOTE: Caller is responsible for destroying the handle.

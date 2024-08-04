@@ -265,10 +265,7 @@ static void asset_repo_fs_cache(
     const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  (void)deps;
-  (void)depCount;
-
-  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blob);
+  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blob, deps, depCount);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 

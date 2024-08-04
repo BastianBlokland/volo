@@ -307,14 +307,19 @@ void asset_cache_destroy(AssetCache* c) {
 }
 
 void asset_cache_set(
-    AssetCache*    c,
-    const String   id,
-    const DataMeta blobMeta,
-    const TimeReal blobModTime,
-    const Mem      blob) {
+    AssetCache*         c,
+    const String        id,
+    const DataMeta      blobMeta,
+    const TimeReal      blobModTime,
+    const Mem           blob,
+    const AssetRepoDep* deps,
+    const usize         depCount) {
   if (UNLIKELY(c->error)) {
     return;
   }
+  (void)deps;
+  (void)depCount;
+
   const StringHash     idHash    = string_hash(id);
   const AssetCacheMeta cacheMeta = cache_meta_create(g_dataReg, blobMeta);
 
