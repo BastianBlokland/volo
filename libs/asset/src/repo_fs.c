@@ -56,6 +56,7 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
           {
               .data    = data,
               .format  = format,
+              .flags   = AssetSourceFlags_Cached,
               .modTime = rec->modTime,
               .close   = asset_source_fs_close,
           },
@@ -100,6 +101,7 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
           {
               .data    = data,
               .format  = asset_format_from_ext(path_extension(id)),
+              .flags   = AssetSourceFlags_None,
               .modTime = fileInfo.modTime,
               .close   = asset_source_fs_close,
           },

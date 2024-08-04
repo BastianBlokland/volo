@@ -48,10 +48,16 @@ struct sAssetRepo {
       usize               depCount);
 };
 
+typedef enum {
+  AssetSourceFlags_None   = 0,
+  AssetSourceFlags_Cached = 1 << 0,
+} AssetSourceFlags;
+
 struct sAssetSource {
-  String      data;
-  AssetFormat format;
-  TimeReal    modTime;
+  String           data;
+  AssetFormat      format;
+  AssetSourceFlags flags;
+  TimeReal         modTime;
 
   void (*close)(AssetSource*);
 };
