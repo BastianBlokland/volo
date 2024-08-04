@@ -443,6 +443,11 @@ ecs_view_define(AssetCacheRequestView) {
   ecs_access_maybe_read(AssetDependencyComp);
 }
 
+ecs_view_define(AssetCacheInitView) {
+  ecs_access_read(AssetComp);
+  ecs_access_with(AssetCacheInitComp);
+}
+
 ecs_view_define(AssetDepView) { ecs_access_read(AssetComp); }
 
 ecs_system_define(AssetCacheSys) {
@@ -452,6 +457,7 @@ ecs_system_define(AssetCacheSys) {
   }
 
   EcsView* cacheRequestView = ecs_world_view_t(world, AssetCacheRequestView);
+  EcsView* cacheInitView    = ecs_world_view_t(world, AssetCacheInitView);
   EcsView* depView          = ecs_world_view_t(world, AssetDepView);
 
   EcsIterator* depItr = ecs_view_itr(depView);
@@ -508,6 +514,21 @@ ecs_system_define(AssetCacheSys) {
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequestComp);
   }
+
+  // Initialize cached assets.
+  for (EcsIterator* itr = ecs_view_itr(cacheInitView); ecs_view_walk(itr);) {
+    const EcsEntityId assetEntity = ecs_view_entity(itr);
+    const AssetComp*  assetComp   = ecs_view_read_t(itr, AssetComp);
+
+    // Register cached asset dependencies so this asset can be reloaded when they change.
+    depCount = asset_repo_cache_deps(manager->repo, assetComp->id, deps);
+    for (usize i = 0; i != depCount; ++i) {
+      const EcsEntityId depEntity = asset_watch(world, manager, deps[i].id);
+      asset_register_dep(world, assetEntity, depEntity);
+    }
+
+    ecs_world_remove_t(world, assetEntity, AssetCacheInitComp);
+  }
 }
 
 ecs_module_init(asset_manager_module) {
@@ -541,6 +562,7 @@ ecs_module_init(asset_manager_module) {
   ecs_register_system(
       AssetCacheSys,
       ecs_register_view(AssetCacheRequestView),
+      ecs_register_view(AssetCacheInitView),
       ecs_register_view(AssetDepView),
       ecs_view_id(GlobalWriteView));
 }
