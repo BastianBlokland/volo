@@ -1,5 +1,6 @@
 #include "asset_register.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_path.h"
@@ -139,9 +140,7 @@ static void asset_dep_mark(const AssetDepStorage* storage, EcsWorld* world, cons
     ecs_utils_maybe_add(world, storage->single, comp);
     break;
   case AssetDepStorageType_Many:
-    dynarray_for_t(&storage->many, EcsEntityId, dependent) {
-      ecs_utils_maybe_add(world, *dependent, comp);
-    }
+    dynarray_for_t(&storage->many, EcsEntityId, asset) { ecs_utils_maybe_add(world, *asset, comp); }
     break;
   }
 }
@@ -430,7 +429,10 @@ ecs_system_define(AssetPollChangedSys) {
 ecs_view_define(AssetCacheView) {
   ecs_access_read(AssetComp);
   ecs_access_read(AssetCacheRequest);
+  ecs_access_maybe_read(AssetDependencyComp);
 }
+
+ecs_view_define(AssetDepView) { ecs_access_read(AssetComp); }
 
 ecs_system_define(AssetCacheSys) {
   const AssetManagerComp* manager = asset_manager_readonly(world);
@@ -438,27 +440,59 @@ ecs_system_define(AssetCacheSys) {
     return;
   }
 
+  EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
+  EcsView* depView   = ecs_world_view_t(world, AssetDepView);
+
+  EcsIterator* depItr = ecs_view_itr(depView);
+
   AssetRepoDep deps[256];
   usize        depCount = 0;
 
-  EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
   for (EcsIterator* itr = ecs_view_itr(cacheView); ecs_view_walk(itr);) {
-    const EcsEntityId        assetEntity = ecs_view_entity(itr);
-    const AssetComp*         assetComp   = ecs_view_read_t(itr, AssetComp);
-    const AssetCacheRequest* request     = ecs_view_read_t(itr, AssetCacheRequest);
+    const EcsEntityId          assetEntity = ecs_view_entity(itr);
+    const AssetComp*           assetComp   = ecs_view_read_t(itr, AssetComp);
+    const AssetCacheRequest*   requestComp = ecs_view_read_t(itr, AssetCacheRequest);
+    const AssetDependencyComp* depComp     = ecs_view_read_t(itr, AssetDependencyComp);
 
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
     // Collect asset data.
     const String   id      = assetComp->id;
-    const Mem      blob    = mem_slice(request->blobMem, 0, request->blobSize);
+    const Mem      blob    = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
     const TimeReal modTime = assetComp->loadModTime;
 
     // Collect asset dependencies.
     depCount = 0;
+    if (depComp) {
+      switch (depComp->dependencies.type) {
+      case AssetDepStorageType_None:
+        break;
+      case AssetDepStorageType_Single: {
+        ecs_view_jump(depItr, depComp->dependencies.single);
+        const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
+        deps[depCount++]              = (AssetRepoDep){
+            .id      = depAssetComp->id,
+            .modTime = depAssetComp->loadModTime,
+        };
+      } break;
+      case AssetDepStorageType_Many:
+        dynarray_for_t(&depComp->dependencies.many, EcsEntityId, asset) {
+          if (depCount == array_elems(deps)) {
+            break;
+          }
+          ecs_view_jump(depItr, *asset);
+          const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
+          deps[depCount++]              = (AssetRepoDep){
+              .id      = depAssetComp->id,
+              .modTime = depAssetComp->loadModTime,
+          };
+        }
+        break;
+      }
+    }
 
     // Save the asset in the repo cache.
-    asset_repo_cache(manager->repo, id, request->blobMeta, modTime, blob, deps, depCount);
+    asset_repo_cache(manager->repo, id, requestComp->blobMeta, modTime, blob, deps, depCount);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequest);
   }
@@ -489,7 +523,11 @@ ecs_module_init(asset_manager_module) {
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
 
-  ecs_register_system(AssetCacheSys, ecs_register_view(AssetCacheView), ecs_view_id(GlobalView));
+  ecs_register_system(
+      AssetCacheSys,
+      ecs_register_view(AssetCacheView),
+      ecs_register_view(AssetDepView),
+      ecs_view_id(GlobalView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }
