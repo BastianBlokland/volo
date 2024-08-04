@@ -19,10 +19,19 @@ typedef struct {
 } AssetCacheMeta;
 
 typedef struct {
+  String   id;
+  TimeReal modTime;
+} AssetCacheDependency;
+
+typedef struct {
   String         id;
   StringHash     idHash;
   AssetCacheMeta meta;
   TimeReal       modTime;
+  struct {
+    const AssetCacheDependency* values;
+    usize                       count;
+  } dependencies;
 } AssetCacheEntry;
 
 typedef struct {
@@ -255,11 +264,16 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheMeta, container, data_prim_t(u8));
   data_reg_field_t(g_dataReg, AssetCacheMeta, flags, data_prim_t(u8));
 
+  data_reg_struct_t(g_dataReg, AssetCacheDependency);
+  data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
+
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_DataArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
@@ -334,12 +348,27 @@ void asset_cache_set(
     return;
   }
 
+  // Initialize the dependency array.
+  AssetCacheDependency* cacheDependencies = null;
+  if (depCount) {
+    cacheDependencies = alloc_array_t(c->alloc, AssetCacheDependency, depCount);
+    for (usize i = 0; i != depCount; ++i) {
+      diag_assert(!string_is_empty(deps[i].id));
+      cacheDependencies[i] = (AssetCacheDependency){
+          .id      = string_dup(c->alloc, deps[i].id),
+          .modTime = deps[i].modTime,
+      };
+    }
+  }
+
   // Add an entry to the registry.
   thread_mutex_lock(c->regMutex);
   {
-    AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
-    entry->meta            = cacheMeta;
-    entry->modTime         = blobModTime;
+    AssetCacheEntry* entry     = cache_reg_add(c, id, idHash);
+    entry->meta                = cacheMeta;
+    entry->modTime             = blobModTime;
+    entry->dependencies.values = cacheDependencies;
+    entry->dependencies.count  = depCount;
 
     c->regDirty = true;
   }
