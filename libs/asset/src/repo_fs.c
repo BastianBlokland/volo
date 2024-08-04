@@ -35,6 +35,37 @@ static void asset_source_fs_close(AssetSource* src) {
   alloc_free_t(srcFs->repo->sourceAlloc, srcFs);
 }
 
+static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const AssetCacheRecord* rec) {
+  const AssetFormat format = asset_format_from_data_meta(rec->meta);
+  if (format == AssetFormat_Raw) {
+    log_w("No asset-format found for cached data");
+    return null;
+  }
+  String     data;
+  FileResult result;
+  if ((result = file_map(rec->blobFile, &data))) {
+    log_w("Failed to map cache file", log_param("result", fmt_text(file_result_str(result))));
+    file_destroy(rec->blobFile);
+    return null;
+  }
+
+  AssetSourceFs* src = alloc_alloc_t(repoFs->sourceAlloc, AssetSourceFs);
+
+  *src = (AssetSourceFs){
+      .api =
+          {
+              .data    = data,
+              .format  = format,
+              .modTime = rec->modTime,
+              .close   = asset_source_fs_close,
+          },
+      .repo = repoFs,
+      .file = rec->blobFile,
+  };
+
+  return (AssetSource*)src;
+}
+
 static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const String id) {
   const String path = path_build_scratch(repoFs->rootPath, id);
   String       data;
@@ -81,6 +112,11 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
 
 static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  AssetCacheRecord cacheRecord;
+  if (asset_cache_get(repoFs->cache, id, &cacheRecord)) {
+    return asset_source_fs_open_cached(repoFs, &cacheRecord);
+  }
   return asset_source_fs_open_normal(repoFs, id);
 }
 
