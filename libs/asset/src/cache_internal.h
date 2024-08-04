@@ -23,10 +23,10 @@ void        asset_cache_flush(AssetCache*);
  * Save the given blob in the cache.
  * NOTE: Overwrites any existing blobs with the same id.
  */
-void asset_cache_add(AssetCache*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
+void asset_cache_set(AssetCache*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
 
 /**
  * Lookup a file containing a cache blob with the given id.
  * NOTE: Returns null if no compatible entry with the same id was found.
  */
-File* asset_cache_open(AssetCache*, String id);
+File* asset_cache_get(AssetCache*, String id);

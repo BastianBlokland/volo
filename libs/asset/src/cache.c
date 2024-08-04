@@ -252,7 +252,7 @@ void asset_cache_destroy(AssetCache* c) {
   alloc_free_t(c->alloc, c);
 }
 
-void asset_cache_add(
+void asset_cache_set(
     AssetCache*    c,
     const String   id,
     const DataMeta blobMeta,
@@ -287,7 +287,7 @@ void asset_cache_add(
   thread_mutex_unlock(c->regMutex);
 }
 
-File* asset_cache_open(AssetCache* c, const String id) {
+File* asset_cache_get(AssetCache* c, const String id) {
   File* res = null;
   if (UNLIKELY(c->error)) {
     goto Ret;
