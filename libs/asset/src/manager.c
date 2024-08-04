@@ -63,6 +63,7 @@ ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 ecs_comp_define(AssetInstantUnloadComp);
 
 typedef enum {
+  AssetDepStorageType_None,
   AssetDepStorageType_Single,
   AssetDepStorageType_Many,
 } AssetDepStorageType;
@@ -94,11 +95,19 @@ static void asset_dep_destroy(AssetDepStorage* storage) {
 }
 
 static void asset_dep_push(AssetDepStorage* storage, const EcsEntityId asset) {
-  if (storage->type == AssetDepStorageType_Single) {
+  switch (storage->type) {
+  case AssetDepStorageType_None:
+    storage->type   = AssetDepStorageType_Single;
+    storage->single = asset;
+    return;
+  case AssetDepStorageType_Single: {
     const EcsEntityId existingAsset               = storage->single;
     storage->type                                 = AssetDepStorageType_Many;
     storage->many                                 = dynarray_create_t(g_allocHeap, EcsEntityId, 8);
     *dynarray_push_t(&storage->many, EcsEntityId) = existingAsset;
+  } break;
+  case AssetDepStorageType_Many:
+    break;
   }
   if (!dynarray_search_linear(&storage->many, ecs_compare_entity, &asset)) {
     *dynarray_push_t(&storage->many, EcsEntityId) = asset;
@@ -107,6 +116,8 @@ static void asset_dep_push(AssetDepStorage* storage, const EcsEntityId asset) {
 
 static void asset_dep_combine(AssetDepStorage* a, AssetDepStorage* b) {
   switch (b->type) {
+  case AssetDepStorageType_None:
+    break;
   case AssetDepStorageType_Single:
     asset_dep_push(a, b->single);
     break;
@@ -119,6 +130,8 @@ static void asset_dep_combine(AssetDepStorage* a, AssetDepStorage* b) {
 
 static void asset_dep_mark(const AssetDepStorage* storage, EcsWorld* world, const EcsCompId comp) {
   switch (storage->type) {
+  case AssetDepStorageType_None:
+    break;
   case AssetDepStorageType_Single:
     ecs_utils_maybe_add(world, storage->single, comp);
     break;
