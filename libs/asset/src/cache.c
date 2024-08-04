@@ -206,6 +206,21 @@ static const AssetCacheEntry* cache_reg_get(AssetCache* c, const StringHash idHa
   return dynarray_search_binary(&c->reg.entries, cache_compare_entry, &key);
 }
 
+/**
+ * Pre-condition: cache->regMutex is held by this thread.
+ */
+static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry) {
+  const String   sourcePath = path_build_scratch(c->rootPath, entry->id);
+  const FileInfo sourceInfo = file_stat_path_sync(sourcePath);
+  if (sourceInfo.type != FileType_Regular) {
+    return false; // Source file has been deleted.
+  }
+  if (sourceInfo.modTime > entry->modTime) {
+    return false; // Source file has been modified.
+  }
+  return true;
+}
+
 static AssetCacheMeta cache_meta_create(const DataReg* reg, const DataMeta meta) {
   return (AssetCacheMeta){
       .typeNameHash = data_name_hash(reg, meta.type),
@@ -340,13 +355,16 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
     if (entry) {
       diag_assert_msg(string_eq(entry->id, id), "Asset id hash collision detected");
 
-      if (cache_meta_resolve(g_dataReg, &entry->meta, &out->meta)) {
-        out->modTime = entry->modTime;
-        success      = true;
-      } else {
-        // Cache entry not compatible.
+      if (!cache_meta_resolve(g_dataReg, &entry->meta, &out->meta)) {
+        goto Incompatible;
       }
+      if (!cache_reg_validate(c, entry)) {
+        goto Incompatible;
+      }
+      out->modTime = entry->modTime;
+      success      = true;
     }
+  Incompatible:;
   }
   thread_mutex_unlock(c->regMutex);
 
