@@ -299,7 +299,7 @@ spec(bin) {
   }
 
   it("can read the binary header") {
-    const DataMeta meta = data_meta_t(data_prim_t(bool));
+    const DataMeta meta = data_meta_t(data_prim_t(bool), .flags = DataFlags_Opt);
 
     const bool val = true;
 
@@ -314,8 +314,10 @@ spec(bin) {
     check_eq_int(data.size, sizeof(bool));
 
     check_require(!headerRes.error);
-    check_eq_int(header.typeNameHash, data_name_hash(reg, meta.type));
-    check_eq_int(header.typeFormatHash, data_hash(reg, meta, DataHashFlags_ExcludeIds));
+    check_eq_int(header.metaTypeNameHash, data_name_hash(reg, meta.type));
+    check_eq_int(header.metaFormatHash, data_hash(reg, meta, DataHashFlags_ExcludeIds));
+    check_eq_int(header.metaContainer, DataContainer_None);
+    check_eq_int(header.metaFlags, DataFlags_Opt);
   }
 
   teardown() { data_reg_destroy(reg); }

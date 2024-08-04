@@ -56,6 +56,13 @@ void data_reg_destroy(DataReg*);
 u32 data_type_count(const DataReg*);
 
 /**
+ * Lookup a type by name.
+ * NOTE: Returns 0 if no type was found with a matching name.
+ */
+DataType data_type_from_name(const DataReg*, String name);
+DataType data_type_from_name_hash(const DataReg*, StringHash nameHash);
+
+/**
  * Retrieve the name of a registered type.
  */
 String     data_name(const DataReg*, DataType);
@@ -65,10 +72,6 @@ StringHash data_name_hash(const DataReg*, DataType);
  * Retrieve the size (in bytes) of a registered type.
  */
 usize data_size(const DataReg*, DataType);
-
-/**
- * Retrieve the alignment requirement (in bytes) of a registered type.
- */
 usize data_align(const DataReg*, DataType);
 
 /**
@@ -81,6 +84,7 @@ String data_comment(const DataReg*, DataType);
  * Get the size (in bytes) that a value with the given DataMeta occupies.
  */
 usize data_meta_size(const DataReg*, DataMeta);
+usize data_meta_align(const DataReg*, DataMeta);
 
 /**
  * Declare a type without defining it yet.

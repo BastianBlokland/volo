@@ -122,14 +122,27 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
         DataReadError_Incompatible, "Input format {} is unsupported", fmt_int(inFormatVersion));
     return;
   }
-  if (!bin_pop_u32(ctx, &out->typeNameHash)) {
+  if (!bin_pop_u32(ctx, &out->metaTypeNameHash)) {
     *res = result_fail_truncated();
     return;
   }
-  if (!bin_pop_u32(ctx, &out->typeFormatHash)) {
+  if (!bin_pop_u32(ctx, &out->metaFormatHash)) {
     *res = result_fail_truncated();
     return;
   }
+
+  u8 metaContainerVal, metaFlagsVal;
+  if (!bin_pop_u8(ctx, &metaContainerVal)) {
+    *res = result_fail_truncated();
+    return;
+  }
+  if (!bin_pop_u8(ctx, &metaFlagsVal)) {
+    *res = result_fail_truncated();
+    return;
+  }
+  out->metaContainer = (DataContainer)metaContainerVal;
+  out->metaFlags     = (DataFlags)metaFlagsVal;
+
   *res = result_success();
   return;
 }
@@ -230,11 +243,16 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  if (ctx->meta.flags & DataFlags_ExternalMemory) {
-    diag_assert(bits_aligned_ptr(val.ptr, data_read_bin_mem_align(val.size)));
+  const usize reqAlign = data_read_bin_mem_align(val.size);
+  /**
+   * NOTE: Even though we've padded the data it not be aligned if the data start was not
+   * sufficiently aligned.
+   */
+  const bool valIsAligned = bits_aligned_ptr(val.ptr, reqAlign);
+  if (ctx->meta.flags & DataFlags_ExternalMemory && valIsAligned) {
     *mem_as_t(ctx->data, DataMem) = data_mem_create_ext(val);
   } else {
-    const Mem copy = alloc_alloc(ctx->alloc, val.size, data_read_bin_mem_align(val.size));
+    const Mem copy = alloc_alloc(ctx->alloc, val.size, reqAlign);
     mem_cpy(copy, val);
 
     data_register_alloc(ctx, copy);
@@ -533,12 +551,12 @@ String data_read_bin(
   if (UNLIKELY(res->error)) {
     goto Ret;
   }
-  if (UNLIKELY(header.typeNameHash != data_name_hash(reg, meta.type))) {
+  if (UNLIKELY(header.metaTypeNameHash != data_name_hash(reg, meta.type))) {
     *res = result_fail(DataReadError_Incompatible, "Input mismatched type name");
     goto Ret;
   }
-  if (UNLIKELY(header.typeFormatHash != data_hash(reg, meta, DataHashFlags_ExcludeIds))) {
-    *res = result_fail(DataReadError_Incompatible, "Input mismatched type hash");
+  if (UNLIKELY(header.metaFormatHash != data_hash(reg, meta, DataHashFlags_ExcludeIds))) {
+    *res = result_fail(DataReadError_Incompatible, "Input mismatched format hash");
     goto Ret;
   }
   data_read_bin_val(&ctx, res);

@@ -50,8 +50,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -101,6 +101,19 @@ void data_reg_destroy(DataReg* reg) {
 
 u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
+DataType data_type_from_name(const DataReg* reg, const String name) {
+  return data_type_from_name_hash(reg, string_hash(name));
+}
+
+DataType data_type_from_name_hash(const DataReg* reg, const StringHash nameHash) {
+  for (DataType type = 1; type != (reg->types.size + 1); ++type) {
+    if (data_decl(reg, type)->id.hash == nameHash) {
+      return type;
+    }
+  }
+  return 0;
+}
+
 String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
 
 StringHash data_name_hash(const DataReg* reg, const DataType type) {
@@ -125,6 +138,20 @@ usize data_meta_size(const DataReg* reg, const DataMeta meta) {
     return sizeof(DataArray);
   case DataContainer_DynArray:
     return sizeof(DynArray);
+  }
+  diag_crash();
+}
+
+usize data_meta_align(const DataReg* reg, const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+    return data_decl(reg, meta.type)->align;
+  case DataContainer_Pointer:
+    return alignof(void*);
+  case DataContainer_DataArray:
+    return alignof(DataArray);
+  case DataContainer_DynArray:
+    return alignof(DynArray);
   }
   diag_crash();
 }
