@@ -63,25 +63,72 @@ ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 ecs_comp_define(AssetInstantUnloadComp);
 
 typedef enum {
-  AssetDependencyStorage_Single,
-  AssetDependencyStorage_Many,
-} AssetDependencyStorage;
+  AssetDepStorageType_Single,
+  AssetDepStorageType_Many,
+} AssetDepStorageType;
 
-ecs_comp_define(AssetDependencyComp) {
-  struct {
-    AssetDependencyStorage type;
-    union {
-      EcsEntityId single;
-      DynArray    many; // EcsEntityId[].
-    };
-  } dependents;
-};
+typedef struct {
+  AssetDepStorageType type;
+  union {
+    EcsEntityId single;
+    DynArray    many; // EcsEntityId[].
+  };
+} AssetDepStorage;
+
+ecs_comp_define(AssetDependencyComp) { AssetDepStorage dependents; };
 
 ecs_comp_define(AssetCacheRequest) {
   DataMeta blobMeta;
   usize    blobSize;
   Mem      blobMem;
 };
+
+static AssetDepStorage asset_dep_create(const EcsEntityId asset) {
+  return (AssetDepStorage){.type = AssetDepStorageType_Single, .single = asset};
+}
+
+static void asset_dep_destroy(AssetDepStorage* storage) {
+  if (storage->type == AssetDepStorageType_Many) {
+    dynarray_destroy(&storage->many);
+  }
+}
+
+static void asset_dep_push(AssetDepStorage* storage, const EcsEntityId asset) {
+  if (storage->type == AssetDepStorageType_Single) {
+    const EcsEntityId existingAsset               = storage->single;
+    storage->type                                 = AssetDepStorageType_Many;
+    storage->many                                 = dynarray_create_t(g_allocHeap, EcsEntityId, 8);
+    *dynarray_push_t(&storage->many, EcsEntityId) = existingAsset;
+  }
+  if (!dynarray_search_linear(&storage->many, ecs_compare_entity, &asset)) {
+    *dynarray_push_t(&storage->many, EcsEntityId) = asset;
+  }
+}
+
+static void asset_dep_combine(AssetDepStorage* a, AssetDepStorage* b) {
+  switch (b->type) {
+  case AssetDepStorageType_Single:
+    asset_dep_push(a, b->single);
+    break;
+  case AssetDepStorageType_Many:
+    dynarray_for_t(&b->many, EcsEntityId, dep) { asset_dep_push(a, *dep); }
+    dynarray_destroy(&b->many);
+    break;
+  }
+}
+
+static void asset_dep_mark(const AssetDepStorage* storage, EcsWorld* world, const EcsCompId comp) {
+  switch (storage->type) {
+  case AssetDepStorageType_Single:
+    ecs_utils_maybe_add(world, storage->single, comp);
+    break;
+  case AssetDepStorageType_Many:
+    dynarray_for_t(&storage->many, EcsEntityId, dependent) {
+      ecs_utils_maybe_add(world, *dependent, comp);
+    }
+    break;
+  }
+}
 
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
@@ -99,36 +146,14 @@ static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
 
 static void ecs_destruct_asset_dependency(void* data) {
   AssetDependencyComp* comp = data;
-  if (comp->dependents.type == AssetDependencyStorage_Many) {
-    dynarray_destroy(&comp->dependents.many);
-  }
-}
-
-static void asset_add_dependent(AssetDependencyComp* comp, const EcsEntityId dep) {
-  if (comp->dependents.type == AssetDependencyStorage_Single) {
-    const EcsEntityId existingDep = comp->dependents.single;
-    comp->dependents.type         = AssetDependencyStorage_Many;
-    comp->dependents.many         = dynarray_create_t(g_allocHeap, EcsEntityId, 8);
-    *dynarray_push_t(&comp->dependents.many, EcsEntityId) = existingDep;
-  }
-  if (!dynarray_search_linear(&comp->dependents.many, ecs_compare_entity, &dep)) {
-    *dynarray_push_t(&comp->dependents.many, EcsEntityId) = dep;
-  }
+  asset_dep_destroy(&comp->dependents);
 }
 
 static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
   AssetDependencyComp* compA = dataA;
   AssetDependencyComp* compB = dataB;
 
-  switch (compB->dependents.type) {
-  case AssetDependencyStorage_Single:
-    asset_add_dependent(compA, compB->dependents.single);
-    break;
-  case AssetDependencyStorage_Many:
-    dynarray_for_t(&compB->dependents.many, EcsEntityId, dep) { asset_add_dependent(compA, *dep); }
-    dynarray_destroy(&compB->dependents.many);
-    break;
-  }
+  asset_dep_combine(&compA->dependents, &compB->dependents);
 }
 
 static void ecs_destruct_cache_request_comp(void* data) {
@@ -223,20 +248,6 @@ static const AssetManagerComp* asset_manager_readonly(EcsWorld* world) {
   return globalItr ? ecs_view_read_t(globalItr, AssetManagerComp) : null;
 }
 
-static void
-asset_mark_dependents(EcsWorld* world, const AssetDependencyComp* depComp, const EcsCompId comp) {
-  switch (depComp->dependents.type) {
-  case AssetDependencyStorage_Single:
-    ecs_utils_maybe_add(world, depComp->dependents.single, comp);
-    break;
-  case AssetDependencyStorage_Many:
-    dynarray_for_t(&depComp->dependents.many, EcsEntityId, dependent) {
-      ecs_utils_maybe_add(world, *dependent, comp);
-    }
-    break;
-  }
-}
-
 static u32 asset_unload_delay(
     EcsWorld* world, const AssetManagerComp* manager, const EcsEntityId assetEntity) {
   if (ecs_world_has_t(world, assetEntity, AssetInstantUnloadComp)) {
@@ -324,7 +335,7 @@ ecs_system_define(AssetUpdateDirtySys) {
          * for the unload delay). Reason is that if this asset fails to load most likely the asset
          * that depends on this one should be reloaded as well.
          */
-        asset_mark_dependents(world, dependencyComp, ecs_comp_id(AssetInstantUnloadComp));
+        asset_dep_mark(&dependencyComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
       }
 
       assetComp->flags &= ~AssetFlags_Loading;
@@ -392,8 +403,8 @@ ecs_system_define(AssetPollChangedSys) {
     // Also mark the dependent assets as changed.
     if (ecs_view_maybe_jump(depItr, assetEntity)) {
       const AssetDependencyComp* depComp = ecs_view_read_t(depItr, AssetDependencyComp);
-      asset_mark_dependents(world, depComp, ecs_comp_id(AssetChangedComp));
-      asset_mark_dependents(world, depComp, ecs_comp_id(AssetInstantUnloadComp));
+      asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetChangedComp));
+      asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
     }
   }
 }
@@ -568,12 +579,7 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
    * Track the upwards dependency ('asset' being dependent on 'dependency'), so when the
    * 'dependency' changes we also mark the 'asset' as changed.
    */
-  ecs_world_add_t(
-      world,
-      dependency,
-      AssetDependencyComp,
-      .dependents.type   = AssetDependencyStorage_Single,
-      .dependents.single = asset);
+  ecs_world_add_t(world, dependency, AssetDependencyComp, .dependents = asset_dep_create(asset));
 }
 
 AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
