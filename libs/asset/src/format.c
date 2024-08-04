@@ -1,4 +1,4 @@
-#include "core_annotation.h"
+#include "asset_texture.h"
 #include "core_array.h"
 #include "core_diag.h"
 
@@ -78,6 +78,13 @@ AssetFormat asset_format_from_ext(const String ext) {
     if (string_eq(ext, g_assetFormatExtensions[fmt])) {
       return fmt;
     }
+  }
+  return AssetFormat_Raw;
+}
+
+AssetFormat asset_format_from_data_meta(const DataMeta meta) {
+  if (data_meta_eq(meta, g_assetTexDataDef)) {
+    return AssetFormat_TexBin;
   }
   return AssetFormat_Raw;
 }
