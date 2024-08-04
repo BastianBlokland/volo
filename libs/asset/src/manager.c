@@ -76,7 +76,10 @@ typedef struct {
   };
 } AssetDepStorage;
 
-ecs_comp_define(AssetDependencyComp) { AssetDepStorage dependents; };
+ecs_comp_define(AssetDependencyComp) {
+  AssetDepStorage dependencies; // Assets that are dependencies of this asset.
+  AssetDepStorage dependents;   // Assets that depend on this asset.
+};
 
 ecs_comp_define(AssetCacheRequest) {
   DataMeta blobMeta;
@@ -159,6 +162,7 @@ static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
 
 static void ecs_destruct_asset_dependency(void* data) {
   AssetDependencyComp* comp = data;
+  asset_dep_destroy(&comp->dependencies);
   asset_dep_destroy(&comp->dependents);
 }
 
@@ -166,6 +170,7 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
   AssetDependencyComp* compA = dataA;
   AssetDependencyComp* compB = dataB;
 
+  asset_dep_combine(&compA->dependents, &compB->dependencies);
   asset_dep_combine(&compA->dependents, &compB->dependents);
 }
 
@@ -589,10 +594,10 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
   diag_assert(dependency);
 
   /**
-   * Track the upwards dependency ('asset' being dependent on 'dependency'), so when the
-   * 'dependency' changes we also mark the 'asset' as changed.
+   * Track the dependencies both upwards and downwards.
    */
   ecs_world_add_t(world, dependency, AssetDependencyComp, .dependents = asset_dep_create(asset));
+  ecs_world_add_t(world, asset, AssetDependencyComp, .dependencies = asset_dep_create(dependency));
 }
 
 AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
