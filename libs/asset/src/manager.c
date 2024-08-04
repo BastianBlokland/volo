@@ -83,7 +83,7 @@ ecs_comp_define(AssetDependencyComp) {
   AssetDepStorage dependents;   // Assets that depend on this asset.
 };
 
-ecs_comp_define(AssetCacheRequest) {
+ecs_comp_define(AssetCacheRequestComp) {
   DataMeta blobMeta;
   usize    blobSize;
   Mem      blobMem;
@@ -175,7 +175,7 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
 }
 
 static void ecs_destruct_cache_request_comp(void* data) {
-  AssetCacheRequest* comp = data;
+  AssetCacheRequestComp* comp = data;
   alloc_free(g_allocHeap, comp->blobMem);
 }
 
@@ -262,6 +262,13 @@ ecs_view_define(DirtyAssetView) {
 ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
 
 ecs_view_define(GlobalReadView) { ecs_access_read(AssetManagerComp); }
+ecs_view_define(GlobalWriteView) { ecs_access_write(AssetManagerComp); }
+
+static AssetManagerComp* asset_manager_mutable(EcsWorld* world) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalWriteView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
+}
 
 static const AssetManagerComp* asset_manager_readonly(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalReadView);
@@ -430,33 +437,34 @@ ecs_system_define(AssetPollChangedSys) {
   }
 }
 
-ecs_view_define(AssetCacheView) {
+ecs_view_define(AssetCacheRequestView) {
   ecs_access_read(AssetComp);
-  ecs_access_read(AssetCacheRequest);
+  ecs_access_read(AssetCacheRequestComp);
   ecs_access_maybe_read(AssetDependencyComp);
 }
 
 ecs_view_define(AssetDepView) { ecs_access_read(AssetComp); }
 
 ecs_system_define(AssetCacheSys) {
-  const AssetManagerComp* manager = asset_manager_readonly(world);
+  AssetManagerComp* manager = asset_manager_mutable(world);
   if (!manager) {
     return;
   }
 
-  EcsView* cacheView = ecs_world_view_t(world, AssetCacheView);
-  EcsView* depView   = ecs_world_view_t(world, AssetDepView);
+  EcsView* cacheRequestView = ecs_world_view_t(world, AssetCacheRequestView);
+  EcsView* depView          = ecs_world_view_t(world, AssetDepView);
 
   EcsIterator* depItr = ecs_view_itr(depView);
 
-  AssetRepoDep deps[256];
+  AssetRepoDep deps[asset_repo_cache_deps_max];
   usize        depCount = 0;
 
-  for (EcsIterator* itr = ecs_view_itr(cacheView); ecs_view_walk(itr);) {
-    const EcsEntityId          assetEntity = ecs_view_entity(itr);
-    const AssetComp*           assetComp   = ecs_view_read_t(itr, AssetComp);
-    const AssetCacheRequest*   requestComp = ecs_view_read_t(itr, AssetCacheRequest);
-    const AssetDependencyComp* depComp     = ecs_view_read_t(itr, AssetDependencyComp);
+  // Process cache requests.
+  for (EcsIterator* itr = ecs_view_itr(cacheRequestView); ecs_view_walk(itr);) {
+    const EcsEntityId            assetEntity = ecs_view_entity(itr);
+    const AssetComp*             assetComp   = ecs_view_read_t(itr, AssetComp);
+    const AssetCacheRequestComp* requestComp = ecs_view_read_t(itr, AssetCacheRequestComp);
+    const AssetDependencyComp*   depComp     = ecs_view_read_t(itr, AssetDependencyComp);
 
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
@@ -498,7 +506,7 @@ ecs_system_define(AssetCacheSys) {
     // Save the asset in the repo cache.
     asset_repo_cache(manager->repo, id, requestComp->blobMeta, modTime, blob, deps, depCount);
 
-    ecs_world_remove_t(world, assetEntity, AssetCacheRequest);
+    ecs_world_remove_t(world, assetEntity, AssetCacheRequestComp);
   }
 }
 
@@ -515,11 +523,12 @@ ecs_module_init(asset_manager_module) {
       AssetDependencyComp,
       .destructor = ecs_destruct_asset_dependency,
       .combinator = ecs_combine_asset_dependency);
-  ecs_register_comp(AssetCacheRequest, .destructor = ecs_destruct_cache_request_comp);
+  ecs_register_comp(AssetCacheRequestComp, .destructor = ecs_destruct_cache_request_comp);
 
   ecs_register_view(DirtyAssetView);
   ecs_register_view(AssetDependencyView);
   ecs_register_view(GlobalReadView);
+  ecs_register_view(GlobalWriteView);
 
   ecs_register_system(
       AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalReadView));
@@ -531,9 +540,9 @@ ecs_module_init(asset_manager_module) {
 
   ecs_register_system(
       AssetCacheSys,
-      ecs_register_view(AssetCacheView),
+      ecs_register_view(AssetCacheRequestView),
       ecs_register_view(AssetDepView),
-      ecs_view_id(GlobalReadView));
+      ecs_view_id(GlobalWriteView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }
@@ -666,7 +675,7 @@ void asset_cache(
   ecs_world_add_t(
       world,
       asset,
-      AssetCacheRequest,
+      AssetCacheRequestComp,
       .blobMeta = dataMeta,
       .blobSize = blobBuffer.size,
       .blobMem  = blobBuffer.data);
