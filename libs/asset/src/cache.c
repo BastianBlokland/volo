@@ -12,10 +12,17 @@ static const String g_assetCachePath    = string_static(".cache");
 static const String g_assetCacheRegName = string_static("registry.blob");
 
 typedef struct {
-  String     id;
-  StringHash idHash;
-  u32        formatHash;
-  TimeReal   modTime;
+  u32 typeNameHash;
+  u32 formatHash;
+  u8  container;
+  u8  flags;
+} AssetCacheMeta;
+
+typedef struct {
+  String         id;
+  StringHash     idHash;
+  AssetCacheMeta meta;
+  TimeReal       modTime;
 } AssetCacheEntry;
 
 typedef struct {
@@ -199,12 +206,44 @@ static const AssetCacheEntry* cache_reg_get(AssetCache* c, const StringHash idHa
   return dynarray_search_binary(&c->reg.entries, cache_compare_entry, &key);
 }
 
+static AssetCacheMeta cache_meta_create(const DataReg* reg, const DataMeta meta) {
+  return (AssetCacheMeta){
+      .typeNameHash = data_name_hash(reg, meta.type),
+      .formatHash   = data_hash(reg, meta, DataHashFlags_ExcludeIds),
+      .container    = (u8)meta.container,
+      .flags        = (u8)meta.flags,
+  };
+}
+
+static bool cache_meta_resolve(const DataReg* reg, const AssetCacheMeta* cacheMeta, DataMeta* out) {
+  const DataType type = data_type_from_name_hash(g_dataReg, cacheMeta->typeNameHash);
+  if (UNLIKELY(!type)) {
+    return false; // Type no longer exists with the same name.
+  }
+  const DataMeta dataMeta = {
+      .type      = type,
+      .container = (DataContainer)cacheMeta->container,
+      .flags     = (DataFlags)cacheMeta->flags,
+  };
+  if (UNLIKELY(cacheMeta->formatHash != data_hash(reg, dataMeta, DataHashFlags_ExcludeIds))) {
+    return false; // Format has changed and is no longer compatible.
+  }
+  *out = dataMeta;
+  return true;
+}
+
 void asset_data_init_cache(void) {
   // clang-format off
+  data_reg_struct_t(g_dataReg, AssetCacheMeta);
+  data_reg_field_t(g_dataReg, AssetCacheMeta, typeNameHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheMeta, formatHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheMeta, container, data_prim_t(u8));
+  data_reg_field_t(g_dataReg, AssetCacheMeta, flags, data_prim_t(u8));
+
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, formatHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
@@ -261,8 +300,8 @@ void asset_cache_set(
   if (UNLIKELY(c->error)) {
     return;
   }
-  const StringHash idHash     = string_hash(id);
-  const u32        formatHash = data_hash(g_dataReg, blobMeta, DataHashFlags_ExcludeIds);
+  const StringHash     idHash    = string_hash(id);
+  const AssetCacheMeta cacheMeta = cache_meta_create(g_dataReg, blobMeta);
 
   // Save the blob to disk.
   const String     blobPath     = cache_blob_path_scratch(c, idHash);
@@ -279,7 +318,7 @@ void asset_cache_set(
   thread_mutex_lock(c->regMutex);
   {
     AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
-    entry->formatHash      = formatHash;
+    entry->meta            = cacheMeta;
     entry->modTime         = blobModTime;
 
     c->regDirty = true;
@@ -300,9 +339,13 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
     if (entry) {
       diag_assert_msg(string_eq(entry->id, id), "Asset id hash collision detected");
 
-      out->filePath = cache_blob_path_scratch(c, idHash);
-      out->modTime  = entry->modTime;
-      success       = true;
+      if (cache_meta_resolve(g_dataReg, &entry->meta, &out->meta)) {
+        out->filePath = cache_blob_path_scratch(c, idHash);
+        out->modTime  = entry->modTime;
+        success       = true;
+      } else {
+        // Cache entry not compatible.
+      }
     }
   }
   thread_mutex_unlock(c->regMutex);

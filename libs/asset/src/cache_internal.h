@@ -24,6 +24,7 @@ void asset_cache_set(AssetCache*, String id, DataMeta blobMeta, TimeReal blobMod
 
 typedef struct {
   String   filePath; // NOTE: Allocated in scratch memory, should not be stored.
+  DataMeta meta;
   TimeReal modTime;
 } AssetCacheRecord;
 
