@@ -60,6 +60,7 @@ ecs_comp_define(AssetComp) {
 ecs_comp_define(AssetLoadedComp);
 ecs_comp_define(AssetFailedComp);
 ecs_comp_define(AssetChangedComp);
+ecs_comp_define(AssetCacheInitComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 ecs_comp_define(AssetInstantUnloadComp);
 
@@ -216,6 +217,9 @@ static bool asset_manager_load(
 
   if (manager->flags & AssetManagerFlags_TrackChanges) {
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
+  }
+  if (source->flags & AssetSourceFlags_Cached) {
+    ecs_world_add_empty_t(world, assetEntity, AssetCacheInitComp);
   }
 
   ++asset->loadCount;
@@ -504,6 +508,7 @@ ecs_module_init(asset_manager_module) {
   ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp_empty(AssetChangedComp);
+  ecs_register_comp_empty(AssetCacheInitComp);
   ecs_register_comp_empty(AssetInstantUnloadComp);
   ecs_register_comp(AssetDirtyComp, .combinator = ecs_combine_asset_dirty);
   ecs_register_comp(
