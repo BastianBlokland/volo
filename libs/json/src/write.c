@@ -198,7 +198,6 @@ static void json_state_write_number(JsonWriteState* s, DynString* str, const f64
       str,
       val,
       &format_opts_float(
-              .minDecDigits    = 0,
               .maxDecDigits    = s->opts->numberMaxDecDigits,
               .expThresholdPos = s->opts->numberExpThresholdPos,
               .expThresholdNeg = s->opts->numberExpThresholdNeg));
