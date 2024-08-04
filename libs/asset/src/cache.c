@@ -39,6 +39,11 @@ static i8 cache_compare_entry(const void* a, const void* b) {
   return compare_stringhash(&entryA->idHash, &entryB->idHash);
 }
 
+static String cache_blob_path_scratch(AssetCache* c, const StringHash idHash) {
+  const String blobName = fmt_write_scratch("{}.blob", fmt_int(idHash));
+  return path_build_scratch(c->rootPath, g_assetCachePath, blobName);
+}
+
 static bool cache_ensure_dir(AssetCache* c) {
   const String     path      = path_build_scratch(c->rootPath, g_assetCachePath);
   const FileResult createRes = file_create_dir_sync(path);
@@ -179,6 +184,14 @@ static AssetCacheEntry* cache_reg_add(AssetCache* c, const String id, const Stri
   return res;
 }
 
+/**
+ * Pre-condition: cache->regMutex is held by this thread.
+ */
+static const AssetCacheEntry* cache_reg_get(AssetCache* c, const StringHash idHash) {
+  const AssetCacheEntry key = {.idHash = idHash};
+  return dynarray_search_binary(&c->reg.entries, cache_compare_entry, &key);
+}
+
 void asset_data_init_cache(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
@@ -239,8 +252,7 @@ void asset_cache_add(AssetCache* c, const String id, const DataMeta blobMeta, co
   const u32        formatHash = data_hash(g_dataReg, blobMeta, DataHashFlags_ExcludeIds);
 
   // Save the blob to disk.
-  const String     blobName     = fmt_write_scratch("{}.blob", fmt_int(idHash));
-  const String     blobPath     = path_build_scratch(c->rootPath, g_assetCachePath, blobName);
+  const String     blobPath     = cache_blob_path_scratch(c, idHash);
   const FileResult blobWriteRes = file_write_to_path_sync(blobPath, blob);
   if (UNLIKELY(blobWriteRes != FileResult_Success)) {
     log_w(
@@ -259,6 +271,41 @@ void asset_cache_add(AssetCache* c, const String id, const DataMeta blobMeta, co
     c->regDirty = true;
   }
   thread_mutex_unlock(c->regMutex);
+}
+
+File* asset_cache_open(AssetCache* c, const String id) {
+  File* res = null;
+  if (UNLIKELY(c->error)) {
+    goto Ret;
+  }
+  const StringHash idHash = string_hash(id);
+
+  // Entry an entry in the registry.
+  bool hasEntry = false;
+  thread_mutex_lock(c->regMutex);
+  {
+    const AssetCacheEntry* entry = cache_reg_get(c, idHash);
+    if (entry) {
+      diag_assert_msg(string_eq(entry->id, id), "Asset id hash collision detected");
+
+      // TODO: Validate cache entry.
+      hasEntry = true;
+    }
+  }
+  thread_mutex_unlock(c->regMutex);
+
+  if (hasEntry) {
+    const String     path    = cache_blob_path_scratch(c, idHash);
+    const FileResult openRes = file_create(c->alloc, path, FileMode_Open, FileAccess_Read, &res);
+    if (UNLIKELY(openRes)) {
+      log_w(
+          "Failed to open asset cache blob",
+          log_param("error", fmt_text(file_result_str(openRes))));
+    }
+  }
+
+Ret:
+  return res;
 }
 
 void asset_cache_flush(AssetCache* c) {
