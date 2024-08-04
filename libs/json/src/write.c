@@ -200,8 +200,8 @@ static void json_state_write_number(JsonWriteState* s, DynString* str, const f64
       &format_opts_float(
               .minDecDigits    = 0,
               .maxDecDigits    = s->opts->numberMaxDecDigits,
-              .expThresholdPos = 1e10,
-              .expThresholdNeg = 1e-10));
+              .expThresholdPos = s->opts->numberExpThresholdPos,
+              .expThresholdNeg = s->opts->numberExpThresholdNeg));
 }
 
 static void json_state_write_bool(JsonWriteState* s, DynString* str, const bool val) {
