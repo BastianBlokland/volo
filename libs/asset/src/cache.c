@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_file.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "core_thread.h"
 #include "data.h"
@@ -444,4 +445,26 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
   }
 
   return success;
+}
+
+usize asset_cache_deps(
+    AssetCache* c, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_cache_deps_max)]) {
+  const StringHash idHash = string_hash(id);
+
+  usize result = 0;
+  thread_mutex_lock(c->regMutex);
+  {
+    const AssetCacheEntry* entry = cache_reg_get(c, idHash);
+    if (entry) {
+      result = math_min(entry->dependencies.count, asset_cache_deps_max);
+      for (usize i = 0; i != result; ++i) {
+        out[i] = (AssetRepoDep){
+            .id      = string_dup(g_allocScratch, entry->dependencies.values[i].id),
+            .modTime = entry->dependencies.values[i].modTime,
+        };
+      }
+    }
+  }
+  thread_mutex_unlock(c->regMutex);
+  return result;
 }
