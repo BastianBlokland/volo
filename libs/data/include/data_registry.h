@@ -51,6 +51,11 @@ DataReg* data_reg_create(Allocator*);
 void data_reg_destroy(DataReg*);
 
 /**
+ * Check if the given meta's are equal.
+ */
+bool data_meta_eq(DataMeta a, DataMeta b);
+
+/**
  * Retrieve the total number of registered types.
  */
 u32 data_type_count(const DataReg*);

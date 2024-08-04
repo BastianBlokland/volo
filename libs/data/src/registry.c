@@ -99,6 +99,10 @@ void data_reg_destroy(DataReg* reg) {
   alloc_free_t(reg->alloc, reg);
 }
 
+bool data_meta_eq(const DataMeta a, const DataMeta b) {
+  return a.type == b.type && a.container == b.container && a.flags == b.flags;
+}
+
 u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
 DataType data_type_from_name(const DataReg* reg, const String name) {
