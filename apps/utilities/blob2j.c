@@ -103,6 +103,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const String inputPath = cli_read_string(invoc, g_optPath, string_empty);
   if (string_is_empty(inputPath)) {
+    if (tty_isatty(g_fileStdIn)) {
+      file_write_sync(g_fileStdErr, string_lit("ERROR: Input blob expected (path or stdin).\n"));
+      return 1;
+    }
     inputFile = g_fileStdIn;
   } else {
     if (file_create(g_allocHeap, inputPath, FileMode_Open, FileAccess_Read, &inputFile)) {
