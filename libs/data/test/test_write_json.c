@@ -72,8 +72,14 @@ spec(write_json) {
     DynString dynString = dynstring_create_over(buffer);
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       dynstring_clear(&dynString);
-      const DataWriteJsonOpts opts = {.numberMaxDecDigits = g_testData[i].numberMaxDecDigits};
-      data_write_json(reg, &dynString, meta, mem_var(val), &opts);
+
+      data_write_json(
+          reg,
+          &dynString,
+          meta,
+          mem_var(val),
+          &data_write_json_opts(.numberMaxDecDigits = g_testData[i].numberMaxDecDigits));
+
       check_eq_string(dynstring_view(&dynString), g_testData[i].expectedOutput);
     }
   }
