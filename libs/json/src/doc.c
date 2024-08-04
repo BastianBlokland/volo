@@ -4,7 +4,8 @@
 #include "core_dynarray.h"
 #include "json_doc.h"
 
-#define json_doc_string_chunk_size (4 * usize_kibibyte)
+#define json_str_small_chunk_size (4 * usize_kibibyte)
+#define json_str_big_threshold (1 * usize_kibibyte)
 
 typedef struct {
   JsonVal elemHead, elemTail;
@@ -34,10 +35,17 @@ typedef struct {
   };
 } JsonValData;
 
+typedef struct sJsonBigStr {
+  struct sJsonBigStr* next;
+  usize               size;
+  u8                  data[];
+} JsonBigStr;
+
 struct sJsonDoc {
-  Allocator* alloc;
-  Allocator* allocString; // (chunked) bump allocator for string data.
-  DynArray   values;      // JsonValData[]
+  Allocator*  alloc;
+  Allocator*  allocSmallStr; // (chunked) bump allocator for small string data.
+  JsonBigStr* bigStrs;       // Head of linked list of big strings.
+  DynArray    values;        // JsonValData[]
 };
 
 INLINE_HINT static String json_data_str(const JsonStringData* data) {
@@ -55,13 +63,49 @@ static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
   return val;
 }
 
+static String json_bigstring_add(JsonDoc* doc, const String data) {
+  diag_assert(data.size >= json_str_big_threshold);
+
+  const usize allocSize = data.size + sizeof(JsonBigStr);
+  const Mem   allocMem  = alloc_alloc(doc->alloc, allocSize, alignof(JsonBigStr));
+  if (UNLIKELY(!mem_valid(allocMem))) {
+    diag_crash_msg("Json doc failed to allocate big string ({})", fmt_size(data.size));
+  }
+
+  JsonBigStr* node = mem_as_t(allocMem, JsonBigStr);
+  *node            = (JsonBigStr){.size = data.size};
+
+  const Mem nodeData = mem_from_to(node->data, mem_end(allocMem));
+  mem_cpy(nodeData, data);
+
+  if (doc->bigStrs) {
+    JsonBigStr* tail = doc->bigStrs;
+    for (; tail->next; tail = tail->next)
+      ;
+    tail->next = node;
+  } else {
+    doc->bigStrs = node;
+  }
+
+  return nodeData;
+}
+
+static void json_bigstring_free_all(JsonDoc* doc) {
+  for (JsonBigStr* node = doc->bigStrs; node;) {
+    JsonBigStr* next = node->next;
+    alloc_free(doc->alloc, mem_create(node, sizeof(JsonBigStr) + node->size));
+    node = next;
+  }
+  doc->bigStrs = null;
+}
+
 JsonDoc* json_create(Allocator* alloc, usize valueCapacity) {
   JsonDoc* doc = alloc_alloc_t(alloc, JsonDoc);
 
   *doc = (JsonDoc){
-      .alloc       = alloc,
-      .allocString = alloc_chunked_create(alloc, alloc_bump_create, json_doc_string_chunk_size),
-      .values      = dynarray_create_t(alloc, JsonValData, valueCapacity),
+      .alloc         = alloc,
+      .allocSmallStr = alloc_chunked_create(alloc, alloc_bump_create, json_str_small_chunk_size),
+      .values        = dynarray_create_t(alloc, JsonValData, valueCapacity),
   };
 
   return doc;
@@ -69,12 +113,14 @@ JsonDoc* json_create(Allocator* alloc, usize valueCapacity) {
 
 void json_destroy(JsonDoc* doc) {
   dynarray_destroy(&doc->values);
-  alloc_chunked_destroy(doc->allocString);
+  alloc_chunked_destroy(doc->allocSmallStr); // Free all small string data.
+  json_bigstring_free_all(doc);              // Free all big string data.
   alloc_free_t(doc->alloc, doc);
 }
 
 void json_clear(JsonDoc* doc) {
-  alloc_reset(doc->allocString); // Free all string data.
+  alloc_reset(doc->allocSmallStr); // Clear all small string data.
+  json_bigstring_free_all(doc);    // Free all big string data.
   dynarray_clear(&doc->values);
 }
 
@@ -100,6 +146,19 @@ JsonVal json_add_object(JsonDoc* doc) {
 
 JsonVal json_add_string(JsonDoc* doc, const String string) {
   diag_assert(string.size < u32_max);
+
+  String stringDup;
+  if (string_is_empty(string)) {
+    stringDup = string_empty;
+  } else if (string.size < json_str_big_threshold) {
+    stringDup = string_dup(doc->allocSmallStr, string);
+    if (UNLIKELY(!mem_valid(stringDup))) {
+      diag_crash_msg("Json doc small string allocator ran out of space");
+    }
+  } else {
+    stringDup = json_bigstring_add(doc, string);
+  }
+
   return json_add_data(
       doc,
       (JsonValData){
@@ -107,8 +166,8 @@ JsonVal json_add_string(JsonDoc* doc, const String string) {
           .next          = sentinel_u32,
           .val_string =
               {
-                  .data   = string_maybe_dup(doc->allocString, string).ptr,
-                  .length = (u32)string.size,
+                  .data   = stringDup.ptr,
+                  .length = (u32)stringDup.size,
                   .hash   = string_hash(string),
               },
       });

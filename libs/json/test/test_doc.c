@@ -22,6 +22,18 @@ spec(doc) {
     check_eq_string(json_string(doc, str), string_empty);
   }
 
+  it("can store big strings") {
+    DynString buffer = dynstring_create_over(mem_stack(8 * usize_kibibyte));
+    dynstring_append_chars(&buffer, 42, 8 * usize_kibibyte);
+    const String orgStr = dynstring_view(&buffer);
+
+    for (u32 i = 0; i != 4; ++i) {
+      const JsonVal str = json_add_string(doc, orgStr);
+      check_eq_int(json_type(doc, str), JsonType_String);
+      check_eq_string(json_string(doc, str), orgStr);
+    }
+  }
+
   it("can retrieve the value of a number") {
     const JsonVal val = json_add_number(doc, 42.1337);
 
