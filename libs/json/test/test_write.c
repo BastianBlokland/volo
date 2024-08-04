@@ -132,11 +132,11 @@ spec(write) {
   }
 
   it("can write numbers with a configurable positive exponent threshold") {
-    struct {
+    static const struct {
       f64    val;
       f64    threshold;
       String expected;
-    } static const g_data[] = {
+    } g_data[] = {
         {42, 1e2, string_static("42")},
         {424, 1e2, string_static("4.24e2")},
         {420, 1e2, string_static("4.2e2")},
@@ -156,11 +156,11 @@ spec(write) {
   }
 
   it("can write numbers with a configurable negative exponent threshold") {
-    struct {
+    static const struct {
       f64    val;
       f64    threshold;
       String expected;
-    } static const g_data[] = {
+    } g_data[] = {
         {42, 1e-2, string_static("42")},
         {0.42, 1e-2, string_static("0.42")},
         {0.042, 1e-2, string_static("0.042")},
