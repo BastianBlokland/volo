@@ -100,6 +100,17 @@ JsonVal json_add_object(JsonDoc* doc) {
 
 JsonVal json_add_string(JsonDoc* doc, const String string) {
   diag_assert(string.size < u32_max);
+
+  String stringDup;
+  if (string_is_empty(string)) {
+    stringDup = string_empty;
+  } else {
+    stringDup = string_dup(doc->allocString, string);
+    if (UNLIKELY(!mem_valid(stringDup))) {
+      diag_crash_msg("Unable to copy string ({}) into the json doc", fmt_size(string.size));
+    }
+  }
+
   return json_add_data(
       doc,
       (JsonValData){
@@ -107,8 +118,8 @@ JsonVal json_add_string(JsonDoc* doc, const String string) {
           .next          = sentinel_u32,
           .val_string =
               {
-                  .data   = string_maybe_dup(doc->allocString, string).ptr,
-                  .length = (u32)string.size,
+                  .data   = stringDup.ptr,
+                  .length = (u32)stringDup.size,
                   .hash   = string_hash(string),
               },
       });
