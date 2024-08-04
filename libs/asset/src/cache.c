@@ -287,39 +287,27 @@ void asset_cache_set(
   thread_mutex_unlock(c->regMutex);
 }
 
-File* asset_cache_get(AssetCache* c, const String id) {
-  File* res = null;
+bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
   if (UNLIKELY(c->error)) {
-    goto Ret;
+    return false;
   }
   const StringHash idHash = string_hash(id);
 
-  // Entry an entry in the registry.
-  bool hasEntry = false;
+  bool success = false;
   thread_mutex_lock(c->regMutex);
   {
     const AssetCacheEntry* entry = cache_reg_get(c, idHash);
     if (entry) {
       diag_assert_msg(string_eq(entry->id, id), "Asset id hash collision detected");
 
-      // TODO: Validate cache entry.
-      hasEntry = true;
+      out->filePath = cache_blob_path_scratch(c, idHash);
+      out->modTime  = entry->modTime;
+      success       = true;
     }
   }
   thread_mutex_unlock(c->regMutex);
 
-  if (hasEntry) {
-    const String     path    = cache_blob_path_scratch(c, idHash);
-    const FileResult openRes = file_create(c->alloc, path, FileMode_Open, FileAccess_Read, &res);
-    if (UNLIKELY(openRes)) {
-      log_w(
-          "Failed to open asset cache blob",
-          log_param("error", fmt_text(file_result_str(openRes))));
-    }
-  }
-
-Ret:
-  return res;
+  return success;
 }
 
 void asset_cache_flush(AssetCache* c) {

@@ -5,9 +5,6 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
-// Forward declare from 'core_file.h'.
-typedef struct sFile File;
-
 // Forward declare from 'core_time.h'.
 typedef i64 TimeReal;
 
@@ -25,8 +22,12 @@ void        asset_cache_flush(AssetCache*);
  */
 void asset_cache_set(AssetCache*, String id, DataMeta blobMeta, TimeReal blobModTime, Mem blob);
 
+typedef struct {
+  String   filePath; // NOTE: Allocated in scratch memory, should not be stored.
+  TimeReal modTime;
+} AssetCacheRecord;
+
 /**
- * Lookup a file containing a cache blob with the given id.
- * NOTE: Returns null if no compatible entry with the same id was found.
+ * Lookup a cache record containing with the given id.
  */
-File* asset_cache_get(AssetCache*, String id);
+bool asset_cache_get(AssetCache*, String id, AssetCacheRecord* out);
