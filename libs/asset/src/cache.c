@@ -263,7 +263,7 @@ void asset_cache_add(
   const FileResult blobWriteRes = file_write_to_path_sync(blobPath, blob);
   if (UNLIKELY(blobWriteRes != FileResult_Success)) {
     log_w(
-        "Failed to cache blob",
+        "Failed to write asset cache blob",
         log_param("path", fmt_path(blobPath)),
         log_param("error", fmt_text(file_result_str(blobWriteRes))));
     return;
