@@ -713,7 +713,6 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
       .kind             = spv_shader_kind(program->execModel),
       .entryPoint       = program->entryPoint,
       .resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, asset_shader_max_resources),
-      .specs.values     = alloc_array_t(g_allocHeap, AssetShaderSpec, asset_shader_max_specs),
       .data             = data_mem_create_ext(data),
   };
 
@@ -724,6 +723,9 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
 
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
   ASSERT(asset_shader_max_specs <= u8_max, "Spec bindings have to be addressable using 8 bit");
+
+  AssetShaderSpec specs[asset_shader_max_bindings];
+  u8              specCount = 0;
 
   u32 usedResSlots[asset_shader_max_bindings] = {0};
   u32 usedSpecSlots                           = 0;
@@ -775,7 +777,7 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
         return;
       }
       usedSpecSlots |= 1 << id->binding;
-      out->specs.values[out->specs.count++] = (AssetShaderSpec){
+      specs[specCount++] = (AssetShaderSpec){
           .type    = (u8)type,
           .defVal  = (u8)spv_specialization_default(id),
           .binding = (u8)id->binding,
@@ -794,6 +796,15 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
       out->outputMask |= 1 << id->binding;
     }
   }
+
+  if (specCount) {
+    out->specs.values = alloc_array_t(g_allocHeap, AssetShaderSpec, specCount);
+    out->specs.count  = specCount;
+    mem_cpy(
+        mem_from_to(out->specs.values, out->specs.values + specCount),
+        mem_from_to(specs, specs + specCount));
+  }
+
   *err = SpvError_None;
 }
 

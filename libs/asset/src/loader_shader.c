@@ -15,7 +15,7 @@ static void ecs_destruct_shader_comp(void* data) {
     alloc_free_array_t(g_allocHeap, comp->resources.values, asset_shader_max_resources);
   }
   if (comp->specs.values) {
-    alloc_free_array_t(g_allocHeap, comp->specs.values, asset_shader_max_specs);
+    alloc_free_array_t(g_allocHeap, comp->specs.values, comp->specs.count);
   }
 }
 
